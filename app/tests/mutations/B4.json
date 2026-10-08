@@ -1343,18 +1343,18 @@
     "id": "x-deploy-heavy",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "      - name: lighthouse\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'\n",
-    "replace": "      - name: lighthouse\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false\n",
+    "find": "        timeout-minutes: 22\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'\n",
+    "replace": "        timeout-minutes: 22\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "the overflow and Lighthouse steps run only for a front-end change"
   },
   {
-    "id": "shells-legacy",
+    "id": "shells-static-import",
     "test": "tests/unit/admin-route-shells.test.ts",
-    "file": "tests/unit/admin-route-shells.test.ts",
-    "find": "  \"src/routes/admin.tsx\",\n",
-    "replace": "",
+    "file": "src/routes/admin/sign-in.tsx",
+    "find": "import { pageHead } from \"../../lib/seo\";",
+    "replace": "import { pageHead } from \"../../lib/seo\";\nimport { useState } from \"react\";",
     "run": "bunx vitest run tests/unit/admin-route-shells.test.ts",
-    "expect": "admin\\.tsx imports .*\\.\\./admin/ui/AdminShell"
+    "expect": "AssertionError: src/routes/admin/sign-in.tsx imports react statically"
   }
 ]

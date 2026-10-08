@@ -4,6 +4,7 @@ import {
   clientErrorSchema,
   conciergeQuestionSchema,
   inquirySchema,
+  previewQuerySchema,
   searchQuerySchema,
   slugSchema,
   subjectRequestSchema,
@@ -27,6 +28,7 @@ import * as inquiries from "../inquiries/service";
 import type { Db } from "../lib/db";
 import type { env } from "../lib/env";
 import type { WaitUntil } from "../lib/wait-until";
+import * as previews from "../previews/service";
 import * as search from "../search/service";
 import * as subjects from "../subjects/service";
 import * as submissions from "../submissions/service";
@@ -66,6 +68,14 @@ export interface RouteCache {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the table holds services of different inputs under one type
 export type PublicService = (db: Db, input: any, ctx: PublicCtx) => Promise<unknown>;
 
+/** Answers a detail read that carries a draft token (B7 invariant 17 f): the slug, the token and the signing key. */
+export type DraftService = (
+  db: Db,
+  slug: string,
+  token: string,
+  key: string | undefined,
+) => Promise<unknown>;
+
 /** A `raw` row reads its own body (a signed webhook), so the pipeline reads none of it. */
 export type RawService = (request: Request, db: Db, env: Env) => Promise<Response>;
 
@@ -80,6 +90,9 @@ interface BaseRoute {
   /** The body types a write accepts; `application/json` when absent. */
   contentTypes?: readonly string[];
   cache?: RouteCache;
+  /** The query a cached read keeps; every other parameter is dropped (architecture 13 rule 3). */
+  query?: typeof previewQuerySchema;
+  draftService?: DraftService;
   status: number;
 }
 
@@ -116,7 +129,11 @@ const catalogRead = (
 
 export const routes: PublicRoute[] = [
   catalogRead("/api/public/properties", listProperties),
-  catalogRead("/api/public/properties/:slug", getProperty, { tag: "property", gone: true }),
+  {
+    ...catalogRead("/api/public/properties/:slug", getProperty, { tag: "property", gone: true }),
+    query: previewQuerySchema,
+    draftService: previews.getDraftProperty,
+  },
   catalogRead("/api/public/markets", listMarkets),
   catalogRead("/api/public/markets/:slug", getMarket, { tag: "market" }),
   catalogRead("/api/public/stories", listStories),

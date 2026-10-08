@@ -16,10 +16,13 @@ export const propertiesQuery = () =>
     staleTime: catalogStaleTime,
   });
 
-export const propertyQuery = (slug: string) =>
+/** With a draft token, the preview a signed link opens (B7 invariant 14), cached apart from the public page. */
+export const propertyQuery = (slug: string, draftToken?: string) =>
   queryOptions({
-    queryKey: ["property", slug],
-    queryFn: () => services.catalog.getProperty(slug),
+    queryKey:
+      draftToken === undefined ? ["property", slug] : ["property", slug, "preview", draftToken],
+    queryFn: () =>
+      services.catalog.getProperty(slug, draftToken === undefined ? undefined : { draftToken }),
     staleTime: catalogStaleTime,
   });
 

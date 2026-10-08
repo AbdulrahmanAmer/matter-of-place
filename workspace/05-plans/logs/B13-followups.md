@@ -228,7 +228,7 @@ Source: the fresh reviewer of group g1, none blocking. The one item that names G
 
 ## g1 · steps 11
 
-Source: the fresh reviewer of group g1, none blocking. The two items that name GOTCHAS.md (the wrong failure text in the proof of P-2022, the missing hit-again line of P-027) went into the bank and are not repeated here.
+Source: the fresh reviewer of group g1, none blocking. The two items that name GOTCHAS.md (the wrong failure text in the proof of P-1836, the missing hit-again line of P-027) went into the bank and are not repeated here.
 
 1. File `app/tests/api/gone.api.test.ts` (not blocking).
    What: After the fix, no CI job runs the only end-to-end proof of invariant 10's page 410. The db job of ci.yml sets no E2E_BASE_URL, and deploy.yml sets it only for Playwright (essentials, overflow), never for the vitest db project. So the 410 on a real server is proven only by hand on a laptop and by the manual registry entry b13-g1-gone-api-start. If start.ts stopped calling withGoneStatus, CI would catch it only through the stand-in render in gone.test.ts and seo-cache.test.ts. This is not a regression: before the fix the file would have turned the db job red. It is a coverage gap for a later step (for example a check-seo --gone-slug run or an e2e case against the preview).

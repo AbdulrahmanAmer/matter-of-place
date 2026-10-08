@@ -1,0 +1,2662 @@
+[
+  {
+    "id": "b10g1-carousel-null",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return multiImage ? [\"instagram\", \"linkedin\"] : [\"instagram\"];",
+    "replace": "return [\"instagram\", \"linkedin\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a carousel to instagram only while multi_image is null"
+  },
+  {
+    "id": "b10g1-carousel-true",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return multiImage ? [\"instagram\", \"linkedin\"] : [\"instagram\"];",
+    "replace": "return [\"instagram\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a carousel to instagram and linkedin when multi_image is true"
+  },
+  {
+    "id": "b10g1-cover-null",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": ": [\"x\", \"linkedin\", \"facebook\"];",
+    "replace": ": [\"x\", \"facebook\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a cover to x, linkedin and facebook while multi_image is null"
+  },
+  {
+    "id": "b10g1-cover-true",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return multiImage ? [\"x\", \"facebook\"]",
+    "replace": "return multiImage ? [\"x\", \"linkedin\", \"facebook\"]",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > leaves linkedin off a cover when multi_image is true"
+  },
+  {
+    "id": "b10g1-story",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "case \"story\":\n      return [\"instagram\", \"facebook\"];",
+    "replace": "case \"story\":\n      return [\"instagram\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a story to instagram and facebook and a reel to instagram"
+  },
+  {
+    "id": "b10g1-reel",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "case \"reel\":\n      return [\"instagram\"];",
+    "replace": "case \"reel\":\n      return [\"instagram\", \"x\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > sends a story to instagram and facebook and a reel to instagram"
+  },
+  {
+    "id": "b10g1-disabled",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "const multiImage = settings.linkedin?.multi_image === true;",
+    "replace": "const multiImage = settings.linkedin?.multi_image === true;\n  if (Reflect.get(settings, \"instagram\")?.enabled === false) return [];",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > keeps a channel whose row is disabled in the targets of a carousel"
+  },
+  {
+    "id": "b10g1-no-target",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "case \"newsletter_block\":\n",
+    "replace": "case \"newsletter_block\":\n      return [\"instagram\"];\n",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> targetsFor > gives a newsletter block and a standalone email no target"
+  },
+  {
+    "id": "b10g1-x-file",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"x:cover\": [\"x\"],",
+    "replace": "\"x:cover\": [\"main\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the x file and the x caption for a cover on x"
+  },
+  {
+    "id": "b10g1-x-caption",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return captions?.x ?? null;",
+    "replace": "return asset.caption;",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the x file and the x caption for a cover on x"
+  },
+  {
+    "id": "b10g1-order-sort",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "files.filter((file) => file.role === role).sort((a, b) => (a.index ?? 0) - (b.index ?? 0)),",
+    "replace": "files.filter((file) => file.role === role),",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the slide files of an instagram carousel in index order whatever the array order"
+  },
+  {
+    "id": "b10g1-order-caption",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return asset.caption;",
+    "replace": "return null;",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the slide files of an instagram carousel in index order whatever the array order"
+  },
+  {
+    "id": "b10g1-story-main",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"instagram:story\": [\"main\"],",
+    "replace": "\"instagram:story\": [\"poster\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the main file of an instagram story"
+  },
+  {
+    "id": "b10g1-reel-roles",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"instagram:reel\": [\"video\", \"poster\"],",
+    "replace": "\"instagram:reel\": [\"video\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the video and then the poster of an instagram reel"
+  },
+  {
+    "id": "b10g1-li-cover",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"linkedin:cover\": [\"linkedin\"],",
+    "replace": "\"linkedin:cover\": [\"main\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the linkedin file of a cover and the linkedin_set files of a carousel on linkedin"
+  },
+  {
+    "id": "b10g1-li-set",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"linkedin:carousel\": [\"linkedin_set\"],",
+    "replace": "\"linkedin:carousel\": [\"slide\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the linkedin file of a cover and the linkedin_set files of a carousel on linkedin"
+  },
+  {
+    "id": "b10g1-fb-main",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "\"facebook:cover\": [\"main\"],",
+    "replace": "\"facebook:cover\": [\"x\"],",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the main file of a cover on facebook and the linkedin caption plus the dossier url"
+  },
+  {
+    "id": "b10g1-fb-link",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": ": `${captions.linkedin}\\n\\n${propertyLink(asset.property_slug, \"facebook\")}`;",
+    "replace": ": captions.linkedin;",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > reads the main file of a cover on facebook and the linkedin caption plus the dossier url"
+  },
+  {
+    "id": "b10g1-no-file",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "(ROLES[`${channel}:${asset.kind}`] ?? [])",
+    "replace": "(ROLES[`${channel}:${asset.kind}`] ?? [\"main\"])",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> filesFor and captionFor > gives no file and no caption where a channel and a kind never meet"
+  },
+  {
+    "id": "b10g1-disabled-block",
+    "kind": "file",
+    "test": "tests/unit/channels/targets.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return enabled ? adapters[name]() : disabledBlock(name);",
+    "replace": "return adapters[name]();",
+    "run": "bunx vitest run --project unit tests/unit/channels/targets.test.ts",
+    "expect": "FAIL .*> getChannel > answers a disabled row with the disabled block, which posts nothing"
+  },
+  {
+    "id": "b10g1-ids-accept",
+    "kind": "file",
+    "test": "tests/unit/channels/ids.test.ts",
+    "file": "src/domain/channels.ts",
+    "find": "graph_version: z.string().regex(/^v\\d+\\.\\d+$/, \"Use a version such as v23.0\"),",
+    "replace": "graph_version: z.string().regex(/^never$/, \"Use a version such as v23.0\"),",
+    "run": "bunx vitest run --project unit tests/unit/channels/ids.test.ts",
+    "expect": "FAIL .*> channelIdsSchema > accepts the fields of each key and any part of them"
+  },
+  {
+    "id": "b10g1-ids-strict",
+    "kind": "file",
+    "test": "tests/unit/channels/ids.test.ts",
+    "file": "src/domain/channels.ts",
+    "find": ".strictObject({\n      page_id: numericId,",
+    "replace": ".object({\n      page_id: numericId,",
+    "run": "bunx vitest run --project unit tests/unit/channels/ids.test.ts",
+    "expect": "FAIL .*> channelIdsSchema > refuses a field it does not name, a token above all"
+  },
+  {
+    "id": "b10g1-ids-shape",
+    "kind": "file",
+    "test": "tests/unit/channels/ids.test.ts",
+    "file": "src/domain/channels.ts",
+    "find": "handle: z.string().regex(/^[A-Za-z0-9_]{1,15}$/, \"Use the handle without the @\"),",
+    "replace": "handle: z.string(),",
+    "run": "bunx vitest run --project unit tests/unit/channels/ids.test.ts",
+    "expect": "FAIL .*> channelIdsSchema > refuses an id that is not in the shape the platform uses"
+  },
+  {
+    "id": "b10g1-guard-test-post",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/lib/test-post.ts",
+    "find": "import { assertNotProduction } from \"./assert-not-production.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "\\+\\s+\"scripts/lib/test-post\\.ts\""
+  },
+  {
+    "id": "b10g2-codecs",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"video_codecs\": [\"h264\", \"hevc\"]",
+    "replace": "\"video_codecs\": [\"hevc\"]",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > keeps the codecs inside the recorded lists"
+  },
+  {
+    "id": "b10g2-fps",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"fps\": { \"min\": 23, \"max\": 60 }",
+    "replace": "\"fps\": { \"min\": 23, \"max\": 24 }",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > keeps the picture and the frame rate inside the recorded limits"
+  },
+  {
+    "id": "b10g2-duration",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"duration_s\": { \"min\": 3, \"max\": 900 }",
+    "replace": "\"duration_s\": { \"min\": 3, \"max\": 20 }",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > keeps the duration and the file size inside the recorded limits"
+  },
+  {
+    "id": "b10g2-size",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"max_size_mb\": 300",
+    "replace": "\"max_size_mb\": 10",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > keeps the duration and the file size inside the recorded limits"
+  },
+  {
+    "id": "b10g2-source",
+    "kind": "file",
+    "test": "tests/unit/channels/reels-limits.test.ts",
+    "file": "tests/fixtures/graph/reels-limits.json",
+    "find": "\"source\": \"docs\"",
+    "replace": "\"source\": \"guess\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/reels-limits.test.ts",
+    "expect": "FAIL .*> the reel against Meta's recorded limits > says where the limits were read"
+  },
+  {
+    "id": "b10g3-now-inside",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "    : now;",
+    "replace": "    : nextOpening(now, window, alreadyPostedToday);",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > answers now inside the window"
+  },
+  {
+    "id": "b10g3-today-later",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "if (offset === 0 && alreadyPostedToday >= window.daily_cap) continue;",
+    "replace": "if (offset === 0) continue;",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > waits for the window to open later the same day"
+  },
+  {
+    "id": "b10g3-cap-next-day",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "  if (alreadyPostedToday >= window.daily_cap) return null;",
+    "replace": "  if (alreadyPostedToday < 0) return null;",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > goes to the next day's opening once the daily cap"
+  },
+  {
+    "id": "b10g3-dst",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "start: new Date(toUtc(`${day}T${window.from}`, window.tz)),",
+    "replace": "start: new Date(toUtc(`${day}T${window.from}`, \"UTC\")),",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > keeps 09:00 local across both daylight-saving changes"
+  },
+  {
+    "id": "b10g3-local-day",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "    timeZone: tz,",
+    "replace": "    timeZone: \"UTC\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > counts the local day, not the UTC day, in the Pacific evening"
+  },
+  {
+    "id": "b10g3-week-on",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "offset <= 7;",
+    "replace": "offset < 7;",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> nextWindowSlot > skips closed weekdays"
+  },
+  {
+    "id": "b10g3-retry-inside",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "nextDelayMs(attempt, 1)",
+    "replace": "nextDelayMs(attempt, 0)",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> planRetry > retries inside the window with 40 minutes left"
+  },
+  {
+    "id": "b10g3-window-moved",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": " && retryAt < today.end) {",
+    "replace": ") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> planRetry > moves to the next slot with 1 minute left"
+  },
+  {
+    "id": "b10g3-last-attempt",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "if (attempt < maxAttempts && today !== null",
+    "replace": "if (today !== null",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> planRetry > moves to the next slot on the last attempt"
+  },
+  {
+    "id": "b10g3-retry-cap",
+    "kind": "file",
+    "test": "tests/unit/channels/window.test.ts",
+    "file": "src/server/channels/window.ts",
+    "find": "  if (alreadyPostedToday >= window.daily_cap) return null;",
+    "replace": "  if (alreadyPostedToday < 0) return null;",
+    "run": "bunx vitest run --project unit tests/unit/channels/window.test.ts",
+    "expect": "FAIL .*> planRetry > moves to the next day when the daily cap has no room"
+  },
+  {
+    "id": "b10g3-human",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "if (actor.kind === \"human\") return true;",
+    "replace": "if (actor.kind === \"agent\") return true;",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > lets a person approve whatever the mode"
+  },
+  {
+    "id": "b10g3-agent-manual",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "if (actor.kind === \"human\") return true;",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > refuses an agent in manual mode"
+  },
+  {
+    "id": "b10g3-auto-after",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "enabled.every((row) => effectiveApprovalMode(row, tier, today) === \"auto\")",
+    "replace": "enabled.every((row) => row.approval_mode[tier] === \"auto\")",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > allows an agent in auto mode from auto_after on"
+  },
+  {
+    "id": "b10g3-null-auto-after",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "enabled.every((row) => effectiveApprovalMode(row, tier, today) === \"auto\")",
+    "replace": "enabled.every((row) => row.approval_mode[tier] === \"auto\")",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > reads a null auto_after with Feature auto as manual"
+  },
+  {
+    "id": "b10g3-every-channel",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "enabled.every(",
+    "replace": "enabled.some(",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > refuses an agent when one of two enabled target channels"
+  },
+  {
+    "id": "b10g3-enabled-only",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "channelRows.filter((row) => row.enabled)",
+    "replace": "channelRows.filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > refuses an agent when one of two enabled target channels"
+  },
+  {
+    "id": "b10g3-no-target",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "enabled.length > 0 && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> mayApprove > refuses an agent when no target channel is enabled"
+  },
+  {
+    "id": "b10g3-recheck-human",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "approver?.actor_kind === \"human\"",
+    "replace": "approver?.actor_kind === \"agent\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> approvalStillValid > keeps a person's approval in manual mode"
+  },
+  {
+    "id": "b10g3-recheck-agent",
+    "kind": "file",
+    "test": "tests/unit/channels/approval.test.ts",
+    "file": "src/server/channels/approval.ts",
+    "find": "if (asset.approved_by !== null && approver?.actor_kind === \"human\") return true;",
+    "replace": "if (approver?.actor_kind !== \"agent\") return true;",
+    "run": "bunx vitest run --project unit tests/unit/channels/approval.test.ts",
+    "expect": "FAIL .*> approvalStillValid > voids an agent's, the system's and a roleless approval"
+  },
+  {
+    "id": "b10g3-token-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "{ code: 190, class: \"token_dead\" },",
+    "replace": "{ code: 190, class: \"retryable\" },",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > treats code 190 as a dead token"
+  },
+  {
+    "id": "b10g3-rate-613",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "{ code: 613, class: \"retry_at\" },",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > waits for the rate limits 4, 17, 32 and 613"
+  },
+  {
+    "id": "b10g3-publish-limit",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "{ code: 9, subcode: 2207042, class: \"retry_at\" },",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > waits for the rate limits 4, 17, 32 and 613"
+  },
+  {
+    "id": "b10g3-not-ready",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "{ code: 9007, subcode: 2207027, class: \"retryable\" },",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > retries a container that is not finished"
+  },
+  {
+    "id": "b10g3-transient",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "transient === true || status >= 500",
+    "replace": "status >= 500",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > retries a container that is not finished"
+  },
+  {
+    "id": "b10g3-unparsed-5xx",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": ": status >= 500 ? \"retryable\"",
+    "replace": ": false ? \"retryable\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > retries a container that is not finished"
+  },
+  {
+    "id": "b10g3-subcode-only",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "(entry.subcode === undefined || entry.subcode === subcode)",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > fails any other error at once"
+  },
+  {
+    "id": "b10g3-unparsed-429",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-errors.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "status === 429 ? \"retry_at\"",
+    "replace": "status === -1 ? \"retry_at\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-errors.test.ts",
+    "expect": "FAIL .*> classifyGraphError > waits on a 429 whose body is not a Graph error"
+  },
+  {
+    "id": "b10g3-fixture-map",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-metrics.test.ts",
+    "file": "src/server/channels/meta-metrics.ts",
+    "find": "reach: \"reach\",",
+    "replace": "reach: \"views\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-metrics.test.ts",
+    "expect": "FAIL .*> normaliseMetaInsights > maps every table name in the recorded fixture"
+  },
+  {
+    "id": "b10g3-unknown-raw",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-metrics.test.ts",
+    "file": "src/server/channels/meta-metrics.ts",
+    "find": "? META_METRICS[item.name] : undefined;",
+    "replace": "? META_METRICS[item.name] : \"clicks\";",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-metrics.test.ts",
+    "expect": "FAIL .*> normaliseMetaInsights > puts an unknown name only in raw"
+  },
+  {
+    "id": "b10g3-impressions",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-metrics.test.ts",
+    "file": "src/server/channels/meta-metrics.ts",
+    "find": "reach: \"reach\",",
+    "replace": "reach: \"reach\",\n  impressions: \"views\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-metrics.test.ts",
+    "expect": "FAIL .*> normaliseMetaInsights > holds only names Meta documents for new media"
+  },
+  {
+    "id": "b10g3-vault-first",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "const token = data || readVar(\"META_PAGE_TOKEN\");",
+    "replace": "const token = readVar(\"META_PAGE_TOKEN\") || data;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> getMetaToken > takes the Vault token over META_PAGE_TOKEN"
+  },
+  {
+    "id": "b10g3-no-token",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "if (token === undefined || token === \"\") {",
+    "replace": "if (token === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> getMetaToken > falls back to META_PAGE_TOKEN while Vault holds none"
+  },
+  {
+    "id": "b10g3-one-scope-list",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "export { META_REQUIRED_SCOPES } from \"../jobs/system/meta-token-refresh.ts\";",
+    "replace": "export const META_REQUIRED_SCOPES = [\"instagram_basic\"];",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> getMetaToken > re-exports B8's list of required scopes"
+  },
+  {
+    "id": "b10g3-amber-14",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "const AMBER_DAYS = 14;",
+    "replace": "const AMBER_DAYS = 13;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > is amber at 14 days left and red at 7"
+  },
+  {
+    "id": "b10g3-red-7",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "const RED_DAYS = 7;",
+    "replace": "const RED_DAYS = 6;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > is amber at 14 days left and red at 7"
+  },
+  {
+    "id": "b10g3-dead-never",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "if (meta?.token_state !== \"ok\" || ",
+    "replace": "if (",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > reads a null expiry as never, red when the token is dead"
+  },
+  {
+    "id": "b10g3-never",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "expiresAt ?? \"never\"",
+    "replace": "expiresAt ?? \"none\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > reads a null expiry as never, red when the token is dead"
+  },
+  {
+    "id": "b10g3-scopes-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "if (meta?.token_state !== \"ok\" || ",
+    "replace": "if (",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > is red for missing scopes and for a check that never ran"
+  },
+  {
+    "id": "b10g3-data-access",
+    "kind": "file",
+    "test": "tests/unit/channels/meta-token.test.ts",
+    "file": "src/server/channels/meta-token.ts",
+    "find": "(dataAccessDays !== null && dataAccessDays <= AMBER_DAYS)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta-token.test.ts",
+    "expect": "FAIL .*> tokenHealth > is amber when data access ends within 14 days"
+  },
+  {
+    "id": "b10g3-checked-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "if (Number.isNaN(checkedAt) || Date.now()",
+    "replace": "if (Date.now()",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > refuses x without token_checked_at and with a check 3 days old"
+  },
+  {
+    "id": "b10g3-checked-48h",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "const CHECK_MAX_AGE_MS = 48 * 60 * 60 * 1000;",
+    "replace": "const CHECK_MAX_AGE_MS = 96 * 60 * 60 * 1000;",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > refuses x without token_checked_at and with a check 3 days old"
+  },
+  {
+    "id": "b10g3-checked-fresh",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "- checkedAt > CHECK_MAX_AGE_MS)",
+    "replace": "- checkedAt > 0)",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > allows x with a check an hour old"
+  },
+  {
+    "id": "b10g3-ids",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "for (const id of need.ids) {",
+    "replace": "for (const id of need.ids.slice(1)) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > names a missing id"
+  },
+  {
+    "id": "b10g3-token-state",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "if (need.tokenState && text(\"token_state\") !== \"ok\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > refuses instagram with a fresh check and token_state dead"
+  },
+  {
+    "id": "b10g3-locked",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "if (!(await getFlags(db)).new_channels) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > keeps facebook and youtube locked while new_channels is false"
+  },
+  {
+    "id": "b10g3-no-adapter",
+    "kind": "file",
+    "test": "tests/unit/channels/enable-guard.test.ts",
+    "file": "src/server/channels/enable-guard.ts",
+    "find": "if (channel === \"youtube\") {",
+    "replace": "if (channel === \"x\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/enable-guard.test.ts",
+    "expect": "FAIL .*> assertMayEnable > answers no_adapter for youtube with the flag on"
+  },
+  {
+    "id": "b10g4-image-branch",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (others.length === 0) {",
+    "replace": "if (others.length === -1) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates an image container, waits for FINISHED"
+  },
+  {
+    "id": "b10g4-image-permalink",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "{ fields: \"permalink\" },",
+    "replace": "{ fields: \"link\" },",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates an image container, waits for FINISHED"
+  },
+  {
+    "id": "b10g4-carousel-children",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "is_carousel_item: \"true\" }",
+    "replace": "is_carousel_item: \"false\" }",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates the children of a carousel, then the parent"
+  },
+  {
+    "id": "b10g4-story-type",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "media_type: \"STORIES\",",
+    "replace": "media_type: \"STORY\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates a story container with media_type STORIES"
+  },
+  {
+    "id": "b10g4-reel-share",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "share_to_feed: \"true\",",
+    "replace": "share_to_feed: \"false\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > creates a reel container with video_url"
+  },
+  {
+    "id": "b10g4-marker-hook",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "await onContainer?.(`${CONTAINER_PREFIX}${containerId}`);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Instagram publishing > hands the container marker to onContainer"
+  },
+  {
+    "id": "b10g4-poll-finished",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status !== \"IN_PROGRESS\" || asked === POLL_CALLS) return status;",
+    "replace": "if (asked === POLL_CALLS) return status;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > stops polling at FINISHED"
+  },
+  {
+    "id": "b10g4-fail-error",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"ERROR\" || status === \"EXPIRED\") return { status: \"restart\" };",
+    "replace": "if (status === \"EXPIRED\") return { status: \"restart\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > fails on ERROR and never calls media_publish"
+  },
+  {
+    "id": "b10g4-fail-expired",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"ERROR\" || status === \"EXPIRED\") return { status: \"restart\" };",
+    "replace": "if (status === \"ERROR\") return { status: \"restart\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > fails on EXPIRED and never calls media_publish"
+  },
+  {
+    "id": "b10g4-fail-throws",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (settled.status === \"restart\") {",
+    "replace": "if (settled.status === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > fails on ERROR and never calls media_publish"
+  },
+  {
+    "id": "b10g4-poll-five",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "const POLL_CALLS = 5;",
+    "replace": "const POLL_CALLS = 6;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > returns in_progress after 5 status calls in 20 seconds"
+  },
+  {
+    "id": "b10g4-in-progress",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"IN_PROGRESS\") return { status: \"in_progress\", containerId };",
+    "replace": "if (status === \"IN_PROGRESS\") return { status: \"restart\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the container status > returns in_progress after 5 status calls in 20 seconds"
+  },
+  {
+    "id": "b10g4-finished-publishes",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"FINISHED\") return publishContainer(session, containerId);",
+    "replace": "if (status === \"FINISHED\") return adoptInstagramMedia(session, since);",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > publishes a FINISHED container once and creates no container"
+  },
+  {
+    "id": "b10g4-published-adopts",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "return adoptInstagramMedia(session, since);\n}",
+    "replace": "return publishContainer(session, containerId);\n}",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > adopts the newest media at or after since for a PUBLISHED container"
+  },
+  {
+    "id": "b10g4-since-bound",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "time >= since.getTime()",
+    "replace": "time > since.getTime()",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > adopts the newest media at or after since for a PUBLISHED container"
+  },
+  {
+    "id": "b10g4-since-older",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "time >= since.getTime()",
+    "replace": "time >= 0",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > adopts nothing from a PUBLISHED container when every media is older than since"
+  },
+  {
+    "id": "b10g4-newest-first",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": ".sort((a, b) => b.time - a.time);",
+    "replace": ".sort((a, b) => a.time - b.time);",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > adopts the newest media at or after since for a PUBLISHED container"
+  },
+  {
+    "id": "b10g4-restart-error",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"ERROR\" || status === \"EXPIRED\") return { status: \"restart\" };",
+    "replace": "if (status === \"EXPIRED\") return { status: \"restart\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > answers restart for a container that ended ERROR"
+  },
+  {
+    "id": "b10g4-marker-shape",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (!marker.startsWith(CONTAINER_PREFIX)) {",
+    "replace": "if (marker === CONTAINER_PREFIX) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> findRecentPost with a stored container > refuses a marker that is not a container marker"
+  },
+  {
+    "id": "b10g4-proof-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "appsecret_proof: session.proof,",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > puts the token and an appsecret_proof of"
+  },
+  {
+    "id": "b10g4-token-in-url",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": ": await fetch(`${session.base}/${path}`, { method, body: form, signal });",
+    "replace": ": await fetch(`${session.base}/${path}?${form.toString()}`, { method, body: form, signal });",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > keeps the token and the proof out of the url of every write call"
+  },
+  {
+    "id": "b10g4-live-dry-run",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (method === \"POST\" && !liveSideEffects(\"social\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > sends no write call when SOCIAL_DRY_RUN is 1 in production"
+  },
+  {
+    "id": "b10g4-live-env",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (method === \"POST\" && !liveSideEffects(\"social\")) {",
+    "replace": "if (method === \"POST\" && process.env[\"SOCIAL_DRY_RUN\"] === \"1\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > sends no write call when MOP_ENV is not production"
+  },
+  {
+    "id": "b10g4-reads-stay-on",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (method === \"POST\" && !liveSideEffects(\"social\")) {",
+    "replace": "if (!liveSideEffects(\"social\")) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> appsecret_proof and the live switch > still reads insights when posting is switched off"
+  },
+  {
+    "id": "b10g4-graph-error",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "throw new GraphError(classifyGraphError(response.status, body));",
+    "replace": "throw new AppError(\"server\", undefined, \"Graph refused.\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > throws a GraphError that carries the class of the answer"
+  },
+  {
+    "id": "b10g4-network-quote",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "throw new AppError(\"unavailable\", undefined, \"Graph did not answer.\");",
+    "replace": "throw new AppError(\"unavailable\", undefined, `Graph did not answer ${session.base}.`);",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > does not quote the url, the token or the proof"
+  },
+  {
+    "id": "b10g4-kind-refused",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (!supports(asset.kind)) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > refuses a kind the channel does not post"
+  },
+  {
+    "id": "b10g4-main-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (main === undefined) throw incomplete(\"main\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > refuses an asset without the file its kind needs"
+  },
+  {
+    "id": "b10g4-video-missing",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (video === undefined) throw incomplete(\"video\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > refuses an asset without the file its kind needs"
+  },
+  {
+    "id": "b10g4-settings-ids",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (!settings.success) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> Graph errors > names the settings it needs when settings.meta holds no ids"
+  },
+  {
+    "id": "b10g4-insight-names",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "metric: Object.keys(META_METRICS).join(\",\"),",
+    "replace": "metric: \"reach\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> insights, health and supports > reads insights with the metric names of the table"
+  },
+  {
+    "id": "b10g4-health-level",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "state: level,",
+    "replace": "state: \"ok\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> insights, health and supports > reports the token health from settings.meta"
+  },
+  {
+    "id": "b10g4-supports-targets",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "targetsFor(kind, {}).includes(channel)",
+    "replace": "targetsFor(kind, {}).length > 0",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> insights, health and supports > supports the kinds that targetsFor sends to the channel"
+  },
+  {
+    "id": "b10g4-registry-instagram",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "instagram: () => createMetaChannel(\"instagram\"),",
+    "replace": "instagram: () => createMetaChannel(\"facebook\"),",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the registry > hands out the Meta adapter of instagram and of facebook"
+  },
+  {
+    "id": "b10g4-fb-post-id",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "postId = photo.post_id ?? photo.id;",
+    "replace": "postId = photo.id;",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the Facebook Page block > posts a cover as a Page photo with the url and the caption"
+  },
+  {
+    "id": "b10g4-fb-story-unpublished",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "{ url, published: \"false\" },",
+    "replace": "{ url },",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the Facebook Page block > uploads a story photo unpublished, then publishes it to photo_stories"
+  },
+  {
+    "id": "b10g4-fb-adopt",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (channel === \"facebook\") return adoptFacebookPost(session, since);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the Facebook Page block > adopts the newest Page post at or after since"
+  },
+  {
+    "id": "b10g4-fb-metrics",
+    "kind": "file",
+    "test": "tests/unit/channels/meta.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (channel === \"facebook\") return { status: \"skipped_disabled\" };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/meta.test.ts",
+    "expect": "FAIL .*> the Facebook Page block > answers metrics with skipped_disabled"
+  },
+  {
+    "id": "b10g5-l",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "form.set(\"media\", bytes, file.media_key.split(\"/\").pop() ?? \"cover\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > fetches the cover's bytes, uploads them, then posts the short caption"
+  },
+  {
+    "id": "b10g5-x-caption",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "const text = captionFor(\"x\", asset);",
+    "replace": "const text = captionFor(\"linkedin\", asset);",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > fetches the cover's bytes, uploads them, then posts the short caption"
+  },
+  {
+    "id": "b10g5-x-marker",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "  await onMarker?.(`inflight:${ctx.now.toISOString()}:media:${mediaId}`);\n  const created = await callApi(ctx, \"x\", `${API}/tweets`, {\n    method: \"POST\",\n    headers: { \"Content-Type\": \"application/json\" },\n    body: JSON.stringify({ text, media: { media_ids: [mediaId] } }),\n  });",
+    "replace": "  const created = await callApi(ctx, \"x\", `${API}/tweets`, {\n    method: \"POST\",\n    headers: { \"Content-Type\": \"application/json\" },\n    body: JSON.stringify({ text, media: { media_ids: [mediaId] } }),\n  });\n  await onMarker?.(`inflight:${ctx.now.toISOString()}:media:${mediaId}`);",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > hands over the media marker after the upload and before the post"
+  },
+  {
+    "id": "b10g5-p",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (response.status !== 200) {",
+    "replace": "if (response.status === 0) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > throws naming the key and the status when the file answers 503"
+  },
+  {
+    "id": "b10g5-x-refresh-expired",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "const REFRESH_WITHIN_MS = 10 * MINUTE_MS;",
+    "replace": "const REFRESH_WITHIN_MS = 0;",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > refreshes an expired token before the upload"
+  },
+  {
+    "id": "b10g5-x-401-retry",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (response.status === 401 && !token.refreshed) {",
+    "replace": "if (response.status === 4010 && !token.refreshed) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > refreshes once on a 401 and sends the call again"
+  },
+  {
+    "id": "b10g5-x-401-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "throw await refused(ctx, channel, classify(channel, response, body, token.refreshed, ctx.now));",
+    "replace": "throw new ChannelApiError(classify(channel, response, body, token.refreshed, ctx.now));",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > records the token dead on a 401 after a refresh"
+  },
+  {
+    "id": "b10g5-x-429-reset",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x-errors.ts",
+    "find": "new Date(Math.max(...seconds) * 1000)",
+    "replace": "new Date(Math.min(...seconds) * 1000)",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > maps a 429 on the post to retry_at at X's latest reset time"
+  },
+  {
+    "id": "b10g5-x-dry-run",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (method !== \"GET\" && !liveSideEffects(\"social\")) {",
+    "replace": "if (method === \"NONE\" && !liveSideEffects(\"social\")) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > makes no write call when MOP_ENV is not production"
+  },
+  {
+    "id": "b10g5-x-supports",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "(kind) => targetsFor(kind, {}).includes(\"x\");",
+    "replace": "(kind) => kind !== \"newsletter_block\";",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > posts a cover only, and the registry hands it out"
+  },
+  {
+    "id": "b10g5-x-registry",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "  x: createXChannel,",
+    "replace": "  x: createLinkedInChannel,",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X publishing > posts a cover only, and the registry hands it out"
+  },
+  {
+    "id": "b10g5-dd",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "(post) => post.attachments?.media_keys?.includes(key) === true,",
+    "replace": "(post) => Reflect.get(post, \"text\") === \"Oak Hill, Larchmont. A garden that runs to the creek.\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X findRecentPost > adopts the post whose media keys hold 3_<media_id>, whatever its t\\.co text"
+  },
+  {
+    "id": "b10g5-x-start-time",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "start_time: startTime(since),",
+    "replace": "start_time: since.toISOString(),",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X findRecentPost > adopts the post whose media keys hold 3_<media_id>, whatever its t\\.co text"
+  },
+  {
+    "id": "b10g5-x-not-found",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "(post) => post.attachments?.media_keys?.includes(key) === true,",
+    "replace": "(post) => post.attachments?.media_keys?.some((k) => k.startsWith(\"3_\")) === true,",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X findRecentPost > adopts nothing when no post holds the media key"
+  },
+  {
+    "id": "b10g5-x-read-count",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (channel === \"x\" && method === \"GET\") await recordXRead(ctx.db);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X findRecentPost > counts the lookup as one read"
+  },
+  {
+    "id": "b10g5-x-lookup-spent",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "if (reads >= allowance) return { status: \"skipped_budget\" };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X findRecentPost > still runs at 90 percent of the allowance, and stops with skipped_budget"
+  },
+  {
+    "id": "b10g5-x-lookup-90",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "if (reads >= allowance) return { status: \"skipped_budget\" };",
+    "replace": "if (reads >= allowance * METRICS_SHARE) return { status: \"skipped_budget\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X findRecentPost > still runs at 90 percent of the allowance, and stops with skipped_budget"
+  },
+  {
+    "id": "b10g5-x-views-null",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "views: counts.impression_count ?? null,",
+    "replace": "views: counts.impression_count ?? 0,",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X metrics > maps public_metrics to views, likes, shares and comments"
+  },
+  {
+    "id": "b10g5-x-shares",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "shares: counts.retweet_count ?? null,",
+    "replace": "shares: counts.like_count ?? null,",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X metrics > maps public_metrics to views, likes, shares and comments"
+  },
+  {
+    "id": "b10g5-x-metrics-read",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (channel === \"x\" && method === \"GET\") await recordXRead(ctx.db);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X metrics > maps public_metrics to views, likes, shares and comments"
+  },
+  {
+    "id": "b10g5-jj",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "if (reads >= allowance * METRICS_SHARE) return { status: \"skipped_budget\" };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X metrics > answers skipped_budget with no fetch at 90 percent of the allowance"
+  },
+  {
+    "id": "b10g5-x-month",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "reads: settings.usage?.month === month ? settings.usage.reads : 0,",
+    "replace": "reads: settings.usage?.reads ?? 0,",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X metrics > counts last month's reads as none"
+  },
+  {
+    "id": "b10g5-x-unmeasured",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "allowance: settings.read_allowance ?? 0,",
+    "replace": "allowance: settings.read_allowance ?? 1000,",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X metrics > counts last month's reads as none"
+  },
+  {
+    "id": "b10g5-x-health-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "return { state: \"red\", detail: \"The token was refused. Run the authorize script again.\" };",
+    "replace": "return { state: \"amber\", detail: \"The token was refused. Run the authorize script again.\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X health > reads the card state from the last daily check"
+  },
+  {
+    "id": "b10g5-x-health-unchecked",
+    "kind": "file",
+    "test": "tests/unit/channels/x.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "return { state: \"amber\", detail: \"Not checked yet.\" };",
+    "replace": "return { state: \"ok\", detail: \"Not checked yet.\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/x.test.ts",
+    "expect": "FAIL .*> X health > reads the card state from the last daily check"
+  },
+  {
+    "id": "b10g5-li-escape",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "commentary: escapeCommentary(caption),",
+    "replace": "commentary: caption,",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn publishing > uploads the cover's image, then creates an organisation post with it"
+  },
+  {
+    "id": "b10g5-li-put",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "await callApi(ctx, \"linkedin\", uploadUrl, { method: \"PUT\", headers, body: bytes });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn publishing > uploads the cover's image, then creates an organisation post with it"
+  },
+  {
+    "id": "b10g5-li-multi",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "urns.length === 1",
+    "replace": "urns.length >= 1",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn publishing > posts the carousel's linkedin_set as one multi-image post"
+  },
+  {
+    "id": "b10g5-li-restli",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "\"X-Restli-Protocol-Version\": \"2.0.0\",",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn publishing > sends both version headers and the token on every LinkedIn call"
+  },
+  {
+    "id": "b10g5-li-put-headers",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "{ method: \"PUT\", headers, body: bytes }",
+    "replace": "{ method: \"PUT\", body: bytes }",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn publishing > sends both version headers and the token on every LinkedIn call"
+  },
+  {
+    "id": "b10g5-li-marker",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "await onMarker?.(`inflight:${ctx.now.toISOString()}:image:${first}`);",
+    "replace": "await onMarker?.(`inflight:${ctx.now.toISOString()}:image:${urns.at(-1) ?? first}`);",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn publishing > hands over the first image's marker after the uploads"
+  },
+  {
+    "id": "b10g5-li-prefetch",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "  const images: Blob[] = [];\n  for (const key of keys) images.push(await mediaBytes(key, ctx.signal));\n  const urns: string[] = [];\n  for (const bytes of images) {",
+    "replace": "  const urns: string[] = [];\n  for (const key of keys) {\n    const bytes = await mediaBytes(key, ctx.signal);",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn publishing > uploads nothing when one file of the set answers 503"
+  },
+  {
+    "id": "b10g5-li-version-code",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin-errors.ts",
+    "find": "VERSION_CODES.has(problem?.code ?? \"\")",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn publishing > throws version_expired when LinkedIn no longer serves the pinned version"
+  },
+  {
+    "id": "b10g5-li-registry",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "  linkedin: createLinkedInChannel,",
+    "replace": "  linkedin: createXChannel,",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn publishing > posts covers and carousels, and the registry hands it out"
+  },
+  {
+    "id": "b10g5-li-adopt-media",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "post.content?.media?.id === image ||",
+    "replace": "false ||",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn findRecentPost > adopts the organisation's post whose content\\.media\\.id is the stored image URN"
+  },
+  {
+    "id": "b10g5-li-adopt-multi",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "post.content?.multiImage?.images.some((entry) => entry.id === image) === true,",
+    "replace": "false,",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn findRecentPost > adopts a multi-image post holding the URN, and nothing"
+  },
+  {
+    "id": "b10g5-li-adopt-none",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "post.content?.media?.id === image ||",
+    "replace": "post.content?.media?.id !== undefined ||",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn findRecentPost > adopts a multi-image post holding the URN, and nothing"
+  },
+  {
+    "id": "b10g5-li-clicks",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "clicks: totals?.clickCount ?? null,",
+    "replace": "clicks: null,",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn metrics > maps the share statistics to views, clicks, likes, comments and shares"
+  },
+  {
+    "id": "b10g5-li-list",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/linkedin.ts",
+    "find": "`${list}=List(${encodeURIComponent(post.remoteId)})`,",
+    "replace": "`${list}=${encodeURIComponent(post.remoteId)}`,",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn metrics > maps the share statistics to views, clicks, likes, comments and shares"
+  },
+  {
+    "id": "b10g5-li-health-version",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (state === \"version_expired\") return { state: \"amber\", detail: \"API version expired\" };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin.test.ts",
+    "expect": "FAIL .*> LinkedIn health > shows an expired API version as amber"
+  },
+  {
+    "id": "b10g5-xe-429-reset",
+    "kind": "file",
+    "test": "tests/unit/channels/x-errors.test.ts",
+    "file": "src/server/channels/x-errors.ts",
+    "find": "new Date(Math.max(...seconds) * 1000)",
+    "replace": "new Date(Math.min(...seconds) * 1000)",
+    "run": "bunx vitest run --project unit tests/unit/channels/x-errors.test.ts",
+    "expect": "FAIL .*> classifyXError > gives retry_at at the latest reset X names for a 429"
+  },
+  {
+    "id": "b10g5-xe-usage-cap",
+    "kind": "file",
+    "test": "tests/unit/channels/x-errors.test.ts",
+    "file": "src/server/channels/x-errors.ts",
+    "find": "if (status === 429 || problem?.type === USAGE_CAPPED) {",
+    "replace": "if (status === 429) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/x-errors.test.ts",
+    "expect": "FAIL .*> classifyXError > gives retry_at for the monthly usage cap, whatever its status"
+  },
+  {
+    "id": "b10g5-xe-401",
+    "kind": "file",
+    "test": "tests/unit/channels/x-errors.test.ts",
+    "file": "src/server/channels/x-errors.ts",
+    "find": "class: refreshed ? \"token_dead\" : \"retryable\"",
+    "replace": "class: \"retryable\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/x-errors.test.ts",
+    "expect": "FAIL .*> classifyXError > gives token_dead for a 401 after a refresh and for invalid_grant"
+  },
+  {
+    "id": "b10g5-xe-grant",
+    "kind": "file",
+    "test": "tests/unit/channels/x-errors.test.ts",
+    "file": "src/server/channels/x-errors.ts",
+    "find": "if (problem?.error === \"invalid_grant\") {",
+    "replace": "if (problem?.error === \"none\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/x-errors.test.ts",
+    "expect": "FAIL .*> classifyXError > gives token_dead for a 401 after a refresh and for invalid_grant"
+  },
+  {
+    "id": "b10g5-xe-5xx",
+    "kind": "file",
+    "test": "tests/unit/channels/x-errors.test.ts",
+    "file": "src/server/channels/x-errors.ts",
+    "find": "class: status >= 500 ? \"retryable\" : \"non_retryable\"",
+    "replace": "class: status >= 400 ? \"retryable\" : \"non_retryable\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/x-errors.test.ts",
+    "expect": "FAIL .*> classifyXError > gives retryable for a 503 and non_retryable for a 400"
+  },
+  {
+    "id": "b10g5-le-retry-after",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin-errors.test.ts",
+    "file": "src/server/channels/linkedin-errors.ts",
+    "find": "seconds * 1000",
+    "replace": "seconds * 100",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin-errors.test.ts",
+    "expect": "FAIL .*> classifyLinkedInError > gives retry_at for a 429, at Retry-After when LinkedIn sends one"
+  },
+  {
+    "id": "b10g5-le-429",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin-errors.test.ts",
+    "file": "src/server/channels/linkedin-errors.ts",
+    "find": "if (status === 429) return",
+    "replace": "if (status === 4290) return",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin-errors.test.ts",
+    "expect": "FAIL .*> classifyLinkedInError > gives retry_at for a 429, at Retry-After when LinkedIn sends one"
+  },
+  {
+    "id": "b10g5-le-401",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin-errors.test.ts",
+    "file": "src/server/channels/linkedin-errors.ts",
+    "find": "class: refreshed ? \"token_dead\" : \"retryable\"",
+    "replace": "class: \"retryable\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin-errors.test.ts",
+    "expect": "FAIL .*> classifyLinkedInError > gives token_dead for a 401 after a refresh and for invalid_grant"
+  },
+  {
+    "id": "b10g5-le-5xx",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin-errors.test.ts",
+    "file": "src/server/channels/linkedin-errors.ts",
+    "find": "class: status >= 500 ? \"retryable\" : \"non_retryable\"",
+    "replace": "class: status >= 400 ? \"retryable\" : \"non_retryable\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin-errors.test.ts",
+    "expect": "FAIL .*> classifyLinkedInError > gives non_retryable for a 422 and retryable for a 500"
+  },
+  {
+    "id": "b10g5-le-426",
+    "kind": "file",
+    "test": "tests/unit/channels/linkedin-errors.test.ts",
+    "file": "src/server/channels/linkedin-errors.ts",
+    "find": "if (status === 426 ||",
+    "replace": "if (status === 4260 ||",
+    "run": "bunx vitest run --project unit tests/unit/channels/linkedin-errors.test.ts",
+    "expect": "FAIL .*> classifyLinkedInError > gives non_retryable with the reason version_expired for a 426"
+  },
+  {
+    "id": "b10g5-j",
+    "kind": "file",
+    "test": "tests/unit/channels/disabled-blocks.test.ts",
+    "file": "src/server/channels/youtube.ts",
+    "find": "publish: () => Promise.resolve({ status: \"skipped_disabled\" }),",
+    "replace": "publish: () => fetch(\"https://www.googleapis.com/youtube/v3/videos\").then(() => ({ status: \"skipped_disabled\" as const })),",
+    "run": "bunx vitest run --project unit tests/unit/channels/disabled-blocks.test.ts",
+    "expect": "FAIL .*> disabled blocks > youtube supports no kind, answers skipped_disabled and makes no request"
+  },
+  {
+    "id": "b10g5-yt-supports",
+    "kind": "file",
+    "test": "tests/unit/channels/disabled-blocks.test.ts",
+    "file": "src/server/channels/youtube.ts",
+    "find": "supports: () => false,",
+    "replace": "supports: () => true,",
+    "run": "bunx vitest run --project unit tests/unit/channels/disabled-blocks.test.ts",
+    "expect": "FAIL .*> disabled blocks > youtube supports no kind, answers skipped_disabled and makes no request"
+  },
+  {
+    "id": "b10g5-yt-registry",
+    "kind": "file",
+    "test": "tests/unit/channels/disabled-blocks.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "  youtube: createYouTubeChannel,",
+    "replace": "  youtube: () => createMetaChannel(\"facebook\"),",
+    "run": "bunx vitest run --project unit tests/unit/channels/disabled-blocks.test.ts",
+    "expect": "FAIL .*> disabled blocks > youtube supports no kind, answers skipped_disabled and makes no request"
+  },
+  {
+    "id": "b10g5-k",
+    "kind": "file",
+    "test": "tests/unit/channels/disabled-blocks.test.ts",
+    "file": "src/server/channels/index.ts",
+    "find": "return enabled ? adapters[name]() : disabledBlock(name);",
+    "replace": "return adapters[name]();",
+    "run": "bunx vitest run --project unit tests/unit/channels/disabled-blocks.test.ts",
+    "expect": "FAIL .*> disabled blocks > a disabled facebook, x or linkedin row answers skipped_disabled"
+  },
+  {
+    "id": "b10g5-ot-held",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (rule.force !== true && left > (rule.refreshWithinMs ?? REFRESH_WITHIN_MS)) {",
+    "replace": "if (rule.force === undefined && left > 1e15) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > returns Vault's token while it has more than 10 minutes left"
+  },
+  {
+    "id": "b10g5-ot-vault-first",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "const held = (await readStored(ctx.db, channel)) ?? seed(channel);",
+    "replace": "const held = seed(channel) ?? (await readStored(ctx.db, channel));",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > takes Vault over the env seed"
+  },
+  {
+    "id": "b10g5-ot-seed-refresh",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "expires_at: new Date(0).toISOString()",
+    "replace": "expires_at: \"2999-01-01T00:00:00.000Z\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > refreshes the env seed into Vault when Vault is empty"
+  },
+  {
+    "id": "b10g5-ot-sha",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "p_used_refresh_sha256: await sha256Hex(sent),",
+    "replace": "p_used_refresh_sha256: await sha256Hex(next.refresh_token),",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > refreshes a token with 10 minutes or less left and stores the new set once"
+  },
+  {
+    "id": "b10g5-ot-ten-minutes",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "const REFRESH_WITHIN_MS = 10 * MINUTE_MS;",
+    "replace": "const REFRESH_WITHIN_MS = 4 * MINUTE_MS;",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > refreshes a token with 10 minutes or less left and stores the new set once"
+  },
+  {
+    "id": "b10g5-ot-linkedin-secret",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "else form.set(\"client_secret\", client.secret);",
+    "replace": "else form.set(\"client_secret\", \"\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > sends LinkedIn's client secret in the form, not as Basic auth"
+  },
+  {
+    "id": "b10g5-ot-wait",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "const SETTLE_WAIT_MS = 2_000;",
+    "replace": "const SETTLE_WAIT_MS = 1_000;",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > on (busy|stale), discards its own set, waits 2 seconds"
+  },
+  {
+    "id": "b10g5-ot-discard",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (outcome.data === \"stored\") return fresh(next);",
+    "replace": "if (outcome.data !== \"none\") return fresh(next);",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > on (busy|stale), discards its own set, waits 2 seconds"
+  },
+  {
+    "id": "b10g5-ot-grant-vault",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (current !== null && current.refresh_token !== sent) return fresh(current);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > uses Vault's set on invalid_grant when Vault holds another refresh token"
+  },
+  {
+    "id": "b10g5-ot-grant-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "throw await refused(ctx, channel, failure);",
+    "replace": "throw new ChannelApiError(failure);",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > maps invalid_grant with the same refresh token to token_dead"
+  },
+  {
+    "id": "b10g5-ot-day-key",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "`token_dead:${channel}:${ctx.now.toISOString().slice(0, 10)}`,",
+    "replace": "`token_dead:${channel}:${ctx.now.toISOString()}`,",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> getChannelToken > maps invalid_grant with the same refresh token to token_dead"
+  },
+  {
+    "id": "b10g5-ot-check-ok",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "await record(\"ok\", token.expiresAt);",
+    "replace": "await record(\"ok\", null);",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> checkChannelToken > makes one read-only call and calls record_channel_check once with ok"
+  },
+  {
+    "id": "b10g5-ot-check-24h",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "const CHECK_REFRESH_WITHIN_MS = 24 * 60 * MINUTE_MS;",
+    "replace": "const CHECK_REFRESH_WITHIN_MS = 0;",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> checkChannelToken > refreshes a token that expires within 24 hours before the check"
+  },
+  {
+    "id": "b10g5-ot-check-version",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "await record(\"version_expired\", null);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> checkChannelToken > stores version_expired when LinkedIn answers 426"
+  },
+  {
+    "id": "b10g5-ot-check-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (error.detail.class === \"token_dead\") return \"dead\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> checkChannelToken > stores dead once and returns it when the refresh answers invalid_grant"
+  },
+  {
+    "id": "b10g5-ot-refresh-401-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (failure.class === \"token_dead\") {",
+    "replace": "if (failure.reason === \"invalid_grant\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> checkChannelToken > stores dead and alerts when the (x|linkedin) token endpoint answers 401"
+  },
+  {
+    "id": "b10g5-ot-check-503",
+    "kind": "file",
+    "test": "tests/unit/channels/oauth-tokens.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (error.detail.reason !== \"version_expired\") throw error;",
+    "replace": "if (error.detail.reason === \"none\") throw error;",
+    "run": "bunx vitest run --project unit tests/unit/channels/oauth-tokens.test.ts",
+    "expect": "FAIL .*> checkChannelToken > stores nothing and throws on a 503"
+  },
+  {
+    "id": "b10g6-m",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (!(await stillApproved(ctx, subject, row))) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > an asset approved by an agent while the channel is manual"
+  },
+  {
+    "id": "b10g6-auto-stands",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "return approvalStillValid({ approved_by: approvedBy, tier }, approver, row, today);",
+    "replace": "return false;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > an agent's approval stands while the channel is auto"
+  },
+  {
+    "id": "b10g6-o",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (subject.property.editorial_state !== \"published\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > an unpublished property fails the row with property_unpublished"
+  },
+  {
+    "id": "b10g6-revision",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (!params.force && (await revisionPosted(ctx, subject, channel))) {",
+    "replace": "if (await revisionPosted(ctx, subject, channel)) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > a second revision of a posted kind fails revision_already_posted"
+  },
+  {
+    "id": "b10g6-cancelled",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "post.error === \"cancelled\"\n",
+    "replace": "post.error === \"never\"\n",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > a cancelled row ends skipped: cancelled"
+  },
+  {
+    "id": "b10g6-skipped-kind",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (!targets.includes(channel)) return done(\"skipped_kind\");",
+    "replace": "if (false) return done(\"skipped_kind\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > a newsletter_block returns skipped_kind"
+  },
+  {
+    "id": "b10g6-skipped-disabled",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (row?.enabled !== true) return done(\"skipped_disabled\");",
+    "replace": "if (row === undefined) return done(\"skipped_disabled\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > a disabled channel returns skipped_disabled"
+  },
+  {
+    "id": "b10g6-respect-window",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "const slot = params.respectWindow || capped ? nextWindowSlot(ctx.now, window, today) : ctx.now;",
+    "replace": "const slot = nextWindowSlot(ctx.now, window, today);",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > outside the window waits for the next slot; respect_window false posts at once"
+  },
+  {
+    "id": "b10g6-daily-cap",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "const capped = today >= window.daily_cap;",
+    "replace": "const capped = false;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > respect_window false still keeps the daily cap"
+  },
+  {
+    "id": "b10g6-n",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (\n    post.error?.startsWith(\"inflight:\") === true ||",
+    "replace": "if (\n    false ||\n    post.error?.startsWith(\"inflight:\") === \"x\" ||",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > adopts the post an older inflight marker left behind"
+  },
+  {
+    "id": "b10g6-dd",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "(post) => post.attachments?.media_keys?.includes(key) === true,",
+    "replace": "(post) => post.text === \"Oak Hill, Larchmont. A garden that runs to the creek.\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > adopts the X tweet holding the stored media key"
+  },
+  {
+    "id": "b10g6-lookup-refused",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "return { found: { status: \"not_found\" } };",
+    "replace": "throw error;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > a marker whose lookup returns (a 429|an error) fails outcome_unknown"
+  },
+  {
+    "id": "b10g6-ff",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (found.status !== \"restart\") return fail(run, \"outcome_unknown\", true);",
+    "replace": "if (found.status === \"skipped_budget\") return fail(run, \"outcome_unknown\", true);",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > a marker whose lookup returns nothing fails outcome_unknown"
+  },
+  {
+    "id": "b10g6-young-marker",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "ctx.now.getTime() - writtenAt < RETRY_LATER_MS",
+    "replace": "ctx.now.getTime() - writtenAt < 0",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > a marker younger than 2 minutes waits in_flight_elsewhere"
+  },
+  {
+    "id": "b10g6-ee",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (!held) throw new InFlightElsewhere();",
+    "replace": "if (held === null) throw new InFlightElsewhere();",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > two concurrent runs on one row make one create call"
+  },
+  {
+    "id": "b10g6-published-adopt",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/meta.ts",
+    "find": "if (status === \"FINISHED\") return publishContainer(session, containerId);",
+    "replace": "if (status === \"FINISHED\" || status === \"PUBLISHED\") return publishContainer(session, containerId);",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > adopts the Meta media of a PUBLISHED container"
+  },
+  {
+    "id": "b10g6-in-progress",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (published.status === \"in_progress\") return later(ctx, \"container_in_progress\");",
+    "replace": "if (published.status === \"in_progress\") return done(\"in_progress\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > a container in progress waits 2 minutes and keeps its marker"
+  },
+  {
+    "id": "b10g6-restart-clear",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "await rpcOrThrow(ctx.db.rpc(\"set_social_post_inflight\", { p_id: post.id }), \"clear marker\");",
+    "replace": "void rpcOrThrow;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > an EXPIRED container clears the marker"
+  },
+  {
+    "id": "b10g6-container-timeout",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": ">= CONTAINER_LIMIT_MS",
+    "replace": ">= CONTAINER_LIMIT_MS * 2",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > in-flight markers \\(INT-01\\) > a container still IN_PROGRESS 61 minutes after scheduled_at"
+  },
+  {
+    "id": "b10g6-p",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/oauth-tokens.ts",
+    "find": "if (response.status !== 200) {",
+    "replace": "if (response.status === 999) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > the platform's answers > an X media fetch that answers 503 throws"
+  },
+  {
+    "id": "b10g6-ii",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (!liveSideEffects(\"social\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > the platform's answers > on development without SOCIAL_LIVE logs the payload"
+  },
+  {
+    "id": "b10g6-story-reconcile",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (subject.asset.kind === \"story\" && postedAt !== null) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > the platform's answers > a posted story enqueues one reconcile job"
+  },
+  {
+    "id": "b10g6-token-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (failure.class === \"token_dead\") {",
+    "replace": "if (failure.class === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > the platform's answers > a Graph code 190 writes token_dead"
+  },
+  {
+    "id": "b10g6-hh",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "await captureException(new Error(headline), {",
+    "replace": "await Promise.resolve(new Error(headline), {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > notifyAdmin \\(INT-04\\) > reports a new alert to Sentry while Resend fails"
+  },
+  {
+    "id": "b10g6-hh-fingerprint",
+    "kind": "file",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "fingerprint: [\"alert\", key.slice(0, key.indexOf(\":\"))],",
+    "replace": "fingerprint: [\"alert\", key],",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
+    "expect": "FAIL .*post-to-channel\\.test\\.ts > notifyAdmin \\(INT-04\\) > reports a new alert to Sentry while Resend fails"
+  },
+  {
+    "id": "b10g6-meta-a",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (post.status === \"posted\") return done({ result: \"posted\", remote_id: post.remote_id });",
+    "replace": "if (post.status === \"never\") return done({ result: \"posted\", remote_id: post.remote_id });",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta\\.test\\.ts > post_meta > post_meta runs twice without a second outside effect"
+  },
+  {
+    "id": "b10g6-meta-window",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (slot > ctx.now) return { status: \"retry_at\", at: slot, reason: \"outside_window\" };",
+    "replace": "void slot;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta\\.test\\.ts > post_meta > outside the window returns retry_at"
+  },
+  {
+    "id": "b10g6-meta-dry",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (!liveSideEffects(\"social\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta\\.test\\.ts > post_meta > SOCIAL_DRY_RUN logs the payload and calls nothing"
+  },
+  {
+    "id": "b10g6-x-a",
+    "kind": "file",
+    "test": "tests/unit/channels/post-x.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (post.status === \"posted\") return done({ result: \"posted\", remote_id: post.remote_id });",
+    "replace": "if (post.status === \"never\") return done({ result: \"posted\", remote_id: post.remote_id });",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-x.test.ts",
+    "expect": "FAIL .*post-x\\.test\\.ts > post_x > post_x runs twice without a second outside effect"
+  },
+  {
+    "id": "b10g6-x-window",
+    "kind": "file",
+    "test": "tests/unit/channels/post-x.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (slot > ctx.now) return { status: \"retry_at\", at: slot, reason: \"outside_window\" };",
+    "replace": "void slot;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-x.test.ts",
+    "expect": "FAIL .*post-x\\.test\\.ts > post_x > outside the window returns retry_at"
+  },
+  {
+    "id": "b10g6-x-dry",
+    "kind": "file",
+    "test": "tests/unit/channels/post-x.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (!liveSideEffects(\"social\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-x.test.ts",
+    "expect": "FAIL .*post-x\\.test\\.ts > post_x > SOCIAL_DRY_RUN logs the payload and calls nothing"
+  },
+  {
+    "id": "b10g6-linkedin-a",
+    "kind": "file",
+    "test": "tests/unit/channels/post-linkedin.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (post.status === \"posted\") return done({ result: \"posted\", remote_id: post.remote_id });",
+    "replace": "if (post.status === \"never\") return done({ result: \"posted\", remote_id: post.remote_id });",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-linkedin.test.ts",
+    "expect": "FAIL .*post-linkedin\\.test\\.ts > post_linkedin > post_linkedin runs twice without a second outside effect"
+  },
+  {
+    "id": "b10g6-linkedin-window",
+    "kind": "file",
+    "test": "tests/unit/channels/post-linkedin.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (slot > ctx.now) return { status: \"retry_at\", at: slot, reason: \"outside_window\" };",
+    "replace": "void slot;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-linkedin.test.ts",
+    "expect": "FAIL .*post-linkedin\\.test\\.ts > post_linkedin > outside the window returns retry_at"
+  },
+  {
+    "id": "b10g6-linkedin-dry",
+    "kind": "file",
+    "test": "tests/unit/channels/post-linkedin.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (!liveSideEffects(\"social\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-linkedin.test.ts",
+    "expect": "FAIL .*post-linkedin\\.test\\.ts > post_linkedin > SOCIAL_DRY_RUN logs the payload and calls nothing"
+  },
+  {
+    "id": "b10g6-meta-backoff",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (!plan.moved) throw error;",
+    "replace": "if (!plan.moved) return later(run.ctx, \"x\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta\\.test\\.ts > post_meta > retries a temporary Graph error inside the window"
+  },
+  {
+    "id": "b10g6-g-moved",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "return { status: \"retry_at\", at: plan.at, reason: \"window_moved\" };",
+    "replace": "return { status: \"retry_at\", at: plan.at, reason: \"moved\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta\\.test\\.ts > post_meta > the same error near the window end moves the post"
+  },
+  {
+    "id": "b10g6-i",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "if (moves.data.length >= MOVES_BEFORE_FAILURE) return fail(run, failure.message, true);",
+    "replace": "if (moves.data.length >= 99) return fail(run, failure.message, true);",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta\\.test\\.ts > post_meta > the fourth move fails the row and alerts once"
+  },
+  {
+    "id": "b10g6-e",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/meta-errors.ts",
+    "find": "{ code: 190, class: \"token_dead\" },",
+    "replace": "{ code: 190, class: \"retryable\" },",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta\\.test\\.ts > post_meta > a code 190 fails at once without moving"
+  },
+  {
+    "id": "b10g6-qq",
+    "kind": "file",
+    "test": "tests/unit/automation/step-specs.test.ts",
+    "file": "src/server/automation/step-specs.ts",
+    "find": "    maxAttempts: providerMaxAttempts,\n    timeoutMs: 40_000,\n    sideEffect: \"begin_row\",\n  },\n  post_x: {",
+    "replace": "    maxAttempts: providerMaxAttempts,\n    sideEffect: \"begin_row\",\n  },\n  post_x: {",
+    "run": "bunx vitest run --project unit tests/unit/automation/step-specs.test.ts",
+    "expect": "FAIL .*step-specs\\.test\\.ts > step specs > gives the three post steps the 40-second limit"
+  },
+  {
+    "id": "b10g6-q-captions",
+    "kind": "file",
+    "test": "tests/unit/assets/steps.test.ts",
+    "file": "src/server/jobs/steps/write-captions.ts",
+    "find": "for (const id of updatedAssetIds) await maybeAutoApprove(ctx.db, id, ctx.now);",
+    "replace": "for (const id of updatedAssetIds) void id;",
+    "run": "bunx vitest run --project unit tests/unit/assets/steps.test.ts",
+    "expect": "FAIL .*steps\\.test\\.ts > write_captions > runWriteCaptions for a Feature property asks maybeAutoApprove"
+  },
+  {
+    "id": "b10g6-parity",
+    "kind": "file",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/routes/api/admin/channels.posts.ts",
+    "find": "action: \"channels.posts_list\",",
+    "replace": "action: \"channels.health\",",
+    "run": "bunx vitest run --project unit tests/unit/admin-routes-parity.test.ts",
+    "expect": "FAIL .*admin-routes-parity\\.test\\.ts > the admin route registry > gives every matrix action a route"
+  },
+  {
+    "id": "b10g6-matrix",
+    "kind": "file",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/channels.ts",
+    "find": "{ action: \"channels.ids_put\", group: \"channels\", roles: [\"media_ops\", \"admin\"], humanOnly: true },",
+    "replace": "{ action: \"channels.ids_put\", group: \"channels\", roles: [\"media_ops\", \"admin\"] },",
+    "run": "bunx vitest run --project unit tests/unit/authz.matrix.test.ts",
+    "expect": "FAIL .*authz\\.matrix\\.test\\.ts > .*equals the hand-typed fixture, row for row"
+  },
+  {
+    "id": "b10g6-svc-retry-authz",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "authorize(actor, \"channels.retry\");",
+    "replace": "authorize(actor, \"channels.posts_list\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > the actions > commercial gets 403 on retry and no database call"
+  },
+  {
+    "id": "b10g6-svc-cancel-authz",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "authorize(actor, \"channels.cancel\");",
+    "replace": "authorize(actor, \"channels.posts_list\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > the actions > commercial gets 403 on cancel and no database call"
+  },
+  {
+    "id": "b10g6-svc-refresh-authz",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "authorize(actor, \"channels.metrics_refresh\");",
+    "replace": "authorize(actor, \"channels.posts_list\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > the actions > commercial gets 403 on metrics refresh and no database call"
+  },
+  {
+    "id": "b10g6-z-ids-authz",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "authorize(actor, \"channels.ids_put\");",
+    "replace": "authorize(actor, \"channels.posts_list\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > the actions > commercial gets 403 on ids put and no database call"
+  },
+  {
+    "id": "b10g6-svc-force",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "p_force: input.force === true,",
+    "replace": "p_force: false,",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > the actions > media_ops retry makes one retry_social_post call"
+  },
+  {
+    "id": "b10g6-svc-202",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "{ status: 202 }",
+    "replace": "{ status: 200 }",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > the actions > refreshMetrics makes one refresh_social_post_metrics call and answers 202"
+  },
+  {
+    "id": "b10g6-svc-withdrawn",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "authorize(actor, \"channels.mark_withdrawn\");",
+    "replace": "authorize(actor, \"channels.retry\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > the actions > markWithdrawn is 403 for commercial"
+  },
+  {
+    "id": "b10g6-x-unknown-field",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "if (parsed.error.issues.some((issue) => issue.code === \"unrecognized_keys\")) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > the actions > putChannelIds refuses a token field"
+  },
+  {
+    "id": "b10g6-ll",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "          .is(\"withdrawn_at\", null)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > listPosts > withdraw: true lists the rows still to delete by hand"
+  },
+  {
+    "id": "b10g6-svc-post-id",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "if (input.post_id !== undefined) query = query.eq(\"id\", input.post_id);",
+    "replace": "void input.post_id;",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > listPosts > post_id filters to the one row"
+  },
+  {
+    "id": "b10g6-svc-last-post",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "{ at: posted.posted_at, permalink: posted.permalink }",
+    "replace": "{ at: posted.posted_at, permalink: null }",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > channelHealth > reports the last post, the last error and the token level"
+  },
+  {
+    "id": "b10g6-svc-dead-row",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "failed?.error === \"token_dead\" &&",
+    "replace": "failed?.error === \"never\" &&",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > channelHealth > is red while the newest failure is token_dead"
+  },
+  {
+    "id": "b10g6-svc-version",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "if (settings?.token_state === \"version_expired\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > channelHealth > is red for a dead token, red for Meta's missing scopes"
+  },
+  {
+    "id": "b10g6-aa-once",
+    "kind": "file",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/channels/auto-approve.ts",
+    "find": "if (asset.status !== \"pending\") return { status: \"not_eligible\", reason: \"not_pending\" };",
+    "replace": "if (asset.status === \"never\") return { status: \"not_eligible\", reason: \"not_pending\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts",
+    "expect": "FAIL .*auto-approve\\.test\\.ts > maybeAutoApprove > approves a Feature asset after auto_after"
+  },
+  {
+    "id": "b10g6-aa-fanout",
+    "kind": "file",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/channels/auto-approve.ts",
+    "find": "await fanoutEvent(db, eventId);",
+    "replace": "await fanoutEvent(db, \"x\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts",
+    "expect": "FAIL .*auto-approve\\.test\\.ts > maybeAutoApprove > makes one auto_approve_asset call with its evidence"
+  },
+  {
+    "id": "b10g6-aa-mode",
+    "kind": "file",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/channels/auto-approve.ts",
+    "find": "if (tier === undefined || !mayApprove({ kind: \"agent\" }, tier, rows, today)) {",
+    "replace": "if (tier === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts",
+    "expect": "FAIL .*auto-approve\\.test\\.ts > maybeAutoApprove > never approves (a Campaign asset|a Feature asset before auto_after)"
+  },
+  {
+    "id": "b10g6-aa-lint",
+    "kind": "file",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/channels/auto-approve.ts",
+    "find": "=== \"failed\"",
+    "replace": "=== \"never\"",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts",
+    "expect": "FAIL .*auto-approve\\.test\\.ts > maybeAutoApprove > never approves an asset whose caption_lint failed"
+  },
+  {
+    "id": "b10g6-aa-incomplete",
+    "kind": "file",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/channels/auto-approve.ts",
+    "find": "if (files.length === 0 || blank(asset.caption) || blank(asset.alt_text)) {",
+    "replace": "if (files.length === 0) {",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts",
+    "expect": "FAIL .*auto-approve\\.test\\.ts > maybeAutoApprove > never approves an asset without alt text"
+  },
+  {
+    "id": "b10g6-aa-no-target",
+    "kind": "file",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/channels/auto-approve.ts",
+    "find": "if (rows.length === 0) return { status: \"not_eligible\", reason: \"no_target\" };",
+    "replace": "void rows;",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts",
+    "expect": "FAIL .*auto-approve\\.test\\.ts > maybeAutoApprove > never approves an asset whose only target is off"
+  },
+  {
+    "id": "b10g6-q-cover",
+    "kind": "file",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/jobs/steps/render-cover.ts",
+    "find": "await maybeAutoApprove(ctx.db, await onRenderResult(ctx, job, result), ctx.now);",
+    "replace": "await onRenderResult(ctx, job, result);",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts",
+    "expect": "FAIL .*auto-approve\\.test\\.ts > what starts an automatic approval \\(invariant 4a\\) > render_cover onResult asks maybeAutoApprove once"
+  },
+  {
+    "id": "b10g6-q",
+    "kind": "file",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/jobs/steps/render-carousel.ts",
+    "find": "await maybeAutoApprove(ctx.db, await onRenderResult(ctx, job, result), ctx.now);",
+    "replace": "await onRenderResult(ctx, job, result);",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts",
+    "expect": "FAIL .*auto-approve\\.test\\.ts > what starts an automatic approval \\(invariant 4a\\) > render_carousel onResult asks maybeAutoApprove once"
+  },
+  {
+    "id": "b10g6-q-story",
+    "kind": "file",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/jobs/steps/render-story.ts",
+    "find": "await maybeAutoApprove(ctx.db, await onRenderResult(ctx, job, result), ctx.now);",
+    "replace": "await onRenderResult(ctx, job, result);",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts",
+    "expect": "FAIL .*auto-approve\\.test\\.ts > what starts an automatic approval \\(invariant 4a\\) > render_story onResult asks maybeAutoApprove once"
+  },
+  {
+    "id": "b10g6-seed-window",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "update public.channel_settings set posting_window = posting_window || '{\"daily_cap\": 3}' where channel = 'x';",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"sets the three live channels off\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > the seed > sets the three live channels off"
+  },
+  {
+    "id": "b10g6-s",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.mark_social_post_posted(\n  p_id uuid,\n  p_remote_id text,\n  p_permalink text,\n  p_targets text[]\n)\nreturns timestamptz\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_post public.social_posts;\n  v_asset public.assets;\n  v_submission public.submissions;\n  v_posted_at timestamptz;\nbegin\n  -- The stored posted_at, or null when the row was no longer scheduled (another run posted or failed it).\n  select * into v_post from public.social_posts p where p.id = p_id;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- The asset row is the lock: two channels finishing at once cannot both miss the last one.\n  select * into v_asset from public.assets a where a.id = v_post.asset_id for update;\n  update public.social_posts\n  set status = 'posted', posted_at = now(), remote_id = p_remote_id, permalink = p_permalink, error = null\n  where id = p_id and status = 'scheduled'\n  returning posted_at into v_posted_at;\n  if not found then\n    return null;\n  end if;\n\n  -- Published once every enabled target channel the caller names has a posted row for this asset.\n  if v_asset.status = 'approved' and not exists (\n    select 1\n    from unnest(p_targets) t (channel)\n    where not exists (\n      select 1 from public.social_posts p\n      where p.asset_id = v_asset.id and p.status = 'posted'\n    )\n  ) then\n    update public.assets set status = 'published' where id = v_asset.id;\n  end if;\n\n  -- G60: the first posted row of a published property moves its submission to Distribution Active; B2's\n  -- enforce_editorial_gate checks the move again.\n  select s.* into v_submission\n  from public.properties pr\n  join public.submissions s on s.id = pr.submission_id\n  where pr.id = v_asset.property_id\n  for update of s;\n  if found and v_submission.workflow_state = 'Published'\n    and public.submission_transition_allowed('Published', 'Distribution Active') then\n    update public.submissions set workflow_state = 'Distribution Active' where id = v_submission.id;\n  end if;\n  return v_posted_at;\nend;\n$$;\n\nrevoke execute on function public.mark_social_post_posted(uuid, text, text, text[]) from public, anon, authenticated;\ngrant execute on function public.mark_social_post_posted(uuid, text, text, text[]) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"keeps the asset approved with two of three targets posted\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > posting > keeps the asset approved with two of three targets posted"
+  },
+  {
+    "id": "b10g6-aa",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.mark_social_post_posted(\n  p_id uuid,\n  p_remote_id text,\n  p_permalink text,\n  p_targets text[]\n)\nreturns timestamptz\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_post public.social_posts;\n  v_asset public.assets;\n  v_submission public.submissions;\n  v_posted_at timestamptz;\nbegin\n  -- The stored posted_at, or null when the row was no longer scheduled (another run posted or failed it).\n  select * into v_post from public.social_posts p where p.id = p_id;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- The asset row is the lock: two channels finishing at once cannot both miss the last one.\n  select * into v_asset from public.assets a where a.id = v_post.asset_id for update;\n  update public.social_posts\n  set status = 'posted', posted_at = now(), remote_id = p_remote_id, permalink = p_permalink, error = null\n  where id = p_id and status = 'scheduled'\n  returning posted_at into v_posted_at;\n  if not found then\n    return null;\n  end if;\n\n  -- Published once every enabled target channel the caller names has a posted row for this asset.\n  if v_asset.status = 'approved' and not exists (\n    select 1\n    from unnest(p_targets) t (channel)\n    where not exists (\n      select 1 from public.social_posts p\n      where p.asset_id = v_asset.id and p.channel = t.channel and p.status = 'posted'\n    )\n  ) then\n    update public.assets set status = 'published' where id = v_asset.id;\n  end if;\n\n  -- G60: the first posted row of a published property moves its submission to Distribution Active; B2's\n  -- enforce_editorial_gate checks the move again.\n  select s.* into v_submission\n  from public.properties pr\n  join public.submissions s on s.id = pr.submission_id\n  where pr.id = v_asset.property_id\n  for update of s;\n  if found and v_submission.workflow_state = 'Published'\n    and public.submission_transition_allowed('Published', 'Distribution Active') then\n    null;\n  end if;\n  return v_posted_at;\nend;\n$$;\n\nrevoke execute on function public.mark_social_post_posted(uuid, text, text, text[]) from public, anon, authenticated;\ngrant execute on function public.mark_social_post_posted(uuid, text, text, text[]) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"moves a Published submission to Distribution Active\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > posting > moves a Published submission to Distribution Active"
+  },
+  {
+    "id": "b10g6-ee-sql",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.set_social_post_inflight(p_id uuid, p_marker text default null)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- INT-01: a compare-and-set. False means another run already holds the row with its own marker; no marker clears it.\n  if p_marker is null then\n    update public.social_posts set error = null where id = p_id and status = 'scheduled';\n    return true;\n  end if;\n  update public.social_posts\n  set error = p_marker\n  where id = p_id\n    and status = 'scheduled';\n  return found;\nend;\n$$;\n\nrevoke execute on function public.set_social_post_inflight(uuid, text) from public, anon, authenticated;\ngrant execute on function public.set_social_post_inflight(uuid, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"set_social_post_inflight keeps the first marker\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > posting > set_social_post_inflight keeps the first marker"
+  },
+  {
+    "id": "b10g6-fail-posted",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.fail_social_post(p_id uuid, p_error text)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- INT-01: only a scheduled row fails, so a run that lost a race never fails a row another run posted.\n  update public.social_posts set status = 'failed', error = p_error where id = p_id;\n  return found;\nend;\n$$;\n\nrevoke execute on function public.fail_social_post(uuid, text) from public, anon, authenticated;\ngrant execute on function public.fail_social_post(uuid, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"fail_social_post changes nothing on a posted row\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > posting > fail_social_post changes nothing on a posted row"
+  },
+  {
+    "id": "b10g6-reschedule-audit",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.reschedule_social_post(p_id uuid, p_scheduled_at timestamptz, p_note text)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before timestamptz;\nbegin\n  -- Invariant 3a: a temporary failure near the window end moves the post; the system writes the row (G43).\n  select p.scheduled_at into v_before from public.social_posts p where p.id = p_id and p.status = 'scheduled' for update;\n  if not found then\n    return false;\n  end if;\n  update public.social_posts set scheduled_at = p_scheduled_at where id = p_id;\n  perform public.write_audit(\n    null, null, 'channels.moved', 'social_posts', p_id,\n    jsonb_build_object('scheduled_at', v_before), jsonb_build_object('scheduled_at', p_scheduled_at), null, p_note\n  );\n  return true;\nend;\n$$;\n\nrevoke execute on function public.reschedule_social_post(uuid, timestamptz, text) from public, anon, authenticated;\ngrant execute on function public.reschedule_social_post(uuid, timestamptz, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"reschedule_social_post writes one channels.reschedule row\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > posting > reschedule_social_post writes one channels\\.reschedule row"
+  },
+  {
+    "id": "b10g6-rls-write",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "grant update on public.social_posts to authenticated;\ncreate policy social_posts_update_any on public.social_posts for update to authenticated using (true);",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"a commercial session cannot write social_posts\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > posting > a commercial session cannot write social_posts"
+  },
+  {
+    "id": "b10g6-retry-params",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.retry_social_post(\n  p_id uuid,\n  p_force boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_post public.social_posts;\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\n  v_type text;\n  v_job uuid;\nbegin\n  select * into v_post from public.social_posts p where p.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_post.status <> 'failed' then\n    raise exception 'wrong_state' using errcode = '55000';\n  end if;\n  v_type := case v_post.channel\n    when 'instagram' then 'post_meta'\n    when 'facebook' then 'post_meta'\n    when 'x' then 'post_x'\n    when 'linkedin' then 'post_linkedin'\n  end;\n  if v_type is null then\n    raise exception 'no_adapter' using errcode = '22023';\n  end if;\n  select * into v_asset from public.assets a where a.id = v_post.asset_id;\n  select p.campaign_tier, p.market_slug into v_tier, v_market from public.properties p where p.id = v_asset.property_id;\n\n  -- A retry clears the error, the in-flight marker included; `force` skips the revision check (invariant 2).\n  update public.social_posts set status = 'scheduled', error = null where id = p_id;\n  v_job := public.enqueue_job_manual(\n    v_type, p_id,\n    jsonb_build_object(\n      'params', case\n        when v_type = 'post_meta' then jsonb_build_object('channels', jsonb_build_array(v_post.channel))\n        else '{\"x\": 1}'::jsonb\n      end,\n      'data', jsonb_build_object(\n        'asset_id', v_asset.id, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier,\n        'market', v_market, 'force', p_force\n      )\n    ),\n    12\n  );\n  -- DB-09: no job means no retry, so the state change and the audit row roll back with this raise.\n  if v_job is null then\n    raise exception 'enqueue_failed' using errcode = '55000';\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'channels.retry', 'social_posts', p_id,\n    jsonb_build_object('status', v_post.status, 'error', v_post.error),\n    jsonb_build_object('status', 'scheduled', 'error', null),\n    p_request_id, format('force: %s', p_force)\n  );\n  return v_job;\nend;\n$$;\n\nrevoke execute on function public.retry_social_post(uuid, boolean, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.retry_social_post(uuid, boolean, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"retry_social_post schedules an x row again\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > retry and metrics refresh > retry_social_post schedules an x row again"
+  },
+  {
+    "id": "b10g6-refresh-key",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.refresh_social_post_metrics(\n  p_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_status public.social_post_status;\n  v_job uuid;\nbegin\n  -- Invariant 1: the admin never calls a platform; the reconcile job reads this one post's metrics.\n  select p.status into v_status from public.social_posts p where p.id = p_id;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_status <> 'posted' then\n    raise exception 'wrong_state' using errcode = '55000';\n  end if;\n  v_job := public.enqueue_job_manual(\n    'reconcile_story', p_id,\n    jsonb_build_object('params', jsonb_build_object('post_ids', jsonb_build_array(p_id)), 'data', '{}'::jsonb)\n  );\n  -- DB-09: no job means nothing was asked, so the audit row rolls back with this raise.\n  if v_job is null then\n    raise exception 'enqueue_failed' using errcode = '55000';\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'channels.metrics_refresh', 'social_posts', p_id, null,\n    jsonb_build_object('job_id', v_job), p_request_id\n  );\n  return v_job;\nend;\n$$;\n\nrevoke execute on function public.refresh_social_post_metrics(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.refresh_social_post_metrics(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"refresh_social_post_metrics numbers its jobs\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > retry and metrics refresh > refresh_social_post_metrics numbers its jobs"
+  },
+  {
+    "id": "b10g6-kk",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.retry_social_post(\n  p_id uuid,\n  p_force boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_post public.social_posts;\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\n  v_type text;\n  v_job uuid;\nbegin\n  select * into v_post from public.social_posts p where p.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_post.status <> 'failed' then\n    raise exception 'wrong_state' using errcode = '55000';\n  end if;\n  v_type := case v_post.channel\n    when 'instagram' then 'post_meta'\n    when 'facebook' then 'post_meta'\n    when 'x' then 'post_x'\n    when 'linkedin' then 'post_linkedin'\n  end;\n  if v_type is null then\n    raise exception 'no_adapter' using errcode = '22023';\n  end if;\n  select * into v_asset from public.assets a where a.id = v_post.asset_id;\n  select p.campaign_tier, p.market_slug into v_tier, v_market from public.properties p where p.id = v_asset.property_id;\n\n  -- A retry clears the error, the in-flight marker included; `force` skips the revision check (invariant 2).\n  update public.social_posts set status = 'scheduled', error = null where id = p_id;\n  v_job := public.enqueue_job_manual(\n    v_type, p_id,\n    jsonb_build_object(\n      'params', case\n        when v_type = 'post_meta' then jsonb_build_object('channels', jsonb_build_array(v_post.channel))\n        else '{}'::jsonb\n      end,\n      'data', jsonb_build_object(\n        'asset_id', v_asset.id, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier,\n        'market', v_market, 'force', p_force\n      )\n    ),\n    12\n  );\n  -- DB-09: no job means no retry, so the state change and the audit row roll back with this raise.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'channels.retry', 'social_posts', p_id,\n    jsonb_build_object('status', v_post.status, 'error', v_post.error),\n    jsonb_build_object('status', 'scheduled', 'error', null),\n    p_request_id, format('force: %s', p_force)\n  );\n  return v_job;\nend;\n$$;\n\nrevoke execute on function public.retry_social_post(uuid, boolean, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.retry_social_post(uuid, boolean, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"raises enqueue_failed and changes nothing when no job is made\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > retry and metrics refresh > raises enqueue_failed and changes nothing when no job is made"
+  },
+  {
+    "id": "b10g6-mm",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.mark_social_post_withdrawn(\n  p_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_post public.social_posts;\n  v_withdrawn_at timestamptz;\nbegin\n  -- E2E-01: a person deleted a taken-down post on the platform by hand and records it here.\n  select * into v_post from public.social_posts p where p.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_post.withdrawn_at is not null then\n    raise exception 'invalid_state' using errcode = '55000';\n  end if;\n  update public.social_posts set withdrawn_at = now() where id = p_id returning withdrawn_at into v_withdrawn_at;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'channels.mark_withdrawn', 'social_posts', p_id,\n    jsonb_build_object('withdrawn_at', null), jsonb_build_object('withdrawn_at', v_withdrawn_at), p_request_id\n  );\nend;\n$$;\n\nrevoke execute on function public.mark_social_post_withdrawn(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.mark_social_post_withdrawn(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"mark_social_post_withdrawn sets withdrawn_at with one audit row\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > withdraw by hand \\(E2E-01\\) > mark_social_post_withdrawn sets withdrawn_at with one audit row"
+  },
+  {
+    "id": "b10g6-w",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.auto_approve_asset(p_asset_id uuid, p_evidence jsonb, p_request_id text default null)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_event uuid;\nbegin\n  -- B10 invariant 4: the system approves with evidence through B9's function, the only writer of the approval and the\n  -- only emitter of asset.approved (G20); this row says the system did it (G43).\n  v_event := public.approve_asset(\n    p_asset => p_asset_id, p_actor => null, p_actor_kind => null, p_request_id => p_request_id, p_evidence => p_evidence\n  );\n  perform public.write_audit(\n    null, null, 'assets.auto_approve', 'assets', p_asset_id, null, p_evidence, p_request_id, 'system'\n  );\n  perform public.emit_event('asset.approved', 'asset', p_asset_id, '{}', null);\n  return v_event;\nend;\n$$;\n\nrevoke execute on function public.auto_approve_asset(uuid, jsonb, text) from public, anon, authenticated;\ngrant execute on function public.auto_approve_asset(uuid, jsonb, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"auto_approve_asset writes one system assets.auto_approve row\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > approvals > auto_approve_asset writes one system assets\\.auto_approve row"
+  },
+  {
+    "id": "b10g6-evidence",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.approve_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null,\n  p_evidence jsonb default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  -- B10 invariant 4: an agent, or the system (a null actor and kind, G43), approves only with the evidence of\n  -- mayApprove; that evidence is kept in the audit row's note.\n  if p_actor_kind = 'agent' then\n    raise exception 'manual_approval' using errcode = '42501';\n  end if;\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status <> 'pending' then\n    raise exception 'asset_not_pending' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The guard trigger assets_approve_guard runs here and refuses an incomplete asset.\n  update public.assets set status = 'approved', approved_by = p_actor, approved_at = now() where id = p_asset;\n\n  -- G6: an approved cover is the property's Open Graph image. A cover with no main file leaves the key as it is.\n  if v_asset.kind = 'cover' then\n    update public.properties p\n    set og_image_key = coalesce(\n      (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'main' limit 1),\n      p.og_image_key\n    )\n    where p.id = v_asset.property_id;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (\n    p_actor, p_actor_kind, 'assets.approve', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id,\n    p_evidence::text\n  );\n  return public.emit_event(\n    'asset.approved', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier, 'market', v_market\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.approve_asset(uuid, uuid, public.actor_kind, text, jsonb)\n  from public, anon, authenticated;\ngrant execute on function public.approve_asset(uuid, uuid, public.actor_kind, text, jsonb) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"approve_asset refuses an agent or the system without evidence\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > approvals > approve_asset refuses an agent or the system without evidence"
+  },
+  {
+    "id": "b10g6-x",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.put_channel_ids(\n  p_key text,\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_allowed text[];\n  v_before jsonb;\n  v_after jsonb;\nbegin\n  -- G21: the non-secret ids of a channel. Only the fields of channelIdsSchema pass, so no token reaches settings;\n  -- these keys are not public, so catalog_version does not move.\n  v_allowed := case p_key\n    when 'meta' then array['page_id', 'ig_user_id', 'graph_version']\n    when 'x' then array['user_id', 'handle', 'read_allowance', 'metrics_days']\n    when 'linkedin' then array['organization_urn', 'api_version', 'multi_image']\n  end;\n  if v_allowed is null or jsonb_typeof(p_value) is distinct from 'object' then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  if false then\n    raise exception 'unknown_field' using errcode = '22023';\n  end if;\n  select s.value into v_before from public.settings s where s.key = p_key for update;\n  insert into public.settings as s (key, value, updated_by)\n  values (p_key, p_value, p_actor)\n  on conflict (key) do update set value = s.value || excluded.value, updated_by = excluded.updated_by\n  returning value into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'channels.ids_put', 'settings', null, coalesce(v_before, '{}'::jsonb), v_after,\n    p_request_id, case when p_actor is null then 'system' end\n  );\n  return v_after;\nend;\n$$;\n\nrevoke execute on function public.put_channel_ids(text, jsonb, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.put_channel_ids(text, jsonb, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"record_channel_check keeps the ids, put_channel_ids refuses a token\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > channel settings \\(G21, INT-08\\) > record_channel_check keeps the ids, put_channel_ids refuses a token"
+  },
+  {
+    "id": "b10g6-pp",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.write_audit(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_action text,\n  p_entity text,\n  p_entity_id uuid,\n  p_before jsonb,\n  p_after jsonb,\n  p_request_id text,\n  p_note text default null\n)\nreturns bigint\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_roles public.app_role[];\n  v_kinds public.actor_kind[];\n  v_rule public.action_roles;\n  v_pii text[];\n  v_keys text[];\n  v_before jsonb := p_before;\n  v_after jsonb := p_after;\n  v_id bigint;\nbegin\n  -- Invariant 18, DB-04: the actor as stored, never as the caller names it. A null actor is the system.\n  -- Raised inside the writing function's transaction, so its whole change rolls back.\n  if p_actor is not null then\n    select array_agg(r.role), array_agg(distinct r.actor_kind)\n    into v_roles, v_kinds\n    from public.user_roles r\n    where r.user_id = p_actor and r.disabled_at is null;\n    if v_roles is null or false then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    select * into v_rule from public.action_roles a where a.action = p_action;\n    if not found then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n    if v_rule.human_only and p_actor_kind = 'agent' then\n      raise exception 'human_only' using errcode = '42501';\n    end if;\n    if not (v_rule.roles && v_roles) then\n      raise exception 'forbidden' using errcode = '42501';\n    end if;\n  end if;\n\n  -- DB-03: only the keys that changed, plus `id`, and no value of a personal-data column. The entity is the\n  -- table name or its singular (`submission`, `property`, `story`); a hash is never stored, it can be reversed.\n  if jsonb_typeof(coalesce(p_before, '{}')) = 'object' and jsonb_typeof(coalesce(p_after, '{}')) = 'object' then\n    select coalesce(array_agg(p.column_name), '{}')\n    into v_pii\n    from public.pii_columns p\n    where p.table_name in (p_entity, p_entity || 's', regexp_replace(p_entity, 'y$', 'ies'));\n    select coalesce(array_agg(k.key), '{}')\n    into v_keys\n    from (\n      select jsonb_object_keys(coalesce(p_before, '{}')) as key\n      union\n      select jsonb_object_keys(coalesce(p_after, '{}'))\n    ) k\n    where k.key = 'id' or (p_before -> k.key) is distinct from (p_after -> k.key);\n    if p_before is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_before\n      from jsonb_each(p_before) e\n      where e.key = any (v_keys);\n    end if;\n    if p_after is not null then\n      select coalesce(jsonb_object_agg(e.key, case when e.key = any (v_pii) then '{\"pii\": \"changed\"}'::jsonb else e.value end), '{}')\n      into v_after\n      from jsonb_each(p_after) e\n      where e.key = any (v_keys);\n    end if;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (p_actor, p_actor_kind, p_action, p_entity, p_entity_id, v_before, v_after, p_request_id, p_note)\n  returning id into v_id;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.write_audit(uuid, public.actor_kind, text, text, uuid, jsonb, jsonb, text, text)\n  to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"put_channel_ids with an agent\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > channel settings \\(G21, INT-08\\) > put_channel_ids with an agent"
+  },
+  {
+    "id": "b10g6-usage-month",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.record_channel_usage(p_channel text, p_reads int)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month text := to_char(now() at time zone 'UTC', 'YYYY-MM');\n  v_reads int;\nbegin\n  -- INT-08: the month's X reads; a new UTC month starts the count again. `x` is not a public key (G21).\n  if p_channel is distinct from 'x' then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  insert into public.settings as s (key, value)\n  values (p_channel, jsonb_build_object('usage', jsonb_build_object('month', v_month, 'reads', p_reads)))\n  on conflict (key) do update\n  set value = s.value || jsonb_build_object(\n    'usage', jsonb_build_object(\n      'month', v_month,\n      'reads', p_reads + case\n        when true then coalesce((s.value -> 'usage' ->> 'reads')::int, 0)\n        else 0\n      end\n    )\n  )\n  returning (value -> 'usage' ->> 'reads')::int into v_reads;\n  return v_reads;\nend;\n$$;\n\nrevoke execute on function public.record_channel_usage(text, int) from public, anon, authenticated;\ngrant execute on function public.record_channel_usage(text, int) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"record_channel_usage counts the month\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > channel settings \\(G21, INT-08\\) > record_channel_usage counts the month"
+  },
+  {
+    "id": "b10g6-stale",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.store_channel_token(\n  p_channel text,\n  p_used_refresh_sha256 text,\n  p_token_set jsonb\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_current text;\n  v_name text;\nbegin\n  if p_channel not in ('x', 'linkedin') then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  -- G21: one writer per channel, the lock ends with the transaction; no lease table.\n  if not pg_try_advisory_xact_lock(hashtext('token_refresh:' || p_channel)) then\n    return 'busy';\n  end if;\n  -- A refresh token is used once: a set refreshed from another token than the one stored now is stale. An empty\n  -- entry is the env seed, whose hash only the caller knows.\n  v_current := public.get_vault_secret(p_channel || '_oauth_token');\n  if coalesce(v_current, '') <> ''\n    and encode(sha256(convert_to(coalesce(v_current::jsonb ->> 'refresh_token', ''), 'UTF8')), 'hex')\n      is distinct from encode(sha256(convert_to(coalesce(v_current::jsonb ->> 'refresh_token', ''), 'UTF8')), 'hex') then\n    return 'stale';\n  end if;\n  perform public.set_vault_secret(p_channel || '_oauth_token', p_token_set::text);\n  v_name := case p_channel when 'x' then 'X_ACCESS_TOKEN' else 'LINKEDIN_ACCESS_TOKEN' end;\n  insert into public.audit_log (actor_id, actor_kind, action, entity, note)\n  values (null, null, 'secret.rotated', v_name, v_name || ': automatic refresh');\n  return 'stored';\nend;\n$$;\n\nrevoke execute on function public.store_channel_token(text, text, jsonb) from public, anon, authenticated;\ngrant execute on function public.store_channel_token(text, text, jsonb) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"store_channel_token stores a set once\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > channel settings \\(G21, INT-08\\) > store_channel_token stores a set once"
+  },
+  {
+    "id": "b10g6-t",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.store_channel_token(\n  p_channel text,\n  p_used_refresh_sha256 text,\n  p_token_set jsonb\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_current text;\n  v_name text;\nbegin\n  if p_channel not in ('x', 'linkedin') then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  -- G21: one writer per channel, the lock ends with the transaction; no lease table.\n  -- A refresh token is used once: a set refreshed from another token than the one stored now is stale. An empty\n  -- entry is the env seed, whose hash only the caller knows.\n  v_current := public.get_vault_secret(p_channel || '_oauth_token');\n  if coalesce(v_current, '') <> ''\n    and encode(sha256(convert_to(coalesce(v_current::jsonb ->> 'refresh_token', ''), 'UTF8')), 'hex')\n      is distinct from p_used_refresh_sha256 then\n    return 'stale';\n  end if;\n  perform public.set_vault_secret(p_channel || '_oauth_token', p_token_set::text);\n  v_name := case p_channel when 'x' then 'X_ACCESS_TOKEN' else 'LINKEDIN_ACCESS_TOKEN' end;\n  insert into public.audit_log (actor_id, actor_kind, action, entity, note)\n  values (null, null, 'secret.rotated', v_name, v_name || ': automatic refresh');\n  return 'stored';\nend;\n$$;\n\nrevoke execute on function public.store_channel_token(text, text, jsonb) from public, anon, authenticated;\ngrant execute on function public.store_channel_token(text, text, jsonb) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"store_channel_token answers busy on a second connection\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > channel settings \\(G21, INT-08\\) > store_channel_token answers busy on a second connection"
+  },
+  {
+    "id": "b10g6-week-unique",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "alter table public.campaign_reports drop constraint campaign_reports_week_uq;\nalter table public.campaign_reports add constraint campaign_reports_week_uq unique (campaign_id, period_start, reach);",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"a second upsert_campaign_report for the same week leaves one row\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > campaign reports \\(G22\\) > a second upsert_campaign_report for the same week leaves one row"
+  },
+  {
+    "id": "b10g6-email-minute",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.email_campaign_report(\n  p_report_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_submission uuid;\n  v_job uuid;\nbegin\n  -- G22: the report goes to the person who submitted the property. A double click in one minute makes one job.\n  select c.submission_id into v_submission\n  from public.campaign_reports r\n  join public.campaigns c on c.id = r.campaign_id\n  where r.id = p_report_id;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_submission is null then\n    raise exception 'recipient_missing' using errcode = '22023';\n  end if;\n  v_job := public.enqueue_job(\n    'send_email',\n    jsonb_build_object(\n      'params', jsonb_build_object('template', 'campaign_report', 'to', 'submitter'),\n      'data', jsonb_build_object('submission_id', v_submission, 'report_id', p_report_id)\n    ),\n    format('send_email:report:%s:%s', p_report_id, gen_random_uuid()),\n    p_max_attempts => 12\n  );\n  if v_job is not null then\n    perform public.write_audit(\n      p_actor, p_actor_kind, 'reports.email', 'campaign_reports', p_report_id, null,\n      jsonb_build_object('job_id', v_job), p_request_id\n    );\n  end if;\n  return v_job;\nend;\n$$;\n\nrevoke execute on function public.email_campaign_report(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.email_campaign_report(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"email_campaign_report twice in one minute\"",
+    "expect": "FAIL .*social\\.db\\.test\\.ts > campaign reports \\(G22\\) > email_campaign_report twice in one minute"
+  },
+  {
+    "id": "b10g6-marker-token-dead",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      return onFailure(run, error, row, today);",
+    "replace": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      throw error;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta.test.ts > post_meta > a code 190 while an earlier container is published fails at once and asks for a reconnect"
+  },
+  {
+    "id": "b10g6-marker-moved",
+    "kind": "file",
+    "test": "tests/unit/channels/post-meta.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      return onFailure(run, error, row, today);",
+    "replace": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      throw error;",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
+    "expect": "FAIL .*post-meta.test.ts > post_meta > a temporary error while an earlier container is published, near the window end, moves the post"
+  }
+]

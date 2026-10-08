@@ -42,9 +42,15 @@ const InquiryDialog = lazy(() =>
 );
 
 export const Route = createFileRoute("/_site/property/$slug")({
-  loader: async ({ params, context: { queryClient } }) => {
+  // A signed draft link (B7 invariant 14): the page reads the draft and is never indexed.
+  validateSearch: (search: Record<string, unknown>): { preview?: string } => {
+    const preview = search["preview"];
+    return typeof preview === "string" && preview !== "" ? { preview } : {};
+  },
+  loaderDeps: ({ search }) => ({ preview: search.preview }),
+  loader: async ({ params, deps, context: { queryClient } }) => {
     const [property, properties, markets, archive] = await Promise.all([
-      queryClient.ensureQueryData(propertyQuery(params.slug)),
+      queryClient.ensureQueryData(propertyQuery(params.slug, deps.preview)),
       queryClient.ensureQueryData(propertiesQuery()),
       queryClient.ensureQueryData(marketsQuery()),
       queryClient.ensureQueryData(archiveFacetsQuery()),
@@ -60,6 +66,7 @@ export const Route = createFileRoute("/_site/property/$slug")({
       region,
       related: relatedProperties(properties, property, 3),
       facets: archive?.facets ?? null,
+      preview: deps.preview !== undefined,
     };
   },
   head: ({ loaderData, matches, params }) => {
@@ -73,7 +80,7 @@ export const Route = createFileRoute("/_site/property/$slug")({
         noindex: true,
       });
     }
-    const { property, market, region } = loaderData;
+    const { property, market, region, preview } = loaderData;
     const film = videoLd(property);
     return pageHead({
       title: `${property.title} ${property.city}`,
@@ -81,6 +88,7 @@ export const Route = createFileRoute("/_site/property/$slug")({
       path: `/property/${property.slug}`,
       image: ogImageFor({ key: "default", property, ogStatic: ogStaticOf(matches) }),
       type: "article",
+      noindex: preview,
       jsonLd: [
         propertyListingLd(property),
         breadcrumbLd([

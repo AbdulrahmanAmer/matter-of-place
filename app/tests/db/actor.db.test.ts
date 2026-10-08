@@ -38,9 +38,11 @@ async function agent(db: Db, roles: string[]): Promise<string> {
 }
 
 // Admin write functions that still insert into `audit_log` themselves; each owner moves to `write_audit` and takes
-// its name off this list (R21). Read functions with a `p_actor` argument would also go here, and none exists yet.
+// its name off this list (R21). Read functions with a `p_actor` argument go here too: `assert_agent_daily_cap` reads the
+// audit log to count an agent's day and writes none.
 const notThroughWriteAudit = [
   "approve_asset", // B9
+  "assert_agent_daily_cap", // B7, a read
   "reject_asset", // B9
   "rerender_asset", // B9
   "set_asset_caption", // B9

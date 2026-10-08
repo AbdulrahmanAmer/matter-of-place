@@ -379,3 +379,179 @@ what: The emails list matches `lower(e.to_email) = lower(v_contact.email)`, and 
 evidence: person_detail.sql emails subquery; B7.md log g2 'Choices to check': 'this read does not use it (UNPROVEN cost, a follow-up for a lower(to_email) index)'
 
 blocking: false
+
+## g3 · steps 6
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The eighth follow-up of the review (a scratch registry in a reused folder) is a GOTCHAS.md cost and is banked as P-2133.
+
+### 1. app/src/routes/admin.tsx (plus admin/auth.confirm.tsx, admin/sign-in.tsx, admin/requests.index.tsx, admin/requests.$id.tsx, tests/unit/admin-route-shells.test.ts)
+
+what: The first half of step 6 (ruling H66, the shell conversion with LEGACY emptied) is NOT DONE. The author built it, saw bundle-check FAILED 9, and reverted it, so these files are as on main and nothing regressed. By reading app/scripts/bundle-check.mjs I confirmed the author's cause. Lines 59 and 94 walk every public route chunk with reach(manifest, key, true). Each route chunk imports the client entry, so the walk follows every dynamicImports target of the entry, and any await import() of src/admin/** lands in a forbidden chunk. H66 and gate G16 contradict each other, and the orchestrator has to choose between them. I did not rebuild the conversion myself, because I have no edit tool.
+
+evidence: scripts/bundle-check.mjs:54-60 and :94; log block 'NOT DONE, BLOCKED' in workspace/05-plans/logs/B7.md; GOTCHAS P-2021
+
+blocking: false
+
+### 2. app/supabase/migrations/20261007223745_admin_submissions_decisions.sql
+
+what: The step's CI db proof is UNPROVEN. PR 213 is a draft, so its db job is skipped (P-2001). There is also a likely type-drift failure. submission_event_payload(public.submissions) is a new function whose argument is a row type, and src/db/types.ts has no entry for it. No function in types.ts has this shape, so I cannot predict what the generator emits. When the PR is marked ready, the db job's type-drift step may go red. In that case bun run types:from-ci -- 213 takes the generated types.
+
+evidence: grep 'submission_event_payload' src/db/types.ts finds nothing; no other function in types.ts takes a table row as its argument
+
+blocking: false
+
+### 3. app/src/server/lib/permissions/submissions.ts / app/supabase/sql/functions/request_assets.sql
+
+what: This is a gap in the plan, not in this group's code. An agent with an editor role and the submissions scope can loop request_assets and assets_received (Accepted, then Awaiting Assets, then Accepted again) without limit. Every request_assets sends the awaiting_assets letter to the submitter, which spends the 100-a-day Resend quota. request_assets is neither humanOnly nor counted by assert_agent_daily_cap. STANDARDS R12 says an agent-reachable action that changes outbound content must be one or the other. The plan's Contract caps only decline and accept, so the orchestrator should rule on this.
+
+evidence: assert_agent_daily_cap's v_actions covers only submissions.decline/accept and properties/stories.publish; request_assets.sql never calls it; the permissions entry for submissions.request_assets has no humanOnly
+
+blocking: false
+
+### 4. app/supabase/sql/functions/assert_agent_daily_cap.sql
+
+what: The daily cap fails open. If settings.agent_daily_limits is missing, or lacks the <group>_per_day key, v_limit is null, 'v_count >= null' is null, and no limit is enforced. Separately, the tests only count accepts, so removing 'submissions.decline' from the decisions array would stay green. I found both by reading; neither was run.
+
+evidence: lines: select (s.value ->> (p_group || '_per_day'))::integer into v_limit ...; if v_count >= v_limit then raise; the cap db cases call accept_submission only
+
+blocking: false
+
+### 5. app/src/server/submissions/service.ts
+
+what: emailPreview has no not-found path (found by reading). For an unknown submission id or an unknown decline_reason_id, the resolver throws NonRetryableError('submission_missing' or 'decline_reason_missing'). defineAdminRoute maps that to 500 and sends it to Sentry instead of answering 404 or 422. The UI only offers listed reasons, so the main trigger is an API caller or a stale id.
+
+evidence: variables.ts:94-96 found() throws NonRetryableError; admin-route.ts:213-219 logs unhandled_error and captures for code 'server'
+
+blocking: false
+
+### 6. app/scripts/admin-smoke.ts
+
+what: The script checks ADMIN_SMOKE_KEY only after it has committed a test submission to mop-dev, inside post(). The cleanup deletes the row (I confirmed 0 rows remain), but a run without the key still writes and deletes on the shared database. Checking requiredEnv('ADMIN_SMOKE_KEY') before the write would avoid that. The leg that prints 'declined skipped dry_' is UNPROVEN: it needs the key, bun run dev and the migration pushed by main.
+
+evidence: re-run printed 'admin-smoke: ADMIN_SMOKE_KEY is not set', exit 1, after createSubmission had run inside committed()
+
+blocking: false
+
+### 7. app/src/admin/requests/EmailPreview.tsx
+
+what: The decision dialogs and the sandbox='' srcDoc letter preview have only been tested in jsdom (UNPROVEN, as the author says). A srcdoc frame inherits the admin page's CSP, so once csp_enforce is on, the letter's inline styles may not render. Axe has not been run on screen 4 with a dialog open (R47).
+
+evidence: author's unproven list; component tests only
+
+blocking: false
+
+## c6m · steps 6
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The two follow-ups whose file is GOTCHAS.md are banked in the gotcha bank (P-831 hit again, P-2134), not listed here.
+
+### 1. workspace/05-plans/B7.md
+
+what: Step 6's proof line says 'bun run build && node scripts/bundle-check.mjs .output' without the live-mode VITE variables. Run exactly as written, it makes a demo build that fails bundle-check, which is the cost the author paid. This is a stale plan line, so it is the orchestrator's to fold.
+
+evidence: The plan-brief output for step 6 quotes the build proof without VITE_API_BASE_URL or VITE_TURNSTILE_SITE_KEY. The c6m log, Proof 3, records that the first build without them failed bundle-check.
+
+blocking: false
+
+### 2. app/tests/unit/admin-route-shells.test.ts
+
+what: The H66 half of step 6 is still NOT DONE. LEGACY lines 15-21 still list 5 route files. The step's proof is 'green with the list empty', and c6m reports the shells test as a passing step 6 proof without restating that condition or the NOT DONE. Ruling H66b (08:55) unblocked the conversion and gives it to 'B7's next group'. c6m's brief limited it to the two integration edits, so this is not this group's regression, but the orchestrator must schedule it or it stays hidden behind a green test.
+
+evidence: sed -n 14,21p app/tests/unit/admin-route-shells.test.ts in the snapshot shows the 5 LEGACY entries. ASSUMED.md H66b: 'The builder's revert of the shells is undone in B7's next group'.
+
+blocking: false
+
+### 3. workspace/05-plans/logs/B7.md
+
+what: The c6m Proof 4 numbers ('replayed 119: ok 93, bad 26') come from the tree before the commit, not from the commit handed in. Run from 1c59021 against the same base, the replay gives 'replayed 123: ok 93, bad 30'. The 4 extra entries are the registry entries whose test is the edited tests/db/actor.db.test.ts, and the author's run did not select them. I replayed them with the dev profile and all four print WATCHED-FAIL OK, so nothing is hidden, but the log line is draft output.
+
+evidence: env -u DEV_DB_URL node scripts/watchfail.mjs --registry tests/mutations --changed 9c462f5 gives replayed 123, bad 30. grep -c '"test": "tests/db/actor.db.test.ts"' tests/mutations/*.json totals 4.
+
+blocking: false
+
+## g1 · steps 6
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The fourth follow-up of the review (a hit-again of P-1218) is a GOTCHAS.md cost and is banked as a hit-again line under P-1218.
+
+### 1. workspace/05-plans/B7.md
+
+what: Stale plan lines (the orchestrator's to fold). Step 6 says 'the component stays in the file, the router splits it already'. That is impossible under the H66 allowlist, because the pages need react hooks and project modules. The group moved each page to src/admin/<feature>/<Name>Page.tsx and loads it with lazyRouteComponent, which fits H66a's intent (no .lazy.tsx sibling, and the bundle got about 936 bytes smaller). Contract item 20 (line 44) still says 'The admin layout src/routes/admin.tsx calls installClientErrorListeners()'. That call is now in src/admin/ui/AdminLayout.tsx. The step's proof 'within 300 bytes of main's' should read 'not larger than main's'.
+
+evidence: grep -n 'installClientErrorListeners' app/src/routes/admin.tsx finds nothing; app/src/admin/ui/AdminLayout.tsx:274 has useEffect(() => installClientErrorListeners(), []). The plan-brief step 6 text says 'the component stays in the file'.
+
+blocking: false
+
+### 2. app/tests/unit/admin-route-shells.test.ts
+
+what: Existing weakness, not introduced here (suspected from reading, not run). STATIC_IMPORT = /^import\s[^;]*?from\s+"([^"]+)";?$/gm only matches imports that have a 'from' clause. A bare side-effect import such as `import "../admin/ui/AdminShell";` and a re-export such as `export { x } from "../admin/query";` would both put admin code back into the route tree that the public entry loads, and the shell test would stay green. bundle-check would still refuse admin modules in a public chunk, but not the size cost of the extra code.
+
+evidence: Read app/tests/unit/admin-route-shells.test.ts line 14: the regex requires 'from'. Not mutated because this review is read-only.
+
+blocking: false
+
+### 3. app/src/routes/admin/requests.index.tsx
+
+what: The comment's reason no longer matches the file. Line 4 says the route is not spread from adminRouteOptions() because 'its lazyRouteComponent imports would sit in the route tree', but this same file now puts lazyRouteComponent imports in the route tree. The real reason is that spreading would need a static import of src/admin/query, which the shell allowlist forbids. The README wording ('its imports would join the route tree') is accurate. Taste-level, comment only.
+
+evidence: app/src/routes/admin/requests.index.tsx lines 4-6 against lines 7-10 and 19 of the same file
+
+blocking: false
+
+### 4. workspace/05-plans/logs/B7.md
+
+what: Note for the log. The author's UNPROVEN item 'signed-in admin layout, the requests table and a not-found request were not opened in a browser' is now covered by this review (signed-in probe on mop-dev through the 8949 preview, results above). The orchestrator can fold that into the record. The two stray scratch files the author left outside the repo (D:/mop-build/build.log and D:/mop-build/sign-in.bak.tmp) still need deleting by someone with permission.
+
+evidence: See the reran entry 'node scratchpad/b7rev-signed.mjs': frame 1 on /admin, 'Requests' h1, 'Request not found', AdminRouteError with request id, pageerrors []
+
+blocking: false
+
+## g2 · steps 7
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The reviewer listed no follow-up whose file is GOTCHAS.md, so this group banks no gotcha entry.
+
+### 1. app/src/server/previews/service.ts
+
+what: Undocumented design choice. A draft that is missing any field the published-row mapper requires (region_slug, neighborhood, style, place, hero_image and others) does not parse in getDraftProperty and answers 404. A fresh draft made from a request therefore cannot be previewed until its facts and hero are complete. PreviewTab hides the frame until then and says why. The plan says preview_property serves 'any editorial_state', which says nothing about completeness. This choice is written down only in a code comment, not in ASSUMED.md or the log.
+
+evidence: Found by reading. previews/service.ts line 29 has the comment 'An incomplete draft does not parse'. tests/unit/previews.service.test.ts:122 is titled 'a property that is gone, or a draft the public page cannot show yet, is 404'. PreviewTab.tsx returns 'The preview opens once the facts and the hero are complete.' grep in logs/B7.md and B7-followups.md finds no record of it.
+
+blocking: false
+
+### 2. app/supabase/migrations/20261007223746_admin_properties.sql
+
+what: In update_property (lines 161-177), a PATCH that carries editorial_state runs a second UPDATE after save_property. B2's properties_version_bump trigger then fires again, so that one PATCH raises version by 2, not 1. This is not a correctness fault: the function returns the final version and the client adopts it. But it departs from invariant 7's 'exactly one' bump, and the editorial_state key that bypasses save_property's allow-list is an ASSUMED extension recorded only in a SQL comment.
+
+evidence: Found by reading lines 172-177: save_property(...) is followed by 'update public.properties p set editorial_state = v_state, archived_at = null ... returning * into v_after'. No db test covers the version after a PATCH that changes state. The admin.db 'version + 1' case patches plain fields only.
+
+blocking: false
+
+### 3. app/src/admin/properties/PropertyEditor.tsx
+
+what: reload() (lines 123-133) has try/finally with no catch and is called as `void reload()` from StaleBanner. If the re-read fails (network, 5xx), the rejection goes unhandled and the editor sees no message: the Reload button just stops spinning. That is a C06/C17 gap: the error state is not rendered and has no request id.
+
+evidence: Found by reading. Line 186 is `onReload={() => void reload()}`. reload() has `try { const fresh = await onReload(); ... } finally { setReloading(false); }`. properties.$id.lazy.tsx throws 'The property could not be reloaded.' and refetch uses throwOnError: true.
+
+blocking: false
+
+### 4. app/src/admin/properties/use-autosave.ts
+
+what: Lines 111 and 125 use `.catch(() => undefined)`, the literal shape R10 names. Behaviour is fine: the failure was already published to state.error and blocked by sendPending, so nothing is lost. The comment explaining that is missing, so the next reader or lint selector will take it for a swallow.
+
+evidence: Found by reading. `await inFlight.current.done.catch(() => undefined);` and `drain().catch(() => undefined);`
+
+blocking: false
+
+### 5. app/src/server/jobs/system/copy-submission-media.ts
+
+what: Merge-order window. The job ends by calling request_property_render, which no migration on this branch or on main defines; it arrives with step 8's admin_media migration. The STUB(B7 step 8) marker is present, so R05 holds. But once this accepted migration group merges to main ahead of step 8, every 'Create property' on mop-dev queues a copy job that copies the photographs and then throws 'unavailable' at the last call, retrying until step 8 lands or the job goes dead. Worth stating in the step 8 brief or the runbook. Separately, Storage copy and the duplicate answer ({statusCode: '409'}) are proven only against the unit fake, so they are UNPROVEN against real Supabase Storage.
+
+evidence: grep -rln request_property_render app/supabase app/src matched only src/server/jobs/steps/render-variants.ts and copy-submission-media.ts (both STUB comments), with no SQL definition. tests/unit/jobs/copy-submission-media.test.ts uses a fake storage.
+
+blocking: false
+
+### 6. .github/workflows/ci.yml
+
+what: Note for step 10, not this group's file. The e2e job's 'dev vars' step writes CSRF_SECRET and CONFIRM_TOKEN_SECRET but not PREVIEW_TOKEN_SECRET. When step 10's admin-editorial Preview-tab leg runs in CI, POST properties/:id/preview-token will answer 503 preview_secret_missing. The existing follow-up 7 in B7-followups.md covers the deployed Workers' secrets, not CI's .dev.vars.
+
+evidence: Lines 295-308 of ci.yml list the echoed names, and PREVIEW_TOKEN_SECRET is not among them. signPreview in src/server/lib/preview-token.ts throws preview_secret_missing when the key is undefined.
+
+blocking: false

@@ -55,6 +55,7 @@ export default defineConfig({
         "**/redirects.spec.ts",
         "**/consent.spec.ts",
         "**/essentials.spec.ts",
+        "**/a11y-settle.spec.ts",
       ],
       ...skipOverflow,
       use: desktop,

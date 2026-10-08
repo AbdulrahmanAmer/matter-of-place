@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { onRenderResult, runRender } from "../../assets/render-run.ts";
+import { maybeAutoApprove } from "../../channels/auto-approve.ts";
 import type { StepDefinition } from "../types.ts";
 import { renderSpecs } from "./render-specs.ts";
 
@@ -11,5 +12,7 @@ export const renderCarousel: StepDefinition<
   ...renderSpecs.render_carousel,
   run: (ctx, params, data) =>
     runRender(ctx, { kind: "carousel", variant: "carousel", params, data }),
-  onResult: onRenderResult,
+  onResult: async (ctx, job, result) => {
+    await maybeAutoApprove(ctx.db, await onRenderResult(ctx, job, result), ctx.now);
+  },
 };

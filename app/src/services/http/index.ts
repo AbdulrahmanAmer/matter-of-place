@@ -66,10 +66,13 @@ export function createHttpServices(baseUrl: string, fetchImpl?: FetchImpl) {
 
   const catalog: CatalogService = {
     listProperties: () => api.get("/properties", z.array(propertyCardSchema)),
-    getProperty: (slug) =>
-      nullOnNotFound(
-        goneOnGone(api.get(`/properties/${encodeURIComponent(slug)}`, propertySchema)),
-      ),
+    getProperty: (slug, opts) => {
+      const query =
+        opts?.draftToken === undefined ? "" : `?draft_token=${encodeURIComponent(opts.draftToken)}`;
+      return nullOnNotFound(
+        goneOnGone(api.get(`/properties/${encodeURIComponent(slug)}${query}`, propertySchema)),
+      );
+    },
     listMarkets: () => api.get("/markets", z.array(marketSchema)),
     getMarket: (slug) =>
       nullOnNotFound(api.get(`/markets/${encodeURIComponent(slug)}`, marketSchema)),

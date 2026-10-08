@@ -1,5 +1,7 @@
 import type { SystemJobDefinition } from "../types.ts";
+import { copySubmissionMedia } from "./copy-submission-media.ts";
 import { health } from "./health.ts";
+import { invoicePdf } from "./invoice-pdf.ts";
 import { metaTokenRefresh } from "./meta-token-refresh.ts";
 import { prune } from "./prune.ts";
 import { reconcile } from "./reconcile.ts";
@@ -13,6 +15,8 @@ const systemJobs: readonly SystemJobDefinition[] = [
   reconcile,
   retention,
   metaTokenRefresh,
+  invoicePdf,
+  copySubmissionMedia,
 ];
 
 export function listSystemJobs(): readonly SystemJobDefinition[] {

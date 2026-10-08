@@ -61,12 +61,30 @@ export const errorCodes = {
   account_disabled: 401,
   auth_unavailable: 503,
   csrf_secret_missing: 503,
+  // B7 step 6: an agent over its daily cap (invariant 3); an unknown cap group or an empty assets note.
+  agent_daily_limit: 429,
+  invalid_key: 422,
+  // B7 step 7: a Worker without PREVIEW_TOKEN_SECRET signs no draft link (invariant 14).
+  preview_secret_missing: 503,
   // B5: `email_message_finish` takes sent, failed or skipped only.
   invalid_status: 422,
   // B12: an approved reel attaches to the dossier only with its video, its poster and its duration.
   reel_files_missing: 422,
+  // B10: a social channel is enabled only with proof of its credentials (invariant 9).
+  credentials_unverified: 422,
+  channel_locked: 422,
+  no_adapter: 422,
+  // B10 step 6: a withdrawn mark on a row with nothing to withdraw, a job the queue did not take (DB-09), and a report
+  // whose campaign has no submitter.
+  invalid_state: 409,
+  enqueue_failed: 503,
+  recipient_missing: 422,
   // B6: `mark_payment_paid` refuses a payment date in the future (invariant 3).
   paid_at_future: 422,
+  // B6: issuing waits for acceptance and complete invoice settings (invariants 1 and 7); the PDF is made by the runner.
+  not_accepted: 409,
+  invoice_not_ready: 409,
+  pdf_not_ready: 404,
   // B11: an issue to approve holds blocks, one draft at a time, and the four audience keys.
   issue_empty: 422,
   draft_open: 409,

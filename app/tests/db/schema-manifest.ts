@@ -662,6 +662,24 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     next_at: "timestamptz",
     last_error: "text?",
   },
+  // B10 step 6: one row per asset and channel, with the rights takedown columns of E2E-01.
+  social_posts: {
+    id: "uuid",
+    asset_id: "uuid",
+    property_id: "uuid",
+    channel: "text",
+    status: "social_post_status",
+    scheduled_at: "timestamptz",
+    posted_at: "timestamptz?",
+    remote_id: "text?",
+    permalink: "text?",
+    metrics: "jsonb",
+    error: "text?",
+    withdraw_required_at: "timestamptz?",
+    withdrawn_at: "timestamptz?",
+    created_at: "timestamptz",
+    updated_at: "timestamptz",
+  },
 };
 
 /** Every money column, each `numeric(12,2)` (STANDARDS R24); a table with a currency column checks it is USD. */

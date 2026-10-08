@@ -1,0 +1,34 @@
+{
+  "source": "docs",
+  "recorded_at": "2026-10-07",
+  "from": "developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-media/insights, Response contents (the metric names are the ones the page lists; ids, titles, descriptions and values are made up)",
+  "request": "GET /{media-id}/insights?metric=reach,likes,total_interactions",
+  "response": {
+    "data": [
+      {
+        "name": "reach",
+        "period": "lifetime",
+        "values": [{ "value": 4 }],
+        "title": "Reach",
+        "description": "Number of unique Instagram users that have seen the media at least once.",
+        "id": "17932174733377207/insights/reach/lifetime"
+      },
+      {
+        "name": "likes",
+        "period": "lifetime",
+        "values": [{ "value": 2 }],
+        "title": "Likes",
+        "description": "Number of likes on the media object.",
+        "id": "17932174733377207/insights/likes/lifetime"
+      },
+      {
+        "name": "total_interactions",
+        "period": "lifetime",
+        "values": [{ "value": 3 }],
+        "title": "Total interactions",
+        "description": "Number of likes, saves, comments and shares, minus the unlikes, unsaves and deleted comments.",
+        "id": "17932174733377207/insights/total_interactions/lifetime"
+      }
+    ]
+  }
+}

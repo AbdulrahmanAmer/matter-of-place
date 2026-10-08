@@ -1,3 +1,5 @@
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { activeScreen, navEntries, navGroups, visibleNav } from "../../src/admin/nav";
 import { matrix, type AppRole } from "../../src/server/lib/authz";
@@ -104,6 +106,39 @@ describe("the nav registry", () => {
     const actions = [...actionsOf("managing_editor"), "audit.usage"];
     expect(actions).not.toContain("audit.list");
     expect(screensShown(visibleNav({ hasRoute: everyRoute, actions }))).not.toContain(25);
+  });
+});
+
+/** The route ids the admin route files give: `invoices.index.tsx` is `/admin/invoices/`, `invoices.$id.lazy.tsx` `/admin/invoices/$id`. */
+function adminRouteIds(): Set<string> {
+  const folder = join(import.meta.dirname, "..", "..", "src", "routes", "admin");
+  return new Set(
+    readdirSync(folder)
+      .filter((name) => name.endsWith(".tsx"))
+      .map((name) => name.replace(/(.lazy)?.tsx$/, "").split("."))
+      .map((parts) =>
+        parts.at(-1) === "index"
+          ? `/admin/${parts.slice(0, -1).join("/")}/`
+          : `/admin/${parts.join("/")}`,
+      ),
+  );
+}
+
+describe("the screens whose route files exist", () => {
+  it("renders the Invoices link now that invoices.index.tsx exists, and no link for the invoice screen", () => {
+    const routes = adminRouteIds();
+    const shown = screensShown(
+      visibleNav({ hasRoute: (routeId) => routes.has(routeId), actions: everyAction() }),
+    );
+    expect({
+      files: [...routes].filter((routeId) => routeId.startsWith("/admin/invoices")).sort(),
+      invoices: shown.includes(5),
+      invoice: shown.includes(6),
+    }).toEqual({
+      files: ["/admin/invoices/", "/admin/invoices/$id", "/admin/invoices/new"],
+      invoices: true,
+      invoice: false,
+    });
   });
 });
 

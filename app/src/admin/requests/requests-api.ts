@@ -1,4 +1,10 @@
+import type { z } from "zod";
 import {
+  assetsReceivedAnswerSchema,
+  decisionAnswerSchema,
+  declineReasonsAnswerSchema,
+  emailPreviewAnswerSchema,
+  type emailPreviewSchema,
   originalAnswerSchema,
   startReviewAnswerSchema,
   submissionDetailSchema,
@@ -49,4 +55,38 @@ export function addNote(id: string, text: string) {
 /** The ten-minute address of one original, asked for only when the editor opens it. */
 export function fetchOriginal(id: string, mediaId: string) {
   return adminFetch(`${submissionPath(id)}/media/${mediaId}/original`, originalAnswerSchema);
+}
+
+const postJson = (body: unknown): RequestInit => ({
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+/** The three decisions that send a letter; each answers its event and the jobs it started. */
+export type Decision = "decline" | "accept" | "request-assets";
+
+export function decide(id: string, decision: Decision, body: Readonly<Record<string, string>>) {
+  return adminFetch(`${submissionPath(id)}/${decision}`, decisionAnswerSchema, postJson(body));
+}
+
+export function markAssetsReceived(id: string) {
+  return adminFetch(
+    `${submissionPath(id)}/assets-received`,
+    assetsReceivedAnswerSchema,
+    postJson({}),
+  );
+}
+
+/** The letter a decision would send, with what the dialog holds; nothing is saved. */
+export function previewEmail(id: string, body: Omit<z.input<typeof emailPreviewSchema>, "id">) {
+  return adminFetch(
+    `${submissionPath(id)}/email-preview`,
+    emailPreviewAnswerSchema,
+    postJson(body),
+  );
+}
+
+export function fetchDeclineReasons() {
+  return adminFetch("/api/admin/submissions/decline-reasons", declineReasonsAnswerSchema);
 }

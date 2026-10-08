@@ -1353,3 +1353,68 @@ friend end to end we are not cutting anything we are getting it all built in 48 
 - Dell memory floor tonight 172 MB (03:38), no OOM or crash in any transcript; hygiene 20 s timeouts were the only
   symptom, fixed by PR 190. Journals mirrored here every five minutes (task bibqds20x). Watches: stall, lane results,
   board, 30-minute re-arms.
+
+## 2026-10-07 11:45 PARKED at 94 percent usage (operator): every run stopped, resume after the account switch
+
+- Operator (11:40): "We are at 94% of usage prepare everything for parking and I will do the slash login to change
+  account when I wake up." All six runs stopped by TaskStop at 11:43 to 11:45; the Dell's sweep deleted; the Dell
+  session `dell [c737b5]` idles until written to. Board at park: 170 of 259 (65.6 percent), 89 to go. Dell accepts
+  tonight 25, lane merges 5 (B17 PR 142, B6 g1 PR 185, B11 g3 PR 200, B7 g2 PR 197, B10 g6 PR 214).
+- WHAT THE STOP COST (honest): the operator's standing rule was a pause at group boundaries; I stopped the runs where
+  they stood. Finished groups are safe: every accepted group is committed on its lane and recorded in the run's
+  journal. Cut mid-flight and lost as agent work, not as files: builders B7 step 7, B11 step 7, B10 step 8, B16 step 3
+  fix round, B6 step 7 fix round; reviews B16 step 4, B9 step 10, B6 steps 8-9. Their uncommitted files stay in the
+  lane trees (counts below). DO NOT stash, reset or clean any lane; the resumed builder verifies what is there
+  (P-2130: reuse of an earlier attempt's tree worked).
+- RESUME THE RIGHT WAY, after `/login` on both machines: resume each run BY RUN ID in the SAME session folder, so every
+  finished agent replays from cache and only the cut agents run again. On the Dell (`claude --remote-control dell` in
+  `D:/mop/Matter Of Place`, session folder `C:/Users/ka/.claude/projects/D--mop-Matter-Of-Place/33ddf8d3-d640-434d-a419-fadf9fa72221`;
+  if the session id changes, copy each run's `workflows/<id>.json` and `subagents/workflows/<id>/` into the new folder
+  first, P-533), the runner resumes with `Workflow({ scriptPath: ".claude/workflows/build-slice.js", resumeFromRunId: "<id>", args: <the same args> })`:
+  - B7 wf_4cc465b2-17e: args `{"slice":"B7","root":"D:/mop-build/admin","previewPort":8948,"bankBase":{"P":2000,"G":900},"steps":["7","7a","8","9","10","11","11a","12","13","14","15","15a","16"],"mergeEach":true,"closeOut":{...the c6m object as launched, see 09:33...}}` (c6m replays accepted from cache; build:B7:g1:7 re-runs; lane head 0d2f660 with 28 modified and about 40 untracked files of step 7).
+  - B6 wf_3a6fdda0-d03: `{"slice":"B6","root":"D:/mop-build/b6","previewPort":8978,"bankBase":{"P":2300,"G":1050},"steps":["7","8","9"],"mergeEach":true}` (fix1 of step 7 and the review of 8-9 re-run; head 4f8fcad, 4 modified files).
+  - B11 wf_8d8f3276-412: `{"slice":"B11","root":"D:/mop-build/b11","previewPort":8988,"bankBase":{"P":2400,"G":1100},"steps":["1","2","3","4","5","6","7","8","9","10","11","12","13"]}` (build of step 7 re-runs; head 11a2437, 5 modified, 2 untracked).
+  - B10 wf_023873a9-fb0: `{"slice":"B10","root":"D:/mop-build/social","previewPort":8968,"bankBase":{"P":2200,"G":1000},"steps":["0","3","4","5","5a"]}` (build of step 8 re-runs; head 98787bd, 7 modified, 12 untracked).
+  Here, in this session (folder `C:/Users/DELL/.claude/projects/E--Matter-Of-Place/bdd9245b-a217-4a62-859d-18b11075b310`):
+  - B16 wf_3d33ed2c-a5d: `{"slice":"B16","root":"E:/mop-build/legal","branch":"slice/b16","base":"origin/main","previewPort":8848,"bankBase":{"P":1000,"G":400},"steps":["3","4","5","6","7","8"]}` (fix1 of step 3 and the review of step 4 re-run; head eca1e2f7, 5 modified files).
+  - B9 wf_19158ea6-880: `{"slice":"B9","root":"E:/mop-build/design","branch":"slice/b9","base":"origin/main","previewPort":8818,"bankBase":{"P":700,"G":250},"steps":["10","11"]}` (review of step 10 re-runs; head cba5fdd0, clean).
+  The stall watch will list the cut agents as stalls until their re-runs write; ignore those ids (the Dell knows the shape).
+- Fallback only if a resume by id is refused: a fresh launch with the undone steps and a closeOut for the cut fix
+  rounds (B6 step 7: the toolbar `data-print="hide"`, review ad47ec0d; B16 step 3: `getPublicSite` must force
+  `illustrativeContent` false under MOP_ENV production, review a81bdaff677bc6808).
+- Open chores at park: PR 163 (B13, slice/b13 at b001d14 plus my H64 allowlist commit in E:/mop-build/seo, UNPUSHED,
+  its registry replay was running at the stop: run `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` in E:/mop-build/seo/app, push slice/b13, wait CI, run the illustrative-build smoke (merge-chores.md B13 first line), gate); PR 211 (slice/b9 c5n, conflicts with main, merges with the B9 run's merge step or by hand with bank-merge in E:/mop-build/design); PR 213 (B7, open, merges at B7's step 8 stop); B6 steps 2 to 9 need a new PR at B6's stop; ADMIN_SMOKE_KEY into the Dell's .env over scp before B7 step 8.
+- Rulings tonight: H64 to H68, H66a, H66b, H67a. Bank: P-534 to P-538 (and the lanes' own). Workflow follow-ups for the
+  next run boundary in merge-chores.md (Workflow section) including: mergeEach merges only at a run's end.
+- Watches here all stopped with the pause (stall, lane results, board, journal mirror bibqds20x still runs and costs
+  nothing; the board server b9x0ukbqz keeps serving). Nothing else is live.
+
+## 2026-10-08 03:40 RESUMED (both machines signed in as dave@omnikom.io; account switch done at ~01:35)
+- Resume shape, as agreed: by run id where the journal allowed, fresh runs with the undone steps where it did not
+  (P-535, the sizer refuses listed steps already accepted). Nothing restarted from scratch; the cut builders took
+  their parked WIP commits and the "CUT BY THE PARK" labels in the lane logs.
+- Here (E:): B16 wf_3d33ed2c-a5d (task wuko2myh9; steps 3 and 4 accepted since the resume, step 5 next);
+  B9 step 10 run wf_19158ea6-880 ENDED accepted (task wkmch01ia; step 10's live end to end is the orchestrator's
+  after PR 211 merges), B9 step 11 fresh run wf_2966f31c-66f (task w138po3hb, builder running).
+- Dell (D:, runner `dell [7fdcf2]`, bridge:session_0157suheXQgoypjh3v6anmHw, journals under
+  C:/Users/ka/.claude/projects/D--mop-Matter-Of-Place/c8fd54ed-8f33-419a-89ae-e94978ccb8e2/subagents/workflows,
+  mirrored here by scratchpad/dell-journal-mirror.sh): B6 wf_3a6fdda0-d03 (step 7 in fix round 2, steps 8-9 in
+  review 2); B10 wf_023873a9-fb0 (every step accepted, step 6 re-handed in on PR 223, merge agent next; steps
+  1, 2, 3a, 3b stay operator-blocked on the Meta, X and LinkedIn apps and are counted as waiting); B7 ended on
+  the H69 block and was relaunched fresh at 03:04 as wf_a6dbb8e9-c8f (task wc493wgrv, 13 groups, started with the
+  step 6 shells remainder, steps 7 to 15a mostly critical, 16 blocked on B6's invoice screens); B11 ended on a
+  re-sized step 4 (already on main via PR 200) and was relaunched fresh at 03:12 as wf_a3a1de98-7d8 (task
+  wodd8nftr, steps 7 to 13; step 8 blocked on the legal entity and B5's live-send secrets).
+- Ruling H69 (PR 222, 3eecf70b): `rolldownConfig: { output: { strictExecutionOrder: true } }` in the nitro options.
+  Cause of the night's 500s (P-1832, P-2405): the Linux Nitro server build grouped two `_ssr` chunks into a cycle and
+  `seo.ts` read `siteConfig` before it was set. Proof: CI green, preview smoke and essentials `success` on Linux.
+- PRs: 220, 221 (board wording "percent done"), 222 merged. Open: 163 (B13, smoke after H69 then gate), 211
+  (slice/b9, preview failed on the pre-H69 head and behind main by vite.config.ts; merges with the B9 run's merge
+  step), 213 (B7, re-runs CI on the lane's next push), 223 (B10, out of draft).
+- Board: new artifact https://claude.ai/artifact/JPdTuyF34P9yaUwo8UdH8x (the old one belongs to the previous
+  account), server task bbxsusxgm on port 8790, version 12: 171 of 259 accepted, 88 to go, 16 in work.
+  Estimate to 100 percent at the resume: about 38 hours (B slices 14, re-runs and merges 3, H1 8, H2 3, L1 6,
+  operator items 4).
+- Still owed by the orchestrator: the B11 step 4 and 5 remainder close-out after PR 211 (standalone row,
+  variablesByKey sample, the two STUB(B11 step 4) casts); PR 163's illustrative smoke and gate; the 29 ledger
+  re-runs; merge chores at each lane merge; ADMIN_SMOKE_KEY into the Dell's .env over scp before B7 step 8.

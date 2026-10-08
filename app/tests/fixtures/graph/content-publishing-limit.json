@@ -1,0 +1,9 @@
+{
+  "source": "docs",
+  "recorded_at": "2026-10-07",
+  "from": "developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/content_publishing_limit, Example Response (its quota_total of 50 differs from the 100 that the Content Publishing guide names, so the number is read live)",
+  "request": "GET /{ig-user-id}/content_publishing_limit",
+  "response": {
+    "data": [{ "quota_usage": 2, "config": { "quota_total": 50, "quota_duration": 86400 } }]
+  }
+}

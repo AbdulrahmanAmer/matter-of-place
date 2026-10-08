@@ -19,25 +19,9 @@ import { fakeDb } from "../fixtures/fake-db";
 // each step removes its entries, and the B7 part is empty after step 15a.
 // A literal list, so an action a later slice adds to the matrix without its route turns this test red.
 const routesPending: readonly ActionId[] = [
-  "submissions.decline",
-  "submissions.accept",
-  "submissions.request_assets",
-  "submissions.assets_received",
-  "submissions.email_preview",
-  "submissions.decline_reasons",
-  "properties.list",
-  "properties.get",
-  "properties.timeline",
-  "properties.representatives",
-  "properties.create_from_submission",
-  "properties.update",
-  "properties.representative_put",
-  "properties.preview_token",
   "properties.agent_preview",
   "properties.revoke_previews",
-  "properties.publish",
   "properties.unpublish",
-  "properties.rank",
   "media.list",
   "media.variants_status",
   "media.upload_url",
@@ -96,6 +80,16 @@ const routesPending: readonly ActionId[] = [
   "automation.flags_put",
   "automation.templates_preview",
   "automation.templates_send_test",
+  // B10: steps 8 and 9 add these routes. reports.export is the browser's print and never gets a route (G22).
+  "channels.health",
+  "channels.retry",
+  "channels.cancel",
+  "channels.metrics_refresh",
+  "channels.mark_withdrawn",
+  "reports.list",
+  "reports.get",
+  "reports.export",
+  "reports.email",
 ];
 
 const SIGNED_IN = Date.parse("2026-10-05T09:00:00Z");

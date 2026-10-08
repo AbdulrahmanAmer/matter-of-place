@@ -24,7 +24,11 @@ type ServiceMode = "local" | "live";
 
 export interface CatalogService {
   listProperties(): Promise<PropertyCard[]>;
-  getProperty(slug: string): Promise<Property | { gone: true } | null>;
+  /** With `draftToken`, the draft a preview link opens (B7 invariant 17 f); the local adapter has no drafts. */
+  getProperty(
+    slug: string,
+    opts?: { draftToken?: string },
+  ): Promise<Property | { gone: true } | null>;
   listMarkets(): Promise<Market[]>;
   getMarket(slug: string): Promise<Market | null>;
   listStories(): Promise<Story[]>;
