@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { Json } from "../../../db/index.ts";
 import { AppError } from "../../lib/errors.ts";
 import { emitEvent } from "../../lib/events.ts";
+import { readState, resetPublicStateMemo } from "../../public/state.ts";
+import { siteReadiness } from "../../settings/readiness.ts";
 import type { StepContext, SystemJobDefinition } from "../types.ts";
 import { providerChecks } from "./health/providers.ts";
 
@@ -56,8 +58,8 @@ async function readCounts(ctx: StepContext): Promise<HealthCounts> {
   return countsSchema.parse(data);
 }
 
-// Later slices append one entry each (B14 usage_gauges, B16 site_identity); the provider checks come last.
-const healthChecks: readonly HealthCheck[] = [
+// Later slices append one entry each (B14 usage_gauges); the provider checks come last.
+export const healthChecks: readonly HealthCheck[] = [
   {
     // Ruling H34 (6): a caption job waits for the laptop runner, and a day of waiting needs a person.
     name: "captions_waiting",
@@ -137,6 +139,30 @@ const healthChecks: readonly HealthCheck[] = [
         return fail("no backup in the last 36 hours");
       }
       return ok("backup within 36 hours");
+    },
+  },
+  {
+    // B16: the owner's identity lines (entity, address, contact) are read from `settings.site` by the footer, the legal
+    // pages and every email. Missing lines are expected in development and preview; anywhere else, or with `MOP_ENV`
+    // unset, they fail the day. The shared public state serves its last good copy when the database does not answer
+    // (B3 invariant 16), so the memo is dropped first and a stale answer is a failure, not a pass.
+    name: "site_identity",
+    async run(ctx) {
+      resetPublicStateMemo();
+      let stale: boolean;
+      try {
+        stale = (await readState(ctx.db)).stale;
+      } catch (error) {
+        return fail(error instanceof AppError ? error.code : "unavailable");
+      }
+      if (stale) return fail("public_state_stale");
+      const missing = await siteReadiness(ctx.db);
+      if (missing.length === 0) return ok("every required identity field is set");
+      const lenient = ctx.env["MOP_ENV"] === "development" || ctx.env["MOP_ENV"] === "preview";
+      return {
+        status: lenient ? "warn" : "fail",
+        message: `settings.site is missing: ${missing.join(", ")}`,
+      };
     },
   },
   ...providerChecks,

@@ -1,0 +1,9 @@
+{
+  "contact": {
+    "email": "hello@matterofplace.com",
+    "phone": null,
+    "privacy_email": "privacy@matterofplace.com"
+  },
+  "legal": { "entity": null, "address": null },
+  "social": { "instagram": null, "x": null, "linkedin": null }
+}

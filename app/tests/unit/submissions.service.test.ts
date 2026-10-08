@@ -28,6 +28,7 @@ import {
 } from "../../src/server/submissions/service";
 import { fakeDb, type FakeDb, type FakeDbOptions } from "../fixtures/fake-db";
 import { withTables, type Row } from "../fixtures/table-stub";
+import { stateJson } from "../fixtures/snapshot";
 
 // The admin service of a request (B7 steps 4 to 6): who may read it and note it, who may move it, what a refused
 // move answers, and what a decision writes, plans and previews.
@@ -455,6 +456,7 @@ function decisionDb(state = "Under Review") {
               ...(args.p_note === "" ? {} : { note: args.p_note }),
             },
           ),
+        public_state: () => stateJson(7, { site: null }),
         accept_submission: (args) =>
           acceptRow(args, { accepted_by: args.p_actor, accepted_at: AT }),
         request_assets: (args) => askRow(args, {}, { note: args.p_note }),
