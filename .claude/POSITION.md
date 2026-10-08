@@ -1388,3 +1388,33 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   next run boundary in merge-chores.md (Workflow section) including: mergeEach merges only at a run's end.
 - Watches here all stopped with the pause (stall, lane results, board, journal mirror bibqds20x still runs and costs
   nothing; the board server b9x0ukbqz keeps serving). Nothing else is live.
+
+## 2026-10-08 03:40 RESUMED (both machines signed in as dave@omnikom.io; account switch done at ~01:35)
+- Resume shape, as agreed: by run id where the journal allowed, fresh runs with the undone steps where it did not
+  (P-535, the sizer refuses listed steps already accepted). Nothing restarted from scratch; the cut builders took
+  their parked WIP commits and the "CUT BY THE PARK" labels in the lane logs.
+- Here (E:): B16 wf_3d33ed2c-a5d (task wuko2myh9; steps 3 and 4 accepted since the resume, step 5 next);
+  B9 step 10 run wf_19158ea6-880 ENDED accepted (task wkmch01ia; step 10's live end to end is the orchestrator's
+  after PR 211 merges), B9 step 11 fresh run wf_2966f31c-66f (task w138po3hb, builder running).
+- Dell (D:, runner `dell [7fdcf2]`, bridge:session_0157suheXQgoypjh3v6anmHw, journals under
+  C:/Users/ka/.claude/projects/D--mop-Matter-Of-Place/c8fd54ed-8f33-419a-89ae-e94978ccb8e2/subagents/workflows,
+  mirrored here by scratchpad/dell-journal-mirror.sh): B6 wf_3a6fdda0-d03 (step 7 in fix round 2, steps 8-9 in
+  review 2); B10 wf_023873a9-fb0 (every step accepted, step 6 re-handed in on PR 223, merge agent next; steps
+  1, 2, 3a, 3b stay operator-blocked on the Meta, X and LinkedIn apps and are counted as waiting); B7 ended on
+  the H69 block and was relaunched fresh at 03:04 as wf_a6dbb8e9-c8f (task wc493wgrv, 13 groups, started with the
+  step 6 shells remainder, steps 7 to 15a mostly critical, 16 blocked on B6's invoice screens); B11 ended on a
+  re-sized step 4 (already on main via PR 200) and was relaunched fresh at 03:12 as wf_a3a1de98-7d8 (task
+  wodd8nftr, steps 7 to 13; step 8 blocked on the legal entity and B5's live-send secrets).
+- Ruling H69 (PR 222, 3eecf70b): `rolldownConfig: { output: { strictExecutionOrder: true } }` in the nitro options.
+  Cause of the night's 500s (P-1832, P-2405): the Linux Nitro server build grouped two `_ssr` chunks into a cycle and
+  `seo.ts` read `siteConfig` before it was set. Proof: CI green, preview smoke and essentials `success` on Linux.
+- PRs: 220, 221 (board wording "percent done"), 222 merged. Open: 163 (B13, smoke after H69 then gate), 211
+  (slice/b9, preview failed on the pre-H69 head and behind main by vite.config.ts; merges with the B9 run's merge
+  step), 213 (B7, re-runs CI on the lane's next push), 223 (B10, out of draft).
+- Board: new artifact https://claude.ai/artifact/JPdTuyF34P9yaUwo8UdH8x (the old one belongs to the previous
+  account), server task bbxsusxgm on port 8790, version 12: 171 of 259 accepted, 88 to go, 16 in work.
+  Estimate to 100 percent at the resume: about 38 hours (B slices 14, re-runs and merges 3, H1 8, H2 3, L1 6,
+  operator items 4).
+- Still owed by the orchestrator: the B11 step 4 and 5 remainder close-out after PR 211 (standalone row,
+  variablesByKey sample, the two STUB(B11 step 4) casts); PR 163's illustrative smoke and gate; the 29 ledger
+  re-runs; merge chores at each lane merge; ADMIN_SMOKE_KEY into the Dell's .env over scp before B7 step 8.
