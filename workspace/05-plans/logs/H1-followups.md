@@ -51,3 +51,49 @@ The three follow-ups whose file is GOTCHAS.md are banked as P-2808 (the rework o
    - Evidence: rate-probe.ts cleanup(): "select id::text as id from rate_limits where bucket like 'subscribers:%' and at >= $1". upload-probe.ts uses the same with 'submissions:%'. Suspected by reading, not observed.
 
 The two follow-ups whose file is GOTCHAS.md are banked as P-2810 (two parallel specs signing in the same user) and P-2811 (the free-plan daily Workers limit, error 1027, and the request cost of a run-all against prod-config).
+
+## g3 · step 3
+
+Review verdict ACCEPT (fresh Opus review of 100d31cc, plan amended by 50fef3b7, ruling H75): three non-blocking defects (1 to 3 below) and seven follow-ups (4 to 10).
+
+1. `app/scripts/harden/checklist.json`, row H1-18 (not blocking; FIXED in this commit)
+   - What: when the pull request lookup for `main`'s head returned an empty sha, `gh run list --workflow ci.yml --commit "$sha"` dropped the commit filter and the row judged the newest run of any branch. Fix: `[ -n "$sha" ] &&` now stands in front of the `gh run list --commit` check, so an empty sha fails the row.
+   - Evidence: `gh run list --workflow ci.yml --commit "" --limit 1 --json headBranch,conclusion` printed `[{"conclusion":"","headBranch":"slice/b7"}]`. After the fix, `grep -c '\[ -n \\"$sha\\" \] &&' app/scripts/harden/checklist.json` prints 1 and `node scripts/harden/run-all.mjs --list | wc -l` prints 47. Banked as P-2813. Owner: done.
+
+2. `app/scripts/harden/rls-review.ts` / `rls-review.sql`, condition (b) (not blocking)
+   - What: (b) uses `has_table_privilege`, which ignores column-level grants and sequences. `grant select (id) on public.payments to anon` and `grant usage on sequence ... to anon` both pass. mop-dev holds 0 anon column grants today, so the review is right on the data it has. Suggestion: add `information_schema.column_privileges` (grantee anon or public) and `has_sequence_privilege` to (b).
+   - Evidence: `MOP_MUTATION_SQL="grant select (id) on public.payments to anon" bun run scripts/harden/rls-review.ts --env dev` printed `rls ok`, exit 0 (confirmed by running; the sequence grant also printed `rls ok`). Banked as P-2814. Owner: the slice that next edits `rls-review.sql`.
+
+3. `app/scripts/harden/rls-review.ts` / `rls-review.sql` (not blocking)
+   - What: views are never checked for RLS bypass. A `public` view without `security_invoker` granted to `authenticated` reads the underlying table as its owner, and the review does not look. All 5 current views (`market_interest_counts`, `dashboard_counts`, `submission_list`, `archive_facets`, `invoice_list`) have `security_invoker=true`. H1-17's advisor lint `security_definer_view` probably covers it; untested.
+   - Evidence: a scratch view over `payments`, without `security_invoker`, granted to `authenticated`, printed `rls ok` (confirmed by running, rolled back). Owner: the slice that next edits `rls-review.sql`; the advisor claim is UNPROVEN.
+
+4. `app/scripts/harden/rls-review.sql`, condition (c), and the `rls-review.ts` header (not blocking)
+   - What: (c) is a name check on policy text, not behaviour. A `using (false and app.role_in(...))` policy, a negated `is_staff`, a restrictive `using (false)` and an open `using (true)` select all print `rls ok`. B2's "the matrix as behaviour" test in `tests/db/rls.db.test.ts` is the behaviour check; it cannot take `MOP_MUTATION_SQL`, and it is suspected to catch all four (not replayed). The `rls-review.ts` header should say that (c) is a name check and that the behaviour check is B2's test.
+   - Evidence: the four policies were run through `MOP_MUTATION_SQL`; each printed `rls ok`. Owner: whoever edits the header; the suspicion about B2's test is UNPROVEN.
+
+5. `app/scripts/harden/rls-review.sql`, condition (e) (not blocking)
+   - What: (e) accepts any `search_path=` value; `search_path = pg_temp, public` passes. All 197 definer functions use `search_path=""` today. Requiring exactly `""` would cost nothing.
+   - Evidence: read from the SQL; the review's count of definer functions was 196 in the g3 run and 197 at the time of the review, all with `search_path=""`. Not replayed with a `pg_temp, public` function. Owner: the slice that next edits `rls-review.sql`.
+
+6. `.env.ops` and `app/supabase/.temp` (not blocking)
+   - What: H1-17 and H1-18 depend on two untracked local files. A fresh review snapshot failed H1-17 with `jq: Cannot iterate over null` and H1-18 with `ProjectRefNotLinkedError` until both were copied in. The main checkout has `supabase/.temp` but no `.env.ops`, so ruling H75's run of H1-18 from main needs `.env.ops` there first, or H1-18 should lint with `--db-url "$DEV_DB_URL"` (P-337) and need no link.
+   - Evidence: both failures seen in the snapshot; both rows passed after the copy. Banked as P-2815. Owner: the orchestrator (before the H75 run).
+
+7. `app/scripts/harden/db-reset-dev.mjs` (not blocking)
+   - What: the `H1_DB_RESET=1` guard checks nothing about the branch, the G34 lock or live lanes: anyone who sets the variable resets mop-dev. Suggestion: `db-reset-dev.mjs` refuses unless the branch is `main`.
+   - Evidence: read from the row and the script; not run (a lane may not, ruling H57). Owner: the orchestrator.
+
+8. `app/scripts/harden/checklist.json` and the plan (not blocking)
+   - What: plan and checklist disagree in wording. Row H1-16 says "one line per table and role", the code prints one line per table. Row H1-19 says "rerun as is", the checklist adds `--testTimeout=60000 --hookTimeout=60000` (the G-031 rule, so the checklist is right). Correct the plan text, not the code.
+   - Evidence: the g3 log's Proof 1 prints one line per table; H1-19's command in the checklist carries the two flags. Owner: the orchestrator (plan text).
+
+9. `app/scripts/harden/rls-review.ts` (not blocking)
+   - What: the `sql` watched-fail replays take ACCESS EXCLUSIVE locks on the real `jobs`, `payments` and `audit_log` with no `lock_timeout`; a replay blocks behind a long transaction of another lane, and blocks that lane's reads while it waits. Suggestion: `set local lock_timeout = '3s'` after `begin` in `rls-review.ts`.
+   - Evidence: suspected by reading, not observed. Owner: the slice that next edits `rls-review.ts`.
+
+10. `workspace/05-plans/logs/H1.md` (not blocking)
+    - What: the second half of watched-fail (m), "make the down block a no-op, the drill's schema comparison must go red", waits on `scripts/harden/migration-rollback-drill.sh`, which does not exist yet.
+    - Evidence: the g3 block of the log marks it UNPROVEN. Owner: the group that writes the rollback drill (H1-35 to H1-39).
+
+The three follow-ups whose file is GOTCHAS.md are banked as P-2813 (the empty `--commit` filter), P-2814 (`has_table_privilege` blind to column grants and sequences) and P-2815 (a review snapshot lacks `.env.ops` and `supabase/.temp`). The suggestions-only items (7 to 10) are not banked.
