@@ -4005,6 +4005,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && grep -n "e.at >= \$3::timestamptz" tests/e2e/admin-editorial.spec.ts` → one line; `grep -n "submission_id' = any" tests/e2e/fixtures/admin-data.ts` → one line.
 - added: 2026-10-08
 
+## P-2034 · An e2e that compares a screen's count with a SQL count taken a moment later races the sibling tests of a fullyParallel run
+- symptom: B7 g2 review: `the dashboard counts the requests waiting` read the Submitted tile once, then ran `select count(*) ... where workflow_state = 'Submitted'` and expected them equal, while the managing-editor test of the same file inserted three Submitted rows and moved them to Under Review one click at a time. CI run 37792898295 shows the two tests overlapping (two workers); the group was rejected on R52 and reworked.
+- cause: `playwright.config.ts` sets `fullyParallel: true`, every e2e shares one database, and a read of the page and a read of the table are two moments: any write of another test between them makes the pair disagree for no product reason.
+- rule: a spec that checks a shown aggregate against the database reads both inside `await expect(async () => { await page.reload(); ...read the tile...; ...run the SQL...; expect(shown).toBe(count) }).toPass({ timeout })`, so a pair taken around a sibling's write is retried; never a single read of each.
+- proof: `cd app && grep -n "toPass({ timeout: 90_000 })" tests/e2e/admin-editorial.spec.ts` → one line inside `the dashboard counts the requests waiting`.
+- added: 2026-10-08
+
+## P-2035 · A db test that compares a function's output with the helper the function itself calls, on rows all dated now(), cannot catch a wrong window
+- symptom: B7 g2 review: the mail case of `tests/db/admin-cache.db.test.ts` checked `admin_dashboard()`'s `sent_month` against `public.email_sent_month()`, the call the function makes, and inserted only rows dated `now()`; with `sent_month` wired to `email_sent_today()` the case stayed green (`Tests 1 passed | 12 skipped`).
+- cause: an expected value computed by the code under test shares its answer; and when every fixture row sits in the narrowest window, every wider window counts the same rows.
+- rule: the expected value of a db case is an independent count (or a fixed delta of rows the case inserted), and the fixture puts one row inside the window but outside the next narrower one, and one row just outside the window. Note a day the windows coincide (the first of a month).
+- proof: `cd app` with the dev profile and `MOP_MUTATION_SQL` set to the admin_dashboard migration with `'sent_month', public.email_sent_today()`, `node node_modules/vitest/vitest.mjs run --project db tests/db/admin-cache.db.test.ts -t "the mail counts equal"` → `expected 2 to be 3`; registry entry `b7-g9-db-sent-month`.
+- added: 2026-10-08
+
 ## G-901 · A test or script client built from `SUPABASE_URL` on this laptop writes to another business's production project
 - paths: app/tests/e2e/helpers/session.ts, app/scripts/seed-admin-users.ts, app/tests/fixtures/service.ts
 - severity: warn

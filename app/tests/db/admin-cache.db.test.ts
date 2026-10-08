@@ -303,22 +303,37 @@ describe("admin_dashboard() (step 9, invariant 17d)", () => {
     });
   });
 
-  it("the mail counts equal email_sent_today(), email_sent_month() and seven days of email_messages", async () => {
+  it("the mail counts equal email_sent_today(), this UTC month's rows and seven days of email_messages", async () => {
     await withRollback(async (db) => {
       await assertStep9(db);
+      const sentMonth = async () => {
+        const { rows } = await db.query<{ v: string }>(
+          "select public.admin_dashboard() -> 'email' ->> 'sent_month' as v",
+        );
+        return Number(rows[0]?.v);
+      };
+      const before = await sentMonth();
+      // Three rows fall in this UTC month (two now, one at its first instant) and one in the month before. On the
+      // first day of a month the month and the day coincide, so this case cannot tell them apart then.
       await db.query(
-        `insert into public.email_messages (template_key, kind, to_email, status, sent_at)
-         values ('declined', 'transactional', 'dashboard+1@fixtures.invalid', 'bounced', now()),
-           ('accepted', 'transactional', 'dashboard+2@fixtures.invalid', 'delivered', now())`,
+        `with bounds as (select date_trunc('month', now() at time zone 'utc') at time zone 'utc' as month)
+         insert into public.email_messages (template_key, kind, to_email, status, sent_at)
+         select v.template_key, 'transactional', v.to_email, v.status, v.sent_at from bounds,
+           lateral (values ('declined', 'dashboard+1@fixtures.invalid', 'bounced', now()),
+             ('accepted', 'dashboard+2@fixtures.invalid', 'delivered', now()),
+             ('accepted', 'dashboard+3@fixtures.invalid', 'delivered', bounds.month),
+             ('accepted', 'dashboard+4@fixtures.invalid', 'delivered', bounds.month - interval '1 second'))
+             as v (template_key, to_email, status, sent_at)`,
       );
+      expect((await sentMonth()) - before).toBe(3);
       const { rows } = await db.query<Record<string, number>>(
-        `select public.email_sent_today() as sent_today, public.email_sent_month() as sent_month,
+        `select public.email_sent_today() as sent_today,
            (select count(*)::int from public.email_messages
             where sent_at >= now() - interval '7 days') as sent_7d,
            (select count(*)::int from public.email_messages
             where sent_at >= now() - interval '7 days' and status in ('bounced', 'complained')) as bounced_7d`,
       );
-      expect(await dashboardKey(db, "email")).toEqual(rows[0]);
+      expect(await dashboardKey(db, "email")).toEqual({ ...rows[0], sent_month: before + 3 });
     });
   });
 

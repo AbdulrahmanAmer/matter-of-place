@@ -236,13 +236,19 @@ test.describe("admin editorial (B7 step 10)", () => {
     const { context, page } = await signInAs(browser, COMMERCIAL);
     try {
       const submitted = page.getByRole("listitem", { name: "Submitted" });
-      await expect(submitted).toBeVisible();
-      const [waiting] = await sql<{ count: number }>(
-        "select count(*)::int as count from public.submissions where workflow_state = 'Submitted'",
-      );
-      expect(
-        Number((await submitted.locator(".admin-tile__value").textContent())?.replaceAll(",", "")),
-      ).toBe(waiting?.count);
+      // The managing-editor test of this file, and other files of the run, move Submitted rows while this one runs
+      // (fullyParallel, R52): a tile read and a count taken apart can straddle one of their writes, so reload until a
+      // pair agrees.
+      await expect(async () => {
+        await page.reload();
+        const shown = await submitted
+          .locator(".admin-tile__value")
+          .textContent({ timeout: 10_000 });
+        const [waiting] = await sql<{ count: number }>(
+          "select count(*)::int as count from public.submissions where workflow_state = 'Submitted'",
+        );
+        expect(Number(shown?.replaceAll(",", ""))).toBe(waiting?.count);
+      }).toPass({ timeout: 90_000 });
       await expect(page.getByRole("region", { name: "Free tier" })).toBeVisible();
       await checkpoint(page, "admin: dashboard, commercial");
     } finally {

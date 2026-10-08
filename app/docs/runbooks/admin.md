@@ -13,7 +13,7 @@ How people and agents get into `/admin`, where uploaded photographs wait, how ag
 
 - An editor's upload and an accepted request's photographs are stored in the private bucket `submissions` under `staging/<property id>/`, and the row records the object in `property_media.staging_path` (G25). No admin request writes the public bucket `media`.
 - B9's `render_variants` job (`scripts/render-variants.mjs`, run in GitHub Actions) writes the variants to `media`, removes the staged object and clears `staging_path`. Until then the staged file counts against the 1 GB Storage of the free plan; screen 2's Storage gauge adds the three buckets `submissions`, `media` and `documents` and turns to the warning state at 70 percent (ruling H33 (8)).
-- A dead `render_variants` job leaves its staged files where they are. Retry on screen 9 (the photograph's variant status) or on screen 16 runs it again. The button shows only to an actor holding `jobs.retry`, which B8 registers (media_ops and admin in B8's plan); until B8 step 9 registers that action and builds screen 16, nobody sees Retry: UNPROVEN.
+- A dead `render_variants` job leaves its staged files where they are. Retry on screen 9 (the photograph's variant status) or on screen 16 (`/admin/jobs`, in the job drawer or the dead-letter banner) runs it again. The button shows only to an actor holding `jobs.retry`, which `src/server/lib/permissions/jobs.ts` gives to `media_ops` and `admin`.
 
 ## Agent keys
 
@@ -29,7 +29,7 @@ How people and agents get into `/admin`, where uploaded photographs wait, how ag
 A takedown removes a page for good: an owner's request or a rights claim. The working rule is to finish within 24 hours of the request.
 
 1. On screen 8, press Unpublish (on an archived property, Take down), choose the reason and tick Takedown. `unpublish_property` then sets `taken_down_at`, cancels the property's post jobs that are queued or waiting for approval and enqueues the `takedown_media` job, all in one transaction.
-2. Watch the `takedown_media` job until it ends `done`, on screen 16 once B8 builds it. Until then read it from the database: `select status, attempts, error from jobs where idempotency_key = 'takedown_media:<property id>'`. The job deletes the property's objects from `media` and purges each `/media/<key>` address from Cloudflare's cache. Its job file is B8 step 10a and is not on main yet: UNPROVEN.
+2. Watch the `takedown_media` job until it ends `done` on screen 16 (`/admin/jobs`, filtered by the type `takedown_media`). The same row from the database: `select status, attempts, error from jobs where idempotency_key = 'takedown_media:<property id>'`. The job (`src/server/jobs/system/takedown-media.ts`) deletes the property's objects from `media` and purges each `/media/<key>` address from Cloudflare's cache; without `MEDIA_PUBLIC_BASE` it purges nothing and its result says `purge_skipped: no_media_public_base`.
 3. On screen 12, under "Withdraw by hand", delete each live post on its platform, then press Done on its row. Screen 2's "Withdraw by hand" tile counts the posts still open and shows how old the oldest is against the 24 hour rule.
 4. Confirm the page answers 410: `curl -s -o /dev/null -w "%{http_code}\n" https://<host>/property/<slug>` prints `410`. B13 serves the 410 for a slug whose `taken_down_at` is set and is not on main yet: UNPROVEN. An unpublish without Takedown answers 404 instead.
 5. Confirm that each `/media/<key>` address of the property answers 404 after the purge, with the same `curl` line for each key.
