@@ -4693,6 +4693,16 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: PR 215's db job printed `replayed 144: ok 142, bad 0, stale 2` for the two entries the author had not replayed; `--changed origin/main` run on the branch afterwards selected both.
 - added: 2026-10-07
 
+## P-539 · `watchfail --changed origin/main` skipped a branch's own new registry entry once a merge of main made its target file equal to main's; the entry was stale and only the reviewer saw it
+- symptom: 2026-10-08 04:00, B11 step 7 (review af38d8a4): after `git merge origin/main`, `tests/unit/admin-routes-parity.test.ts` on slice/b11 equalled main's, so `--changed origin/main` listed no diff for it and never selected the branch's new entry `b11-g6-routes-pending-stale`, whose `find` still named the pre-merge list end (`"automation.templates_send_test",
+];` against `"reports.email",
+];`). The author reported `28 replayed, 0 stale`; CI's mutation step would have exited 2 on the next branch to touch the file.
+- cause: `--changed` selected by file diff only; an entry is also made stale by main moving its target, and after the merge the branch no longer differs on that file.
+- rule: `--changed <ref>` now also selects every entry the registry gained or changed since `<ref>` (`registryAt()` in `scripts/watchfail.mjs` reads each registry file at `<ref>` with `git show`). Keep running it from `app/` before every push (P-537); after a merge of main it covers the group's own entries without `--only`.
+- proof: `cd app && bunx vitest run --project unit tests/unit/watchfail.test.ts -t "P-539"` → `WATCHED-FAIL OK A:three` selected with no target file changed; with the `|| addedSinceRef` term removed the case goes red (`- "WATCHED-FAIL OK A:three"`), measured 2026-10-08.
+- added: 2026-10-08
+- enforced-by: `tests/unit/watchfail.test.ts` ("--changed <ref> also replays an entry the registry gained since <ref>")
+
 ## P-538 · The root checkout is read by the board and shared with background gate chains: a `git checkout` there while another command runs puts edits on the wrong tree
 - symptom: 2026-10-07 09:05, a background chain's `git checkout --detach origin/main` ran while the orchestrator was re-anchoring registry entries on `chore/bundle-check-entry-lazy` in the same checkout; the edit landed on a detached main tree, the replay reported one entry STALE against the wrong file, and the work was redone in a worktree.
 - cause: one working tree, two writers; `git checkout` is global to the tree.
