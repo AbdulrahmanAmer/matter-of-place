@@ -687,3 +687,47 @@ what: Some plan lines for step 9 no longer match the tree. The step names a `bou
 evidence: grep bounce_rate_7d in the migration gives 0 matches. The test renames assets and social_posts and stubs broadcast_recipients_since inside the rolled-back transaction (P-916). email_sent_month.sql already includes broadcast_recipients_since.
 
 blocking: false
+
+## g3 · steps 11
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The second follow-up of the review (GOTCHAS.md) is banked as P-2037 and is not repeated here.
+
+### 1. workspace/05-plans/logs/B7.md
+
+what: The log's watched-fail line says `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit` gave 'replayed 19: ok 19, bad 0'. Run at the handed-in commit, the same command replays 78 and exits 1. `--changed` diffs `origin/main...HEAD`, which sees committed files only. It now selects every entry anchored on src/domain/contracts.ts, tests/db/admin.db.test.ts, tests/db/admin-cache.db.test.ts and tests/unit/admin-routes-parity.test.ts, which this group changed. The '19' was most likely measured before cbece8a9 was committed (suspected, not confirmed). The group's own 19 entries all reproduce OK, so this is a reproducibility gap and not a failing proof.
+
+evidence: From app/ at d4b58b9: `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit` printed `watchfail: replayed 78: ok 62, bad 16, stale 0`. All 16 BAD are db-project entries showing `No test files found` without the dev profile, and every b7-11-* entry is `WATCHED-FAIL OK`.
+
+blocking: false
+
+### 2. app/supabase/sql/functions/forward_inquiry.sql
+
+what: No test covers two SQL branches. (1) forward_inquiry's refusal of an anonymised inquiry (`or v_before.anonymised_at is not null`). (2) assign_inquiry keeping a `forwarded` inquiry in `forwarded`. The db cases cover only the closed refusal and the new to in_progress move. Deleting the anonymised clause would most likely leave every test green (suspected from reading; I did not run that mutation). Only the UI hides Forward for an anonymised row, so a bearer-key agent could queue a webhook for an anonymised inquiry. B15's step re-reads the row, so the impact is low.
+
+evidence: grep of tests/db/admin.db.test.ts for 'anonymised' in the step 11 block: no case. The plan does not ask for this case.
+
+blocking: false
+
+### 3. app/supabase/migrations/20261008165659_admin_inquiries.sql
+
+what: STANDARDS C11 (and R22's parity half): assign_inquiry, forward_inquiry and close_inquiry do not name their race partner or a test that runs both. They do serialise correctly on `select ... for update` of the inquiry row. Also, `openInquiryStates` in src/domain/admin-inquiries.ts is not compared mechanically with the SQL `wrong_state` guards. Other B7 functions do the same, and I could not name an input that goes wrong today.
+
+evidence: grep -i race over the four function files: no match. No test imports openInquiryStates beside the drawer.
+
+blocking: false
+
+### 4. app/src/admin/inquiries/inquiries.test.tsx
+
+what: The ?id= case mounts `/admin/inquiries/?id=<uuid>`, with a trailing slash. The inquiry.received mail link (src/server/email/variables.ts:475) and PersonDetail.tsx:151 send `/admin/inquiries?id=<uuid>`, without one. The address the mail actually sends has not been rendered in a test or a browser. I expect TanStack's index matching handles it, but that is not proven.
+
+evidence: variables.ts:475 `path: (data) => `/admin/inquiries?id=${need(data, "inquiry_id")}``; the test passes `/admin/inquiries/?id=${INQUIRY}` to mountRoutes.
+
+blocking: false
+
+### 5. workspace/05-plans/logs/B7.md
+
+what: The preview job is still UNPROVEN, as the author says. It failed again at the handed-in commit (run 37821472990, wait and observatory), and pr-250 answered 429 when I checked. Operational note for the orchestrator, not this group: by the author's own curl the production host matter-of-place.holy-meadow-4327.workers.dev also answered 429 Error 1027. So when lanes use up the shared account's daily request limit, the live site goes down too.
+
+evidence: gh run view 37821472990 --log-failed: 'the Worker did not answer ten times in a row in 180 s'; curl -w '%{http_code}' https://pr-250.holy-meadow-4327.workers.dev/ printed 429.
+
+blocking: false
