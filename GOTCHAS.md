@@ -970,6 +970,8 @@ Entry template
 - hit again: 2026-10-05, B13 step 4: a `python3 -` I typed into a chain after a heredoc hung the call for 120 seconds; it was killed with `taskkill //F //IM python3.exe`.
 - hit again: 2026-10-07, B6 g1: a leftover `cat > /tmp/fixpay.cjs 2>/dev/null;` ahead of a heredoc waited on stdin until the 120 s ceiling moved the call to the background; the `cat` was ended by its own process id (`ps -ef`), and the node patch after it then ran.
 
+- hit again: 2026-10-08, B6 g3: a stray empty `python3 -` heredoc after a `cat >>` hung the call for 120 s and had to be killed by process name.
+
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
 - cause: a ruling about one answer was read as a ruling about both, and the properties of a response were written from the ruling, not from a `curl -D -`.
@@ -4697,10 +4699,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 ## P-2323 · A live admin spec on mop-dev needs `CSRF_SECRET` in the shell and the lane's `action_roles` migration pushed: without them every admin write is a 503 or a 403
 - symptom: B6 step 9's spec reached the "Issue and email" confirmation and the dialog answered `Saving is unavailable at the moment. Please try again later.` (503 `csrf_secret_missing`); with the secret exported it answered `This change could not be made.` (403 `forbidden`, body `{"error":{"code":"forbidden",...}}` read from the trace's resource file). Each run is a minute of `vite dev` plus the fixture setup.
 - cause: `eval "$(node scripts/load-env.mjs --profile dev)"` exports the six dev names and not `CSRF_SECRET`, and the dev server inherits the shell, so `verifyCsrf` has no key. The 403 is `write_audit` (DB-04): `public.action_roles` on mop-dev has no `payments.*` row until main pushes the lane's `action_roles` migration (`select action from action_roles where action like 'payments.%'` returns no row), and a lane may not push it (ruling H57).
-- rule: before a live admin e2e export the key without printing it, `export CSRF_SECRET="$(grep '^CSRF_SECRET=' ../.env | cut -d= -f2- | tr -d '
-')"`, and read an admin write answer from the trace (`trace.zip`, `resources/*.json`), not from the dialog's calm copy; a write that answers 403 on a fresh action is the unpushed `action_roles` migration, so the proof is UNPROVEN until main pushes it.
+- rule: before a live admin e2e export the key without printing it, `export CSRF_SECRET="$(grep '^CSRF_SECRET=' ../.env | cut -d= -f2- | tr -d '\r')"`, and read an admin write answer from the trace (`trace.zip`, `resources/*.json`), not from the dialog's calm copy; a write that answers 403 on a fresh action is the unpushed `action_roles` migration, so the proof is UNPROVEN until main pushes it.
 - proof: `cd app && node scripts/load-env.mjs --profile dev | grep -c CSRF_SECRET` → `0`, and `grep -n "csrf_secret_missing" src/server/lib/csrf.ts` → the 503 branch; the two answers were measured 2026-10-07 on mop-dev with `E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts`.
 - added: 2026-10-07
+
+- hit again: 2026-10-08, B6 g3: the rule line was first written through the Bash tool and lost its backslash (P-008), so the printed command held a real line break instead of the two characters backslash and r; a reviewer found it, and it was rewritten with the Edit tool.
 
 ## P-537 · A change to a file that registry entries anchor on must replay every entry of that file before the push, not only the new ones; two CI cycles were lost to stale anchors in one hour
 - symptom: 2026-10-07, PR 190 (hygiene cap: four B1b entries BAD or STALE), PR 196 (budget: `b3-bc-budget`, `b3-bc-exit` named the old fixture size), PR 215 (`reach()` signature: `b3-bc-nesting`, `b3-bc-lazy` STALE). Each time the author replayed only the entries it had just written, pushed, and CI's db job found the rest; each cost a CI cycle of 10 to 20 minutes and a second push.
@@ -4852,3 +4855,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: give each test its own rows: a factory (`const marked = () => ({ posts: [postRow(...)] })`), never a shared constant, for anything a fake database writes to.
 - proof: from `app/`, `bunx vitest run tests/unit/channels/post-meta.test.ts` → `Tests  9 passed (9)` with the factory; with the constant the run printed `Tests  1 failed | 8 passed (9)` (measured 2026-10-07).
 - added: 2026-10-07
+
+## P-2324 · A committing e2e spec calls `assertNotProduction()` first in `beforeAll`, before the lock and before its first write; B6's spec had no call and a reviewer caught it
+- symptom: `tests/e2e/admin-invoice.spec.ts` took the G34 lock and rewrote `settings.site.legal` and `settings.invoice` at once, committed four submissions, issued and voided invoice numbers and rewound `invoice_counters`, with no production guard; `grep -c assertNotProduction app/tests/e2e/admin-invoice.spec.ts` printed `0` while `live-forms.spec.ts` and `coming-soon.spec.ts` carry the call.
+- cause: `tests/e2e/global-setup.ts` checks only when `E2E_DATASET=1`, and the plan's proof line for a spec does not set it, so the spec's own `beforeAll` is the only guard that runs after the launch switch (ruling H35 (5)); nothing tests that a committing spec holds the call (the `guardedScripts` case of `assert-not-production.test.ts` reads `scripts/`, not `tests/e2e/`).
+- rule: the first line of a committing spec's `beforeAll` is `await assertNotProduction();` (import from `../../scripts/lib/assert-not-production.mjs`), then `holdDevLock()`; a spec that only reads needs neither.
+- proof: `cd app && grep -L assertNotProduction $(grep -l "holdDevLock" tests/e2e/*.spec.ts)` → no file (measured 2026-10-08 after the fix).
+- added: 2026-10-08
+
+## P-2325 · `email_messages.entity_id` holds the recipient's entity, not the event's: the invoice mail is about the submission, so a test looks it up by the request id
+- symptom: the `E2E_RESEND=1` check of B6 step 9 polled `email_messages` by `entity_id = <payment id>` and could never find the row (it would have timed out after 180 s on every run); found by a reviewer reading, the check had never run.
+- cause: `send_email` writes `recipient.entity` and `recipient.entityId` (`src/server/jobs/steps/send-email.ts`), and for the `invoice` key the recipient is `submitter`, whose `submitterRecipient` answers `entity: "submission"` and `entityId: submission.id` (`src/server/email/variables.ts`), because the `invoice.issued` payload carries `submission_id`.
+- rule: look a mail up by `entity = 'submission' and entity_id = <request id>` (or through `jobs.event_id` as `scripts/invoice-smoke.ts` does), never by the payment id; an assertion that has never run once is written against the code that fills the row, not against the column name.
+- proof: `cd app && grep -n "entityId: submission.id" src/server/email/variables.ts` → the `submitterRecipient` line; `grep -n "entity = 'submission'" tests/e2e/admin-invoice.spec.ts` → the lookup.
+- added: 2026-10-08

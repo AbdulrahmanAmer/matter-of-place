@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import pg from "pg";
 import { z } from "zod";
+import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs";
 import { createSubmission } from "../fixtures/factories";
 import { dbNow } from "../fixtures/db";
 import { holdDevLock } from "../fixtures/dev-lock";
@@ -81,6 +82,13 @@ async function counterLast(year: number): Promise<number> {
   return rows[0]?.last ?? 0;
 }
 
+/** The database clock (R51): `mark_payment_paid` compares the date it is given with its own `now()`. */
+const databaseNow = async () => (await one<{ now: Date }>("select now() as now")).now;
+
+/** The state pill of the invoice page header; the Void trigger and other buttons carry the same words. */
+const statusPill = (page: Page, label: string) =>
+  page.locator(".admin-invoice-page__state").getByText(label, { exact: true });
+
 const numberAfter = (last: number, year: number) =>
   `MOP-${String(year)}-${String(last + 1).padStart(4, "0")}`;
 
@@ -124,11 +132,32 @@ async function createRequests(): Promise<void> {
   }
 }
 
+/** Events about the run's requests, their payments or their properties; `$1` is the array of request ids. */
+const OWNED_EVENTS = `(
+  select e.id from public.events e
+  where e.entity_id = any($1::uuid[])
+    or e.entity_id in (select p.id from public.payments p where p.submission_id = any($1::uuid[]))
+    or e.entity_id in (select pr.id from public.properties pr where pr.submission_id = any($1::uuid[]))
+)`;
+
 /** Removes what the run made, in the order the foreign keys allow, and puts the counter back when it is still ours. */
 async function removeRequests(): Promise<void> {
   const ids = [...fixtures.values()].map((entry) => entry.id);
   const emails = [...fixtures.values()].map((entry) => entry.email);
   if (ids.length === 0) return;
+  // A job that is running would upload after the cleanup and the rewound counter would reuse its key.
+  await expect
+    .poll(
+      async () =>
+        (
+          await one<{ running: number }>(
+            `select count(*)::int as running from public.jobs where status = 'running' and event_id in ${OWNED_EVENTS}`,
+            [ids],
+          )
+        ).running,
+      { intervals: [2000], timeout: 60_000, message: "a job of this run is still running" },
+    )
+    .toBe(0);
   const keys = await sql<{ invoice_file_key: string | null }>(
     "select invoice_file_key from public.payments where submission_id = any($1::uuid[])",
     [ids],
@@ -138,14 +167,13 @@ async function removeRequests(): Promise<void> {
   try {
     await client.query("begin");
     await client.query("select set_config('mop.retention', 'on', true)");
+    // What the run caused, found by name: the mail, the jobs of its events, then the events (G16: only under retention).
     await client.query(
-      `delete from public.jobs where idempotency_key in (
-         select 'invoice_pdf:' || p.id::text from public.payments p where p.submission_id = any($1::uuid[])
-         union all
-         select 'copy_submission_media:' || pr.id::text from public.properties pr where pr.submission_id = any($1::uuid[])
-       )`,
+      "delete from public.email_messages where entity = 'submission' and entity_id = any($1::uuid[])",
       [ids],
     );
+    await client.query(`delete from public.jobs where event_id in ${OWNED_EVENTS}`, [ids]);
+    await client.query(`delete from public.events where id in ${OWNED_EVENTS}`, [ids]);
     await client.query(
       "delete from public.campaigns where payment_id in (select id from public.payments where submission_id = any($1::uuid[]))",
       [ids],
@@ -204,12 +232,26 @@ async function issueThroughUi(page: Page, role: Role, label: string): Promise<st
     [id],
   );
   issuedNumbers.push(row.invoice_number);
+  const planned = await sql<{ type: string }>(
+    `select j.type from public.jobs j join public.events e on e.id = j.event_id
+     where e.type = 'invoice.issued' and e.entity_id = $1 order by j.type`,
+    [row.id],
+  );
+  expect(planned.map((job) => job.type)).toEqual(expect.arrayContaining(["invoice_pdf"]));
+  const watcher = recorded.getByRole("list", { name: "Jobs started" });
+  await expect(watcher.getByRole("listitem")).toHaveCount(planned.length);
+  for (const type of new Set(planned.map((job) => job.type))) {
+    await expect(
+      watcher.getByRole("listitem").filter({ hasText: type.replaceAll("_", " ") }),
+    ).toHaveCount(planned.filter((job) => job.type === type).length);
+  }
   return row.id;
 }
 
 test.describe.configure({ mode: "serial" });
 
 test.beforeAll(async () => {
+  await assertNotProduction();
   release = await holdDevLock();
   const year = await utcYear();
   before = {
@@ -268,14 +310,6 @@ test("the managing editor issues the next invoice number and its PDF is served b
       [paymentId],
     );
     expect(number).toEqual({ invoice_number: expected, status: "due" });
-    await expect(
-      page
-        .getByRole("region", { name: "Recorded" })
-        .getByRole("list", { name: "Jobs started" })
-        .getByRole("listitem")
-        .first(),
-    ).toBeVisible();
-
     await page.getByRole("link", { name: "Open it" }).click();
     await expect(page.getByRole("heading", { level: 1, name: expected })).toBeVisible();
     await expect(page.getByRole("article", { name: "Invoice preview" })).toBeVisible();
@@ -356,12 +390,12 @@ test("mark paid, then activate: the request is Scheduled with a property draft, 
     await expect(paid.getByRole("heading", { name: "Mark this invoice paid" })).toBeVisible();
     await checkpoint(page, "mark paid dialog");
     const yesterday = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(
-      new Date(Date.now() - 36 * 3_600_000),
+      new Date((await databaseNow()).getTime() - 36 * 3_600_000),
     );
     await paid.getByLabel("Date received").fill(yesterday);
     await paid.getByLabel("Method").fill("Bank transfer");
     await paid.getByRole("button", { name: "Mark paid" }).click();
-    await expect(page.getByText("Paid", { exact: true }).first()).toBeVisible();
+    await expect(statusPill(page, "Paid")).toBeVisible();
 
     await page.getByRole("button", { name: "Activate" }).click();
     const activate = page.getByRole("dialog");
@@ -456,7 +490,7 @@ test("the admin voids a second test invoice with a reason", async ({ browser }) 
     await checkpoint(page, "void dialog");
     await dialog.getByLabel("Reason").fill("Issued for the end-to-end run");
     await dialog.getByRole("button", { name: "Void invoice" }).click();
-    await expect(page.getByText("Void", { exact: true }).first()).toBeVisible();
+    await expect(statusPill(page, "Void")).toBeVisible();
     const row = await one<{ status: string }>("select status from public.payments where id = $1", [
       voidedId,
     ]);
@@ -511,7 +545,7 @@ test("a request that is not accepted cannot be invoiced from the screen, the API
         "select * from public.issue_invoice($1, 'The Feature', 695, 'bank_transfer', '{}'::jsonb, null, 'human', 'admin-invoice:sql')",
         [id],
       ),
-    ).rejects.toThrow();
+    ).rejects.toThrow("wrong_state");
   } finally {
     await client.query("rollback");
     await client.end();
@@ -523,25 +557,32 @@ test("a request that is not accepted cannot be invoiced from the screen, the API
   expect(payments.count).toBe("0");
 });
 
-test("the invoice email reaches the submitter with the PDF attached (E2E_RESEND=1, after EMAIL_LIVE=1)", async () => {
+test("the invoice email reaches the submitter once its PDF is stored (E2E_RESEND=1, after EMAIL_LIVE=1)", async () => {
   test.skip(process.env["E2E_RESEND"] !== "1", "needs EMAIL_LIVE=1 on the runner and E2E_RESEND=1");
   test.setTimeout(POLL_LIMIT_MS + 30_000);
+  if (before === null) throw new Error("admin-invoice: beforeAll did not run");
+  // `send_email` writes the recipient's entity: the invoice goes to the submitter, so the row is about the request.
+  const { id } = fixture("invoiced");
+  const mailOf = () =>
+    sql<{ status: string; resend_id: string | null; to_email: string | null }>(
+      "select status, resend_id, to_email from public.email_messages where template_key = 'invoice' and entity = 'submission' and entity_id = $1",
+      [id],
+    );
   await expect
-    .poll(
-      async () =>
-        (
-          await sql<{ status: string; resend_id: string | null }>(
-            "select status, resend_id from public.email_messages where template_key = 'invoice' and entity_id = $1",
-            [paymentId],
-          )
-        )[0]?.status,
-      { intervals: [POLL_MS], timeout: POLL_LIMIT_MS },
-    )
+    .poll(async () => (await mailOf())[0]?.status, { intervals: [POLL_MS], timeout: POLL_LIMIT_MS })
     .toBe("sent");
-  const mail = await one<{ resend_id: string | null; to_email: string | null }>(
-    "select resend_id, to_email from public.email_messages where template_key = 'invoice' and entity_id = $1",
+  const [mail] = await mailOf();
+  expect(mail?.resend_id?.startsWith("dry_")).toBe(false);
+  expect(mail?.to_email).toBe(LIVE_INBOX);
+  // The attachment resolver reads this object before the send, so the mail carried `<number>.pdf` from here.
+  const payment = await one<{ invoice_file_key: string | null; invoice_number: string }>(
+    "select invoice_file_key, invoice_number from public.payments where id = $1",
     [paymentId],
   );
-  expect(mail.resend_id?.startsWith("dry_")).toBe(false);
-  expect(mail.to_email).toBe(LIVE_INBOX);
+  expect(payment.invoice_file_key).toBe(`${String(before.year)}/${payment.invoice_number}.pdf`);
+  const stored = await adminClient()
+    .storage.from("documents")
+    .download(payment.invoice_file_key ?? "");
+  expect(stored.error).toBeNull();
+  expect(new TextDecoder().decode((await stored.data?.arrayBuffer())?.slice(0, 4))).toBe("%PDF");
 });
