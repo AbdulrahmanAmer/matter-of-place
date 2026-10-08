@@ -4,11 +4,14 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { stepSchema } from "../../domain/automation";
+import { reportClientError } from "../../lib/report-error";
 import { AdminMeContext, type AdminMe } from "../ui/admin-me";
 import { mountRoutes, pageRoute } from "../ui/test-router";
 import { ToastProvider } from "../ui/Toast";
 import type { RecipeRow, StepSpecView } from "./automation-queries";
 import { RecipesPage } from "./RecipesPage";
+
+vi.mock("../../lib/report-error", () => ({ reportClientError: vi.fn() }));
 
 const RECIPES = "/api/admin/automation/recipes";
 const DRY_RUN = "/api/admin/automation/dry-run";
@@ -181,19 +184,30 @@ const putBody = z.object({ name: z.string(), enabled: z.boolean(), steps: z.arra
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.mocked(reportClientError).mockClear();
 });
+
+const serverFailure = () =>
+  Response.json(
+    { error: { code: "server", message: "The request failed." } },
+    { status: 500, headers: { "x-request-id": "req-17" } },
+  );
 
 /**
  * The automation API as the Worker answers it: the recipes it holds now (a write replaces one and bumps its version,
  * so the next read shows it), a refusal on request, and a fixed dry run. `requests` lists `METHOD path body` in order.
  */
-function open(trigger: string, options: { actions?: string[]; refuse?: string } = {}) {
+function open(
+  trigger: string,
+  options: { actions?: string[]; refuse?: string; failing?: "read" | "dry-run" } = {},
+) {
   let held = [received, published];
   const requests: string[] = [];
   vi.stubGlobal("fetch", (path: string, init: RequestInit = {}) => {
     const method = init.method ?? "GET";
     requests.push(`${method} ${path}${typeof init.body === "string" ? ` ${init.body}` : ""}`);
     if (method === "GET" && path === RECIPES) {
+      if (options.failing === "read") return Promise.resolve(serverFailure());
       return Promise.resolve(Response.json({ items: held, steps: catalog }));
     }
     if (method === "PUT" && path.startsWith(`${RECIPES}/`)) {
@@ -201,7 +215,7 @@ function open(trigger: string, options: { actions?: string[]; refuse?: string } 
         return Promise.resolve(
           Response.json(
             { error: { code: "validation", message: options.refuse } },
-            { status: 422 },
+            { status: 422, headers: { "x-request-id": "req-22" } },
           ),
         );
       }
@@ -212,7 +226,11 @@ function open(trigger: string, options: { actions?: string[]; refuse?: string } 
       held = held.map((recipe) => (recipe.trigger === target ? next : recipe));
       return Promise.resolve(Response.json(next));
     }
-    if (method === "POST" && path === DRY_RUN) return Promise.resolve(Response.json(dryRunAnswer));
+    if (method === "POST" && path === DRY_RUN) {
+      return Promise.resolve(
+        options.failing === "dry-run" ? serverFailure() : Response.json(dryRunAnswer),
+      );
+    }
     return Promise.resolve(new Response("{}", { status: 404 }));
   });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -274,6 +292,17 @@ describe("RecipesPage", () => {
     expect(await screen.findByText("Choose an event")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Submission received/ }));
     expect(await ready("Submission received")).toBeTruthy();
+  });
+
+  it("says why the recipes did not load, names the request id and reports the failure once", async () => {
+    open("property.published", { failing: "read" });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("The request failed. Request req-17.");
+    expect(reportClientError).toHaveBeenCalledTimes(1);
+    expect(reportClientError).toHaveBeenCalledWith(expect.objectContaining({ status: 500 }), {
+      route: "/admin/automation/recipes",
+      requestId: "req-17",
+    });
   });
 
   it("marks a step the catalog has not built yet", async () => {
@@ -433,7 +462,7 @@ describe("saving a recipe", () => {
     save();
     expect(await screen.findByRole("alert")).toHaveProperty(
       "textContent",
-      "That recipe could not be saved.",
+      "That recipe could not be saved. Request req-22.",
     );
     expect(screen.getByRole("checkbox", { name: "Notify admins: on" })).toHaveProperty(
       "checked",
@@ -491,6 +520,15 @@ describe("the dry run", () => {
     expect(panel.getByText("Queued")).toBeTruthy();
     expect(panel.getByText("The step is off")).toBeTruthy();
     expect(panel.getByText("The email template received does not exist.")).toBeTruthy();
+  });
+
+  it("names the request id when the dry run fails", async () => {
+    open("submission.received", { failing: "dry-run" });
+    await ready("Submission received");
+    fireEvent.click(screen.getByRole("button", { name: "Run dry run" }));
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "The request failed. Request req-17.",
+    );
   });
 
   it("sends the record id when one is given, refuses one that is not an id, and warns of unsaved edits", async () => {

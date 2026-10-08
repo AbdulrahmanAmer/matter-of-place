@@ -3,6 +3,7 @@ import { skipReasonLabels } from "../../domain/automation";
 import { Field } from "../ui/Field";
 import { RoleGate } from "../ui/RoleGate";
 import { StatusPill } from "../ui/StatusPill";
+import { RequestFailure } from "./RequestFailure";
 import { useDryRun, type StepSpecView } from "./automation-queries";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -72,9 +73,7 @@ export function DryRunPanel({
           </button>
         </form>
         {dryRun.isError ? (
-          <p role="alert" className="admin-field__error">
-            {dryRun.error.message}
-          </p>
+          <RequestFailure error={dryRun.error} className="admin-field__error" />
         ) : null}
         {result === undefined ? null : (
           <div className="admin-dryrun__result" aria-live="polite">

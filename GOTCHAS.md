@@ -5373,6 +5373,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b8b-g8-missing-blocks-save` → `WATCHED-FAIL OK B8b:b8b-g8-missing-blocks-save`; with the `await settled();` lines removed from `src/admin/automation/emails.test.tsx` it printed `BAD: stayed green` (2026-10-08).
 - added: 2026-10-08
 
+## P-2507 · A field inside `<fieldset disabled>` carries no `disabled` of its own: a read-only test asks `:disabled`
+- symptom: B8b g7's first component run had a red test for the read-only recipe form: `expect(input.disabled).toBe(true)` failed on the Name field although the form was locked; the log mentioned the fix but the bank did not hold it.
+- cause: `RoleGate` locks a form with `<fieldset disabled>`; the fieldset is disabled, its controls are only matched by the `:disabled` pseudo-class, and the field itself has no `disabled` attribute.
+- rule: a test that asserts a control is locked by a role gate uses `element.matches(":disabled")`, never the `disabled` property or attribute of the control.
+- proof: `cd app && node scripts/watchfail.mjs --file src/admin/automation/recipes.test.tsx --find 'getByLabelText("Name").matches(":disabled")' --replace 'getByLabelText("Name").hasAttribute("disabled")' --run 'bunx vitest run --project component src/admin/automation/recipes.test.tsx -t "without the recipes permission"' --expect 'FAIL .*without the recipes permission'` → `WATCHED-FAIL OK` (2026-10-08).
+- added: 2026-10-08
+
+## P-2508 · `watchfail.mjs --registry --changed origin/main` in a lane that holds several groups replays the whole slice, and a kill leaves mutated source files behind
+- symptom: B8b g7's rework ran `--changed origin/main` to replay its own entries; it selected every entry of groups 1 to 8, ran past the 120 s tool timeout and moved to the background. Starting a second replay beside it, then killing both, left `RecipeList.tsx`, `src/server/lib/admin-response.ts` and `admin-route.ts` mutated in the tree (`git status` showed them modified).
+- cause: `--changed <ref>` selects the entries whose test or file differs from the ref, and a lane's branch differs from main in every group built so far; two replays on one tree also mutate the same files, and `kill -9` skips the restore.
+- rule: in a lane with more than one group, replay by id: `for id in $(node -e '...ids starting b8b-gN...'); do node scripts/watchfail.mjs --registry tests/mutations --only $id; done` in the background, one process at a time; after any kill run `git status --short` and `git checkout --` every file that is not yours before going on. After prettier, replay the entries of every file it touched: it joined `{save.isError ? (` onto one line and made the `b8b-g7-refusal` find stale, and a later group's similar block made `b8b-g7-save-refetch` match twice.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b8b-g7-save-refetch` → `WATCHED-FAIL OK B8b:b8b-g7-save-refetch` (2026-10-08); before the find carried the `putRecipe(trigger, patch),` line it printed `STALE ... find occurs 2 times`.
+- added: 2026-10-08
+
 ## P-2024 · A preview-token page answered no `x-mop-cache` header: the pipeline keeps it from the cache hook, so nothing labelled it `bypass`
 - symptom: B7 step 7a's proof `curl -sI "http://localhost:8080/property/<slug>?preview=<token>"` showed `cache-control: no-store` and `x-robots-tag: noindex, nofollow` but no `x-mop-cache` line, while the API form with `?draft_token=` showed `x-mop-cache: bypass`; the cf:preview leg greps for `bypass` on the page.
 - cause: `handle()` in `src/server/lib/pipeline.ts` computes `page = !neverCached(...) && isPageRequest(...)`, so a `?preview=` page never calls `deps.cache` (`cachedResponse` is where `bypass` is written); the API route calls `cachedResponse` itself, which labels it. Step 7's tests asserted the skipped hook and `no-store`, never the label.

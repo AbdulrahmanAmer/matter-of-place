@@ -2154,8 +2154,8 @@
     "id": "b8b-g7-save-refetch",
     "test": "src/admin/automation/recipes.test.tsx",
     "file": "src/admin/automation/automation-queries.ts",
-    "find": "onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),",
-    "replace": "onSettled: () => undefined,",
+    "find": "putRecipe(trigger, patch),\n    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),",
+    "replace": "putRecipe(trigger, patch),\n    onSettled: () => undefined,",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
     "expect": "FAIL .*saving a recipe > sends the changed recipe, refetches"
   },
@@ -2163,8 +2163,8 @@
     "id": "b8b-g7-refusal",
     "test": "src/admin/automation/recipes.test.tsx",
     "file": "src/admin/automation/RecipeEditor.tsx",
-    "find": "{save.isError ? (",
-    "replace": "{false ? (",
+    "find": "{save.isError ?",
+    "replace": "{false ?",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
     "expect": "FAIL .*saving a recipe > shows the server's refusal"
   },
@@ -2500,5 +2500,32 @@
     "replace": "if (false) {",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
     "expect": "FAIL .*sendTemplateTest > answers unavailable"
+  },
+  {
+    "id": "b8b-g7-request-id",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RequestFailure.tsx",
+    "find": "{requestId === undefined ? null : ` Request ${requestId}.`}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > says why the recipes did not load"
+  },
+  {
+    "id": "b8b-g7-read-report",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipesPage.tsx",
+    "find": "if (failure === null) return;",
+    "replace": "return;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > says why the recipes did not load"
+  },
+  {
+    "id": "b8b-g7-dryrun-request-id",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "<RequestFailure error={dryRun.error} className=\"admin-field__error\" />",
+    "replace": "<p role=\"alert\">{dryRun.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > names the request id when the dry run fails"
   }
 ]

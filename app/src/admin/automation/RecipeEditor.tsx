@@ -5,6 +5,7 @@ import { useAdminMe } from "../ui/admin-me";
 import { useToast } from "../ui/use-toast";
 import { useSaveRecipe, type RecipeRow, type StepSpecView } from "./automation-queries";
 import { DryRunPanel } from "./DryRunPanel";
+import { RequestFailure } from "./RequestFailure";
 import { checkDraft, draftOf, maxSteps, newStep, sameDraft, type Draft } from "./recipe-draft";
 import { StepCard } from "./StepCard";
 
@@ -179,11 +180,7 @@ export function RecipeEditor({
             {dirty ? <span className="admin-field__hint">Unsaved changes</span> : null}
           </div>
         </RoleGate>
-        {save.isError ? (
-          <p role="alert" className="admin-field__error">
-            {save.error.message}
-          </p>
-        ) : null}
+        {save.isError ? <RequestFailure error={save.error} className="admin-field__error" /> : null}
       </form>
       <DryRunPanel trigger={recipe.trigger} specs={specs} unsaved={dirty} />
     </article>
