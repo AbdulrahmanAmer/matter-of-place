@@ -252,3 +252,21 @@
 3. File: `app/supabase/migrations/20261008102217_standalone_template.sql`. Blocking: no.
    - What: Follow-up (UNPROVEN, not a defect of the code). The row update is proven only as a MOP_MUTATION_SQL prelude in rolled-back transactions on mop-dev, plus the CI db job that has not run yet. The real mop-dev standalone send (step 9's mop-dev proof) is BLOCKED on the S59 legal entity and address and on main pushing this migration. When the merge to main pushes it, re-run tests/db/email.db.test.ts without the prelude.
    - Evidence: Without the prelude, the email.db.test.ts cases 'the standalone row is B11's' and 'the seeded keys equal' are red on mop-dev today, as the author reports. My prelude run gave 30/30.
+
+## g2 · steps 4-5
+
+1. File: `app/src/server/newsletter/issue.ts`. Blocking: no.
+   - What: Follow-up. In the issue render, the human-approved alt text of the newsletter_block asset never reaches the image. loadBlocks selects only `id, meta` from assets (around line 82). The property variant of IssueBlockView never sets `alt`, so NewsletterBlock falls back to `alt={title}`. B9's plan (B9.md line 55) says 'a caller holding the asset passes its alt_text'. The approve guard (assets_approve_guard.sql) refuses a newsletter_block without alt_text, and write_captions spends a model call writing it. Concrete case: an approved block whose alt_text is 'Spanish Revival facade with a red tile roof' is drawn in Place Notes as alt="Alder Court". Not blocking, because B11's own step 5 text does not ask for alt.
+   - Evidence: Suspected from reading, confirmed in the code: `db.from("assets").select("id, meta")` in loadBlocks; the IssueBlockView property variant in place-notes.tsx gets `alt` from NewsletterBlockProps but viewOf in render.ts never fills it; NewsletterBlock.tsx has `alt={props.alt ?? props.title}`.
+
+2. File: `app/src/server/newsletter/issue.ts`. Blocking: no.
+   - What: Follow-up, C05 (no second copy of a helper). Line 32 adds `const https = z.string().url().startsWith("https://")`, with the same comment word for word, as a second copy of the one in src/templates/email/standalone.tsx line 18. Two copies of the email-address safety rule can drift apart.
+   - Evidence: `grep -n 'startsWith("https://")' app/src/server/newsletter/issue.ts app/src/templates/email/standalone.tsx` shows two identical definitions with the same comment line.
+
+3. File: `workspace/05-plans/merge-chores.md`. Blocking: no.
+   - What: Follow-up for the orchestrator to fold. Lines 61-62 still say the --dry sample lacks the property block and that renderIssueHtml throws property_block_unavailable under a STUB. This group closed both.
+   - Evidence: `grep -n property_block_unavailable workspace/05-plans/merge-chores.md` -> line 62.
+
+4. File: `workspace/05-plans/logs/B11.md`. Blocking: no.
+   - What: Follow-up. The fix round's registry-scan proof names `node scratchpad/stale.mjs`, which is not in the repository, so a reviewer cannot re-run the command as written. I reproduced it with an equivalent inline script (338 entries, 0 bad). `scripts/watchfail.mjs` has no `--check` mode either ('Unknown option', exit 64), so there is no committed one-line consistency check of a registry beyond tests/unit/mutation-registry.test.ts.
+   - Evidence: `node scripts/watchfail.mjs --registry tests/mutations --check` -> `watchfail: Unknown option '--check'`, exit 64.
