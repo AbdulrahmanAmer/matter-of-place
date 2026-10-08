@@ -1,0 +1,90 @@
+/* Screen 12, channels: one card per channel, the withdraw list and the posts table; and the screen 2 tile. */
+
+.admin-channels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--admin-space-4);
+  margin-bottom: var(--admin-space-6);
+}
+
+.admin-channel,
+.admin-channel-tile li {
+  display: grid;
+  align-content: start;
+  gap: var(--admin-space-3);
+  min-width: 0;
+  padding: var(--admin-space-4);
+  border: 1px solid var(--border);
+}
+
+.admin-channel header,
+.admin-channel-tile header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--admin-space-2);
+}
+
+.admin-channel h2,
+.admin-channel-tile h3,
+.admin-withdraw h2 {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-channel__facts {
+  display: grid;
+  gap: var(--admin-space-2);
+}
+
+.admin-channel__facts > div {
+  display: grid;
+  grid-template-columns: minmax(80px, 110px) minmax(0, 1fr);
+  gap: var(--admin-space-3);
+}
+
+.admin-channel__facts dt {
+  color: var(--muted-foreground);
+}
+
+.admin-channel__facts dd {
+  overflow-wrap: anywhere;
+}
+
+.admin-channel__ids {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding-top: var(--admin-space-3);
+  border-top: 1px solid var(--border);
+}
+
+.admin-channel__ids h3 {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.admin-channel__ids button {
+  justify-self: start;
+}
+
+.admin-withdraw {
+  margin-bottom: var(--admin-space-6);
+}
+
+.admin-withdraw > p {
+  margin-block: var(--admin-space-2) var(--admin-space-3);
+  color: var(--muted-foreground);
+}
+
+.admin-channel-tile ul {
+  display: grid;
+  gap: var(--admin-space-3);
+  margin-block: var(--admin-space-3);
+  list-style: none;
+  padding: 0;
+}
