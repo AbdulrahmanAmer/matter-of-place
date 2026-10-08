@@ -5066,14 +5066,14 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-a11y-settle-wait` -> `WATCHED-FAIL OK B17:b17-a11y-settle-wait` (2026-10-08).
 - added: 2026-10-08
 
-## P-1939 · A group re-launched with "paused before its fix round" was already fixed and merged: `git merge origin/main` fast-forwarded the lane to main
+## P-1949 · A group re-launched with "paused before its fix round" was already fixed and merged: `git merge origin/main` fast-forwarded the lane to main
 - symptom: B17 c8 (second launch), `git merge origin/main` printed the new files of other slices and `git log --oneline -3` then showed main's tip, `git merge-base origin/main HEAD` equal to HEAD. The brief said the fix round had not run; `grep -n "^## c8" workspace/05-plans/logs/B17.md` showed a finished "c8 · steps 8" block and "c8 · follow-ups recorded" (fcae302 on main, review found no blocking defect).
 - cause: the brief's verdict text is the first review's evidence, kept by the workflow while a later round had landed; at that launch the lane's starting point was 191 commits behind main (a point-in-time count taken when the brief was written; it moves with every merge and cannot be measured again, so do not quote it as a current number).
 - rule: before editing for a re-launched group, run `git merge origin/main`, then `git log --oneline -3 -- <the group's files>` and `grep -n "^## <group>" workspace/05-plans/logs/<slice>.md`; when the fix is already in the log and on main, the work is to re-measure against today's numbers (the bundle budget moved to 163,840 by ruling H66) and re-run the proofs, not to edit.
 - proof: `git log --oneline -2 -- app/src/components/property/gallery.tsx` → the c8 commit `fcae3028`; `cd app && node scripts/bundle-check.mjs | tail -1` → `bundle-check: OK 24 routes under 163840 gzip bytes` on a live build.
 - added: 2026-10-08
 
-## P-1940 · `bun run lhci:local` from an agent shell stops every run with `NO_NAVSTART` and prints no score, on every URL
+## P-1950 · `bun run lhci:local` from an agent shell stops every run with `NO_NAVSTART` and prints no score, on every URL
 - symptom: B17 c8 review, 2026-10-08: `bun run lhci:local -- --collect.url=http://127.0.0.1:8939/...` ended `Run #1...failed! ... (NO_NAVSTART)` and exit 1, three times, with a single URL and `numberOfRuns=1` as well, so it does not depend on the page. The log showed "Waiting for browser" for about 2 s, then about 12 s to "Connecting to browser". The review cost about 15 minutes and produced no score, so the author's medians of step 8 (perf 0.72 to 0.91, LCP 2.86 to 3.27 s) are UNPROVEN by that review.
 - cause: UNKNOWN. Two candidates, neither tested: the agent shell's sandbox blocks Chrome tracing, or Chrome starts too slowly on a busy laptop. The same command ran to a score in the author's shell, so the preview and the config are not the cause.
 - rule: when a Lighthouse run ends `NO_NAVSTART`, do not retry it a third time in the same shell. Record the step as BLOCKED with this entry, and unblock it by running `bun run lhci:local` from the operator's normal shell (or by testing whether the sandbox blocks Chrome tracing). Do not call the scores proven or the step closed.
