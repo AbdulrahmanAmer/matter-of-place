@@ -271,3 +271,25 @@ Recorded from the g7 review (no blocking defect). None is blocking.
 - what: UNPROVEN against reality (the author says so). The `steps` field of GET /recipes is tested only against fake-db in service.test.ts. Screen 17 is tested only against a stand-in fetch written by the same author. No built Worker answer and no browser render of the screen was observed.
 - evidence: recipes.test.tsx:200-235 stubs global fetch with a hand-written API; the log's g7 UNPROVEN line.
 - blocking: false
+
+## g8 · steps 8
+
+Recorded from the g8 review (no blocking defect). None is blocking. A first follow-up, a costTime line filed under the wrong gotcha entry (the scratch file `D:/tmp_ids.txt`), is banked in GOTCHAS.md (P-071 "hit again"), not listed here.
+
+### 1. app/src/admin/automation/emails.test.tsx
+
+- what: Suspected by reading, not run. In the test 'asks nothing of the preview route for a role the matrix leaves out' (lines 349-354), the count `api.count(POST preview) === 0` is read right after ready(), with no settled(). The watched-fail goes red because of the heading assertion, not the count. So the request-count half of the title is not proved on its own. This is the same timing pattern P-2506 banked for the save case.
+- evidence: emails.test.tsx:349-354. Line 352 checks that the Preview heading is absent, and line 353 reads the count with no `await settled()`. The b8b-g8-preview-gated replay was WATCHED-FAIL OK, but removing the gate also brings the heading back, so the replay cannot tell which assertion caught it.
+- blocking: false
+
+### 2. app/src/admin/automation/template-draft.ts
+
+- what: maxBlocks = 40 and maxFactRows = 12 copy the literals in emailTemplateSchema (body .max(40)) and emailBlockSchema (rows .max(12)) in src/domain/email.ts instead of reading them from there. If the schema changes, the Add block and Add row buttons drift from it. The server still validates, so nothing wrong gets stored.
+- evidence: template-draft.ts:30-34 versus src/domain/email.ts:66 (.max(12)) and :77 (.max(40))
+- blocking: false
+
+### 3. app/src/admin/automation/EmailTemplateEditor.tsx
+
+- what: Note for the slice e2e. 'Send test to me' (line 166 onward) sends mail through Resend on one click, with no confirm Dialog. STANDARDS C17 asks for a confirm Dialog on every external action. The plan's proof wording ('posts once') and the per-minute idempotency key make a single click reasonable, so this needs a ruling on whether a test mail to oneself counts as external under C17. It is not a defect of this step.
+- evidence: EmailTemplateEditor.tsx:166-195. STANDARDS.md:431 (C17)
+- blocking: false
