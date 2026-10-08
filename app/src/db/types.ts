@@ -1758,6 +1758,12 @@ isOneToOne: false
               "media_id": string,"storage_path": string
             }[]
                            },
+"takedown_mark_posts":
+{ Args: { "p_property_id": string }; Returns: number
+                           },
+"takedown_media_keys":
+{ Args: { "p_property_id": string }; Returns: (string)[]
+                           },
 "touch_agent_key":
 { Args: { "p_key_id": string }; Returns: undefined
                            },

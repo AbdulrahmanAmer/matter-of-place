@@ -2787,5 +2787,134 @@
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assert-not-production.test.ts -t \"every listed file exists, imports the guard\"",
     "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\("
+  },
+  {
+    "id": "b8-ay",
+    "test": "tests/unit/jobs/takedown-media.test.ts",
+    "file": "src/server/jobs/system/takedown-media.ts",
+    "find": "    if (done === null) {",
+    "replace": "    if (done === null || keys.length > 0) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/takedown-media.test.ts -t \"runs twice without a second outside effect\"",
+    "expect": "× .*takedown_media runs twice without a second outside effect"
+  },
+  {
+    "id": "b8-bm",
+    "test": "tests/unit/jobs/takedown-media.test.ts",
+    "file": "src/server/jobs/system/takedown-media.ts",
+    "find": "deleteObjects(\"media\", keys)",
+    "replace": "deleteObjects(\"submissions\", keys)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/takedown-media.test.ts -t \"removes every key once from the bucket media\"",
+    "expect": "× .*removes every key once from the bucket media[\\s\\S]*\"submissions\""
+  },
+  {
+    "id": "b8g2-attempts",
+    "test": "tests/unit/jobs/takedown-media.test.ts",
+    "file": "src/server/jobs/system/takedown-media.ts",
+    "find": "  maxAttempts: 12,",
+    "replace": "  maxAttempts: 5,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/takedown-media.test.ts -t \"is registered as a system job with 12 attempts\"",
+    "expect": "× .*is registered as a system job with 12 attempts"
+  },
+  {
+    "id": "b8g2-registered",
+    "test": "tests/unit/jobs/takedown-media.test.ts",
+    "file": "src/server/jobs/system/index.ts",
+    "find": "  takedownMedia,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/takedown-media.test.ts -t \"is registered as a system job with 12 attempts\"",
+    "expect": "× .*is registered as a system job with 12 attempts"
+  },
+  {
+    "id": "b8g2-storage-unchanged",
+    "test": "tests/unit/jobs/takedown-media.test.ts",
+    "file": "src/server/jobs/system/takedown-media.ts",
+    "find": "const { deleted } = await deleteObjects(\"media\", keys);",
+    "replace": "const { deleted } = await deleteObjects(\"media\", keys).catch(() => ({ deleted: 0 }));",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/takedown-media.test.ts -t \"throws storage_unavailable from the media store unchanged\"",
+    "expect": "× .*throws storage_unavailable from the media store unchanged"
+  },
+  {
+    "id": "b8g2-purge-skipped",
+    "test": "tests/unit/jobs/takedown-media.test.ts",
+    "file": "src/server/jobs/system/takedown-media.ts",
+    "find": "return { purged: 0, purge_skipped: \"no_media_public_base\" };",
+    "replace": "return { purged: 0 };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/takedown-media.test.ts -t \"purges nothing without MEDIA_PUBLIC_BASE\"",
+    "expect": "× .*purges nothing without MEDIA_PUBLIC_BASE[\\s\\S]*no_media_public_base"
+  },
+  {
+    "id": "b8g2-purge-all",
+    "test": "tests/unit/jobs/takedown-media.test.ts",
+    "file": "src/server/jobs/system/takedown-media.ts",
+    "find": "const urls = keys.map(",
+    "replace": "const urls = keys.slice(0, 30).map(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/takedown-media.test.ts -t \"purges 31 addresses in two calls of at most 30\"",
+    "expect": "× .*purges 31 addresses in two calls of at most 30"
+  },
+  {
+    "id": "b8g2-mark-posts",
+    "test": "tests/unit/jobs/takedown-media.test.ts",
+    "file": "src/server/jobs/system/takedown-media.ts",
+    "find": "const postsMarked = await markPosts(ctx.db, propertyId);",
+    "replace": "const postsMarked = 0;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/takedown-media.test.ts -t \"runs twice without a second outside effect\"",
+    "expect": "× .*takedown_media runs twice without a second outside effect[\\s\\S]*posts_marked"
+  },
+  {
+    "id": "b8g2-property-id",
+    "test": "tests/unit/jobs/takedown-media.test.ts",
+    "file": "src/server/jobs/system/takedown-media.ts",
+    "find": "if (typeof propertyId !== \"string\") throw new NonRetryableError(\"invalid_property_id\");",
+    "replace": "if (typeof propertyId !== \"string\") return { status: \"done\" };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/takedown-media.test.ts -t \"refuses a payload without a property id for good\"",
+    "expect": "× .*refuses a payload without a property id for good"
+  },
+  {
+    "id": "b8g2-keys-distinct",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "-- down: drop function public.takedown_media_keys(uuid), public.takedown_mark_posts(uuid);\nset lock_timeout = '5s';\n\ncreate or replace function public.takedown_media_keys(p_property_id uuid)\nreturns text[]\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01, ruling H33 (1)): every key the property holds in the bucket `media`, once each, for the\n  -- takedown_media job. A photograph stores its master key and the sizes only (P-335), so each rendered size's key is\n  -- derived from the master as `variantKey` in src/server/assets/spec.ts does.\n  select coalesce(array_agg(k.key), '{}')\n  from (\n    select m.media_key as key\n    from public.property_media m\n    where m.property_id = p_property_id\n    union all\n    select regexp_replace(m.media_key, '^o/([^/]+)/(\\d+-[0-9a-f]{8})\\.webp$', 'v/\\1/\\2/')\n      || v.name || case when v.name in ('og', 'carousel') then '.jpg' else '.webp' end\n    from public.property_media m\n    cross join lateral jsonb_object_keys(m.variants) as v (name)\n    where m.property_id = p_property_id and m.media_key ~ '^o/[^/]+/\\d+-[0-9a-f]{8}\\.webp$'\n    union all\n    select f.file ->> 'media_key'\n    from public.assets a\n    cross join lateral jsonb_array_elements(a.files) as f (file)\n    where a.property_id = p_property_id\n    union all\n    select unnest(array[p.video ->> 'src', p.video ->> 'poster', p.og_image_key])\n    from public.properties p\n    where p.id = p_property_id\n  ) k\n  where k.key is not null;\n$$;\n\nrevoke execute on function public.takedown_media_keys(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_media_keys(uuid) to service_role;\n\ncreate or replace function public.takedown_mark_posts(p_property_id uuid)\nreturns int\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01): a post a channel already shows cannot be deleted from here, so each one is marked for\n  -- withdrawal by hand (B10's screen 12). Returns how many rows it marked; a rerun marks none.\n  with marked as (\n    update public.social_posts\n    set withdraw_required_at = now()\n    where property_id = p_property_id and status = 'posted' and withdraw_required_at is null\n    returning 1\n  )\n  select count(*)::int from marked;\n$$;\n\nrevoke execute on function public.takedown_mark_posts(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_mark_posts(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"takedown_media_keys returns every key\"",
+    "expect": "× .*takedown_media_keys returns every key"
+  },
+  {
+    "id": "b8g2-keys-sizes",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "-- down: drop function public.takedown_media_keys(uuid), public.takedown_mark_posts(uuid);\nset lock_timeout = '5s';\n\ncreate or replace function public.takedown_media_keys(p_property_id uuid)\nreturns text[]\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01, ruling H33 (1)): every key the property holds in the bucket `media`, once each, for the\n  -- takedown_media job. A photograph stores its master key and the sizes only (P-335), so each rendered size's key is\n  -- derived from the master as `variantKey` in src/server/assets/spec.ts does.\n  select coalesce(array_agg(distinct k.key), '{}')\n  from (\n    select m.media_key as key\n    from public.property_media m\n    where m.property_id = p_property_id\n    union all\n    select regexp_replace(m.media_key, '^o/([^/]+)/(\\d+-[0-9a-f]{8})\\.webp$', 'v/\\1/\\2/')\n      || v.name || case when v.name in ('og', 'carousel') then '.jpg' else '.webp' end\n    from public.property_media m\n    cross join lateral jsonb_object_keys('{}'::jsonb) as v (name)\n    where m.property_id = p_property_id and m.media_key ~ '^o/[^/]+/\\d+-[0-9a-f]{8}\\.webp$'\n    union all\n    select f.file ->> 'media_key'\n    from public.assets a\n    cross join lateral jsonb_array_elements(a.files) as f (file)\n    where a.property_id = p_property_id\n    union all\n    select unnest(array[p.video ->> 'src', p.video ->> 'poster', p.og_image_key])\n    from public.properties p\n    where p.id = p_property_id\n  ) k\n  where k.key is not null;\n$$;\n\nrevoke execute on function public.takedown_media_keys(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_media_keys(uuid) to service_role;\n\ncreate or replace function public.takedown_mark_posts(p_property_id uuid)\nreturns int\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01): a post a channel already shows cannot be deleted from here, so each one is marked for\n  -- withdrawal by hand (B10's screen 12). Returns how many rows it marked; a rerun marks none.\n  with marked as (\n    update public.social_posts\n    set withdraw_required_at = now()\n    where property_id = p_property_id and status = 'posted' and withdraw_required_at is null\n    returning 1\n  )\n  select count(*)::int from marked;\n$$;\n\nrevoke execute on function public.takedown_mark_posts(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_mark_posts(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"takedown_media_keys returns every key\"",
+    "expect": "× .*takedown_media_keys returns every key"
+  },
+  {
+    "id": "b8g2-keys-empty",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "-- down: drop function public.takedown_media_keys(uuid), public.takedown_mark_posts(uuid);\nset lock_timeout = '5s';\n\ncreate or replace function public.takedown_media_keys(p_property_id uuid)\nreturns text[]\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01, ruling H33 (1)): every key the property holds in the bucket `media`, once each, for the\n  -- takedown_media job. A photograph stores its master key and the sizes only (P-335), so each rendered size's key is\n  -- derived from the master as `variantKey` in src/server/assets/spec.ts does.\n  select array_agg(distinct k.key)\n  from (\n    select m.media_key as key\n    from public.property_media m\n    where m.property_id = p_property_id\n    union all\n    select regexp_replace(m.media_key, '^o/([^/]+)/(\\d+-[0-9a-f]{8})\\.webp$', 'v/\\1/\\2/')\n      || v.name || case when v.name in ('og', 'carousel') then '.jpg' else '.webp' end\n    from public.property_media m\n    cross join lateral jsonb_object_keys(m.variants) as v (name)\n    where m.property_id = p_property_id and m.media_key ~ '^o/[^/]+/\\d+-[0-9a-f]{8}\\.webp$'\n    union all\n    select f.file ->> 'media_key'\n    from public.assets a\n    cross join lateral jsonb_array_elements(a.files) as f (file)\n    where a.property_id = p_property_id\n    union all\n    select unnest(array[p.video ->> 'src', p.video ->> 'poster', p.og_image_key])\n    from public.properties p\n    where p.id = p_property_id\n  ) k\n  where k.key is not null;\n$$;\n\nrevoke execute on function public.takedown_media_keys(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_media_keys(uuid) to service_role;\n\ncreate or replace function public.takedown_mark_posts(p_property_id uuid)\nreturns int\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01): a post a channel already shows cannot be deleted from here, so each one is marked for\n  -- withdrawal by hand (B10's screen 12). Returns how many rows it marked; a rerun marks none.\n  with marked as (\n    update public.social_posts\n    set withdraw_required_at = now()\n    where property_id = p_property_id and status = 'posted' and withdraw_required_at is null\n    returning 1\n  )\n  select count(*)::int from marked;\n$$;\n\nrevoke execute on function public.takedown_mark_posts(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_mark_posts(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"takedown_media_keys returns an empty array\"",
+    "expect": "× .*takedown_media_keys returns an empty array"
+  },
+  {
+    "id": "b8g2-posts-status",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "-- down: drop function public.takedown_media_keys(uuid), public.takedown_mark_posts(uuid);\nset lock_timeout = '5s';\n\ncreate or replace function public.takedown_media_keys(p_property_id uuid)\nreturns text[]\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01, ruling H33 (1)): every key the property holds in the bucket `media`, once each, for the\n  -- takedown_media job. A photograph stores its master key and the sizes only (P-335), so each rendered size's key is\n  -- derived from the master as `variantKey` in src/server/assets/spec.ts does.\n  select coalesce(array_agg(distinct k.key), '{}')\n  from (\n    select m.media_key as key\n    from public.property_media m\n    where m.property_id = p_property_id\n    union all\n    select regexp_replace(m.media_key, '^o/([^/]+)/(\\d+-[0-9a-f]{8})\\.webp$', 'v/\\1/\\2/')\n      || v.name || case when v.name in ('og', 'carousel') then '.jpg' else '.webp' end\n    from public.property_media m\n    cross join lateral jsonb_object_keys(m.variants) as v (name)\n    where m.property_id = p_property_id and m.media_key ~ '^o/[^/]+/\\d+-[0-9a-f]{8}\\.webp$'\n    union all\n    select f.file ->> 'media_key'\n    from public.assets a\n    cross join lateral jsonb_array_elements(a.files) as f (file)\n    where a.property_id = p_property_id\n    union all\n    select unnest(array[p.video ->> 'src', p.video ->> 'poster', p.og_image_key])\n    from public.properties p\n    where p.id = p_property_id\n  ) k\n  where k.key is not null;\n$$;\n\nrevoke execute on function public.takedown_media_keys(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_media_keys(uuid) to service_role;\n\ncreate or replace function public.takedown_mark_posts(p_property_id uuid)\nreturns int\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01): a post a channel already shows cannot be deleted from here, so each one is marked for\n  -- withdrawal by hand (B10's screen 12). Returns how many rows it marked; a rerun marks none.\n  with marked as (\n    update public.social_posts\n    set withdraw_required_at = now()\n    where property_id = p_property_id and withdraw_required_at is null\n    returning 1\n  )\n  select count(*)::int from marked;\n$$;\n\nrevoke execute on function public.takedown_mark_posts(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_mark_posts(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"takedown_mark_posts marks only\"",
+    "expect": "× .*takedown_mark_posts marks only"
+  },
+  {
+    "id": "b8g2-posts-once",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "-- down: drop function public.takedown_media_keys(uuid), public.takedown_mark_posts(uuid);\nset lock_timeout = '5s';\n\ncreate or replace function public.takedown_media_keys(p_property_id uuid)\nreturns text[]\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01, ruling H33 (1)): every key the property holds in the bucket `media`, once each, for the\n  -- takedown_media job. A photograph stores its master key and the sizes only (P-335), so each rendered size's key is\n  -- derived from the master as `variantKey` in src/server/assets/spec.ts does.\n  select coalesce(array_agg(distinct k.key), '{}')\n  from (\n    select m.media_key as key\n    from public.property_media m\n    where m.property_id = p_property_id\n    union all\n    select regexp_replace(m.media_key, '^o/([^/]+)/(\\d+-[0-9a-f]{8})\\.webp$', 'v/\\1/\\2/')\n      || v.name || case when v.name in ('og', 'carousel') then '.jpg' else '.webp' end\n    from public.property_media m\n    cross join lateral jsonb_object_keys(m.variants) as v (name)\n    where m.property_id = p_property_id and m.media_key ~ '^o/[^/]+/\\d+-[0-9a-f]{8}\\.webp$'\n    union all\n    select f.file ->> 'media_key'\n    from public.assets a\n    cross join lateral jsonb_array_elements(a.files) as f (file)\n    where a.property_id = p_property_id\n    union all\n    select unnest(array[p.video ->> 'src', p.video ->> 'poster', p.og_image_key])\n    from public.properties p\n    where p.id = p_property_id\n  ) k\n  where k.key is not null;\n$$;\n\nrevoke execute on function public.takedown_media_keys(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_media_keys(uuid) to service_role;\n\ncreate or replace function public.takedown_mark_posts(p_property_id uuid)\nreturns int\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01): a post a channel already shows cannot be deleted from here, so each one is marked for\n  -- withdrawal by hand (B10's screen 12). Returns how many rows it marked; a rerun marks none.\n  with marked as (\n    update public.social_posts\n    set withdraw_required_at = now()\n    where property_id = p_property_id and status = 'posted'\n    returning 1\n  )\n  select count(*)::int from marked;\n$$;\n\nrevoke execute on function public.takedown_mark_posts(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_mark_posts(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"takedown_mark_posts marks only\"",
+    "expect": "× .*takedown_mark_posts marks only"
+  },
+  {
+    "id": "b8g2-service-only",
+    "kind": "sql",
+    "test": "tests/db/jobs.db.test.ts",
+    "sql": "-- down: drop function public.takedown_media_keys(uuid), public.takedown_mark_posts(uuid);\nset lock_timeout = '5s';\n\ncreate or replace function public.takedown_media_keys(p_property_id uuid)\nreturns text[]\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01, ruling H33 (1)): every key the property holds in the bucket `media`, once each, for the\n  -- takedown_media job. A photograph stores its master key and the sizes only (P-335), so each rendered size's key is\n  -- derived from the master as `variantKey` in src/server/assets/spec.ts does.\n  select coalesce(array_agg(distinct k.key), '{}')\n  from (\n    select m.media_key as key\n    from public.property_media m\n    where m.property_id = p_property_id\n    union all\n    select regexp_replace(m.media_key, '^o/([^/]+)/(\\d+-[0-9a-f]{8})\\.webp$', 'v/\\1/\\2/')\n      || v.name || case when v.name in ('og', 'carousel') then '.jpg' else '.webp' end\n    from public.property_media m\n    cross join lateral jsonb_object_keys(m.variants) as v (name)\n    where m.property_id = p_property_id and m.media_key ~ '^o/[^/]+/\\d+-[0-9a-f]{8}\\.webp$'\n    union all\n    select f.file ->> 'media_key'\n    from public.assets a\n    cross join lateral jsonb_array_elements(a.files) as f (file)\n    where a.property_id = p_property_id\n    union all\n    select unnest(array[p.video ->> 'src', p.video ->> 'poster', p.og_image_key])\n    from public.properties p\n    where p.id = p_property_id\n  ) k\n  where k.key is not null;\n$$;\n\nrevoke execute on function public.takedown_media_keys(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_media_keys(uuid) to service_role;\n\ncreate or replace function public.takedown_mark_posts(p_property_id uuid)\nreturns int\nlanguage sql\nsecurity definer\nset search_path = ''\nas $$\n  -- B8 step 10a (E2E-01): a post a channel already shows cannot be deleted from here, so each one is marked for\n  -- withdrawal by hand (B10's screen 12). Returns how many rows it marked; a rerun marks none.\n  with marked as (\n    update public.social_posts\n    set withdraw_required_at = now()\n    where property_id = p_property_id and status = 'posted' and withdraw_required_at is null\n    returning 1\n  )\n  select count(*)::int from marked;\n$$;\n\nrevoke execute on function public.takedown_mark_posts(uuid) from public, anon, authenticated;\ngrant execute on function public.takedown_mark_posts(uuid) to service_role;\n\ngrant execute on function public.takedown_mark_posts(uuid) to authenticated;\n",
+    "run": "bunx vitest run --project db tests/db/jobs.db.test.ts -t \"run for the service role only\"",
+    "expect": "× .*run for the service role only"
   }
 ]

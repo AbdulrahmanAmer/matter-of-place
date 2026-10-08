@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { asRole, committed, createStaffUser, withRollback, type Db } from "../fixtures/db";
+import { publishedProperty } from "../fixtures/factories";
 
 interface Job {
   status: string;
@@ -1341,5 +1342,168 @@ describe("admin job actions (step 9)", () => {
     expect(names.map((row) => row.indexname)).toEqual(
       expect.arrayContaining(["jobs_admin_list_idx", "jobs_admin_status_list_idx"]),
     );
+  });
+});
+
+describe("takedown_media (step 10a)", () => {
+  const SIZES = { thumb: {}, card: {}, hero: { w: 1600, h: 1067 }, og: {}, carousel: {} };
+
+  /** A draft property of fixture number `n` with two stored photographs, one staged one, a film and an OG image. */
+  async function takedownProperty(db: Db, n: number): Promise<{ id: string; slug: string }> {
+    const slug = `fixture-property-${String(n)}`;
+    const property = await publishedProperty(db, {
+      n,
+      editorial_state: "draft",
+      published_at: null,
+      video: { src: `r/${slug}/film.mp4`, poster: `r/${slug}/poster.jpg` },
+      og_image_key: `og/${slug}.jpg`,
+    });
+    await db.query(
+      `insert into public.property_media (property_id, media_key, staging_path, variants, orientation, sort_order)
+       values ($1, $2, null, $4, 'landscape', 0), ($1, $3, null, $4, 'landscape', 1),
+              ($1, null, $5, '{}', null, 2)`,
+      [
+        property.id,
+        `o/${slug}/0-aaaaaaaa.webp`,
+        `o/${slug}/1-bbbbbbbb.webp`,
+        SIZES,
+        `staging/${property.id}/x.jpg`,
+      ],
+    );
+    return property;
+  }
+
+  async function asset(db: Db, propertyId: string, files: unknown[]): Promise<string> {
+    const { id } = await one<{ id: string }>(
+      db,
+      "insert into public.assets (property_id, kind, files) values ($1, 'cover', $2) returning id",
+      [propertyId, JSON.stringify(files)],
+    );
+    return id;
+  }
+
+  it("takedown_media_keys returns every key of the property's photographs, sizes, asset files, film and OG image exactly once", async () => {
+    const { keys, slug } = await withRollback(async (db) => {
+      const property = await takedownProperty(db, 9601);
+      // The poster is both an asset file and the film's poster: it comes back once.
+      await asset(db, property.id, [
+        { media_key: `a/${property.slug}/cover.jpg`, role: "cover" },
+        { media_key: `r/${property.slug}/poster.jpg`, role: "poster" },
+      ]);
+      await takedownProperty(db, 9602);
+      const row = await one<{ keys: string[] }>(
+        db,
+        "select public.takedown_media_keys($1) as keys",
+        [property.id],
+      );
+      return { keys: [...row.keys].sort(), slug: property.slug };
+    });
+    const sizes = (n: string) => [
+      `v/${slug}/${n}/card.webp`,
+      `v/${slug}/${n}/carousel.jpg`,
+      `v/${slug}/${n}/hero.webp`,
+      `v/${slug}/${n}/og.jpg`,
+      `v/${slug}/${n}/thumb.webp`,
+    ];
+    expect(keys).toEqual(
+      [
+        `a/${slug}/cover.jpg`,
+        `o/${slug}/0-aaaaaaaa.webp`,
+        `o/${slug}/1-bbbbbbbb.webp`,
+        `og/${slug}.jpg`,
+        `r/${slug}/film.mp4`,
+        `r/${slug}/poster.jpg`,
+        ...sizes("0-aaaaaaaa"),
+        ...sizes("1-bbbbbbbb"),
+      ].sort(),
+    );
+  });
+
+  it("takedown_media_keys returns an empty array for a property with no file", async () => {
+    const keys = await withRollback(async (db) => {
+      const property = await publishedProperty(db, {
+        n: 9603,
+        editorial_state: "draft",
+        published_at: null,
+      });
+      return (
+        await one<{ keys: string[] }>(db, "select public.takedown_media_keys($1) as keys", [
+          property.id,
+        ])
+      ).keys;
+    });
+    expect(keys).toEqual([]);
+  });
+
+  it("takedown_mark_posts marks only the property's posted rows not yet marked, once", async () => {
+    const result = await withRollback(async (db) => {
+      const property = await takedownProperty(db, 9604);
+      const other = await takedownProperty(db, 9605);
+      const assetId = await asset(db, property.id, []);
+      const otherAsset = await asset(db, other.id, []);
+      const post = async (
+        assetOf: string,
+        propertyId: string,
+        channel: string,
+        status: string,
+        marked: boolean,
+      ) =>
+        (
+          await one<{ id: string }>(
+            db,
+            `insert into public.social_posts (asset_id, property_id, channel, status, scheduled_at, withdraw_required_at)
+             values ($1, $2, $3, $4::public.social_post_status, now(), case when $5 then now() - interval '1 day' end)
+             returning id`,
+            [assetOf, propertyId, channel, status, marked],
+          )
+        ).id;
+      const posted = await post(assetId, property.id, "instagram", "posted", false);
+      const postedToo = await post(assetId, property.id, "x", "posted", false);
+      await post(assetId, property.id, "linkedin", "scheduled", false);
+      await post(assetId, property.id, "facebook", "failed", false);
+      await post(assetId, property.id, "youtube", "posted", true);
+      await post(otherAsset, other.id, "instagram", "posted", false);
+      const call = async () =>
+        (
+          await one<{ marked: number }>(db, "select public.takedown_mark_posts($1) as marked", [
+            property.id,
+          ])
+        ).marked;
+      const first = await call();
+      const second = await call();
+      const markedNow = (
+        await db.query<{ id: string }>(
+          "select id from public.social_posts where withdraw_required_at = now() order by id",
+        )
+      ).rows.map((row) => row.id);
+      return { first, second, markedNow, expected: [posted, postedToo].sort() };
+    });
+    expect({ first: result.first, second: result.second, markedNow: result.markedNow }).toEqual({
+      first: 2,
+      second: 0,
+      markedNow: result.expected,
+    });
+  });
+
+  it("takedown_media_keys and takedown_mark_posts run for the service role only", async () => {
+    const answers = await withRollback(async (db) => {
+      const id = randomUUID();
+      const results: Record<string, string> = {};
+      for (const role of ["anon", "authenticated", "service_role"] as const) {
+        await asRole(db, role);
+        results[role] = [
+          await outcome(db, "select public.takedown_media_keys($1)", [id]),
+          await outcome(db, "select public.takedown_mark_posts($1)", [id]),
+        ].join(" | ");
+        await db.query("reset role");
+      }
+      return results;
+    });
+    const denied = (fn: string) => `42501 permission denied for function ${fn}`;
+    expect(answers).toEqual({
+      anon: `${denied("takedown_media_keys")} | ${denied("takedown_mark_posts")}`,
+      authenticated: `${denied("takedown_media_keys")} | ${denied("takedown_mark_posts")}`,
+      service_role: "ok | ok",
+    });
   });
 });
