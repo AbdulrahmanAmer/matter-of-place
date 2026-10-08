@@ -129,11 +129,11 @@ It checks 200 `miss` with `public, max-age=31536000, immutable`, then `hit` with
 
 ## Site identity
 
-`settings.site` holds the legal entity, the registered address, the contact email and phone and the social links. The pages, the route below and the identity lines of the emails read it through the shared public state (`getSiteSettings`), not from the table; the one reader of the row itself is the reply address of `send_email`.
+`settings.site` holds the legal entity, the registered address, the contact email and phone and the social links. The pages, the route below, the readiness list and the identity lines of the emails read it through the shared public state (`getSiteSettings`), not from the table. Two readers take the row from the table itself: the reply address of `send_email` (`readSettings`) and the invoice inputs (`readInvoiceInputs`, which reads `site` and `invoice` and never goes through the public-state memo).
 
-| Route                  | Answers                                                                              | Cache                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `GET /api/public/site` | `PublicSite`: the `settings.site` leaves (null when unset) and `illustrativeContent` | json kind: `Cache-Control: public, max-age=60, s-maxage=31536000`, `Cache-Tag: catalog` |
+| Route                  | Answers                                                                              | Cache                                                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/public/site` | `PublicSite`: the `settings.site` leaves (null when unset) and `illustrativeContent` | json kind: the visitor gets `Cache-Control: public, max-age=60`; the stored copy carries `s-maxage=31536000` and `Cache-Tag: catalog` |
 
 The headers are read from the route row and the json cache kind (`browserCacheControl`, `toStored`), not measured with curl on a deployed Worker: UNPROVEN until a preview answers. `illustrativeContent` is forced to false when `MOP_ENV` is `production`. A write bumps `catalog_version` in the same transaction (B2's trigger on `settings`), so each isolate sees the new value within its 15 second memo and the cached answer is keyed to the new version.
 

@@ -1,5 +1,5 @@
 // Run by Deno, not by vitest (T-11): `MOP_ENV=development deno run --config supabase/functions/job-runner/deno.json
-// --allow-env tests/deno/site-context.smoke.ts`, and in CI by `deno test` over `tests/deno/*.smoke.ts`. It loads the
+// --allow-env tests/deno/site-context.smoke.ts`; no CI step runs it yet (B8 step 5 owns that wiring). It loads the
 // chain the job runner loads for an email (`context.ts`, `settings/service.ts`, `public/state.ts`) and reads the site
 // through it, so a Node-only or Worker-only import anywhere in the chain fails here. It uses no `Deno` global, which
 // lets `bun run check` type-check it like any file.
