@@ -44,13 +44,10 @@ begin
     last_run_at = v_new.last_run_at, next_run_at = v_new.next_run_at
   where id = v_old.id
   returning * into v_new;
-  -- STUB(B8b step 6): unconditional write_audit
-  if to_regproc('public.write_audit') is not null then
-    perform public.write_audit(
-      p_actor, p_actor_kind, 'automation.schedules_put', 'schedule_settings', v_old.id, to_jsonb(v_old),
-      to_jsonb(v_new), p_request_id, p_note
-    );
-  end if;
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'automation.schedules_put', 'schedule_settings', v_old.id, to_jsonb(v_old),
+    to_jsonb(v_new), p_request_id, p_note
+  );
   return to_jsonb(v_new);
 end;
 $$;

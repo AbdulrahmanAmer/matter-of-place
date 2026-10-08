@@ -32,13 +32,10 @@ begin
   where r.id = o.id and r.sort is distinct from o.position::int;
   select jsonb_agg(jsonb_build_object('id', r.id, 'sort', r.sort) order by r.sort, r.id) into v_after
   from public.decline_reasons r;
-  -- STUB(B8b step 6): unconditional write_audit
-  if to_regproc('public.write_audit') is not null then
-    perform public.write_audit(
-      p_actor, p_actor_kind, 'automation.reasons_put', 'decline_reasons', null, v_before, v_after, p_request_id,
-      p_note
-    );
-  end if;
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'automation.reasons_put', 'decline_reasons', null, v_before, v_after, p_request_id,
+    p_note
+  );
 end;
 $$;
 
