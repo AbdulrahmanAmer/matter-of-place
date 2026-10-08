@@ -30,6 +30,14 @@ async function assertStep7(db: Db): Promise<void> {
   expect(rows[0]?.present).toBe(true);
 }
 
+/** The case runs only against a database that holds step 7a's migration (P-328). */
+async function assertStep7a(db: Db): Promise<void> {
+  const { rows } = await db.query<{ present: boolean }>(
+    "select to_regproc('public.unpublish_property') is not null as present",
+  );
+  expect(rows[0]?.present).toBe(true);
+}
+
 async function versionOf(db: Db, id: string): Promise<number> {
   const { rows } = await db.query<{ version: number }>(
     "select version from public.properties where id = $1",
@@ -110,6 +118,29 @@ describe("catalog_version and the property writes (F25 a)", () => {
       expect({ published: await edit(published.id), draft: await edit(draft) }).toEqual({
         published: 1,
         draft: 0,
+      });
+    });
+  });
+
+  it("an unpublish raises it by exactly one, and a takedown unpublish by exactly one", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const unpublish = async (n: number, takedown: boolean) => {
+        const { id } = await publishedProperty(db, { n });
+        const before = await catalogVersion(db);
+        await db.query(
+          "select public.unpublish_property($1, 'owner_request', $2, $3, 'human', 'req-cv')",
+          [id, takedown, editor],
+        );
+        return (await catalogVersion(db)) - before;
+      };
+      expect({
+        unpublish: await unpublish(9953, false),
+        takedown: await unpublish(9954, true),
+      }).toEqual({
+        unpublish: 1,
+        takedown: 1,
       });
     });
   });
