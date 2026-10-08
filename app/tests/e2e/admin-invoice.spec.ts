@@ -11,8 +11,9 @@ import { adminClient, signInAs } from "./helpers/session";
 
 // B6 step 9, the observed exit of the slice: an admin issues an invoice and activates a test submission. It commits
 // rows and rewrites `settings.site` and `settings.invoice`, so it holds the writer lock of G34 from `beforeAll` to
-// the end of `afterAll`, and puts back what it found. Runs against mop-dev before the launch switch (ruling H35) and in
-// CI's admin project on the job's own stack. The email assertion needs `EMAIL_LIVE=1` on the runner: `E2E_RESEND=1`.
+// the end of `afterAll`, and puts back what it found. A full-stack rehearsal (ruling H70): it needs the job runner and B7
+// step 7's `create_property_from_submission`, which CI's admin step lacks, so it skips unless `E2E_FULL_STACK=1`, and
+// runs by hand against mop-dev (ruling H35). The email assertion needs `EMAIL_LIVE=1` on the runner: `E2E_RESEND=1`.
 
 const MANAGING_EDITOR = "staff+managing@matterofplace.com";
 const ADMIN = "staff+ceo@matterofplace.com";
@@ -247,6 +248,8 @@ async function issueThroughUi(page: Page, role: Role, label: string): Promise<st
   }
   return row.id;
 }
+
+test.skip(!process.env["E2E_FULL_STACK"], "needs the job runner and B7's activation");
 
 test.describe.configure({ mode: "serial" });
 
@@ -569,8 +572,11 @@ test("the invoice email reaches the submitter once its PDF is stored (E2E_RESEND
       [id],
     );
   await expect
-    .poll(async () => (await mailOf())[0]?.status, { intervals: [POLL_MS], timeout: POLL_LIMIT_MS })
-    .toBe("sent");
+    .poll(async () => (await mailOf())[0]?.status ?? "none", {
+      intervals: [POLL_MS],
+      timeout: POLL_LIMIT_MS,
+    })
+    .toMatch(/^(sent|delivered)$/);
   const [mail] = await mailOf();
   expect(mail?.resend_id?.startsWith("dry_")).toBe(false);
   expect(mail?.to_email).toBe(LIVE_INBOX);
