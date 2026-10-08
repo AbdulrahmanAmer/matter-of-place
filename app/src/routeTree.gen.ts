@@ -53,6 +53,7 @@ import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confir
 import { Route as AdminAutomationEmailsRouteImport } from './routes/admin/automation.emails'
 import { Route as AdminAutomationReasonsRouteImport } from './routes/admin/automation.reasons'
 import { Route as AdminAutomationRecipesRouteImport } from './routes/admin/automation.recipes'
+import { Route as AdminAutomationRevisionsRouteImport } from './routes/admin/automation.revisions'
 import { Route as AdminAutomationSettingsRouteImport } from './routes/admin/automation.settings'
 import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
 import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
@@ -395,6 +396,12 @@ const AdminAutomationRecipesRoute = AdminAutomationRecipesRouteImport.update({
   path: '/automation/recipes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAutomationRevisionsRoute =
+  AdminAutomationRevisionsRouteImport.update({
+    id: '/automation/revisions',
+    path: '/automation/revisions',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAutomationSettingsRoute = AdminAutomationSettingsRouteImport.update({
   id: '/automation/settings',
   path: '/automation/settings',
@@ -1090,6 +1097,7 @@ export interface FileRoutesByFullPath {
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
   '/admin/automation/reasons': typeof AdminAutomationReasonsRoute
   '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
+  '/admin/automation/revisions': typeof AdminAutomationRevisionsRoute
   '/admin/automation/settings': typeof AdminAutomationSettingsRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
@@ -1249,6 +1257,7 @@ export interface FileRoutesByTo {
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
   '/admin/automation/reasons': typeof AdminAutomationReasonsRoute
   '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
+  '/admin/automation/revisions': typeof AdminAutomationRevisionsRoute
   '/admin/automation/settings': typeof AdminAutomationSettingsRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
@@ -1413,6 +1422,7 @@ export interface FileRoutesById {
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
   '/admin/automation/reasons': typeof AdminAutomationReasonsRoute
   '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
+  '/admin/automation/revisions': typeof AdminAutomationRevisionsRoute
   '/admin/automation/settings': typeof AdminAutomationSettingsRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
@@ -1577,6 +1587,7 @@ export interface FileRouteTypes {
     | '/admin/automation/emails'
     | '/admin/automation/reasons'
     | '/admin/automation/recipes'
+    | '/admin/automation/revisions'
     | '/admin/automation/settings'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
@@ -1736,6 +1747,7 @@ export interface FileRouteTypes {
     | '/admin/automation/emails'
     | '/admin/automation/reasons'
     | '/admin/automation/recipes'
+    | '/admin/automation/revisions'
     | '/admin/automation/settings'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
@@ -1899,6 +1911,7 @@ export interface FileRouteTypes {
     | '/admin/automation/emails'
     | '/admin/automation/reasons'
     | '/admin/automation/recipes'
+    | '/admin/automation/revisions'
     | '/admin/automation/settings'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
@@ -2397,6 +2410,13 @@ declare module '@tanstack/react-router' {
       path: '/automation/recipes'
       fullPath: '/admin/automation/recipes'
       preLoaderRoute: typeof AdminAutomationRecipesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/automation/revisions': {
+      id: '/admin/automation/revisions'
+      path: '/automation/revisions'
+      fullPath: '/admin/automation/revisions'
+      preLoaderRoute: typeof AdminAutomationRevisionsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/automation/settings': {
@@ -3323,6 +3343,7 @@ interface AdminRouteChildren {
   AdminAutomationEmailsRoute: typeof AdminAutomationEmailsRoute
   AdminAutomationReasonsRoute: typeof AdminAutomationReasonsRoute
   AdminAutomationRecipesRoute: typeof AdminAutomationRecipesRoute
+  AdminAutomationRevisionsRoute: typeof AdminAutomationRevisionsRoute
   AdminAutomationSettingsRoute: typeof AdminAutomationSettingsRoute
   AdminInvoicesIdRoute: typeof AdminInvoicesIdRoute
   AdminInvoicesNewRoute: typeof AdminInvoicesNewRoute
@@ -3345,6 +3366,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAutomationEmailsRoute: AdminAutomationEmailsRoute,
   AdminAutomationReasonsRoute: AdminAutomationReasonsRoute,
   AdminAutomationRecipesRoute: AdminAutomationRecipesRoute,
+  AdminAutomationRevisionsRoute: AdminAutomationRevisionsRoute,
   AdminAutomationSettingsRoute: AdminAutomationSettingsRoute,
   AdminInvoicesIdRoute: AdminInvoicesIdRoute,
   AdminInvoicesNewRoute: AdminInvoicesNewRoute,

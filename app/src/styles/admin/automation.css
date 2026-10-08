@@ -1,4 +1,4 @@
-/* Screens 17 to 20: the list beside one recipe or one email template, the reasons table and the settings. Tokens only. */
+/* Screens 17 to 21: the list beside one recipe or one email template, the reasons table, the settings and the revisions. Tokens only. */
 
 .admin-recipes__intro {
   margin-bottom: var(--admin-space-5);
@@ -490,4 +490,24 @@
   .admin-recipes {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.admin-revision {
+  display: grid;
+  gap: var(--admin-space-4);
+}
+
+.admin-revision__meta {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--admin-space-1) var(--admin-space-4);
+  font-size: 13px;
+}
+
+.admin-revision__meta dt {
+  color: var(--muted-foreground);
+}
+
+.admin-revision .admin-diff td {
+  overflow-wrap: anywhere;
 }

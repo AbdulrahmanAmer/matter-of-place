@@ -407,6 +407,47 @@ describe("listRevisions", () => {
     expect(page.next_cursor).toBe(`${AT}~3f2a9c1d-0000-4000-8000-000000000049`);
   });
 
+  it("continues from a cursor with the rest of that instant, then older rows, and shows no row twice", async () => {
+    const stamped = (n: number, minute: number) => ({
+      ...revisionRow("automation_recipes", null),
+      id: `3f2a9c1d-0000-4000-8000-00000000000${String(n)}`,
+      at: `2026-10-07T10:0${String(minute)}:00+00:00`,
+    });
+    const [r9, r8, r7, r5, r4] = [
+      stamped(9, 2),
+      stamped(8, 2),
+      stamped(7, 2),
+      stamped(5, 1),
+      stamped(4, 1),
+    ];
+    // The database filters, orders and limits (fake-db.ts); each list is what it would answer to one query of the page.
+    const scripted = (...answers: (typeof r9)[][]) => {
+      const queue = [...answers];
+      return db({
+        get automation_revisions() {
+          return queue.shift() ?? [];
+        },
+      });
+    };
+    const first = await listRevisions(chief, scripted([r9, r8, r7]), { limit: "2" });
+    const second = await listRevisions(chief, scripted([r7], [r5, r4]), {
+      limit: "2",
+      cursor: first.next_cursor,
+    });
+    const third = await listRevisions(chief, scripted([r4], []), {
+      limit: "2",
+      cursor: second.next_cursor,
+    });
+    const ids = [first, second, third].map((page) => page.items.map((item) => item.id.slice(-1)));
+    expect({
+      ids,
+      cursors: [first.next_cursor, second.next_cursor, third.next_cursor],
+    }).toEqual({
+      ids: [["9", "8"], ["7", "5"], ["4"]],
+      cursors: [`${r8.at}~${r8.id}`, `${r5.at}~${r5.id}`, null],
+    });
+  });
+
   it("refuses a limit over 50 and a cursor that is not <at>~<id> with 422", async () => {
     const database = db({ automation_revisions: many });
     expect(await refused(listRevisions(chief, database, { limit: "51" }))).toMatchObject({

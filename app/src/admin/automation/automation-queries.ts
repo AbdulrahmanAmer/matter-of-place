@@ -8,9 +8,11 @@ import {
   fetchPreview,
   fetchReasons,
   fetchRecipes,
+  fetchRevisions,
   fetchScheduleSettings,
   fetchTemplates,
   postReason,
+  postRestore,
   postSendTest,
   putChannelSettings,
   putFlags,
@@ -37,6 +39,7 @@ export type {
   ReasonRow,
   RecipePatch,
   RecipeRow,
+  RevisionRow,
   SchedulePatch,
   ScheduleRow,
   Step,
@@ -189,5 +192,22 @@ export function useSaveFlag() {
       await invalidateAfterWrite(queryClient, adminKeys.settings.all());
       await queryClient.invalidateQueries({ queryKey: adminKeys.automation.all() });
     },
+  });
+}
+
+/** One page of revisions, newest first; the address holds the table filter and the cursor. */
+export function useRevisions(query: Readonly<Record<string, string>>) {
+  return useQuery({
+    queryKey: adminKeys.automation.revisions(query),
+    queryFn: () => fetchRevisions(query),
+  });
+}
+
+/** A restore writes one new revision and changes a row of one of the five tables; the whole automation feature, revisions included, refetches. */
+export function useRestoreRevision() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => postRestore(id),
+    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),
   });
 }

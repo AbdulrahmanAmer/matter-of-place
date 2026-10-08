@@ -8,11 +8,12 @@ import {
   skipReasons,
   stepSchema,
 } from "../../domain/automation";
+import { adminPageAnswer } from "../../domain/admin-page";
 import type { EmailBlock, EmailTemplateKey } from "../../domain/email";
 import type { FeatureFlag, Flags } from "../../domain/flags";
 import { adminFetch } from "../ui/admin-fetch";
 
-// The browser side of screens 17 to 20 and the flags of screen 24. Components reach these through `automation-queries.ts`.
+// The browser side of screens 17 to 21 and the flags of screen 24. Components reach these through `automation-queries.ts`.
 
 const fieldKinds = ["text", "number", "select", "multiselect", "boolean"] as const;
 
@@ -110,6 +111,22 @@ const flagsAnswerSchema = z.object({
 
 const flagsSavedSchema = flagsAnswerSchema.omit({ coming_soon: true });
 
+const jsonObject = z.record(z.string(), z.unknown());
+
+const revisionRowSchema = z.object({
+  id: z.string(),
+  table_name: z.string(),
+  row_id: z.string(),
+  before: jsonObject.nullable(),
+  after: jsonObject.nullable(),
+  actor_id: z.string().nullable(),
+  actor_kind: z.enum(["human", "agent"]).nullable(),
+  note: z.string().nullable(),
+  at: z.string(),
+});
+
+const revisionPageSchema = adminPageAnswer(revisionRowSchema);
+
 const reasonsPath = "/api/admin/automation/reasons";
 
 export type StepField = z.infer<typeof fieldSchema>;
@@ -120,6 +137,7 @@ export type TemplateRow = z.infer<typeof emailTemplateSchema>;
 export type ReasonRow = z.infer<typeof reasonRowSchema>;
 export type ChannelRow = z.infer<typeof channelRowSchema>;
 export type ScheduleRow = z.infer<typeof scheduleRowSchema>;
+export type RevisionRow = z.infer<typeof revisionRowSchema>;
 
 /** What a save sends: the four keys the server's `templatePutInput` accepts beside the key in the path. */
 export interface TemplatePatch {
@@ -271,5 +289,21 @@ export function putFlags(patch: Partial<Record<FeatureFlag, boolean>>) {
     method: "PUT",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(patch),
+  });
+}
+
+/** One page of revisions, newest first; `query` holds the table filter and the cursor exactly as the address has them. */
+export function fetchRevisions(query: Readonly<Record<string, string>>) {
+  const search = new URLSearchParams(query).toString();
+  return adminFetch(
+    `/api/admin/automation/revisions${search === "" ? "" : `?${search}`}`,
+    revisionPageSchema,
+  );
+}
+
+/** Writes the revision's `before` back as the row's values and answers the row after the restore. */
+export function postRestore(id: string) {
+  return adminFetch(`/api/admin/automation/revisions/${id}/restore`, jsonObject, {
+    method: "POST",
   });
 }

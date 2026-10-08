@@ -2823,5 +2823,176 @@
     "replace": "<RoleGate action=\"automation.get\">",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
     "expect": "FAIL .*send test to me > asks nothing of the preview route"
+  },
+  {
+    "id": "b8b-g10-agent-pill",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "ActorBadge name=\"Automation key\" kind=\"agent\"",
+    "replace": "ActorBadge name=\"Automation key\" kind=\"human\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*the list > shows the newest changes first"
+  },
+  {
+    "id": "b8b-g10-table-filter",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsPage.tsx",
+    "find": "filters.setFilters({ table_name: event.target.value });",
+    "replace": "filters.setFilters({});",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*the list > asks for one table when it is chosen"
+  },
+  {
+    "id": "b8b-g10-next-cursor",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsPage.tsx",
+    "find": "if (page?.next_cursor != null) filters.goNext(page.next_cursor);",
+    "replace": "if (page?.next_cursor != null) filters.goNext(\"\");",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*the list > opens the next page with the cursor"
+  },
+  {
+    "id": "b8b-g10-diff-sides",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "<DiffView before={row.before} after={row.after} />",
+    "replace": "<DiffView before={row.after} after={row.before} />",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*one revision > shows what changed as the value before and the value after"
+  },
+  {
+    "id": "b8b-g10-insert-no-restore",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "row.before === null ? (\n            <p>This revision",
+    "replace": "row.before === undefined ? (\n            <p>This revision",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*one revision > offers no way back for the revision that created the row"
+  },
+  {
+    "id": "b8b-g10-restore-gate",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "<RoleGate action=\"automation.revisions_restore\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*one revision > offers no restore to a role the matrix leaves out"
+  },
+  {
+    "id": "b8b-g10-confirm-first",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "setAsking(true);",
+    "replace": "restore.mutate(row.id);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*restoring > asks first, sends nothing on cancel"
+  },
+  {
+    "id": "b8b-g10-restore-once",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "    restore.mutate(row.id, {\n      onSuccess:",
+    "replace": "    restore.mutate(row.id);\n    restore.mutate(row.id, {\n      onSuccess:",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*restoring > asks first, sends nothing on cancel"
+  },
+  {
+    "id": "b8b-g10-restore-refetch",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "mutationFn: (id: string) => postRestore(id),\n    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),",
+    "replace": "mutationFn: (id: string) => postRestore(id),",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*restoring > asks first, sends nothing on cancel"
+  },
+  {
+    "id": "b8b-g10-refused-words",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "{restore.isError ? <RequestFailure error={restore.error} /> : null}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*restoring > shows the server's words when the restore is refused"
+  },
+  {
+    "id": "b8b-g10-cursor-order",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "    page = [\n      ...(await take(newestFirst().eq(\"at\", at).lt(\"id\", id))),\n      ...(await take(newestFirst().lt(\"at\", at))),\n    ];",
+    "replace": "    page = [\n      ...(await take(newestFirst().lt(\"at\", at))),\n      ...(await take(newestFirst().eq(\"at\", at).lt(\"id\", id))),\n    ];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*continues from a cursor with the rest of that instant"
+  },
+  {
+    "id": "b8b-g10-cursor-value",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "`${last.at}~${last.id}`",
+    "replace": "`${last.at}~${last.at}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*continues from a cursor with the rest of that instant"
+  },
+  {
+    "id": "b8b-g10-limit-clamp",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/domain/admin-page.ts",
+    "find": ".max(ADMIN_PAGE_MAX)",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a limit over 50 and a cursor"
+  },
+  {
+    "id": "b8b-g10-at-index",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "drop index public.automation_revisions_at_idx;",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"pg_indexes lists the\"",
+    "expect": "× .*pg_indexes lists the"
+  },
+  {
+    "id": "b8b-g10-guarded-exit-spec",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "tests/e2e/automation-exit.spec.ts",
+    "find": "  await assertNotProduction();\n  release = await holdDevLock();",
+    "replace": "  release = await holdDevLock();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assert-not-production.test.ts",
+    "expect": "FAIL .*every listed file exists[\\s\\S]*tests/e2e/automation-exit.spec.ts"
+  },
+  {
+    "id": "b8b-g10-e2e-no-store",
+    "kind": "manual",
+    "test": "tests/e2e/automation-exit.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "headers.set(\"cache-control\", \"no-store\");",
+    "replace": "headers.append(\"cache-control\", \"no-store\");",
+    "run": "E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts",
+    "expect": "Received: \"private, no-store, no-store\""
+  },
+  {
+    "id": "b8b-g10-e2e-step-on",
+    "kind": "manual",
+    "test": "tests/e2e/automation-exit.spec.ts",
+    "run": "E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts --grep \"a submission from\"",
+    "expect": "✘ .*a submission from /submit"
+  },
+  {
+    "id": "b8b-g10-e2e-restore",
+    "kind": "manual",
+    "test": "tests/e2e/automation-exit.spec.ts",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "onConfirm={confirm}",
+    "replace": "onConfirm={cancel}",
+    "run": "E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts",
+    "expect": "✘ .*a restore from screen 21 brings the step back"
+  },
+  {
+    "id": "b8b-g10-e2e-agent-pill",
+    "kind": "manual",
+    "test": "tests/e2e/automation-exit.spec.ts",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "ActorBadge name=\"Automation key\" kind=\"agent\"",
+    "replace": "ActorBadge name=\"Automation key\" kind=\"human\"",
+    "run": "E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts",
+    "expect": "✘ .*an agent key makes the same switch"
   }
 ]
