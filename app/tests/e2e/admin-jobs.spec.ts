@@ -5,11 +5,15 @@ import { holdDevLock } from "../fixtures/dev-lock";
 import { checkpoint } from "./fixtures/a11y";
 import { adminClient, signInAs } from "./helpers/session";
 
-// B8 step 10 (screen 16). One dead job is committed through the service role and removed in `afterAll`; its payload
-// names a random property, so the entity link and `?entity=` filter are checked against PostgREST on the database the
-// Worker reads (the `entityJobsFilter` text). It writes rows, so `assertNotProduction` refuses once
-// `settings.environment` is `production` (ruling H35 (5)) and the writer lock is held from the start of `beforeAll` to
-// the end of `afterAll` (G34). Its type, `e2e_jobs`, names no step in `src/server/jobs/steps`, so a runner has no code for it.
+// B8 step 10 (screen 16). One dead job is committed through the service role; its payload names a random property, so
+// the entity link and `?entity=` filter are checked against PostgREST on the database the Worker reads (the
+// `entityJobsFilter` text). Rows are never deleted: the delete of a job cascades into `job_events`, which is
+// append-only (`append_only`). The job carries the marker `e2e-jobs` and this run's id in its key and error, every
+// assertion finds it by that text, and the last test ends it through the admin cancel action, so it stays as a
+// cancelled row until the launch switch's `db:reset` clears it (ASSUMED H35 (4)). It writes rows, so
+// `assertNotProduction` refuses once `settings.environment` is `production` (ruling H35 (5)) and the writer lock is
+// held from the start of `beforeAll` to the end of `afterAll` (G34). Its type, `e2e_jobs`, names no step in
+// `src/server/jobs/steps`, so a runner has no code for it.
 
 const MEDIA_OPS = "staff+mediaops@matterofplace.com";
 const ID_PREFIX = 8;
@@ -17,8 +21,9 @@ const ID_PREFIX = 8;
 const runId = randomUUID();
 const propertyId = randomUUID();
 const entityLabel = `property ${propertyId.slice(0, ID_PREFIX)}`;
-const error = `e2e dead job ${runId}`;
-const key = `test:${runId}`;
+const MARKER = "e2e-jobs";
+const error = `${MARKER} dead job ${runId}`;
+const key = `${MARKER}:${runId}`;
 
 test.describe.configure({ mode: "serial" });
 
@@ -46,12 +51,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  try {
-    const { error: failure } = await adminClient().from("jobs").delete().eq("idempotency_key", key);
-    if (failure !== null) throw new Error(`could not remove the dead job: ${failure.message}`);
-  } finally {
-    await release();
-  }
+  await release();
 });
 
 const jobsTable = (page: Page) => page.getByRole("table", { name: "Jobs", exact: true });
@@ -107,5 +107,23 @@ test("a row opens the job in a drawer with its payload and history", async ({ br
   await expect(drawer.getByText(propertyId, { exact: false }).first()).toBeVisible();
   await expect(drawer.getByRole("heading", { name: "History" })).toBeVisible();
   await checkpoint(page, "/admin/jobs (job drawer)");
+  await context.close();
+});
+
+test("Cancel job ends the retried job as cancelled", async ({ browser }) => {
+  const { context, page } = await signInAs(browser, MEDIA_OPS);
+  await page.goto(`/admin/jobs?entity=${propertyId}`);
+  await rowOf(page).getByText("e2e jobs").click();
+  const drawer = page.getByRole("dialog", { name: "e2e jobs" });
+  await drawer.getByRole("button", { name: "Cancel job" }).click();
+  const answered = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === `/api/admin/jobs/${jobId}/cancel`,
+  );
+  await page
+    .getByRole("dialog", { name: "Cancel this job" })
+    .getByRole("button", { name: "Cancel job" })
+    .click();
+  expect((await answered).status()).toBe(200);
+  await expect(rowOf(page).getByText("Cancelled", { exact: true })).toBeVisible();
   await context.close();
 });

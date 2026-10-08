@@ -2779,6 +2779,26 @@
     "expect": "Locator: .*heading.*History"
   },
   {
+    "id": "c8j-e2e-no-delete",
+    "kind": "manual",
+    "test": "tests/e2e/admin-jobs.spec.ts",
+    "file": "tests/e2e/admin-jobs.spec.ts",
+    "find": "test.afterAll(async () => {\n  await release();\n});",
+    "replace": "test.afterAll(async () => {\n  try {\n    const { error: failure } = await adminClient().from(\"jobs\").delete().eq(\"idempotency_key\", key);\n    if (failure !== null) throw new Error(`could not remove the dead job: ${failure.message}`);\n  } finally {\n    await release();\n  }\n});",
+    "run": "E2E_TARGET=built E2E_PORT=8998 bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts",
+    "expect": "could not remove the dead job: append_only"
+  },
+  {
+    "id": "c8j-e2e-cancel",
+    "kind": "manual",
+    "test": "tests/e2e/admin-jobs.spec.ts",
+    "file": "src/admin/jobs/jobs-api.ts",
+    "find": "export const cancelJob = (id: string) => act(id, \"cancel\");",
+    "replace": "export const cancelJob = (id: string) => act(id, \"retry\");",
+    "run": "E2E_TARGET=built E2E_PORT=8998 bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts --grep \"Cancel job ends\"",
+    "expect": "Test timeout of 30000ms exceeded"
+  },
+  {
     "id": "b8g1-guard-spec",
     "kind": "file",
     "test": "tests/unit/assert-not-production.test.ts",

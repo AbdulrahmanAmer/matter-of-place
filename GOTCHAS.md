@@ -938,6 +938,7 @@ Entry template
 - rule: do not run python in this project (P-008 sends anything with a backslash through Edit or Write). A script goes in a file run with `node`, or an edit goes through the Edit tool; never start an interpreter that can wait for stdin inside a chain. If python is unavoidable, use `python3 -c "..."` or a file, wrapped in `timeout 8`. When a call is moved to the background, run `git diff <files it can touch>` before the next edit, and when an Edit says `String to replace not found` for text just seen, read `git diff` of that file first.
 - proof: `timeout 8 python3 -c "print('ok')"` → `ok`; `timeout 8 python3 - </dev/null 2>&1 | head -c 400` → the version banner, then `Traceback ...` and, further down, `OSError: [WinError 6] The handle is invalid` (2026-10-02); `grep -c '"watchfail"' app/package.json` prints `1` (it printed `2` before the clean-up, B4 g1).
 - merged: P-400
+- hit again: 2026-10-08, B8 c8j: a `python3 - <<EOF ... EOF || node ...` chain hung for 120 seconds, the node patch after it ran when the python process was killed; found with `git diff` and no edit was doubled.
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
 - hit again: 2026-10-04, B8b c2s: a `python - <<'EOF' || echo nopython` guard with an empty body ran in front of a node patch; the call moved to the background at 120 s, the node patch ran when python was killed, and the file then needed its backslashes put back by hand (P-008). About 5 minutes.
@@ -5234,6 +5235,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `admin_retry_job` is in `supabase/migrations/20261008100910_jobs_admin.sql`, which main has not pushed to mop-dev yet (`select proname from pg_proc where proname like 'admin_%job%'` returns nothing; ruling H57 forbids pushing it from a lane). A missing function is not translated by `fromRpcError`, so the screen sees a 500.
 - rule: before reading a laptop e2e failure as a UI bug, ask whether the screen's RPCs exist on mop-dev; if they sit in an unmerged migration the Retry, Cancel and Approve cases are UNPROVEN until main pushes it, and the CI live e2e job (built from the branch's migrations) is the proof. Run the cases that need no new function with `--grep`.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && node -e "const pg=require('pg');(async()=>{const c=new pg.Client({connectionString:process.env.DEV_DB_URL});await c.connect();console.log((await c.query(\"select proname from pg_proc where proname like 'admin_%job%'\")).rows);await c.end()})()"` -> `[]` until the migration is pushed (2026-10-08).
+- hit again: 2026-10-08, B8 c8j: the full `admin-jobs.spec.ts` failed at Retry with 500 on mop-dev, twice, because `20261008100910_jobs_admin.sql` is not on main; the Retry and Cancel cases of the spec are UNPROVEN on the laptop and the two cases that need no new function were run with `--grep`.
 - added: 2026-10-08
 
 ## P-2604 · Never run `bun run check` or a build in a tree while a `watchfail.mjs` replay with file entries is running there: the typecheck reads the mutant
@@ -5255,6 +5257,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `SystemJobDefinition.maxAttempts` is declarative (`step-specs.test.ts` checks it for the outside system jobs); `enqueueJob()` and `enqueue_job` take `p_max_attempts` from their caller, and the column default is 5.
 - rule: whoever enqueues a system job passes the definition's attempts (`enqueueJob({ ..., maxAttempts: 12 })`, or `p_max_attempts => 12` in SQL). For `takedown_media` that is B7's `unpublish_property` and the live proof's `enqueueJob()` call; a runbook says "the enqueue passes 12", never "the job has 12 attempts".
 - proof: `cd app && git grep -n "max_attempts int not null default 5" -- supabase/migrations` → one line in the jobs migration; `git grep -n "maxAttempts" -- src/server/jobs/runner.ts` → no output (measured 2026-10-08, B8 g2).
+- added: 2026-10-08
+
+## P-2607 · An e2e spec's `afterAll` delete of a job passes until Retry gives the job a `job_events` row, then CI is red with `append_only`
+- symptom: B8 c8j: PR 238's e2e job failed in `admin-jobs.spec.ts`'s `afterAll` with `could not remove the dead job: append_only` while the same spec had passed on the laptop; with the delete put back and the two cases that never press Retry, the delete succeeded on mop-dev.
+- cause: `job_events.job_id` is `on delete cascade`, and `job_events` refuses every delete outside `mop.retention`; a job that was never retried has no event row, so its delete works, and the Retry case (or a runner) adds one.
+- rule: no test deletes from a table that has an append-only child (`jobs`, `events`, `audit_log`): it leaves its rows with a marker in the key and the error, finds them by that text, and ends a job through the admin cancel action (`tests/mutations/B8.json` `c8j-e2e-no-delete`).
+- proof: `cd app && grep -c "delete()" tests/e2e/admin-jobs.spec.ts` -> `0`; with a `job_events` row inserted before the delete, `E2E_TARGET=built E2E_PORT=8998 bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts --grep "entity.filter|opens.the.job"` fails in `afterAll` with `Error: could not remove the dead job: append_only` (2026-10-08).
 - added: 2026-10-08
 
 ## P-731 · A brief that says a file "does not exist on main" can name a file the lane branch already holds: Write overwrote it
