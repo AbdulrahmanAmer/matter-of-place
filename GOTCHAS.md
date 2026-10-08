@@ -5825,3 +5825,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing an e2e case that polls `events.processed_at` or reads `jobs` rows planned from an event, put it in a `test.describe` whose first line is `test.skip(!process.env["E2E_FULL_STACK"], ...)`, keep the rows CI can see (the submission, the event, no job) in an unguarded case, and run the whole file by hand with `E2E_FULL_STACK=1` as the proof. A proof that passes only on the laptop is not a CI proof.
 - proof: `cd app && grep -n "E2E_FULL_STACK" tests/e2e/automation-exit.spec.ts tests/e2e/admin-invoice.spec.ts` prints the guard in both files; `E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts` without the variable prints `1 skipped` / `4 passed` (measured 2026-10-08).
 - added: 2026-10-08
+
+## P-2515 · A scratch file written with a relative path lands outside the lane tree
+- symptom: B8b c8bx wrote an edit script with `cat > ../../../../tmp_edit.mjs` from `app/` and ran it; the file sat at the drive root, outside the worktree, where `git status` could not show it and the next agent of the session could pick it up.
+- cause: the Bash tool resets the working directory between calls, and a count of `../` guessed from memory climbed past the worktree root (`D:/mop-build/b8b/app` is three folders deep, `../../../../` is the drive root).
+- rule: write a scratch file with an absolute path, in the session scratchpad under a name that carries the slice and group (P-2311), or in the lane tree under a git-ignored name; after writing, `ls` the absolute path before running it, and delete it when done.
+- proof: `cd D:/mop-build/b8b/app && node -e "console.log(require('path').resolve('../../../../tmp_edit.mjs'))"` prints `D:\tmp_edit.mjs`, a path outside the tree (2026-10-08).
+- added: 2026-10-08
+
+## P-2516 · A manual registry entry that greps one case of a serial spec is red for the wrong reason, and its expect needs the ` › ` Playwright prints between describe and test
+- symptom: the review of B8b c8bx replayed `b8b-g10-e2e-step-on` as recorded (`--grep "the runner plans"`): 2 minutes of polling, then `the job runner plans the event / Received: null` with no code changed, and its `expect` (`✘ .*with the job runner the runner plans ...`) matched nothing. Nobody had replayed the entry; the log said it "expects its title red".
+- cause: the spec is `serial` and the runner case reads the rows that the case before it creates, so selecting it alone finds no submission. Playwright's list reporter joins describe and test titles with ` › `, so a regex that leaves it out cannot match.
+- rule: a manual entry on a serial spec selects every case the mutated case depends on (`--grep "a.submission.from|the.runner.plans"`, spaces written as `.`, P-2602), uses `--retries=0`, and takes its `expect` from the red output of a real replay with the ` › ` in it; a log line that says an entry goes red is written only after that replay, otherwise it says UNPROVEN.
+- proof: `cd app && node -e "const e=require('./tests/mutations/B8b.json').find(x=>x.id==='b8b-g10-e2e-step-on');console.log(new RegExp(e.expect).test('✘  2 [admin] › tests\\e2e\\automation-exit.spec.ts:323:3 › with the job runner › the runner plans the received email'))"` prints `true`; the entry's run, with the step left on, ends `Received: ... "notify_admin_received"` and `1 failed` (2026-10-08).
+- added: 2026-10-08

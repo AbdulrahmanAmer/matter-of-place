@@ -2999,8 +2999,9 @@
     "id": "b8b-g10-e2e-step-on",
     "kind": "manual",
     "test": "tests/e2e/automation-exit.spec.ts",
-    "run": "E2E_FULL_STACK=1 E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts --grep \"the runner plans\"",
-    "expect": "✘ .*with the job runner the runner plans the received email"
+    "run": "E2E_FULL_STACK=1 E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts --grep \"a.submission.from|the.runner.plans\" --retries=0",
+    "expect": "✘ .*› the runner plans",
+    "procedure": "The step is left on (the first case, which switches it off, is not selected), so the submission case makes the submission and the runner case finds a notify_admin_received job. Replay by hand with the dev profile and a build made with the Turnstile test key; the runner case goes red on `Received: [\"send_received\", \"notify_admin_received\"]`. Measured 2026-10-08."
   },
   {
     "id": "b8b-g10-e2e-restore",
