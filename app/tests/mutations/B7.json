@@ -4316,5 +4316,100 @@
     "sql": "drop index public.inquiries_list_idx;\ncreate index inquiries_list_idx on public.inquiries (received_at desc, id);\n",
     "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"inquiries list index\"",
     "expect": "× .*the inquiries list index leads with the state"
+  },
+  {
+    "id": "b7-11a-svc-void-gate",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "  if (due.data.length > 0) authorize(actor, \"payments.void\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*with a due invoice it needs payments.void"
+  },
+  {
+    "id": "b7-11a-svc-reason",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    p_reason: input.reason,",
+    "replace": "    p_reason: \"\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*a managing editor withdraws an Accepted request"
+  },
+  {
+    "id": "b7-11a-human-only",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/lib/permissions/submissions.ts",
+    "find": "    humanOnly: true,",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*refuses an agent with 403 human_only"
+  },
+  {
+    "id": "b7-11a-reason-min",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/domain/admin-submissions.ts",
+    "find": "  reason: trimmed.pipe(z.string().min(3).max(500)),",
+    "replace": "  reason: trimmed.pipe(z.string().max(500)),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*a reason under 3 characters answers 422"
+  },
+  {
+    "id": "b7-11a-matrix",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/submissions.ts",
+    "find": "    roles: [\"managing_editor\", \"admin\"],",
+    "replace": "    roles: [\"chief_editor\", \"managing_editor\", \"admin\"],",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
+    "expect": "× .*equals the hand-typed fixture"
+  },
+  {
+    "id": "b7-11a-ui-names",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/WithdrawDialog.tsx",
+    "find": "          {`This also voids ${invoice}.`}",
+    "replace": "          {\"This also voids an invoice.\"}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*names the due invoice it will void"
+  },
+  {
+    "id": "b7-11a-ui-admin-only",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/WithdrawDialog.tsx",
+    "find": "      canSubmit={!needsAdmin}",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*keeps Withdraw request off"
+  },
+  {
+    "id": "b7-11a-db-void",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.withdraw_submission(\n  p_submission_id uuid,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns public.submission_state\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_reason text := btrim(coalesce(p_reason, ''));\n  v_payment uuid;\nbegin\n  -- DL-04, B7 invariant 5: Accepted, Awaiting Assets or Invoice Issued to the terminal Withdrawn. A due invoice is\n  -- voided in the same transaction by B6's void_payment, which audits payments.void and emits invoice.voided; while a\n  -- paid or waived payment exists, B2's enforce_editorial_gate refuses the update with wrong_state. Audit only: no\n  -- catalog event, and never submission.declined, whose recipe would mail the submitter a decline letter.\n  if char_length(v_reason) not between 3 and 500 then\n    raise exception 'validation';\n  end if;\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state not in ('Accepted', 'Awaiting Assets', 'Invoice Issued') then\n    raise exception 'wrong_state';\n  end if;\n  for v_payment in\n    select p.id from public.payments p where p.submission_id = p_submission_id and p.status = 'due' order by p.id\n  loop\n    null;\n  end loop;\n  update public.submissions s\n  set workflow_state = 'Withdrawn'\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.withdraw', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id, v_reason\n  );\n  return v_after.workflow_state;\nend;\n$$;\n\nrevoke execute on function public.withdraw_submission(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.withdraw_submission(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"withdraw_submission from Invoice Issued voids\"",
+    "expect": "× .*withdraw_submission from Invoice Issued voids"
+  },
+  {
+    "id": "b7-11a-db-no-declined",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.withdraw_submission(\n  p_submission_id uuid,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns public.submission_state\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_reason text := btrim(coalesce(p_reason, ''));\n  v_payment uuid;\nbegin\n  -- DL-04, B7 invariant 5: Accepted, Awaiting Assets or Invoice Issued to the terminal Withdrawn. A due invoice is\n  -- voided in the same transaction by B6's void_payment, which audits payments.void and emits invoice.voided; while a\n  -- paid or waived payment exists, B2's enforce_editorial_gate refuses the update with wrong_state. Audit only: no\n  -- catalog event, and never submission.declined, whose recipe would mail the submitter a decline letter.\n  if char_length(v_reason) not between 3 and 500 then\n    raise exception 'validation';\n  end if;\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state not in ('Accepted', 'Awaiting Assets', 'Invoice Issued') then\n    raise exception 'wrong_state';\n  end if;\n  for v_payment in\n    select p.id from public.payments p where p.submission_id = p_submission_id and p.status = 'due' order by p.id\n  loop\n    perform public.void_payment(v_payment, 'withdrawn', p_actor, p_actor_kind, p_request_id);\n  end loop;\n  update public.submissions s\n  set workflow_state = 'Withdrawn'\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.withdraw', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id, v_reason\n  );\n  perform public.emit_event('submission.declined', 'submission', p_submission_id, '{}', p_actor);\n  return v_after.workflow_state;\nend;\n$$;\n\nrevoke execute on function public.withdraw_submission(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.withdraw_submission(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"withdraw_submission from Invoice Issued voids\"",
+    "expect": "× .*withdraw_submission from Invoice Issued voids"
+  },
+  {
+    "id": "b7-11a-db-paid",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.enforce_editorial_gate()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- Invariant 5: an update that keeps the state (a note, a reviewer) skips the graph.\n  if new.workflow_state = old.workflow_state then\n    return new;\n  end if;\n  if not public.submission_transition_allowed(old.workflow_state, new.workflow_state) then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Accepted' then\n    new.accepted_at := coalesce(new.accepted_at, now());\n  end if;\n  if new.workflow_state in ('Invoice Issued', 'Scheduled', 'Published', 'Distribution Active', 'Completed')\n    and new.accepted_at is null then\n    raise exception 'wrong_state';\n  end if;\n  if new.workflow_state = 'Scheduled' and not exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  -- DL-04: a paid or waived request is refunded or voided before it can be withdrawn.\n  if false and exists (\n    select 1 from public.payments p where p.submission_id = new.id and p.status in ('paid', 'waived')\n  ) then\n    raise exception 'wrong_state';\n  end if;\n  return new;\nend;\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"withdraw_submission with a paid payment\"",
+    "expect": "× .*withdraw_submission with a paid payment raises wrong_state"
+  },
+  {
+    "id": "b7-11a-db-terminal",
+    "kind": "sql",
+    "test": "tests/db/gate.db.test.ts",
+    "sql": "create or replace function public.submission_transition_allowed(\n  p_from public.submission_state,\n  p_to public.submission_state\n)\nreturns boolean\nlanguage sql\nimmutable\nsecurity definer\nset search_path = ''\nas $$\n  select (p_from::text, p_to::text) in (\n    ('Submitted', 'Under Review'),\n    ('Under Review', 'Declined'),\n    ('Under Review', 'Awaiting Assets'),\n    ('Under Review', 'Accepted'),\n    ('Awaiting Assets', 'Under Review'),\n    ('Awaiting Assets', 'Accepted'),\n    ('Awaiting Assets', 'Withdrawn'),\n    ('Accepted', 'Awaiting Assets'),\n    ('Accepted', 'Invoice Issued'),\n    ('Accepted', 'Withdrawn'),\n    ('Invoice Issued', 'Invoice Issued'),\n    ('Invoice Issued', 'Scheduled'),\n    ('Invoice Issued', 'Withdrawn'),\n    ('Scheduled', 'Published'),\n    ('Published', 'Distribution Active'),\n    ('Distribution Active', 'Published')\n  );\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/gate.db.test.ts -t \"a terminal state\"",
+    "expect": "× .*a terminal state, Declined, Withdrawn or Completed, is reachable"
   }
 ]

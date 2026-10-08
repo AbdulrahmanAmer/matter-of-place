@@ -338,6 +338,16 @@ describe("RequestDetail", () => {
   });
 });
 
+// jsdom has no showModal or close on <dialog>; these only toggle `open`, as dialogs.test.tsx does.
+function patchDialogs() {
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.removeAttribute("open");
+  };
+}
+
 describe("DecisionPanel", () => {
   const REASON = "00000000-0000-4000-8000-0000000000e1";
   const editor = [
@@ -348,15 +358,7 @@ describe("DecisionPanel", () => {
   ];
   const underReview = { [`GET ${DETAIL_PATH}`]: detail({ workflow_state: "Under Review" }) };
 
-  // jsdom has no showModal or close on <dialog>; these only toggle `open`, as dialogs.test.tsx does.
-  beforeAll(() => {
-    HTMLDialogElement.prototype.showModal = function showModal() {
-      this.setAttribute("open", "");
-    };
-    HTMLDialogElement.prototype.close = function close() {
-      this.removeAttribute("open");
-    };
-  });
+  beforeAll(patchDialogs);
 
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -430,5 +432,77 @@ describe("DecisionPanel", () => {
       decline: screen.queryByRole("button", { name: "Decline" }),
       material: screen.queryByRole("button", { name: "Request material" }),
     }).toEqual({ decline: null, material: null });
+  });
+});
+
+describe("WithdrawDialog", () => {
+  const PAYMENT = "00000000-0000-4000-8000-0000000000b1";
+  const invoiceIssued = {
+    [`GET ${DETAIL_PATH}`]: detail({
+      workflow_state: "Invoice Issued",
+      accepted_at: "2026-10-02T12:00:00Z",
+      payment_id: PAYMENT,
+    }),
+    [`GET /api/admin/payments/${PAYMENT}`]: {
+      id: PAYMENT,
+      submission_id: ID,
+      property_id: null,
+      product: "The Feature",
+      amount: 1000,
+      status: "due",
+      invoice_number: "MOP-2026-0007",
+      invoice_file_key: null,
+      invoice_snapshot: null,
+      preferred_method: null,
+      issued_at: "2026-10-03T12:00:00Z",
+      due_at: "2026-10-17T12:00:00Z",
+      paid_at: null,
+      paid_method: null,
+      paid_reference: null,
+      notes: null,
+    },
+  };
+
+  beforeAll(patchDialogs);
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("names the due invoice it will void and sends the reason", async () => {
+    const requested = serve({
+      ...invoiceIssued,
+      [`POST ${DETAIL_PATH}/withdraw`]: { workflow_state: "Withdrawn" },
+    });
+    mount(["submissions.withdraw", "payments.void"]);
+    fireEvent.click(await screen.findByRole("button", { name: "Withdraw" }));
+    const dialog = within(screen.getByRole("dialog", { name: "Withdraw this request" }));
+    const voids = dialog.getByText(/voids/).textContent;
+    fireEvent.change(dialog.getByLabelText("Reason"), {
+      target: { value: "The owner sold privately." },
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Withdraw request" }));
+    await screen.findByText("Request withdrawn.");
+    expect({ voids, posts: requested.filter((line) => line.startsWith("POST")) }).toEqual({
+      voids: "This also voids invoice MOP-2026-0007.",
+      posts: [`POST ${DETAIL_PATH}/withdraw {"reason":"The owner sold privately."}`],
+    });
+  });
+
+  it("keeps Withdraw request off for an actor who may not void the invoice", async () => {
+    serve(invoiceIssued);
+    mount(["submissions.withdraw"]);
+    fireEvent.click(await screen.findByRole("button", { name: "Withdraw" }));
+    const dialog = within(screen.getByRole("dialog", { name: "Withdraw this request" }));
+    fireEvent.change(dialog.getByLabelText("Reason"), {
+      target: { value: "The owner sold privately." },
+    });
+    expect({
+      voids: dialog.getByText(/voids/).textContent,
+      off: dialog.getByRole("button", { name: "Withdraw request" }).hasAttribute("disabled"),
+    }).toEqual({
+      voids: "This also voids invoice MOP-2026-0007. Only an admin can void an invoice.",
+      off: true,
+    });
   });
 });

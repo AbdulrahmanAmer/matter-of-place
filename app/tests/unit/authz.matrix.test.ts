@@ -23,6 +23,7 @@ submissions.assets_received        CE ME
 submissions.email_preview          CE ME
 submissions.decline_reasons        CE ME
 submissions.note                   CE ME VE MO
+submissions.withdraw               ME AD | H
 properties.list                    CE ME VE MO CO AD
 properties.get                     CE ME VE MO CO AD
 properties.timeline                CE ME VE MO CO AD

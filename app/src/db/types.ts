@@ -1897,6 +1897,9 @@ isOneToOne: false
               "event_id": string,"payment_id": string
             }[]
                            },
+"withdraw_submission":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_reason": string,"p_request_id": string,"p_submission_id": string }; Returns: Database["public"]['Enums']["submission_state"]
+                           },
 "write_audit":
 { Args: { "p_action": string,"p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_after": Json,"p_before": Json,"p_entity": string,"p_entity_id": string,"p_note"?: string,"p_request_id": string }; Returns: number
                            }

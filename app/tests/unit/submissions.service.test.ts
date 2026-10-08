@@ -2,7 +2,7 @@ import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { siteConfig } from "../../src/config/site";
-import { requestAssetsInputSchema } from "../../src/domain/admin-submissions";
+import { requestAssetsInputSchema, withdrawInputSchema } from "../../src/domain/admin-submissions";
 import { loadSiteContext } from "../../src/server/email/context";
 import { renderTemplate } from "../../src/server/email/render";
 import { resolveVariables } from "../../src/server/email/variables";
@@ -25,6 +25,7 @@ import {
   requestAssets,
   startReview,
   timeline,
+  withdraw,
 } from "../../src/server/submissions/service";
 import { fakeDb, type FakeDb, type FakeDbOptions } from "../fixtures/fake-db";
 import { withTables, type Row } from "../fixtures/table-stub";
@@ -656,5 +657,111 @@ describe("decisions", () => {
       commercial: { status: 403, code: "forbidden" },
       calls: 0,
     });
+  });
+});
+
+describe("withdraw", () => {
+  const REASON_TEXT = "The owner sold privately.";
+  const due: Row = { id: "p-due", submission_id: SUBMISSION, status: "due" };
+
+  /** A request whose payments are `payments`; `withdraw_submission` records what it was asked and answers Withdrawn. */
+  function withdrawDb(payments: Row[] = []) {
+    const asked: unknown[] = [];
+    const db = withTables(
+      fakeDb({
+        rpc: {
+          withdraw_submission: (args) => {
+            asked.push(args);
+            return "Withdrawn";
+          },
+        },
+      }),
+      { payments },
+    );
+    return { db, asked };
+  }
+
+  it("a managing editor withdraws an Accepted request in one withdraw_submission call carrying the reason", async () => {
+    const { db, asked } = withdrawDb();
+    const answer = await withdraw(actor(["managing_editor"]), db, {
+      id: SUBMISSION,
+      reason: REASON_TEXT,
+    });
+    expect({ answer, rpc: rpcNames(db), asked }).toEqual({
+      answer: { workflow_state: "Withdrawn" },
+      rpc: ["withdraw_submission"],
+      asked: [
+        {
+          p_submission_id: SUBMISSION,
+          p_reason: REASON_TEXT,
+          p_actor: "00000000-0000-4000-8000-000000000001",
+          p_actor_kind: "human",
+          p_request_id: "req-sr",
+        },
+      ],
+    });
+  });
+
+  it("with a due invoice it needs payments.void: a managing editor gets 403 and nothing moves, an admin withdraws", async () => {
+    const editor = withdrawDb([due]);
+    const admin = withdrawDb([due]);
+    expect({
+      editor: await outcome(
+        withdraw(actor(["managing_editor"]), editor.db, { id: SUBMISSION, reason: REASON_TEXT }),
+      ),
+      editorRpc: rpcNames(editor.db),
+      admin: await withdraw(actor(["admin"]), admin.db, { id: SUBMISSION, reason: REASON_TEXT }),
+      adminRpc: rpcNames(admin.db),
+    }).toEqual({
+      editor: { status: 403, code: "forbidden" },
+      editorRpc: [],
+      admin: { workflow_state: "Withdrawn" },
+      adminRpc: ["withdraw_submission"],
+    });
+  });
+
+  it("refuses an agent with 403 human_only before any database call", async () => {
+    const { db } = withdrawDb();
+    const agent: AdminActor = { ...actor(["admin"]), kind: "agent", scopes: ["submissions"] };
+    expect({
+      answer: await outcome(withdraw(agent, db, { id: SUBMISSION, reason: REASON_TEXT })),
+      calls: db.calls.length,
+    }).toEqual({ answer: { status: 403, code: "human_only" }, calls: 0 });
+  });
+
+  it("a reason under 3 characters answers 422 and asks the database nothing", async () => {
+    const { db } = withdrawDb();
+    const deps: AdminDeps = {
+      db: () => db,
+      requireActor: () =>
+        Promise.resolve({
+          userId: "00000000-0000-4000-8000-000000000001",
+          kind: "human",
+          roles: ["admin"],
+          scopes: [],
+        }),
+      verifyCsrf: () => Promise.resolve(),
+      assertSessionFresh: () => undefined,
+      requireRecentAuth: () => undefined,
+    };
+    const route = defineAdminRoute(
+      {
+        method: "POST",
+        action: "submissions.withdraw",
+        input: withdrawInputSchema,
+        handler: (ctx, input) => withdraw(ctx.actor, ctx.db, input),
+      },
+      deps,
+    );
+    const response = await route({
+      request: new Request(`https://example.test/api/admin/submissions/${SUBMISSION}/withdraw`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: " ab " }),
+      }),
+      context: { requestId: "req-wd" },
+      params: { id: SUBMISSION },
+    });
+    expect({ status: response.status, calls: db.calls.length }).toEqual({ status: 422, calls: 0 });
   });
 });

@@ -174,6 +174,7 @@ import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admi
 import { Route as ApiAdminSubmissionsIdRequestAssetsRouteImport } from './routes/api/admin/submissions.$id.request-assets'
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
 import { Route as ApiAdminSubmissionsIdWaiveRouteImport } from './routes/api/admin/submissions.$id.waive'
+import { Route as ApiAdminSubmissionsIdWithdrawRouteImport } from './routes/api/admin/submissions.$id.withdraw'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
 import { Route as ApiAdminAutomationRevisionsIdRestoreRouteImport } from './routes/api/admin/automation.revisions.$id.restore'
 import { Route as ApiAdminChannelsPostsIdCancelRouteImport } from './routes/api/admin/channels.posts.$id.cancel'
@@ -1078,6 +1079,12 @@ const ApiAdminSubmissionsIdWaiveRoute =
     path: '/waive',
     getParentRoute: () => ApiAdminSubmissionsIdRoute,
   } as any)
+const ApiAdminSubmissionsIdWithdrawRoute =
+  ApiAdminSubmissionsIdWithdrawRouteImport.update({
+    id: '/withdraw',
+    path: '/withdraw',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
 const ApiPublicSubmissionsIdUploadsRoute =
   ApiPublicSubmissionsIdUploadsRouteImport.update({
     id: '/$id/uploads',
@@ -1286,6 +1293,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
+  '/api/admin/submissions/$id/withdraw': typeof ApiAdminSubmissionsIdWithdrawRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/automation/revisions/$id/restore': typeof ApiAdminAutomationRevisionsIdRestoreRoute
   '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
@@ -1455,6 +1463,7 @@ export interface FileRoutesByTo {
   '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
+  '/api/admin/submissions/$id/withdraw': typeof ApiAdminSubmissionsIdWithdrawRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/automation/revisions/$id/restore': typeof ApiAdminAutomationRevisionsIdRestoreRoute
   '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
@@ -1630,6 +1639,7 @@ export interface FileRoutesById {
   '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
+  '/api/admin/submissions/$id/withdraw': typeof ApiAdminSubmissionsIdWithdrawRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/automation/revisions/$id/restore': typeof ApiAdminAutomationRevisionsIdRestoreRoute
   '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
@@ -1805,6 +1815,7 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/request-assets'
     | '/api/admin/submissions/$id/timeline'
     | '/api/admin/submissions/$id/waive'
+    | '/api/admin/submissions/$id/withdraw'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/automation/revisions/$id/restore'
     | '/api/admin/channels/posts/$id/cancel'
@@ -1974,6 +1985,7 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/request-assets'
     | '/api/admin/submissions/$id/timeline'
     | '/api/admin/submissions/$id/waive'
+    | '/api/admin/submissions/$id/withdraw'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/automation/revisions/$id/restore'
     | '/api/admin/channels/posts/$id/cancel'
@@ -2148,6 +2160,7 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/request-assets'
     | '/api/admin/submissions/$id/timeline'
     | '/api/admin/submissions/$id/waive'
+    | '/api/admin/submissions/$id/withdraw'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/automation/revisions/$id/restore'
     | '/api/admin/channels/posts/$id/cancel'
@@ -3388,6 +3401,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSubmissionsIdWaiveRouteImport
       parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
+    '/api/admin/submissions/$id/withdraw': {
+      id: '/api/admin/submissions/$id/withdraw'
+      path: '/withdraw'
+      fullPath: '/api/admin/submissions/$id/withdraw'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdWithdrawRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
     '/api/public/submissions/$id/uploads': {
       id: '/api/public/submissions/$id/uploads'
       path: '/$id/uploads'
@@ -3897,6 +3917,7 @@ interface ApiAdminSubmissionsIdRouteChildren {
   ApiAdminSubmissionsIdRequestAssetsRoute: typeof ApiAdminSubmissionsIdRequestAssetsRoute
   ApiAdminSubmissionsIdTimelineRoute: typeof ApiAdminSubmissionsIdTimelineRoute
   ApiAdminSubmissionsIdWaiveRoute: typeof ApiAdminSubmissionsIdWaiveRoute
+  ApiAdminSubmissionsIdWithdrawRoute: typeof ApiAdminSubmissionsIdWithdrawRoute
   ApiAdminSubmissionsIdMediaMediaIdOriginalRoute: typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 
@@ -3913,6 +3934,7 @@ const ApiAdminSubmissionsIdRouteChildren: ApiAdminSubmissionsIdRouteChildren = {
     ApiAdminSubmissionsIdRequestAssetsRoute,
   ApiAdminSubmissionsIdTimelineRoute: ApiAdminSubmissionsIdTimelineRoute,
   ApiAdminSubmissionsIdWaiveRoute: ApiAdminSubmissionsIdWaiveRoute,
+  ApiAdminSubmissionsIdWithdrawRoute: ApiAdminSubmissionsIdWithdrawRoute,
   ApiAdminSubmissionsIdMediaMediaIdOriginalRoute:
     ApiAdminSubmissionsIdMediaMediaIdOriginalRoute,
 }
