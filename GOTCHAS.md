@@ -4639,6 +4639,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && echo x > .tmp-zz.mjs && node scripts/check-layout.mjs | tail -1` → `layout: app/.tmp-zz.mjs: outside the folder map`; after `rm .tmp-zz.mjs` → `layout: OK (1803 files)` (measured 2026-10-07).
 - added: 2026-10-07
 
+## P-2414 · A group already merged into main is launched again as if it were unbuilt
+- symptom: on 2026-10-08 a builder was launched for B11 g3 (step 4) on slice/b11 with the full build brief; the group's work commit de18bb4 had been on main since PR 200 merged on 2026-10-07 03:20 UTC (CI `db` job green), and its log block and follow-ups were already in `workspace/05-plans/logs/B11.md`. Finding that out took the plan brief, the log and three `gh` calls before any work could start.
+- cause: the brief is built from the plan's step list, not from what main holds; after the park (11:45, 2026-10-07) the resumed run did not know g3 was accepted and merged by `mergeEach`.
+- rule: a builder first runs `grep -n "^## g<N> " workspace/05-plans/logs/<slice>.md` and, when a block exists, `git merge-base --is-ancestor <its work commit> origin/main`; if it is on main, the builder does not rebuild: it reports what of the group is still open (the log's NOT DONE and BLOCKED lines) and returns `blocked` on that, or `done` when nothing is open. The launcher checks the same before it sizes a resumed slice.
+- proof: `git merge-base --is-ancestor de18bb4 origin/main && echo on-main` → `on-main`; `gh pr view 200 --json state --jq .state` → `MERGED` (measured 2026-10-08).
+- added: 2026-10-08
+
 ## P-2200 · A B10 script cannot call the RPCs and tables of `social.sql` through the typed client before that migration merges
 - symptom: B10 g1 (step 0) has to write scripts that call `store_channel_token`, `put_channel_ids`, `get_vault_secret` and read `social_posts`, but `src/db/types.ts` lists none of `store_channel_token`, `put_channel_ids` and `record_channel_check` and no `social_posts` table (`get_vault_secret` is there since B8's retention migration) until step 6's migration is merged and `bun run gen:types` has run. A typed `createClient<Database>` call fails `bun run typecheck`, an untyped client fails the lint (P-810), and a cast fails `no-unsafe-type-assertion`.
 - cause: the plan puts the scripts in step 0 and the migration in step 6; "through the service role" assumed the generated types would already name them.
