@@ -5,14 +5,15 @@ import { holdDevLock } from "../fixtures/dev-lock";
 import { checkpoint } from "./fixtures/a11y";
 import { signInAs } from "./helpers/session";
 
-// B11 step 7, screen 13 (Place Notes). Signed in as the seeded managing editor, it opens the one draft or builds it
+// B11 step 7, screen 13 (Place Notes). Signed in as the seeded chief editor, it opens the one draft or builds it
 // with the Build button, then reorders blocks with the keyboard, looks at the phone preview, finds Approve off with
 // no blocks, approves for 30 days ahead and takes it back, and reads the subscriber counts. It leaves the issue a
 // draft and deletes nothing. It commits rows (a build, a save, an approval, an unapproval, one export audit row), so it
 // refuses a production database and holds the one-writer lock of mop-dev from the start of beforeAll to the end of
-// afterAll (ASSUMED H35 (5), G34).
+// afterAll (ASSUMED H35 (5), G34). The chief editor is the one account only this spec signs in as: two workers asking
+// `generateLink` for one user in the same second void each other's token (P-2426, tests/unit/e2e-staff-isolation.test.ts).
 
-const MANAGING_EDITOR = "staff+managing@matterofplace.com";
+const CHIEF_EDITOR = "staff+chief@matterofplace.com";
 const DAY = 30;
 
 test.describe.configure({ mode: "serial" });
@@ -50,7 +51,7 @@ test.beforeAll(async ({ browser }) => {
   release = await holdDevLock();
   // `committed` takes the same lock on its own connection unless told the run holds it.
   process.env["MOP_DEV_LOCK_HELD"] = "1";
-  ({ context, page } = await signInAs(browser, MANAGING_EDITOR));
+  ({ context, page } = await signInAs(browser, CHIEF_EDITOR));
 });
 
 // A failed assertion between Approve and Unapprove skips the rest of the serial run; the issue must still end a draft.
