@@ -3,6 +3,7 @@
 // store_channel_token holds two open transactions at once.
 import pg from "pg";
 import { describe, expect, it } from "vitest";
+import { definition } from "../../src/templates/email/campaign-report";
 import { asRole, createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
 import { createInvoice, createSubmission, publishedProperty } from "../fixtures/factories";
 
@@ -750,6 +751,109 @@ describe("campaign reports (G22)", () => {
       template: "campaign_report",
       audit: 1,
       missing: "22023: recipient_missing",
+    });
+  });
+});
+
+describe("complete_distributed_submissions (G60, DL-09)", () => {
+  type Campaign = "ended" | "tomorrow" | "open" | "none";
+
+  /** A submission in `state` with a property published `days` days ago and a campaign row of the given kind. */
+  async function distributed(
+    db: Db,
+    n: number,
+    state: "Published" | "Distribution Active",
+    days: number,
+    kind: Campaign,
+  ): Promise<string> {
+    const submission = await createSubmission(db, { state, n, base: await dbNow(db) });
+    const subject = await publishedProperty(db, { n, submission_id: submission });
+    await db.query(
+      "update public.properties set published_at = now() - make_interval(days => $2) where id = $1",
+      [subject.id, days],
+    );
+    if (kind !== "none") {
+      const payment = await createInvoice(db, { submission, status: "paid", n });
+      const endsOn = {
+        ended: "(now() at time zone 'utc')::date - 1",
+        tomorrow: "(now() at time zone 'utc')::date + 1",
+        open: "null",
+      }[kind];
+      await db.query(
+        `insert into public.campaigns (property_id, submission_id, payment_id, package, ends_on)
+         values ($1, $2, $3, 'The Feature', ${endsOn})`,
+        [subject.id, submission, payment],
+      );
+    }
+    return submission;
+  }
+
+  it("completes what is due, leaves what is not, and counts the moves", async () => {
+    const result = await withRollback(async (db) => {
+      // Rows already due on the database are moved first, so the count below is this test's own.
+      await db.query("select public.complete_distributed_submissions(now())");
+      const due = [
+        await distributed(db, 9650, "Distribution Active", 3, "ended"),
+        await distributed(db, 9651, "Distribution Active", 31, "none"),
+        await distributed(db, 9652, "Distribution Active", 31, "open"),
+        await distributed(db, 9653, "Published", 3, "ended"),
+      ];
+      const kept = [
+        await distributed(db, 9654, "Distribution Active", 31, "tomorrow"),
+        await distributed(db, 9655, "Distribution Active", 29, "none"),
+        await distributed(db, 9656, "Distribution Active", 29, "open"),
+        await distributed(db, 9657, "Published", 3, "tomorrow"),
+      ];
+      const moved = await scalar<number>(
+        db,
+        "select public.complete_distributed_submissions(now()) as v",
+      );
+      const states = async (ids: string[]) =>
+        (
+          await db.query<{ v: string }>(
+            "select workflow_state::text as v from public.submissions where id = any($1::uuid[]) order by id",
+            [ids],
+          )
+        ).rows.map((row) => row.v);
+      const again = await scalar<number>(
+        db,
+        "select public.complete_distributed_submissions(now()) as v",
+      );
+      return {
+        moved,
+        again,
+        due: new Set(await states(due)),
+        kept: new Set(await states(kept)),
+      };
+    });
+    expect(result).toEqual({
+      moved: 4,
+      again: 0,
+      due: new Set(["Completed"]),
+      kept: new Set(["Distribution Active", "Published"]),
+    });
+  });
+});
+
+describe("the campaign_report template (G22, G46)", () => {
+  it("is seeded enabled and transactional, with the copy and the variables of its definition", async () => {
+    const row = await withRollback(
+      async (db) =>
+        (
+          await db.query<Record<string, unknown>>(
+            `select key, class, subject, preheader, body, variables, enabled
+             from public.email_templates where key = 'campaign_report'`,
+          )
+        ).rows[0],
+    );
+    expect(row).toEqual({
+      key: "campaign_report",
+      class: "transactional",
+      subject: definition.subject,
+      preheader: definition.preheader,
+      body: definition.blocks,
+      variables: [...definition.variables],
+      enabled: true,
     });
   });
 });

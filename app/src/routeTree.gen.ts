@@ -48,9 +48,11 @@ import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confir
 import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
+import { Route as AdminReportsIndexRouteImport } from './routes/admin/reports.index'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
 import { Route as AdminRequestsIdRouteImport } from './routes/admin/requests.$id'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
+import { Route as ApiAdminReportsRouteImport } from './routes/api/admin/reports'
 import { Route as ApiHooksResendRouteImport } from './routes/api/hooks/resend'
 import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
 import { Route as ApiPublicClientErrorRouteImport } from './routes/api/public/client-error'
@@ -72,6 +74,7 @@ import { Route as ApiAdminChannelsHealthRouteImport } from './routes/api/admin/c
 import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
 import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/people.index'
 import { Route as ApiAdminPeopleIdRouteImport } from './routes/api/admin/people.$id'
+import { Route as ApiAdminReportsIdRouteImport } from './routes/api/admin/reports.$id'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
 import { Route as ApiAdminSubmissionsIdRouteImport } from './routes/api/admin/submissions.$id'
 import { Route as ApiAdminSubmissionsStartReviewRouteImport } from './routes/api/admin/submissions.start-review'
@@ -84,6 +87,7 @@ import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/publi
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
 import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
+import { Route as ApiAdminReportsIdEmailRouteImport } from './routes/api/admin/reports.$id.email'
 import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
@@ -296,6 +300,13 @@ const AdminPeopleIdRoute = AdminPeopleIdRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/people.$id.lazy').then((d) => d.Route),
 )
+const AdminReportsIndexRoute = AdminReportsIndexRouteImport.update({
+  id: '/reports/',
+  path: '/reports/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/reports.index.lazy').then((d) => d.Route),
+)
 const AdminRequestsIndexRoute = AdminRequestsIndexRouteImport.update({
   id: '/requests/',
   path: '/requests/',
@@ -309,6 +320,11 @@ const AdminRequestsIdRoute = AdminRequestsIdRouteImport.update({
 const ApiAdminMeRoute = ApiAdminMeRouteImport.update({
   id: '/api/admin/me',
   path: '/api/admin/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminReportsRoute = ApiAdminReportsRouteImport.update({
+  id: '/api/admin/reports',
+  path: '/api/admin/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHooksResendRoute = ApiHooksResendRouteImport.update({
@@ -416,6 +432,11 @@ const ApiAdminPeopleIdRoute = ApiAdminPeopleIdRouteImport.update({
   path: '/api/admin/people/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminReportsIdRoute = ApiAdminReportsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiAdminReportsRoute,
+} as any)
 const ApiAdminSubmissionsIndexRoute =
   ApiAdminSubmissionsIndexRouteImport.update({
     id: '/api/admin/submissions/',
@@ -479,6 +500,11 @@ const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
   getParentRoute: () => ApiAdminPeopleIdRoute,
+} as any)
+const ApiAdminReportsIdEmailRoute = ApiAdminReportsIdEmailRouteImport.update({
+  id: '/email',
+  path: '/email',
+  getParentRoute: () => ApiAdminReportsIdRoute,
 } as any)
 const ApiAdminSubmissionsIdNoteRoute =
   ApiAdminSubmissionsIdNoteRouteImport.update({
@@ -565,6 +591,7 @@ export interface FileRoutesByFullPath {
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
@@ -583,6 +610,7 @@ export interface FileRoutesByFullPath {
   '/stories/': typeof SiteStoriesIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
+  '/admin/reports/': typeof AdminReportsIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
@@ -591,6 +619,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/reports/$id': typeof ApiAdminReportsIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
@@ -604,6 +633,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
@@ -646,6 +676,7 @@ export interface FileRoutesByTo {
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
@@ -664,6 +695,7 @@ export interface FileRoutesByTo {
   '/stories': typeof SiteStoriesIndexRoute
   '/admin/channels': typeof AdminChannelsIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
+  '/admin/reports': typeof AdminReportsIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
@@ -672,6 +704,7 @@ export interface FileRoutesByTo {
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/reports/$id': typeof ApiAdminReportsIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
@@ -685,6 +718,7 @@ export interface FileRoutesByTo {
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
@@ -732,6 +766,7 @@ export interface FileRoutesById {
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
@@ -750,6 +785,7 @@ export interface FileRoutesById {
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
+  '/admin/reports/': typeof AdminReportsIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
@@ -758,6 +794,7 @@ export interface FileRoutesById {
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
+  '/api/admin/reports/$id': typeof ApiAdminReportsIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/start-review': typeof ApiAdminSubmissionsStartReviewRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
@@ -771,6 +808,7 @@ export interface FileRoutesById {
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
@@ -818,6 +856,7 @@ export interface FileRouteTypes {
     | '/admin/people/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
+    | '/api/admin/reports'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
@@ -836,6 +875,7 @@ export interface FileRouteTypes {
     | '/stories/'
     | '/admin/channels/'
     | '/admin/people/'
+    | '/admin/reports/'
     | '/admin/requests/'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
@@ -844,6 +884,7 @@ export interface FileRouteTypes {
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
     | '/api/admin/people/$id'
+    | '/api/admin/reports/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
@@ -857,6 +898,7 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/reports/$id/email'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
@@ -899,6 +941,7 @@ export interface FileRouteTypes {
     | '/admin/people/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
+    | '/api/admin/reports'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
@@ -917,6 +960,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/admin/channels'
     | '/admin/people'
+    | '/admin/reports'
     | '/admin/requests'
     | '/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
@@ -925,6 +969,7 @@ export interface FileRouteTypes {
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
     | '/api/admin/people/$id'
+    | '/api/admin/reports/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
@@ -938,6 +983,7 @@ export interface FileRouteTypes {
     | '/api/admin/submissions'
     | '/api/admin/channels/ids/$key'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/reports/$id/email'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
@@ -984,6 +1030,7 @@ export interface FileRouteTypes {
     | '/admin/people/$id'
     | '/admin/requests/$id'
     | '/api/admin/me'
+    | '/api/admin/reports'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
@@ -1002,6 +1049,7 @@ export interface FileRouteTypes {
     | '/_site/stories/'
     | '/admin/channels/'
     | '/admin/people/'
+    | '/admin/reports/'
     | '/admin/requests/'
     | '/_site/archive/$kind/$slug'
     | '/api/admin/auth/send-link'
@@ -1010,6 +1058,7 @@ export interface FileRouteTypes {
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
     | '/api/admin/people/$id'
+    | '/api/admin/reports/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/start-review'
     | '/api/hooks/ops-health/$token'
@@ -1023,6 +1072,7 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/reports/$id/email'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/timeline'
     | '/api/public/submissions/$id/uploads'
@@ -1045,6 +1095,7 @@ export interface RootRouteChildren {
   ApiConsentRoute: typeof ApiConsentRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ApiAdminMeRoute: typeof ApiAdminMeRoute
+  ApiAdminReportsRoute: typeof ApiAdminReportsRouteWithChildren
   ApiHooksResendRoute: typeof ApiHooksResendRoute
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
   ApiPublicClientErrorRoute: typeof ApiPublicClientErrorRoute
@@ -1349,6 +1400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPeopleIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/reports/': {
+      id: '/admin/reports/'
+      path: '/reports'
+      fullPath: '/admin/reports/'
+      preLoaderRoute: typeof AdminReportsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/requests/': {
       id: '/admin/requests/'
       path: '/requests'
@@ -1368,6 +1426,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/me'
       fullPath: '/api/admin/me'
       preLoaderRoute: typeof ApiAdminMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/reports': {
+      id: '/api/admin/reports'
+      path: '/api/admin/reports'
+      fullPath: '/api/admin/reports'
+      preLoaderRoute: typeof ApiAdminReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/hooks/resend': {
@@ -1517,6 +1582,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPeopleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/reports/$id': {
+      id: '/api/admin/reports/$id'
+      path: '/$id'
+      fullPath: '/api/admin/reports/$id'
+      preLoaderRoute: typeof ApiAdminReportsIdRouteImport
+      parentRoute: typeof ApiAdminReportsRoute
+    }
     '/api/admin/submissions/': {
       id: '/api/admin/submissions/'
       path: '/api/admin/submissions'
@@ -1600,6 +1672,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/people/$id/notes'
       preLoaderRoute: typeof ApiAdminPeopleIdNotesRouteImport
       parentRoute: typeof ApiAdminPeopleIdRoute
+    }
+    '/api/admin/reports/$id/email': {
+      id: '/api/admin/reports/$id/email'
+      path: '/email'
+      fullPath: '/api/admin/reports/$id/email'
+      preLoaderRoute: typeof ApiAdminReportsIdEmailRouteImport
+      parentRoute: typeof ApiAdminReportsIdRoute
     }
     '/api/admin/submissions/$id/note': {
       id: '/api/admin/submissions/$id/note'
@@ -1755,6 +1834,7 @@ interface AdminRouteChildren {
   AdminRequestsIdRoute: typeof AdminRequestsIdRoute
   AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
+  AdminReportsIndexRoute: typeof AdminReportsIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
 }
 
@@ -1765,10 +1845,34 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRequestsIdRoute: AdminRequestsIdRoute,
   AdminChannelsIndexRoute: AdminChannelsIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
+  AdminReportsIndexRoute: AdminReportsIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface ApiAdminReportsIdRouteChildren {
+  ApiAdminReportsIdEmailRoute: typeof ApiAdminReportsIdEmailRoute
+}
+
+const ApiAdminReportsIdRouteChildren: ApiAdminReportsIdRouteChildren = {
+  ApiAdminReportsIdEmailRoute: ApiAdminReportsIdEmailRoute,
+}
+
+const ApiAdminReportsIdRouteWithChildren =
+  ApiAdminReportsIdRoute._addFileChildren(ApiAdminReportsIdRouteChildren)
+
+interface ApiAdminReportsRouteChildren {
+  ApiAdminReportsIdRoute: typeof ApiAdminReportsIdRouteWithChildren
+}
+
+const ApiAdminReportsRouteChildren: ApiAdminReportsRouteChildren = {
+  ApiAdminReportsIdRoute: ApiAdminReportsIdRouteWithChildren,
+}
+
+const ApiAdminReportsRouteWithChildren = ApiAdminReportsRoute._addFileChildren(
+  ApiAdminReportsRouteChildren,
+)
 
 interface ApiPublicMarketsRouteChildren {
   ApiPublicMarketsSlugRoute: typeof ApiPublicMarketsSlugRoute
@@ -1886,6 +1990,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiConsentRoute: ApiConsentRoute,
   MediaSplatRoute: MediaSplatRoute,
   ApiAdminMeRoute: ApiAdminMeRoute,
+  ApiAdminReportsRoute: ApiAdminReportsRouteWithChildren,
   ApiHooksResendRoute: ApiHooksResendRoute,
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
   ApiPublicClientErrorRoute: ApiPublicClientErrorRoute,
