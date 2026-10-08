@@ -24,8 +24,9 @@ import { adminClient, signInAs } from "./helpers/session";
 // contact; its `events` row stays, because `events` is append-only (B2 invariant 3).
 // Screen 16 shows the same jobs by `/admin/jobs?entity=<submission id>`.
 // Needs the live build with the Turnstile test key (`VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA`,
-// G-1151) so /submit posts to the Worker, a deployed job runner on mop-dev to plan the event, and `.dev.vars` with
-// Cloudflare's always-pass Turnstile secret (E10). The plan has B7's team service (step 14) create and revoke the agent
+// G-1151) so /submit posts to the Worker, and `.dev.vars` with Cloudflare's always-pass Turnstile secret (E10). The part
+// that needs the deployed job runner to plan the event (the "with the job runner" describe) skips unless
+// `E2E_FULL_STACK=1`, because CI's admin project runs no runner (ruling H70). The plan has B7's team service (step 14) create and revoke the agent
 // key; it is not on main yet, so the key is inserted into `agent_keys` the way `scripts/seed-admin-users.ts` does it and
 // revoked in `afterAll`. Replace both when step 14 lands.
 
@@ -238,8 +239,7 @@ test("a session switches the step off on screen 17 and the dry run lists it skip
   });
 });
 
-test("a submission from /submit queues the received email and no notify_admin job", async ({
-  browser,
+test("a submission from /submit records the event and enqueues no notify_admin job", async ({
   page,
 }) => {
   // A local browser reaches the Worker as 0.0.0.0, one rate-limit bucket that earlier runs have filled (429); a TEST-NET-3 address gives this run its own.
@@ -298,44 +298,70 @@ test("a submission from /submit queues the received email and no notify_admin jo
   expect(receipt.status()).toBe(201);
   await expect(page.getByText("Received. Editorial review comes next.")).toBeVisible();
 
-  const planned = async (): Promise<string | null> =>
-    (
-      await db.query<{ processed_at: string | null }>(
-        `select e.processed_at::text from public.events e
-         join public.submissions s on s.id = e.entity_id
-         where e.type = $1 and s.submitter_email = $2`,
-        [TRIGGER, SUBMITTER],
-      )
-    ).rows[0]?.processed_at ?? null;
-  await expect
-    .poll(planned, {
-      message: "the job runner plans the event",
-      timeout: 120_000,
-      intervals: [3_000],
-    })
-    .not.toBeNull();
-
-  const { rows } = await db.query<{ step_id: string; type: string }>(
-    `select j.step_id, j.type from public.jobs j
-     join public.events e on e.id = j.event_id
+  const event = await db.query<{ id: string }>(
+    `select e.id from public.events e
      join public.submissions s on s.id = e.entity_id
      where e.type = $1 and s.submitter_email = $2`,
     [TRIGGER, SUBMITTER],
   );
-  expect(rows.map((row) => row.step_id)).toEqual(["send_received"]);
-  expect(rows.filter((row) => row.type === "notify_admin")).toEqual([]);
-
-  // Screen 16 lists the jobs of that submission: the received email, and no admin notice.
-  const submission = await db.query<{ id: string }>(
-    "select id from public.submissions where submitter_email = $1",
-    [SUBMITTER],
+  expect(event.rows, "the submission and its received event exist").toHaveLength(1);
+  const notices = await db.query(
+    `select 1 from public.jobs j
+     join public.events e on e.id = j.event_id
+     join public.submissions s on s.id = e.entity_id
+     where e.type = $1 and s.submitter_email = $2 and j.type = 'notify_admin'`,
+    [TRIGGER, SUBMITTER],
   );
-  const staff = await signInAs(browser, CHIEF);
-  await closing(staff.context, async () => {
-    await staff.page.goto(`/admin/jobs?entity=${submission.rows[0]?.id ?? ""}`);
-    const jobs = staff.page.getByRole("table", { name: "Jobs" });
-    await expect(jobs).toContainText(/send email/i);
-    await expect(jobs).not.toContainText(/notify admin/i);
+  expect(notices.rows, "no notify_admin job is enqueued").toEqual([]);
+});
+
+// The planner runs in the deployed job runner, which CI's admin project does not have (ruling H70): this part is a
+// rehearsal by hand against mop-dev with E2E_FULL_STACK=1, after the case above has made the submission.
+test.describe("with the job runner", () => {
+  test.skip(!process.env["E2E_FULL_STACK"], "needs the deployed job runner (ruling H70)");
+
+  test("the runner plans the received email and no notify_admin job for that submission", async ({
+    browser,
+  }) => {
+    const planned = async (): Promise<string | null> =>
+      (
+        await db.query<{ processed_at: string | null }>(
+          `select e.processed_at::text from public.events e
+           join public.submissions s on s.id = e.entity_id
+           where e.type = $1 and s.submitter_email = $2`,
+          [TRIGGER, SUBMITTER],
+        )
+      ).rows[0]?.processed_at ?? null;
+    await expect
+      .poll(planned, {
+        message: "the job runner plans the event",
+        timeout: 120_000,
+        intervals: [3_000],
+      })
+      .not.toBeNull();
+
+    const { rows } = await db.query<{ step_id: string; type: string }>(
+      `select j.step_id, j.type from public.jobs j
+       join public.events e on e.id = j.event_id
+       join public.submissions s on s.id = e.entity_id
+       where e.type = $1 and s.submitter_email = $2`,
+      [TRIGGER, SUBMITTER],
+    );
+    expect(rows.map((row) => row.step_id)).toEqual(["send_received"]);
+    expect(rows.filter((row) => row.type === "notify_admin")).toEqual([]);
+
+    // Screen 16 lists the jobs of that submission: the received email, and no admin notice.
+    const submission = await db.query<{ id: string }>(
+      "select id from public.submissions where submitter_email = $1",
+      [SUBMITTER],
+    );
+    const staff = await signInAs(browser, CHIEF);
+    await closing(staff.context, async () => {
+      await staff.page.goto(`/admin/jobs?entity=${submission.rows[0]?.id ?? ""}`);
+      const jobs = staff.page.getByRole("table", { name: "Jobs" });
+      await expect(jobs).toContainText(/send email/i);
+      await expect(jobs).not.toContainText(/notify admin/i);
+    });
   });
 });
 

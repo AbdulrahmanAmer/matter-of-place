@@ -2999,8 +2999,8 @@
     "id": "b8b-g10-e2e-step-on",
     "kind": "manual",
     "test": "tests/e2e/automation-exit.spec.ts",
-    "run": "E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts --grep \"a submission from\"",
-    "expect": "✘ .*a submission from /submit"
+    "run": "E2E_FULL_STACK=1 E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts --grep \"the runner plans\"",
+    "expect": "✘ .*with the job runner the runner plans the received email"
   },
   {
     "id": "b8b-g10-e2e-restore",
