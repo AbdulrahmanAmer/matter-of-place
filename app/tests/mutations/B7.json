@@ -1712,6 +1712,15 @@
     "expect": "× .*mounts none of the public chrome or it"
   },
   {
+    "id": "b7-g1c-bnd-layout-chrome-component",
+    "test": "tests/unit/admin-boundaries.test.ts",
+    "file": "src/admin/ui/AdminLayout.tsx",
+    "find": "import { AdminShell } from \"./AdminShell\";",
+    "replace": "import { AdminShell } from \"./AdminShell\";\nimport { captureAttribution } from \"../../lib/attribution\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
+    "expect": "× .*mounts none of the public chrome or it"
+  },
+  {
     "id": "b7-g4-actions-owned",
     "test": "tests/unit/admin-actions.test.ts",
     "file": "src/domain/admin-submissions.ts",
