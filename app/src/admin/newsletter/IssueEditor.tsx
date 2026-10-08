@@ -6,6 +6,7 @@ import { formatNumber, pluralize } from "../../lib/format";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Field } from "../ui/Field";
 import { LocalTime } from "../ui/LocalTime";
+import { failureText } from "./failure-text";
 import { IssueStatus } from "./IssuesTable";
 
 /** What the editor holds before it is saved: the three things `PUT` takes. */
@@ -240,7 +241,7 @@ export function IssueEditor({
       (error: unknown) => {
         setPending(false);
         setConfirm(null);
-        setFailure(error instanceof Error ? error.message : "That did not work. Try again.");
+        setFailure(failureText(error));
       },
     );
   };

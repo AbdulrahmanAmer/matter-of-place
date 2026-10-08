@@ -1,6 +1,7 @@
 import { createLazyFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { IssueEditor } from "../../admin/newsletter/IssueEditor";
+import { failureText } from "../../admin/newsletter/failure-text";
 import {
   useApproveIssue,
   useIssue,
@@ -90,7 +91,7 @@ function IssuePage() {
           viewport={viewport}
           onViewport={setViewport}
           loading={preview.isFetching}
-          error={preview.error?.message ?? null}
+          error={preview.error === null ? null : failureText(preview.error)}
         />
       </div>
     </>

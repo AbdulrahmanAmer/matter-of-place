@@ -30,6 +30,14 @@ const PREVIEW_FRAME = 'iframe[title="Issue preview"]';
 const blockList = () => page.getByRole("list", { name: "Blocks, in reading order" });
 const blockNames = () => blockList().getByRole("heading", { level: 3 }).allTextContents();
 
+async function unapprove(): Promise<void> {
+  await page.getByRole("button", { name: "Unapprove" }).click();
+  await page
+    .getByRole("dialog", { name: "Take this issue back to draft" })
+    .getByRole("button", { name: "Unapprove" })
+    .click();
+}
+
 async function openIssuesList(): Promise<void> {
   await page.goto("/admin/newsletter");
   await expect(page.getByRole("heading", { name: "Newsletter", level: 1 })).toBeVisible();
@@ -45,10 +53,31 @@ test.beforeAll(async ({ browser }) => {
   ({ context, page } = await signInAs(browser, MANAGING_EDITOR));
 });
 
+// A failed assertion between Approve and Unapprove skips the rest of the serial run; the issue must still end a draft.
+async function leaveDraft(): Promise<void> {
+  if (issuePath === "") return;
+  const id = issuePath.split("/").at(-1) ?? "";
+  const status = await read(async (db) => {
+    const result = await db.query<{ status: string }>(
+      "select status from public.newsletter_issues where id = $1",
+      [id],
+    );
+    return result.rows[0]?.status;
+  });
+  if (status !== "approved") return;
+  await page.goto(issuePath);
+  await unapprove();
+  await expect(page.getByRole("button", { name: "Approve" })).toBeVisible();
+}
+
 test.afterAll(async () => {
-  await context.close();
-  delete process.env["MOP_DEV_LOCK_HELD"];
-  await release();
+  try {
+    await leaveDraft();
+  } finally {
+    await context.close();
+    delete process.env["MOP_DEV_LOCK_HELD"];
+    await release();
+  }
 });
 
 test("the issues list opens the one draft, or the Build button makes it from the published stories", async () => {
@@ -140,11 +169,7 @@ test("approving for 30 days ahead queues the send and its preview, and unapprovi
   ]);
   expect(Number(queued[1]?.days)).toBeGreaterThan(DAY - 1);
 
-  await page.getByRole("button", { name: "Unapprove" }).click();
-  await page
-    .getByRole("dialog", { name: "Take this issue back to draft" })
-    .getByRole("button", { name: "Unapprove" })
-    .click();
+  await unapprove();
   await expect(
     page.getByText("Back to draft. The queued send and preview are cancelled."),
   ).toBeVisible();

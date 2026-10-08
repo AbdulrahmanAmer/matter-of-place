@@ -1,5 +1,6 @@
 import { createLazyFileRoute, useRouter } from "@tanstack/react-router";
 import { IssuesTable } from "../../admin/newsletter/IssuesTable";
+import { failureText } from "../../admin/newsletter/failure-text";
 import { SUBSCRIBER_EXPORT_PATH } from "../../admin/newsletter/newsletter-api";
 import {
   useBuildIssue,
@@ -95,7 +96,7 @@ function NewsletterPage() {
           <SubscribersTab
             counts={counts.data}
             loading={counts.isPending}
-            error={counts.error?.message ?? null}
+            error={counts.error === null ? null : failureText(counts.error)}
             exportHref={
               actions.includes("newsletter.subscribers_export") ? SUBSCRIBER_EXPORT_PATH : null
             }

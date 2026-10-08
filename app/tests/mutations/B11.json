@@ -1762,6 +1762,15 @@
     "expect": "× .*keeps Approve off while a change is not saved"
   },
   {
+    "id": "b11-g6-failure-request-id",
+    "test": "src/admin/newsletter/newsletter.test.tsx",
+    "file": "src/admin/newsletter/failure-text.ts",
+    "find": "`${error.message} Request ${error.requestId}.`",
+    "replace": "error.message",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
+    "expect": "× .*quotes the request id of a refusal"
+  },
+  {
     "id": "b11-g6-ed-eastern",
     "test": "src/admin/newsletter/newsletter.test.tsx",
     "file": "src/admin/newsletter/IssueEditor.tsx",
@@ -1792,7 +1801,7 @@
     "id": "b11-g6-ed-refusal",
     "test": "src/admin/newsletter/newsletter.test.tsx",
     "file": "src/admin/newsletter/IssueEditor.tsx",
-    "find": "setFailure(error instanceof Error ? error.message : \"That did not work. Try again.\");",
+    "find": "setFailure(failureText(error));",
     "replace": "setFailure(null);",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/newsletter/newsletter.test.tsx",
     "expect": "× .*shows a refusal inline"
@@ -1873,8 +1882,8 @@
     "id": "b11-g6-routes-pending-stale",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "tests/unit/admin-routes-parity.test.ts",
-    "find": "  \"automation.templates_send_test\",\n];",
-    "replace": "  \"automation.templates_send_test\",\n  \"newsletter.build\",\n];",
+    "find": "  \"reports.email\",\n];",
+    "replace": "  \"reports.email\",\n  \"newsletter.build\",\n];",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*gives every matrix action a route"
   },

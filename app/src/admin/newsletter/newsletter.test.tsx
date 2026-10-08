@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { Issue, SubscriberCountsView } from "../../domain/admin-newsletter";
+import { AdminApiError } from "../ui/admin-fetch";
 import { IssueEditor, type IssueDraft } from "./IssueEditor";
 import { IssuesTable } from "./IssuesTable";
 import { PreviewFrame } from "./PreviewFrame";
@@ -208,6 +209,18 @@ describe("IssueEditor", () => {
     expect((await screen.findByRole("alert")).textContent).toBe("Someone approved this issue.");
     expect(refuse).toHaveBeenCalledTimes(1);
     expect(names()).toEqual(["House on the point", "Introduction", "The long view"]);
+  });
+
+  it("quotes the request id of a refusal so the editor can report it", async () => {
+    const refuse = vi.fn((_draft: IssueDraft) =>
+      Promise.reject(new AdminApiError(500, "internal", "Something went wrong.", "req-7f3a")),
+    );
+    mountEditor({}, { onSave: refuse });
+    fireEvent.click(button("Move down: Introduction"));
+    fireEvent.click(button("Save"));
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "Something went wrong. Request req-7f3a.",
+    );
   });
 
   it("offers neither Approve nor Save to a role that may not", () => {
