@@ -3084,8 +3084,8 @@
     "kind": "file",
     "test": "tests/unit/channels/reconcile.test.ts",
     "file": "src/server/channels/reconcile-social.ts",
-    "find": "(error instanceof AppError && error.code !== \"unavailable\")",
-    "replace": "error instanceof AppError",
+    "find": "(error.code !== \"unavailable\" || PLATFORM_UNAVAILABLE.test(error.message))",
+    "replace": "true",
     "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
     "expect": "FAIL .*> the daily part > throws when the token check cannot record"
   },
@@ -3094,8 +3094,8 @@
     "kind": "file",
     "test": "tests/unit/channels/reconcile.test.ts",
     "file": "src/server/channels/reconcile-social.ts",
-    "find": "(error instanceof AppError && error.code !== \"unavailable\")",
-    "replace": "error instanceof AppError",
+    "find": "(error.code !== \"unavailable\" || PLATFORM_UNAVAILABLE.test(error.message))",
+    "replace": "true",
     "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
     "expect": "FAIL .*> the daily part > throws when an X read cannot be counted"
   },
@@ -3104,8 +3104,8 @@
     "kind": "file",
     "test": "tests/unit/channels/reconcile.test.ts",
     "file": "src/server/channels/reconcile-social.ts",
-    "find": "(error instanceof AppError && error.code !== \"unavailable\")",
-    "replace": "error instanceof AppError",
+    "find": "(error.code !== \"unavailable\" || PLATFORM_UNAVAILABLE.test(error.message))",
+    "replace": "true",
     "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
     "expect": "FAIL .*> the daily part > throws when a stored token cannot be read"
   },
@@ -3898,5 +3898,35 @@
     "replace": "if (feature === undefined && campaign === undefined) {",
     "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
     "expect": "FAIL .*> auto-approve-rehearsal > stops BLOCKED"
+  },
+  {
+    "id": "b10g9-rs-withdrawn",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "find": "      .is(\"withdrawn_at\", null)\n      .gte(\"posted_at\"",
+    "replace": "      .gte(\"posted_at\"",
+    "expect": "FAIL .*> asks nothing of a withdrawn post"
+  },
+  {
+    "id": "b10g9-rs-shape",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "find": "|answered an unexpected shape/",
+    "replace": "/",
+    "expect": "FAIL .*> counts a tweet X no longer answers for"
+  },
+  {
+    "id": "b10g9-rs-noanswer",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "find": "/^[A-Za-z]+ did not answer\\.$|answered",
+    "replace": "/answered",
+    "expect": "FAIL .*> counts a platform that does not answer"
   }
 ]

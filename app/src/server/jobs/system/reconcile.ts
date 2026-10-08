@@ -58,6 +58,7 @@ export function reconcileJob(
   return {
     type: "reconcile",
     sideEffect: "none",
+    timeoutMs: 40_000,
     async run(ctx, params, data) {
       const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data));
       const { social } = await socialPart(ctx, params, ctx.now);

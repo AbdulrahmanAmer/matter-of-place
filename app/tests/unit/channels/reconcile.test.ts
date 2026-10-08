@@ -264,6 +264,46 @@ describe("the daily part", () => {
     expect(run.metrics.map((row) => row["p_id"])).toEqual([uuid(2)]);
   });
 
+  it("asks nothing of a withdrawn post and still completes the day", async () => {
+    const withdrawn = { ...aged(1, "x", 7), withdrawn_at: ago(DAY_MS) };
+    const run = setup({
+      posts: [withdrawn, aged(2, "instagram", 1)],
+      answers: { [`GET ${GRAPH}/instagram-2/insights`]: insights },
+    });
+    const social = await dailyRun(run);
+    expect(run.platform.calls().filter((call) => call.includes("/2/tweets/"))).toEqual([]);
+    expect(social).toMatchObject({ metrics: 1, completed: 3, errors: [] });
+  });
+
+  it("counts a tweet X no longer answers for as one platform error and still completes the day", async () => {
+    const gone = new Answer({
+      errors: [
+        { title: "Not Found Error", type: "https://api.twitter.com/2/problems/resource-not-found" },
+      ],
+    });
+    const run = setup({
+      posts: [aged(1, "x", 7), aged(2, "instagram", 1)],
+      answers: {
+        "GET https://api.x.com/2/tweets/x-1": gone,
+        [`GET ${GRAPH}/instagram-2/insights`]: insights,
+      },
+    });
+    const social = await dailyRun(run);
+    expect(social).toMatchObject({ metrics: 1, completed: 3 });
+    expect(social["errors"]).toEqual([expect.stringContaining(uuid(1))]);
+    expect(run.rpcs("complete_distributed_submissions")).toHaveLength(1);
+  });
+
+  it("counts a platform that does not answer as one platform error and goes on", async () => {
+    const run = setup({
+      posts: [aged(1, "x", 7), aged(2, "instagram", 1)],
+      answers: { [`GET ${GRAPH}/instagram-2/insights`]: insights },
+    });
+    const social = await dailyRun(run);
+    expect(social).toMatchObject({ metrics: 1, completed: 3 });
+    expect(social["errors"]).toEqual([expect.stringContaining("X did not answer")]);
+  });
+
   it("throws on a database error, so the job is retried", async () => {
     const run = setup({
       posts: [aged(1, "instagram", 1)],

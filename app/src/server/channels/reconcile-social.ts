@@ -71,14 +71,22 @@ const isSocialChannel = (value: string): value is SocialChannel =>
   Object.hasOwn(socialChannelLabels, value);
 
 /**
- * What an adapter throws for a platform that refused: the platform's own error classes. An `unavailable` AppError is
- * the database or an outage (the adapters raise both the same way) and throws, so B8's backoff retries the job; any
- * other AppError is a setting or a token of that channel and is counted.
+ * The `unavailable` messages that say the platform answered wrongly or not at all: "<Platform> did not answer." and
+ * "<Platform> answered an unexpected shape (...)". The adapters raise their database failures under the same code, with
+ * other words ("The job system did not answer (...)", "The settings could not be read."), and those throw.
+ */
+const PLATFORM_UNAVAILABLE = /^[A-Za-z]+ did not answer\.$|answered an unexpected shape/;
+
+/**
+ * What an adapter throws for a platform that refused or said nothing usable: the platform's own error classes, an
+ * `unavailable` that names the platform (above), and any other AppError, which is a setting or a token of that channel.
+ * An `unavailable` of any other wording is the database and throws, so B8's backoff retries the job.
  */
 const isPlatformError = (error: unknown): error is Error =>
   error instanceof GraphError ||
   error instanceof ChannelApiError ||
-  (error instanceof AppError && error.code !== "unavailable");
+  (error instanceof AppError &&
+    (error.code !== "unavailable" || PLATFORM_UNAVAILABLE.test(error.message)));
 
 const describeError = (id: string, error: Error) =>
   `${id}: ${error.message}`.slice(0, MESSAGE_LENGTH);
@@ -184,7 +192,12 @@ async function refreshNamed(ctx: StepContext, ids: string[]): Promise<Json> {
   const [world, posts] = await Promise.all([
     loadWorld(ctx.db),
     read(
-      ctx.db.from("social_posts").select("*").in("id", ids).eq("status", "posted"),
+      ctx.db
+        .from("social_posts")
+        .select("*")
+        .in("id", ids)
+        .eq("status", "posted")
+        .is("withdrawn_at", null),
       "social_posts",
     ),
   ]);
@@ -386,6 +399,7 @@ async function daily(ctx: StepContext): Promise<Json> {
       .from("social_posts")
       .select("*")
       .eq("status", "posted")
+      .is("withdrawn_at", null)
       .gte("posted_at", new Date(ctx.now.getTime() - METRICS_WINDOW_MS).toISOString()),
     "social_posts",
   );
