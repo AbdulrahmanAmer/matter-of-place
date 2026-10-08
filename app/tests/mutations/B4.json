@@ -252,6 +252,24 @@
     "expect": "FAIL .*> --changed <ref> replays only entries the diff touches"
   },
   {
+    "id": "wf-outside-resolve",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "const fromTop = (path) => relative(top, resolve(path)).split(sep).join(\"/\");",
+    "replace": "const fromTop = (path) => path;",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> --changed <ref> replays an entry anchored on a changed file above the registry's folder"
+  },
+  {
+    "id": "wf-outside-quiet",
+    "test": "tests/unit/watchfail.test.ts",
+    "file": "scripts/watchfail.mjs",
+    "find": "touched.has(fromTop(entry.test));",
+    "replace": "true;",
+    "run": "bunx vitest run --project unit tests/unit/watchfail.test.ts",
+    "expect": "FAIL .*> --changed <ref> leaves an entry on an unchanged file above the registry's folder out"
+  },
+  {
     "id": "ep-file-ok",
     "test": "tests/unit/watchfail.test.ts",
     "file": "scripts/watchfail.mjs",
