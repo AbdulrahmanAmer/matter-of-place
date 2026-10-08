@@ -233,7 +233,7 @@
 
 3. `workspace/05-plans/B8.md` (not blocking)
    - What: The plan text no longer matches what was built, and the log records each departure: (1) admin_retry_jobs takes (p_actor, p_actor_kind, p_request_id, p_type, p_error_like, p_since) with the filters last and defaulted (P-915), not the plan's order. The plan and the B10.md, B8.md and B8b.md review lines still show the old order. (2) listJobs makes two selects on a page after a cursor (ties, then older rows, because of R44), while plan line 90 says 'one supabase-js select'. (3) jobStatusLabels and the JobStatus re-export named for src/domain/jobs.ts were left out (knip, R04). Step 10 has to add them where it first uses them. The orchestrator should fold all three into the plan.
-   - Evidence: From reading: B8.md lines 90, 91 and 93 compared with app/supabase/migrations/20261008065327_jobs_admin.sql (the admin_retry_jobs signature), app/src/server/jobs/service.ts (`after()`) and app/src/domain/jobs.ts (no jobStatusLabels). The log block '## g1 · steps 9', under 'Choices the plan left open', records all three.
+   - Evidence: From reading: B8.md lines 90, 91 and 93 compared with app/supabase/migrations/20261008100910_jobs_admin.sql (the admin_retry_jobs signature), app/src/server/jobs/service.ts (`after()`) and app/src/domain/jobs.ts (no jobStatusLabels). The log block '## g1 · steps 9', under 'Choices the plan left open', records all three.
 
 (A fourth follow-up, the rework of `listJobs` after a jscpd clone that the bank did not hold, has GOTCHAS.md as its file and is banked as P-2600.)
 
@@ -252,7 +252,7 @@
    - Evidence: jobs.index.tsx lines 4-5 comment and validateSearch; JobsPage.tsx useOpenJob reads `new URLSearchParams(location.searchStr).get("job")`; use-url-filters.ts reads `location.searchStr`. No test mounts the real Route: jobs.test.tsx uses pageRoute from test-router, so validateSearch is never run.
 
 2. `tests/mutations/B8.json` (not blocking)
-   - What: The manual entry b8g1-e2e-retry (retryJob posts to cancel, expect 'Expected: 200') has no working control on mop-dev today. The unmutated spec already fails there with 'Expected: 200, Received: 500', because admin_retry_job is not on mop-dev. A replay now would print OK without the mutation being what turned it red. It becomes a real watched-fail only once main pushes 20261008065327_jobs_admin.sql or it runs on the CI stack, and then the unmutated spec must be seen green first. The author disclosed that it was not replayed.
+   - What: The manual entry b8g1-e2e-retry (retryJob posts to cancel, expect 'Expected: 200') has no working control on mop-dev today. The unmutated spec already fails there with 'Expected: 200, Received: 500', because admin_retry_job is not on mop-dev. A replay now would print OK without the mutation being what turned it red. It becomes a real watched-fail only once main pushes 20261008100910_jobs_admin.sql or it runs on the CI stack, and then the unmutated spec must be seen green first. The author disclosed that it was not replayed.
    - Evidence: Retry case on the built Worker against mop-dev, unmutated: admin-jobs.spec.ts:79 Expected: 200, Received: 500. pg_proc where proname like 'admin_%job%' returns [].
 
 3. `workspace/05-plans/B8.md` (not blocking)
