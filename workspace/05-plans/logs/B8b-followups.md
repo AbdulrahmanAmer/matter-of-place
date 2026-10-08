@@ -361,3 +361,19 @@ Recorded from the g10 review (no blocking defect). None is blocking. Two further
 - what: Stale plan text, for the orchestrator to fold in. Step 10's proof says 'a limit above 50 is clamped to 50' and calls the cursor `before`. The code refuses a limit over 50 with 422 and names the cursor `cursor` (<at>~<id>). Watched-fail (n) 'drop ... the 50 clamp' is met by b8b-g10-limit-clamp against the refusal, not against a clamp.
 - evidence: src/server/automation/service.ts listRevisions and revisionsInput = adminPageSchema.extend(...); the existing case 'refuses a limit over 50 and a cursor that is not <at>~<id> with 422'.
 - blocking: false
+
+## c8bx · steps 10
+
+Recorded from the c8bx review (no blocking defect). None is blocking. The third item of that review names GOTCHAS.md and went into the bank (P-2517), not here.
+
+### 1. app/tests/e2e/automation-exit.spec.ts
+
+- what: The CI-visible case at line 242 ('... records the event and enqueues no notify_admin job') stays green when the behaviour named in its title is removed. Its notify_admin assertion can only pass. In CI no runner exists, so no job exists at all. On the laptop the case finishes before the runner plans the event. The title therefore claims more than CI proves. The brief asked for this split and the author marked it UNPROVEN, so it is not blocking. Possible fix: rename it to say what it proves, or assert that no job exists for the event yet, which states the H70 boundary honestly.
+- evidence: Confirmed by running. In the replay of b8b-g10-e2e-step-on the step was left on (the planner would make notify_admin_received), yet case 1 passed: '✓ 1 ... a submission from /submit records the event and enqueues no notify_admin job (3.7s)'. Only the runner case went red.
+- blocking: false
+
+### 2. app/tests/mutations/B8b.json
+
+- what: No registry entry names the new CI-visible test title red (C08, P-079). The old entry b8b-g10-e2e-step-on used to expect '✘ .*a submission from /submit'. It now expects only the runner case. The author's watched-fail for that case (event query given SUBMITTER + 'x', 'Expected length: 1 / Received length: 0') is in the log only and was never registered.
+- evidence: Confirmed by running. A node listing of B8b.json entries that mention automation-exit shows these expects: no-store, '› the runner plans', 'a restore from screen 21', 'an agent key makes the same switch'. None names 'a submission from /submit records the event'.
+- blocking: false

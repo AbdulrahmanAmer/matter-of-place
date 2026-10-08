@@ -5885,3 +5885,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a cost for a restamp after a merge of main cites P-2314, and one for a check that printed OK or crashed because the rename was not committed cites P-318, each with a "hit again" line when the lane hit it again. Open the entry before citing it (P-2456).
 - proof: `awk '/^## P-511 /{f=1;next} /^## /{f=0} f' GOTCHAS.md | grep -c "restamp\|migrations:check\|committed"` → `0`; the same filter on `P-318` with `committ` → `4`, on `P-2314` with `restamp` → `2`.
 - added: 2026-10-08
+
+## P-2517 · P-336's "keep both sides" is wrong for a removal list: `routesPending` conflicts when both sides removed an entry, and both lines must go
+- symptom: B8b c8bx merged `origin/main` and `app/tests/unit/admin-routes-parity.test.ts` conflicted on `routesPending`: this branch had `dashboard.get` there, main had `automation.templates_send_test`. Keeping both sides, as P-336 says, left two stale entries and `gives every matrix action a route` failed with `stale: [automation.templates_send_test, dashboard.get]`.
+- cause: `routesPending` lists the matrix actions that still have no route. P-336 is written for lists that grow (one line per lane, `knip.json`, `.prettierignore`). Here each side had routed one action and the conflict was the two removals touching neighbouring lines, so the right result is the union of the removals, not of the lines. The cost was filed under P-2516 (registry entries on serial specs), which does not cover it.
+- rule: on a conflict inside a list of pending items, first ask whether the sides added or removed. For a list that shrinks, drop every entry whose action now has a route on the merged tree, and let the test that reads the list say which: `cd app && bunx vitest run tests/unit/admin-routes-parity.test.ts` after the merge, with `stale` empty. Keep-both-sides applies to lists that only grow.
+- proof: `git show 18c062a3 --format= -- app/tests/unit/admin-routes-parity.test.ts | grep -c '^-  "'` → `2` (the two lines removed by the resolution that made the parity test pass).
+- added: 2026-10-08
