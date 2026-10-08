@@ -4970,6 +4970,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - added: 2026-10-08
 - enforced-by: `tests/unit/watchfail.test.ts` ("--changed <ref> also replays an entry the registry gained since <ref>")
 
+## P-541 · A check stage on a shared lane machine dies with "JavaScript heap out of memory": node's 2 GB heap ceiling under five concurrent checks, not the machine running dry
+- symptom: 2026-10-08 11:44, Dell, B11 g1 builder (lane D:/mop-build/b11): `bun run check` printed `FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory` (Mark-Compact 2036 MB -> 2028 MB of a 2054 MB limit) after 304 s while five agents ran; the system had 1.96 GB free.
+- cause: the stage was `eslint . --max-warnings 0` (type-aware lint, R01 projectService, holds the program of about 2,000 files in memory; exit 134); node sizes its default old-space limit from the machine (the Dell gave 2054 MB, this laptop gives 4288) and under load eslint crosses the smaller one. The machine was not out of memory.
+- rule: re-run as `NODE_OPTIONS=--max-old-space-size=4096 bun run check` and keep the variable for the group's later checks, builds and tests; the builders' brief carries the line. No lane pause for a node heap OOM; a pause needs a killed process, a worker crash or a Chromium failure with low free memory.
+- proof: `node -e "console.log(require(v8).getHeapStatistics().heap_size_limit/1048576|0)"` prints about 2096 (the default) and `NODE_OPTIONS=--max-old-space-size=4096 node -e ...` prints about 4144.
+- added: 2026-10-08
+
 ## P-540 · `quiet.mjs -- bun run check | tail -1 && git commit ...` commits and pushes on a red check: the pipeline exit is tail's, not the check's
 - symptom: 2026-10-08 05:20, the watchfail PR (226) was pushed with its check having printed `quiet: exit 1`; the chain went on because `| tail -1` ended the pipeline with 0. The same check passed on the next run (load), so the red line's content is UNPROVEN.
 - cause: a pipeline's status is its last command's; `&&` after `| tail` tests tail.
