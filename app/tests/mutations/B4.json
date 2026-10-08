@@ -1343,8 +1343,8 @@
     "id": "x-deploy-heavy",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "      - name: lighthouse\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'\n",
-    "replace": "      - name: lighthouse\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false\n",
+    "find": "        timeout-minutes: 22\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'\n",
+    "replace": "        timeout-minutes: 22\n        if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "the overflow and Lighthouse steps run only for a front-end change"
   },
