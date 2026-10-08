@@ -1440,3 +1440,26 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   B11 step 4-5 remainder close-out on the Dell's B6 lane once PR 211 is on main; H1 after the B merges of the next hours.
 - Operator items unchanged: Meta, X and LinkedIn apps (B10 1, 2, 3a, 3b, 7, 7a, 7b); invoice copy sign-off; legal entity and
   postal address (B11 step 8, S59). Pause rule on the Dell: a real memory symptom only.
+
+## 2026-10-08 21:25 NIGHT (operator awake and asking; merges blocked by Cloudflare error 1027 until 00:00 UTC = 03:00 local)
+- Cloudflare error 1027 since 20:40: the Workers Free plan's 100,000 requests a day for the whole account, spent by the day's CI
+  previews; every Worker on holy-meadow-4327.workers.dev (production, dev, every PR preview) answers 429 until the reset. Banked as
+  P-543 (PR 252, itself waiting: a GOTCHAS.md-only change runs the preview job, unlike .claude and workspace records; PR 251 closed).
+  Decision for the operator: Workers Paid (five dollars a month, ten million requests) lifts it within minutes and removes the cap
+  before launch; told him at 21:12 and 21:17, no answer yet. Builds, reviews and CI's check, db and e2e jobs do not touch workers.dev.
+- Merges queued behind it, all green except the preview: PR 227 (B11 whole slice, head 35889e44), PR 249 (B8b screens 17 to 21,
+  head c38264be is a documents-only bank commit: check its rollup before the gate), PR 250 (B7 step 11, in review), PR 163 (B13,
+  branch eb6d1f4e level with main after two merge builders; mergeOnly not yet launched), PR 252. At 03:00 the Dell reruns the failed
+  preview jobs of 227, 249, 250 one at a time, each followed by a mergeOnly relaunch, B11 first; I launch B13's mergeOnly here and gate
+  252. If the operator upgrades earlier, I send the Dell "edge clear" the minute a plain GET answers 200.
+- Merged today (eleven lane merges): B6 (231), B7 steps 6, 7, 7a, 8, 9-10 (213, 230, 245, 248), B8 (238), B8b step 6 (240), B9
+  (211), B10 (223), B16 (209), B17 (246). Rulings H69 to H72, H71a, H71b; tools: mergeOnly and `only` for close-outs (P-535 gap),
+  watchfail --changed selects added entries (P-539) and outside-app anchors (P-542), bank-merge supersedes a lane-rewritten line
+  (PR 243), lint script with a 4 GB heap (P-541), board never takes acceptance back (PR 239).
+- Live: here H1 wf_fc8dc497-ba0 (g1 step 1 rejected once, fix round waits for g2's hand-in; g2 security batch A building; only g1 to g5
+  run, 6 to 10 are drills for later); Dell B7 wf_9553379b-ff4 (step 11 inquiries in review, then 11a, 12, 13, 14, 15, 15a, 16).
+  Idle: every other lane. Next buildable after the merges: B14 steps 4 and 5 (needs B13 on main), H1 steps 3 to 5.
+- Board https://claude.ai/artifact/JPdTuyF34P9yaUwo8UdH8x version 72: 208 of 259, 51 to go (about 12 operator or launch-day
+  by design). Operator items: Meta, X and LinkedIn apps; invoice copy sign-off; legal entity and postal address; the Workers plan.
+- Preview-load lesson for the morning: the preview job (three Lighthouse runs on six pages, observatory, reruns) is what spent the
+  quota; after the plan decision, cut it to one Lighthouse run per page on previews and keep three on the dev deploy (ruling to write).
