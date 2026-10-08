@@ -1,5 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ConfirmForm } from "../../admin/team/ConfirmForm";
+import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { pageHead } from "../../lib/seo";
 
 interface ConfirmSearch {
@@ -10,6 +9,7 @@ interface ConfirmSearch {
 
 const text = (value: unknown): string => (typeof value === "string" ? value : "");
 
+// A shell (ruling H66): the page is imported by the lazy component.
 export const Route = createFileRoute("/admin/auth/confirm")({
   validateSearch: (search: Record<string, unknown>): ConfirmSearch => {
     const next = text(search["next"]);
@@ -26,18 +26,5 @@ export const Route = createFileRoute("/admin/auth/confirm")({
       path: "/admin/auth/confirm",
       noindex: true,
     }),
-  component: ConfirmPage,
+  component: lazyRouteComponent(() => import("../../admin/team/ConfirmPage"), "ConfirmPage"),
 });
-
-function ConfirmPage() {
-  const search = Route.useSearch();
-  return (
-    <main className="admin-auth">
-      {search.token_hash === "" ? (
-        <p>This sign-in link is incomplete. Please ask for a new one.</p>
-      ) : (
-        <ConfirmForm tokenHash={search.token_hash} type={search.type} next={search.next} />
-      )}
-    </main>
-  );
-}

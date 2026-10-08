@@ -1,20 +1,36 @@
 import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
-import type { AdminActor } from "../../src/server/lib/admin-route";
+import { z } from "zod";
+import { siteConfig } from "../../src/config/site";
+import { requestAssetsInputSchema } from "../../src/domain/admin-submissions";
+import { loadSiteContext } from "../../src/server/email/context";
+import { renderTemplate } from "../../src/server/email/render";
+import { resolveVariables } from "../../src/server/email/variables";
+import {
+  defineAdminRoute,
+  type AdminActor,
+  type AdminDeps,
+} from "../../src/server/lib/admin-route";
 import { AppError } from "../../src/server/lib/errors";
 import {
+  accept,
   addNote,
+  assetsReceived,
+  decline,
+  emailPreview,
   getSubmission,
+  listDeclineReasons,
   newestPaymentId,
   originalUrl,
+  requestAssets,
   startReview,
   timeline,
 } from "../../src/server/submissions/service";
 import { fakeDb, type FakeDb, type FakeDbOptions } from "../fixtures/fake-db";
 import { withTables, type Row } from "../fixtures/table-stub";
 
-// The admin service of a request (B7 steps 4 and 5): who may read it and note it, who may move it, and what a refused
-// move answers.
+// The admin service of a request (B7 steps 4 to 6): who may read it and note it, who may move it, what a refused
+// move answers, and what a decision writes, plans and previews.
 
 const actor = (roles: AdminActor["roles"]): AdminActor => ({
   userId: "00000000-0000-4000-8000-000000000001",
@@ -322,5 +338,321 @@ describe("timeline", () => {
   it("lets a commercial reader read the history of a request", async () => {
     const db = withTables(fakeDb(), { audit_log: [], jobs: [] });
     expect(await timeline(actor(["commercial"]), db, { id: SUBMISSION })).toEqual({ items: [] });
+  });
+});
+
+const REASON = "00000000-0000-4000-8000-0000000000e1";
+const RETIRED_REASON = "00000000-0000-4000-8000-0000000000e2";
+const AT = "2026-10-07T08:00:00+00:00";
+
+const reason = (id: string, label: string, enabled: boolean, sort: number): Row => ({
+  id,
+  code: label.toLowerCase().replaceAll(" ", "_"),
+  label,
+  email_paragraph: `${label}: we feature a few homes a month.`,
+  sort,
+  enabled,
+});
+
+// The recipes B8b seeds: each decision event sends its one letter.
+const recipes: Row[] = ["declined", "accepted", "awaiting_assets"].map((template, n) => ({
+  id: `00000000-0000-4000-8000-00000000010${String(n)}`,
+  trigger: `submission.${template}`,
+  enabled: true,
+  steps: [
+    {
+      id: `send_${template}`,
+      step_type: "send_email",
+      params: { template },
+      enabled: true,
+      requires_approval: false,
+      conditions: {},
+    },
+  ],
+}));
+
+const declinedTemplate = {
+  key: "declined",
+  subject: "About {{property_address}}",
+  preheader: "",
+  body: [
+    { type: "heading", text: "Thank you for submitting {{property_address}}." },
+    { type: "paragraph", text: "{{reason_paragraph}}" },
+    { type: "paragraph", text: "{{note_paragraph}}" },
+    { type: "signature" },
+  ],
+};
+
+const plannedJobs = z.array(z.object({ type: z.string(), status: z.string() }));
+
+const uuidAt = (prefix: string, n: number) =>
+  `00000000-0000-4000-8000-0000000${prefix}${String(n).padStart(2, "0")}`;
+
+/**
+ * A database whose three letter-sending decision functions behave as step 6's SQL does (its own proof is
+ * `tests/db/admin.db.test.ts`): refuse a request in another state, change the row, write one audit row and one event.
+ * `fanout_insert_jobs` keeps the planned jobs in `jobs`, which the service then reads by `event_id`.
+ */
+function decisionDb(state = "Under Review") {
+  const request: Row = { ...submissionRow, workflow_state: state, decline_reason_id: null };
+  const tables = {
+    submissions: [request],
+    decline_reasons: [
+      reason(RETIRED_REASON, "Retired reason", false, 2),
+      reason(REASON, "Not a fit", true, 1),
+    ],
+    email_templates: [declinedTemplate],
+    settings: [],
+    automation_recipes: recipes,
+    events: [] as Row[],
+    audit_log: [] as Row[],
+    jobs: [] as Row[],
+  };
+  const decide =
+    (from: readonly string[], to: string, action: string, type: string) =>
+    (args: { p_submission_id: string; p_actor: string }, change: Row, extra: Row = {}) => {
+      if (!from.includes(String(request["workflow_state"]))) {
+        return Object.assign(new Error("wrong_state"), { code: "P0001" });
+      }
+      Object.assign(request, { workflow_state: to, ...change });
+      tables.audit_log.push({ action, entity_id: args.p_submission_id, actor_id: args.p_actor });
+      const id = uuidAt("002", tables.events.length);
+      const base = { submission_id: args.p_submission_id, tier: "Feature", market: "california" };
+      tables.events.push({ id, type, at: AT, payload: { ...base, ...extra } });
+      return id;
+    };
+  const declineRow = decide(
+    ["Under Review"],
+    "Declined",
+    "submissions.decline",
+    "submission.declined",
+  );
+  const acceptRow = decide(
+    ["Under Review"],
+    "Accepted",
+    "submissions.accept",
+    "submission.accepted",
+  );
+  const askRow = decide(
+    ["Under Review", "Accepted"],
+    "Awaiting Assets",
+    "submissions.request_assets",
+    "submission.awaiting_assets",
+  );
+  const db = withTables(
+    fakeDb({
+      rpc: {
+        decline_submission: (args) =>
+          declineRow(
+            args,
+            {
+              decline_reason_id: args.p_reason_id,
+              decline_note: args.p_note,
+              reviewed_by: args.p_actor,
+            },
+            {
+              decline_reason_id: args.p_reason_id,
+              ...(args.p_note === "" ? {} : { note: args.p_note }),
+            },
+          ),
+        accept_submission: (args) =>
+          acceptRow(args, { accepted_by: args.p_actor, accepted_at: AT }),
+        request_assets: (args) => askRow(args, {}, { note: args.p_note }),
+        fanout_insert_jobs: (args) => {
+          const planned = plannedJobs.parse(args.p_jobs);
+          for (const job of planned) {
+            tables.jobs.push({
+              id: uuidAt("003", tables.jobs.length),
+              event_id: args.p_event_id,
+              ...job,
+            });
+          }
+          return planned.length;
+        },
+      },
+    }),
+    tables,
+  );
+  return { db, tables, request };
+}
+
+const rpcNames = (db: FakeDb) =>
+  db.calls.filter((call) => call.kind === "rpc").map((call) => call.name);
+
+describe("decisions", () => {
+  it("decline writes the state, the reason and the reviewer, one audit row and one submission.declined event, and answers its send_email job", async () => {
+    const { db, tables, request } = decisionDb();
+    const answer = await decline(actor(["managing_editor"]), db, {
+      id: SUBMISSION,
+      decline_reason_id: REASON,
+      note: "Not this season.",
+    });
+    expect({
+      request: {
+        state: request["workflow_state"],
+        reason: request["decline_reason_id"],
+        reviewer: request["reviewed_by"],
+      },
+      audits: tables.audit_log.map((row) => row["action"]),
+      events: tables.events.map((row) => row["type"]),
+      answer,
+    }).toEqual({
+      request: {
+        state: "Declined",
+        reason: REASON,
+        reviewer: "00000000-0000-4000-8000-000000000001",
+      },
+      audits: ["submissions.decline"],
+      events: ["submission.declined"],
+      answer: {
+        event_id: uuidAt("002", 0),
+        jobs: [{ id: uuidAt("003", 0), type: "send_email", status: "queued" }],
+      },
+    });
+  });
+
+  it("the decline preview is the letter send_email renders from the declined event's payload", async () => {
+    const { db, tables } = decisionDb();
+    const note = "We hope to read the next one.";
+    const preview = await emailPreview(actor(["chief_editor"]), db, {
+      id: SUBMISSION,
+      template: "declined",
+      decline_reason_id: REASON,
+      note,
+    });
+    await decline(actor(["chief_editor"]), db, { id: SUBMISSION, decline_reason_id: REASON, note });
+    const payload = z.record(z.string(), z.string()).parse(tables.events[0]?.["payload"]);
+    const site = await loadSiteContext(db, siteConfig.url);
+    const sent = await renderTemplate(
+      declinedTemplate,
+      await resolveVariables(db, "declined", payload, undefined, site),
+      site,
+    );
+    expect({ same: preview.html === sent.html, note: sent.html.includes(note) }).toEqual({
+      same: true,
+      note: true,
+    });
+  });
+
+  it("accept sets accepted_by and accepted_at and writes one submission.accepted event with the request, tier and market", async () => {
+    const { db, tables, request } = decisionDb();
+    const answer = await accept(actor(["chief_editor"]), db, { id: SUBMISSION });
+    expect({
+      acceptedBy: request["accepted_by"],
+      acceptedAt: request["accepted_at"],
+      events: tables.events.map((row) => [row["type"], row["payload"]]),
+      jobs: answer.jobs.map((job) => job.type),
+    }).toEqual({
+      acceptedBy: "00000000-0000-4000-8000-000000000001",
+      acceptedAt: AT,
+      events: [
+        [
+          "submission.accepted",
+          { submission_id: SUBMISSION, tier: "Feature", market: "california" },
+        ],
+      ],
+      jobs: ["send_email"],
+    });
+  });
+
+  it("request_assets writes one submission.awaiting_assets event carrying the dialog's note", async () => {
+    const { db, tables } = decisionDb("Accepted");
+    await requestAssets(actor(["managing_editor"]), db, {
+      id: SUBMISSION,
+      note: "Ten interiors and a plan.",
+    });
+    expect(tables.events.map((row) => [row["type"], row["payload"]])).toEqual([
+      [
+        "submission.awaiting_assets",
+        {
+          submission_id: SUBMISSION,
+          tier: "Feature",
+          market: "california",
+          note: "Ten interiors and a plan.",
+        },
+      ],
+    ]);
+  });
+
+  it("request-assets without a note answers 422 and asks the database nothing", async () => {
+    const db = fakeDb();
+    const deps: AdminDeps = {
+      db: () => db,
+      requireActor: () =>
+        Promise.resolve({
+          userId: "00000000-0000-4000-8000-000000000001",
+          kind: "human",
+          roles: ["managing_editor"],
+          scopes: [],
+        }),
+      verifyCsrf: () => Promise.resolve(),
+      assertSessionFresh: () => undefined,
+      requireRecentAuth: () => undefined,
+    };
+    const route = defineAdminRoute(
+      {
+        method: "POST",
+        action: "submissions.request_assets",
+        input: requestAssetsInputSchema,
+        handler: (ctx, input) => requestAssets(ctx.actor, ctx.db, input),
+      },
+      deps,
+    );
+    const response = await route({
+      request: new Request(
+        `https://example.test/api/admin/submissions/${SUBMISSION}/request-assets`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ note: "  " }),
+        },
+      ),
+      context: { requestId: "req-ra" },
+      params: { id: SUBMISSION },
+    });
+    expect({ status: response.status, calls: db.calls.length }).toEqual({ status: 422, calls: 0 });
+  });
+
+  it("assets_received answers where the request went back to and writes no event", async () => {
+    const db = fakeDb({ rpc: { assets_received: () => "Accepted" } });
+    const answer = await assetsReceived(actor(["managing_editor"]), db, { id: SUBMISSION });
+    expect({ answer, rpc: rpcNames(db) }).toEqual({
+      answer: { workflow_state: "Accepted" },
+      rpc: ["assets_received"],
+    });
+  });
+
+  it("an agent over its daily cap gets 429 agent_daily_limit and nothing is planned", async () => {
+    const db = fakeDb({
+      rpc: {
+        decline_submission: () => Object.assign(new Error("agent_daily_limit"), { code: "P0001" }),
+      },
+    });
+    const agent: AdminActor = {
+      ...actor(["managing_editor"]),
+      kind: "agent",
+      scopes: ["submissions"],
+    };
+    expect({
+      answer: await outcome(decline(agent, db, { id: SUBMISSION, decline_reason_id: REASON })),
+      rpc: rpcNames(db),
+    }).toEqual({
+      answer: { status: 429, code: "agent_daily_limit" },
+      rpc: ["decline_submission"],
+    });
+  });
+
+  it("lists the enabled decline reasons in their order, and refuses a commercial reader before the database", async () => {
+    const { db } = decisionDb();
+    const refused = fakeDb();
+    expect({
+      reasons: await listDeclineReasons(actor(["managing_editor"]), db),
+      commercial: await outcome(listDeclineReasons(actor(["commercial"]), refused)),
+      calls: refused.calls.length,
+    }).toEqual({
+      reasons: { items: [{ id: REASON, code: "not_a_fit", label: "Not a fit" }] },
+      commercial: { status: 403, code: "forbidden" },
+      calls: 0,
+    });
   });
 });

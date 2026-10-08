@@ -1349,12 +1349,12 @@
     "expect": "the overflow and Lighthouse steps run only for a front-end change"
   },
   {
-    "id": "shells-legacy",
+    "id": "shells-static-import",
     "test": "tests/unit/admin-route-shells.test.ts",
-    "file": "tests/unit/admin-route-shells.test.ts",
-    "find": "  \"src/routes/admin.tsx\",\n",
-    "replace": "",
+    "file": "src/routes/admin/sign-in.tsx",
+    "find": "import { pageHead } from \"../../lib/seo\";",
+    "replace": "import { pageHead } from \"../../lib/seo\";\nimport { useState } from \"react\";",
     "run": "bunx vitest run tests/unit/admin-route-shells.test.ts",
-    "expect": "admin\\.tsx imports .*\\.\\./admin/ui/AdminShell"
+    "expect": "AssertionError: src/routes/admin/sign-in.tsx imports react statically"
   }
 ]

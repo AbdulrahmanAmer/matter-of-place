@@ -950,7 +950,7 @@
     "kind": "file",
     "test": "tests/unit/cache.test.ts",
     "file": "src/server/public/cache.ts",
-    "find": "  if (!isReadRequest(request)) return bypass(await build(), undefined);\n",
+    "find": "  if (isPreviewRequest(request.url) || !isReadRequest(request)) {\n    return bypass(await build(), undefined);\n  }\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
     "expect": "× .*does not store a write"
