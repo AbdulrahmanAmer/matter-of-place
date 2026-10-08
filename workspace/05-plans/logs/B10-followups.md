@@ -277,3 +277,19 @@ Second review of g5 (the resume run of 2026-10-08): no blocking defect, two foll
 - what: Follow-up, not this group's file (g6 or the orchestrator). Found by reading, not confirmed by running. The provider reset time that g5 computes is never used. x-errors.ts and linkedin-errors.ts fill ChannelFailure.retryAt from X's x-rate-limit-reset and 24-hour reset headers and from LinkedIn's Retry-After. No production code reads it: onFailure in post-to-channel.ts (lines 316-358) sends every retry_at failure to planRetry, which uses B8's backoff and the posting window. So a 429 that resets in 15 minutes gets retried at 30 s, 1 minute and 2 minutes before the reset, and the X monthly usage cap burns the 12 attempts and up to 3 window moves before the row fails. STANDARDS R34 says a quota or plan-limit answer maps to retry_at at the provider's own reset time, never a fixed guess. Plan invariant 3a treats retry_at like retryable, so the plan and R34 disagree. The orchestrator should settle which one rules. This does not block g5: the classification R34 asks of this group is there and tested.
 - evidence: grep -rn "retryAt" app/src --include=*.ts finds only the producers (oauth-tokens.ts:27, x-errors.ts, linkedin-errors.ts) plus resend.ts and window.ts, which have their own unrelated retryAt. platformFailure() in post-to-channel.ts:297-313 copies only class, message and code from ChannelApiError.detail.
 - blocking: false
+
+## g6 · steps 6
+
+Second review of group g6 (resume run). Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The two that name GOTCHAS.md are banked (P-2450, and a hit-again line on P-140); what stays here is the plan file and the fold request.
+
+### workspace/05-plans/B10.md
+
+- what: The plan's invariant-1 grep 'grep -rln "graph.facebook.com\|api.x.com\|api.linkedin.com" src/routes src/server/channels/service.ts src/server/reports' exits 2 until step 9 creates src/server/reports. Its 'prints nothing' pass condition is therefore met while the command errors. The author labels it UNPROVEN, which is correct. The re-run belongs to step 9's proof, with the exit code checked, not just the empty output.
+- evidence: In the snapshot: 'grep: src/server/reports: No such file or directory', rc2=2.
+- blocking: false
+
+### workspace/05-plans/B10.md (step 6 proof commands, tail of the follow-up banked on P-140)
+
+- what: The step 6 proof command, as both the plan and the author's report give it, is a bare 'bunx vitest run' without --testTimeout=60000. On a cold transform cache, admin-routes-parity.test.ts times out at the 5 s default. Pass the flag in the B10 proof commands (orchestrator to fold into B10.md step 6).
+- evidence: First run in the fresh snapshot: 'Tests 1 failed | 95 passed (96)', with 'FAIL tests/unit/admin-routes-parity.test.ts > ... Error: Test timed out in 5000ms.' The same command on a warm cache and with --testTimeout=60000 gave 96 passed (96).
+- blocking: false
