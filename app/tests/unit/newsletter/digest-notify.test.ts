@@ -16,13 +16,24 @@ import {
 
 const ISSUE = "5e1f0a00-0000-4000-8000-000000000903";
 
-function setup(digest: { status: string; result?: unknown } | undefined) {
+const MINUTE = 60 * 1000;
+
+function setup(digest: { status: string; result?: unknown; age?: number } | undefined) {
   const fetch = fakeFetch();
   const jobs = [
     { id: JOB_ID, idempotency_key: JOB_KEY, event_id: EVENT_ID, type: "notify_admin" },
     ...(digest === undefined
       ? []
-      : [{ id: "sibling", event_id: EVENT_ID, type: "queue_digest", result: null, ...digest }]),
+      : [
+          {
+            id: "sibling",
+            event_id: EVENT_ID,
+            type: "queue_digest",
+            status: digest.status,
+            result: digest.result ?? null,
+            created_at: new Date(NOW.getTime() - (digest.age ?? MINUTE)).toISOString(),
+          },
+        ]),
   ];
   const { db, messages } = emailWorld({ eventType: "digest.due", tables: { jobs } });
   const ctx = stepCtx(db, { type: "notify_admin", eventId: EVENT_ID });
@@ -67,6 +78,15 @@ describe("digest.due notice", () => {
     await run();
     expect(fetch.requests[0]?.body.subject).toBe("Place Notes draft could not be built");
     expect(fetch.requests[0]?.body.text).toContain(`/admin/jobs?event_id=${EVENT_ID}`);
+  });
+
+  it("stops waiting an hour after the job was made and says the draft is not ready", async () => {
+    const waiting = setup({ status: "waiting_approval", age: 59 * MINUTE });
+    expect((await waiting.run()).status).toBe("retry_at");
+    const late = setup({ status: "waiting_approval", age: 60 * MINUTE });
+    await late.run();
+    expect(late.fetch.requests[0]?.body.subject).toBe("Place Notes draft is not ready");
+    expect(late.fetch.requests[0]?.body.text).toContain(`/admin/jobs?event_id=${EVENT_ID}`);
   });
 
   it("is a failure, not a wait, when the event has no queue_digest job", async () => {

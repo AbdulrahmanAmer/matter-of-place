@@ -74,7 +74,9 @@ export const emailTemplateSchema = z.object({
   key: z.enum(emailTemplateKeys),
   subject: text(200),
   preheader: z.string().max(110),
-  body: z.array(emailBlockSchema).min(1).max(40),
+  // A row may hold no blocks when its template file draws its own content (`standalone`); `renderTemplate` refuses an
+  // empty body for every other key.
+  body: z.array(emailBlockSchema).max(40),
   variables: z.array(variableName).max(40),
   enabled: z.boolean(),
   version: z.number().int().min(1),
@@ -141,7 +143,7 @@ export const variablesByKey = {
   interest_confirm: ["market_names", "confirm_url"],
   newsletter_confirm: ["confirm_url"],
   admin_notify: ["headline", "summary", "link_url"],
-  standalone: [],
+  standalone: ["subject", "preheader", "block"],
   subject_ack: ["kind_label", "due_date"],
   repermission: ["confirm_url"],
   market_open: ["market_name", "market_url"],
@@ -183,7 +185,16 @@ export function usedVariables(body: readonly EmailBlock[]): string[] {
   return [...found];
 }
 
-const sampleValues = (siteUrl: string): Record<VariableName, string> => ({
+/** The property block of a standalone email: the `meta.block` of its asset with the address of its image. */
+interface SampleBlock {
+  title: string;
+  deck: string;
+  image_key: string;
+  image_url: string;
+  link: string;
+}
+
+const sampleValues = (siteUrl: string): Record<VariableName, string | SampleBlock> => ({
   submitter_name: "Jordan Lee",
   property_address: "412 Alder Court",
   city: "Pasadena",
@@ -222,13 +233,22 @@ const sampleValues = (siteUrl: string): Record<VariableName, string> => ({
   clicks: "42",
   video_views: "1,200",
   ctr: "1.2%",
+  subject: "Alder Court, Pasadena",
+  preheader: "A new property in California",
+  block: {
+    title: "Alder Court",
+    deck: "A 1926 Spanish Revival house in Pasadena.",
+    image_key: "sample/alder-court/og.jpg",
+    image_url: `${siteUrl}/media/sample/alder-court/og.jpg`,
+    link: `${siteUrl}/property/alder-court`,
+  },
 });
 
 /** A value for every variable of `key`; every sample URL is built on `siteUrl`. */
 export function sampleVariables(
   key: EmailTemplateKey,
   siteUrl = "https://matterofplace.com",
-): Record<string, string> {
+): Record<string, string | SampleBlock> {
   const samples = sampleValues(siteUrl);
   const names: readonly VariableName[] = variablesByKey[key];
   return Object.fromEntries(names.map((name) => [name, samples[name]]));

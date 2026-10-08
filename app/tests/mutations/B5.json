@@ -502,8 +502,8 @@
     "id": "b5-r-nodef",
     "test": "tests/unit/email/render.test.ts",
     "file": "src/server/email/render.ts",
-    "find": ")?.Email ?? Message;",
-    "replace": ")?.Email ?? (() => { throw new Error(\"no definition\"); })();",
+    "find": "file?.Email ?? Message;",
+    "replace": "file?.Email ?? (() => { throw new Error(\"no definition\"); })();",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "× .*renders a row whose key has no definition"
   },
@@ -511,8 +511,8 @@
     "id": "b5-r-pick",
     "test": "tests/unit/email/render.test.ts",
     "file": "src/server/email/render.ts",
-    "find": "definitions.find((file) => file.definition.key === row.key)?.Email ?? Message",
-    "replace": "Message",
+    "find": "const file = definitions.find((candidate) => candidate.definition.key === row.key);",
+    "replace": "const file = undefined;",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "× .*inside the Email of its key"
   },
