@@ -293,3 +293,55 @@ Second review of group g6 (resume run). Reviewer's follow-ups, none blocking, re
 - what: The step 6 proof command, as both the plan and the author's report give it, is a bare 'bunx vitest run' without --testTimeout=60000. On a cold transform cache, admin-routes-parity.test.ts times out at the 5 s default. Pass the flag in the B10 proof commands (orchestrator to fold into B10.md step 6).
 - evidence: First run in the fresh snapshot: 'Tests 1 failed | 95 passed (96)', with 'FAIL tests/unit/admin-routes-parity.test.ts > ... Error: Test timed out in 5000ms.' The same command on a warm cache and with --testTimeout=60000 gave 96 passed (96).
 - blocking: false
+
+## g8 · steps 8
+
+Reviewer's follow-ups, none blocking, recorded word for word with their evidence. The one that names GOTCHAS.md (the missing P-094 line) is banked as a hit-again line on P-094, so it is not repeated here.
+
+### app/src/routes/admin/index.tsx
+
+- what: Plan step 8 asks for an import and placement line for ChannelHealthTile on screen 2. That line is NOT DONE because B7's file is not on main. The tile, its test and its CSS are built. The tile carries @public and STUB(B10 step 8), so the stub ledger and preflight still track it. The placement is UNPROVEN until B7 step 9 creates the file. This needs a lane to own it once that file lands.
+- evidence: git ls-tree --name-only origin/main app/src/routes/admin/ lists no index.tsx (origin/main 3db85f9). grep STUB app/src/admin/dashboard/ChannelHealthTile.tsx shows line 15.
+- blocking: false
+
+### app/src/admin/channels/PostsTable.tsx
+
+- what: A failed write on screen 12 shows a toast with error.message and no request id. This covers Retry, Cancel and Refresh metrics (PostsTable.tsx:80), Done (WithdrawList.tsx:103) and Account ids save (AccountIdsForm.tsx:76). STANDARDS C17 asks for the request id on an error. The fix only added it to the list-load error. This matches B7's existing convention (requests/DecisionPanel.tsx:115 and RequestsPage.tsx:40 do the same), so it is a project-wide follow-up, not this group's regression.
+- evidence: grep -rn 'tone: "danger"' app/src/admin --include=*.tsx shows message-only toasts in channels and in B7's requests screens. No admin mutation toast carries requestId.
+- blocking: false
+
+### app/src/admin/channels/PostsTable.tsx
+
+- what: Refresh metrics fires on one click with no confirm (line 108). It enqueues refresh_social_post_metrics, which reads from the platforms. For X that read counts against settings.x.read_allowance (invariant 11). It is arguably an 'external action' under C17 and the ConfirmDialog doc ('every outward or destructive action'). The author flagged it. The plan does not settle it, so the orchestrator should rule.
+- evidence: Read app/src/admin/channels/PostsTable.tsx lines 102-111 and app/src/server/channels/service.ts refreshMetrics (lines 228-237).
+- blocking: false
+
+### app/src/admin/dashboard/ChannelHealthTile.test.tsx
+
+- what: The case 'shows amber at 14 days left and red at 6' passes the level in as fixture data (tokenAt(14, 'amber'), tokenAt(6, 'red')). It proves only how a given level is drawn, not the 14-day and 7-day thresholds, which the server's channelHealth/tokenHealth computes. The threshold proof has to come from the g3/g6 server tests. A reader of the step 8 proof should not take this case as threshold evidence.
+- evidence: Read lines 8-12 and 34-48 of the test. Mutating the threshold in the server code would leave this file green, by construction.
+- blocking: false
+
+### app/src/admin/channels/WithdrawList.tsx
+
+- what: The copy disagrees within one action. The dialog title and button say 'Mark as deleted', the body says 'is deleted on its platform', and the success toast says 'Marked as withdrawn.'
+- evidence: Read app/src/admin/channels/WithdrawList.tsx lines 87-111.
+- blocking: false
+
+### app/tests/e2e/admin-channels.spec.ts
+
+- what: In the dev server, the admin channels screen logs the React console.error 'Can't perform a React state update on a component that hasn't mounted yet'. Not traced to a component. It is unknown whether it predates this group.
+- evidence: My e2e re-run printed '[vite] (client) [console.error] Can't perform a React state update on a component that hasn't mounted yet' once.
+- blocking: false
+
+### workspace/05-plans/logs/B10.md
+
+- what: Line 625 says 'merged into slice/b10 at 7e046211'. The merge commit is 1c1baecb, and 7e046211 is its first parent. Earlier blocks name the merge commit itself (for example 32a0d86). The 'Started from origin/main b1005fc6' base is correct, so this is a wording slip, not a wrong diff base.
+- evidence: git log -1 --format='%H %P' 1c1baecb prints parents 7e046211 and b1005fc6.
+- blocking: false
+
+### app/scripts/bundle-check.mjs
+
+- what: The proofs include no bundle check (G16) for this commit. The WIP ran one on a live build, but the fix commit adds a ConfirmDialog import to admin-only files and was not re-checked. My local build without VITE_API_BASE_URL fails bundle-check on seed titles. That is expected for a non-live build, so it says nothing either way. The PR's CI build job is the judge: UNPROVEN until it runs.
+- evidence: cd app && node scripts/bundle-check.mjs after a plain bun run build prints 'FAIL ... holds the seed title ... of src/data/properties.ts', 'bundle-check: FAILED 7'. CI sets VITE_API_BASE_URL before its build (.github/workflows/ci.yml line 99).
+- blocking: false
