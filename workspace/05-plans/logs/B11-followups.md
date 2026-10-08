@@ -270,3 +270,17 @@
 4. File: `workspace/05-plans/logs/B11.md`. Blocking: no.
    - What: Follow-up. The fix round's registry-scan proof names `node scratchpad/stale.mjs`, which is not in the repository, so a reviewer cannot re-run the command as written. I reproduced it with an equivalent inline script (338 entries, 0 bad). `scripts/watchfail.mjs` has no `--check` mode either ('Unknown option', exit 64), so there is no committed one-line consistency check of a registry beyond tests/unit/mutation-registry.test.ts.
    - Evidence: `node scripts/watchfail.mjs --registry tests/mutations --check` -> `watchfail: Unknown option '--check'`, exit 64.
+
+## c11t · steps 9
+
+1. File: `workspace/05-plans/logs/B11.md`. Blocking: no.
+   - What: The log block 'c11t · steps 9', Proof 1, pastes 'Tests 472 passed (472)' as the result for the handed-in commit. The commit has 473 tests in that run. The output was captured before the new retryable case was added, so it is evidence from the draft, not from the shipped artifact. The code passes either way.
+   - Evidence: At 6ee5c213: `bunx vitest run tests/unit/newsletter tests/unit/email` gives 'Tests 473 passed (473)'. `git show 6ee5c213 -- app/tests/unit/newsletter/send.test.ts` adds exactly one it().
+
+2. File: `app/tests/unit/newsletter/send.test.ts`. Blocking: no.
+   - What: Rule B8 invariant 3 (an unavailable state during an email render stays retryable) is pinned for one caller only, newsletter_send. standalone.ts:287, send-email.ts:368 and newsletter/service.ts:122 also call loadSiteContext and have no matching case. The mutation b11-c11t-swallow-unavailable-state catches a swallow inside context.ts, which all four share. It would not catch a caller that wraps loadSiteContext in its own catch (for example, standalone.ts already has try/catch blocks at lines 216 and 240). The plan did not ask this step to cover every caller. Suspected from reading the code, not demonstrated.
+   - Evidence: grep -n loadSiteContext src/server/newsletter/standalone.ts src/server/jobs/steps/send-email.ts src/server/newsletter/service.ts: three call sites with no 'not available right now' case in standalone.test.ts or send-email.test.ts.
+
+3. File: `workspace/05-plans/logs/B11.md`. Blocking: no.
+   - What: The full --changed replay printed 84 BAD entries. The author read one of them (a tests/db entry, 'No test files found' without the dev profile) and labelled all 84 as db entries that are not from this group. That label is UNPROVEN for the other 83 until CI's db job or a dev-profile replay confirms it. I re-checked the part this group could have broken (78 B11 unit entries on send, standalone and service): all OK.
+   - Evidence: Author's log: 'replayed 643: ok 559, bad 84 ... the others were not read'.
