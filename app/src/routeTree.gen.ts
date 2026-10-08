@@ -20,6 +20,7 @@ import { Route as DotwellKnownSecurityDottxtRouteImport } from './routes/[.]well
 import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteMarketRouteImport } from './routes/_site.$market'
 import { Route as SiteAboutRouteImport } from './routes/_site.about'
+import { Route as SiteAccessibilityRouteImport } from './routes/_site.accessibility'
 import { Route as SiteContactRouteImport } from './routes/_site.contact'
 import { Route as SiteCookiesRouteImport } from './routes/_site.cookies'
 import { Route as SiteEditorialStandardRouteImport } from './routes/_site.editorial-standard'
@@ -29,10 +30,13 @@ import { Route as SiteLegalRouteImport } from './routes/_site.legal'
 import { Route as SiteMarketsRouteImport } from './routes/_site.markets'
 import { Route as SitePlaceNotesRouteImport } from './routes/_site.place-notes'
 import { Route as SitePricingRouteImport } from './routes/_site.pricing'
+import { Route as SitePrivacyRouteImport } from './routes/_site.privacy'
 import { Route as SitePrivacyChoicesRouteImport } from './routes/_site.privacy-choices'
+import { Route as SitePrivacyRequestRouteImport } from './routes/_site.privacy-request'
 import { Route as SitePropertiesRouteImport } from './routes/_site.properties'
 import { Route as SiteStoriesRouteImport } from './routes/_site.stories'
 import { Route as SiteSubmitRouteImport } from './routes/_site.submit'
+import { Route as SiteTermsRouteImport } from './routes/_site.terms'
 import { Route as AdminSignInRouteImport } from './routes/admin/sign-in'
 import { Route as ApiConsentRouteImport } from './routes/api/consent'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
@@ -51,6 +55,7 @@ import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.
 import { Route as AdminInvoicesIdRouteImport } from './routes/admin/invoices.$id'
 import { Route as AdminInvoicesNewRouteImport } from './routes/admin/invoices.new'
 import { Route as AdminJobsIndexRouteImport } from './routes/admin/jobs.index'
+import { Route as AdminMediaIndexRouteImport } from './routes/admin/media.index'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminPropertiesIndexRouteImport } from './routes/admin/properties.index'
@@ -70,6 +75,7 @@ import { Route as ApiPublicInquiriesRouteImport } from './routes/api/public/inqu
 import { Route as ApiPublicMarketsRouteImport } from './routes/api/public/markets'
 import { Route as ApiPublicPropertiesRouteImport } from './routes/api/public/properties'
 import { Route as ApiPublicSearchRouteImport } from './routes/api/public/search'
+import { Route as ApiPublicSiteRouteImport } from './routes/api/public/site'
 import { Route as ApiPublicStoriesRouteImport } from './routes/api/public/stories'
 import { Route as ApiPublicSubmissionsRouteImport } from './routes/api/public/submissions'
 import { Route as ApiPublicSubscribersRouteImport } from './routes/api/public/subscribers'
@@ -92,6 +98,12 @@ import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/ch
 import { Route as ApiAdminJobsIndexRouteImport } from './routes/api/admin/jobs.index'
 import { Route as ApiAdminJobsIdRouteImport } from './routes/api/admin/jobs.$id'
 import { Route as ApiAdminJobsRetryBulkRouteImport } from './routes/api/admin/jobs.retry-bulk'
+import { Route as ApiAdminMediaIndexRouteImport } from './routes/api/admin/media.index'
+import { Route as ApiAdminMediaIdRouteImport } from './routes/api/admin/media.$id'
+import { Route as ApiAdminMediaAttachRouteImport } from './routes/api/admin/media.attach'
+import { Route as ApiAdminMediaReorderRouteImport } from './routes/api/admin/media.reorder'
+import { Route as ApiAdminMediaUploadUrlRouteImport } from './routes/api/admin/media.upload-url'
+import { Route as ApiAdminMediaVariantsStatusRouteImport } from './routes/api/admin/media.variants-status'
 import { Route as ApiAdminPaymentsIndexRouteImport } from './routes/api/admin/payments.index'
 import { Route as ApiAdminPaymentsIdRouteImport } from './routes/api/admin/payments.$id'
 import { Route as ApiAdminPaymentsIssueInvoiceRouteImport } from './routes/api/admin/payments.issue-invoice'
@@ -128,6 +140,7 @@ import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/c
 import { Route as ApiAdminJobsIdApproveRouteImport } from './routes/api/admin/jobs.$id.approve'
 import { Route as ApiAdminJobsIdCancelRouteImport } from './routes/api/admin/jobs.$id.cancel'
 import { Route as ApiAdminJobsIdRetryRouteImport } from './routes/api/admin/jobs.$id.retry'
+import { Route as ApiAdminMediaIdReplaceRouteImport } from './routes/api/admin/media.$id.replace'
 import { Route as ApiAdminPaymentsIdMarkPaidRouteImport } from './routes/api/admin/payments.$id.mark-paid'
 import { Route as ApiAdminPaymentsIdPdfRouteImport } from './routes/api/admin/payments.$id.pdf'
 import { Route as ApiAdminPaymentsIdVoidRouteImport } from './routes/api/admin/payments.$id.void'
@@ -217,6 +230,11 @@ const SiteAboutRoute = SiteAboutRouteImport.update({
   path: '/about',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteAccessibilityRoute = SiteAccessibilityRouteImport.update({
+  id: '/accessibility',
+  path: '/accessibility',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SiteContactRoute = SiteContactRouteImport.update({
   id: '/contact',
   path: '/contact',
@@ -262,9 +280,19 @@ const SitePricingRoute = SitePricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => SiteRoute,
 } as any)
+const SitePrivacyRoute = SitePrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SitePrivacyChoicesRoute = SitePrivacyChoicesRouteImport.update({
   id: '/privacy-choices',
   path: '/privacy-choices',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SitePrivacyRequestRoute = SitePrivacyRequestRouteImport.update({
+  id: '/privacy-request',
+  path: '/privacy-request',
   getParentRoute: () => SiteRoute,
 } as any)
 const SitePropertiesRoute = SitePropertiesRouteImport.update({
@@ -280,6 +308,11 @@ const SiteStoriesRoute = SiteStoriesRouteImport.update({
 const SiteSubmitRoute = SiteSubmitRouteImport.update({
   id: '/submit',
   path: '/submit',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteTermsRoute = SiteTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => SiteRoute,
 } as any)
 const AdminSignInRoute = AdminSignInRouteImport.update({
@@ -384,6 +417,11 @@ const AdminJobsIndexRoute = AdminJobsIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/jobs.index.lazy').then((d) => d.Route),
 )
+const AdminMediaIndexRoute = AdminMediaIndexRouteImport.update({
+  id: '/media/',
+  path: '/media/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -487,6 +525,11 @@ const ApiPublicPropertiesRoute = ApiPublicPropertiesRouteImport.update({
 const ApiPublicSearchRoute = ApiPublicSearchRouteImport.update({
   id: '/api/public/search',
   path: '/api/public/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSiteRoute = ApiPublicSiteRouteImport.update({
+  id: '/api/public/site',
+  path: '/api/public/site',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicStoriesRoute = ApiPublicStoriesRouteImport.update({
@@ -606,6 +649,37 @@ const ApiAdminJobsRetryBulkRoute = ApiAdminJobsRetryBulkRouteImport.update({
   path: '/api/admin/jobs/retry-bulk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminMediaIndexRoute = ApiAdminMediaIndexRouteImport.update({
+  id: '/api/admin/media/',
+  path: '/api/admin/media/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaIdRoute = ApiAdminMediaIdRouteImport.update({
+  id: '/api/admin/media/$id',
+  path: '/api/admin/media/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaAttachRoute = ApiAdminMediaAttachRouteImport.update({
+  id: '/api/admin/media/attach',
+  path: '/api/admin/media/attach',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaReorderRoute = ApiAdminMediaReorderRouteImport.update({
+  id: '/api/admin/media/reorder',
+  path: '/api/admin/media/reorder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaUploadUrlRoute = ApiAdminMediaUploadUrlRouteImport.update({
+  id: '/api/admin/media/upload-url',
+  path: '/api/admin/media/upload-url',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaVariantsStatusRoute =
+  ApiAdminMediaVariantsStatusRouteImport.update({
+    id: '/api/admin/media/variants-status',
+    path: '/api/admin/media/variants-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminPaymentsIndexRoute = ApiAdminPaymentsIndexRouteImport.update({
   id: '/api/admin/payments/',
   path: '/api/admin/payments/',
@@ -802,6 +876,11 @@ const ApiAdminJobsIdRetryRoute = ApiAdminJobsIdRetryRouteImport.update({
   path: '/retry',
   getParentRoute: () => ApiAdminJobsIdRoute,
 } as any)
+const ApiAdminMediaIdReplaceRoute = ApiAdminMediaIdReplaceRouteImport.update({
+  id: '/replace',
+  path: '/replace',
+  getParentRoute: () => ApiAdminMediaIdRoute,
+} as any)
 const ApiAdminPaymentsIdMarkPaidRoute =
   ApiAdminPaymentsIdMarkPaidRouteImport.update({
     id: '/mark-paid',
@@ -995,6 +1074,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/$market': typeof SiteMarketRouteWithChildren
   '/about': typeof SiteAboutRoute
+  '/accessibility': typeof SiteAccessibilityRoute
   '/contact': typeof SiteContactRoute
   '/cookies': typeof SiteCookiesRoute
   '/editorial-standard': typeof SiteEditorialStandardRoute
@@ -1004,10 +1084,13 @@ export interface FileRoutesByFullPath {
   '/markets': typeof SiteMarketsRouteWithChildren
   '/place-notes': typeof SitePlaceNotesRoute
   '/pricing': typeof SitePricingRoute
+  '/privacy': typeof SitePrivacyRoute
   '/privacy-choices': typeof SitePrivacyChoicesRoute
+  '/privacy-request': typeof SitePrivacyRequestRoute
   '/properties': typeof SitePropertiesRoute
   '/stories': typeof SiteStoriesRouteWithChildren
   '/submit': typeof SiteSubmitRoute
+  '/terms': typeof SiteTermsRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
@@ -1034,6 +1117,7 @@ export interface FileRoutesByFullPath {
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/search': typeof ApiPublicSearchRoute
+  '/api/public/site': typeof ApiPublicSiteRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -1044,6 +1128,7 @@ export interface FileRoutesByFullPath {
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
   '/admin/jobs/': typeof AdminJobsIndexRoute
+  '/admin/media/': typeof AdminMediaIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
@@ -1065,6 +1150,11 @@ export interface FileRoutesByFullPath {
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
   '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
+  '/api/admin/media/$id': typeof ApiAdminMediaIdRouteWithChildren
+  '/api/admin/media/attach': typeof ApiAdminMediaAttachRoute
+  '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
+  '/api/admin/media/upload-url': typeof ApiAdminMediaUploadUrlRoute
+  '/api/admin/media/variants-status': typeof ApiAdminMediaVariantsStatusRoute
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -1084,6 +1174,7 @@ export interface FileRoutesByFullPath {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
   '/api/admin/jobs/': typeof ApiAdminJobsIndexRoute
+  '/api/admin/media/': typeof ApiAdminMediaIndexRoute
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
@@ -1103,6 +1194,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/jobs/$id/approve': typeof ApiAdminJobsIdApproveRoute
   '/api/admin/jobs/$id/cancel': typeof ApiAdminJobsIdCancelRoute
   '/api/admin/jobs/$id/retry': typeof ApiAdminJobsIdRetryRoute
+  '/api/admin/media/$id/replace': typeof ApiAdminMediaIdReplaceRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -1144,6 +1236,7 @@ export interface FileRoutesByTo {
   '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
   '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/about': typeof SiteAboutRoute
+  '/accessibility': typeof SiteAccessibilityRoute
   '/contact': typeof SiteContactRoute
   '/cookies': typeof SiteCookiesRoute
   '/editorial-standard': typeof SiteEditorialStandardRoute
@@ -1152,9 +1245,12 @@ export interface FileRoutesByTo {
   '/legal': typeof SiteLegalRoute
   '/place-notes': typeof SitePlaceNotesRoute
   '/pricing': typeof SitePricingRoute
+  '/privacy': typeof SitePrivacyRoute
   '/privacy-choices': typeof SitePrivacyChoicesRoute
+  '/privacy-request': typeof SitePrivacyRequestRoute
   '/properties': typeof SitePropertiesRoute
   '/submit': typeof SiteSubmitRoute
+  '/terms': typeof SiteTermsRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
@@ -1182,6 +1278,7 @@ export interface FileRoutesByTo {
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/search': typeof ApiPublicSearchRoute
+  '/api/public/site': typeof ApiPublicSiteRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -1192,6 +1289,7 @@ export interface FileRoutesByTo {
   '/admin/channels': typeof AdminChannelsIndexRoute
   '/admin/invoices': typeof AdminInvoicesIndexRoute
   '/admin/jobs': typeof AdminJobsIndexRoute
+  '/admin/media': typeof AdminMediaIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/properties': typeof AdminPropertiesIndexRoute
   '/admin/reports': typeof AdminReportsIndexRoute
@@ -1213,6 +1311,11 @@ export interface FileRoutesByTo {
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
   '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
+  '/api/admin/media/$id': typeof ApiAdminMediaIdRouteWithChildren
+  '/api/admin/media/attach': typeof ApiAdminMediaAttachRoute
+  '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
+  '/api/admin/media/upload-url': typeof ApiAdminMediaUploadUrlRoute
+  '/api/admin/media/variants-status': typeof ApiAdminMediaVariantsStatusRoute
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -1232,6 +1335,7 @@ export interface FileRoutesByTo {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/assets': typeof ApiAdminAssetsIndexRoute
   '/api/admin/jobs': typeof ApiAdminJobsIndexRoute
+  '/api/admin/media': typeof ApiAdminMediaIndexRoute
   '/api/admin/payments': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties': typeof ApiAdminPropertiesIndexRoute
@@ -1251,6 +1355,7 @@ export interface FileRoutesByTo {
   '/api/admin/jobs/$id/approve': typeof ApiAdminJobsIdApproveRoute
   '/api/admin/jobs/$id/cancel': typeof ApiAdminJobsIdCancelRoute
   '/api/admin/jobs/$id/retry': typeof ApiAdminJobsIdRetryRoute
+  '/api/admin/media/$id/replace': typeof ApiAdminMediaIdReplaceRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -1295,6 +1400,7 @@ export interface FileRoutesById {
   '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/_site/$market': typeof SiteMarketRouteWithChildren
   '/_site/about': typeof SiteAboutRoute
+  '/_site/accessibility': typeof SiteAccessibilityRoute
   '/_site/contact': typeof SiteContactRoute
   '/_site/cookies': typeof SiteCookiesRoute
   '/_site/editorial-standard': typeof SiteEditorialStandardRoute
@@ -1304,10 +1410,13 @@ export interface FileRoutesById {
   '/_site/markets': typeof SiteMarketsRouteWithChildren
   '/_site/place-notes': typeof SitePlaceNotesRoute
   '/_site/pricing': typeof SitePricingRoute
+  '/_site/privacy': typeof SitePrivacyRoute
   '/_site/privacy-choices': typeof SitePrivacyChoicesRoute
+  '/_site/privacy-request': typeof SitePrivacyRequestRoute
   '/_site/properties': typeof SitePropertiesRoute
   '/_site/stories': typeof SiteStoriesRouteWithChildren
   '/_site/submit': typeof SiteSubmitRoute
+  '/_site/terms': typeof SiteTermsRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
@@ -1335,6 +1444,7 @@ export interface FileRoutesById {
   '/api/public/markets': typeof ApiPublicMarketsRouteWithChildren
   '/api/public/properties': typeof ApiPublicPropertiesRouteWithChildren
   '/api/public/search': typeof ApiPublicSearchRoute
+  '/api/public/site': typeof ApiPublicSiteRoute
   '/api/public/stories': typeof ApiPublicStoriesRouteWithChildren
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
@@ -1345,6 +1455,7 @@ export interface FileRoutesById {
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
   '/admin/jobs/': typeof AdminJobsIndexRoute
+  '/admin/media/': typeof AdminMediaIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
@@ -1366,6 +1477,11 @@ export interface FileRoutesById {
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
   '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
+  '/api/admin/media/$id': typeof ApiAdminMediaIdRouteWithChildren
+  '/api/admin/media/attach': typeof ApiAdminMediaAttachRoute
+  '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
+  '/api/admin/media/upload-url': typeof ApiAdminMediaUploadUrlRoute
+  '/api/admin/media/variants-status': typeof ApiAdminMediaVariantsStatusRoute
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -1385,6 +1501,7 @@ export interface FileRoutesById {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
   '/api/admin/jobs/': typeof ApiAdminJobsIndexRoute
+  '/api/admin/media/': typeof ApiAdminMediaIndexRoute
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
@@ -1404,6 +1521,7 @@ export interface FileRoutesById {
   '/api/admin/jobs/$id/approve': typeof ApiAdminJobsIdApproveRoute
   '/api/admin/jobs/$id/cancel': typeof ApiAdminJobsIdCancelRoute
   '/api/admin/jobs/$id/retry': typeof ApiAdminJobsIdRetryRoute
+  '/api/admin/media/$id/replace': typeof ApiAdminMediaIdReplaceRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -1449,6 +1567,7 @@ export interface FileRouteTypes {
     | '/.well-known/security.txt'
     | '/$market'
     | '/about'
+    | '/accessibility'
     | '/contact'
     | '/cookies'
     | '/editorial-standard'
@@ -1458,10 +1577,13 @@ export interface FileRouteTypes {
     | '/markets'
     | '/place-notes'
     | '/pricing'
+    | '/privacy'
     | '/privacy-choices'
+    | '/privacy-request'
     | '/properties'
     | '/stories'
     | '/submit'
+    | '/terms'
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
@@ -1488,6 +1610,7 @@ export interface FileRouteTypes {
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/search'
+    | '/api/public/site'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -1498,6 +1621,7 @@ export interface FileRouteTypes {
     | '/admin/channels/'
     | '/admin/invoices/'
     | '/admin/jobs/'
+    | '/admin/media/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/reports/'
@@ -1519,6 +1643,11 @@ export interface FileRouteTypes {
     | '/api/admin/channels/posts'
     | '/api/admin/jobs/$id'
     | '/api/admin/jobs/retry-bulk'
+    | '/api/admin/media/$id'
+    | '/api/admin/media/attach'
+    | '/api/admin/media/reorder'
+    | '/api/admin/media/upload-url'
+    | '/api/admin/media/variants-status'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1538,6 +1667,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/assets/'
     | '/api/admin/jobs/'
+    | '/api/admin/media/'
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
@@ -1557,6 +1687,7 @@ export interface FileRouteTypes {
     | '/api/admin/jobs/$id/approve'
     | '/api/admin/jobs/$id/cancel'
     | '/api/admin/jobs/$id/retry'
+    | '/api/admin/media/$id/replace'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1598,6 +1729,7 @@ export interface FileRouteTypes {
     | '/.well-known/mta-sts.txt'
     | '/.well-known/security.txt'
     | '/about'
+    | '/accessibility'
     | '/contact'
     | '/cookies'
     | '/editorial-standard'
@@ -1606,9 +1738,12 @@ export interface FileRouteTypes {
     | '/legal'
     | '/place-notes'
     | '/pricing'
+    | '/privacy'
     | '/privacy-choices'
+    | '/privacy-request'
     | '/properties'
     | '/submit'
+    | '/terms'
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
@@ -1636,6 +1771,7 @@ export interface FileRouteTypes {
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/search'
+    | '/api/public/site'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -1646,6 +1782,7 @@ export interface FileRouteTypes {
     | '/admin/channels'
     | '/admin/invoices'
     | '/admin/jobs'
+    | '/admin/media'
     | '/admin/people'
     | '/admin/properties'
     | '/admin/reports'
@@ -1667,6 +1804,11 @@ export interface FileRouteTypes {
     | '/api/admin/channels/posts'
     | '/api/admin/jobs/$id'
     | '/api/admin/jobs/retry-bulk'
+    | '/api/admin/media/$id'
+    | '/api/admin/media/attach'
+    | '/api/admin/media/reorder'
+    | '/api/admin/media/upload-url'
+    | '/api/admin/media/variants-status'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1686,6 +1828,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/assets'
     | '/api/admin/jobs'
+    | '/api/admin/media'
     | '/api/admin/payments'
     | '/api/admin/people'
     | '/api/admin/properties'
@@ -1705,6 +1848,7 @@ export interface FileRouteTypes {
     | '/api/admin/jobs/$id/approve'
     | '/api/admin/jobs/$id/cancel'
     | '/api/admin/jobs/$id/retry'
+    | '/api/admin/media/$id/replace'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1748,6 +1892,7 @@ export interface FileRouteTypes {
     | '/.well-known/security.txt'
     | '/_site/$market'
     | '/_site/about'
+    | '/_site/accessibility'
     | '/_site/contact'
     | '/_site/cookies'
     | '/_site/editorial-standard'
@@ -1757,10 +1902,13 @@ export interface FileRouteTypes {
     | '/_site/markets'
     | '/_site/place-notes'
     | '/_site/pricing'
+    | '/_site/privacy'
     | '/_site/privacy-choices'
+    | '/_site/privacy-request'
     | '/_site/properties'
     | '/_site/stories'
     | '/_site/submit'
+    | '/_site/terms'
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
@@ -1788,6 +1936,7 @@ export interface FileRouteTypes {
     | '/api/public/markets'
     | '/api/public/properties'
     | '/api/public/search'
+    | '/api/public/site'
     | '/api/public/stories'
     | '/api/public/submissions'
     | '/api/public/subscribers'
@@ -1798,6 +1947,7 @@ export interface FileRouteTypes {
     | '/admin/channels/'
     | '/admin/invoices/'
     | '/admin/jobs/'
+    | '/admin/media/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/reports/'
@@ -1819,6 +1969,11 @@ export interface FileRouteTypes {
     | '/api/admin/channels/posts'
     | '/api/admin/jobs/$id'
     | '/api/admin/jobs/retry-bulk'
+    | '/api/admin/media/$id'
+    | '/api/admin/media/attach'
+    | '/api/admin/media/reorder'
+    | '/api/admin/media/upload-url'
+    | '/api/admin/media/variants-status'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1838,6 +1993,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/assets/'
     | '/api/admin/jobs/'
+    | '/api/admin/media/'
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
@@ -1857,6 +2013,7 @@ export interface FileRouteTypes {
     | '/api/admin/jobs/$id/approve'
     | '/api/admin/jobs/$id/cancel'
     | '/api/admin/jobs/$id/retry'
+    | '/api/admin/media/$id/replace'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1913,6 +2070,7 @@ export interface RootRouteChildren {
   ApiPublicMarketsRoute: typeof ApiPublicMarketsRouteWithChildren
   ApiPublicPropertiesRoute: typeof ApiPublicPropertiesRouteWithChildren
   ApiPublicSearchRoute: typeof ApiPublicSearchRoute
+  ApiPublicSiteRoute: typeof ApiPublicSiteRoute
   ApiPublicStoriesRoute: typeof ApiPublicStoriesRouteWithChildren
   ApiPublicSubmissionsRoute: typeof ApiPublicSubmissionsRouteWithChildren
   ApiPublicSubscribersRoute: typeof ApiPublicSubscribersRouteWithChildren
@@ -1932,6 +2090,11 @@ export interface RootRouteChildren {
   ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRouteWithChildren
   ApiAdminJobsIdRoute: typeof ApiAdminJobsIdRouteWithChildren
   ApiAdminJobsRetryBulkRoute: typeof ApiAdminJobsRetryBulkRoute
+  ApiAdminMediaIdRoute: typeof ApiAdminMediaIdRouteWithChildren
+  ApiAdminMediaAttachRoute: typeof ApiAdminMediaAttachRoute
+  ApiAdminMediaReorderRoute: typeof ApiAdminMediaReorderRoute
+  ApiAdminMediaUploadUrlRoute: typeof ApiAdminMediaUploadUrlRoute
+  ApiAdminMediaVariantsStatusRoute: typeof ApiAdminMediaVariantsStatusRoute
   ApiAdminPaymentsIdRoute: typeof ApiAdminPaymentsIdRouteWithChildren
   ApiAdminPaymentsIssueInvoiceRoute: typeof ApiAdminPaymentsIssueInvoiceRoute
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
@@ -1946,6 +2109,7 @@ export interface RootRouteChildren {
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
   ApiAdminAssetsIndexRoute: typeof ApiAdminAssetsIndexRoute
   ApiAdminJobsIndexRoute: typeof ApiAdminJobsIndexRoute
+  ApiAdminMediaIndexRoute: typeof ApiAdminMediaIndexRoute
   ApiAdminPaymentsIndexRoute: typeof ApiAdminPaymentsIndexRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminPropertiesIndexRoute: typeof ApiAdminPropertiesIndexRoute
@@ -2032,6 +2196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteAboutRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/accessibility': {
+      id: '/_site/accessibility'
+      path: '/accessibility'
+      fullPath: '/accessibility'
+      preLoaderRoute: typeof SiteAccessibilityRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/contact': {
       id: '/_site/contact'
       path: '/contact'
@@ -2095,11 +2266,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitePricingRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/privacy': {
+      id: '/_site/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof SitePrivacyRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/privacy-choices': {
       id: '/_site/privacy-choices'
       path: '/privacy-choices'
       fullPath: '/privacy-choices'
       preLoaderRoute: typeof SitePrivacyChoicesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/privacy-request': {
+      id: '/_site/privacy-request'
+      path: '/privacy-request'
+      fullPath: '/privacy-request'
+      preLoaderRoute: typeof SitePrivacyRequestRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/properties': {
@@ -2121,6 +2306,13 @@ declare module '@tanstack/react-router' {
       path: '/submit'
       fullPath: '/submit'
       preLoaderRoute: typeof SiteSubmitRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/terms': {
+      id: '/_site/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof SiteTermsRouteImport
       parentRoute: typeof SiteRoute
     }
     '/admin/sign-in': {
@@ -2247,6 +2439,13 @@ declare module '@tanstack/react-router' {
       path: '/jobs'
       fullPath: '/admin/jobs/'
       preLoaderRoute: typeof AdminJobsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/media/': {
+      id: '/admin/media/'
+      path: '/media'
+      fullPath: '/admin/media/'
+      preLoaderRoute: typeof AdminMediaIndexRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/people/': {
@@ -2380,6 +2579,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/search'
       fullPath: '/api/public/search'
       preLoaderRoute: typeof ApiPublicSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/site': {
+      id: '/api/public/site'
+      path: '/api/public/site'
+      fullPath: '/api/public/site'
+      preLoaderRoute: typeof ApiPublicSiteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/stories': {
@@ -2534,6 +2740,48 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/jobs/retry-bulk'
       fullPath: '/api/admin/jobs/retry-bulk'
       preLoaderRoute: typeof ApiAdminJobsRetryBulkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/': {
+      id: '/api/admin/media/'
+      path: '/api/admin/media'
+      fullPath: '/api/admin/media/'
+      preLoaderRoute: typeof ApiAdminMediaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/$id': {
+      id: '/api/admin/media/$id'
+      path: '/api/admin/media/$id'
+      fullPath: '/api/admin/media/$id'
+      preLoaderRoute: typeof ApiAdminMediaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/attach': {
+      id: '/api/admin/media/attach'
+      path: '/api/admin/media/attach'
+      fullPath: '/api/admin/media/attach'
+      preLoaderRoute: typeof ApiAdminMediaAttachRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/reorder': {
+      id: '/api/admin/media/reorder'
+      path: '/api/admin/media/reorder'
+      fullPath: '/api/admin/media/reorder'
+      preLoaderRoute: typeof ApiAdminMediaReorderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/upload-url': {
+      id: '/api/admin/media/upload-url'
+      path: '/api/admin/media/upload-url'
+      fullPath: '/api/admin/media/upload-url'
+      preLoaderRoute: typeof ApiAdminMediaUploadUrlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/variants-status': {
+      id: '/api/admin/media/variants-status'
+      path: '/api/admin/media/variants-status'
+      fullPath: '/api/admin/media/variants-status'
+      preLoaderRoute: typeof ApiAdminMediaVariantsStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/payments/': {
@@ -2787,6 +3035,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/jobs/$id/retry'
       preLoaderRoute: typeof ApiAdminJobsIdRetryRouteImport
       parentRoute: typeof ApiAdminJobsIdRoute
+    }
+    '/api/admin/media/$id/replace': {
+      id: '/api/admin/media/$id/replace'
+      path: '/replace'
+      fullPath: '/api/admin/media/$id/replace'
+      preLoaderRoute: typeof ApiAdminMediaIdReplaceRouteImport
+      parentRoute: typeof ApiAdminMediaIdRoute
     }
     '/api/admin/payments/$id/mark-paid': {
       id: '/api/admin/payments/$id/mark-paid'
@@ -3055,6 +3310,7 @@ const SiteStoriesRouteWithChildren = SiteStoriesRoute._addFileChildren(
 interface SiteRouteChildren {
   SiteMarketRoute: typeof SiteMarketRouteWithChildren
   SiteAboutRoute: typeof SiteAboutRoute
+  SiteAccessibilityRoute: typeof SiteAccessibilityRoute
   SiteContactRoute: typeof SiteContactRoute
   SiteCookiesRoute: typeof SiteCookiesRoute
   SiteEditorialStandardRoute: typeof SiteEditorialStandardRoute
@@ -3064,10 +3320,13 @@ interface SiteRouteChildren {
   SiteMarketsRoute: typeof SiteMarketsRouteWithChildren
   SitePlaceNotesRoute: typeof SitePlaceNotesRoute
   SitePricingRoute: typeof SitePricingRoute
+  SitePrivacyRoute: typeof SitePrivacyRoute
   SitePrivacyChoicesRoute: typeof SitePrivacyChoicesRoute
+  SitePrivacyRequestRoute: typeof SitePrivacyRequestRoute
   SitePropertiesRoute: typeof SitePropertiesRoute
   SiteStoriesRoute: typeof SiteStoriesRouteWithChildren
   SiteSubmitRoute: typeof SiteSubmitRoute
+  SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
@@ -3076,6 +3335,7 @@ interface SiteRouteChildren {
 const SiteRouteChildren: SiteRouteChildren = {
   SiteMarketRoute: SiteMarketRouteWithChildren,
   SiteAboutRoute: SiteAboutRoute,
+  SiteAccessibilityRoute: SiteAccessibilityRoute,
   SiteContactRoute: SiteContactRoute,
   SiteCookiesRoute: SiteCookiesRoute,
   SiteEditorialStandardRoute: SiteEditorialStandardRoute,
@@ -3085,10 +3345,13 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteMarketsRoute: SiteMarketsRouteWithChildren,
   SitePlaceNotesRoute: SitePlaceNotesRoute,
   SitePricingRoute: SitePricingRoute,
+  SitePrivacyRoute: SitePrivacyRoute,
   SitePrivacyChoicesRoute: SitePrivacyChoicesRoute,
+  SitePrivacyRequestRoute: SitePrivacyRequestRoute,
   SitePropertiesRoute: SitePropertiesRoute,
   SiteStoriesRoute: SiteStoriesRouteWithChildren,
   SiteSubmitRoute: SiteSubmitRoute,
+  SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
@@ -3108,6 +3371,7 @@ interface AdminRouteChildren {
   AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
   AdminInvoicesIndexRoute: typeof AdminInvoicesIndexRoute
   AdminJobsIndexRoute: typeof AdminJobsIndexRoute
+  AdminMediaIndexRoute: typeof AdminMediaIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminPropertiesIndexRoute: typeof AdminPropertiesIndexRoute
   AdminReportsIndexRoute: typeof AdminReportsIndexRoute
@@ -3126,6 +3390,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminChannelsIndexRoute: AdminChannelsIndexRoute,
   AdminInvoicesIndexRoute: AdminInvoicesIndexRoute,
   AdminJobsIndexRoute: AdminJobsIndexRoute,
+  AdminMediaIndexRoute: AdminMediaIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminPropertiesIndexRoute: AdminPropertiesIndexRoute,
   AdminReportsIndexRoute: AdminReportsIndexRoute,
@@ -3358,6 +3623,18 @@ const ApiAdminJobsIdRouteWithChildren = ApiAdminJobsIdRoute._addFileChildren(
   ApiAdminJobsIdRouteChildren,
 )
 
+interface ApiAdminMediaIdRouteChildren {
+  ApiAdminMediaIdReplaceRoute: typeof ApiAdminMediaIdReplaceRoute
+}
+
+const ApiAdminMediaIdRouteChildren: ApiAdminMediaIdRouteChildren = {
+  ApiAdminMediaIdReplaceRoute: ApiAdminMediaIdReplaceRoute,
+}
+
+const ApiAdminMediaIdRouteWithChildren = ApiAdminMediaIdRoute._addFileChildren(
+  ApiAdminMediaIdRouteChildren,
+)
+
 interface ApiAdminPaymentsIdRouteChildren {
   ApiAdminPaymentsIdMarkPaidRoute: typeof ApiAdminPaymentsIdMarkPaidRoute
   ApiAdminPaymentsIdPdfRoute: typeof ApiAdminPaymentsIdPdfRoute
@@ -3472,6 +3749,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMarketsRoute: ApiPublicMarketsRouteWithChildren,
   ApiPublicPropertiesRoute: ApiPublicPropertiesRouteWithChildren,
   ApiPublicSearchRoute: ApiPublicSearchRoute,
+  ApiPublicSiteRoute: ApiPublicSiteRoute,
   ApiPublicStoriesRoute: ApiPublicStoriesRouteWithChildren,
   ApiPublicSubmissionsRoute: ApiPublicSubmissionsRouteWithChildren,
   ApiPublicSubscribersRoute: ApiPublicSubscribersRouteWithChildren,
@@ -3495,6 +3773,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRouteWithChildren,
   ApiAdminJobsIdRoute: ApiAdminJobsIdRouteWithChildren,
   ApiAdminJobsRetryBulkRoute: ApiAdminJobsRetryBulkRoute,
+  ApiAdminMediaIdRoute: ApiAdminMediaIdRouteWithChildren,
+  ApiAdminMediaAttachRoute: ApiAdminMediaAttachRoute,
+  ApiAdminMediaReorderRoute: ApiAdminMediaReorderRoute,
+  ApiAdminMediaUploadUrlRoute: ApiAdminMediaUploadUrlRoute,
+  ApiAdminMediaVariantsStatusRoute: ApiAdminMediaVariantsStatusRoute,
   ApiAdminPaymentsIdRoute: ApiAdminPaymentsIdRouteWithChildren,
   ApiAdminPaymentsIssueInvoiceRoute: ApiAdminPaymentsIssueInvoiceRoute,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
@@ -3511,6 +3794,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
   ApiAdminAssetsIndexRoute: ApiAdminAssetsIndexRoute,
   ApiAdminJobsIndexRoute: ApiAdminJobsIndexRoute,
+  ApiAdminMediaIndexRoute: ApiAdminMediaIndexRoute,
   ApiAdminPaymentsIndexRoute: ApiAdminPaymentsIndexRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminPropertiesIndexRoute: ApiAdminPropertiesIndexRoute,

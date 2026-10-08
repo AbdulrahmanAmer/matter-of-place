@@ -334,11 +334,12 @@
   },
   {
     "id": "b12g2-p-credit",
-    "kind": "manual",
     "test": "tests/unit/reel/copy.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "line: \"A product of Omnikom.\",",
+    "replace": "line: \"Part of Omnikom.\",",
     "run": "bunx vitest run --project unit tests/unit/reel/copy.test.ts",
-    "expect": "FAIL .*starts the credit of B16's footer line",
-    "what": "skipped while strings.ts reads An Omnikom company. (P-2101); replayed by hand with footer.line set to A product of Omnikom. and the credit changed"
+    "expect": "FAIL .*starts the credit of B16's footer line"
   },
   {
     "id": "b12g4-gate-first",

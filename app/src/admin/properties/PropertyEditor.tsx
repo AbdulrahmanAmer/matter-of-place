@@ -174,7 +174,7 @@ export function PropertyEditor({
         }}
       />
     ),
-    sequence: <SequenceTab media={detail.media} />,
+    sequence: <SequenceTab propertyId={id} />,
     representation: (
       <RepresentationTab
         propertyId={id}

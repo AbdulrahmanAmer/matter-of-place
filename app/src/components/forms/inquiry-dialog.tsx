@@ -275,6 +275,7 @@ export function InquiryDialog({
                 />
               </Field>
               <Honeypot />
+              <p className="form-note">{t.forms.sharedWithOmnikom}</p>
               <div className="form-actions">
                 <button type="submit" className="button" disabled={pending}>
                   {pending ? t.common.sending : t.common.send}
