@@ -970,6 +970,7 @@ Entry template
 - hit again: 2026-10-05, B13 step 4: a `python3 -` I typed into a chain after a heredoc hung the call for 120 seconds; it was killed with `taskkill //F //IM python3.exe`.
 - hit again: 2026-10-07, B6 g1: a leftover `cat > /tmp/fixpay.cjs 2>/dev/null;` ahead of a heredoc waited on stdin until the 120 s ceiling moved the call to the background; the `cat` was ended by its own process id (`ps -ef`), and the node patch after it then ran.
 - hit again: 2026-10-08, B7 g1 resume: a `python - <<EOF` that resolved two merge conflicts (`src/db/types.ts`, `tests/unit/assert-not-production.test.ts`) ran, but its text-mode `open(p, "w")` wrote every line ending as CRLF; `bun run check` then stopped at lint with 93 `Delete ␍ prettier/prettier` errors after a 10-minute run. `git checkout -- <file>` did not rewrite the file (git saw no change); `rm <file> && git checkout -- <file>` did. Proof: `git -C app ls-files --eol | grep -c w/crlf` → `0` after the fix. Resolve conflicts with the Edit tool or a node script, never python.
+- hit again: 2026-10-08, B16 g7: a `python - 2>/dev/null; node -e ...` edit hung to the 120 s ceiling and wrote nothing (the node half ran only after the python process was killed, by its own process id); the edit was redone with the Edit tool.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -4844,6 +4845,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: not established. The character went through the shell into the JSON, and the regex did not match the vitest line it was copied from (B3's entries with `×` replay fine, so a byte of the shell-typed copy differs).
 - rule: write an `expect` as `FAIL .*> <suite> > <test>`, the form most B16 entries use, and type no non-ASCII character into a registry entry through a shell.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b16-g6-event-listed` → `WATCHED-FAIL OK B16:b16-g6-event-listed` (measured 2026-10-08, B16 g6).
+- added: 2026-10-08
+
+## P-1945 · A merge of main into a lane left `bun run check` red on a test neither side touched: B16 made `loadSiteContext` read the public state, B7's decline-preview test stubs no `public_state`
+- symptom: B16 g7, after `git merge origin/main`, `bun run check` failed only at the unit tests: `tests/unit/submissions.service.test.ts > decisions > the decline preview is the letter send_email renders ...` threw `AppError: The catalog is not available right now.` from `getPublicState`, `getSiteSettings`, `loadSiteContext`, `emailPreview`. The same test failed alone on the merge commit without the group's edits; a full check cycle (about 10 minutes) was spent before that was known.
+- cause: B16 g4 made `loadSiteContext` read `settings.site` through `getPublicState(db)` (rpc `public_state`); B7 g3, merged to main meanwhile, added a test whose `decisionDb` fake answers no `public_state`. Each branch was green alone.
+- rule: after merging main into a lane, run the unit tests of the files main changed that import anything the lane changed (`git diff --name-only <merge-base> origin/main -- app/tests` then `bunx vitest run` on them) before the first full `check`; fix the stub in the test (here `public_state: () => stateJson(7, { site: null })` in `decisionDb`) and say so in the log.
+- proof: `cd app && bunx vitest run tests/unit/submissions.service.test.ts` → `Tests  24 passed (24)` (measured 2026-10-08 after the stub; `Tests  1 failed` before)
 - added: 2026-10-08
 
 ## P-539 · `watchfail --changed origin/main` skipped a branch's own new registry entry once a merge of main made its target file equal to main's; the entry was stale and only the reviewer saw it

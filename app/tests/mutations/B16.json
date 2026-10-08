@@ -758,5 +758,68 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
     "expect": "FAIL .*> analyticsEvents > lists every event name that a track"
+  },
+  {
+    "id": "b16-g7-no-null-key",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "...(legal.entity === null ? {} : { legalName: legal.entity }),",
+    "replace": "legalName: legal.entity,",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > with nothing set, holds the brand fields"
+  },
+  {
+    "id": "b16-g7-postal-address",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "{ \"@type\": \"PostalAddress\", streetAddress: legal.address }",
+    "replace": "{ \"@type\": \"Place\", streetAddress: legal.address }",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > adds legalName, email, telephone and the address"
+  },
+  {
+    "id": "b16-g7-phone-guard",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "...(contact.phone === null ? {} : { telephone: contact.phone }),",
+    "replace": "telephone: contact.phone,",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > adds legalName alone when only the entity is set"
+  },
+  {
+    "id": "b16-g7-sameas-set-only",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "(value): value is string => value !== null,",
+    "replace": "(value): value is string => value !== undefined,",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > holds in sameAs only the social addresses that are set"
+  },
+  {
+    "id": "b16-g7-sameas-absent",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "...(sameAs.length === 0 ? {} : { sameAs }),",
+    "replace": "sameAs,",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > leaves sameAs out when no social address is set"
+  },
+  {
+    "id": "b16-g7-parent",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "parentOrganization: { \"@type\": \"Organization\", name: siteConfig.parentCompany },",
+    "replace": "parentOrganization: { \"@type\": \"Organization\", name: siteConfig.name },",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > names Omnikom as the parent whatever is set"
+  },
+  {
+    "id": "b16-g7-no-logo",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "    description: siteConfig.description,\n    ...(legal.entity",
+    "replace": "    description: siteConfig.description,\n    logo: absoluteUrl(\"/logo.png\"),\n    ...(legal.entity",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "FAIL .*> organizationJsonLd > carries no logo"
   }
 ]

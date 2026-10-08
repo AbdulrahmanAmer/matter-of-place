@@ -1,4 +1,5 @@
 import { absoluteUrl, siteConfig } from "../config/site";
+import type { SiteSettings } from "../domain/settings";
 
 type OpenGraphType = "website" | "article";
 
@@ -142,3 +143,29 @@ export const faqJsonLd = (items: { q: string; a: string }[]) => ({
     acceptedAnswer: { "@type": "Answer", text: item.a },
   })),
 });
+
+/**
+ * The business as structured data. Only what `settings.site` holds appears: an unset leaf adds no key, and `sameAs`
+ * is absent when no social address is set. The parent is Omnikom (S33) whatever the settings say. No `logo`: no
+ * absolute image URL exists yet (B13).
+ */
+export function organizationJsonLd({ contact, legal, social }: SiteSettings) {
+  const sameAs = [social.instagram, social.x, social.linkedin].filter(
+    (value): value is string => value !== null,
+  );
+  const address =
+    legal.address === null ? null : { "@type": "PostalAddress", streetAddress: legal.address };
+  return {
+    "@type": "Organization",
+    "@id": absoluteUrl("/#organization"),
+    name: siteConfig.name,
+    url: siteConfig.url,
+    description: siteConfig.description,
+    ...(legal.entity === null ? {} : { legalName: legal.entity }),
+    ...(contact.email === null ? {} : { email: contact.email }),
+    ...(contact.phone === null ? {} : { telephone: contact.phone }),
+    ...(address === null ? {} : { address }),
+    ...(sameAs.length === 0 ? {} : { sameAs }),
+    parentOrganization: { "@type": "Organization", name: siteConfig.parentCompany },
+  };
+}
