@@ -40,6 +40,15 @@ export interface EmailProps {
   variables: Readonly<Record<string, unknown>>;
 }
 
+/**
+ * The lines of the plain-text part that a template file draws itself, as it draws its own content in the HTML:
+ * `lead` goes before the blocks, `trail` after the legal lines.
+ */
+export interface TextParts {
+  lead: string[];
+  trail: string[];
+}
+
 /** One template file's seed and metadata; the stored row is what is sent (invariant 1). */
 export interface EmailDefinition {
   key: EmailTemplateKey;

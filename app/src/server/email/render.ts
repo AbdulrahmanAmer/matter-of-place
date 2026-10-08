@@ -4,7 +4,7 @@ import { z } from "zod";
 import { emailBlockSchema, type EmailBlock, type EmailTemplateRow } from "../../domain/email.ts";
 import { Message, SIGNATURE } from "../../templates/email/blocks.tsx";
 import { definitions } from "../../templates/email/index.ts";
-import { footerLines } from "../../templates/email/layout.tsx";
+import { footerLines, type TextParts } from "../../templates/email/layout.tsx";
 import { NonRetryableError } from "../jobs/types.ts";
 import type { SiteContext } from "./context.ts";
 
@@ -93,7 +93,11 @@ const GAP = "\n\n";
  * The plain-text part, written from the resolved blocks. It is not converted from the HTML: the conversion library cost
  * more CPU than the render itself (measured in docs/runbooks/email.md), and the preview runs inside a Worker.
  */
-function plainText(blocks: readonly EmailBlock[], site: SiteContext): string {
+function plainText(
+  blocks: readonly EmailBlock[],
+  site: SiteContext,
+  { lead, trail }: TextParts,
+): string {
   const parts = blocks.map((block) => {
     switch (block.type) {
       case "heading":
@@ -107,7 +111,7 @@ function plainText(blocks: readonly EmailBlock[], site: SiteContext): string {
         return block.text ?? SIGNATURE;
     }
   });
-  return `${[...parts, footerLines(site).join(LINE)].join(GAP)}${LINE}`;
+  return `${[...lead, ...parts, footerLines(site).join(LINE), ...trail].join(GAP)}${LINE}`;
 }
 
 /** Only a string value is text: an object such as the `block` of a standalone email is drawn by its template file. */
@@ -131,7 +135,8 @@ export async function renderTemplate(
 ): Promise<RenderedEmail> {
   const parsed = body.safeParse(row.body);
   if (!parsed.success) throw new NonRetryableError("template_body_invalid");
-  const Email = definitions.find((file) => file.definition.key === row.key)?.Email ?? Message;
+  const file = definitions.find((candidate) => candidate.definition.key === row.key);
+  const Email = file?.Email ?? Message;
   if (parsed.data.length === 0 && Email === Message)
     throw new NonRetryableError("template_body_invalid");
   const text = textVariables(variables);
@@ -146,5 +151,6 @@ export async function renderTemplate(
     throw Object.assign(new NonRetryableError("template_render_failed"), { cause });
   });
   if (html.includes(FAILED_RENDER)) throw new NonRetryableError("template_render_failed");
-  return { subject, preheader, html, text: plainText(blocks, site) };
+  const parts = file?.textParts?.(variables) ?? { lead: [], trail: [] };
+  return { subject, preheader, html, text: plainText(blocks, site, parts) };
 }

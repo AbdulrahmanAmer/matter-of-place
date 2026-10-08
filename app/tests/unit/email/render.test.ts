@@ -262,8 +262,9 @@ describe("renderTemplate", () => {
     async (key) => {
       const { subject, preheader, html, text } = await renderSample(key);
       // The one placeholder a template may leave is Resend's, which Resend fills at send time.
-      const drawn = html.replaceAll("{{{RESEND_UNSUBSCRIBE_URL}}}", "");
-      for (const value of [subject, preheader, drawn, text]) expect(value).not.toMatch(/\{\{|—/);
+      const drawn = (part: string): string => part.replaceAll("{{{RESEND_UNSUBSCRIBE_URL}}}", "");
+      for (const value of [subject, preheader, drawn(html), drawn(text)])
+        expect(value).not.toMatch(/\{\{|—/);
       const colours = (html.match(/#[0-9a-fA-F]{6}\b/g) ?? []).map((hex) => hex.toLowerCase());
       expect(colours.filter((hex) => !Object.values<string>(themeHex).includes(hex))).toEqual([]);
       expect(text).not.toMatch(/<[a-z/]/);

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { UNSUBSCRIBE_URL } from "../../templates/email/blocks/footer.tsx";
-import { footerLines } from "../../templates/email/layout.tsx";
 import {
   Conflict,
   createBroadcast,
@@ -9,7 +8,7 @@ import {
   RateLimited,
   sendBroadcast,
 } from "../channels/resend.ts";
-import { loadSiteContext, type SiteContext } from "../email/context.ts";
+import { loadSiteContext } from "../email/context.ts";
 import { renderTemplate, type RenderedEmail } from "../email/render.ts";
 import { templateRow } from "../jobs/steps/send-email.ts";
 import {
@@ -245,15 +244,6 @@ async function deliver(
   }
 }
 
-/** The plain-text part: the block's words and its link, then the footer lines and the unsubscribe address. */
-export function standaloneText(
-  block: { title: string; deck: string; link: string },
-  site: SiteContext,
-) {
-  const parts = [block.title, block.deck, block.link, ...footerLines(site)];
-  return `${[...parts.filter((part) => part !== ""), `Unsubscribe: ${UNSUBSCRIBE_URL}`].join("\n\n")}\n`;
-}
-
 /** Whether the approval of the asset lets the send go on now: `null` to go on, else what the job does. */
 async function awaitApproval(ctx: StepContext, status: string): Promise<StepResult | null> {
   if (status === "rejected") throw new NonRetryableError("asset_not_approved");
@@ -301,5 +291,5 @@ export async function sendStandalone(ctx: StepContext, data: JsonObject): Promis
     title: property.title,
     audience: audienceOf(property.market_slug),
   };
-  return deliver(ctx, target, { ...drawn, text: standaloneText(block, site) }, site.contact.email);
+  return deliver(ctx, target, drawn, site.contact.email);
 }

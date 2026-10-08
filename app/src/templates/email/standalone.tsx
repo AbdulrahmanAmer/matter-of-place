@@ -2,8 +2,8 @@ import { z } from "zod";
 import { variablesByKey } from "../../domain/email.ts";
 import { NewsletterBlock } from "../social/NewsletterBlock.tsx";
 import { Blocks } from "./blocks.tsx";
-import { Unsubscribe } from "./blocks/footer.tsx";
-import { Layout, type EmailDefinition, type EmailProps } from "./layout.tsx";
+import { Unsubscribe, UNSUBSCRIBE_URL } from "./blocks/footer.tsx";
+import { Layout, type EmailDefinition, type EmailProps, type TextParts } from "./layout.tsx";
 
 export const definition: EmailDefinition = {
   key: "standalone",
@@ -25,6 +25,20 @@ const block = z.object({
   link: https,
   alt: z.string().optional(),
 });
+
+/**
+ * The plain-text part of what `Email` draws from `block`: its words and link before the blocks, the unsubscribe
+ * address after the legal lines. Without `block` there is nothing to add.
+ */
+export function textParts(variables: EmailProps["variables"]): TextParts {
+  const given = variables["block"];
+  if (given === undefined) return { lead: [], trail: [] };
+  const { title, deck, link } = block.parse(given);
+  return {
+    lead: [title, deck, link].filter((part) => part !== ""),
+    trail: [`Unsubscribe: ${UNSUBSCRIBE_URL}`],
+  };
+}
 
 /**
  * The Campaign email: the property block of the `standalone_email` asset (`meta.block`, passed as the variable

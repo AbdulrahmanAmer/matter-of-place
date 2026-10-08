@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import { sampleVariables, type EmailTemplateKey } from "../../../src/domain/email";
 import type { SiteContext } from "../../../src/server/email/context";
 import { renderTemplate } from "../../../src/server/email/render";
-import { standaloneText } from "../../../src/server/newsletter/standalone";
 import { definitionRow, definitions } from "../../../src/templates/email/index";
 import { themeHex } from "../../../src/templates/theme.gen";
 import { lintEmail } from "../../../scripts/lib/email-lint";
@@ -21,9 +19,6 @@ interface Mail {
 }
 
 const rendered = new Map<string, Mail>();
-const standaloneBlock = z
-  .object({ title: z.string(), deck: z.string(), link: z.string() })
-  .parse(sampleVariables("standalone")["block"]);
 
 for (const { definition } of definitions) {
   const { html, text } = await renderTemplate(
@@ -31,11 +26,7 @@ for (const { definition } of definitions) {
     sampleVariables(definition.key),
     site,
   );
-  // A standalone email is sent with its own plain-text part, which holds the block's link and the unsubscribe address.
-  rendered.set(definition.key, {
-    html,
-    text: definition.key === "standalone" ? standaloneText(standaloneBlock, site) : text,
-  });
+  rendered.set(definition.key, { html, text });
 }
 
 const mailOf = (key: EmailTemplateKey): Mail => {

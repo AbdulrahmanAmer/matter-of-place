@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { sampleVariables } from "../../../src/domain/email";
 import { renderTemplate } from "../../../src/server/email/render";
 import { sendEmail } from "../../../src/server/jobs/steps/send-email";
 import type { JsonObject } from "../../../src/server/jobs/types";
 import { sendStandalone } from "../../../src/server/newsletter/standalone";
+import { definitionRow } from "../../../src/templates/email/index";
+import { definition } from "../../../src/templates/email/standalone";
 import {
   CONTACT,
   emailEnv,
@@ -15,6 +18,7 @@ import {
   PRODUCTION_SHARE,
   stepCtx,
 } from "../../fixtures/email-send";
+import { lintEmail } from "../../../scripts/lib/email-lint";
 import { newsletterDb, propertyRow, uuid, type Row } from "../../fixtures/newsletter-world";
 
 // B11 step 9: the Campaign email of a property against a fake provider and a database whose asset function keeps the
@@ -335,6 +339,18 @@ describe("the footer gate", () => {
       expect(part).toContain(LEGAL.entity);
     }
     expect(sent.html).toContain("Oak Hill");
+  });
+
+  it("renders a plain-text part that holds the block link and the unsubscribe address (text-url)", async () => {
+    vi.mocked(renderTemplate).mockRestore();
+    const mail = await renderTemplate(definitionRow(definition), sampleVariables("standalone"), {
+      siteUrl: "https://matterofplace.com",
+      ...LEGAL,
+      contact: { email: null },
+    });
+    expect(mail.text).toContain("https://matterofplace.com/property/alder-court");
+    expect(mail.text).toContain("Unsubscribe: {{{RESEND_UNSUBSCRIBE_URL}}}");
+    expect(lintEmail(mail.html, mail.text, "standalone")).toEqual([]);
   });
 
   it("throws footer_incomplete when the rendered HTML lacks the unsubscribe variable", async () => {

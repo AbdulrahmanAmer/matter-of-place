@@ -2861,7 +2861,7 @@
   {
     "id": "b11-c459-text-link-lint",
     "test": "tests/unit/email/lint.test.ts",
-    "file": "src/server/newsletter/standalone.ts",
+    "file": "src/templates/email/standalone.tsx",
     "find": "`Unsubscribe: ${UNSUBSCRIBE_URL}`",
     "replace": "\"Unsubscribe\"",
     "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
@@ -2870,11 +2870,20 @@
   {
     "id": "b11-c459-text-link-send",
     "test": "tests/unit/newsletter/standalone.test.ts",
-    "file": "src/server/newsletter/standalone.ts",
+    "file": "src/templates/email/standalone.tsx",
     "find": "`Unsubscribe: ${UNSUBSCRIBE_URL}`",
     "replace": "\"Unsubscribe\"",
     "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
     "expect": "FAIL.*sends the real render with the unsubscribe variable"
+  },
+  {
+    "id": "b11-c11u-text-url",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/templates/email/standalone.tsx",
+    "find": "lead: [title, deck, link].filter",
+    "replace": "lead: [title, deck].filter",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*renders a plain-text part that holds the block link and the unsubscribe address"
   },
   {
     "id": "b11-c459-row-drift",
