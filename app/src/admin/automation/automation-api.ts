@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { skipReasons, stepSchema } from "../../domain/automation";
+import { emailTemplateSchema, skipReasons, stepSchema } from "../../domain/automation";
+import type { EmailBlock, EmailTemplateKey } from "../../domain/email";
 import { adminFetch } from "../ui/admin-fetch";
 
-// The browser side of screen 17. Components reach these through `automation-queries.ts`.
+// The browser side of screens 17 and 18. Components reach these through `automation-queries.ts`.
 
 const fieldKinds = ["text", "number", "select", "multiselect", "boolean"] as const;
 
@@ -63,10 +64,31 @@ const dryRunSchema = z.object({
   ),
 });
 
+const templateListSchema = z.object({ items: z.array(emailTemplateSchema) });
+
+/** What B5's `renderTemplate` answers; the browser draws `html` in a frame and shows the other three as text. */
+const previewSchema = z.object({
+  subject: z.string(),
+  preheader: z.string(),
+  html: z.string(),
+  text: z.string(),
+});
+
+const sendTestSchema = z.object({ queued: z.boolean(), to: z.string() });
+
 export type StepField = z.infer<typeof fieldSchema>;
 export type StepSpecView = z.infer<typeof stepSpecSchema>;
 export type RecipeRow = z.infer<typeof recipeRowSchema>;
 export type { Step } from "../../domain/automation";
+export type TemplateRow = z.infer<typeof emailTemplateSchema>;
+
+/** What a save sends: the four keys the server's `templatePutInput` accepts beside the key in the path. */
+export interface TemplatePatch {
+  subject: string;
+  preheader: string;
+  enabled: boolean;
+  body: readonly EmailBlock[];
+}
 
 /** What a save sends: the three keys the server's `recipePutInput` accepts beside the trigger in the path. */
 export interface RecipePatch {
@@ -97,5 +119,33 @@ export function runDryRun(trigger: string, entityId: string | undefined) {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(entityId === undefined ? { trigger } : { trigger, entity_id: entityId }),
+  });
+}
+
+export function fetchTemplates() {
+  return adminFetch("/api/admin/automation/templates", templateListSchema);
+}
+
+export function putTemplate(key: EmailTemplateKey, patch: TemplatePatch) {
+  return adminFetch(`/api/admin/automation/templates/${key}`, emailTemplateSchema, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+}
+
+/** The saved template drawn by B5's renderer; `variables` sit on top of the sample values. Nothing is sent. */
+export function fetchPreview(key: EmailTemplateKey, variables: Readonly<Record<string, string>>) {
+  return adminFetch("/api/admin/automation/templates/preview", previewSchema, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ key, variables }),
+  });
+}
+
+/** Queues one test of the saved template to the signed-in person. */
+export function postSendTest(key: EmailTemplateKey) {
+  return adminFetch(`/api/admin/automation/templates/${key}/send-test`, sendTestSchema, {
+    method: "POST",
   });
 }

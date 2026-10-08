@@ -15,8 +15,8 @@ import { fakeDb } from "../fixtures/fake-db";
 // every matrix action has a route. The wrapper cases use stand-in guards: the real `requireActor`, `verifyCsrf`,
 // `assertSessionFresh` and `requireRecentAuth` arrive with step 2 and are tested there.
 
-// B7 actions whose route files later steps of this plan add, and B8b's `automation.templates_send_test`, whose route
-// B8b step 8 adds; each step removes its entries, and the B7 part is empty after step 15a.
+// B7 actions whose route files later steps of this plan add; each step removes its entries, and the part is empty
+// after step 15a.
 // A literal list, so an action a later slice adds to the matrix without its route turns this test red.
 const routesPending: readonly ActionId[] = [
   "properties.agent_preview",
@@ -69,7 +69,6 @@ const routesPending: readonly ActionId[] = [
   "audit.subject_opt_out",
   "audit.subject_status",
   "dashboard.get",
-  "automation.templates_send_test",
   // B10: reports.export is the browser's print and never gets a route (G22).
   "reports.export",
 ];

@@ -1,4 +1,4 @@
-/* Screen 17, recipes: the event list beside one recipe, its steps, and the dry run. Tokens only. */
+/* Screens 17 and 18: the list beside one recipe or one email template. Tokens only. */
 
 .admin-recipes__intro {
   margin-bottom: var(--admin-space-5);
@@ -222,6 +222,175 @@
 .admin-dryrun__result li code {
   font-size: 12px;
   color: var(--muted-foreground);
+}
+
+/* Screen 18, email templates: the list is screen 17's; the editor sits beside its preview. */
+.admin-template {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--admin-space-6);
+  align-items: start;
+  min-width: 0;
+}
+
+.admin-template form,
+.admin-template__fields,
+.admin-template__side,
+.admin-blocks {
+  display: grid;
+  gap: var(--admin-space-4);
+  min-width: 0;
+}
+
+.admin-template__fields {
+  padding: 0;
+  border: 0;
+}
+
+.admin-template__key {
+  margin-bottom: var(--admin-space-3);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-template__key code,
+.admin-variables__name code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.admin-template__test {
+  display: grid;
+  gap: var(--admin-space-2);
+  justify-items: start;
+}
+
+.admin-template h3,
+.admin-variables h3,
+.admin-preview h3 {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Blocks */
+.admin-blocks__list {
+  display: grid;
+  gap: var(--admin-space-3);
+  list-style: none;
+}
+
+.admin-block {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding: var(--admin-space-4);
+  border: 1px solid var(--border);
+}
+
+.admin-block[data-invalid="true"] {
+  border-color: var(--status-danger);
+}
+
+.admin-block__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-3);
+}
+
+.admin-block__position {
+  flex: 1 1 auto;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-blocks__fields,
+.admin-blocks__row {
+  display: grid;
+  gap: var(--admin-space-3);
+}
+
+.admin-blocks__rows {
+  display: grid;
+  gap: var(--admin-space-3);
+  justify-items: start;
+}
+
+.admin-blocks__row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: end;
+  width: 100%;
+}
+
+.admin-blocks__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--admin-space-3);
+}
+
+/* Variables */
+.admin-variables,
+.admin-preview,
+.admin-variables form {
+  display: grid;
+  gap: var(--admin-space-3);
+  min-width: 0;
+}
+
+.admin-variables form {
+  justify-items: start;
+}
+
+.admin-variables__list {
+  display: grid;
+  gap: var(--admin-space-3);
+  width: 100%;
+  list-style: none;
+}
+
+.admin-variables__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-2);
+}
+
+/* Preview */
+.admin-preview__head {
+  display: grid;
+  gap: var(--admin-space-2);
+}
+
+.admin-preview__head dt {
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-preview__frame {
+  width: 100%;
+  height: 640px;
+  border: 1px solid var(--border);
+}
+
+.admin-preview__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 1100px) {
+  .admin-template {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 800px) {

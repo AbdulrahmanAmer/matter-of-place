@@ -12,7 +12,7 @@ import {
 import { emailTemplateKeys, emailTemplateSchema } from "../../domain/email.ts";
 import { tiers } from "../../domain/events.ts";
 import type { Flags } from "../../domain/flags.ts";
-import { previewTemplate } from "../email/preview.ts";
+import { previewTemplate, sendTestEmail } from "../email/preview.ts";
 import type { RenderedEmail } from "../email/render.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
@@ -288,6 +288,25 @@ export async function previewEmailTemplate(
   authorize(actor, "automation.templates_preview");
   const { key, variables } = parse(templatePreviewInput, raw);
   return previewTemplate(db, variables === undefined ? { key } : { key, variables });
+}
+
+/**
+ * `POST /api/admin/automation/templates/:key/send-test`: queues one test of the stored row to the address of the
+ * person who asked. `queued` is false when this minute already holds a test of this template for them.
+ */
+export async function sendTemplateTest(actor: AdminActor, db: Db, raw: unknown) {
+  authorize(actor, "automation.templates_send_test");
+  const { key } = parse(templateKeyInput, raw);
+  const found = await db.auth.admin.getUserById(actor.userId);
+  if (found.error !== null) {
+    throw new AppError("unavailable", undefined, "The address for the test could not be read.");
+  }
+  const email = found.data.user.email;
+  if (email === undefined || email === "") {
+    throw new AppError("validation", undefined, "This account has no address to send a test to.");
+  }
+  const job = await sendTestEmail(db, { id: actor.userId, email }, key);
+  return { queued: job !== null, to: email };
 }
 
 /** `GET /api/admin/automation/reasons`, in the order of screen 19. */

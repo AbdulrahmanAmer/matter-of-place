@@ -2257,5 +2257,248 @@
     "replace": "    steps: [],",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
     "expect": "FAIL .*getRecipes > answers the recipes with the step catalog"
+  },
+  {
+    "id": "b8b-g8-list-current",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailsPage.tsx",
+    "find": "aria-current={template.key === open?.key ? \"true\" : undefined}",
+    "replace": "aria-current={undefined}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*EmailsPage > lists a template per key"
+  },
+  {
+    "id": "b8b-g8-choose",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailsPage.tsx",
+    "find": "<EmptyState title=\"Choose a template\">",
+    "replace": "<EmptyState title=\"Pick a template\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*EmailsPage > asks to choose a template"
+  },
+  {
+    "id": "b8b-g8-used",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/VariablesList.tsx",
+    "find": "{used.includes(name) ? <StatusPill",
+    "replace": "{!used.includes(name) ? <StatusPill",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the variables > name what the template may use"
+  },
+  {
+    "id": "b8b-g8-missing-blocks-save",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "if (!problems.ok || missing.length > 0) return;",
+    "replace": "if (!problems.ok) return;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the variables > warn about a name"
+  },
+  {
+    "id": "b8b-g8-missing-text",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/VariablesList.tsx",
+    "find": "Not available in this email: ",
+    "replace": "Unavailable: ",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the variables > warn about a name"
+  },
+  {
+    "id": "b8b-g8-preview-html",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/TemplatePreview.tsx",
+    "find": "srcDoc={preview.data.html}",
+    "replace": "srcDoc={preview.data.text}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the preview > draws what the preview route answers"
+  },
+  {
+    "id": "b8b-g8-preview-key",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "{ preview: key, version, variables }",
+    "replace": "{ preview: key, version }",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the preview > asks again with the values typed"
+  },
+  {
+    "id": "b8b-g8-preview-unsaved",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/TemplatePreview.tsx",
+    "find": "{unsaved ?",
+    "replace": "{false ?",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the preview > says it shows the saved template"
+  },
+  {
+    "id": "b8b-g8-send-path",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/automation-api.ts",
+    "find": "/send-test`",
+    "replace": "/sendtest`",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > posts once"
+  },
+  {
+    "id": "b8b-g8-send-twice",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "sendTest.mutate(template.key, {",
+    "replace": "sendTest.mutate(template.key); sendTest.mutate(template.key, {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > posts once"
+  },
+  {
+    "id": "b8b-g8-send-repeat",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "message: result.queued",
+    "replace": "message: !result.queued",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > says so when this minute"
+  },
+  {
+    "id": "b8b-g8-send-dirty",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "disabled={dirty || sendTest.isPending}",
+    "replace": "disabled={sendTest.isPending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > waits for a save"
+  },
+  {
+    "id": "b8b-g8-send-gate",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "<RoleGate action=\"automation.templates_send_test\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > is not offered"
+  },
+  {
+    "id": "b8b-g8-save-enabled",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "{ key: template.key, patch: draft },",
+    "replace": "{ key: template.key, patch: { ...draft, enabled: true } },",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > sends the four fields"
+  },
+  {
+    "id": "b8b-g8-move",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/BlocksEditor.tsx",
+    "find": "next.splice(index + by, 0, moved);",
+    "replace": "next.splice(index, 0, moved);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > sends the four fields"
+  },
+  {
+    "id": "b8b-g8-subject-error",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/template-draft.ts",
+    "find": "if (field === \"subject\") errors.subject ??=",
+    "replace": "if (field === \"subject\") errors.preheader ??=",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > names the block and the field"
+  },
+  {
+    "id": "b8b-g8-block-error",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/template-draft.ts",
+    "find": "errors.blocks[index] ??= messageOf(issue)",
+    "replace": "errors.body ??= messageOf(issue)",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > names the block and the field"
+  },
+  {
+    "id": "b8b-g8-body-unchecked",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/template-draft.ts",
+    "find": "  preheader: true,\n  body: true,\n",
+    "replace": "  preheader: true,\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > refuses a link"
+  },
+  {
+    "id": "b8b-g8-preview-variables",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "variables === undefined ? { key } : { key, variables }",
+    "replace": "variables === undefined ? { key } : { key }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*previewEmailTemplate > returns what renderTemplate returns"
+  },
+  {
+    "id": "b8b-g8-preview-sample",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "variables === undefined ? { key } : { key, variables }",
+    "replace": "variables === undefined ? { key, variables: { city: \"Elsewhere\" } } : { key, variables }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*previewEmailTemplate > draws the sample variables"
+  },
+  {
+    "id": "b8b-g8-preview-authz",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "authorize(actor, \"automation.templates_preview\");",
+    "replace": "authorize(actor, \"automation.get\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*previewEmailTemplate > refuses a role"
+  },
+  {
+    "id": "b8b-g8-test-address",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "sendTestEmail(db, { id: actor.userId, email }, key)",
+    "replace": "sendTestEmail(db, { id: actor.userId, email: \"other@example.com\" }, key)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > queues one send_email job"
+  },
+  {
+    "id": "b8b-g8-test-queued",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "queued: job !== null,",
+    "replace": "queued: true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > answers queued false"
+  },
+  {
+    "id": "b8b-g8-test-authz",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "authorize(actor, \"automation.templates_send_test\");",
+    "replace": "authorize(actor, \"automation.templates_preview\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > refuses a role"
+  },
+  {
+    "id": "b8b-g8-test-key",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "authorize(actor, \"automation.templates_send_test\");\n  const { key } = parse(templateKeyInput, raw);",
+    "replace": "authorize(actor, \"automation.templates_send_test\");\n  const key = emailTemplateKeys[0] ?? \"received\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > refuses a key outside"
+  },
+  {
+    "id": "b8b-g8-test-no-address",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "if (email === undefined || email === \"\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > stops with a plain message"
+  },
+  {
+    "id": "b8b-g8-test-auth-down",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "if (found.error !== null) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > answers unavailable"
   }
 ]

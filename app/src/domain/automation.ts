@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { assetKinds, marketSlugs, type Tier, tiers } from "./events.ts";
 
+export { emailTemplateSchema } from "./email.ts";
+
 // The shapes of the automation console (screens 17 to 21). Field names equal the API JSON and the columns of
 // `automation_recipes`, `channel_settings`, `schedule_settings` and `decline_reasons` (G-004).
 
