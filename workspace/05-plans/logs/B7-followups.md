@@ -708,7 +708,7 @@ evidence: grep of tests/db/admin.db.test.ts for 'anonymised' in the step 11 bloc
 
 blocking: false
 
-### 3. app/supabase/migrations/20261008165659_admin_inquiries.sql
+### 3. app/supabase/migrations/20261008222352_admin_inquiries.sql
 
 what: STANDARDS C11 (and R22's parity half): assign_inquiry, forward_inquiry and close_inquiry do not name their race partner or a test that runs both. They do serialise correctly on `select ... for update` of the inquiry row. Also, `openInquiryStates` in src/domain/admin-inquiries.ts is not compared mechanically with the SQL `wrong_state` guards. Other B7 functions do the same, and I could not name an input that goes wrong today.
 
