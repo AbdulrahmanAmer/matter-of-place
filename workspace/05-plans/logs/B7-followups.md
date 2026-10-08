@@ -467,3 +467,39 @@ what: The c6m Proof 4 numbers ('replayed 119: ok 93, bad 26') come from the tree
 evidence: env -u DEV_DB_URL node scripts/watchfail.mjs --registry tests/mutations --changed 9c462f5 gives replayed 123, bad 30. grep -c '"test": "tests/db/actor.db.test.ts"' tests/mutations/*.json totals 4.
 
 blocking: false
+
+## g1 · steps 6
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The fourth follow-up of the review (a hit-again of P-1218) is a GOTCHAS.md cost and is banked as a hit-again line under P-1218.
+
+### 1. workspace/05-plans/B7.md
+
+what: Stale plan lines (the orchestrator's to fold). Step 6 says 'the component stays in the file, the router splits it already'. That is impossible under the H66 allowlist, because the pages need react hooks and project modules. The group moved each page to src/admin/<feature>/<Name>Page.tsx and loads it with lazyRouteComponent, which fits H66a's intent (no .lazy.tsx sibling, and the bundle got about 936 bytes smaller). Contract item 20 (line 44) still says 'The admin layout src/routes/admin.tsx calls installClientErrorListeners()'. That call is now in src/admin/ui/AdminLayout.tsx. The step's proof 'within 300 bytes of main's' should read 'not larger than main's'.
+
+evidence: grep -n 'installClientErrorListeners' app/src/routes/admin.tsx finds nothing; app/src/admin/ui/AdminLayout.tsx:274 has useEffect(() => installClientErrorListeners(), []). The plan-brief step 6 text says 'the component stays in the file'.
+
+blocking: false
+
+### 2. app/tests/unit/admin-route-shells.test.ts
+
+what: Existing weakness, not introduced here (suspected from reading, not run). STATIC_IMPORT = /^import\s[^;]*?from\s+"([^"]+)";?$/gm only matches imports that have a 'from' clause. A bare side-effect import such as `import "../admin/ui/AdminShell";` and a re-export such as `export { x } from "../admin/query";` would both put admin code back into the route tree that the public entry loads, and the shell test would stay green. bundle-check would still refuse admin modules in a public chunk, but not the size cost of the extra code.
+
+evidence: Read app/tests/unit/admin-route-shells.test.ts line 14: the regex requires 'from'. Not mutated because this review is read-only.
+
+blocking: false
+
+### 3. app/src/routes/admin/requests.index.tsx
+
+what: The comment's reason no longer matches the file. Line 4 says the route is not spread from adminRouteOptions() because 'its lazyRouteComponent imports would sit in the route tree', but this same file now puts lazyRouteComponent imports in the route tree. The real reason is that spreading would need a static import of src/admin/query, which the shell allowlist forbids. The README wording ('its imports would join the route tree') is accurate. Taste-level, comment only.
+
+evidence: app/src/routes/admin/requests.index.tsx lines 4-6 against lines 7-10 and 19 of the same file
+
+blocking: false
+
+### 4. workspace/05-plans/logs/B7.md
+
+what: Note for the log. The author's UNPROVEN item 'signed-in admin layout, the requests table and a not-found request were not opened in a browser' is now covered by this review (signed-in probe on mop-dev through the 8949 preview, results above). The orchestrator can fold that into the record. The two stray scratch files the author left outside the repo (D:/mop-build/build.log and D:/mop-build/sign-in.bak.tmp) still need deleting by someone with permission.
+
+evidence: See the reran entry 'node scratchpad/b7rev-signed.mjs': frame 1 on /admin, 'Requests' h1, 'Request not found', AdminRouteError with request id, pageerrors []
+
+blocking: false
