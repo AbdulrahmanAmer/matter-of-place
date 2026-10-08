@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { adminKeys } from "../query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { adminKeys, invalidateAfterWrite } from "../query";
 import { emailReport, fetchReport, fetchReports } from "./reports-api";
 
 /** The filter of screen 22 that lives in the address, beside the page. */
@@ -20,5 +20,10 @@ export function useReport(id: string) {
   return useQuery({ queryKey: adminKeys.reports.detail(id), queryFn: () => fetchReport(id) });
 }
 
-/** Emailing writes an audit row and a job, and changes nothing the screen shows, so no query is refreshed. */
-export const useEmailReport = () => useMutation({ mutationFn: emailReport });
+export function useEmailReport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: emailReport,
+    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.reports.all()),
+  });
+}

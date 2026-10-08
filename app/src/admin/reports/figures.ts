@@ -1,5 +1,5 @@
 import { formatInZone } from "../../domain/market-time";
-import type { Report } from "../../domain/reports";
+import type { Report } from "../../domain/admin-reports";
 import { formatNumber } from "../../lib/format";
 import type { Tone } from "../ui/StatusPill";
 

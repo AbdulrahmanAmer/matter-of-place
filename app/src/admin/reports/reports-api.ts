@@ -1,4 +1,4 @@
-import { reportEmailAnswer, reportListSchema, reportSchema } from "../../domain/reports";
+import { reportEmailAnswer, reportListSchema, reportSchema } from "../../domain/admin-reports";
 import { adminFetch } from "../ui/admin-fetch";
 
 // The browser side of screen 22. Components reach these through `reports-queries.ts`.

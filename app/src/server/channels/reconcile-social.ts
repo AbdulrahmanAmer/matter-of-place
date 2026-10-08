@@ -70,9 +70,15 @@ async function write<T>(call: PromiseLike<{ data: T; error: unknown }>, what: st
 const isSocialChannel = (value: string): value is SocialChannel =>
   Object.hasOwn(socialChannelLabels, value);
 
-/** What an adapter throws for a platform that failed or did not answer; anything else is ours and is not caught. */
+/**
+ * What an adapter throws for a platform that refused: the platform's own error classes. An `unavailable` AppError is
+ * the database or an outage (the adapters raise both the same way) and throws, so B8's backoff retries the job; any
+ * other AppError is a setting or a token of that channel and is counted.
+ */
 const isPlatformError = (error: unknown): error is Error =>
-  error instanceof GraphError || error instanceof ChannelApiError || error instanceof AppError;
+  error instanceof GraphError ||
+  error instanceof ChannelApiError ||
+  (error instanceof AppError && error.code !== "unavailable");
 
 const describeError = (id: string, error: Error) =>
   `${id}: ${error.message}`.slice(0, MESSAGE_LENGTH);
@@ -220,8 +226,8 @@ interface Markers {
 /**
  * A marker older than an hour is taken to belong to a run that is gone (INT-01). The platform is asked once: a post found is
  * recorded, a container still processing is `container_timeout`, and a marker the platform cannot place is
- * `outcome_unknown`; nothing is created again. A budget refusal or a container Meta wants restarted is left for the
- * post step's own retry.
+ * `outcome_unknown` (so is an X marker while the read allowance is spent, invariant 11); nothing is created again. A
+ * container Meta wants restarted is left for the post step's own retry.
  */
 async function resolveMarkers(
   ctx: StepContext,
@@ -256,15 +262,15 @@ async function resolveMarkers(
         "mark_social_post_posted",
       );
       tally.posted += 1;
-    } else if (found.status === "not_found" || found.status === "in_progress") {
+    } else if (found.status === "restart") {
+      tally.left += 1;
+    } else {
       await failAndAlert(
         ctx,
         post,
-        found.status === "not_found" ? "outcome_unknown" : "container_timeout",
+        found.status === "in_progress" ? "container_timeout" : "outcome_unknown",
       );
       tally.failed += 1;
-    } else {
-      tally.left += 1;
     }
   }
   return tally;

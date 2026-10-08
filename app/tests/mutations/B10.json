@@ -3080,6 +3080,46 @@
     "expect": "FAIL .*> the quarter-hour runs > enqueue exactly one daily run"
   },
   {
+    "id": "b10g9-rs-db-error-throws",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "(error instanceof AppError && error.code !== \"unavailable\")",
+    "replace": "error instanceof AppError",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > throws when the token check cannot record"
+  },
+  {
+    "id": "b10g9-rs-db-error-usage",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "(error instanceof AppError && error.code !== \"unavailable\")",
+    "replace": "error instanceof AppError",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > throws when an X read cannot be counted"
+  },
+  {
+    "id": "b10g9-rs-db-error-vault",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "(error instanceof AppError && error.code !== \"unavailable\")",
+    "replace": "error instanceof AppError",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > throws when a stored token cannot be read"
+  },
+  {
+    "id": "b10g9-rs-marker-budget",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "} else if (found.status === \"restart\") {",
+    "replace": "} else if (found.status === \"restart\" || found.status === \"skipped_budget\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> a marker an hour old or older .INT-01. > becomes outcome_unknown when the X read allowance is spent"
+  },
+  {
     "id": "b10g9-rs-before5",
     "kind": "file",
     "test": "tests/unit/channels/reconcile.test.ts",
@@ -3214,8 +3254,8 @@
     "kind": "file",
     "test": "tests/unit/channels/reconcile.test.ts",
     "file": "src/server/channels/reconcile-social.ts",
-    "find": "} else if (found.status === \"not_found\" || found.status === \"in_progress\") {",
-    "replace": "} else if (found.status === \"in_progress\") {",
+    "find": "found.status === \"in_progress\" ? \"container_timeout\" : \"outcome_unknown\",",
+    "replace": "\"container_timeout\",",
     "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
     "expect": "FAIL .*.*> becomes outcome_unknown when the lookup finds nothing"
   },
@@ -3634,10 +3674,20 @@
     "kind": "file",
     "test": "src/admin/reports/reports.test.tsx",
     "file": "src/admin/reports/ReportDetail.tsx",
-    "find": "send.mutate(id);",
-    "replace": "send.mutate(id);send.mutate(id);",
+    "find": "send.mutate(id, {",
+    "replace": "send.mutate(id);send.mutate(id, {",
     "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
     "expect": "FAIL .*> Export and Email to submitter > posts once from Email to submitter"
+  },
+  {
+    "id": "b10g9-ui-email-confirm",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "setAsking(true);",
+    "replace": "send.mutate(id);",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> Export and Email to submitter > asks first and posts nothing when the person cancels"
   },
   {
     "id": "b10g9-ui-dup",

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { reportIdInput, reportSchema } from "../../../domain/reports";
+import { reportIdInput, reportSchema } from "../../../domain/admin-reports";
 import { defineAdminRoute } from "../../../server/lib/admin-route";
 import { getReport } from "../../../server/reports/service";
 

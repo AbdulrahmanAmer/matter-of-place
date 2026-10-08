@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { reportPageSize } from "../../domain/reports";
+import { reportPageSize } from "../../domain/admin-reports";
 import { AdminApiError } from "../ui/admin-fetch";
 import { useUrlFilters } from "../ui/use-url-filters";
 import { ReportDetail } from "./ReportDetail";

@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import type { Report } from "../../domain/reports";
+import type { Report } from "../../domain/admin-reports";
 import { DataTable, type Column } from "../ui/DataTable";
 import { EmptyState } from "../ui/EmptyState";
 import { StatusPill } from "../ui/StatusPill";

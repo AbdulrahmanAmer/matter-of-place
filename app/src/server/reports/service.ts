@@ -4,7 +4,7 @@ import {
   reportSchema,
   type Report,
   type ReportFilters,
-} from "../../domain/reports.ts";
+} from "../../domain/admin-reports.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import { adminJson } from "../lib/admin-response.ts";
 import type { AdminActor } from "../lib/admin-route.ts";

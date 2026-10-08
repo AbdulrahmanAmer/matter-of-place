@@ -273,6 +273,31 @@ describe("the daily part", () => {
     await expect(dailyRun(run)).rejects.toThrow("The database did not answer");
   });
 
+  it("throws when the token check cannot record, so the check day is not lost", async () => {
+    const run = setup({ handlers: { record_channel_check: () => new Error("db down") } });
+    await expect(dailyRun(run)).rejects.toThrow("did not answer (record_channel_check)");
+  });
+
+  it("throws when an X read cannot be counted, so the budget does not drift", async () => {
+    const run = setup({
+      posts: [aged(1, "x", 7)],
+      answers: { "GET https://api.x.com/2/tweets/x-1": answerOf("x", "tweet-metrics") },
+      handlers: { record_channel_usage: () => new Error("db down") },
+    });
+    await expect(dailyRun(run)).rejects.toThrow("did not answer (record_channel_usage)");
+  });
+
+  it("throws when a stored token cannot be read, so the metrics day is not dropped", async () => {
+    const run = setup({
+      posts: [aged(1, "linkedin", 1)],
+      handlers: {
+        get_vault_secret: (args) =>
+          args["p_name"] === "linkedin_oauth_token" ? new Error("db down") : vaultSet,
+      },
+    });
+    await expect(dailyRun(run)).rejects.toThrow("did not answer (get_vault_secret)");
+  });
+
   it("makes one complete_distributed_submissions call with its now and stores the count", async () => {
     const run = setup();
     const social = await dailyRun(run);
@@ -345,6 +370,28 @@ describe("a marker an hour old or older (INT-01)", () => {
     expect(run.jobs.map((job) => job.key)).toEqual([`social_failed:${uuid(1)}`]);
     expect(social["markers"]).toEqual({ posted: 0, failed: 1, left: 0 });
     expect(run.platform.calls().some((call) => call.startsWith("POST"))).toBe(false);
+  });
+
+  it("becomes outcome_unknown when the X read allowance is spent, since the lookup cannot be made", async () => {
+    const run = setup({
+      x: { ...X_SETTINGS, usage: { month: "2026-10", reads: 100 } },
+      posts: [
+        postRow("x", {
+          id: uuid(1),
+          scheduled_at: ago(3 * HOUR_MS),
+          updated_at: ago(2 * HOUR_MS),
+          error: marker("123"),
+        }),
+      ],
+    });
+    const social = await dailyRun(run);
+    expect(run.posts.map((post) => [post.status, post.error])).toEqual([
+      ["failed", "outcome_unknown"],
+    ]);
+    expect(social["markers"]).toEqual({ posted: 0, failed: 1, left: 0 });
+    expect(run.platform.calls().filter((call) => call.includes("/2/users/"))).toEqual([
+      "GET https://api.x.com/2/users/me",
+    ]);
   });
 
   it("is left alone while it is younger than an hour", async () => {

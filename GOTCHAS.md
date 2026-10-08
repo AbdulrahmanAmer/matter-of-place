@@ -1248,6 +1248,7 @@ Entry template
 - rule: every lane runs with a `bankBase` and its own `previewPort` (`workspace/05-plans/restart.json`; ruling H45 (5)): spine P-150/G-40 on port 8788, db P-300/G-100 on 8798, tests P-400/G-150 on 8808, design P-700/G-250 on 8818, a fifth lane api P-800/G-300 on 8828; the orchestrator writes from P-500/G-200. Wherever a plan, a script or an entry says 8788, a lane uses its own port, and it stops only the processes it started. When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
 - proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4; `grep -o '"previewPort": [0-9]*' workspace/05-plans/restart.json` prints 8798, 8808 and 8818 (spine takes the default 8788 of `build-slice.js`).
 - added: 2026-10-03
+- hit again: 2026-10-08, B10 g9: the merge of main renumbered the lane's P-2405 and P-2406 to P-2223 and P-2224 through `bank-merge.mjs` after it refused the collision; the cost is banked in P-2456.
 
 ## G-102 · A statement that fails inside `withRollback` aborts the whole test transaction unless a savepoint wraps it
 - paths: app/tests/db/**
@@ -4894,4 +4895,25 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `--changed <ref>` selects what differs from `<ref>`, and the branch carries every earlier group's unmerged work (P-539 widened it to entries the registry gained since the ref); `--only <id>` takes one exact id.
 - rule: replay a group's own entries from a registry directory that holds only them: copy the group's entries to a temporary directory outside the tree and run `node scripts/watchfail.mjs --registry <dir>` from `app/` (ten entries in 9 s on 2026-10-08); never kill a replay between a `mutated` line and its `WATCHED-FAIL OK`, and after any interruption run `git status --short` and restore a tracked file with `git checkout -- <file>`.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b10g10-ara-poll --changed origin/main` → `WATCHED-FAIL OK B10:b10g10-ara-poll`.
+- added: 2026-10-08
+- hit again: 2026-10-08, B10 g9 fix round: `--changed origin/main` ran past the 120-second tool limit and went to the background; the group's entries were replayed one id at a time with `--only` in a shell loop.
+## P-2454 · The adapters raise a database failure and a platform outage as the same `AppError("unavailable")`, so a catch on `AppError` swallows database errors
+- symptom: B10 g9's review ran `reconcileSocial` with `record_channel_check` and `record_channel_usage` answering an error: the run resolved `done` with `tokens {x: "error", linkedin: "error"}` and the messages in `errors`, where the plan says a database error throws so B8's backoff retries the job. A skipped `record_channel_usage` leaves an X read uncounted and breaks the budget of invariant 11; a skipped `record_channel_check` leaves `token_checked_at` unwritten for a day.
+- cause: `oauth-tokens.ts`, `meta.ts` and `meta-token.ts` raise their database failures as `AppError("unavailable")`, the same class and code as "X did not answer"; the first version of `isPlatformError` counted every `AppError`. The test that was meant to prove it only failed `set_social_post_metrics`, which sits outside the try blocks.
+- rule: a catch that counts platform errors names `GraphError`, `ChannelApiError` and the `AppError` codes that are not `unavailable`; an `unavailable` throws (the job is retried), as `platformFailure` in `post-to-channel.ts` already does. A test of "a database error throws" fails each database call the try block can reach (the token check, the usage count, the Vault read), not one call beside it.
+- proof: `cd app && bunx vitest run tests/unit/channels/reconcile.test.ts -t "throws when"` → `Tests  3 passed`.
+- added: 2026-10-08
+
+## P-2455 · A reviewer's scratch vitest probe outside the repository cannot load a `vitest.config.ts`, because the scratch folder has no `node_modules`
+- symptom: `bunx vitest run --config <scratchpad>/probe/vitest.config.ts` → `Startup Error: Cannot find module 'vitest/config'`.
+- cause: the config imports `defineConfig` from `vitest/config`, which resolves from the config file's folder, and the scratch folder has no `node_modules`.
+- rule: write the probe's config as a plain-object `vitest.config.mjs` (`export default { test: { include: [...], setupFiles: [...] } }`) and pass `--config` and `--dir`; a reviewer then probes the snapshot without writing into it.
+- proof: the same object as `.mjs` ran a probe against the g9 snapshot → `Tests  1 passed (1)` (reviewer's measurement, 2026-10-08).
+- added: 2026-10-08
+
+## P-2456 · A merge of main into a lane that renumbers entries, conflicts in `routeTree.gen.ts` and `admin/index.css` and trips jscpd is three costs, and a log line that cites an entry for it must cite one that holds it
+- symptom: B10 g9's merge of main cost three attempts: `bank-merge.mjs` refused the collision of the lane's P-2405 and P-2406 with main's entries of the same numbers (H69, the park's WIP commit), `routeTree.gen.ts` and `src/styles/admin/index.css` conflicted, and `bun run check` then stopped at jscpd on the `serve` helper that `channels.test.tsx` and B7's `properties.test.tsx` both carried. The group's costTime named P-2223, which is a different entry (an empty three-dot diff), so the cost had no entry.
+- cause: a lane that numbers from its own base still collides when a P-24xx number is handed out on both sides (P-503); the generated route tree and the admin stylesheet index are shared lines every lane appends to; a helper copied into two test files is a clone once the second copy arrives.
+- rule: renumber by `bank-merge.mjs` and write the old and new number in the log; regenerate `routeTree.gen.ts` with the build and keep both sides' lines in `index.css`; put a test helper two files need in `tests/fixtures/` before the merge (`admin-serve.ts`); cite the entry that holds a cost, and add one when none does.
+- proof: `grep -c "fixtures/admin-serve" app/src/admin/channels/channels.test.tsx app/src/admin/reports/reports.test.tsx` → `1` for each file.
 - added: 2026-10-08

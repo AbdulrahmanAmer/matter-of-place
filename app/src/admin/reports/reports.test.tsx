@@ -2,8 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet } from "@tanstack/react-router";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Report } from "../../domain/reports";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { Report } from "../../domain/admin-reports";
 import { serveAdmin as serve } from "../../../tests/fixtures/admin-serve";
 import { AdminMeContext, type AdminMe } from "../ui/admin-me";
 import { mountRoutes, pageRoute } from "../ui/test-router";
@@ -95,6 +95,16 @@ const openRow = async (name: string) => {
   fireEvent.click(await within(table).findByText(name));
   return screen.findByRole("region", { name: "Report" });
 };
+
+// jsdom has no showModal or close on <dialog>; these toggle `open` as the browser's do (as in dialogs.test.tsx).
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.removeAttribute("open");
+  };
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -199,10 +209,19 @@ describe("Export and Email to submitter", () => {
     });
     const detail = await openRow("Oak Hill");
     fireEvent.click(within(detail).getByRole("button", { name: "Email to submitter" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send report" }));
     expect(await within(detail).findByText("Queued")).toBeTruthy();
     expect(requested.filter((line) => line.startsWith("POST"))).toEqual([
       `POST ${REPORTS}/${COMPLETE}/email`,
     ]);
+  });
+
+  it("asks first and posts nothing when the person cancels", async () => {
+    const requested = open(editors, { [`GET ${REPORTS}/${COMPLETE}`]: complete });
+    const detail = await openRow("Oak Hill");
+    fireEvent.click(within(detail).getByRole("button", { name: "Email to submitter" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(requested.filter((line) => line.startsWith("POST"))).toEqual([]);
   });
 
   it("says Already queued for a second click in the minute and shows an error when the send is refused", async () => {
@@ -212,6 +231,7 @@ describe("Export and Email to submitter", () => {
     });
     const detail = await openRow("Oak Hill");
     fireEvent.click(within(detail).getByRole("button", { name: "Email to submitter" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send report" }));
     expect(await within(detail).findByText("Already queued")).toBeTruthy();
   });
 
@@ -227,6 +247,7 @@ describe("Export and Email to submitter", () => {
     });
     const detail = await openRow("Oak Hill");
     fireEvent.click(within(detail).getByRole("button", { name: "Email to submitter" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send report" }));
     await waitFor(() => {
       expect(within(detail).getByRole("status").textContent).toContain("no submitter");
     });

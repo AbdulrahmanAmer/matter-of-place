@@ -1,6 +1,9 @@
+import { useState } from "react";
+import { socialChannelLabels } from "../../domain/channels";
 import { formatMoney } from "../../lib/format";
 import { AdminApiError } from "../ui/admin-fetch";
 import { useAdminMe } from "../ui/admin-me";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { StatusPill } from "../ui/StatusPill";
 import {
   count,
@@ -13,13 +16,8 @@ import {
 } from "./figures";
 import { useEmailReport, useReport } from "./reports-queries";
 
-const CHANNEL_LABELS: Readonly<Record<string, string>> = {
-  instagram: "Instagram",
-  x: "X",
-  linkedin: "LinkedIn",
-  facebook: "Facebook",
-  youtube: "YouTube",
-};
+const channelLabel = (channel: string): string =>
+  Object.entries(socialChannelLabels).find(([key]) => key === channel)?.[1] ?? channel;
 
 /** Print starts the browser's own dialog, which saves a PDF; there is no server render (G22). */
 function exportReport() {
@@ -28,6 +26,7 @@ function exportReport() {
 
 function EmailButton({ id }: { id: string }) {
   const send = useEmailReport();
+  const [asking, setAsking] = useState(false);
   const failure = send.error;
   const queued =
     send.data === undefined ? null : send.data.duplicate === true ? "Already queued" : "Queued";
@@ -38,11 +37,29 @@ function EmailButton({ id }: { id: string }) {
         className="admin-button admin-button--quiet"
         disabled={send.isPending}
         onClick={() => {
-          send.mutate(id);
+          setAsking(true);
         }}
       >
         Email to submitter
       </button>
+      <ConfirmDialog
+        open={asking}
+        title="Email this report"
+        confirmLabel="Send report"
+        pending={send.isPending}
+        onCancel={() => {
+          setAsking(false);
+        }}
+        onConfirm={() => {
+          send.mutate(id, {
+            onSettled: () => {
+              setAsking(false);
+            },
+          });
+        }}
+      >
+        <p>The submitter of this campaign receives this week's report by email.</p>
+      </ConfirmDialog>
       <p role="status">
         {queued}
         {failure === null ? null : failure.message}
@@ -62,7 +79,16 @@ export function ReportDetail({ id }: { id: string }) {
   const { actions } = useAdminMe();
   const report = useReport(id);
   const data = report.data;
-  if (report.error !== null) return <p role="alert">{report.error.message}</p>;
+  if (report.error !== null) {
+    return (
+      <p role="alert">
+        {report.error.message}
+        {report.error instanceof AdminApiError && report.error.requestId !== undefined
+          ? ` Request ${report.error.requestId}.`
+          : null}
+      </p>
+    );
+  }
   if (data === undefined) return <div className="admin-skeleton" />;
   const state = reportState(data);
   return (
@@ -150,7 +176,7 @@ export function ReportDetail({ id }: { id: string }) {
             <tbody>
               {Object.entries(data.channel_mix).map(([channel, figures]) => (
                 <tr key={channel}>
-                  <th scope="row">{CHANNEL_LABELS[channel] ?? channel}</th>
+                  <th scope="row">{channelLabel(channel)}</th>
                   <td className="admin-cell--end">{count(figures["posts"] ?? 0)}</td>
                   <td className="admin-cell--end">{count(figures["reach"])}</td>
                   <td className="admin-cell--end">{count(figures["views"])}</td>
