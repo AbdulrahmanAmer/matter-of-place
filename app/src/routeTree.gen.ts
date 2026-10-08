@@ -49,6 +49,9 @@ import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$s
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
+import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
+import { Route as AdminInvoicesIdRouteImport } from './routes/admin/invoices.$id'
+import { Route as AdminInvoicesNewRouteImport } from './routes/admin/invoices.new'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminPropertiesIndexRouteImport } from './routes/admin/properties.index'
@@ -75,6 +78,9 @@ import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/aut
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
 import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
+import { Route as ApiAdminPaymentsIndexRouteImport } from './routes/api/admin/payments.index'
+import { Route as ApiAdminPaymentsIdRouteImport } from './routes/api/admin/payments.$id'
+import { Route as ApiAdminPaymentsIssueInvoiceRouteImport } from './routes/api/admin/payments.issue-invoice'
 import { Route as ApiAdminPeopleIndexRouteImport } from './routes/api/admin/people.index'
 import { Route as ApiAdminPeopleIdRouteImport } from './routes/api/admin/people.$id'
 import { Route as ApiAdminPropertiesIndexRouteImport } from './routes/api/admin/properties.index'
@@ -93,6 +99,10 @@ import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/st
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
+import { Route as ApiAdminPaymentsIdMarkPaidRouteImport } from './routes/api/admin/payments.$id.mark-paid'
+import { Route as ApiAdminPaymentsIdPdfRouteImport } from './routes/api/admin/payments.$id.pdf'
+import { Route as ApiAdminPaymentsIdVoidRouteImport } from './routes/api/admin/payments.$id.void'
+import { Route as ApiAdminPaymentsIdWaiveRouteImport } from './routes/api/admin/payments.$id.waive'
 import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
 import { Route as ApiAdminPropertiesIdFeaturesRouteImport } from './routes/api/admin/properties.$id.features'
 import { Route as ApiAdminPropertiesIdPreviewTokenRouteImport } from './routes/api/admin/properties.$id.preview-token'
@@ -101,12 +111,14 @@ import { Route as ApiAdminPropertiesIdRankRouteImport } from './routes/api/admin
 import { Route as ApiAdminPropertiesIdRelatedRouteImport } from './routes/api/admin/properties.$id.related'
 import { Route as ApiAdminPropertiesIdTimelineRouteImport } from './routes/api/admin/properties.$id.timeline'
 import { Route as ApiAdminSubmissionsIdAcceptRouteImport } from './routes/api/admin/submissions.$id.accept'
+import { Route as ApiAdminSubmissionsIdActivateRouteImport } from './routes/api/admin/submissions.$id.activate'
 import { Route as ApiAdminSubmissionsIdAssetsReceivedRouteImport } from './routes/api/admin/submissions.$id.assets-received'
 import { Route as ApiAdminSubmissionsIdDeclineRouteImport } from './routes/api/admin/submissions.$id.decline'
 import { Route as ApiAdminSubmissionsIdEmailPreviewRouteImport } from './routes/api/admin/submissions.$id.email-preview'
 import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
 import { Route as ApiAdminSubmissionsIdRequestAssetsRouteImport } from './routes/api/admin/submissions.$id.request-assets'
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
+import { Route as ApiAdminSubmissionsIdWaiveRouteImport } from './routes/api/admin/submissions.$id.waive'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
 import { Route as ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport } from './routes/api/admin/submissions.$id.media.$mediaId.original'
 
@@ -312,6 +324,27 @@ const AdminAuthConfirmRoute = AdminAuthConfirmRouteImport.update({
   path: '/auth/confirm',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminInvoicesIndexRoute = AdminInvoicesIndexRouteImport.update({
+  id: '/invoices/',
+  path: '/invoices/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/invoices.index.lazy').then((d) => d.Route),
+)
+const AdminInvoicesIdRoute = AdminInvoicesIdRouteImport.update({
+  id: '/invoices/$id',
+  path: '/invoices/$id',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/invoices.$id.lazy').then((d) => d.Route),
+)
+const AdminInvoicesNewRoute = AdminInvoicesNewRouteImport.update({
+  id: '/invoices/new',
+  path: '/invoices/new',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/invoices.new.lazy').then((d) => d.Route),
+)
 const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -450,6 +483,22 @@ const ApiAdminChannelsPostsRoute = ApiAdminChannelsPostsRouteImport.update({
   path: '/api/admin/channels/posts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminPaymentsIndexRoute = ApiAdminPaymentsIndexRouteImport.update({
+  id: '/api/admin/payments/',
+  path: '/api/admin/payments/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPaymentsIdRoute = ApiAdminPaymentsIdRouteImport.update({
+  id: '/api/admin/payments/$id',
+  path: '/api/admin/payments/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPaymentsIssueInvoiceRoute =
+  ApiAdminPaymentsIssueInvoiceRouteImport.update({
+    id: '/api/admin/payments/issue-invoice',
+    path: '/api/admin/payments/issue-invoice',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminPeopleIndexRoute = ApiAdminPeopleIndexRouteImport.update({
   id: '/api/admin/people/',
   path: '/api/admin/people/',
@@ -547,6 +596,27 @@ const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
   path: '/api/admin/channels/ids/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminPaymentsIdMarkPaidRoute =
+  ApiAdminPaymentsIdMarkPaidRouteImport.update({
+    id: '/mark-paid',
+    path: '/mark-paid',
+    getParentRoute: () => ApiAdminPaymentsIdRoute,
+  } as any)
+const ApiAdminPaymentsIdPdfRoute = ApiAdminPaymentsIdPdfRouteImport.update({
+  id: '/pdf',
+  path: '/pdf',
+  getParentRoute: () => ApiAdminPaymentsIdRoute,
+} as any)
+const ApiAdminPaymentsIdVoidRoute = ApiAdminPaymentsIdVoidRouteImport.update({
+  id: '/void',
+  path: '/void',
+  getParentRoute: () => ApiAdminPaymentsIdRoute,
+} as any)
+const ApiAdminPaymentsIdWaiveRoute = ApiAdminPaymentsIdWaiveRouteImport.update({
+  id: '/waive',
+  path: '/waive',
+  getParentRoute: () => ApiAdminPaymentsIdRoute,
+} as any)
 const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
   id: '/notes',
   path: '/notes',
@@ -594,6 +664,12 @@ const ApiAdminSubmissionsIdAcceptRoute =
     path: '/accept',
     getParentRoute: () => ApiAdminSubmissionsIdRoute,
   } as any)
+const ApiAdminSubmissionsIdActivateRoute =
+  ApiAdminSubmissionsIdActivateRouteImport.update({
+    id: '/activate',
+    path: '/activate',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
 const ApiAdminSubmissionsIdAssetsReceivedRoute =
   ApiAdminSubmissionsIdAssetsReceivedRouteImport.update({
     id: '/assets-received',
@@ -628,6 +704,12 @@ const ApiAdminSubmissionsIdTimelineRoute =
   ApiAdminSubmissionsIdTimelineRouteImport.update({
     id: '/timeline',
     path: '/timeline',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
+const ApiAdminSubmissionsIdWaiveRoute =
+  ApiAdminSubmissionsIdWaiveRouteImport.update({
+    id: '/waive',
+    path: '/waive',
     getParentRoute: () => ApiAdminSubmissionsIdRoute,
   } as any)
 const ApiPublicSubmissionsIdUploadsRoute =
@@ -680,6 +762,8 @@ export interface FileRoutesByFullPath {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/invoices/$id': typeof AdminInvoicesIdRoute
+  '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
@@ -701,6 +785,7 @@ export interface FileRoutesByFullPath {
   '/$market/': typeof SiteMarketIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
+  '/admin/invoices/': typeof AdminInvoicesIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
@@ -709,6 +794,8 @@ export interface FileRoutesByFullPath {
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
+  '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
+  '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
   '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
@@ -723,10 +810,15 @@ export interface FileRoutesByFullPath {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
+  '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
+  '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
+  '/api/admin/payments/$id/waive': typeof ApiAdminPaymentsIdWaiveRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/properties/$id/features': typeof ApiAdminPropertiesIdFeaturesRoute
   '/api/admin/properties/$id/preview-token': typeof ApiAdminPropertiesIdPreviewTokenRoute
@@ -735,12 +827,14 @@ export interface FileRoutesByFullPath {
   '/api/admin/properties/$id/related': typeof ApiAdminPropertiesIdRelatedRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
+  '/api/admin/submissions/$id/activate': typeof ApiAdminSubmissionsIdActivateRoute
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
   '/api/admin/submissions/$id/email-preview': typeof ApiAdminSubmissionsIdEmailPreviewRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
+  '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
@@ -778,6 +872,8 @@ export interface FileRoutesByTo {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/invoices/$id': typeof AdminInvoicesIdRoute
+  '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
@@ -799,6 +895,7 @@ export interface FileRoutesByTo {
   '/$market': typeof SiteMarketIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
+  '/admin/invoices': typeof AdminInvoicesIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/properties': typeof AdminPropertiesIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
@@ -807,6 +904,8 @@ export interface FileRoutesByTo {
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
+  '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
+  '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
   '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
@@ -821,10 +920,15 @@ export interface FileRoutesByTo {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/payments': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
+  '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
+  '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
+  '/api/admin/payments/$id/waive': typeof ApiAdminPaymentsIdWaiveRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/properties/$id/features': typeof ApiAdminPropertiesIdFeaturesRoute
   '/api/admin/properties/$id/preview-token': typeof ApiAdminPropertiesIdPreviewTokenRoute
@@ -833,12 +937,14 @@ export interface FileRoutesByTo {
   '/api/admin/properties/$id/related': typeof ApiAdminPropertiesIdRelatedRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
+  '/api/admin/submissions/$id/activate': typeof ApiAdminSubmissionsIdActivateRoute
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
   '/api/admin/submissions/$id/email-preview': typeof ApiAdminSubmissionsIdEmailPreviewRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
+  '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
@@ -881,6 +987,8 @@ export interface FileRoutesById {
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/invoices/$id': typeof AdminInvoicesIdRoute
+  '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
@@ -902,6 +1010,7 @@ export interface FileRoutesById {
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
+  '/admin/invoices/': typeof AdminInvoicesIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
@@ -910,6 +1019,8 @@ export interface FileRoutesById {
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRoute
+  '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
+  '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
   '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
   '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
@@ -924,10 +1035,15 @@ export interface FileRoutesById {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
+  '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
+  '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
+  '/api/admin/payments/$id/waive': typeof ApiAdminPaymentsIdWaiveRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
   '/api/admin/properties/$id/features': typeof ApiAdminPropertiesIdFeaturesRoute
   '/api/admin/properties/$id/preview-token': typeof ApiAdminPropertiesIdPreviewTokenRoute
@@ -936,12 +1052,14 @@ export interface FileRoutesById {
   '/api/admin/properties/$id/related': typeof ApiAdminPropertiesIdRelatedRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
+  '/api/admin/submissions/$id/activate': typeof ApiAdminSubmissionsIdActivateRoute
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
   '/api/admin/submissions/$id/email-preview': typeof ApiAdminSubmissionsIdEmailPreviewRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
+  '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
@@ -984,6 +1102,8 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/invoices/$id'
+    | '/admin/invoices/new'
     | '/admin/people/$id'
     | '/admin/properties/$id'
     | '/admin/requests/$id'
@@ -1005,6 +1125,7 @@ export interface FileRouteTypes {
     | '/$market/'
     | '/markets/'
     | '/stories/'
+    | '/admin/invoices/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/requests/'
@@ -1013,6 +1134,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
     | '/api/admin/channels/posts'
+    | '/api/admin/payments/$id'
+    | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
     | '/api/admin/properties/$id'
     | '/api/admin/properties/from-submission'
@@ -1027,10 +1150,15 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/payments/$id/mark-paid'
+    | '/api/admin/payments/$id/pdf'
+    | '/api/admin/payments/$id/void'
+    | '/api/admin/payments/$id/waive'
     | '/api/admin/people/$id/notes'
     | '/api/admin/properties/$id/features'
     | '/api/admin/properties/$id/preview-token'
@@ -1039,12 +1167,14 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/related'
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/submissions/$id/accept'
+    | '/api/admin/submissions/$id/activate'
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
     | '/api/admin/submissions/$id/email-preview'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/request-assets'
     | '/api/admin/submissions/$id/timeline'
+    | '/api/admin/submissions/$id/waive'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesByTo: FileRoutesByTo
@@ -1082,6 +1212,8 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/invoices/$id'
+    | '/admin/invoices/new'
     | '/admin/people/$id'
     | '/admin/properties/$id'
     | '/admin/requests/$id'
@@ -1103,6 +1235,7 @@ export interface FileRouteTypes {
     | '/$market'
     | '/markets'
     | '/stories'
+    | '/admin/invoices'
     | '/admin/people'
     | '/admin/properties'
     | '/admin/requests'
@@ -1111,6 +1244,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
     | '/api/admin/channels/posts'
+    | '/api/admin/payments/$id'
+    | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
     | '/api/admin/properties/$id'
     | '/api/admin/properties/from-submission'
@@ -1125,10 +1260,15 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/payments'
     | '/api/admin/people'
     | '/api/admin/properties'
     | '/api/admin/submissions'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/payments/$id/mark-paid'
+    | '/api/admin/payments/$id/pdf'
+    | '/api/admin/payments/$id/void'
+    | '/api/admin/payments/$id/waive'
     | '/api/admin/people/$id/notes'
     | '/api/admin/properties/$id/features'
     | '/api/admin/properties/$id/preview-token'
@@ -1137,12 +1277,14 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/related'
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/submissions/$id/accept'
+    | '/api/admin/submissions/$id/activate'
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
     | '/api/admin/submissions/$id/email-preview'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/request-assets'
     | '/api/admin/submissions/$id/timeline'
+    | '/api/admin/submissions/$id/waive'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   id:
@@ -1184,6 +1326,8 @@ export interface FileRouteTypes {
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/invoices/$id'
+    | '/admin/invoices/new'
     | '/admin/people/$id'
     | '/admin/properties/$id'
     | '/admin/requests/$id'
@@ -1205,6 +1349,7 @@ export interface FileRouteTypes {
     | '/_site/$market/'
     | '/_site/markets/'
     | '/_site/stories/'
+    | '/admin/invoices/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/requests/'
@@ -1213,6 +1358,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
     | '/api/admin/channels/posts'
+    | '/api/admin/payments/$id'
+    | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
     | '/api/admin/properties/$id'
     | '/api/admin/properties/from-submission'
@@ -1227,10 +1374,15 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/payments/$id/mark-paid'
+    | '/api/admin/payments/$id/pdf'
+    | '/api/admin/payments/$id/void'
+    | '/api/admin/payments/$id/waive'
     | '/api/admin/people/$id/notes'
     | '/api/admin/properties/$id/features'
     | '/api/admin/properties/$id/preview-token'
@@ -1239,12 +1391,14 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/related'
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/submissions/$id/accept'
+    | '/api/admin/submissions/$id/activate'
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
     | '/api/admin/submissions/$id/email-preview'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/request-assets'
     | '/api/admin/submissions/$id/timeline'
+    | '/api/admin/submissions/$id/waive'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesById: FileRoutesById
@@ -1279,6 +1433,8 @@ export interface RootRouteChildren {
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
   ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRoute
+  ApiAdminPaymentsIdRoute: typeof ApiAdminPaymentsIdRouteWithChildren
+  ApiAdminPaymentsIssueInvoiceRoute: typeof ApiAdminPaymentsIssueInvoiceRoute
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
   ApiAdminPropertiesIdRoute: typeof ApiAdminPropertiesIdRouteWithChildren
   ApiAdminPropertiesFromSubmissionRoute: typeof ApiAdminPropertiesFromSubmissionRoute
@@ -1289,6 +1445,7 @@ export interface RootRouteChildren {
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
+  ApiAdminPaymentsIndexRoute: typeof ApiAdminPaymentsIndexRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminPropertiesIndexRoute: typeof ApiAdminPropertiesIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
@@ -1577,6 +1734,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthConfirmRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/invoices/': {
+      id: '/admin/invoices/'
+      path: '/invoices'
+      fullPath: '/admin/invoices/'
+      preLoaderRoute: typeof AdminInvoicesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/invoices/$id': {
+      id: '/admin/invoices/$id'
+      path: '/invoices/$id'
+      fullPath: '/admin/invoices/$id'
+      preLoaderRoute: typeof AdminInvoicesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/invoices/new': {
+      id: '/admin/invoices/new'
+      path: '/invoices/new'
+      fullPath: '/admin/invoices/new'
+      preLoaderRoute: typeof AdminInvoicesNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/people/': {
       id: '/admin/people/'
       path: '/people'
@@ -1759,6 +1937,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminChannelsPostsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/payments/': {
+      id: '/api/admin/payments/'
+      path: '/api/admin/payments'
+      fullPath: '/api/admin/payments/'
+      preLoaderRoute: typeof ApiAdminPaymentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/payments/$id': {
+      id: '/api/admin/payments/$id'
+      path: '/api/admin/payments/$id'
+      fullPath: '/api/admin/payments/$id'
+      preLoaderRoute: typeof ApiAdminPaymentsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/payments/issue-invoice': {
+      id: '/api/admin/payments/issue-invoice'
+      path: '/api/admin/payments/issue-invoice'
+      fullPath: '/api/admin/payments/issue-invoice'
+      preLoaderRoute: typeof ApiAdminPaymentsIssueInvoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/people/': {
       id: '/api/admin/people/'
       path: '/api/admin/people'
@@ -1885,6 +2084,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/payments/$id/mark-paid': {
+      id: '/api/admin/payments/$id/mark-paid'
+      path: '/mark-paid'
+      fullPath: '/api/admin/payments/$id/mark-paid'
+      preLoaderRoute: typeof ApiAdminPaymentsIdMarkPaidRouteImport
+      parentRoute: typeof ApiAdminPaymentsIdRoute
+    }
+    '/api/admin/payments/$id/pdf': {
+      id: '/api/admin/payments/$id/pdf'
+      path: '/pdf'
+      fullPath: '/api/admin/payments/$id/pdf'
+      preLoaderRoute: typeof ApiAdminPaymentsIdPdfRouteImport
+      parentRoute: typeof ApiAdminPaymentsIdRoute
+    }
+    '/api/admin/payments/$id/void': {
+      id: '/api/admin/payments/$id/void'
+      path: '/void'
+      fullPath: '/api/admin/payments/$id/void'
+      preLoaderRoute: typeof ApiAdminPaymentsIdVoidRouteImport
+      parentRoute: typeof ApiAdminPaymentsIdRoute
+    }
+    '/api/admin/payments/$id/waive': {
+      id: '/api/admin/payments/$id/waive'
+      path: '/waive'
+      fullPath: '/api/admin/payments/$id/waive'
+      preLoaderRoute: typeof ApiAdminPaymentsIdWaiveRouteImport
+      parentRoute: typeof ApiAdminPaymentsIdRoute
+    }
     '/api/admin/people/$id/notes': {
       id: '/api/admin/people/$id/notes'
       path: '/notes'
@@ -1941,6 +2168,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSubmissionsIdAcceptRouteImport
       parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
+    '/api/admin/submissions/$id/activate': {
+      id: '/api/admin/submissions/$id/activate'
+      path: '/activate'
+      fullPath: '/api/admin/submissions/$id/activate'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdActivateRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
     '/api/admin/submissions/$id/assets-received': {
       id: '/api/admin/submissions/$id/assets-received'
       path: '/assets-received'
@@ -1981,6 +2215,13 @@ declare module '@tanstack/react-router' {
       path: '/timeline'
       fullPath: '/api/admin/submissions/$id/timeline'
       preLoaderRoute: typeof ApiAdminSubmissionsIdTimelineRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
+    '/api/admin/submissions/$id/waive': {
+      id: '/api/admin/submissions/$id/waive'
+      path: '/waive'
+      fullPath: '/api/admin/submissions/$id/waive'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdWaiveRouteImport
       parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
     '/api/public/submissions/$id/uploads': {
@@ -2099,9 +2340,12 @@ const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
+  AdminInvoicesIdRoute: typeof AdminInvoicesIdRoute
+  AdminInvoicesNewRoute: typeof AdminInvoicesNewRoute
   AdminPeopleIdRoute: typeof AdminPeopleIdRoute
   AdminPropertiesIdRoute: typeof AdminPropertiesIdRoute
   AdminRequestsIdRoute: typeof AdminRequestsIdRoute
+  AdminInvoicesIndexRoute: typeof AdminInvoicesIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminPropertiesIndexRoute: typeof AdminPropertiesIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
@@ -2110,9 +2354,12 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
+  AdminInvoicesIdRoute: AdminInvoicesIdRoute,
+  AdminInvoicesNewRoute: AdminInvoicesNewRoute,
   AdminPeopleIdRoute: AdminPeopleIdRoute,
   AdminPropertiesIdRoute: AdminPropertiesIdRoute,
   AdminRequestsIdRoute: AdminRequestsIdRoute,
+  AdminInvoicesIndexRoute: AdminInvoicesIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminPropertiesIndexRoute: AdminPropertiesIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
@@ -2175,6 +2422,23 @@ const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
 const ApiPublicSubscribersRouteWithChildren =
   ApiPublicSubscribersRoute._addFileChildren(ApiPublicSubscribersRouteChildren)
 
+interface ApiAdminPaymentsIdRouteChildren {
+  ApiAdminPaymentsIdMarkPaidRoute: typeof ApiAdminPaymentsIdMarkPaidRoute
+  ApiAdminPaymentsIdPdfRoute: typeof ApiAdminPaymentsIdPdfRoute
+  ApiAdminPaymentsIdVoidRoute: typeof ApiAdminPaymentsIdVoidRoute
+  ApiAdminPaymentsIdWaiveRoute: typeof ApiAdminPaymentsIdWaiveRoute
+}
+
+const ApiAdminPaymentsIdRouteChildren: ApiAdminPaymentsIdRouteChildren = {
+  ApiAdminPaymentsIdMarkPaidRoute: ApiAdminPaymentsIdMarkPaidRoute,
+  ApiAdminPaymentsIdPdfRoute: ApiAdminPaymentsIdPdfRoute,
+  ApiAdminPaymentsIdVoidRoute: ApiAdminPaymentsIdVoidRoute,
+  ApiAdminPaymentsIdWaiveRoute: ApiAdminPaymentsIdWaiveRoute,
+}
+
+const ApiAdminPaymentsIdRouteWithChildren =
+  ApiAdminPaymentsIdRoute._addFileChildren(ApiAdminPaymentsIdRouteChildren)
+
 interface ApiAdminPeopleIdRouteChildren {
   ApiAdminPeopleIdNotesRoute: typeof ApiAdminPeopleIdNotesRoute
 }
@@ -2209,17 +2473,20 @@ const ApiAdminPropertiesIdRouteWithChildren =
 
 interface ApiAdminSubmissionsIdRouteChildren {
   ApiAdminSubmissionsIdAcceptRoute: typeof ApiAdminSubmissionsIdAcceptRoute
+  ApiAdminSubmissionsIdActivateRoute: typeof ApiAdminSubmissionsIdActivateRoute
   ApiAdminSubmissionsIdAssetsReceivedRoute: typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   ApiAdminSubmissionsIdDeclineRoute: typeof ApiAdminSubmissionsIdDeclineRoute
   ApiAdminSubmissionsIdEmailPreviewRoute: typeof ApiAdminSubmissionsIdEmailPreviewRoute
   ApiAdminSubmissionsIdNoteRoute: typeof ApiAdminSubmissionsIdNoteRoute
   ApiAdminSubmissionsIdRequestAssetsRoute: typeof ApiAdminSubmissionsIdRequestAssetsRoute
   ApiAdminSubmissionsIdTimelineRoute: typeof ApiAdminSubmissionsIdTimelineRoute
+  ApiAdminSubmissionsIdWaiveRoute: typeof ApiAdminSubmissionsIdWaiveRoute
   ApiAdminSubmissionsIdMediaMediaIdOriginalRoute: typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 
 const ApiAdminSubmissionsIdRouteChildren: ApiAdminSubmissionsIdRouteChildren = {
   ApiAdminSubmissionsIdAcceptRoute: ApiAdminSubmissionsIdAcceptRoute,
+  ApiAdminSubmissionsIdActivateRoute: ApiAdminSubmissionsIdActivateRoute,
   ApiAdminSubmissionsIdAssetsReceivedRoute:
     ApiAdminSubmissionsIdAssetsReceivedRoute,
   ApiAdminSubmissionsIdDeclineRoute: ApiAdminSubmissionsIdDeclineRoute,
@@ -2229,6 +2496,7 @@ const ApiAdminSubmissionsIdRouteChildren: ApiAdminSubmissionsIdRouteChildren = {
   ApiAdminSubmissionsIdRequestAssetsRoute:
     ApiAdminSubmissionsIdRequestAssetsRoute,
   ApiAdminSubmissionsIdTimelineRoute: ApiAdminSubmissionsIdTimelineRoute,
+  ApiAdminSubmissionsIdWaiveRoute: ApiAdminSubmissionsIdWaiveRoute,
   ApiAdminSubmissionsIdMediaMediaIdOriginalRoute:
     ApiAdminSubmissionsIdMediaMediaIdOriginalRoute,
 }
@@ -2268,6 +2536,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
   ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRoute,
+  ApiAdminPaymentsIdRoute: ApiAdminPaymentsIdRouteWithChildren,
+  ApiAdminPaymentsIssueInvoiceRoute: ApiAdminPaymentsIssueInvoiceRoute,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
   ApiAdminPropertiesIdRoute: ApiAdminPropertiesIdRouteWithChildren,
   ApiAdminPropertiesFromSubmissionRoute: ApiAdminPropertiesFromSubmissionRoute,
@@ -2280,6 +2550,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
+  ApiAdminPaymentsIndexRoute: ApiAdminPaymentsIndexRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminPropertiesIndexRoute: ApiAdminPropertiesIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
