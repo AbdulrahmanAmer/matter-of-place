@@ -32,6 +32,7 @@ import { Route as SitePlaceNotesRouteImport } from './routes/_site.place-notes'
 import { Route as SitePricingRouteImport } from './routes/_site.pricing'
 import { Route as SitePrivacyRouteImport } from './routes/_site.privacy'
 import { Route as SitePrivacyChoicesRouteImport } from './routes/_site.privacy-choices'
+import { Route as SitePrivacyRequestRouteImport } from './routes/_site.privacy-request'
 import { Route as SitePropertiesRouteImport } from './routes/_site.properties'
 import { Route as SiteStoriesRouteImport } from './routes/_site.stories'
 import { Route as SiteSubmitRouteImport } from './routes/_site.submit'
@@ -206,6 +207,11 @@ const SitePrivacyRoute = SitePrivacyRouteImport.update({
 const SitePrivacyChoicesRoute = SitePrivacyChoicesRouteImport.update({
   id: '/privacy-choices',
   path: '/privacy-choices',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SitePrivacyRequestRoute = SitePrivacyRequestRouteImport.update({
+  id: '/privacy-request',
+  path: '/privacy-request',
   getParentRoute: () => SiteRoute,
 } as any)
 const SitePropertiesRoute = SitePropertiesRouteImport.update({
@@ -534,6 +540,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof SitePricingRoute
   '/privacy': typeof SitePrivacyRoute
   '/privacy-choices': typeof SitePrivacyChoicesRoute
+  '/privacy-request': typeof SitePrivacyRequestRoute
   '/properties': typeof SitePropertiesRoute
   '/stories': typeof SiteStoriesRouteWithChildren
   '/submit': typeof SiteSubmitRoute
@@ -613,6 +620,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof SitePricingRoute
   '/privacy': typeof SitePrivacyRoute
   '/privacy-choices': typeof SitePrivacyChoicesRoute
+  '/privacy-request': typeof SitePrivacyRequestRoute
   '/properties': typeof SitePropertiesRoute
   '/submit': typeof SiteSubmitRoute
   '/terms': typeof SiteTermsRoute
@@ -696,6 +704,7 @@ export interface FileRoutesById {
   '/_site/pricing': typeof SitePricingRoute
   '/_site/privacy': typeof SitePrivacyRoute
   '/_site/privacy-choices': typeof SitePrivacyChoicesRoute
+  '/_site/privacy-request': typeof SitePrivacyRequestRoute
   '/_site/properties': typeof SitePropertiesRoute
   '/_site/stories': typeof SiteStoriesRouteWithChildren
   '/_site/submit': typeof SiteSubmitRoute
@@ -781,6 +790,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/privacy-choices'
+    | '/privacy-request'
     | '/properties'
     | '/stories'
     | '/submit'
@@ -860,6 +870,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/privacy-choices'
+    | '/privacy-request'
     | '/properties'
     | '/submit'
     | '/terms'
@@ -942,6 +953,7 @@ export interface FileRouteTypes {
     | '/_site/pricing'
     | '/_site/privacy'
     | '/_site/privacy-choices'
+    | '/_site/privacy-request'
     | '/_site/properties'
     | '/_site/stories'
     | '/_site/submit'
@@ -1205,6 +1217,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy-choices'
       fullPath: '/privacy-choices'
       preLoaderRoute: typeof SitePrivacyChoicesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/privacy-request': {
+      id: '/_site/privacy-request'
+      path: '/privacy-request'
+      fullPath: '/privacy-request'
+      preLoaderRoute: typeof SitePrivacyRequestRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/properties': {
@@ -1675,6 +1694,7 @@ interface SiteRouteChildren {
   SitePricingRoute: typeof SitePricingRoute
   SitePrivacyRoute: typeof SitePrivacyRoute
   SitePrivacyChoicesRoute: typeof SitePrivacyChoicesRoute
+  SitePrivacyRequestRoute: typeof SitePrivacyRequestRoute
   SitePropertiesRoute: typeof SitePropertiesRoute
   SiteStoriesRoute: typeof SiteStoriesRouteWithChildren
   SiteSubmitRoute: typeof SiteSubmitRoute
@@ -1699,6 +1719,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SitePricingRoute: SitePricingRoute,
   SitePrivacyRoute: SitePrivacyRoute,
   SitePrivacyChoicesRoute: SitePrivacyChoicesRoute,
+  SitePrivacyRequestRoute: SitePrivacyRequestRoute,
   SitePropertiesRoute: SitePropertiesRoute,
   SiteStoriesRoute: SiteStoriesRouteWithChildren,
   SiteSubmitRoute: SiteSubmitRoute,

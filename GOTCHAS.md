@@ -917,6 +917,7 @@ Entry template
 - rule: do not run python in this project (P-008 sends anything with a backslash through Edit or Write). A script goes in a file run with `node`, or an edit goes through the Edit tool; never start an interpreter that can wait for stdin inside a chain. If python is unavoidable, use `python3 -c "..."` or a file, wrapped in `timeout 8`. When a call is moved to the background, run `git diff <files it can touch>` before the next edit, and when an Edit says `String to replace not found` for text just seen, read `git diff` of that file first.
 - proof: `timeout 8 python3 -c "print('ok')"` → `ok`; `timeout 8 python3 - </dev/null 2>&1 | head -c 400` → the version banner, then `Traceback ...` and, further down, `OSError: [WinError 6] The handle is invalid` (2026-10-02); `grep -c '"watchfail"' app/package.json` prints `1` (it printed `2` before the clean-up, B4 g1).
 - merged: P-400
+- hit again: 2026-10-08, B16 g6: a `python - <<'EOF' 2>/dev/null || echo nopython` guard ahead of a `grep` hung to the 120 s ceiling; the python process was found with `tasklist` and stopped by its id. About 2 minutes.
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
 - hit again: 2026-10-04, B8b c2s: a `python - <<'EOF' || echo nopython` guard with an empty body ran in front of a node patch; the call moved to the background at 120 s, the node patch ran when python was killed, and the file then needed its backslashes put back by hand (P-008). About 5 minutes.
@@ -4800,4 +4801,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `--changed origin/main` selects every entry whose file differs from main, which on a lane is hundreds; the restore step does not run when the process is killed.
 - rule: replay by `--only <id>` for the entries of your own files, or run `--changed` in the background from the start; after any stopped replay run `git status --short` and `git checkout --` the file it names.
 - proof: `git status --short` after a killed replay names the mutated file; `git checkout -- <file>` clears it.
+- added: 2026-10-08
+
+## P-1943 · A new analytics event or page route breaks two tests the plan does not name, and `bun run check` finds them one 10-minute cycle at a time
+- symptom: B16 g6 added `subject_request_submitted` and `/privacy-request`; the first `bun run check` stopped at `tests/unit/analytics.test.ts(7,7): error TS2741: Property 'subject_request_submitted' is missing`, the second at `jscpd found too many duplicates` (the button, `FormError` and `DeliveryNotice` block copied from `contact-form.tsx`), the third at `routes-covered.test.ts > are all classified` naming `_site.privacy-request.tsx`. Each cycle took 10 to 15 minutes; the plan's step 6 names none of the three files.
+- cause: `everyEvent: Record<AnalyticsEvent, true>` in `tests/unit/analytics.test.ts` and `staticPaths` plus `routeFileCoverage` in `tests/e2e/fixtures/routes.ts` list every event and page route by hand, and `bun run check` reaches the unit run only after typecheck, lint, knip and jscpd, so each missing entry costs a whole cycle.
+- rule: for a new analytics event add it to `everyEvent`; for a new page route add it to `staticPaths` and `routeFileCoverage`; before the full check run `bun run typecheck && bun run jscpd && bunx vitest run tests/unit/analytics.test.ts tests/unit/routes-covered.test.ts`, and lay a new form out so it does not repeat a 70-token block of an older one.
+- proof: `cd app && bunx vitest run tests/unit/analytics.test.ts tests/unit/routes-covered.test.ts` → `Test Files  2 passed`; deleting `subject_request_submitted: true,` from `everyEvent` makes `bun run typecheck` print TS2741 (measured 2026-10-08, B16 g6).
+- added: 2026-10-08
+
+## P-1944 · A registry `expect` that starts with `×` was reported BAD although the red run printed the same text
+- symptom: `node scripts/watchfail.mjs --registry tests/mutations --only b16-g6-event-listed` printed `WATCHED-FAIL BAD: wrong reason` with `expected /× .*lists every event name.../` and, two lines below, `× lists every event name that a track() call in src spells out 383ms` in the red output; the entry had been written by a `node -e` script from the shell.
+- cause: not established. The character went through the shell into the JSON, and the regex did not match the vitest line it was copied from (B3's entries with `×` replay fine, so a byte of the shell-typed copy differs).
+- rule: write an `expect` as `FAIL .*> <suite> > <test>`, the form most B16 entries use, and type no non-ASCII character into a registry entry through a shell.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b16-g6-event-listed` → `WATCHED-FAIL OK B16:b16-g6-event-listed` (measured 2026-10-08, B16 g6).
 - added: 2026-10-08

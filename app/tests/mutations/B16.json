@@ -659,5 +659,86 @@
     "replace": "analytics_daily: { months: 12 },",
     "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"retention\"",
     "expect": "FAIL .*> retention > retention_policies holds every period"
+  },
+  {
+    "id": "b16-g6-kinds-four",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "{subjectRequestKinds.map((option) => (",
+    "replace": "{subjectRequestKinds.filter((kind) => kind !== \"correction\").map((option) => (",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the kinds offered > equal subjectRequestKinds"
+  },
+  {
+    "id": "b16-g6-honeypot",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "      <Honeypot />\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the kinds offered > renders one honeypot input named website"
+  },
+  {
+    "id": "b16-g6-header",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/services/http/index.ts",
+    "find": "await api.post(\"/subjects/request\", body, receiptSchema, init);",
+    "replace": "await api.post(\"/subjects/request\", body, receiptSchema);",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the http adapter > posts to /subjects/request"
+  },
+  {
+    "id": "b16-g6-website",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/services/http/index.ts",
+    "find": "body: { website: \"\", ...input },",
+    "replace": "body: { ...input },",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the http adapter > sends an empty website"
+  },
+  {
+    "id": "b16-g6-preselect-search",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/routes/_site.privacy-request.tsx",
+    "find": "return found === undefined ? {} : { kind: found };",
+    "replace": "return {};",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page > preselects opt out"
+  },
+  {
+    "id": "b16-g6-preselect-form",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "useState<SubjectRequest[\"kind\"]>(initialKind ?? subjectRequestKinds[0])",
+    "replace": "useState<SubjectRequest[\"kind\"]>(subjectRequestKinds[0])",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page > preselects opt out"
+  },
+  {
+    "id": "b16-g6-track-always",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "if (answer) track(\"subject_request_submitted\");",
+    "replace": "track(\"subject_request_submitted\");",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> sending > keeps the typed values and tracks nothing after a 422"
+  },
+  {
+    "id": "b16-g6-keep-values",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "if (state.status === \"success\") return",
+    "replace": "if (state.status === \"success\" || state.status === \"error\") return",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> sending > keeps the typed values and tracks nothing after a 500"
+  },
+  {
+    "id": "b16-g6-event-listed",
+    "test": "tests/unit/analytics-allowlist.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  \"subject_request_submitted\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/analytics-allowlist.test.ts",
+    "expect": "FAIL .*> analyticsEvents > lists every event name that a track"
   }
 ]

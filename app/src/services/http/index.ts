@@ -24,6 +24,7 @@ import {
   type NewsletterService,
   type SearchService,
   type SiteService,
+  type SubjectsService,
   type SubmissionService,
 } from "../types";
 
@@ -137,5 +138,13 @@ export function createHttpServices(baseUrl: string, fetchImpl?: FetchImpl) {
     get: () => api.get("/site", publicSiteSchema),
   };
 
-  return { catalog, inquiries, submissions, newsletter, search, concierge, site };
+  const subjects: SubjectsService = {
+    request: async (input) => {
+      const { body, init } = await guarded("subjects-request", input);
+      await api.post("/subjects/request", body, receiptSchema, init);
+      return { ok: true };
+    },
+  };
+
+  return { catalog, inquiries, submissions, newsletter, search, concierge, site, subjects };
 }

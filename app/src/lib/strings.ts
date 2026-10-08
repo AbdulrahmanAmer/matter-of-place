@@ -159,6 +159,24 @@ const en = {
     link: "Read our privacy policy",
     change: "Cookie settings",
   },
+  privacyRequest: {
+    title: "Privacy request",
+    eyebrow: "PRIVACY",
+    heading: "Ask about your information",
+    intro:
+      "Tell us what you would like and where to write back. We confirm receipt by email and reply within 45 days.",
+    kindLegend: "What would you like?",
+    kinds: {
+      access: "Know what you hold about me",
+      deletion: "Delete my information",
+      opt_out: "Do not sell or share",
+      correction: "Correct my information",
+    },
+    emailLabel: "Email address",
+    noteLabel: "Anything we should know (optional)",
+    confirmation:
+      "We received your request. A confirmation is on its way to your email. We will reply within 45 days.",
+  },
   privacyChoices: {
     title: "Privacy choices",
     on: "Analytics are on.",

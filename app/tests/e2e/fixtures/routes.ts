@@ -48,6 +48,7 @@ const staticPaths: [string, RouteClass][] = [
   ["/privacy", "page"],
   ["/terms", "page"],
   ["/accessibility", "page"],
+  ["/privacy-request", "page"],
   ["/cookies", "page"],
   ["/privacy-choices", "page"],
 ];
@@ -109,6 +110,7 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.privacy.tsx": "/privacy",
   "_site.terms.tsx": "/terms",
   "_site.accessibility.tsx": "/accessibility",
+  "_site.privacy-request.tsx": "/privacy-request",
   "_site.cookies.tsx": "/cookies",
   "_site.privacy-choices.tsx": "/privacy-choices",
   "_site.place-notes.tsx": "/place-notes",

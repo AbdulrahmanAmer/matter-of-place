@@ -1,7 +1,7 @@
 import { createHttpServices } from "./http";
 import { localCatalog } from "./local/catalog";
 import { localConcierge } from "./local/concierge";
-import { localInquiries, localNewsletter, localSubmissions } from "./local/outbox";
+import { localInquiries, localNewsletter, localSubjects, localSubmissions } from "./local/outbox";
 import { localSearch } from "./local/search";
 import { localSite } from "./local/site";
 import type { Services } from "./types";
@@ -18,6 +18,7 @@ const localServices: Services = {
   search: localSearch,
   concierge: localConcierge,
   site: localSite,
+  subjects: localSubjects,
 };
 
 /**

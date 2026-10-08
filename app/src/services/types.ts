@@ -10,6 +10,7 @@ import type {
   SearchMatch,
   SearchQuery,
   Submission,
+  SubjectRequest,
   SubscriberInput,
 } from "../domain/contracts";
 
@@ -70,6 +71,11 @@ export interface ConciergeService {
   answer(question: ConciergeQuestion): Promise<ConciergeAnswer>;
 }
 
+/** A privacy request (GP-01); `website` is the honeypot value the form passes through. */
+export interface SubjectsService {
+  request(input: SubjectRequest & { website?: string }): Promise<{ ok: true }>;
+}
+
 export interface SiteService {
   get(): Promise<PublicSite>;
 }
@@ -83,6 +89,7 @@ export type Services = {
   search: SearchService;
   concierge: ConciergeService;
   site: SiteService;
+  subjects: SubjectsService;
 };
 
 export type ServiceErrorKind = "network" | "validation" | "server" | "not-found";
