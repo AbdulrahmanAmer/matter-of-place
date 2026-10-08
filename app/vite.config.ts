@@ -80,6 +80,10 @@ export default defineConfig(({ command, mode }) => {
               preset: "cloudflare-module",
               cloudflare: { wrangler: { name: "matter-of-place" } },
               plugins: ["./src/server/nitro/keepwarm.ts"],
+              // Ruling H69 (P-2405): Rolldown groups the server chunks differently on Linux, and two `_ssr` chunks
+              // that import each other read `siteConfig` before it is set, so every request answers 500 at module
+              // load. Strict execution order wraps the modules so each is evaluated once, in dependency order.
+              rolldownConfig: { output: { strictExecutionOrder: true } },
             }),
           ]
         : []),
