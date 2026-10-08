@@ -5,6 +5,7 @@ import {
   newsletterBlocksSchema,
   type NewsletterBlock,
 } from "../../domain/newsletter.ts";
+import type { AuditArgs } from "../lib/audit.ts";
 import type { Db } from "../lib/db.ts";
 import { NonRetryableError } from "../jobs/types.ts";
 
@@ -57,20 +58,11 @@ export type Issue = z.infer<typeof issueRow>;
 const blockMeta = z.object({ block: z.object({ title: z.string().min(1), deck: z.string() }) });
 const savedIssue = z.object({ id: z.string(), number: z.number().int() });
 
-interface Answer {
-  data: unknown;
-  error: { code: string } | null;
-}
-
-// The table and the two functions are not in the generated types until step 4's migration lands.
-interface IssueClient {
-  from(table: "newsletter_issues"): { select(columns: string): PromiseLike<Answer> };
-  rpc(name: "queue_digest_add" | "newsletter_save_draft", args: object): PromiseLike<Answer>;
-}
-
-// STUB(B11 step 4): the typed `db.from("newsletter_issues")` and `db.rpc(...)` replace this cast once the migration's types exist
-// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- `newsletter_issues` and its functions are not in the generated types until step 4's migration lands
-const issues = (db: Db): IssueClient => db as unknown as IssueClient;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- null is the system actor of `write_audit`; the generated Args type lists both arguments as non-null
+const SYSTEM_ACTOR = { p_actor: null, p_actor_kind: null } as unknown as Pick<
+  AuditArgs,
+  "p_actor" | "p_actor_kind"
+>;
 
 function rowsOf<T>(result: { data: T[] | null; error: unknown }, table: string): T[] {
   if (result.error !== null || result.data === null)
@@ -149,7 +141,7 @@ export function mergeDraft(draft: DraftContent, candidates: Candidate[]): Merged
 }
 
 export async function readIssues(db: Db): Promise<Issue[]> {
-  const { data, error } = await issues(db)
+  const { data, error } = await db
     .from("newsletter_issues")
     .select("id, number, status, blocks, subject, preheader, sent_at");
   if (error !== null) throw new Error(`newsletter_read_failed:newsletter_issues:${error.code}`);
@@ -283,12 +275,11 @@ export async function assemble(db: Db, requestId: string): Promise<AssembleResul
   ) {
     return { issue_id: draft.id, number: draft.number };
   }
-  const { data, error } = await issues(db).rpc("newsletter_save_draft", {
+  const { data, error } = await db.rpc("newsletter_save_draft", {
     p_blocks: newsletterBlocksSchema.parse(merged.blocks),
     p_subject: merged.subject,
     p_preheader: merged.preheader,
-    p_actor: null,
-    p_actor_kind: null,
+    ...SYSTEM_ACTOR,
     p_request_id: requestId,
   });
   if (error !== null) throw new Error(`newsletter_save_draft_failed:${error.code}`);
@@ -298,7 +289,7 @@ export async function assemble(db: Db, requestId: string): Promise<AssembleResul
 
 /** Appends the block of an approved asset to the open draft, which the function makes when there is none. */
 export async function addBlock(db: Db, propertyId: string, assetId: string): Promise<void> {
-  const { error } = await issues(db).rpc("queue_digest_add", {
+  const { error } = await db.rpc("queue_digest_add", {
     p_property: propertyId,
     p_asset: assetId,
   });

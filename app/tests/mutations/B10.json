@@ -3324,8 +3324,8 @@
     "kind": "file",
     "test": "tests/unit/jobs/reconcile.test.ts",
     "file": "src/server/jobs/system/reconcile.ts",
-    "find": "result: { uploads: { ...uploads }, social }",
-    "replace": "result: { uploads: { ...uploads } }",
+    "find": "result: { uploads: { ...uploads }, social, newsletter: { ...newsletter } }",
+    "replace": "result: { uploads: { ...uploads }, newsletter: { ...newsletter } }",
     "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts",
     "expect": "FAIL .*> reconcile > stores the counts under result.uploads and the social part"
   },

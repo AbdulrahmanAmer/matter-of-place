@@ -49,6 +49,8 @@ import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.
 import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
 import { Route as AdminInvoicesIdRouteImport } from './routes/admin/invoices.$id'
 import { Route as AdminInvoicesNewRouteImport } from './routes/admin/invoices.new'
+import { Route as AdminNewsletterIndexRouteImport } from './routes/admin/newsletter.index'
+import { Route as AdminNewsletterIdRouteImport } from './routes/admin/newsletter.$id'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminPropertiesIndexRouteImport } from './routes/admin/properties.index'
@@ -77,6 +79,8 @@ import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
 import { Route as ApiAdminChannelsHealthRouteImport } from './routes/api/admin/channels.health'
 import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
+import { Route as ApiAdminNewsletterIssuesRouteImport } from './routes/api/admin/newsletter.issues'
+import { Route as ApiAdminNewsletterSubscribersRouteImport } from './routes/api/admin/newsletter.subscribers'
 import { Route as ApiAdminPaymentsIndexRouteImport } from './routes/api/admin/payments.index'
 import { Route as ApiAdminPaymentsIdRouteImport } from './routes/api/admin/payments.$id'
 import { Route as ApiAdminPaymentsIssueInvoiceRouteImport } from './routes/api/admin/payments.issue-invoice'
@@ -99,6 +103,9 @@ import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/st
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
+import { Route as ApiAdminNewsletterIssuesIdRouteImport } from './routes/api/admin/newsletter.issues.$id'
+import { Route as ApiAdminNewsletterIssuesBuildRouteImport } from './routes/api/admin/newsletter.issues.build'
+import { Route as ApiAdminNewsletterSubscribersExportRouteImport } from './routes/api/admin/newsletter.subscribers.export'
 import { Route as ApiAdminPaymentsIdMarkPaidRouteImport } from './routes/api/admin/payments.$id.mark-paid'
 import { Route as ApiAdminPaymentsIdPdfRouteImport } from './routes/api/admin/payments.$id.pdf'
 import { Route as ApiAdminPaymentsIdVoidRouteImport } from './routes/api/admin/payments.$id.void'
@@ -125,6 +132,10 @@ import { Route as ApiAdminChannelsPostsIdCancelRouteImport } from './routes/api/
 import { Route as ApiAdminChannelsPostsIdMetricsRefreshRouteImport } from './routes/api/admin/channels.posts.$id.metrics-refresh'
 import { Route as ApiAdminChannelsPostsIdRetryRouteImport } from './routes/api/admin/channels.posts.$id.retry'
 import { Route as ApiAdminChannelsPostsIdWithdrawnRouteImport } from './routes/api/admin/channels.posts.$id.withdrawn'
+import { Route as ApiAdminNewsletterIssuesIdApproveRouteImport } from './routes/api/admin/newsletter.issues.$id.approve'
+import { Route as ApiAdminNewsletterIssuesIdPreviewRouteImport } from './routes/api/admin/newsletter.issues.$id.preview'
+import { Route as ApiAdminNewsletterIssuesIdSendTestRouteImport } from './routes/api/admin/newsletter.issues.$id.send-test'
+import { Route as ApiAdminNewsletterIssuesIdUnapproveRouteImport } from './routes/api/admin/newsletter.issues.$id.unapprove'
 import { Route as ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport } from './routes/api/admin/submissions.$id.media.$mediaId.original'
 
 const SiteRoute = SiteRouteImport.update({
@@ -337,6 +348,20 @@ const AdminInvoicesNewRoute = AdminInvoicesNewRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/invoices.new.lazy').then((d) => d.Route),
 )
+const AdminNewsletterIndexRoute = AdminNewsletterIndexRouteImport.update({
+  id: '/newsletter/',
+  path: '/newsletter/',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/newsletter.index.lazy').then((d) => d.Route),
+)
+const AdminNewsletterIdRoute = AdminNewsletterIdRouteImport.update({
+  id: '/newsletter/$id',
+  path: '/newsletter/$id',
+  getParentRoute: () => AdminRoute,
+} as any).lazy(() =>
+  import('./routes/admin/newsletter.$id.lazy').then((d) => d.Route),
+)
 const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -487,6 +512,18 @@ const ApiAdminChannelsPostsRoute = ApiAdminChannelsPostsRouteImport.update({
   path: '/api/admin/channels/posts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminNewsletterIssuesRoute =
+  ApiAdminNewsletterIssuesRouteImport.update({
+    id: '/api/admin/newsletter/issues',
+    path: '/api/admin/newsletter/issues',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminNewsletterSubscribersRoute =
+  ApiAdminNewsletterSubscribersRouteImport.update({
+    id: '/api/admin/newsletter/subscribers',
+    path: '/api/admin/newsletter/subscribers',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminPaymentsIndexRoute = ApiAdminPaymentsIndexRouteImport.update({
   id: '/api/admin/payments/',
   path: '/api/admin/payments/',
@@ -605,6 +642,24 @@ const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
   path: '/api/admin/channels/ids/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminNewsletterIssuesIdRoute =
+  ApiAdminNewsletterIssuesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => ApiAdminNewsletterIssuesRoute,
+  } as any)
+const ApiAdminNewsletterIssuesBuildRoute =
+  ApiAdminNewsletterIssuesBuildRouteImport.update({
+    id: '/build',
+    path: '/build',
+    getParentRoute: () => ApiAdminNewsletterIssuesRoute,
+  } as any)
+const ApiAdminNewsletterSubscribersExportRoute =
+  ApiAdminNewsletterSubscribersExportRouteImport.update({
+    id: '/export',
+    path: '/export',
+    getParentRoute: () => ApiAdminNewsletterSubscribersRoute,
+  } as any)
 const ApiAdminPaymentsIdMarkPaidRoute =
   ApiAdminPaymentsIdMarkPaidRouteImport.update({
     id: '/mark-paid',
@@ -756,6 +811,30 @@ const ApiAdminChannelsPostsIdWithdrawnRoute =
     path: '/$id/withdrawn',
     getParentRoute: () => ApiAdminChannelsPostsRoute,
   } as any)
+const ApiAdminNewsletterIssuesIdApproveRoute =
+  ApiAdminNewsletterIssuesIdApproveRouteImport.update({
+    id: '/approve',
+    path: '/approve',
+    getParentRoute: () => ApiAdminNewsletterIssuesIdRoute,
+  } as any)
+const ApiAdminNewsletterIssuesIdPreviewRoute =
+  ApiAdminNewsletterIssuesIdPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => ApiAdminNewsletterIssuesIdRoute,
+  } as any)
+const ApiAdminNewsletterIssuesIdSendTestRoute =
+  ApiAdminNewsletterIssuesIdSendTestRouteImport.update({
+    id: '/send-test',
+    path: '/send-test',
+    getParentRoute: () => ApiAdminNewsletterIssuesIdRoute,
+  } as any)
+const ApiAdminNewsletterIssuesIdUnapproveRoute =
+  ApiAdminNewsletterIssuesIdUnapproveRouteImport.update({
+    id: '/unapprove',
+    path: '/unapprove',
+    getParentRoute: () => ApiAdminNewsletterIssuesIdRoute,
+  } as any)
 const ApiAdminSubmissionsIdMediaMediaIdOriginalRoute =
   ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport.update({
     id: '/media/$mediaId/original',
@@ -798,6 +877,7 @@ export interface FileRoutesByFullPath {
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
+  '/admin/newsletter/$id': typeof AdminNewsletterIdRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
@@ -821,6 +901,7 @@ export interface FileRoutesByFullPath {
   '/stories/': typeof SiteStoriesIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
+  '/admin/newsletter/': typeof AdminNewsletterIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
@@ -831,6 +912,8 @@ export interface FileRoutesByFullPath {
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
+  '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
+  '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -853,6 +936,9 @@ export interface FileRoutesByFullPath {
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
+  '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
+  '/api/admin/newsletter/subscribers/export': typeof ApiAdminNewsletterSubscribersExportRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -879,6 +965,10 @@ export interface FileRoutesByFullPath {
   '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
   '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
   '/api/admin/channels/posts/$id/withdrawn': typeof ApiAdminChannelsPostsIdWithdrawnRoute
+  '/api/admin/newsletter/issues/$id/approve': typeof ApiAdminNewsletterIssuesIdApproveRoute
+  '/api/admin/newsletter/issues/$id/preview': typeof ApiAdminNewsletterIssuesIdPreviewRoute
+  '/api/admin/newsletter/issues/$id/send-test': typeof ApiAdminNewsletterIssuesIdSendTestRoute
+  '/api/admin/newsletter/issues/$id/unapprove': typeof ApiAdminNewsletterIssuesIdUnapproveRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesByTo {
@@ -913,6 +1003,7 @@ export interface FileRoutesByTo {
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
+  '/admin/newsletter/$id': typeof AdminNewsletterIdRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
@@ -936,6 +1027,7 @@ export interface FileRoutesByTo {
   '/stories': typeof SiteStoriesIndexRoute
   '/admin/channels': typeof AdminChannelsIndexRoute
   '/admin/invoices': typeof AdminInvoicesIndexRoute
+  '/admin/newsletter': typeof AdminNewsletterIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/properties': typeof AdminPropertiesIndexRoute
   '/admin/reports': typeof AdminReportsIndexRoute
@@ -946,6 +1038,8 @@ export interface FileRoutesByTo {
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
+  '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
+  '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -968,6 +1062,9 @@ export interface FileRoutesByTo {
   '/api/admin/properties': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
+  '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
+  '/api/admin/newsletter/subscribers/export': typeof ApiAdminNewsletterSubscribersExportRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -994,6 +1091,10 @@ export interface FileRoutesByTo {
   '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
   '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
   '/api/admin/channels/posts/$id/withdrawn': typeof ApiAdminChannelsPostsIdWithdrawnRoute
+  '/api/admin/newsletter/issues/$id/approve': typeof ApiAdminNewsletterIssuesIdApproveRoute
+  '/api/admin/newsletter/issues/$id/preview': typeof ApiAdminNewsletterIssuesIdPreviewRoute
+  '/api/admin/newsletter/issues/$id/send-test': typeof ApiAdminNewsletterIssuesIdSendTestRoute
+  '/api/admin/newsletter/issues/$id/unapprove': typeof ApiAdminNewsletterIssuesIdUnapproveRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesById {
@@ -1033,6 +1134,7 @@ export interface FileRoutesById {
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
+  '/admin/newsletter/$id': typeof AdminNewsletterIdRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
@@ -1056,6 +1158,7 @@ export interface FileRoutesById {
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
+  '/admin/newsletter/': typeof AdminNewsletterIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
@@ -1066,6 +1169,8 @@ export interface FileRoutesById {
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
+  '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
+  '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -1088,6 +1193,9 @@ export interface FileRoutesById {
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/newsletter/issues/$id': typeof ApiAdminNewsletterIssuesIdRouteWithChildren
+  '/api/admin/newsletter/issues/build': typeof ApiAdminNewsletterIssuesBuildRoute
+  '/api/admin/newsletter/subscribers/export': typeof ApiAdminNewsletterSubscribersExportRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -1114,6 +1222,10 @@ export interface FileRoutesById {
   '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
   '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
   '/api/admin/channels/posts/$id/withdrawn': typeof ApiAdminChannelsPostsIdWithdrawnRoute
+  '/api/admin/newsletter/issues/$id/approve': typeof ApiAdminNewsletterIssuesIdApproveRoute
+  '/api/admin/newsletter/issues/$id/preview': typeof ApiAdminNewsletterIssuesIdPreviewRoute
+  '/api/admin/newsletter/issues/$id/send-test': typeof ApiAdminNewsletterIssuesIdSendTestRoute
+  '/api/admin/newsletter/issues/$id/unapprove': typeof ApiAdminNewsletterIssuesIdUnapproveRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRouteTypes {
@@ -1153,6 +1265,7 @@ export interface FileRouteTypes {
     | '/admin/auth/confirm'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
+    | '/admin/newsletter/$id'
     | '/admin/people/$id'
     | '/admin/properties/$id'
     | '/admin/requests/$id'
@@ -1176,6 +1289,7 @@ export interface FileRouteTypes {
     | '/stories/'
     | '/admin/channels/'
     | '/admin/invoices/'
+    | '/admin/newsletter/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/reports/'
@@ -1186,6 +1300,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/verify'
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
+    | '/api/admin/newsletter/issues'
+    | '/api/admin/newsletter/subscribers'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1208,6 +1324,9 @@ export interface FileRouteTypes {
     | '/api/admin/properties/'
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/newsletter/issues/$id'
+    | '/api/admin/newsletter/issues/build'
+    | '/api/admin/newsletter/subscribers/export'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1234,6 +1353,10 @@ export interface FileRouteTypes {
     | '/api/admin/channels/posts/$id/metrics-refresh'
     | '/api/admin/channels/posts/$id/retry'
     | '/api/admin/channels/posts/$id/withdrawn'
+    | '/api/admin/newsletter/issues/$id/approve'
+    | '/api/admin/newsletter/issues/$id/preview'
+    | '/api/admin/newsletter/issues/$id/send-test'
+    | '/api/admin/newsletter/issues/$id/unapprove'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1268,6 +1391,7 @@ export interface FileRouteTypes {
     | '/admin/auth/confirm'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
+    | '/admin/newsletter/$id'
     | '/admin/people/$id'
     | '/admin/properties/$id'
     | '/admin/requests/$id'
@@ -1291,6 +1415,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/admin/channels'
     | '/admin/invoices'
+    | '/admin/newsletter'
     | '/admin/people'
     | '/admin/properties'
     | '/admin/reports'
@@ -1301,6 +1426,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/verify'
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
+    | '/api/admin/newsletter/issues'
+    | '/api/admin/newsletter/subscribers'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1323,6 +1450,9 @@ export interface FileRouteTypes {
     | '/api/admin/properties'
     | '/api/admin/submissions'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/newsletter/issues/$id'
+    | '/api/admin/newsletter/issues/build'
+    | '/api/admin/newsletter/subscribers/export'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1349,6 +1479,10 @@ export interface FileRouteTypes {
     | '/api/admin/channels/posts/$id/metrics-refresh'
     | '/api/admin/channels/posts/$id/retry'
     | '/api/admin/channels/posts/$id/withdrawn'
+    | '/api/admin/newsletter/issues/$id/approve'
+    | '/api/admin/newsletter/issues/$id/preview'
+    | '/api/admin/newsletter/issues/$id/send-test'
+    | '/api/admin/newsletter/issues/$id/unapprove'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   id:
     | '__root__'
@@ -1387,6 +1521,7 @@ export interface FileRouteTypes {
     | '/admin/auth/confirm'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
+    | '/admin/newsletter/$id'
     | '/admin/people/$id'
     | '/admin/properties/$id'
     | '/admin/requests/$id'
@@ -1410,6 +1545,7 @@ export interface FileRouteTypes {
     | '/_site/stories/'
     | '/admin/channels/'
     | '/admin/invoices/'
+    | '/admin/newsletter/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/reports/'
@@ -1420,6 +1556,8 @@ export interface FileRouteTypes {
     | '/api/admin/auth/verify'
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
+    | '/api/admin/newsletter/issues'
+    | '/api/admin/newsletter/subscribers'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1442,6 +1580,9 @@ export interface FileRouteTypes {
     | '/api/admin/properties/'
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/newsletter/issues/$id'
+    | '/api/admin/newsletter/issues/build'
+    | '/api/admin/newsletter/subscribers/export'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1468,6 +1609,10 @@ export interface FileRouteTypes {
     | '/api/admin/channels/posts/$id/metrics-refresh'
     | '/api/admin/channels/posts/$id/retry'
     | '/api/admin/channels/posts/$id/withdrawn'
+    | '/api/admin/newsletter/issues/$id/approve'
+    | '/api/admin/newsletter/issues/$id/preview'
+    | '/api/admin/newsletter/issues/$id/send-test'
+    | '/api/admin/newsletter/issues/$id/unapprove'
     | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesById: FileRoutesById
 }
@@ -1502,6 +1647,8 @@ export interface RootRouteChildren {
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
   ApiAdminChannelsHealthRoute: typeof ApiAdminChannelsHealthRoute
   ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRouteWithChildren
+  ApiAdminNewsletterIssuesRoute: typeof ApiAdminNewsletterIssuesRouteWithChildren
+  ApiAdminNewsletterSubscribersRoute: typeof ApiAdminNewsletterSubscribersRouteWithChildren
   ApiAdminPaymentsIdRoute: typeof ApiAdminPaymentsIdRouteWithChildren
   ApiAdminPaymentsIssueInvoiceRoute: typeof ApiAdminPaymentsIssueInvoiceRoute
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
@@ -1803,6 +1950,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInvoicesNewRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/newsletter/': {
+      id: '/admin/newsletter/'
+      path: '/newsletter'
+      fullPath: '/admin/newsletter/'
+      preLoaderRoute: typeof AdminNewsletterIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/newsletter/$id': {
+      id: '/admin/newsletter/$id'
+      path: '/newsletter/$id'
+      fullPath: '/admin/newsletter/$id'
+      preLoaderRoute: typeof AdminNewsletterIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/people/': {
       id: '/admin/people/'
       path: '/people'
@@ -1999,6 +2160,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminChannelsPostsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/newsletter/issues': {
+      id: '/api/admin/newsletter/issues'
+      path: '/api/admin/newsletter/issues'
+      fullPath: '/api/admin/newsletter/issues'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/newsletter/subscribers': {
+      id: '/api/admin/newsletter/subscribers'
+      path: '/api/admin/newsletter/subscribers'
+      fullPath: '/api/admin/newsletter/subscribers'
+      preLoaderRoute: typeof ApiAdminNewsletterSubscribersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/payments/': {
       id: '/api/admin/payments/'
       path: '/api/admin/payments'
@@ -2152,6 +2327,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/channels/ids/$key'
       preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/newsletter/issues/$id': {
+      id: '/api/admin/newsletter/issues/$id'
+      path: '/$id'
+      fullPath: '/api/admin/newsletter/issues/$id'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesRoute
+    }
+    '/api/admin/newsletter/issues/build': {
+      id: '/api/admin/newsletter/issues/build'
+      path: '/build'
+      fullPath: '/api/admin/newsletter/issues/build'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesBuildRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesRoute
+    }
+    '/api/admin/newsletter/subscribers/export': {
+      id: '/api/admin/newsletter/subscribers/export'
+      path: '/export'
+      fullPath: '/api/admin/newsletter/subscribers/export'
+      preLoaderRoute: typeof ApiAdminNewsletterSubscribersExportRouteImport
+      parentRoute: typeof ApiAdminNewsletterSubscribersRoute
     }
     '/api/admin/payments/$id/mark-paid': {
       id: '/api/admin/payments/$id/mark-paid'
@@ -2335,6 +2531,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminChannelsPostsIdWithdrawnRouteImport
       parentRoute: typeof ApiAdminChannelsPostsRoute
     }
+    '/api/admin/newsletter/issues/$id/approve': {
+      id: '/api/admin/newsletter/issues/$id/approve'
+      path: '/approve'
+      fullPath: '/api/admin/newsletter/issues/$id/approve'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdApproveRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesIdRoute
+    }
+    '/api/admin/newsletter/issues/$id/preview': {
+      id: '/api/admin/newsletter/issues/$id/preview'
+      path: '/preview'
+      fullPath: '/api/admin/newsletter/issues/$id/preview'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdPreviewRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesIdRoute
+    }
+    '/api/admin/newsletter/issues/$id/send-test': {
+      id: '/api/admin/newsletter/issues/$id/send-test'
+      path: '/send-test'
+      fullPath: '/api/admin/newsletter/issues/$id/send-test'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdSendTestRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesIdRoute
+    }
+    '/api/admin/newsletter/issues/$id/unapprove': {
+      id: '/api/admin/newsletter/issues/$id/unapprove'
+      path: '/unapprove'
+      fullPath: '/api/admin/newsletter/issues/$id/unapprove'
+      preLoaderRoute: typeof ApiAdminNewsletterIssuesIdUnapproveRouteImport
+      parentRoute: typeof ApiAdminNewsletterIssuesIdRoute
+    }
     '/api/admin/submissions/$id/media/$mediaId/original': {
       id: '/api/admin/submissions/$id/media/$mediaId/original'
       path: '/media/$mediaId/original'
@@ -2438,11 +2662,13 @@ interface AdminRouteChildren {
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
   AdminInvoicesIdRoute: typeof AdminInvoicesIdRoute
   AdminInvoicesNewRoute: typeof AdminInvoicesNewRoute
+  AdminNewsletterIdRoute: typeof AdminNewsletterIdRoute
   AdminPeopleIdRoute: typeof AdminPeopleIdRoute
   AdminPropertiesIdRoute: typeof AdminPropertiesIdRoute
   AdminRequestsIdRoute: typeof AdminRequestsIdRoute
   AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
   AdminInvoicesIndexRoute: typeof AdminInvoicesIndexRoute
+  AdminNewsletterIndexRoute: typeof AdminNewsletterIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminPropertiesIndexRoute: typeof AdminPropertiesIndexRoute
   AdminReportsIndexRoute: typeof AdminReportsIndexRoute
@@ -2454,11 +2680,13 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
   AdminInvoicesIdRoute: AdminInvoicesIdRoute,
   AdminInvoicesNewRoute: AdminInvoicesNewRoute,
+  AdminNewsletterIdRoute: AdminNewsletterIdRoute,
   AdminPeopleIdRoute: AdminPeopleIdRoute,
   AdminPropertiesIdRoute: AdminPropertiesIdRoute,
   AdminRequestsIdRoute: AdminRequestsIdRoute,
   AdminChannelsIndexRoute: AdminChannelsIndexRoute,
   AdminInvoicesIndexRoute: AdminInvoicesIndexRoute,
+  AdminNewsletterIndexRoute: AdminNewsletterIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminPropertiesIndexRoute: AdminPropertiesIndexRoute,
   AdminReportsIndexRoute: AdminReportsIndexRoute,
@@ -2563,6 +2791,62 @@ const ApiAdminChannelsPostsRouteChildren: ApiAdminChannelsPostsRouteChildren = {
 const ApiAdminChannelsPostsRouteWithChildren =
   ApiAdminChannelsPostsRoute._addFileChildren(
     ApiAdminChannelsPostsRouteChildren,
+  )
+
+interface ApiAdminNewsletterIssuesIdRouteChildren {
+  ApiAdminNewsletterIssuesIdApproveRoute: typeof ApiAdminNewsletterIssuesIdApproveRoute
+  ApiAdminNewsletterIssuesIdPreviewRoute: typeof ApiAdminNewsletterIssuesIdPreviewRoute
+  ApiAdminNewsletterIssuesIdSendTestRoute: typeof ApiAdminNewsletterIssuesIdSendTestRoute
+  ApiAdminNewsletterIssuesIdUnapproveRoute: typeof ApiAdminNewsletterIssuesIdUnapproveRoute
+}
+
+const ApiAdminNewsletterIssuesIdRouteChildren: ApiAdminNewsletterIssuesIdRouteChildren =
+  {
+    ApiAdminNewsletterIssuesIdApproveRoute:
+      ApiAdminNewsletterIssuesIdApproveRoute,
+    ApiAdminNewsletterIssuesIdPreviewRoute:
+      ApiAdminNewsletterIssuesIdPreviewRoute,
+    ApiAdminNewsletterIssuesIdSendTestRoute:
+      ApiAdminNewsletterIssuesIdSendTestRoute,
+    ApiAdminNewsletterIssuesIdUnapproveRoute:
+      ApiAdminNewsletterIssuesIdUnapproveRoute,
+  }
+
+const ApiAdminNewsletterIssuesIdRouteWithChildren =
+  ApiAdminNewsletterIssuesIdRoute._addFileChildren(
+    ApiAdminNewsletterIssuesIdRouteChildren,
+  )
+
+interface ApiAdminNewsletterIssuesRouteChildren {
+  ApiAdminNewsletterIssuesIdRoute: typeof ApiAdminNewsletterIssuesIdRouteWithChildren
+  ApiAdminNewsletterIssuesBuildRoute: typeof ApiAdminNewsletterIssuesBuildRoute
+}
+
+const ApiAdminNewsletterIssuesRouteChildren: ApiAdminNewsletterIssuesRouteChildren =
+  {
+    ApiAdminNewsletterIssuesIdRoute:
+      ApiAdminNewsletterIssuesIdRouteWithChildren,
+    ApiAdminNewsletterIssuesBuildRoute: ApiAdminNewsletterIssuesBuildRoute,
+  }
+
+const ApiAdminNewsletterIssuesRouteWithChildren =
+  ApiAdminNewsletterIssuesRoute._addFileChildren(
+    ApiAdminNewsletterIssuesRouteChildren,
+  )
+
+interface ApiAdminNewsletterSubscribersRouteChildren {
+  ApiAdminNewsletterSubscribersExportRoute: typeof ApiAdminNewsletterSubscribersExportRoute
+}
+
+const ApiAdminNewsletterSubscribersRouteChildren: ApiAdminNewsletterSubscribersRouteChildren =
+  {
+    ApiAdminNewsletterSubscribersExportRoute:
+      ApiAdminNewsletterSubscribersExportRoute,
+  }
+
+const ApiAdminNewsletterSubscribersRouteWithChildren =
+  ApiAdminNewsletterSubscribersRoute._addFileChildren(
+    ApiAdminNewsletterSubscribersRouteChildren,
   )
 
 interface ApiAdminPaymentsIdRouteChildren {
@@ -2680,6 +2964,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
   ApiAdminChannelsHealthRoute: ApiAdminChannelsHealthRoute,
   ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRouteWithChildren,
+  ApiAdminNewsletterIssuesRoute: ApiAdminNewsletterIssuesRouteWithChildren,
+  ApiAdminNewsletterSubscribersRoute:
+    ApiAdminNewsletterSubscribersRouteWithChildren,
   ApiAdminPaymentsIdRoute: ApiAdminPaymentsIdRouteWithChildren,
   ApiAdminPaymentsIssueInvoiceRoute: ApiAdminPaymentsIssueInvoiceRoute,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
