@@ -80,7 +80,8 @@ jobs:
     needs: preview-db
     if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # 40, not 20: the lighthouse step may spend two bounded attempts (H71, 22 minutes) after deploy, smoke and essentials (H71a).
+    timeout-minutes: 40
     permissions:
       contents: read
       pull-requests: write
