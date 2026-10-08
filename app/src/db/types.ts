@@ -1121,11 +1121,11 @@ isOneToOne: false
 "assert_agent_daily_cap":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_group": string }; Returns: undefined
                            },
-"assign_inquiry":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_assignee": string,"p_inquiry_id": string,"p_request_id": string }; Returns: Database["public"]['Enums']["inquiry_state"]
-                           },
 "assets_received":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: Database["public"]['Enums']["submission_state"]
+                           },
+"assign_inquiry":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_assignee": string,"p_inquiry_id": string,"p_request_id": string }; Returns: Database["public"]['Enums']["inquiry_state"]
                            },
 "attach_media":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_alt"?: string,"p_media_id": string,"p_property_id": string,"p_request_id": string,"p_staging_path": string }; Returns: Json
