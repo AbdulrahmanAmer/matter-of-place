@@ -187,6 +187,28 @@ describe("seed and send class", () => {
     );
   });
 
+  it("the standalone row is B11's: enabled, no blocks of its own, the three variables, and its revision says B11", async () => {
+    const read = await withRollback(async (db) => ({
+      row: await one<{ subject: string; preheader: string; body: unknown; enabled: boolean }>(
+        db,
+        "select subject, preheader, body, enabled from public.email_templates where key = 'standalone'",
+      ),
+      notes: (
+        await db.query<{ note: string | null }>(
+          `select r.note from public.automation_revisions r join public.email_templates t on t.id = r.row_id
+           where t.key = 'standalone' and r.table_name = 'email_templates' order by r.at`,
+        )
+      ).rows.map((revision) => revision.note),
+    }));
+    expect(read.row).toEqual({
+      subject: "{{subject}}",
+      preheader: "{{preheader}}",
+      body: [],
+      enabled: true,
+    });
+    expect(read.notes).toContain("B11");
+  });
+
   it("an insert without class fails with 23502", async () => {
     const outcome = await withRollback(async (db) =>
       attempt(

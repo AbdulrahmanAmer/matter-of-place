@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import {
   emailBlockSchema,
   emailClasses,
@@ -63,6 +64,12 @@ describe("emailTemplateSchema", () => {
     expect(emailTemplateSchema.safeParse({ ...row, key: "unknown" }).success).toBe(false);
     expect(emailTemplateSchema.safeParse({ ...row, preheader: "x".repeat(111) }).success).toBe(
       false,
+    );
+  });
+
+  it("takes a row with no blocks, for a template file that draws its own content", () => {
+    expect(emailTemplateSchema.safeParse({ ...row, key: "standalone", body: [] }).success).toBe(
+      true,
     );
   });
 
@@ -141,7 +148,9 @@ describe("sample variables", () => {
   it("holds no em dash and no unreplaced variable", () => {
     for (const key of emailTemplateKeys) {
       for (const value of Object.values(sampleVariables(key))) {
-        expect(value).not.toMatch(/—|\{\{/);
+        for (const text of typeof value === "string" ? [value] : Object.values(value)) {
+          expect(text).not.toMatch(/—|\{\{/);
+        }
       }
     }
   });
@@ -209,14 +218,41 @@ describe("template files", () => {
         variables: (variables ?? "").split(",").filter((name) => name !== ""),
       }),
     );
-    // This migration seeds B5's thirteen keys; a later slice seeds its own keys in its own migration.
+    // This migration seeds B5's thirteen keys; a later slice seeds its own keys in its own migration. B11 rewrites the
+    // `standalone` row, which the next test compares with its file.
     expect(seeded).toHaveLength(13);
-    for (const entry of seeded) {
+    for (const entry of seeded.filter((row) => row.key !== "standalone")) {
       const { key, class: kind, subject, preheader, blocks, variables } = fileOf(entry.key);
       expect({ key, class: kind, subject, preheader, blocks, variables: [...variables] }).toEqual(
         entry,
       );
     }
+  });
+
+  it("equals the standalone row the B11 migration sets, key by key", () => {
+    const sql = readFileSync(
+      new URL(
+        "../../../supabase/migrations/20261008170650_standalone_template.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const patch = z
+      .object({
+        subject: z.string(),
+        preheader: z.string(),
+        body: emailTemplateSchema.shape.body,
+        enabled: z.literal(true),
+      })
+      .parse(JSON.parse(/'(\{"subject"[^']*\})'::jsonb/.exec(sql)?.[1] ?? "null"));
+    const variables = (/set variables = '\{([^}]*)\}'/.exec(sql)?.[1] ?? "").split(",");
+    const { subject, preheader, blocks, variables: declared } = fileOf("standalone");
+    expect({ subject, preheader, blocks, variables: [...declared] }).toEqual({
+      subject: patch.subject,
+      preheader: patch.preheader,
+      blocks: patch.body,
+      variables,
+    });
   });
 });
 
@@ -225,12 +261,38 @@ describe("renderTemplate", () => {
     "%s renders with its sample variables, with nothing unreplaced and no stray colour",
     async (key) => {
       const { subject, preheader, html, text } = await renderSample(key);
-      for (const value of [subject, preheader, html, text]) expect(value).not.toMatch(/\{\{|—/);
+      // The one placeholder a template may leave is Resend's, which Resend fills at send time.
+      const drawn = (part: string): string => part.replaceAll("{{{RESEND_UNSUBSCRIBE_URL}}}", "");
+      for (const value of [subject, preheader, drawn(html), drawn(text)])
+        expect(value).not.toMatch(/\{\{|—/);
       const colours = (html.match(/#[0-9a-fA-F]{6}\b/g) ?? []).map((hex) => hex.toLowerCase());
       expect(colours.filter((hex) => !Object.values<string>(themeHex).includes(hex))).toEqual([]);
       expect(text).not.toMatch(/<[a-z/]/);
     },
   );
+
+  it("draws a standalone email's property block and unsubscribe link only when it is given a block", async () => {
+    const legal: SiteContext = {
+      ...site,
+      entity: "Omnikom Media LLC",
+      address: "100 Ocean Drive, Miami, FL 33139",
+    };
+    const row = definitionRow(fileOf("standalone"));
+    const samples = sampleVariables("standalone");
+    const withBlock = await renderTemplate(row, samples, legal);
+    expect(withBlock.html).toContain("A 1926 Spanish Revival house");
+    expect(withBlock.html).toContain('href="{{{RESEND_UNSUBSCRIBE_URL}}}"');
+    expect(withBlock.html).toContain("100 Ocean Drive, Miami, FL 33139");
+    expect(withBlock.html.indexOf("Omnikom Media LLC")).toBeLessThan(
+      withBlock.html.indexOf("RESEND_UNSUBSCRIBE_URL"),
+    );
+    const without = Object.fromEntries(
+      Object.entries(samples).filter(([name]) => name !== "block"),
+    );
+    const bare = await renderTemplate(row, without, legal);
+    expect(bare.html).not.toContain("RESEND_UNSUBSCRIBE_URL");
+    expect(bare.html).not.toContain("Spanish Revival");
+  });
 
   it("drops a block whose text comes out empty, and a fact with no value", async () => {
     const body: EmailBlock[] = [

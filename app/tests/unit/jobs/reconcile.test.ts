@@ -1,12 +1,13 @@
-// B8 step 8: the reconcile system job (G10). B3's reconcileUploads and B10's reconcileSocial are passed in as fakes,
-// so the cases prove which `since` the job hands the first, what it hands the second, and what it stores; one case
-// runs the registered job, with both real parts, against a fake client.
+// B8 step 8: the reconcile system job (G10). B3's reconcileUploads, B10's reconcileSocial and B11's aggregateRecentIssues
+// are passed in as fakes, so the cases prove which `since` the job hands the first, what it hands the others, and what it
+// stores; one case runs the registered job, with all three real parts, against a fake client.
 import { describe, expect, it, vi } from "vitest";
 import type { JsonObject, StepContext } from "../../../src/server/jobs/types";
 import { NonRetryableError } from "../../../src/server/jobs/types";
 import {
   reconcile,
   reconcileJob,
+  type AggregateIssues,
   type ReconcileSocial,
   type ReconcileUploads,
   type UploadCounts,
@@ -18,6 +19,7 @@ import { fakeDb } from "../../fixtures/fake-db";
 const NOW = new Date("2026-10-04T13:00:00.000Z");
 const COUNTS: UploadCounts = { checked: 3, uploaded: 2, deleted: 1, missing: 0 };
 const SOCIAL: ReconcileSocial = () => Promise.resolve({ social: "not_due" });
+const noIssues: AggregateIssues = () => Promise.resolve({ issues: 0 });
 
 /** The jobs read of the job: the latest done reconcile run, or none. */
 function jobsChain(lastFinishedAt: string | null) {
@@ -62,7 +64,7 @@ function jobsOnly(lastFinishedAt: string | null): Db {
 
 async function sinceGiven(lastFinishedAt: string | null, data: JsonObject = {}): Promise<string> {
   const uploads = vi.fn<ReconcileUploads>(() => Promise.resolve(COUNTS));
-  await reconcileJob(uploads, SOCIAL).run(context(lastFinishedAt), {}, data);
+  await reconcileJob(uploads, SOCIAL, noIssues).run(context(lastFinishedAt), {}, data);
   const since = uploads.mock.calls[0]?.[1];
   if (since === undefined) throw new Error("reconcileUploads was not called");
   return since.toISOString();
@@ -84,25 +86,45 @@ describe("reconcile", () => {
   });
 
   it("stores the counts under result.uploads and the social part under result.social", async () => {
-    const result = await reconcileJob(() => Promise.resolve(COUNTS), SOCIAL).run(
+    const result = await reconcileJob(() => Promise.resolve(COUNTS), SOCIAL, noIssues).run(
       context(null),
       {},
       {},
     );
-    expect(result).toEqual({ status: "done", result: { uploads: COUNTS, social: "not_due" } });
+    expect(result).toEqual({
+      status: "done",
+      result: { uploads: COUNTS, social: "not_due", newsletter: { issues: 0 } },
+    });
   });
 
   it("hands the social part the job's params and the clock of the run", async () => {
     const social = vi.fn<ReconcileSocial>(() => Promise.resolve({ social: "daily_exists" }));
     const ctx = context(null);
-    await reconcileJob(() => Promise.resolve(COUNTS), social).run(ctx, { daily: true }, {});
+    await reconcileJob(() => Promise.resolve(COUNTS), social, noIssues).run(
+      ctx,
+      { daily: true },
+      {},
+    );
     expect(social).toHaveBeenCalledExactlyOnceWith(ctx, { daily: true }, NOW);
+  });
+
+  it("calls aggregateRecentIssues on every run with ctx.now and stores result.newsletter", async () => {
+    const aggregate = vi.fn<AggregateIssues>(() => Promise.resolve({ issues: 2 }));
+    const job = reconcileJob(() => Promise.resolve(COUNTS), SOCIAL, aggregate);
+    const first = await job.run(context(null), {}, {});
+    await job.run(context("2026-10-04T12:45:00.000Z"), {}, {});
+    expect(aggregate.mock.calls.map(([, now]) => now)).toEqual([NOW, NOW]);
+    expect(first).toEqual({
+      status: "done",
+      result: { uploads: COUNTS, social: "not_due", newsletter: { issues: 2 } },
+    });
   });
 
   it("throws when the social part throws, so the runner retries the uploads too", async () => {
     const failing = reconcileJob(
       () => Promise.resolve(COUNTS),
       () => Promise.reject(new Error("complete_distributed_submissions")),
+      noIssues,
     );
     await expect(failing.run(context(null), {}, {})).rejects.toThrow(
       "complete_distributed_submissions",
@@ -110,18 +132,22 @@ describe("reconcile", () => {
   });
 
   it("throws when reconcileUploads throws, so the runner retries", async () => {
-    const failing = reconcileJob(() => Promise.reject(new Error("storage_list_failed")), SOCIAL);
+    const failing = reconcileJob(
+      () => Promise.reject(new Error("storage_list_failed")),
+      SOCIAL,
+      noIssues,
+    );
     await expect(failing.run(context(null), {}, {})).rejects.toThrow("storage_list_failed");
   });
 
   it("runs the real parts: the waiting submission_media rows are read and the day's social run is asked for", async () => {
     const client = fakeDb({
-      tables: { submission_media: [] },
+      tables: { submission_media: [], newsletter_issues: [] },
       rpc: { enqueue_job: () => "3f2a9c1d-0000-4000-8000-0000000000e0" },
     });
     const tableFrom = client.from.bind(client);
     const db = Object.assign(client, {
-      from: (table: "jobs" | "submission_media") =>
+      from: (table: "jobs" | "submission_media" | "newsletter_issues") =>
         table === "jobs" ? jobsChain(null) : tableFrom(table),
     });
     const result = await reconcile.run(context(null, db), {}, {});
@@ -130,6 +156,7 @@ describe("reconcile", () => {
       result: {
         uploads: { checked: 0, uploaded: 0, deleted: 0, missing: 0 },
         social: "daily_enqueued",
+        newsletter: { issues: 0 },
       },
     });
     expect(client.calls).toContainEqual({ kind: "from", name: "submission_media", args: [] });
@@ -137,7 +164,7 @@ describe("reconcile", () => {
   });
 
   it("refuses an unreadable data.since without retrying", async () => {
-    const job = reconcileJob(() => Promise.resolve(COUNTS), SOCIAL);
+    const job = reconcileJob(() => Promise.resolve(COUNTS), SOCIAL, noIssues);
     await expect(job.run(context(null), {}, { since: "yesterday-ish" })).rejects.toBeInstanceOf(
       NonRetryableError,
     );
