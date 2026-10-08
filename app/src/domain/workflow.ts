@@ -21,7 +21,7 @@ export const submissionTransitions = {
 
 export type WorkflowState = keyof typeof submissionTransitions;
 
-type PaymentStatus = "due" | "paid" | "waived" | "refunded";
+type PaymentStatus = "due" | "paid" | "waived" | "refunded" | "void";
 
 /** What the gate reads besides the graph: the acceptance time and the best payment status of the request. */
 export interface TransitionContext {
