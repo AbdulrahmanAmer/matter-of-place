@@ -214,8 +214,8 @@
     "kind": "file",
     "test": "tests/unit/flags.test.ts",
     "file": "src/domain/flags.ts",
-    "find": "z.record(z.enum(featureFlags), z.boolean())",
-    "replace": "z.record(z.enum(featureFlags), z.unknown())",
+    "find": "  z.record(z.enum(featureFlags), z.boolean()),\n",
+    "replace": "  z.record(z.enum(featureFlags), z.unknown()),\n",
     "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
     "expect": "× .*refuses a row that is not a record"
   },
