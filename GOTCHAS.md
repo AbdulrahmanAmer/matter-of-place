@@ -5014,3 +5014,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: an audit that reads computed style (axe, a contrast or overflow measure) first awaits the animations that end: `settleAnimations(page)` in `tests/e2e/fixtures/a11y.ts` (ruling H72); never skip the dialog, never baseline the violation, never edit the motion for it.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-a11y-settle-wait` -> `WATCHED-FAIL OK B17:b17-a11y-settle-wait` (2026-10-08).
 - added: 2026-10-08
+
+## P-1939 · A group re-launched with "paused before its fix round" was already fixed and merged: `git merge origin/main` fast-forwarded the lane to main
+- symptom: B17 c8 (second launch), `git merge origin/main` printed the new files of other slices and `git log --oneline -3` then showed main's tip, `git merge-base origin/main HEAD` equal to HEAD. The brief said the fix round had not run; `grep -n "^## c8" workspace/05-plans/logs/B17.md` showed a finished "c8 · steps 8" block and "c8 · follow-ups recorded" (fcae302 on main, review found no blocking defect).
+- cause: the brief's verdict text is the first review's evidence, kept by the workflow while a later round had landed; the lane branch name on origin was behind main by 191 commits.
+- rule: before editing for a re-launched group, run `git merge origin/main`, then `git log --oneline -3 -- <the group's files>` and `grep -n "^## <group>" workspace/05-plans/logs/<slice>.md`; when the fix is already in the log and on main, the work is to re-measure against today's numbers (the bundle budget moved to 163,840 by ruling H66) and re-run the proofs, not to edit.
+- proof: `git log --oneline -2 -- app/src/components/property/gallery.tsx` → the c8 commit `fcae3028`; `cd app && node scripts/bundle-check.mjs | tail -1` → `bundle-check: OK 24 routes under 163840 gzip bytes` on a live build.
+- added: 2026-10-08
