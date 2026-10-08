@@ -1,6 +1,7 @@
 import { Body, Container, Head, Hr, Html, Preview } from "@react-email/components";
 import type { CSSProperties } from "react";
 import type { SiteContext } from "../../server/email/context.ts";
+import { NewsletterBlock, type NewsletterBlockProps } from "../social/NewsletterBlock.tsx";
 import { themeHex } from "../theme.gen.ts";
 import { Footer } from "./blocks/footer.tsx";
 import { Intro } from "./blocks/intro.tsx";
@@ -11,7 +12,7 @@ import { fonts } from "./layout.tsx";
 // The Place Notes issue: masthead, the blocks in reading order, the footer. Colours come from `theme.gen.ts` (G-007).
 // Every address arrives finished, with its UTM set (`render.ts`); a component only draws.
 
-/** One block of an issue, ready to draw. The property block joins when B9's `NewsletterBlock.tsx` exists. */
+/** One block of an issue, ready to draw. A property block is B9's `NewsletterBlock` under the line a person wrote. */
 export type IssueBlockView =
   | { type: "intro"; id: string; text: string }
   | {
@@ -21,7 +22,8 @@ export type IssueBlockView =
       deck: string;
       text: string | undefined;
       href: string;
-    };
+    }
+  | ({ type: "property"; id: string; text: string | undefined } & NewsletterBlockProps);
 
 export interface PlaceNotesProps {
   title: string;
@@ -58,6 +60,20 @@ function BlockView({ block }: { block: IssueBlockView }) {
       return <Intro text={block.text} />;
     case "story":
       return <Story title={block.title} deck={block.deck} text={block.text} href={block.href} />;
+    case "property":
+      return (
+        <>
+          {block.text === undefined ? null : <Intro text={block.text} />}
+          <NewsletterBlock
+            title={block.title}
+            deck={block.deck}
+            image_key={block.image_key}
+            image_url={block.image_url}
+            link={block.link}
+            alt={block.alt}
+          />
+        </>
+      );
   }
 }
 

@@ -592,6 +592,16 @@ describe("standalone approval and the market-open key", () => {
     );
   }
 
+  it("the standalone row is enabled with no blocks of its own and the variables subject, preheader and block", async () => {
+    const row = await withRollback((db) =>
+      one<{ enabled: boolean; body: unknown; variables: string[] }>(
+        db,
+        "select enabled, body, variables from public.email_templates where key = 'standalone'",
+      ),
+    );
+    expect(row).toEqual({ enabled: true, body: [], variables: ["subject", "preheader", "block"] });
+  });
+
   it("approving a standalone_email asset queues its property's waiting standalone send, and no other", async () => {
     await withRollback(async (db) => {
       const human = await createStaffUser(db, ["media_ops"]);

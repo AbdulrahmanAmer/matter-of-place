@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { SiteContext } from "../../../src/server/email/context";
 import { NonRetryableError } from "../../../src/server/jobs/types";
+import { loadBlocks, type StoredIssue } from "../../../src/server/newsletter/issue";
 import {
   renderIssueHtml,
   renderPreview,
   type RenderIssue,
 } from "../../../src/server/newsletter/render";
 import { themeHex } from "../../../src/templates/theme.gen";
-import { propertyBlock, storyBlock, uuid } from "../../fixtures/newsletter-world";
+import type { Db } from "../../../src/server/lib/db";
+import { newsletterDb, propertyBlock, storyBlock, uuid } from "../../fixtures/newsletter-world";
 
 // The issue the editor previews and the subscriber reads (B11 step 5): one renderer, links finished, footer complete.
 
@@ -20,6 +22,12 @@ const site: SiteContext = {
   contact: { email: null },
 };
 
+const picture = {
+  image_key: "oak-hill/og.jpg",
+  image_url: "https://matterofplace.com/media/oak-hill/og.jpg",
+  link: "https://matterofplace.com/property/oak-hill?utm_source=newsletter&utm_medium=social&utm_campaign=newsletter",
+};
+
 const issue: RenderIssue = {
   number: 4,
   subject: "Place Notes No. 4: Under the oaks",
@@ -27,6 +35,7 @@ const issue: RenderIssue = {
   blocks: [
     { id: "intro", type: "intro", text: "First line.\nSecond line." },
     { ...storyBlock(1, "Under the oaks", "A quiet street."), slug: "under-the-oaks" },
+    { ...propertyBlock(3, "Oak Hill", "A quiet house."), slug: "oak-hill", ...picture },
     { ...storyBlock(2, "The long view", "A second look."), slug: "the-long-view" },
   ],
 };
@@ -47,6 +56,7 @@ describe("renderIssueHtml", () => {
     const links = hrefs(await renderIssueHtml(issue, site)).filter((href) => href !== UNSUBSCRIBE);
     expect(links).toEqual([
       "https://matterofplace.com/stories/under-the-oaks?utm_source=place_notes&utm_medium=email&utm_campaign=issue-4&utm_content=under-the-oaks",
+      "https://matterofplace.com/property/oak-hill?utm_source=place_notes&utm_medium=email&utm_campaign=issue-4&utm_content=oak-hill",
       "https://matterofplace.com/stories/the-long-view?utm_source=place_notes&utm_medium=email&utm_campaign=issue-4&utm_content=the-long-view",
     ]);
   });
@@ -68,6 +78,7 @@ describe("renderIssueHtml", () => {
       "First line.",
       "Second line.",
       "Under the oaks",
+      "Oak Hill",
       "The long view",
       "Unsubscribe",
     ].map((text) => html.indexOf(text, html.indexOf("<body")));
@@ -108,12 +119,26 @@ describe("renderIssueHtml", () => {
     expect(html).toContain("&lt;script&gt;");
   });
 
-  it("refuses a property block until B9's NewsletterBlock is on main", async () => {
-    const blocks = [{ ...propertyBlock(1), slug: "oak-hill", link: "https://matterofplace.com/" }];
+  it("draws a property block through NewsletterBlock: the image, the title, the deck and one link", async () => {
+    const html = await renderIssueHtml(issue, site);
+    expect(html).toContain(`src="${picture.image_url}"`);
+    expect(html).toContain("A quiet house.");
+    expect(html.match(/View the property/g)).toHaveLength(1);
+    expect(html).not.toContain("utm_source=newsletter");
+  });
+
+  it("puts the line a person wrote above a property block", async () => {
+    const blocks = [{ ...propertyBlock(3), text: "Newly listed.", slug: "oak-hill", ...picture }];
+    const html = await renderIssueHtml({ ...issue, blocks }, site);
+    expect(html.indexOf("Newly listed.")).toBeGreaterThan(0);
+    expect(html.indexOf("Newly listed.")).toBeLessThan(html.indexOf("Oak Hill"));
+  });
+
+  it("refuses a property block whose address cannot be read, without a retry", async () => {
+    const blocks = [
+      { ...propertyBlock(3), slug: "oak-hill", ...picture, link: "/property/oak-hill" },
+    ];
     await expect(renderIssueHtml({ ...issue, blocks }, site)).rejects.toThrow(NonRetryableError);
-    await expect(renderIssueHtml({ ...issue, blocks }, site)).rejects.toThrow(
-      "property_block_unavailable",
-    );
   });
 
   it("takes the campaign from the number of its own issue", async () => {
@@ -140,5 +165,45 @@ describe("renderPreview", () => {
     const { html } = await renderPreview(issue, "desktop", site);
     expect(html).not.toContain(UNSUBSCRIBE);
     expect(hrefs(html)).toContain("#");
+  });
+});
+
+describe("loadBlocks, the property block", () => {
+  const stored = (blocks: StoredIssue["blocks"]): StoredIssue => ({
+    id: uuid(900),
+    number: 4,
+    status: "approved",
+    approval_count: 1,
+    blocks,
+    subject: null,
+    preheader: null,
+    resend_broadcast_id: null,
+  });
+
+  const world = (meta: unknown) =>
+    newsletterDb({
+      properties: [
+        { id: uuid(3), slug: "oak-hill", editorial_state: "published", taken_down_at: null },
+      ],
+      assets: [{ id: uuid(103), meta }],
+    }).db satisfies Db;
+
+  it("reads the image and the link from meta.block of the asset", async () => {
+    const loaded = await loadBlocks(
+      world({ block: { title: "T", deck: "D", ...picture } }),
+      stored([propertyBlock(3)]),
+    );
+    expect(loaded.render.blocks).toEqual([{ ...propertyBlock(3), slug: "oak-hill", ...picture }]);
+    expect(loaded.unpublished).toEqual([]);
+  });
+
+  it.each([
+    ["no image", { link: picture.link }],
+    ["an image on http", { ...picture, image_url: "http://matterofplace.com/a.jpg" }],
+    ["a link that is not https", { ...picture, link: "javascript:alert(1)" }],
+  ])("refuses an asset with %s as incomplete", async (_name, block) => {
+    await expect(loadBlocks(world({ block }), stored([propertyBlock(3)]))).rejects.toThrow(
+      "asset_incomplete",
+    );
   });
 });

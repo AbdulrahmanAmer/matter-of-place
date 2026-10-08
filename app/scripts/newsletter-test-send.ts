@@ -35,33 +35,36 @@ const site: SiteContext = {
   contact: { email: null },
 };
 
-// A property block joins the sample when B9's `NewsletterBlock.tsx` is on main (B9 steps 7 to 11).
 const sample: RenderIssue = {
   number: 4,
   subject: "Place Notes No. 4: A house on the water",
-  preheader: "Two stories from the fortnight.",
+  preheader: "A house in Pasadena and a story from the fortnight.",
   blocks: [
     {
       id: "b1",
       type: "intro",
-      text: "Two stories from the last two weeks.\nThe next issue follows in a fortnight.",
+      text: "A house and a story from the last two weeks.\nThe next issue follows in a fortnight.",
     },
     {
       id: "b2",
+      type: "property",
+      property_id: "3e8f2a7b-6c1d-4e5f-8a9b-0c1d2e3f4a5b",
+      asset_id: "9a4b6c2d-1e3f-4a5b-8c7d-6e5f4a3b2c1d",
+      slug: "alder-court",
+      title: "Alder Court",
+      deck: "A 1926 Spanish Revival house in Pasadena.",
+      image_key: "sample/alder-court/og.jpg",
+      image_url: `${site.siteUrl}/media/sample/alder-court/og.jpg`,
+      link: `${site.siteUrl}/california/alder-court`,
+    },
+    {
+      id: "b3",
       type: "story",
       story_id: "0b6a5c1e-3f4d-4b8a-9c2e-5d7f1a2b3c4d",
       slug: "a-house-on-the-water",
       title: "A house on the water",
       deck: "How a shoreline home keeps its original plan.",
       text: "This one begins at the dock.",
-    },
-    {
-      id: "b3",
-      type: "story",
-      story_id: "7c1d9e2f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
-      slug: "the-quiet-street",
-      title: "The quiet street",
-      deck: "",
     },
   ],
 };

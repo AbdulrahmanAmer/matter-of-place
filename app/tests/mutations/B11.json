@@ -1060,13 +1060,13 @@
     "expect": "FAIL.*escapes what a person typed"
   },
   {
-    "id": "b11-g4-render-property-drawn-blank",
+    "id": "b11-g4-render-property-link-bare",
     "test": "tests/unit/newsletter/render.test.ts",
     "file": "src/server/newsletter/render.ts",
-    "find": "throw new NonRetryableError(\"property_block_unavailable\");",
-    "replace": "return { type: \"intro\", id: block.id, text: block.title };",
+    "find": "link: withUtm(block.link, campaign, block.slug),",
+    "replace": "link: block.link,",
     "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
-    "expect": "FAIL.*refuses a property block until B9's NewsletterBlock is on main"
+    "expect": "FAIL.*gives every other link the UTM set, with the issue number and the slug of its block"
   },
   {
     "id": "b11-g4-render-campaign-fixed",
@@ -2918,5 +2918,76 @@
     "replace": "afterFooter={null}",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "FAIL.*draws the property block it is given, from an empty body"
+  },
+  {
+    "id": "b11-g2-render-property-link-unchecked",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "link: withUtm(block.link, campaign, block.slug),",
+    "replace": "link: block.link,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*refuses a property block whose address cannot be read, without a retry"
+  },
+  {
+    "id": "b11-g2-render-property-image-link",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/render.ts",
+    "find": "image_url: block.image_url,",
+    "replace": "image_url: block.link,",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*draws a property block through NewsletterBlock"
+  },
+  {
+    "id": "b11-g2-render-property-text-dropped",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/templates/email/place-notes.tsx",
+    "find": "{block.text === undefined ? null : <Intro text={block.text} />}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*puts the line a person wrote above a property block"
+  },
+  {
+    "id": "b11-g2-load-property-image-dropped",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/issue.ts",
+    "find": "blocks.push({ ...block, slug: property.slug, ...picture });",
+    "replace": "blocks.push({ ...block, slug: property.slug, link: picture.link });",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*reads the image and the link from meta.block of the asset"
+  },
+  {
+    "id": "b11-g2-load-property-http",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/issue.ts",
+    "find": "const https = z.string().url().startsWith(\"https://\");",
+    "replace": "const https = z.string().url();",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*refuses an asset with an image on http as incomplete"
+  },
+  {
+    "id": "b11-g2-load-property-image-optional",
+    "test": "tests/unit/newsletter/render.test.ts",
+    "file": "src/server/newsletter/issue.ts",
+    "find": "image_key: z.string().min(1), image_url: https, link: https",
+    "replace": "link: https",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
+    "expect": "FAIL.*refuses an asset with no image as incomplete"
+  },
+  {
+    "id": "b11-g2-dry-sample-slug",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "slug: \"alder-court\",",
+    "replace": "slug: \"sample\",",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*newsletter-test-send --dry > draws the sample issue"
+  },
+  {
+    "id": "b11-g2-standalone-variables",
+    "kind": "sql",
+    "test": "tests/db/newsletter.db.test.ts",
+    "sql": "update public.email_templates set variables = '{subject,preheader}' where key = 'standalone';",
+    "run": "bunx vitest run --project db tests/db/newsletter.db.test.ts -t \"the standalone row is enabled\"",
+    "expect": "× .*the standalone row is enabled[sS]*AssertionError"
   }
 ]

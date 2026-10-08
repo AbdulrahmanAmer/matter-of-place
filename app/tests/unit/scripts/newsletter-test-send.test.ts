@@ -1,6 +1,7 @@
 // B11 step 8: scripts/newsletter-test-send.ts, the live modes. The database connection, the production guard, the dev
 // lock and the sleep are stubs, so no connection is opened and nothing is sent (R50); the cases prove what the script
 // asks the database, in which order, and that the connection and the lock are given back on every path.
+import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { assertNotProduction } from "../../../scripts/lib/assert-not-production.mjs";
@@ -74,6 +75,25 @@ beforeEach(() => {
     released = true;
     db.events.push("release");
     return Promise.resolve();
+  });
+});
+
+describe("newsletter-test-send --dry", () => {
+  it("draws the sample issue with its intro, property block and story, and opens no connection", async () => {
+    expect(await newsletterTestSendMain(["--dry"])).toBe(0);
+    expect(lines).toEqual(["wrote .tmp/issue.html"]);
+    const html = readFileSync(".tmp/issue.html", "utf8");
+    const order = [
+      "A house and a story",
+      "Alder Court",
+      "View the property",
+      "A house on the water",
+    ].map((text) => html.indexOf(text, html.indexOf("<body")));
+    expect(order.every((at) => at >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(html).toContain("utm_campaign=issue-4&amp;utm_content=alder-court");
+    expect(db.events).toEqual([]);
+    expect(holdDevLock).not.toHaveBeenCalled();
   });
 });
 

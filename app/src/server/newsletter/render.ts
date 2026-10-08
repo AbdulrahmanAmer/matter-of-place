@@ -16,14 +16,16 @@ type PropertyBlock = Extract<NewsletterBlock, { type: "property" }>;
 /**
  * An issue as the renderer reads it. A story or property block also carries its `slug`, which the stored block does
  * not hold: the caller (the send job, the preview route) reads it from the story or property row. A property block
- * carries `link` as B9 stored it in `meta.block.link`.
+ * carries the image and the link as B9 stored them in `meta.block` (`image_key`, `image_url`, `link`).
  */
 export interface RenderIssue {
   number: number;
   subject: string;
   preheader: string;
   blocks: (
-    IntroBlock | (StoryBlock & { slug: string }) | (PropertyBlock & { slug: string; link: string })
+    | IntroBlock
+    | (StoryBlock & { slug: string })
+    | (PropertyBlock & { slug: string; image_key: string; image_url: string; link: string })
   )[];
 }
 
@@ -65,8 +67,16 @@ function viewOf(
         href: withUtm(`${site.siteUrl}/stories/${block.slug}`, campaign, block.slug),
       };
     case "property":
-      // STUB(B9 step 7): B9's `NewsletterBlock.tsx` draws the property block from `meta.block`; until it is on main an issue holding one cannot render
-      throw new NonRetryableError("property_block_unavailable");
+      return {
+        type: "property",
+        id: block.id,
+        title: block.title,
+        deck: block.deck,
+        text: block.text,
+        image_key: block.image_key,
+        image_url: block.image_url,
+        link: withUtm(block.link, campaign, block.slug),
+      };
   }
 }
 

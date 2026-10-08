@@ -28,7 +28,12 @@ export type StoredIssue = z.infer<typeof issueRow>;
 type Block = StoredIssue["blocks"][number];
 type ContentBlock = Exclude<Block, { type: "intro" }>;
 
-const blockLink = z.object({ block: z.object({ link: z.string() }) });
+// A mail client must never be given a `javascript:` or plain `http:` address, whoever wrote the stored block.
+const https = z.string().url().startsWith("https://");
+
+const assetBlock = z.object({
+  block: z.object({ image_key: z.string().min(1), image_url: https, link: https }),
+});
 
 function rowsOf<T>(result: { data: T[] | null; error: unknown }, table: string): T[] {
   if (result.error !== null || result.data === null) {
@@ -78,8 +83,8 @@ export async function loadBlocks(db: Db, issue: StoredIssue): Promise<LoadedIssu
   ]);
   const propertyRows = new Map(rowsOf(properties, "properties").map((row) => [row.id, row]));
   const storyRows = new Map(rowsOf(stories, "stories").map((row) => [row.id, row]));
-  const links = new Map(
-    rowsOf(assets, "assets").map((row) => [row.id, blockLink.safeParse(row.meta).data?.block.link]),
+  const pictures = new Map(
+    rowsOf(assets, "assets").map((row) => [row.id, assetBlock.safeParse(row.meta).data?.block]),
   );
   const unpublished: ContentBlock[] = [];
   const blocks: RenderIssue["blocks"] = [];
@@ -93,12 +98,12 @@ export async function loadBlocks(db: Db, issue: StoredIssue): Promise<LoadedIssu
       } else blocks.push({ ...block, slug: story.slug });
     } else {
       const property = propertyRows.get(block.property_id);
-      const link = links.get(block.asset_id);
+      const picture = pictures.get(block.asset_id);
       if (property?.editorial_state !== "published" || property.taken_down_at !== null) {
         unpublished.push(block);
-      } else if (link === undefined) {
+      } else if (picture === undefined) {
         throw new NonRetryableError("asset_incomplete");
-      } else blocks.push({ ...block, slug: property.slug, link });
+      } else blocks.push({ ...block, slug: property.slug, ...picture });
     }
   }
   return {
