@@ -659,3 +659,31 @@ what: Stale comment in a file outside the group. serviceClient's docstring says 
 evidence: app/tests/fixtures/service.ts docstring; git diff origin/main...slice/b7 -- app/scripts/admin-smoke.ts (cleanup block)
 
 blocking: false
+
+## g2 · steps 9-10
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The fourth follow-up of the review (GOTCHAS.md) is banked as P-2609 and is not repeated here.
+
+### 1. app/tests/db/admin-cache.db.test.ts
+
+what: The sent_month case cannot tell the month from the day on the first UTC day of a month, and the author says so. The consequence goes further than that note: CI's db job runs `watchfail.mjs --changed origin/main --kinds unit,sql`. On the 1st of a month, any PR that touches this test file (later B7 steps add cases here) will replay b7-g9-db-sent-month as WATCHED-FAIL BAD: stayed green, and the db job goes red for no product reason. A fix: date the extra row a day before today but inside the month when today is not the 1st, or give the case a fixed clock.
+
+evidence: Suspected by reading, not run on a 1st. On day 1, date_trunc('month') equals date_trunc('day'), so email_sent_today() also counts the three in-month rows (2 at now(), 1 at the month's first instant) and the delta stays 3. ci.yml line 213 runs the mutation replay with --changed origin/main. On 2026-10-08 the mutation goes red as expected: I reproduced 'expected 2 to be 3'.
+
+blocking: false
+
+### 2. app/tests/e2e/admin-editorial.spec.ts
+
+what: No one has seen the new test 'the dashboard counts the requests waiting' fail (STANDARDS C08). Its manual entry b7-g10-e2e-dashboard-count has never been replayed. The test skips on mop-dev until main pushes 20261008150152_admin_dashboard.sql, and CI does not replay manual entries. Reading the toPass loop, a shifted tile value would fail after 90 s, so it can probably fail, but that is UNPROVEN.
+
+evidence: The built and url runs both print '1 skipped' for this test. tests/mutations/B7.json entry b7-g10-e2e-dashboard-count has kind manual. The author's watchedFail list marks it UNPROVEN.
+
+blocking: false
+
+### 3. workspace/05-plans/B7.md
+
+what: Some plan lines for step 9 no longer match the tree. The step names a `bounce_rate_7d` output, but the function returns email.sent_7d and bounced_7d and the client divides them. The 'absent' cases (assets, social_posts, broadcast_recipients_since with to_regprocedure null) describe a stack that main no longer has, since B9, B10 and B11 have landed. The log records both deviations. The orchestrator should fold these plan lines.
+
+evidence: grep bounce_rate_7d in the migration gives 0 matches. The test renames assets and social_posts and stubs broadcast_recipients_since inside the rolled-back transaction (P-916). email_sent_month.sql already includes broadcast_recipients_since.
+
+blocking: false
