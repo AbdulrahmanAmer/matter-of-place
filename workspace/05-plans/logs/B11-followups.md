@@ -238,3 +238,17 @@
 4. File: `D:/mop-build/b11-review/workspace/05-plans/logs/B11-followups.md`. Blocking: no.
    - What: Line 155 still says that step 12's `scripts/newsletter-test-send.ts --make-draft --i-mean-it` 'does not exist until the blocked step 8 lands', and line 156 says the script offers only --dry. This group made both lines stale. The orchestrator should fold them.
    - Evidence: grep -n newsletter-test-send workspace/05-plans/logs/B11-followups.md
+
+## c459 · steps 9
+
+1. File: `app/src/domain/email.ts`. Blocking: no.
+   - What: Follow-up. emailTemplateSchema.body lost min(1) for every key, not just standalone. Screen 18's templatePutInput (service.ts:94 picks body from this schema) now accepts an empty body for a transactional key. Example: an admin removes every block of 'received' and saves. Before, the save was refused. Now it is stored, the preview fails, and every later send_email for that key dies NonRetryable with template_body_invalid, so submitters get no acknowledgement and nothing tells them. The comment on line 77 is accurate: every other key's Email is Message, so renderTemplate refuses the body. The author disclosed this as a follow-up. A per-key refine would restore the check at save time, which means a change to B8b's service.ts.
+   - Evidence: Confirmed by running a bun probe in the snapshot: templatePutInput.safeParse({key:'received', body:[]}).success prints true, and renderTemplate on that row throws template_body_invalid.
+
+2. File: `app/src/domain/email.ts`. Blocking: no.
+   - What: Follow-up. Since sampleVariables('standalone') now includes the block, a standalone test send (screen 18 sendTestEmail, scripts/email-test.ts) is built through the per-recipient transactional path. That email carries href="{{{RESEND_UNSUBSCRIBE_URL}}}", a merge tag only Broadcasts fill, so the admin receives a dead Unsubscribe link. It also points the image at ${siteUrl}/media/sample/alder-court/og.jpg, which no bucket holds. This affects staff test mail only.
+   - Evidence: Suspected by reading and partly confirmed by tests. render.test.ts 'draws a standalone email's property block and unsubscribe link only when it is given a block' asserts the placeholder in the HTML rendered from sampleVariables('standalone'). send-email.ts testVariables returns sampleVariables for a test job with no entity, and standalone.test.ts 'a standalone test job' sends that HTML through sendOne.
+
+3. File: `app/supabase/migrations/20261008102217_standalone_template.sql`. Blocking: no.
+   - What: Follow-up (UNPROVEN, not a defect of the code). The row update is proven only as a MOP_MUTATION_SQL prelude in rolled-back transactions on mop-dev, plus the CI db job that has not run yet. The real mop-dev standalone send (step 9's mop-dev proof) is BLOCKED on the S59 legal entity and address and on main pushing this migration. When the merge to main pushes it, re-run tests/db/email.db.test.ts without the prelude.
+   - Evidence: Without the prelude, the email.db.test.ts cases 'the standalone row is B11's' and 'the seeded keys equal' are red on mop-dev today, as the author reports. My prelude run gave 30/30.
