@@ -9,10 +9,7 @@ import { StatusPill } from "../ui/StatusPill";
  * Screen 2's channel health: for each channel that posts, its last post, last error and token days left. Facebook and
  * YouTube are disabled blocks (S48) and are left out. The takedown count of invariant 10 is the dashboard's own
  * "Withdraw by hand" tile.
- *
- * @public
  */
-// STUB(B10 step 8): placed on screen 2 by B7's src/routes/admin/index.tsx, a file that is not on main yet
 export function ChannelHealthTile() {
   const health = useChannelHealth();
   const failure = health.error;
