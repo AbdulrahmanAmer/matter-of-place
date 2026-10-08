@@ -1020,6 +1020,13 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"dashboard_counts": {
+                  Row: {
+                    "count": number | null,"workflow_state": Database["public"]['Enums']["submission_state"] | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"invoice_list": {
                   Row: {
                     "amount": number | null,"days_open": number | null,"due_at": string | null,"id": string | null,"invoice_number": string | null,"issued_at": string | null,"overdue": boolean | null,"paid_at": string | null,"product": Database["public"]['Enums']["exposure_package"] | null,"status": Database["public"]['Enums']["payment_status"] | null,"submission_id": string | null,"submitter_email": string | null,"submitter_name": string | null
@@ -1078,6 +1085,9 @@ isOneToOne: false
                            },
 "add_submission_note":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string,"p_text": string }; Returns: Json
+                           },
+"admin_dashboard":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            },
 "agent_key_by_hash":
 { Args: { "p_hash": string }; Returns: {

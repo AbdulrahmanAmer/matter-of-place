@@ -37,6 +37,7 @@ import { Route as SitePropertiesRouteImport } from './routes/_site.properties'
 import { Route as SiteStoriesRouteImport } from './routes/_site.stories'
 import { Route as SiteSubmitRouteImport } from './routes/_site.submit'
 import { Route as SiteTermsRouteImport } from './routes/_site.terms'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminSignInRouteImport } from './routes/admin/sign-in'
 import { Route as ApiConsentRouteImport } from './routes/api/consent'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
@@ -62,6 +63,7 @@ import { Route as AdminPropertiesIdRouteImport } from './routes/admin/properties
 import { Route as AdminReportsIndexRouteImport } from './routes/admin/reports.index'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
 import { Route as AdminRequestsIdRouteImport } from './routes/admin/requests.$id'
+import { Route as ApiAdminDashboardRouteImport } from './routes/api/admin/dashboard'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
 import { Route as ApiAdminReportsRouteImport } from './routes/api/admin/reports'
 import { Route as ApiHooksResendRouteImport } from './routes/api/hooks/resend'
@@ -308,6 +310,11 @@ const SiteTermsRoute = SiteTermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => SiteRoute,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSignInRoute = AdminSignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
@@ -452,6 +459,11 @@ const AdminRequestsIdRoute = AdminRequestsIdRouteImport.update({
   id: '/requests/$id',
   path: '/requests/$id',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiAdminDashboardRoute = ApiAdminDashboardRouteImport.update({
+  id: '/api/admin/dashboard',
+  path: '/api/admin/dashboard',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminMeRoute = ApiAdminMeRouteImport.update({
   id: '/api/admin/me',
@@ -1050,6 +1062,7 @@ export interface FileRoutesByFullPath {
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
+  '/admin/': typeof AdminIndexRoute
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
   '/markets/$': typeof SiteMarketsSplatRoute
@@ -1061,6 +1074,7 @@ export interface FileRoutesByFullPath {
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
+  '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
   '/api/hooks/resend': typeof ApiHooksResendRoute
@@ -1177,7 +1191,6 @@ export interface FileRoutesByFullPath {
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
 }
 export interface FileRoutesByTo {
-  '/admin': typeof AdminRouteWithChildren
   '/feed.json': typeof FeedDotjsonRoute
   '/feed.xml': typeof FeedDotxmlRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -1204,6 +1217,7 @@ export interface FileRoutesByTo {
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
   '/': typeof SiteIndexRoute
+  '/admin': typeof AdminIndexRoute
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
   '/markets/$': typeof SiteMarketsSplatRoute
@@ -1215,6 +1229,7 @@ export interface FileRoutesByTo {
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
+  '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
   '/api/hooks/resend': typeof ApiHooksResendRoute
@@ -1363,6 +1378,7 @@ export interface FileRoutesById {
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
   '/_site/': typeof SiteIndexRoute
+  '/admin/': typeof AdminIndexRoute
   '/_site/$market/$region': typeof SiteMarketRegionRoute
   '/_site/$market/guide': typeof SiteMarketGuideRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
@@ -1374,6 +1390,7 @@ export interface FileRoutesById {
   '/admin/people/$id': typeof AdminPeopleIdRoute
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
+  '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRoute
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
   '/api/hooks/resend': typeof ApiHooksResendRoute
@@ -1522,6 +1539,7 @@ export interface FileRouteTypes {
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
+    | '/admin/'
     | '/$market/$region'
     | '/$market/guide'
     | '/markets/$'
@@ -1533,6 +1551,7 @@ export interface FileRouteTypes {
     | '/admin/people/$id'
     | '/admin/properties/$id'
     | '/admin/requests/$id'
+    | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
     | '/api/hooks/resend'
@@ -1649,7 +1668,6 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/media/$mediaId/original'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/admin'
     | '/feed.json'
     | '/feed.xml'
     | '/sitemap.xml'
@@ -1676,6 +1694,7 @@ export interface FileRouteTypes {
     | '/api/consent'
     | '/media/$'
     | '/'
+    | '/admin'
     | '/$market/$region'
     | '/$market/guide'
     | '/markets/$'
@@ -1687,6 +1706,7 @@ export interface FileRouteTypes {
     | '/admin/people/$id'
     | '/admin/properties/$id'
     | '/admin/requests/$id'
+    | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
     | '/api/hooks/resend'
@@ -1834,6 +1854,7 @@ export interface FileRouteTypes {
     | '/api/consent'
     | '/media/$'
     | '/_site/'
+    | '/admin/'
     | '/_site/$market/$region'
     | '/_site/$market/guide'
     | '/_site/markets/$'
@@ -1845,6 +1866,7 @@ export interface FileRouteTypes {
     | '/admin/people/$id'
     | '/admin/properties/$id'
     | '/admin/requests/$id'
+    | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
     | '/api/hooks/resend'
@@ -1972,6 +1994,7 @@ export interface RootRouteChildren {
   DotwellKnownSecurityDottxtRoute: typeof DotwellKnownSecurityDottxtRoute
   ApiConsentRoute: typeof ApiConsentRoute
   MediaSplatRoute: typeof MediaSplatRoute
+  ApiAdminDashboardRoute: typeof ApiAdminDashboardRoute
   ApiAdminMeRoute: typeof ApiAdminMeRoute
   ApiAdminReportsRoute: typeof ApiAdminReportsRouteWithChildren
   ApiHooksResendRoute: typeof ApiHooksResendRoute
@@ -2226,6 +2249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteTermsRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/sign-in': {
       id: '/admin/sign-in'
       path: '/sign-in'
@@ -2400,6 +2430,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/requests/$id'
       preLoaderRoute: typeof AdminRequestsIdRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/admin/dashboard': {
+      id: '/api/admin/dashboard'
+      path: '/api/admin/dashboard'
+      fullPath: '/api/admin/dashboard'
+      preLoaderRoute: typeof ApiAdminDashboardRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/admin/me': {
       id: '/api/admin/me'
@@ -3223,6 +3260,7 @@ const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 
 interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
   AdminInvoicesIdRoute: typeof AdminInvoicesIdRoute
   AdminInvoicesNewRoute: typeof AdminInvoicesNewRoute
@@ -3241,6 +3279,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
+  AdminIndexRoute: AdminIndexRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
   AdminInvoicesIdRoute: AdminInvoicesIdRoute,
   AdminInvoicesNewRoute: AdminInvoicesNewRoute,
@@ -3581,6 +3620,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownSecurityDottxtRoute: DotwellKnownSecurityDottxtRoute,
   ApiConsentRoute: ApiConsentRoute,
   MediaSplatRoute: MediaSplatRoute,
+  ApiAdminDashboardRoute: ApiAdminDashboardRoute,
   ApiAdminMeRoute: ApiAdminMeRoute,
   ApiAdminReportsRoute: ApiAdminReportsRouteWithChildren,
   ApiHooksResendRoute: ApiHooksResendRoute,

@@ -1,9 +1,14 @@
 // B7 invariant 17 (the caching contract, admin side): every admin list filters and sorts on an index its own migration
-// creates, and a write bumps `catalog_version` through B2's triggers exactly when the public catalog changes (F25 a).
-// Later steps add the one-call dashboard here.
+// creates, a write bumps `catalog_version` through B2's triggers exactly when the public catalog changes (F25 a), and
+// the dashboard is one call of indexed counts (17d).
+import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
-import { createStaffUser, withRollback, type Db } from "../fixtures/db";
-import { publishedProperty } from "../fixtures/factories";
+import { getDashboard } from "../../src/server/dashboard/service";
+import type { AdminActor } from "../../src/server/lib/admin-route";
+import type { Db as AppDb } from "../../src/server/lib/db";
+import { createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
+import { countingDb } from "../fixtures/db-counter";
+import { createSubmission, publishedProperty } from "../fixtures/factories";
 
 async function indexDefinitions(db: Db, table: string, names: string[]): Promise<string[]> {
   return (
@@ -178,6 +183,175 @@ describe("catalog_version and the property writes (F25 a)", () => {
           editor,
         ]),
       }).toEqual({ reorder: 1, alt: 1 });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 9's migration (P-328). */
+async function assertStep9(db: Db): Promise<void> {
+  const { rows } = await db.query<{ present: boolean }>(
+    "select to_regprocedure('public.admin_dashboard()') is not null as present",
+  );
+  expect(rows[0]?.present).toBe(true);
+}
+
+async function dashboardKey(db: Db, key: string): Promise<unknown> {
+  const { rows } = await db.query<{ v: unknown }>("select public.admin_dashboard() -> $1 as v", [
+    key,
+  ]);
+  return rows[0]?.v;
+}
+
+/** The client `getDashboard` takes, answering `rpc` inside the test's transaction; `storage` is there for the counter. */
+function rpcClient(db: Db): AppDb {
+  const rpc = async (name: string) => {
+    const { rows } = await db.query<{ v: unknown }>(`select public.${name}() as v`);
+    return { data: rows[0]?.v ?? null, error: null };
+  };
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the service reads only `rpc`, the counter `storage`
+  return { rpc, storage: {} } as unknown as AppDb;
+}
+
+describe("admin_dashboard() (step 9, invariant 17d)", () => {
+  it("the dashboard service issues exactly one database call", async () => {
+    await withRollback(async (db) => {
+      await assertStep9(db);
+      const client = countingDb(rpcClient(db));
+      const actor: AdminActor = {
+        userId: "00000000-0000-4000-8000-0000000000d9",
+        kind: "human",
+        roles: ["commercial"],
+        scopes: [],
+        requestId: "req-dashboard",
+      };
+      const answer = await getDashboard(actor, client);
+      expect({
+        total: client.counts.total,
+        rpc: client.counts.rpc,
+        today: Array.isArray(answer.today),
+      }).toEqual({ total: 1, rpc: { admin_dashboard: 1 }, today: true });
+    });
+  });
+
+  it("assets_pending is 0 while assets is absent, and withdraw is empty while social_posts is absent", async () => {
+    await withRollback(async (db) => {
+      await assertStep9(db);
+      // The stack before B9 and B10: neither table exists, nor B11's broadcast count, which reads assets. Renamed
+      // inside the rolled-back transaction, so no other session sees it.
+      await db.query("set local lock_timeout = '5s'");
+      await db.query("alter table public.assets rename to assets_absent_probe");
+      await db.query("alter table public.social_posts rename to social_posts_absent_probe");
+      await db.query(
+        `create or replace function public.broadcast_recipients_since(p_since timestamptz) returns int
+         language sql stable security definer set search_path = '' as $fn$ select 0 $fn$`,
+      );
+      const { rows } = await db.query<{ assets: string | null; posts: string | null }>(
+        "select to_regclass('public.assets')::text as assets, to_regclass('public.social_posts')::text as posts",
+      );
+      expect({
+        absent: rows[0],
+        assets_pending: await dashboardKey(db, "assets_pending"),
+        withdraw: await dashboardKey(db, "withdraw"),
+      }).toEqual({
+        absent: { assets: null, posts: null },
+        assets_pending: 0,
+        withdraw: { open: 0, oldest_at: null },
+      });
+    });
+  });
+
+  it("assets_pending and withdraw count the rows once both tables exist", async () => {
+    await withRollback(async (db) => {
+      await assertStep9(db);
+      // One pending cover, one live post a takedown flagged and one already withdrawn, so no count matches by chance.
+      const { id: propertyId } = await publishedProperty(db, { n: 9965 });
+      await db.query(
+        `with asset as (select (public.upsert_asset_stub($1, 'cover', 1, null)).id)
+         insert into public.social_posts (asset_id, property_id, channel, status, scheduled_at, posted_at,
+           withdraw_required_at, withdrawn_at)
+         select asset.id, $1, channel, 'posted', now(), now(), now(), withdrawn
+         from asset, (values ('x', null::timestamptz), ('linkedin', now())) posts (channel, withdrawn)`,
+        [propertyId],
+      );
+      const { rows } = await db.query<{ pending: number; open: number }>(
+        `select (select count(*)::int from public.assets where status = 'pending') as pending,
+           (select count(*)::int from public.social_posts
+            where withdraw_required_at is not null and withdrawn_at is null) as open`,
+      );
+      const { rows: read } = await db.query<{ pending: number; open: number }>(
+        `select (d ->> 'assets_pending')::int as pending, (d -> 'withdraw' ->> 'open')::int as open
+         from public.admin_dashboard() d`,
+      );
+      expect(read[0]).toEqual(rows[0]);
+    });
+  });
+
+  it("every state count equals the group-by row of submissions in the same transaction", async () => {
+    await withRollback(async (db) => {
+      await assertStep9(db);
+      const base = await dbNow(db);
+      const states = ["Submitted", "Under Review", "Declined"] as const;
+      for (const [index, state] of states.entries()) {
+        await createSubmission(db, { state, n: 9960 + index, base });
+      }
+      const { rows } = await db.query<{ workflow_state: string; count: number }>(
+        "select workflow_state, count(*)::int as count from public.submissions group by 1",
+      );
+      expect(await dashboardKey(db, "counts")).toEqual(
+        Object.fromEntries(rows.map((row) => [row.workflow_state, row.count])),
+      );
+    });
+  });
+
+  it("the mail counts equal email_sent_today(), email_sent_month() and seven days of email_messages", async () => {
+    await withRollback(async (db) => {
+      await assertStep9(db);
+      await db.query(
+        `insert into public.email_messages (template_key, kind, to_email, status, sent_at)
+         values ('declined', 'transactional', 'dashboard+1@fixtures.invalid', 'bounced', now()),
+           ('accepted', 'transactional', 'dashboard+2@fixtures.invalid', 'delivered', now())`,
+      );
+      const { rows } = await db.query<Record<string, number>>(
+        `select public.email_sent_today() as sent_today, public.email_sent_month() as sent_month,
+           (select count(*)::int from public.email_messages
+            where sent_at >= now() - interval '7 days') as sent_7d,
+           (select count(*)::int from public.email_messages
+            where sent_at >= now() - interval '7 days' and status in ('bounced', 'complained')) as bounced_7d`,
+      );
+      expect(await dashboardKey(db, "email")).toEqual(rows[0]);
+    });
+  });
+
+  it("storage bytes equal the sum of object sizes over the three buckets", async () => {
+    await withRollback(async (db) => {
+      await assertStep9(db);
+      await db.query(
+        `insert into storage.objects (bucket_id, name, metadata)
+         values ('submissions', 'dashboard-probe/a', '{"size": 300}'),
+           ('media', 'dashboard-probe/b', '{"size": 20}'),
+           ('documents', 'dashboard-probe/c', '{"size": 1}')`,
+      );
+      const { rows } = await db.query<{ bytes: number }>(
+        `select coalesce(sum((metadata ->> 'size')::bigint), 0)::int as bytes from storage.objects
+         where bucket_id in ('submissions', 'media', 'documents')`,
+      );
+      expect(await dashboardKey(db, "storage")).toEqual({ bytes: rows[0]?.bytes });
+    });
+  });
+
+  it("health is failed when the last finished health run has a failing check", async () => {
+    await withRollback(async (db) => {
+      await assertStep9(db);
+      await db.query(
+        `insert into public.jobs (type, idempotency_key, status, result, created_at, finished_at)
+         values ('health', 'health:dashboard-probe', 'done',
+           '{"checks": [{"name": "dead_jobs_24h", "status": "fail"}, {"name": "site", "status": "ok"}]}',
+           now() + interval '1 minute', now() + interval '1 minute')`,
+      );
+      expect(await dashboardKey(db, "health")).toMatchObject({
+        failed: true,
+        failed_checks: ["dead_jobs_24h"],
+      });
     });
   });
 });
