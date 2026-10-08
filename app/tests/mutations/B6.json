@@ -1212,7 +1212,7 @@
     "id": "b6-s7-void-refused",
     "test": "src/admin/invoices/InvoiceDetail.test.tsx",
     "file": "src/admin/invoices/use-submit.ts",
-    "find": "setError(failure instanceof Error ? failure.message : \"The change did not go through.\");",
+    "find": "setError(describe(failure));",
     "replace": "setError(null);",
     "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
     "expect": "stays open with the server's message when the void is refused"
@@ -1459,5 +1459,41 @@
     "replace": "<RoleGate action=\"payments.void\">",
     "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
     "expect": "hides Waive without invoice from a role that cannot waive"
+  },
+  {
+    "id": "b6-s7-form-nested",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "      </form>\n      <div className=\"admin-actions\" data-print=\"hide\">\n        <RoleGate action=\"payments.issue\">\n          <button type=\"submit\" form={formId} className=\"admin-button\" disabled={!ready}>\n            Issue and email\n          </button>\n        </RoleGate>\n        {children}\n      </div>\n",
+    "replace": "      <div className=\"admin-actions\" data-print=\"hide\">\n        <RoleGate action=\"payments.issue\">\n          <button type=\"submit\" form={formId} className=\"admin-button\" disabled={!ready}>\n            Issue and email\n          </button>\n        </RoleGate>\n        {children}\n      </div>\n      </form>\n",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "keeps the Waive dialog's form out of the Issue form"
+  },
+  {
+    "id": "b6-s7-form-nested-issue",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "      </form>\n      <div className=\"admin-actions\" data-print=\"hide\">\n        <RoleGate action=\"payments.issue\">\n          <button type=\"submit\" form={formId} className=\"admin-button\" disabled={!ready}>\n            Issue and email\n          </button>\n        </RoleGate>\n        {children}\n      </div>\n",
+    "replace": "      <div className=\"admin-actions\" data-print=\"hide\">\n        <RoleGate action=\"payments.issue\">\n          <button type=\"submit\" form={formId} className=\"admin-button\" disabled={!ready}>\n            Issue and email\n          </button>\n        </RoleGate>\n        {children}\n      </div>\n      </form>\n",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "opens no Issue confirmation when a waiver is submitted"
+  },
+  {
+    "id": "b6-s7-form-guard",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "if (ready) setConfirming(true);",
+    "replace": "setConfirming(true);",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "refuses a submit of the Issue form while it is not ready"
+  },
+  {
+    "id": "b6-s7-submit-request-id",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/use-submit.ts",
+    "find": "return `${failure.message} Request ${failure.requestId}.`;",
+    "replace": "return failure.message;",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "opens no Issue confirmation when a waiver is submitted"
   }
 ]

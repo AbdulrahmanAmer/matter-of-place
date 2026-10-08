@@ -164,6 +164,15 @@ function confirmIssue(): void {
   fireEvent.click(within(dialog).getByRole("button", { name: "Issue and email" }));
 }
 
+/** Fills the open "Waive without an invoice" dialog and submits it; returns the dialog. */
+function submitWaiver(): HTMLElement {
+  const dialog = screen.getByRole("dialog", { name: "Waive without an invoice" });
+  fireEvent.change(within(dialog).getByLabelText("Product"), { target: { value: "The Reach" } });
+  fireEvent.change(within(dialog).getByLabelText("Reason"), { target: { value: "Credit" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Waive without invoice" }));
+  return dialog;
+}
+
 const buttons = () => screen.getAllByRole("button").map((button) => button.textContent);
 
 afterEach(() => {
@@ -399,16 +408,56 @@ describe("the draft", () => {
     });
     mount(ADMIN, <InvoiceDraft submissionId={SUBMISSION} />);
     fireEvent.click(await screen.findByRole("button", { name: "Waive without invoice" }));
-    const dialog = screen.getByRole("dialog", { name: "Waive without an invoice" });
-    fireEvent.change(within(dialog).getByLabelText("Product"), { target: { value: "The Reach" } });
-    fireEvent.change(within(dialog).getByLabelText("Reason"), { target: { value: "Credit" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Waive without invoice" }));
+    submitWaiver();
     await waitFor(() => {
       expect(requested.some((line) => line.startsWith("POST"))).toBe(true);
     });
     expect(requested.filter((line) => line.startsWith("POST"))).toEqual([
       `POST ${REQUEST_PATH}/waive {"product":"The Reach","reason":"Credit"}`,
     ]);
+  });
+
+  it("opens no Issue confirmation when a waiver is submitted, refused or recorded", async () => {
+    const refusal = Response.json(
+      { error: { code: "wrong_state", message: "This request is not accepted." } },
+      { status: 409, headers: { "x-request-id": "req-77" } },
+    );
+    serve({ [`GET ${REQUEST_PATH}`]: request(), [`POST ${REQUEST_PATH}/waive`]: refusal });
+    mount(ADMIN, <InvoiceDraft submissionId={SUBMISSION} />);
+    fireEvent.change(await screen.findByLabelText("Preferred payment method"), {
+      target: { value: "bank_transfer" },
+    });
+    expect(screen.getByRole("button", { name: "Issue and email" }).hasAttribute("disabled")).toBe(
+      false,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Waive without invoice" }));
+    const dialog = submitWaiver();
+    expect((await within(dialog).findByRole("alert")).textContent).toBe(
+      "This request is not accepted. Request req-77.",
+    );
+    expect(screen.queryByRole("dialog", { name: "Issue and email this invoice" })).toBeNull();
+  });
+
+  it("refuses a submit of the Issue form while it is not ready", async () => {
+    serve({ [`GET ${REQUEST_PATH}`]: request() });
+    mount(ADMIN, <InvoiceDraft submissionId={SUBMISSION} />);
+    const method = await screen.findByLabelText("Preferred payment method");
+    const form = method.closest("form");
+    expect(form).not.toBeNull();
+    if (form !== null) fireEvent.submit(form);
+    expect(screen.queryByRole("dialog", { name: "Issue and email this invoice" })).toBeNull();
+  });
+
+  it("keeps the Waive dialog's form out of the Issue form", async () => {
+    serve({ [`GET ${REQUEST_PATH}`]: request() });
+    mount(ADMIN, <InvoiceDraft submissionId={SUBMISSION} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Waive without invoice" }));
+    screen.getByRole("dialog", { name: "Waive without an invoice" });
+    const nested = Array.from(document.querySelectorAll("form")).filter(
+      (form) => form.parentElement?.closest("form") != null,
+    );
+    expect(nested).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Issue and email" }).closest("form")).toBeNull();
   });
 
   it("hides Waive without invoice from a role that cannot waive", async () => {

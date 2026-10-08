@@ -4869,3 +4869,26 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: look a mail up by `entity = 'submission' and entity_id = <request id>` (or through `jobs.event_id` as `scripts/invoice-smoke.ts` does), never by the payment id; an assertion that has never run once is written against the code that fills the row, not against the column name.
 - proof: `cd app && grep -n "entityId: submission.id" src/server/email/variables.ts` → the `submitterRecipient` line; `grep -n "entity = 'submission'" tests/e2e/admin-invoice.spec.ts` → the lookup.
 - added: 2026-10-08
+
+## G-1050 · The admin `Dialog` has no portal: a dialog form rendered inside a `<form>` nests, and its submit bubbles into the outer form
+- paths: app/src/admin/invoices/**, app/src/admin/ui/Dialog.tsx
+- severity: warn
+- symptom: B6 g2 recorded "Waive without invoice" and the "Issue and email this invoice" confirmation opened with it (a reviewer probe: `{"before":false,"after":true,"nested":1}`), React printed `<form> cannot contain a nested <form>`. A refused waiver left both dialogs open; the Issue confirmation could have numbered and emailed an invoice the waiver was meant to avoid (invariant 12).
+- cause: `InvoiceForm` rendered its `children` (the waive dialog, itself a `<form>`) inside its own `<form>`; the submit event of the inner form bubbled to the outer `onSubmit`, which opened the confirmation without checking `ready`. The test that the two buttons share a parent locked the nesting in.
+- rule: render a dialog, and anything with its own form, as a sibling of a form, never inside one; tie a button outside the form to it with `form={id}` (`useId`); a form's `onSubmit` refuses when the form is not ready. A layout test asserts no `<form>` has a `<form>` ancestor.
+- proof: `cd app && bunx vitest run src/admin/invoices/InvoiceDetail.test.tsx -t "keeps the Waive dialog's form out of the Issue form"` → 1 passed; with the registry entry `b6-s7-form-nested` applied it is red.
+- added: 2026-10-08
+
+## P-2326 · A throwaway component probe belongs inside the tree, not in a scratch config outside it
+- symptom: a reviewer's probe test run from outside the worktree failed with `Failed to resolve import "react/jsx-dev-runtime"`; `review-snapshot.mjs create` ran past the 120 s foreground limit and had to be moved to the background.
+- cause: the tree's `vitest.config.ts` resolves React and the JSX runtime from the app's own `node_modules`; a config outside it sees neither, so it needs `root` and aliases for `react/jsx-dev-runtime` and `react/jsx-runtime`. The snapshot copies the tree and takes longer than the foreground limit.
+- rule: put the probe as a temporary `*.probe.test.tsx` next to the component inside the app and run it with the tree's own config (`bunx vitest run <file>`), then delete it before committing; start `review-snapshot.mjs create` with `run_in_background`.
+- proof: `cd app && bunx vitest run src/admin/invoices/InvoicesTable.test.tsx` → passes with no extra config, JSX runtime resolved.
+- added: 2026-10-08
+
+## P-2327 · Python's `open(path, "w")` on Windows writes CRLF into an LF file; the mutation registry then reports every multi-line `find` as stale
+- symptom: after a Python patch script edited `InvoiceForm.tsx`, `invoices.css` and `tests/mutations/B6.json`, `watchfail --registry --changed` printed `STALE ... find occurs 0 times` for entries whose text was untouched, and git warned `CRLF will be replaced by LF`.
+- cause: the files were LF (G-008); Python's text mode translated `\n` to `\r\n` on write. A registry `find` with `\n` no longer matched.
+- rule: patch with Edit, or open with `newline=""` / write bytes; after any script edit run `file <path>` and `sed -i 's/\r$//'` if it says CRLF, then replay the registry.
+- proof: `git ls-files --eol app/src/admin/invoices/InvoiceForm.tsx` → `i/lf w/lf`; `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` from `app` prints `stale 0`.
+- added: 2026-10-08

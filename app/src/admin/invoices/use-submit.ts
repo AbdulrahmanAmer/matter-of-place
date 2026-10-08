@@ -1,4 +1,14 @@
 import { useState } from "react";
+import { AdminApiError } from "../ui/admin-fetch";
+
+/** The message of a refusal, with its request id when the server sent one (STANDARDS C17). */
+function describe(failure: unknown): string {
+  if (!(failure instanceof Error)) return "The change did not go through.";
+  if (failure instanceof AdminApiError && failure.requestId !== undefined) {
+    return `${failure.message} Request ${failure.requestId}.`;
+  }
+  return failure.message;
+}
 
 /**
  * Runs a dialog's action: the form is pending while it runs, `onDone` closes the dialog when it resolves, and
@@ -17,7 +27,7 @@ export function useSubmit<Input>(
       await run(input);
       onDone();
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "The change did not go through.");
+      setError(describe(failure));
       setPending(false);
     }
   };

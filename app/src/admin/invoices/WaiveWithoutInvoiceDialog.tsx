@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { invoiceProducts } from "../../domain/payments";
-import { Field } from "../ui/Field";
 import { RoleGate } from "../ui/RoleGate";
+import { ProductField } from "./ProductField";
 import { ReasonDialog } from "./ReasonDialog";
 
 /**
@@ -27,24 +26,7 @@ export function WaiveWithoutInvoiceDialog({
         canSubmit={product !== ""}
         onSubmit={(reason) => onWaive({ product, reason })}
       >
-        <Field label="Product">
-          {(control) => (
-            <select
-              {...control}
-              value={product}
-              onChange={(event) => {
-                setProduct(event.target.value);
-              }}
-            >
-              <option value="">Choose a product</option>
-              {invoiceProducts.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          )}
-        </Field>
+        <ProductField value={product} onChange={setProduct} />
       </ReasonDialog>
     </RoleGate>
   );

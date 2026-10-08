@@ -41,7 +41,7 @@ export function InvoiceDraft({ submissionId }: { submissionId: string }) {
     <>
       <header className="admin-page-head">
         <div>
-          <p className="admin-invoice-page__crumb">
+          <p className="admin-invoice-page__crumb" data-print="hide">
             <a href="/admin/invoices">Invoices</a>
           </p>
           <h1>New invoice</h1>
@@ -49,7 +49,7 @@ export function InvoiceDraft({ submissionId }: { submissionId: string }) {
             {detail.address}, {detail.city}, {detail.state}
           </p>
         </div>
-        <p className="admin-invoice-page__state">
+        <p className="admin-invoice-page__state" data-print="hide">
           <StatusPill label={detail.workflow_state} tone={stateTone[detail.workflow_state]} />
         </p>
       </header>
