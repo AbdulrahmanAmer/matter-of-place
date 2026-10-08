@@ -176,45 +176,62 @@ const baseColumns: Column<SocialPost>[] = [
   { key: "error", header: "Error", render: (row) => row.error ?? "None" },
 ];
 
+/** One filter of the posts list: a select over its options, All first. */
+function FilterSelect({
+  label,
+  field,
+  options,
+  values,
+  onChange,
+}: {
+  label: string;
+  field: "channel" | "status";
+  options: readonly (readonly [string, string])[];
+  values: Values;
+  onChange: (next: Values) => void;
+}) {
+  return (
+    <Field label={label}>
+      {(control) => (
+        <select
+          {...control}
+          value={values[field] ?? ""}
+          onChange={(event) => {
+            onChange({ ...values, [field]: event.target.value });
+          }}
+        >
+          <option value="">All</option>
+          {options.map(([value, text]) => (
+            <option key={value} value={value}>
+              {text}
+            </option>
+          ))}
+        </select>
+      )}
+    </Field>
+  );
+}
+
 function PostFilters({ values, onChange }: { values: Values; onChange: (next: Values) => void }) {
   return (
     <>
-      <Field label="Channel">
-        {(control) => (
-          <select
-            {...control}
-            value={values.channel ?? ""}
-            onChange={(event) => {
-              onChange({ ...values, channel: event.target.value });
-            }}
-          >
-            <option value="">All</option>
-            {[...liveChannels, ...disabledChannels].map((channel) => (
-              <option key={channel} value={channel}>
-                {socialChannelLabels[channel]}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
-      <Field label="Status">
-        {(control) => (
-          <select
-            {...control}
-            value={values.status ?? ""}
-            onChange={(event) => {
-              onChange({ ...values, status: event.target.value });
-            }}
-          >
-            <option value="">All</option>
-            {socialPostStatuses.map((status) => (
-              <option key={status} value={status}>
-                {socialPostStatusLabels[status]}
-              </option>
-            ))}
-          </select>
-        )}
-      </Field>
+      <FilterSelect
+        label="Channel"
+        field="channel"
+        options={[...liveChannels, ...disabledChannels].map((channel) => [
+          channel,
+          socialChannelLabels[channel],
+        ])}
+        values={values}
+        onChange={onChange}
+      />
+      <FilterSelect
+        label="Status"
+        field="status"
+        options={socialPostStatuses.map((status) => [status, socialPostStatusLabels[status]])}
+        values={values}
+        onChange={onChange}
+      />
     </>
   );
 }

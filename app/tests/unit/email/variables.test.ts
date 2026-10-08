@@ -9,7 +9,9 @@ import {
   resolveVariables,
   SkipSend,
 } from "../../../src/server/email/variables";
+import type { InvoiceSnapshot } from "../../../src/server/payments/invoice-layout";
 import { fakeDb, type FakeDbOptions } from "../../fixtures/fake-db";
+import { invoiceSnapshot } from "../../fixtures/invoice-snapshot";
 
 const SITE_URL = "https://dev.example.invalid";
 const site: SiteContext = {
@@ -80,6 +82,21 @@ const request = (overrides: Partial<Record<keyof Tables<"subject_requests">, unk
     ...overrides,
   });
 
+const frozen = (overrides: Partial<InvoiceSnapshot> = {}) =>
+  invoiceSnapshot({
+    terms: "Due within 14 days of the issue date.",
+    billing_email: "billing@matterofplace.com",
+    instructions: [
+      {
+        id: "bank_transfer",
+        label: "Bank transfer",
+        instructions: "Transfer to the account on the invoice.",
+      },
+      { id: "card", label: "Card by phone", instructions: "" },
+    ],
+    ...overrides,
+  });
+
 const payment = (overrides: Partial<Record<keyof Tables<"payments">, unknown>> = {}) =>
   row<Tables<"payments">>({
     id: PAYMENT,
@@ -88,24 +105,12 @@ const payment = (overrides: Partial<Record<keyof Tables<"payments">, unknown>> =
     amount: "1500.00",
     product: "The Feature",
     preferred_method: "bank_transfer",
+    invoice_snapshot: frozen(),
     status: "due",
     ...overrides,
   });
 
 const setting = (key: string, value: unknown) => row<Tables<"settings">>({ key, value });
-
-const invoiceSetting = setting("invoice", {
-  terms: "Due within 14 days of the issue date.",
-  billing_email: "billing@matterofplace.com",
-  payment_methods: [
-    {
-      id: "bank_transfer",
-      label: "Bank transfer",
-      instructions: "Transfer to the account on the invoice.",
-    },
-    { id: "card", label: "Card by phone", instructions: "" },
-  ],
-});
 
 const dbWith = (tables: Rows) => fakeDb({ tables });
 
@@ -180,28 +185,26 @@ describe("resolveVariables", () => {
     expect(without["assets_note"]).toBe("");
   });
 
-  it("invoice resolves the amount 1500.00 to $1,500.00 and answers every variable of the key", async () => {
-    const db = dbWith({
-      payments: [payment()],
-      submissions: [submission()],
-      settings: [invoiceSetting],
-    });
+  it("invoice resolves the amount 1500.00 to $1,500.00 and answers every variable of the key from the frozen snapshot", async () => {
+    const db = dbWith({ payments: [payment()], submissions: [submission()] });
     const variables = await resolveVariables(db, "invoice", { payment_id: PAYMENT });
     expect(Object.keys(variables).sort()).toEqual([...variablesByKey.invoice].sort());
-    expect(variables).toMatchObject({
-      amount: "$1,500.00",
+    expect(variables).toEqual({
+      submitter_name: "Jordan Lee",
+      property_address: "412 Alder Court",
       invoice_number: "MOP-2026-0001",
       product: "The Feature",
+      amount: "$1,500.00",
       terms: "Due within 14 days of the issue date.",
       preferred_method: "Bank transfer",
       payment_instructions: "Transfer to the account on the invoice.",
       billing_email: "billing@matterofplace.com",
-      submitter_name: "Jordan Lee",
     });
+    expect(db.calls.filter((call) => call.name === "settings")).toEqual([]);
   });
 
   it("invoice falls back to every method with instructions, finds the payment of a submission, and names what is missing", async () => {
-    const tables = { submissions: [submission()], settings: [invoiceSetting] };
+    const tables = { submissions: [submission()] };
     const card = dbWith({ ...tables, payments: [payment({ preferred_method: "card" })] });
     const viaSubmission = await resolveVariables(card, "invoice", { submission_id: SUBMISSION });
     expect(viaSubmission["preferred_method"]).toBe("Card by phone");
@@ -212,14 +215,19 @@ describe("resolveVariables", () => {
     await expect(resolveVariables(none, "invoice", { payment_id: PAYMENT })).rejects.toThrow(
       "payment_missing",
     );
-    const bare = dbWith({ submissions: [submission()], payments: [payment()], settings: [] });
-    await expect(resolveVariables(bare, "invoice", { payment_id: PAYMENT })).rejects.toThrow(
-      "invoice_settings_missing",
+    const unfrozen = dbWith({ ...tables, payments: [payment({ invoice_snapshot: null })] });
+    const outcome = await resolveVariables(unfrozen, "invoice", { payment_id: PAYMENT }).catch(
+      (error: unknown) => error,
+    );
+    expect(outcome).toMatchObject({ message: "snapshot_missing", name: "NonRetryableError" });
+    const torn = dbWith({ ...tables, payments: [payment({ invoice_snapshot: { terms: "x" } })] });
+    await expect(resolveVariables(torn, "invoice", { payment_id: PAYMENT })).rejects.toThrow(
+      "snapshot_malformed",
     );
   });
 
   it("invoice with neither a payment nor a submission to look for is payment_id_missing, not a read", async () => {
-    const db = dbWith({ payments: [payment()], submissions: [submission()], settings: [] });
+    const db = dbWith({ payments: [payment()], submissions: [submission()] });
     const outcome = await resolveVariables(db, "invoice", {}).catch((error: unknown) => error);
     expect(outcome).toMatchObject({ message: "payment_id_missing", name: "NonRetryableError" });
     expect(db.calls.filter((call) => call.name === "payments")).toEqual([]);
