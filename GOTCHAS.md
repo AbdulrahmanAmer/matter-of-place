@@ -5356,6 +5356,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a `preview` failure at the lighthouse step is one rerun (`gh run rerun <id> --failed`) before anything else; read the step timestamps first, a run #1 that takes minutes is the signal. Only a second hang on the same page is reported as a defect with the log lines.
 - proof: `gh run view 37708860863 --json jobs --jq '.jobs[]|select(.name=="preview")|.conclusion'` → success after the rerun
 - added: 2026-10-08
+- hit again: 2026-10-08 23:08 to 23:18 +0300, on the laptop, not a runner (H73's first real local run, PR 227 number, head d62b9238): `bun run lhci` (lighthouserc.json, 6 urls) finished the three runs of `/` and then printed `Running Lighthouse 3 time(s) on http://127.0.0.1:8970/properties` and `Run #1...` and nothing more until the 10-minute bound stopped it, while the `wrangler dev` log shows `GET /properties 200 OK (620ms)` and the Worker kept answering. So "the preview run's environment" above is not the whole cause: a Lighthouse run can hang on a page the server answers quickly, on Windows as on Linux. Proof: `grep -n "Run #1...$" <tmp>/mop-preview-local/pr-227-d62b923/lighthouse.out` is the last line of that file.
 
 ## P-2219 · A full-stack e2e spec that saves through `/api/admin` answers 503 `csrf_secret_missing` under the dev profile
 - symptom: `bunx playwright test tests/e2e/admin-channels.spec.ts` after `eval "$(node scripts/load-env.mjs --profile dev)"`: the sign-in and read cases passed, the Retry click got `503 {"error":{"code":"csrf_secret_missing","message":"Saving is unavailable at the moment. Please try again later."}}`, found only by reading the response body in `trace.zip` (the page shows the message, the test shows the status).
@@ -5670,6 +5671,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run --project unit tests/unit/watchfail.test.ts -t "above the registry"` passes both cases; `node scripts/watchfail.mjs --registry tests/mutations --only wf-outside-resolve` and `--only wf-outside-quiet` print `WATCHED-FAIL OK B4:<id>`.
 - added: 2026-10-08
 - enforced-by: tests/unit/watchfail.test.ts ("--changed <ref> replays an entry anchored on a changed file above the registry's folder (P-542)" and its unchanged-file sibling)
+
+## P-544 · `rmSync` of a `wrangler dev --persist-to` folder right after `taskkill` threw EPERM and the 20-minute local preview ended without its log
+- symptom: 2026-10-08 23:18 +0300, the first real `node scripts/preview-local.mjs --pr 227 --port 8970` (H73) ran every step (build to lighthouse) and then died in its `finally` with `Error: EPERM, Permission denied: \\?\C:\Users\DELL\AppData\Local\Temp\mop-preview-local-state-5JtymR` at `rmSync`, before `renderLog` wrote `workspace/05-plans/logs/preview-local/pr-227-<head7>.md`; the whole run had to be repeated.
+- cause: `taskkill /T /F` returns before `workerd` has released the files of its persist folder, so an immediate recursive delete on Windows meets a locked file; the cleanup was a bare `rmSync` that could throw out of `main`.
+- rule: a cleanup after stopping `wrangler dev` (or any process tree) on Windows never throws out of the run: `rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 })` inside a `try` that only prints a leftover, and the result file of a long run is written by code that a cleanup failure cannot skip.
+- proof: `grep -n "maxRetries: 10" app/scripts/preview-local.mjs` → the cleanup line; the second real run of `node scripts/preview-local.mjs --pr 227 --port 8970` wrote its log (see `workspace/05-plans/logs/preview-local/`).
+- added: 2026-10-08
 
 ## P-2600 · A new keyset list service that copies `listPayments`' page logic fails `jscpd` at `bun run check`, after every unit test was green
 - symptom: B8 g1 step 9: the first `bun run check` failed `jscpd` on a 93-token clone of `listPayments`' page logic in `listJobs` (`src/server/jobs/service.ts`); typecheck, lint and the unit tests had passed. `listJobs` was rewritten to page through its own `pageOf`, and a full `bun run check` ran again.

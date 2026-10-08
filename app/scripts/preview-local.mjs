@@ -703,7 +703,14 @@ async function main({ pr, port, mode }) {
     }
   } finally {
     stop();
-    rmSync(persist, { recursive: true, force: true });
+    // workerd lets go of its state files a moment after taskkill: an rmSync at once threw EPERM and the log was never
+    // written (the first real run, 2026-10-08). The folder is in the temp dir, so a leftover is only noted.
+    try {
+      rmSync(persist, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+    } catch (error) {
+      const why = error instanceof Error ? error.message : String(error);
+      process.stdout.write(`preview-local: ${persist} left behind (${why})\n`);
+    }
   }
 
   const run = { pr, head, tree, date: stamp(new Date()), port, mode, steps };
