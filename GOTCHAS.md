@@ -4215,7 +4215,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - paths: app/src/admin/assets/CarouselViewer.tsx
 - severity: warn
 - symptom: B9 g2's e2e drag from a quarter to three quarters of a slide with the mouse moved nothing: the counter stayed at "Slide 8 of 8". The component test, which fires pointer events directly, passed.
-- cause: a press on an image with `draggable` unset starts HTML5 drag-and-drop, the browser sends `pointercancel`, and the `pointerup` the swipe waits for never arrives.
+- cause (inferred: removing `draggable={false}` turns the case red and putting it back turns it green; the `pointercancel` itself was not logged): a press on an image with `draggable` unset starts HTML5 drag-and-drop, the browser sends `pointercancel`, and the `pointerup` the swipe waits for never arrives.
 - rule: the slide `<img>` carries `draggable={false}`; a swipe is proved in a browser (Playwright `page.mouse`), because jsdom has no native drag.
 - proof: `grep -n "draggable={false}" app/src/admin/assets/CarouselViewer.tsx` → one hit; with it removed, `E2E_TARGET=built bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep "carousel goes"` fails at `Slide 7 of 8` (measured 2026-10-08).
 - added: 2026-10-08
