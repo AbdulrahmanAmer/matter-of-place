@@ -1796,6 +1796,9 @@ isOneToOne: false
 "set_invoice_key":
 { Args: { "p_key": string,"p_payment_id": string }; Returns: string
                            },
+"set_market_coming_soon":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_coming_soon": boolean,"p_notify"?: boolean,"p_request_id": string,"p_slug": string }; Returns: Json
+                           },
 "set_media_alt":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_alt": string,"p_media_id": string,"p_request_id": string }; Returns: undefined
                            },
@@ -1866,6 +1869,9 @@ isOneToOne: false
                            },
 "unsubscribe_email":
 { Args: { "p_email": string }; Returns: boolean
+                           },
+"update_market":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_guide_entries": Json,"p_image_staging_path"?: string,"p_notes": Json,"p_patch": Json,"p_regions": Json,"p_request_id": string,"p_slug": string }; Returns: Json
                            },
 "update_property":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_id": string,"p_patch": Json,"p_request_id": string }; Returns: number
