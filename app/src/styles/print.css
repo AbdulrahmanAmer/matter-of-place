@@ -1,0 +1,40 @@
+/*
+ * The dossier on paper (architecture 10, Delivery). The site's chrome marks itself `data-print="hide"`: the header,
+ * the footer, the concierge and the sticky actions. What is left runs as one column on letter paper.
+ */
+@media print {
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+  }
+
+  /* Nothing floats over the text on paper: overlays and pinned blocks take their place in the column. */
+  main,
+  main * {
+    position: static !important;
+  }
+
+  main,
+  section,
+  article {
+    display: block !important;
+    columns: auto !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  img {
+    max-width: 100% !important;
+    break-inside: avoid;
+  }
+}
+
+@page {
+  size: letter;
+  margin: 0.75in;
+}

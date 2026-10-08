@@ -93,7 +93,10 @@ describe("admin code boundaries", () => {
 });
 
 describe("the admin layout", () => {
-  const layout = readFileSync(join(SRC, "routes/admin.tsx"), "utf8");
+  // The route file links the stylesheet; its lazy component (`AdminLayout`) draws the page.
+  const layout = ["routes/admin.tsx", "admin/ui/AdminLayout.tsx"]
+    .map((file) => readFileSync(join(SRC, file), "utf8"))
+    .join("\n");
 
   it("links the admin stylesheet and no public one", () => {
     expect(layout).toContain("styles/admin/index.css?url");

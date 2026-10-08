@@ -54,6 +54,7 @@ export function submissionRow(overrides: Partial<Tables<"submissions">> = {}) {
     source_url: null,
     state: "New York",
     story: "A short story.",
+    submission_event_payload: null,
     submitter_email: "owner@fixtures.invalid",
     submitter_kind: "owner",
     submitter_name: "An Owner",
