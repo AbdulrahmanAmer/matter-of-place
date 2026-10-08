@@ -355,6 +355,64 @@ describe("registry: --registry tests/mutations", () => {
       });
     },
   );
+
+  // The repository root holds `app/` (the working folder) and a file beside it that an entry anchors on (P-542).
+  // `touched` is the file the second commit changes.
+  function outsideRepo(touched = "outside.txt"): { app: string } {
+    const outside = (id: string, file: string) =>
+      entry(id, { file, run: `node check.mjs ${file}` });
+    const root = project({
+      "app/mutations/A.json": JSON.stringify([
+        outside("up", "../outside.txt"),
+        outside("quiet", "../quiet.txt"),
+      ]),
+      "app/check.mjs": CHECK,
+      "outside.txt": TARGET,
+      "quiet.txt": TARGET,
+    });
+    const git = (...args: string[]) => {
+      spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: root });
+    };
+    git("init", "-q");
+    git("add", ".");
+    git("commit", "-q", "-m", "base");
+    writeFileSync(join(root, touched), TARGET + "more\n");
+    git("commit", "-q", "-am", "touch one file");
+    return { app: join(root, "app") };
+  }
+
+  // Five git spawns and the script: slow on a loaded laptop (P-140).
+  it(
+    "--changed <ref> replays an entry anchored on a changed file above the registry's folder (P-542)",
+    { timeout: 30_000 },
+    () => {
+      const { app } = outsideRepo();
+      const done = run(app, ["--registry", "mutations", "--changed", "HEAD~1"]);
+      expect({ status: done.status, lines: done.lines }).toEqual({
+        status: 0,
+        lines: [
+          "WATCHED-FAIL OK A:up",
+          "watchfail: replayed 1: ok 1, bad 0, stale 0; manual 0 not replayed; 1 not selected",
+        ],
+      });
+    },
+  );
+
+  // Five git spawns and the script: slow on a loaded laptop (P-140).
+  it(
+    "--changed <ref> leaves an entry on an unchanged file above the registry's folder out (P-542)",
+    { timeout: 30_000 },
+    () => {
+      const { app } = outsideRepo("target.txt");
+      const done = run(app, ["--registry", "mutations", "--changed", "HEAD~1"]);
+      expect({ status: done.status, lines: done.lines }).toEqual({
+        status: 0,
+        lines: [
+          "watchfail: replayed 0: ok 0, bad 0, stale 0; manual 0 not replayed; 2 not selected",
+        ],
+      });
+    },
+  );
 });
 
 describe("entryProblems", () => {
