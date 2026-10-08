@@ -1,4 +1,5 @@
 import type { Json } from "../../db/index.ts";
+import { jobEntityKeys } from "../../domain/job-entities.ts";
 import type { Db } from "./db.ts";
 import { AppError } from "./errors.ts";
 
@@ -52,16 +53,8 @@ export async function enqueueManualJob(
   return data;
 }
 
-/** The uuid keys of a job's `payload.data` that name the entity it belongs to. */
-export const jobEntityKeys = [
-  "submission_id",
-  "property_id",
-  "payment_id",
-  "asset_id",
-  "inquiry_id",
-  "subscriber_id",
-  "request_id",
-] as const;
+// The keys live in `src/domain/job-entities.ts`, which screen 16's browser code also reads.
+export { jobEntityKeys };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

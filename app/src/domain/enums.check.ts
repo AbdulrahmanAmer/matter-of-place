@@ -14,6 +14,7 @@ import type {
 } from "./contracts.ts";
 import type { assetKinds, assetStatuses } from "./assets.ts";
 import type { socialPostStatuses } from "./channels.ts";
+import type { JobListInput } from "./jobs.ts";
 import type { GalleryImage, Property } from "./property.ts";
 import type { Story } from "./story.ts";
 import type { propertyEditorialTransitions, WorkflowState } from "./workflow.ts";
@@ -41,4 +42,5 @@ export type EnumPairs = [
   Expect<Equal<(typeof assetKinds)[number] | "variants", Enums<"asset_kind">>>,
   Expect<Equal<(typeof assetStatuses)[number], Enums<"asset_status">>>,
   Expect<Equal<(typeof socialPostStatuses)[number], Enums<"social_post_status">>>,
+  Expect<Equal<NonNullable<JobListInput["status"]>, Enums<"job_status">>>,
 ];
