@@ -300,7 +300,7 @@ function execute(command, args, { env, out, timeoutMs }) {
     let settled = false;
     /** @param {string} line */
     const keep = (line) => {
-      lines.push(stripVTControlCharacters(line));
+      lines.push(clean(line));
       if (lines.length > 200) lines.shift();
     };
     /** @param {Buffer} chunk */
@@ -342,6 +342,14 @@ function execute(command, args, { env, out, timeoutMs }) {
     child.on("close", finish);
   });
 }
+
+/**
+ * An output line as the log keeps it: no colour codes and no carriage return (Windows' taskkill writes `\r\r\n`, which
+ * left a CR in the first log, R56).
+ * @param {string} line
+ * @returns {string}
+ */
+const clean = (line) => stripVTControlCharacters(line).replaceAll("\r", "");
 
 /** @param {number} ms */
 const pause = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -566,7 +574,7 @@ async function main({ pr, port, mode }) {
       if (verdict.verdict === "fail") {
         verdict = {
           ...verdict,
-          tail: readFileSync(log, "utf8").split(/\r?\n/).map(stripVTControlCharacters).slice(-TAIL),
+          tail: readFileSync(log, "utf8").split("\n").map(clean).slice(-TAIL),
         };
       }
       record(verdict);
