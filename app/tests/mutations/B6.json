@@ -1005,8 +1005,8 @@
     "id": "b6-g5-job-registered",
     "test": "tests/unit/payments/invoice-pdf-job.test.ts",
     "file": "src/server/jobs/system/index.ts",
-    "find": "  invoicePdf,\n];",
-    "replace": "];",
+    "find": "  invoicePdf,\n",
+    "replace": "",
     "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf-job.test.ts",
     "expect": "is a system job with 12 attempts"
   },
