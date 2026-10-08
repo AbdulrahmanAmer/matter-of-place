@@ -73,3 +73,27 @@
 5. File `app/src/routes/_site.legal.tsx` (not blocking).
    What: Between step 4 and step 5 the slice branch has no privacy or terms text anywhere. The footer links (/legal hash privacy and terms) and the consent-notice and noscript links still point at anchors this step removed. The plan orders it this way and P-1008 banks it. It is UNPROVEN that the branch can never reach main in this state: nothing mechanical stops a merge of slice/b16 before g5 lands.
    Evidence: cd app && git grep -n 'hash="privacy"\|hash="terms"' -- src lists footer.tsx (three links) and consent-notice.tsx, while _site.legal.tsx no longer has id="privacy" or id="terms" (read in the diff). Status at recording (2026-10-08): g5 has landed on slice/b16 (commit 141b4e70, privacy, terms and accessibility pages and the repointed links), and the same git grep over app/src now prints nothing; the branch no longer lacks the text. The open part is only that no gate would have stopped an earlier merge.
+
+## g5 · steps 5
+
+1. File `app/src/routes/_site.privacy.tsx` (not blocking).
+   What: Line 60, Identifiers 'What' cell: 'an IP address held only as a hash for rate limits and rights records'. inquiries.ip_hash also holds the hash (20261004193550_inquiry_attribution.sql line 29), and the fixed 'Kept' cell on line 63 now says so. The two cells in the same row disagree. Also, retention_anonymise_inquiries never clears ip_hash, so an 'anonymised' inquiry keeps a pseudonymous identifier. Both are for the legal read (invariant 5), not this step's to close.
+   Evidence: grep -n ip_hash app/supabase/migrations/20261004193550_inquiry_attribution.sql shows ip_hash inserted with every inquiry; sed -n 178,198p app/supabase/migrations/20261004065712_retention.sql shows the anonymise update without ip_hash (found by reading)
+
+2. File `app/src/routes/_site.privacy.tsx` (not blocking).
+   What: Lines 216 and 229 are still plain <a href="/privacy-request"> and <a href="/privacy-request?kind=opt_out">. g6's route (with validateSearch on kind) is already in this tree (7890bc2d), so typed <Link to="/privacy-request" search={{ kind: "opt_out" }}> is possible now. No test asserts the opt_out link the plan's section 9 requires, so a renamed route or param would go unnoticed. The log's 'Left for others' line says they wait on g6, which has landed.
+   Evidence: grep -rn 'kind=opt_out' app/tests/unit finds nothing for /privacy; grep -rn '<a href="/' app/src/routes shows only these two in public routes
+
+3. File `app/src/lib/seo-copy.ts` (not blocking).
+   What: Line 105: the /legal meta description still says 'Illustrative-content notice, ... privacy and terms'. In production /legal shows no illustrative paragraph, and privacy and terms are now separate pages. Also stale: workspace/01-site-index/pages-and-wording.md line 293 (footer links /legal#privacy, /legal#terms, VITE_INSTAGRAM_URL) and app/docs/coming-soon.md line 148 (consent.link to /legal hash privacy). The author listed all three. They are not this group's files, so the orchestrator should fold them.
+   Evidence: grep -rn 'legal#privacy\|hash="privacy"' app/docs workspace/01-site-index; sed -n 104,105p app/src/lib/seo-copy.ts
+
+4. File `slice/b16 (branch)` (not blocking).
+   What: The branch conflicts with origin/main fe3a990a in GOTCHAS.md (P-008, P-094) and app/tests/unit/assert-not-production.test.ts (main added scripts/admin-smoke.ts). A conflicting PR starts no CI run (P-136), so the db job proof stays UNPROVEN until the next merge (bank-merge.mjs for GOTCHAS.md). footer.tsx and contracts.ts auto-merge.
+   Evidence: git merge-tree --write-tree --name-only HEAD origin/main -> CONFLICT (content): Merge conflict in GOTCHAS.md; app/tests/unit/assert-not-production.test.ts
+
+5. File `workspace/05-plans/logs/B16.md` (not blocking).
+   What: UNPROVEN carried forward, not a defect of the code: 24 db-project registry entries of other groups were not replayed with the dev profile (the author's --changed run was 272 ok, 25 bad for the wrong reason). Pages were checked only on vite dev, not the built Worker. No axe sweep on the three routes. No lawyer has read the copy. The python pid 64240 was stopped without confirming its parent, which could have belonged to another lane.
+   Evidence: author's own proofs list; I replayed only the 24 b16-g5 entries (all OK), as the brief directs
+
+(The sixth follow-up, a GOTCHAS.md cost, went to the bank as P-1946: lesson 5 of the map names `watchfail --check`, which does not exist; the reviewer's note on P-094 and confirming a process command line before stopping it is in the same entry.)

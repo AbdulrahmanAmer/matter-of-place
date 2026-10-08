@@ -4933,3 +4933,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a resumed builder first runs `git status --short` and compares each modified or committed file of the WIP with the registry (`find` present once, `replace` absent: a scan over `tests/mutations/*.json`); after stopping a replay, `git status --short` again and restore the mutated file from `HEAD` when no other work is uncommitted. Never commit while a replay runs in the same tree.
 - proof: `git -C D:/mop-build/admin show b1a638b:app/src/server/public/pipeline.ts | grep -cF "...[{ bucket:"` → `1` (the mutation), and the same at `61dacc8` → `0` (restored; measured 2026-10-08).
 - added: 2026-10-08
+
+## P-1946 · Lesson 5 of the bank map sends a reader to `watchfail.mjs --check`, which does not exist
+- symptom: B16 g5 review: following lesson 5 ("`--check` runs after every edit of a mutated file (P-066)") printed `watchfail: Unknown option '--check'` and exit 64. The P-066 body names no such option either.
+- cause: the map line names a flag of a registry checker that was never part of `scripts/watchfail.mjs`; its options are `--registry`, `--only`, `--changed` and `--kinds` (header of the script). The consistency check of the registry is a test.
+- rule: after an edit of a mutated file, run `cd app && node ../workspace/05-plans/quiet.mjs -- bun run test tests/unit/mutation-registry.test.ts` for the registry, then `node scripts/watchfail.mjs --registry tests/mutations --only <id>` for the entry. Never pass `--check` to watchfail. Before stopping a process by its id (P-094 left a stray python pid in B16 g5), confirm its command line first: `powershell -NoProfile -Command "(Get-CimInstance Win32_Process -Filter 'ProcessId=<pid>').CommandLine"`, because another lane may own it.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --check; echo $?` → `watchfail: Unknown option '--check'` (measured 2026-10-08); `ls app/tests/unit/mutation-registry.test.ts` → the file.
+- added: 2026-10-08
