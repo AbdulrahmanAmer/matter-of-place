@@ -2436,8 +2436,8 @@
     "id": "mg-gather-head",
     "test": "tests/unit/merge-gate.test.ts",
     "file": "scripts/merge-gate.mjs",
-    "find": "`repos/${REPO}/commits/${headSha}/status?per_page=100`",
-    "replace": "`repos/${REPO}/commits/${sha}/status?per_page=100`",
+    "find": "`repos/${REPO}/commits/${headSha}/statuses?per_page=100`",
+    "replace": "`repos/${REPO}/commits/${sha}/statuses?per_page=100`",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "finds the pull request merged as this commit and reads its head"
   },
@@ -3817,5 +3817,248 @@
     "replace": "readFileSync(opt(\"--base\"), \"utf8\")",
     "run": "bunx vitest run tests/unit/bank-merge.test.ts",
     "expect": "keeps today's refusal when the merge base cannot be read"
+  },
+  {
+    "id": "h73-port",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "const DEFAULT_PORT = 8970;",
+    "replace": "const DEFAULT_PORT = 8971;",
+    "expect": "FAIL .*> reads the pull request, and defaults the port to 8970"
+  },
+  {
+    "id": "h73-flags",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "if (![\"--pr\", \"--port\", \"--mode\"].includes(flag) || value === undefined) return USAGE;",
+    "replace": "if (value === undefined) return USAGE;",
+    "expect": "FAIL .*> refuses a missing pull request, an unknown flag"
+  },
+  {
+    "id": "h73-change",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "package\\.json$|budget",
+    "replace": "package\\.json|budget",
+    "expect": "FAIL .*> is true for app/src, app/public, package.json and budget.json"
+  },
+  {
+    "id": "h73-lhci",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": ".filter((line) => line !== \"\")",
+    "replace": ".filter((line) => line !== \"x\")",
+    "expect": "FAIL .*> makes one --collect.url per printed line and drops blank lines"
+  },
+  {
+    "id": "h73-stamp",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "${sign}${pad(Math.floor(abs / 60))}",
+    "replace": "${pad(Math.floor(abs / 60))}",
+    "expect": "FAIL .*> writes the local time with its numeric offset"
+  },
+  {
+    "id": "h73-render",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "`${step.name} | ${step.verdict} | ${step.detail}`",
+    "replace": "`${step.name}: ${step.verdict} | ${step.detail}`",
+    "expect": "FAIL .*> writes one line per step and reads the header and the steps back"
+  },
+  {
+    "id": "h73-observatory",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "if (step.name === \"observatory\" && step.verdict === \"not run\") continue;",
+    "replace": "if (step.name === \"never\") continue;",
+    "expect": "FAIL .*> accepts a log of this pull request and head where every hard step passed"
+  },
+  {
+    "id": "h73-tree",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "if (log.tree !== \"clean\")",
+    "replace": "if (log.tree === \"never\")",
+    "expect": "FAIL .*> refuses another head, another pull request or a dirty tree"
+  },
+  {
+    "id": "h73-head",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "if (log.head !== headSha) {",
+    "replace": "if (log.head === \"never\") {",
+    "expect": "FAIL .*> refuses another head, another pull request or a dirty tree"
+  },
+  {
+    "id": "h73-hard",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "if (step.verdict === \"pass\") continue;",
+    "replace": "if (step.verdict !== \"fail\") continue;",
+    "expect": "FAIL .*> refuses a failed or unrun hard step, essentials included"
+  },
+  {
+    "id": "h73-skipped",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "changed === \"false\") continue;",
+    "replace": "changed !== undefined) continue;",
+    "expect": "FAIL .*> accepts skipped overflow and lighthouse only when the change test found no front-end change"
+  },
+  {
+    "id": "h73-steps",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "if (names.join(\",\") !== STEPS.join(\",\")) {",
+    "replace": "if (names.length === 0) {",
+    "expect": "FAIL .*> refuses a log whose steps are not the nine the script writes"
+  },
+  {
+    "id": "h73-gate-standin",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "find": "workflow === \"deploy\" && name === \"preview\" && bucket !== \"pass\") {",
+    "replace": "workflow === \"nothing\") {",
+    "expect": "FAIL .*> merges a red preview on a good log"
+  },
+  {
+    "id": "h73-gate-edge",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "find": "if (code !== \"429\" || server.toLowerCase() !== \"cloudflare\") {",
+    "replace": "if (code === \"none\") {",
+    "expect": "FAIL .*> refuses when the edge is reachable, prints its code, and reads no check"
+  },
+  {
+    "id": "h73-gate-log",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "find": "const problem = localPreviewProblem(text, pr, headSha);",
+    "replace": "const problem = localPreviewProblem(text, pr, headSha) && \"\";",
+    "expect": "FAIL .*> refuses a log of another head"
+  },
+  {
+    "id": "h73-gate-other",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "find": "workflow === \"deploy\" && name === \"preview\" && bucket !== \"pass\") {",
+    "replace": "bucket !== \"pass\") {",
+    "expect": "FAIL .*> still refuses any other check that is not green"
+  },
+  {
+    "id": "h73-gate-noflag",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "find": "if (local !== undefined && workflow === \"deploy\"",
+    "replace": "if (workflow === \"deploy\"",
+    "expect": "FAIL .*> without the flag a red preview refuses as before"
+  },
+  {
+    "id": "h73-pl-accept",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (refusal === \"\") notes.push(PREVIEW_LOCAL_TRACE);",
+    "replace": "if (refusal === \"accepted\") notes.push(PREVIEW_LOCAL_TRACE);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "passes a failed preview on the owner's preview-local status, and prints the trace"
+  },
+  {
+    "id": "h73-pl-creator",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (local.creator !== OWNER) {",
+    "replace": "if (local.creator === \"\") {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a preview-local status created by another login"
+  },
+  {
+    "id": "h73-pl-context",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "statuses.find((status) => status.context === \"preview-local\")",
+    "replace": "statuses.find((status) => status.context !== \"preview\")",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a failed preview without the status, as before"
+  },
+  {
+    "id": "h73-pl-others",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (refusal === \"\") notes.push(PREVIEW_LOCAL_TRACE);",
+    "replace": "if (refusal === \"\") notes.push(...failures.splice(0), PREVIEW_LOCAL_TRACE);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "still refuses another required check that is not green"
+  },
+  {
+    "id": "h73-pl-state",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (local.state !== \"success\") return",
+    "replace": "if (local.state === \"error\") return",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a status that is not success, names no H73 or another log, or a preview that did not fail"
+  },
+  {
+    "id": "h73-pl-ruling",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "!/^H73: /.test(local.description ?? \"\") ||",
+    "replace": "!/^/.test(local.description ?? \"\") ||",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a status that is not success, names no H73 or another log, or a preview that did not fail"
+  },
+  {
+    "id": "h73-pl-log",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": ".endsWith(`, ${log}`)",
+    "replace": ".endsWith(\".md\")",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a status that is not success, names no H73 or another log, or a preview that did not fail"
+  },
+  {
+    "id": "h73-pl-failure",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (conclusion !== \"failure\") return",
+    "replace": "if (conclusion === \"pending\") return",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a status that is not success, names no H73 or another log, or a preview that did not fail"
+  },
+  {
+    "id": "h73-pl-creator-read",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "([context = \"\", state = \"\", description = \"\", creator = \"\"])",
+    "replace": "([context = \"\", state = \"\", creator = \"\", description = \"\"])",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "finds the pull request merged as this commit and reads its head"
+  },
+  {
+    "id": "h73-pl-list",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "/statuses?per_page=100`",
+    "replace": "/status?per_page=100`",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "finds the pull request merged as this commit and reads its head"
   }
 ]
