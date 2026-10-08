@@ -198,3 +198,25 @@
 4. File: `app/tests/e2e/admin-newsletter.spec.ts`. Blocking: no.
 - What: UNPROVEN: the admin project's exit 0, and the fix's effect in CI's e2e job on PR 227. The local evidence is 2 clean runs after the fix (2 more clean in this review, 4 in total) against 1 flaky run in 2 before. That shows the race is gone in these runs but gives no rate. The `:102` failure and the 5 serial tests after it can only pass on mop-dev once main pushes the `action_roles` migration (H57). The branch is also not merged with origin/main, so the PR may show as conflicting and start no CI run (P-136).
 - Evidence: Reviewer re-run: two runs exit 1, "1 failed, 7 skipped, 5 did not run, 5 passed", no flaky line; mop-dev newsletter `action_roles` count 0.
+
+## g1 · steps 2-3,13
+
+1. File: `app/src/server/newsletter/assemble.ts`. Blocking: no.
+   - What: Follow-up. The brief asked for the cast and its eslint-disable to be removed. The cast and its STUB marker are gone, but the commit adds a new `as unknown as` cast with an eslint-disable at lines 61-65 (SYSTEM_ACTOR) to pass null actors to newsletter_save_draft. The reason is real: the generated Args type in src/db/types.ts:1443 lists p_actor and p_actor_kind as non-null. The repo already uses the same pattern in src/server/payments/invoice-settings.ts:63, the cast carries an R03 reason, and the log states it openly. So this is not a hidden stub, but there is now a second copy of the null-system-actor cast. A shared typed SYSTEM_ACTOR in src/server/lib/audit.ts would hold both (C05: no second copy of a helper).
+   - Evidence: Read: git show abb69884 -- app/src/server/newsletter/assemble.ts shows the new eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion line. grep -rn 'no-unsafe-type-assertion' src/server shows the same reason in payments/invoice-settings.ts:63.
+
+2. File: `app/src/server/jobs/system/reconcile.ts`. Blocking: no.
+   - What: Follow-up. The header comment written during the merge (lines 10-12) lists the parts as 'uploads first, then the social part of B10' and leaves out B11's newsletter part, which the job now runs third. The comment no longer describes all three parts.
+   - Evidence: Read: sed -n 10,12p app/src/server/jobs/system/reconcile.ts against line 79 `reconcileJob(settleUploads, settleSocial, aggregateRecentIssues)`.
+
+3. File: `app/tests/mutations/B11.json`. Blocking: no.
+   - What: Follow-up. No registry entry covers the changed call arguments. The author's watched-fails on `...SYSTEM_ACTOR` and `p_audience_id: id` were run ad hoc and never registered, so CI's registry replay will not catch a regression in which arguments these typed calls pass. The existing tests do catch it: I reproduced both watched-fails.
+   - Evidence: Ran: a node scan of tests/mutations for finds that name SYSTEM_ACTOR or newsletter_set_audience on resend.ts or assemble.ts found only b11-assemble-swallow-save-error and b11-queue-swallow-add-error, both on the error lines.
+
+4. File: `workspace/05-plans/B11.md`. Blocking: no.
+   - What: Follow-up for the orchestrator. The plan text is stale, as the author recorded: step 2 names /audiences while resend.ts calls /segments, and the brief says collectCandidates(db, since) while the code has collectCandidates(db, all).
+   - Evidence: Read: the g1 block of the log, workspace/05-plans/logs/B11.md, last lines.
+
+5. File: `tests/db/newsletter.db.test.ts`. Blocking: no.
+   - What: Follow-up. UNPROVEN against the database. The typed calls are checked only against unit-test fakes and the generated types. The newsletter db tests and the CI db job were not run for this commit, and none exists for it.
+   - Evidence: The author's unproven list; this review was told no CI run exists for abb6988.
