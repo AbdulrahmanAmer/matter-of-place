@@ -208,5 +208,1318 @@
     "replace": "{ table: \"invoices\", count: 0 },",
     "run": "bunx vitest run --project db tests/db/factories.db.test.ts -t \"leaves the same rows when it runs twice\"",
     "expect": "× .*leaves the same rows when it runs twice"
+  },
+  {
+    "id": "b6-g2-price",
+    "test": "tests/unit/payments/pricing.test.ts",
+    "file": "src/data/exposure.ts",
+    "find": "    price: \"$295\",",
+    "replace": "    price: \"$296\",",
+    "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > prices each product at its S3 amount in whole dollars"
+  },
+  {
+    "id": "b6-g2-offering",
+    "test": "tests/unit/payments/pricing.test.ts",
+    "file": "src/server/payments/pricing.ts",
+    "find": "candidate.name === product",
+    "replace": "candidate.id === product",
+    "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > finds the offering that carries the product name"
+  },
+  {
+    "id": "b6-g2-not-sure",
+    "test": "tests/unit/payments/pricing.test.ts",
+    "file": "src/server/payments/pricing.ts",
+    "find": "if (offering === undefined) {",
+    "replace": "if (offering === undefined && product === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > refuses Not sure yet, which has no price"
+  },
+  {
+    "id": "b6-g2-tier",
+    "test": "tests/unit/payments/pricing.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  \"Five Features\": \"Feature\",",
+    "replace": "  \"Five Features\": \"Reach\",",
+    "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > maps the four products to their tier"
+  },
+  {
+    "id": "b6-g2-registry",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/index.ts",
+    "find": "  invoice_manual: invoiceManual,\n};",
+    "replace": "  invoice_manual: invoiceManual,\n  stripe: invoiceManual,\n};",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > registers invoice_manual and nothing else"
+  },
+  {
+    "id": "b6-g2-get-stripe",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/index.ts",
+    "find": "if (adapter === undefined) throw new NotImplementedError(`The ${method} payment method`);",
+    "replace": "if (adapter === undefined) return invoiceManual;",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > refuses to hand out the Stripe method"
+  },
+  {
+    "id": "b6-g2-preferred",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/manual.ts",
+    "find": "const shown = preferred.length > 0 ? preferred : methods;",
+    "replace": "const shown = methods;",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > gives the instructions of the preferred method from the frozen snapshot"
+  },
+  {
+    "id": "b6-g2-fallback",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/manual.ts",
+    "find": "const shown = preferred.length > 0 ? preferred : methods;",
+    "replace": "const shown = preferred;",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > lists every method when the preferred one is not in the snapshot"
+  },
+  {
+    "id": "b6-g2-no-invoice",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/manual.ts",
+    "find": "if (payment.invoice_snapshot === null) {",
+    "replace": "if (payment.invoice_snapshot === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > refuses a payment that has no invoice"
+  },
+  {
+    "id": "b6-g2-stripe-stub",
+    "test": "tests/unit/payments/adapters.test.ts",
+    "file": "src/server/payments/adapters/stripe.ts",
+    "find": "throw new NotImplementedError(\"Stripe prepare\");",
+    "replace": "throw new Error(\"Stripe prepare\");",
+    "run": "bunx vitest run --project unit tests/unit/payments/adapters.test.ts",
+    "expect": "FAIL .*> payment adapters \\(invariant 9\\) > makes the Stripe stub throw NotImplementedError from every method"
+  },
+  {
+    "id": "b6-g2-amount",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  submissionId: z.string().uuid(),",
+    "replace": "  submissionId: z.string().uuid(),\n  amount: z.number().optional(),",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > strips an amount sent with the issue input and refuses Not sure yet"
+  },
+  {
+    "id": "b6-g2-reason",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "const reason = z.string().trim().min(3).max(500);",
+    "replace": "const reason = z.string().trim().min(2).max(500);",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > bounds a reason to 3 to 500 characters on waive, void and a waiver without an invoice"
+  },
+  {
+    "id": "b6-g2-paid-at",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "return Date.parse(paidAt) > now.getTime();",
+    "replace": "return Date.parse(paidAt) >= now.getTime();",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > takes a payment date with an offset and finds one later than now"
+  },
+  {
+    "id": "b6-g2-campaign-days",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  .strict();",
+    "replace": "  ;",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > names exactly the four products in campaign_days, each a positive whole number or null"
+  },
+  {
+    "id": "b6-g2-method-ids",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "new Set(methods.map((method) => method.id)).size === methods.length",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > accepts the seeded invoice settings and refuses a repeated method id or a long billing email"
+  },
+  {
+    "id": "b6-g2-transitions",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  due: [\"paid\", \"waived\", \"void\"],",
+    "replace": "  due: [\"paid\", \"waived\"],",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > lets a payment leave due only, once, and labels every status"
+  },
+  {
+    "id": "b6-g2-sql-assigned",
+    "test": "tests/unit/payments/domain.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "[\"invoice_number\", \"issue_date\", \"due_date\"] as const;",
+    "replace": "[\"invoice_number\", \"issue_date\", \"due_date\", \"contact\"] as const;",
+    "run": "bunx vitest run --project unit tests/unit/payments/domain.test.ts",
+    "expect": "FAIL .*> payments domain schemas > keeps the fields SQL assigns inside the required invoice fields"
+  },
+  {
+    "id": "b6-g2-void-gate",
+    "test": "tests/unit/state-machine.test.ts",
+    "file": "src/domain/workflow.ts",
+    "find": "status === \"paid\" || status === \"waived\";",
+    "replace": "status === \"paid\" || status === \"waived\" || status === \"void\";",
+    "run": "bunx vitest run --project unit tests/unit/state-machine.test.ts",
+    "expect": "FAIL .*> submission state machine against the spec > allows Scheduled only when accepted and the payment is paid or waived"
+  },
+  {
+    "id": "b6-g2-price-reader",
+    "test": "tests/unit/boundaries.test.ts",
+    "file": "tests/unit/boundaries.test.ts",
+    "find": "i.file === \"src/server/payments/pricing.ts\" &&",
+    "replace": "i.file === \"src/server/payments/never.ts\" &&",
+    "run": "bunx vitest run --project unit tests/unit/boundaries.test.ts",
+    "expect": "FAIL .*> layers \\(R06, G-005\\) > keeps server and domain code away from the browser layers[\\s\\S]*src/server/payments/pricing.ts"
+  },
+  {
+    "id": "b6-g3-c-amount",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "      p_amount: priceFor(input.product),\n      p_preferred_method",
+    "replace": "      p_amount: Number(Reflect.get(Object(raw), \"amount\") ?? priceFor(input.product)),\n      p_preferred_method",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> issueInvoice > issues for a managing_editor at the priceFor amount, stripping a client amount, and answers the event's jobs[\\s\\S]*amount"
+  },
+  {
+    "id": "b6-g3-aa-jobs-read",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  return data.map((job) => ({ id: job.id, type: job.type, status: job.status }));",
+    "replace": "  return [];",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> issueInvoice > issues for a managing_editor at the priceFor amount, stripping a client amount, and answers the event's jobs[\\s\\S]*send_email"
+  },
+  {
+    "id": "b6-g3-issue-authz",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  authorize(actor, \"payments.issue\");",
+    "replace": "  void actor;",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> issueInvoice > refuses commercial with 403 forbidden before any database call"
+  },
+  {
+    "id": "b6-g3-not-accepted",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  if (submission.accepted_at === null) {",
+    "replace": "  if (submission.accepted_at === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> issueInvoice > refuses a request that is not accepted with 409 not_accepted and issues nothing"
+  },
+  {
+    "id": "b6-g3-h-ready",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  await assertInvoiceReady(db);",
+    "replace": "  await Promise.resolve(db);",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> issueInvoice > refuses unready settings with 409 invoice_not_ready naming each blank setting"
+  },
+  {
+    "id": "b6-g3-ready-late-terms",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "[\"terms\", \"late_terms\", \"tax_line\"] as const",
+    "replace": "[\"terms\", \"tax_line\"] as const",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> issueInvoice > refuses unready settings with 409 invoice_not_ready naming each blank setting[\\s\\S]*late_terms"
+  },
+  {
+    "id": "b6-g3-fanout-best-effort",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "    await fanoutEvent(db, eventId);\n  } catch (failure) {",
+    "replace": "    await fanoutEvent(db, eventId);\n  } finally {\n    void eventId;\n  }\n  try {\n    void eventId;\n  } catch (failure) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> issueInvoice > still answers when the fan-out throws, and logs fanout_failed"
+  },
+  {
+    "id": "b6-g3-j-late-terms",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/invoice-snapshot.ts",
+    "find": "    late_terms: invoice.late_terms,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> buildInvoiceSnapshot > fills every required field but the number and the two dates from complete settings[\\s\\S]*snapshot_incomplete:late_terms"
+  },
+  {
+    "id": "b6-g3-snapshot-incomplete",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/invoice-snapshot.ts",
+    "find": "  if (blank !== undefined) throw incomplete(blank);",
+    "replace": "  void blank;",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> buildInvoiceSnapshot > throws snapshot_incomplete:late_terms when late_terms is blank"
+  },
+  {
+    "id": "b6-g3-mark-paid-rpc",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "    await db.rpc(\"mark_payment_paid\", {",
+    "replace": "    await db.rpc(\"waive_payment\", {",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> markPaid, waive and voidInvoice > marks paid, fans out once on the returned event and answers its jobs"
+  },
+  {
+    "id": "b6-g3-paid-at-future",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  if (paidAtIsFuture(input.paidAt, new Date())) {",
+    "replace": "  if (paidAtIsFuture(input.paidAt, new Date(8.64e15))) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> markPaid, waive and voidInvoice > refuses a payment date one hour ahead with 422 and makes no RPC call"
+  },
+  {
+    "id": "b6-g3-rpc-error",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  if (result.error !== null) throw fromRpcError(result.error);",
+    "replace": "  if (result.error !== null) throw new AppError(\"server\", undefined, \"x\");",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> markPaid, waive and voidInvoice > answers 409 wrong_state when the RPC raises it"
+  },
+  {
+    "id": "b6-g3-waive-reason",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  const input = parse(waiveRequest, raw);",
+    "replace": "  const input = parse(pathId.extend({ reason: z.string().default(\"none\") }), raw);",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> markPaid, waive and voidInvoice > waives with a reason, and refuses a missing reason with 422"
+  },
+  {
+    "id": "b6-g3-p-fanout",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "    await fanoutEvent(db, eventId);\n",
+    "replace": "    await Promise.resolve(eventId);\n",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> markPaid, waive and voidInvoice > voids for an admin and fans out on exactly the event_id the RPC returned"
+  },
+  {
+    "id": "b6-g3-void-roles",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/lib/permissions/payments.ts",
+    "find": "{ action: \"payments.void\", group: \"payments\", roles: [\"admin\"], humanOnly: true }",
+    "replace": "{ action: \"payments.void\", group: \"payments\", roles: issuers, humanOnly: true }",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> markPaid, waive and voidInvoice > refuses void to a managing_editor with 403, and a 2-character reason with 422"
+  },
+  {
+    "id": "b6-g3-waiver-amount",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "      p_amount: priceFor(input.product),\n      p_reason",
+    "replace": "      p_amount: 1,\n      p_reason",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> waiveWithoutInvoice \\(DL-01\\) > records one waiver at the priceFor amount and issues no invoice"
+  },
+  {
+    "id": "b6-g3-waiver-parse",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  const input = parse(waiveWithoutInvoiceRequest, raw);",
+    "replace": "  const input = parse(pathId.extend({ product: waiveWithoutInvoiceRequest.shape.product, reason: z.string() }), raw);",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> waiveWithoutInvoice \\(DL-01\\) > refuses Not sure yet and a 2-character reason with 422"
+  },
+  {
+    "id": "b6-g3-activate-storage",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  authorize(actor, \"submissions.activate\");\n",
+    "replace": "  authorize(actor, \"submissions.activate\");\n  await db.storage.from(\"submissions\").copy(\"a\", \"b\");\n",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> activate > answers the property, the event's jobs and the copy job, with no Storage call"
+  },
+  {
+    "id": "b6-g3-activate-twice",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "    jobs: row.event_id === null ? [] : await plannedJobs(db, row.event_id),",
+    "replace": "    jobs: await plannedJobs(db, row.event_id ?? \"none\"),",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> activate > answers a second activate with the same property, no event and no jobs"
+  },
+  {
+    "id": "b6-g3-d-human-only",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/lib/permissions/payments.ts",
+    "find": "{ action: \"payments.mark_paid\", group: \"payments\", roles: issuers, humanOnly: true }",
+    "replace": "{ action: \"payments.mark_paid\", group: \"payments\", roles: issuers }",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> the agent guardrail and invariant 6 > lets an agent with scope issue and refuses it human_only on mark-paid, waive, void, activate and a waiver"
+  },
+  {
+    "id": "b6-g3-q-enqueue",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  await assertInvoiceReady(db);",
+    "replace": "  await assertInvoiceReady(db);\n  await (await import(\"../lib/jobs.ts\")).enqueueJob(db, { type: \"invoice_pdf\", idempotencyKey: \"invoice_pdf:x\" });",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> the agent guardrail and invariant 6 > makes no outside call and enqueues no job in any action"
+  },
+  {
+    "id": "b6-g3-invariant-6-fetch",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  const [row] = activated.parse(data);",
+    "replace": "  await fetch(\"https://storage.example.test/copy\", { signal: AbortSignal.timeout(1000) });\n  const [row] = activated.parse(data);",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> the agent guardrail and invariant 6 > makes no outside call and enqueues no job in any action"
+  },
+  {
+    "id": "b6-g3-next-cursor",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "      rows.length > input.limit && last !== undefined",
+    "replace": "      rows.length > input.limit + 1 && last !== undefined",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> listPayments and getPayment > answers one page with the cursor of the row it ends on, and refuses a broken cursor with 422"
+  },
+  {
+    "id": "b6-g3-cursor-digits",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "(null|\\d{4}-\\d\\d-\\d\\dT",
+    "replace": "(null|d{4}-dd-ddT",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> listPayments and getPayment > reads every row once when each next_cursor is fed back: the cursor's ties, older rows, then unissued"
+  },
+  {
+    "id": "b6-g3-keyset-older",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "filtered(db, input).lt(\"issued_at\", at), take)",
+    "replace": "filtered(db, input).eq(\"issued_at\", at), take)",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> listPayments and getPayment > reads every row once when each next_cursor is fed back: the cursor's ties, older rows, then unissued"
+  },
+  {
+    "id": "b6-g3-keyset-unissued",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": ".is(\"issued_at\", null).lt(\"id\", id), take)",
+    "replace": ".is(\"issued_at\", null), take)",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> listPayments and getPayment > reads every row once when each next_cursor is fed back: the cursor's ties, older rows, then unissued"
+  },
+  {
+    "id": "b6-g3-get-reader",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  authorize(actor, \"payments.get\");",
+    "replace": "  authorize(actor, \"payments.void\");",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*> listPayments and getPayment > answers 404 for an unknown payment and the row with its snapshot otherwise"
+  },
+  {
+    "id": "b6-g3-ab-redirect",
+    "test": "tests/unit/payments/pdf-route.test.ts",
+    "file": "src/routes/api/admin/payments.$id.pdf.ts",
+    "find": "            status: 302,",
+    "replace": "            status: 200,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
+    "expect": "FAIL .*> GET /api/admin/payments/:id/pdf > answers commercial 302 to the URL Storage signed for the key and 60 seconds, private and no-store"
+  },
+  {
+    "id": "b6-g3-pdf-ttl",
+    "test": "tests/unit/payments/pdf-route.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": ".createSignedUrl(path, 60)",
+    "replace": ".createSignedUrl(path, 3600)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
+    "expect": "FAIL .*> GET /api/admin/payments/:id/pdf > answers commercial 302 to the URL Storage signed for the key and 60 seconds, private and no-store[\\s\\S]*3600"
+  },
+  {
+    "id": "b6-g3-pdf-not-ready",
+    "test": "tests/unit/payments/pdf-route.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  if (row.invoice_file_key === null) {",
+    "replace": "  if (row.invoice_file_key === \"none\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
+    "expect": "FAIL .*> GET /api/admin/payments/:id/pdf > answers 404 pdf_not_ready while the key is null"
+  },
+  {
+    "id": "b6-g3-pdf-storage",
+    "test": "tests/unit/payments/pdf-route.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "    throw new AppError(\"storage_unavailable\", undefined, \"File storage is not answering.\");",
+    "replace": "    throw new Error(\"storage\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/payments/pdf-route.test.ts",
+    "expect": "FAIL .*> GET /api/admin/payments/:id/pdf > answers 503 storage_unavailable when Storage answers an error"
+  },
+  {
+    "id": "b6-g3-ac-copy-loop",
+    "test": "tests/unit/subrequest-budget.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  authorize(actor, \"submissions.activate\");\n  const input = parse(pathId, raw);\n",
+    "replace": "  authorize(actor, \"submissions.activate\");\n  const input = parse(pathId, raw);\n  const media = await db.from(\"submission_media\").select(\"storage_path\").eq(\"submission_id\", input.id);\n  for (const photo of media.data ?? []) await db.storage.from(\"submissions\").copy(photo.storage_path, photo.storage_path);\n",
+    "run": "bunx vitest run --project unit tests/unit/subrequest-budget.test.ts",
+    "expect": "FAIL .*> outbound calls of an admin activation \\(E2E-02, PERF-07\\) > keeps POST /api/admin/submissions/:id/activate of 40 photographs at 35 calls or fewer, none to Storage[\\s\\S]*to be less than or equal to 35"
+  },
+  {
+    "id": "b6-g3-matrix-rows",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/payments.ts",
+    "find": "{ action: \"payments.void\", group: \"payments\", roles: [\"admin\"], humanOnly: true }",
+    "replace": "{ action: \"payments.void\", group: \"payments\", roles: [\"admin\"] }",
+    "run": "bunx vitest run --project unit tests/unit/authz.matrix.test.ts",
+    "expect": "FAIL .*> the authorization matrix > equals the hand-typed fixture, row for row"
+  },
+  {
+    "id": "b6-g4-fixture-example",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "scripts/fixtures/invoice.example.json",
+    "find": "\"tax_line\": \"No sales tax is charged on this invoice.\"",
+    "replace": "\"tax_line\": \"\"",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> invoice fixtures > the example is test text that makes invoicing ready and the seed lacks only payment instructions"
+  },
+  {
+    "id": "b6-g4-ready-order",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "[\"terms\", \"late_terms\", \"tax_line\"] as const",
+    "replace": "[\"terms\", \"tax_line\"] as const",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> invoiceReadiness > lists every blank setting by its dotted name, in the order of invariant 7"
+  },
+  {
+    "id": "b6-g4-ready-one-method",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "invoice.payment_methods.some((method) => method.instructions !== \"\")",
+    "replace": "invoice.payment_methods.every((method) => method.instructions !== \"\")",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> invoiceReadiness > is ready with one method that has instructions, however many do not"
+  },
+  {
+    "id": "b6-g4-ready-invoice-null",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "if (invoice === null) return [...missing, \"invoice\"];",
+    "replace": "if (invoice === null) return missing;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> invoiceReadiness > names invoice when the stored value does not parse"
+  },
+  {
+    "id": "b6-g4-read-inputs",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "invoiceSettingsSchema.safeParse(valueOf(\"invoice\"))",
+    "replace": "invoiceSettingsSchema.safeParse(valueOf(\"site\"))",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> readInvoiceInputs > parses the site and invoice rows and reads an unparseable invoice as null"
+  },
+  {
+    "id": "b6-g4-apply-value",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "p_value: parsed.data,",
+    "replace": "p_value: input,",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> applyInvoiceSettings > calls settings_put_invoice once with the validated value and the actor"
+  },
+  {
+    "id": "b6-g4-apply-422",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "  if (!parsed.success) throw fromZod(parsed.error);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> applyInvoiceSettings > refuses a value the schema rejects with 422 and its issues, and calls nothing"
+  },
+  {
+    "id": "b6-g4-apply-rpc-error",
+    "test": "tests/unit/payments/invoice-settings.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "  });\n  if (error !== null) throw fromRpcError(error);\n  return parsed.data;",
+    "replace": "  });\n  void error;\n  return parsed.data;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-settings.test.ts",
+    "expect": "FAIL .*> applyInvoiceSettings > throws the database's error code when the function raises"
+  },
+  {
+    "id": "b6-g5-i-tax-line",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "top = block(snapshot.tax_line, note, top + 8, PAGE.margin, CONTENT_WIDTH) + 8;",
+    "replace": "top = top + 16;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "draws tax_line and refuses"
+  },
+  {
+    "id": "b6-g5-m-undrawn-field",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "  \"late_terms\",\n] as const;",
+    "replace": "  \"late_terms\",\n  \"legal_name\",\n] as const;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "draws legal_name and refuses"
+  },
+  {
+    "id": "b6-g5-late-terms-run",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "top = block(snapshot.late_terms, body, top, PAGE.margin, CONTENT_WIDTH) + 16;",
+    "replace": "top = top + 16;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "draws late_terms and refuses"
+  },
+  {
+    "id": "b6-g5-entity-guard",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "const missing = requiredInvoiceFields.find((field) => isBlank(Reflect.get(snapshot, field)));",
+    "replace": "const missing = undefined as string | undefined;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "draws entity and refuses"
+  },
+  {
+    "id": "b6-g5-billing-line",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "`Questions about this invoice: ${snapshot.billing_email}`",
+    "replace": "`Questions about this invoice: ${snapshot.contact.email}`",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "names the billing address for questions"
+  },
+  {
+    "id": "b6-g5-owner-brokerage",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "if (snapshot.bill_to.brokerage !== null && snapshot.bill_to.brokerage.trim() !== \"\") {",
+    "replace": "if (snapshot.bill_to.brokerage !== undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "holds no brokerage line"
+  },
+  {
+    "id": "b6-g5-fold-l",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "  [\"Ł\", \"L\"],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "reads a name outside WinAnsi"
+  },
+  {
+    "id": "b6-g5-break-word",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "if (piece !== \"\" && widthOf(piece + char, style) > maxWidth) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "keeps every run inside the page margins"
+  },
+  {
+    "id": "b6-g5-line-break",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "for (const raw of text.split(/\\r\\n|\\r|\\n/)) {\n      const paragraph = clean(raw);",
+    "replace": "for (const paragraph of clean(text).split(/\\r\\n|\\r|\\n/)) {",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "starts a new line at each line break"
+  },
+  {
+    "id": "b6-g5-overflow",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "if (next > PAGE.height - PAGE.margin)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "throws invoice_overflow"
+  },
+  {
+    "id": "b6-g5-winansi-set",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "‰‹›€™",
+    "replace": "‰‹›€",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "accepts exactly the characters"
+  },
+  {
+    "id": "b6-g5-amount-format",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "minimumFractionDigits: 2,",
+    "replace": "minimumFractionDigits: 0,",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "groups thousands and always shows cents"
+  },
+  {
+    "id": "b6-g5-g-live-settings",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "await store.put(path, await renderInvoicePdf(snapshot.data));",
+    "replace": "await store.put(path, await renderInvoicePdf({ ...snapshot.data, entity: \"Another Entity Inc.\" }));",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "renders from the stored snapshot, not from settings"
+  },
+  {
+    "id": "b6-g5-pdf-clock",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "Document.create({ updateMetadata: false })",
+    "replace": "Document.create()",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "whatever the clock says"
+  },
+  {
+    "id": "b6-g5-s-bucket",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "export const INVOICE_BUCKET = \"documents\";",
+    "replace": "export const INVOICE_BUCKET = \"media\";",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "writes to the bucket documents without overwriting"
+  },
+  {
+    "id": "b6-g5-upsert",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "upsert: false",
+    "replace": "upsert: true",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "writes to the bucket documents without overwriting"
+  },
+  {
+    "id": "b6-g5-conflict-stored",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "if (error !== null && !alreadyExists(error)) throw error;",
+    "replace": "if (error !== null) throw error;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "counts a 409 already exists answer as stored"
+  },
+  {
+    "id": "b6-g5-key-path",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "snapshot.data.issue_date.slice(0, 4)",
+    "replace": "snapshot.data.issue_date.slice(0, 3)",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "records the key once"
+  },
+  {
+    "id": "b6-g5-key-recorded",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "return { key: recorded.data, existed: false };",
+    "replace": "return { key: path, existed: false };",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "answers the key that was recorded first when two renders finish together"
+  },
+  {
+    "id": "b6-g5-existing-key",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "if (row.invoice_file_key !== null) return { key: row.invoice_file_key, existed: true };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "leaves a payment whose key is set alone"
+  },
+  {
+    "id": "b6-g5-final-failures",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "if (row.invoice_snapshot === null) throw new NonRetryableError(\"snapshot_missing\");",
+    "replace": "if (row.invoice_snapshot === null) throw new Error(\"snapshot_missing\");",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "says payment_missing, snapshot_missing and snapshot_invalid"
+  },
+  {
+    "id": "b6-g5-signed-url-ttl",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": ".createSignedUrl(path, 60)",
+    "replace": ".createSignedUrl(path, 600)",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "asks the bucket documents for a link of 60 seconds"
+  },
+  {
+    "id": "b6-g5-signed-url-error",
+    "test": "tests/unit/payments/invoice-pdf.test.ts",
+    "file": "src/server/payments/invoice-pdf.ts",
+    "find": "throw new AppError(\"storage_unavailable\", undefined, \"File storage is not answering.\");",
+    "replace": "throw new AppError(\"server\", undefined, \"File storage is not answering.\");",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf.test.ts",
+    "expect": "answers 503 storage_unavailable"
+  },
+  {
+    "id": "b6-g5-r-key-null",
+    "test": "tests/unit/payments/invoice-attachment.test.ts",
+    "file": "src/server/payments/invoice-attachment.ts",
+    "find": "(await ensureInvoicePdf(ctx.db, paymentId, store)).key",
+    "replace": "(() => {\n    throw new NonRetryableError(\"attachment_unavailable\");\n  })()",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-attachment.test.ts",
+    "expect": "renders, stores and attaches when the invoice_pdf job has not run yet"
+  },
+  {
+    "id": "b6-g5-y-placeholder",
+    "test": "tests/unit/payments/invoice-attachment.test.ts",
+    "file": "src/server/email/attachments.ts",
+    "find": "invoice_pdf: invoicePdfAttachment,",
+    "replace": "invoice_pdf: () => Promise.reject(new Error(\"attachment_unavailable\")),",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-attachment.test.ts",
+    "expect": "is the entry of the registry"
+  },
+  {
+    "id": "b6-g5-attachment-retry",
+    "test": "tests/unit/payments/invoice-attachment.test.ts",
+    "file": "src/server/payments/invoice-attachment.ts",
+    "find": "const store = storageInvoiceStore(ctx.db);",
+    "replace": "const store = storageInvoiceStore(ctx.db);\n  if (payment.invoice_file_key !== null) {\n    try {\n      await store.get(payment.invoice_file_key);\n    } catch {\n      throw new NonRetryableError(\"payment_missing\");\n    }\n  }",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-attachment.test.ts",
+    "expect": "rethrows a Storage error so the step retries"
+  },
+  {
+    "id": "b6-g5-job-skipped",
+    "test": "tests/unit/payments/invoice-pdf-job.test.ts",
+    "file": "src/server/jobs/system/invoice-pdf.ts",
+    "find": "return { status: \"done\", result: existed ? { key, skipped: \"exists\" } : { key } };",
+    "replace": "return { status: \"done\", result: { key } };",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf-job.test.ts",
+    "expect": "invoice_pdf runs twice without a second outside effect"
+  },
+  {
+    "id": "b6-g5-job-attempts",
+    "test": "tests/unit/payments/invoice-pdf-job.test.ts",
+    "file": "src/server/jobs/system/invoice-pdf.ts",
+    "find": "maxAttempts: 12,",
+    "replace": "maxAttempts: 5,",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf-job.test.ts",
+    "expect": "is a system job with 12 attempts"
+  },
+  {
+    "id": "b6-g5-job-registered",
+    "test": "tests/unit/payments/invoice-pdf-job.test.ts",
+    "file": "src/server/jobs/system/index.ts",
+    "find": "  invoicePdf,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-pdf-job.test.ts",
+    "expect": "is a system job with 12 attempts"
+  },
+  {
+    "id": "b6-g5-snapshot-billing-email",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/invoice-snapshot.ts",
+    "find": "    billing_email: invoice.billing_email,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
+    "expect": "gives what the PDF layout parses once SQL adds the number and the two dates"
+  },
+  {
+    "id": "b6-g6-baseline",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "sets the small wordmark and the display word on one baseline",
+    "find": "top + (display.size - wordmark.size) * LEADING",
+    "replace": "top"
+  },
+  {
+    "id": "b6-g6-label-weight",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "sets the small wordmark and the display word on one baseline",
+    "find": "const label: Style = { size: 8.5, font: \"sans\",",
+    "replace": "const label: Style = { size: 8.5, font: \"sansBold\","
+  },
+  {
+    "id": "b6-g6-two-inks",
+    "test": "tests/unit/payments/invoice-layout.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-layout.test.ts",
+    "expect": "sets the small wordmark and the display word on one baseline",
+    "find": "const note: Style = { size: 9, font: \"sans\", color: \"mutedForeground\" };",
+    "replace": "const note: Style = { size: 9, font: \"sans\", color: \"accent\" };"
+  },
+  {
+    "id": "b6-s7-table-loading",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "{...table}",
+    "replace": "{...table} loading={false}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "draws loading rows while the list is on its way"
+  },
+  {
+    "id": "b6-s7-table-empty",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "{...table}",
+    "replace": "{...table} empty={null}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "shows the empty state when there are no invoices"
+  },
+  {
+    "id": "b6-s7-table-overdue",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "row.status === \"due\" && row.overdue === true",
+    "replace": "row.status === \"due\" && row.overdue === false",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "marks a due invoice the server calls overdue"
+  },
+  {
+    "id": "b6-s7-table-no-invoice",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "row.invoice_number ?? \"No invoice\"",
+    "replace": "row.invoice_number ?? \"\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "reads No invoice for a waiver recorded without a number"
+  },
+  {
+    "id": "b6-s7-table-states",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoicesTable.tsx",
+    "find": "label={paymentStatusLabels[row.status]}",
+    "replace": "label={row.status}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "names the state of a paid, a waived and a void invoice"
+  },
+  {
+    "id": "b6-s7-filters-overdue",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoiceFilters.tsx",
+    "find": "checked={values.overdue === \"true\"}",
+    "replace": "checked={false}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "offers every status and carries the overdue box"
+  },
+  {
+    "id": "b6-s7-picker-url",
+    "test": "src/admin/invoices/IssuePicker.test.tsx",
+    "file": "src/admin/invoices/IssuePicker.tsx",
+    "find": "{ workflow_state: \"Accepted\" }",
+    "replace": "{ workflow_state: \"Submitted\" }",
+    "run": "bunx vitest run --project component src/admin/invoices/IssuePicker.test.tsx",
+    "expect": "asks the request list for the accepted requests"
+  },
+  {
+    "id": "b6-s7-picker-empty",
+    "test": "src/admin/invoices/IssuePicker.test.tsx",
+    "file": "src/admin/invoices/IssuePicker.tsx",
+    "find": "list.data.items.length === 0",
+    "replace": "list.data.items.length === -1",
+    "run": "bunx vitest run --project component src/admin/invoices/IssuePicker.test.tsx",
+    "expect": "says so when no accepted request is waiting"
+  },
+  {
+    "id": "b6-s7-detail-due",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "{payment.status === \"due\" ? (",
+    "replace": "{payment.status === \"paid\" ? (",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "shows a due invoice with its preview"
+  },
+  {
+    "id": "b6-s7-detail-paid",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "(payment.status === \"paid\" || payment.status === \"waived\")",
+    "replace": "(payment.status === \"waived\")",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "offers Activate on a paid invoice"
+  },
+  {
+    "id": "b6-s7-detail-waiver",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "payment.invoice_number ?? \"No invoice\"",
+    "replace": "payment.invoice_number ?? \"\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "reads No invoice for a waiver without one"
+  },
+  {
+    "id": "b6-s7-detail-void",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "{payment.status === \"void\" ? (",
+    "replace": "{payment.status === \"due\" ? (",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "links a void invoice to its corrected one"
+  },
+  {
+    "id": "b6-s7-detail-activated",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "label=\"Activated\"",
+    "replace": "label=\"Done\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "names an activated invoice"
+  },
+  {
+    "id": "b6-s7-detail-copy-job",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": ": [{ id: copyId, type: COPY_JOB, status: \"queued\" }];",
+    "replace": ": [];",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "activates after a confirmation and lists the copy job"
+  },
+  {
+    "id": "b6-s7-detail-future",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/MarkPaidDialog.tsx",
+    "find": "if (Date.parse(toUtc(`${day}T00:00`, ZONE)) > now) return { future: true };",
+    "replace": "if (Date.parse(toUtc(`${day}T00:00`, ZONE)) > now + Infinity) return { future: true };",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "refuses a payment date in the future"
+  },
+  {
+    "id": "b6-s7-detail-waive",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDetail.tsx",
+    "find": "waive.mutateAsync(reason).then(done(\"Invoice waived.\"))",
+    "replace": "waive.mutateAsync(\"none\").then(done(\"Invoice waived.\"))",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "waives with a reason"
+  },
+  {
+    "id": "b6-s7-void-role",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/VoidDialog.tsx",
+    "find": "<RoleGate action=\"payments.void\">",
+    "replace": "<RoleGate action=\"payments.waive\">",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "is hidden for a managing editor and shown for an admin"
+  },
+  {
+    "id": "b6-s7-void-min",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/ReasonDialog.tsx",
+    "find": "trimmed.length < MIN",
+    "replace": "trimmed.length < 0",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "keeps its submit off below 3 characters"
+  },
+  {
+    "id": "b6-s7-void-refused",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/use-submit.ts",
+    "find": "setError(describe(failure));",
+    "replace": "setError(null);",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "stays open with the server's message when the void is refused"
+  },
+  {
+    "id": "b6-s7-draft-waive-beside",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "        {children}\n      </div>\n      <ConfirmDialog",
+    "replace": "      </div>\n      {children}\n      <ConfirmDialog",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "shows Waive without invoice beside Issue"
+  },
+  {
+    "id": "b6-s7-draft-accepted",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceDraft.tsx",
+    "find": "canIssue={detail.accepted_at !== null && issuable}",
+    "replace": "canIssue",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "keeps Issue off until the request is accepted"
+  },
+  {
+    "id": "b6-s7-draft-no-amount",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "issueInvoice({ submissionId, ...input }),",
+    "replace": "issueInvoice({ submissionId, amount: 1, ...input }),",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "issues with the product and method only"
+  },
+  {
+    "id": "b6-s7-draft-not-ready",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "error.code !== \"invoice_not_ready\"",
+    "replace": "error.code !== \"wrong_state\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "lists the missing settings and turns Issue off"
+  },
+  {
+    "id": "b6-s7-form-missing",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "canIssue && missing.length === 0 && product !== \"\" && method !== \"\"",
+    "replace": "canIssue && product !== \"\" && method !== \"\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "turns Issue off and names every missing setting"
+  },
+  {
+    "id": "b6-s7-form-ready",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "canIssue && missing.length === 0 && product !== \"\" && method !== \"\"",
+    "replace": "canIssue && missing.length === 0 && product !== \"\" && method === \"never\"",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "turns Issue on once the product"
+  },
+  {
+    "id": "b6-s7-queries-refetch",
+    "test": "src/admin/invoices/payments-queries.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "adminKeys.payments.all(),",
+    "replace": "adminKeys.payments.detail(\"none\"),",
+    "run": "bunx vitest run --project component src/admin/invoices/payments-queries.test.tsx",
+    "expect": "refetches the invoices list once the mark-paid mutation settles"
+  },
+  {
+    "id": "b6-s7-queries-invalidate",
+    "test": "src/admin/invoices/payments-queries.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "queryClient.invalidateQueries({ queryKey: adminKeys.submissions.detail(submissionId) }),",
+    "replace": "Promise.resolve(),",
+    "run": "bunx vitest run --project component src/admin/invoices/payments-queries.test.tsx",
+    "expect": "also invalidates the dashboard"
+  },
+  {
+    "id": "b6-s7-queries-missing",
+    "test": "src/admin/invoices/payments-queries.test.tsx",
+    "file": "src/admin/invoices/payments-queries.ts",
+    "find": "error.code !== \"invoice_not_ready\"",
+    "replace": "error.code !== \"wrong_state\"",
+    "run": "bunx vitest run --project component src/admin/invoices/payments-queries.test.tsx",
+    "expect": "reads the missing settings from a 409"
+  },
+  {
+    "id": "b6-s7-print-link",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/index.css",
+    "find": "@import \"./invoices.css\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "is linked from the admin entry stylesheet"
+  },
+  {
+    "id": "b6-s7-print-page",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": "size: letter;",
+    "replace": "size: A4;",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "sets the page to US Letter with literal margins"
+  },
+  {
+    "id": "b6-s7-print-hide",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": "display: none !important;",
+    "replace": "display: block;",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "hides every element marked data-print hide"
+  },
+  {
+    "id": "b6-s7-print-invoice",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": "    break-inside: avoid;",
+    "replace": "    break-inside: auto;",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "shows the invoice in the foreground on the background"
+  },
+  {
+    "id": "b6-s7-print-shadow",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": "    position: static;",
+    "replace": "    position: static;\n    text-shadow: 0 0 1px var(--border);",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "shows the invoice in the foreground on the background"
+  },
+  {
+    "id": "b6-s7-print-literal",
+    "test": "tests/unit/payments/print-css.test.ts",
+    "file": "src/styles/admin/invoices.css",
+    "find": ".admin-picker__meta {\n  color: var(--muted-foreground);",
+    "replace": ".admin-picker__meta {\n  color: #575751;",
+    "run": "bunx vitest run --project unit tests/unit/payments/print-css.test.ts",
+    "expect": "uses no fixed positioning and no colour but the tokens in print"
+  },
+  {
+    "id": "b6-s7-nav-invoices",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "routeId: \"/admin/invoices/\",",
+    "replace": "routeId: \"/admin/invoices\",",
+    "run": "bunx vitest run --project unit tests/unit/admin-nav.test.ts",
+    "expect": "renders the Invoices link now that invoices.index.tsx exists"
+  },
+  {
+    "id": "b6-g3-snapshot-missing",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  if (payment.invoice_snapshot === null) throw new NonRetryableError(\"snapshot_missing\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice falls back to every method"
+  },
+  {
+    "id": "b6-g3-snapshot-malformed",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "throw new NonRetryableError(\"snapshot_malformed\")",
+    "replace": "throw new NonRetryableError(\"snapshot_missing\")",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice falls back to every method"
+  },
+  {
+    "id": "b6-g3-terms-frozen",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "    amount: formatUsd(payment.amount),\n    terms,\n",
+    "replace": "    amount: formatUsd(payment.amount),\n    terms: \"\",\n",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice resolves the amount 1500.00"
+  },
+  {
+    "id": "b6-g3-billing-frozen",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "    billing_email,\n  };\n}\n\nasync function inquiryAck",
+    "replace": "    billing_email: \"\",\n  };\n}\n\nasync function inquiryAck",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "× .*invoice resolves the amount 1500.00"
+  },
+  {
+    "id": "b6-g3-e2e-picker",
+    "kind": "manual",
+    "test": "tests/e2e/admin-invoice.spec.ts",
+    "file": "src/admin/invoices/IssuePicker.tsx",
+    "find": "aria-label=\"Accepted requests\"",
+    "replace": "aria-label=\"Requests\"",
+    "run": "E2E_FULL_STACK=1 E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts -g \"issues the next invoice number\" --reporter=line",
+    "expect": "name: 'Accepted requests'",
+    "what": "by hand against mop-dev (needs a browser and the served app, which CI's db job has neither of): the picker loses its accessible name, so the first test fails at getByRole region Accepted requests"
+  },
+  {
+    "id": "b6-g3-e2e-unaccepted",
+    "kind": "manual",
+    "test": "tests/e2e/admin-invoice.spec.ts",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "Accept this request before issuing an invoice.",
+    "replace": "This request is not ready.",
+    "run": "E2E_FULL_STACK=1 E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts -g \"cannot be invoiced from the screen\" --reporter=line",
+    "expect": "Accept this request before issuing an invoice",
+    "what": "by hand against mop-dev (needs a browser and the served app, which CI's db job has neither of): the form's refusal copy changes, so the unaccepted-request test fails on its text"
+  },
+  {
+    "id": "b6-s7-filters-print",
+    "test": "src/admin/invoices/InvoicesTable.test.tsx",
+    "file": "src/admin/invoices/InvoiceFilters.tsx",
+    "find": "      data-print=\"hide\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoicesTable.test.tsx",
+    "expect": "stays off the printed page"
+  },
+  {
+    "id": "b6-s7-preview-tax",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoicePreview.tsx",
+    "find": "<th scope=\"row\">{snapshot.tax_line}</th>",
+    "replace": "<th scope=\"row\" />",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "draws the tax line and the late terms"
+  },
+  {
+    "id": "b6-s7-preview-late",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoicePreview.tsx",
+    "find": "<p>{snapshot.late_terms}</p>",
+    "replace": "<p />",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "draws the tax line and the late terms"
+  },
+  {
+    "id": "b6-s7-wwi-product",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/WaiveWithoutInvoiceDialog.tsx",
+    "find": "onSubmit={(reason) => onWaive({ product, reason })}",
+    "replace": "onSubmit={(reason) => onWaive({ product: \"The Campaign\", reason })}",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "waives without an invoice with the product chosen"
+  },
+  {
+    "id": "b6-s7-wwi-gate",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/WaiveWithoutInvoiceDialog.tsx",
+    "find": "<RoleGate action=\"payments.waive\">",
+    "replace": "<RoleGate action=\"payments.void\">",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "hides Waive without invoice from a role that cannot waive"
+  },
+  {
+    "id": "b6-s7-form-nested",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "      </form>\n      <div className=\"admin-actions\" data-print=\"hide\">\n        <RoleGate action=\"payments.issue\">\n          <button type=\"submit\" form={formId} className=\"admin-button\" disabled={!ready}>\n            Issue and email\n          </button>\n        </RoleGate>\n        {children}\n      </div>\n",
+    "replace": "      <div className=\"admin-actions\" data-print=\"hide\">\n        <RoleGate action=\"payments.issue\">\n          <button type=\"submit\" form={formId} className=\"admin-button\" disabled={!ready}>\n            Issue and email\n          </button>\n        </RoleGate>\n        {children}\n      </div>\n      </form>\n",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "keeps the Waive dialog's form out of the Issue form"
+  },
+  {
+    "id": "b6-s7-form-nested-issue",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "      </form>\n      <div className=\"admin-actions\" data-print=\"hide\">\n        <RoleGate action=\"payments.issue\">\n          <button type=\"submit\" form={formId} className=\"admin-button\" disabled={!ready}>\n            Issue and email\n          </button>\n        </RoleGate>\n        {children}\n      </div>\n",
+    "replace": "      <div className=\"admin-actions\" data-print=\"hide\">\n        <RoleGate action=\"payments.issue\">\n          <button type=\"submit\" form={formId} className=\"admin-button\" disabled={!ready}>\n            Issue and email\n          </button>\n        </RoleGate>\n        {children}\n      </div>\n      </form>\n",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "opens no Issue confirmation when a waiver is submitted"
+  },
+  {
+    "id": "b6-s7-form-guard",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/InvoiceForm.tsx",
+    "find": "if (ready) setConfirming(true);",
+    "replace": "setConfirming(true);",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "refuses a submit of the Issue form while it is not ready"
+  },
+  {
+    "id": "b6-s7-submit-request-id",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/use-submit.ts",
+    "find": "return `${failure.message} Request ${failure.requestId}.`;",
+    "replace": "return failure.message;",
+    "run": "bunx vitest run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "opens no Issue confirmation when a waiver is submitted"
+  },
+  {
+    "id": "b6-g3-e2e-guard",
+    "kind": "manual",
+    "test": "tests/e2e/admin-invoice.spec.ts",
+    "file": "tests/e2e/admin-invoice.spec.ts",
+    "find": "test.skip(!process.env[\"E2E_FULL_STACK\"], \"needs the job runner and B7's activation\");",
+    "replace": "test.skip(false, \"needs the job runner and B7's activation\");",
+    "run": "DEV_DB_URL= E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts --reporter=line",
+    "expect": "refusing: DEV_DB_URL is not set",
+    "what": "by hand (the run starts Playwright's webServer, which CI's db job does not have): with the guard gone and no stack the spec fails in beforeAll instead of skipping"
+  },
+  {
+    "id": "b6-g3-e2e-mail-status",
+    "kind": "manual",
+    "test": "tests/e2e/admin-invoice.spec.ts",
+    "file": "tests/e2e/admin-invoice.spec.ts",
+    "find": ".toMatch(/^(sent|delivered)$/);",
+    "replace": ".toBe(\"sent\");",
+    "run": "E2E_FULL_STACK=1 E2E_RESEND=1 E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts",
+    "expect": "Expected: \"sent\"",
+    "what": "not replayable until PR 213 (B7 step 7) is on main and EMAIL_LIVE=1 is set on the runner: the seventh test sits behind six serial tests that need the job runner and create_property_from_submission. Replay by hand then; the row reads delivered once the dev webhook (email.delivered) has run, so the exact-sent mutant is red only if the first poll already reads delivered (expect.poll stops at the first match). When replayed, record the status the row had at the first poll; a sent first read leaves the mutant green."
   }
 ]
