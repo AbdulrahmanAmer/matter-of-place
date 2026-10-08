@@ -47,7 +47,9 @@ import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slu
 import { Route as AdminAssetsIndexRouteImport } from './routes/admin/assets.index'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
 import { Route as AdminAutomationEmailsRouteImport } from './routes/admin/automation.emails'
+import { Route as AdminAutomationReasonsRouteImport } from './routes/admin/automation.reasons'
 import { Route as AdminAutomationRecipesRouteImport } from './routes/admin/automation.recipes'
+import { Route as AdminAutomationSettingsRouteImport } from './routes/admin/automation.settings'
 import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
 import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
 import { Route as AdminInvoicesIdRouteImport } from './routes/admin/invoices.$id'
@@ -350,9 +352,19 @@ const AdminAutomationEmailsRoute = AdminAutomationEmailsRouteImport.update({
   path: '/automation/emails',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAutomationReasonsRoute = AdminAutomationReasonsRouteImport.update({
+  id: '/automation/reasons',
+  path: '/automation/reasons',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAutomationRecipesRoute = AdminAutomationRecipesRouteImport.update({
   id: '/automation/recipes',
   path: '/automation/recipes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAutomationSettingsRoute = AdminAutomationSettingsRouteImport.update({
+  id: '/automation/settings',
+  path: '/automation/settings',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminChannelsIndexRoute = AdminChannelsIndexRouteImport.update({
@@ -993,7 +1005,9 @@ export interface FileRoutesByFullPath {
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
+  '/admin/automation/reasons': typeof AdminAutomationReasonsRoute
   '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
+  '/admin/automation/settings': typeof AdminAutomationSettingsRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
@@ -1137,7 +1151,9 @@ export interface FileRoutesByTo {
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
+  '/admin/automation/reasons': typeof AdminAutomationReasonsRoute
   '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
+  '/admin/automation/settings': typeof AdminAutomationSettingsRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
@@ -1286,7 +1302,9 @@ export interface FileRoutesById {
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
+  '/admin/automation/reasons': typeof AdminAutomationReasonsRoute
   '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
+  '/admin/automation/settings': typeof AdminAutomationSettingsRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
@@ -1435,7 +1453,9 @@ export interface FileRouteTypes {
     | '/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/automation/emails'
+    | '/admin/automation/reasons'
     | '/admin/automation/recipes'
+    | '/admin/automation/settings'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
     | '/admin/people/$id'
@@ -1579,7 +1599,9 @@ export interface FileRouteTypes {
     | '/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/automation/emails'
+    | '/admin/automation/reasons'
     | '/admin/automation/recipes'
+    | '/admin/automation/settings'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
     | '/admin/people/$id'
@@ -1727,7 +1749,9 @@ export interface FileRouteTypes {
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/automation/emails'
+    | '/admin/automation/reasons'
     | '/admin/automation/recipes'
+    | '/admin/automation/settings'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
     | '/admin/people/$id'
@@ -2169,11 +2193,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAutomationEmailsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/automation/reasons': {
+      id: '/admin/automation/reasons'
+      path: '/automation/reasons'
+      fullPath: '/admin/automation/reasons'
+      preLoaderRoute: typeof AdminAutomationReasonsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/automation/recipes': {
       id: '/admin/automation/recipes'
       path: '/automation/recipes'
       fullPath: '/admin/automation/recipes'
       preLoaderRoute: typeof AdminAutomationRecipesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/automation/settings': {
+      id: '/admin/automation/settings'
+      path: '/automation/settings'
+      fullPath: '/admin/automation/settings'
+      preLoaderRoute: typeof AdminAutomationSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/channels/': {
@@ -3020,7 +3058,9 @@ interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
   AdminAutomationEmailsRoute: typeof AdminAutomationEmailsRoute
+  AdminAutomationReasonsRoute: typeof AdminAutomationReasonsRoute
   AdminAutomationRecipesRoute: typeof AdminAutomationRecipesRoute
+  AdminAutomationSettingsRoute: typeof AdminAutomationSettingsRoute
   AdminInvoicesIdRoute: typeof AdminInvoicesIdRoute
   AdminInvoicesNewRoute: typeof AdminInvoicesNewRoute
   AdminPeopleIdRoute: typeof AdminPeopleIdRoute
@@ -3039,7 +3079,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
   AdminAutomationEmailsRoute: AdminAutomationEmailsRoute,
+  AdminAutomationReasonsRoute: AdminAutomationReasonsRoute,
   AdminAutomationRecipesRoute: AdminAutomationRecipesRoute,
+  AdminAutomationSettingsRoute: AdminAutomationSettingsRoute,
   AdminInvoicesIdRoute: AdminInvoicesIdRoute,
   AdminInvoicesNewRoute: AdminInvoicesNewRoute,
   AdminPeopleIdRoute: AdminPeopleIdRoute,

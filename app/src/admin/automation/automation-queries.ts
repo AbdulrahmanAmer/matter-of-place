@@ -1,21 +1,44 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminKeys, invalidateAfterWrite } from "../query";
 import type { EmailTemplateKey } from "../../domain/email";
+import type { FeatureFlag } from "../../domain/flags";
 import {
+  fetchChannelSettings,
+  fetchFlags,
   fetchPreview,
+  fetchReasons,
   fetchRecipes,
+  fetchScheduleSettings,
   fetchTemplates,
+  postReason,
   postSendTest,
+  putChannelSettings,
+  putFlags,
+  putReason,
+  putReasonOrder,
   putRecipe,
+  putScheduleSettings,
   putTemplate,
   runDryRun,
+  type ChannelPatch,
+  type ChannelRow,
+  type ReasonDraft,
+  type ReasonPatch,
   type RecipePatch,
+  type SchedulePatch,
   type TemplatePatch,
 } from "./automation-api";
 
 export type {
+  ChannelPatch,
+  ChannelRow,
+  ReasonDraft,
+  ReasonPatch,
+  ReasonRow,
   RecipePatch,
   RecipeRow,
+  SchedulePatch,
+  ScheduleRow,
   Step,
   StepField,
   StepSpecView,
@@ -85,4 +108,86 @@ export function useTemplatePreview(
 /** Queues a job that mails the admin; it changes no row an admin screen shows, so no query refetches. */
 export function useSendTest() {
   return useMutation({ mutationFn: (key: EmailTemplateKey) => postSendTest(key) });
+}
+
+/** The decline reasons in the order of screen 19. */
+export function useReasons() {
+  return useQuery({
+    queryKey: adminKeys.automation.reasons(),
+    queryFn: fetchReasons,
+  });
+}
+
+/** A new reason, or an edit of one; the next decline email reads it. */
+export function useSaveReason() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: string | null; draft: ReasonDraft; patch: ReasonPatch }) =>
+      input.id === null ? postReason(input.draft) : putReason(input.id, input.patch),
+    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),
+  });
+}
+
+/** One request with every id in the order wanted. */
+export function useReorderReasons() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: readonly string[]) => putReasonOrder(ids),
+    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),
+  });
+}
+
+/** One row per channel; the rows carry no `credentials_ref`. */
+export function useChannelSettings() {
+  return useQuery({
+    queryKey: adminKeys.automation.channels(),
+    queryFn: fetchChannelSettings,
+  });
+}
+
+export function useSaveChannel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channel, patch }: { channel: ChannelRow["channel"]; patch: ChannelPatch }) =>
+      putChannelSettings(channel, patch),
+    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),
+  });
+}
+
+/** The eight clocks, each with the next run the scheduler computes. */
+export function useScheduleSettings() {
+  return useQuery({
+    queryKey: adminKeys.automation.schedules(),
+    queryFn: fetchScheduleSettings,
+  });
+}
+
+export function useSaveSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ key, patch }: { key: string; patch: SchedulePatch }) =>
+      putScheduleSettings(key, patch),
+    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),
+  });
+}
+
+/** The feature flags, read by every role; screens 20 and 24 both show them. */
+export function useFlags() {
+  return useQuery({
+    queryKey: adminKeys.settings.list({ flags: true }),
+    queryFn: fetchFlags,
+  });
+}
+
+/** A flag changes the next public read within one state interval; settings and automation both refetch. */
+export function useSaveFlag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ flag, value }: { flag: FeatureFlag; value: boolean }) =>
+      putFlags({ [flag]: value }),
+    onSettled: async () => {
+      await invalidateAfterWrite(queryClient, adminKeys.settings.all());
+      await queryClient.invalidateQueries({ queryKey: adminKeys.automation.all() });
+    },
+  });
 }

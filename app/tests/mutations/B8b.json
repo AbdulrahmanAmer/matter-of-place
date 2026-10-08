@@ -2527,5 +2527,247 @@
     "replace": "<p role=\"alert\">{dryRun.error.message}</p>",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
     "expect": "FAIL .*the dry run > names the request id when the dry run fails"
+  },
+  {
+    "id": "b8b-g9-reasons-order",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "{items.map((item, index) => (",
+    "replace": "{[...items].reverse().map((item, index) => (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*the list > shows the reasons in the order"
+  },
+  {
+    "id": "b8b-g9-reasons-role",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "<RoleGate action=\"automation.reasons_put\">\n        <section",
+    "replace": "<RoleGate action=\"automation.get\">\n        <section",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*the list > offers no edit control"
+  },
+  {
+    "id": "b8b-g9-reasons-add",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "postReason(input.draft)",
+    "replace": "postReason({ ...input.draft, label: \"x\" })",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*adding > sends the new reason"
+  },
+  {
+    "id": "b8b-g9-reasons-check",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "if (Object.keys(problemsOf(draft)).length > 0) return;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*adding > names the field that is not ready"
+  },
+  {
+    "id": "b8b-g9-reasons-refused",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "{save.isError ? <RequestFailure error={save.error} className=\"admin-field__error\" /> : null}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*adding > shows the server's words"
+  },
+  {
+    "id": "b8b-g9-reasons-code-fixed",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "disabled={reason !== null}",
+    "replace": "disabled={false}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*editing > sends the changed fields"
+  },
+  {
+    "id": "b8b-g9-reasons-swap",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "ids[from] = neighbour;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*reordering > sends one request"
+  },
+  {
+    "id": "b8b-g9-reasons-ends",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "disabled={index === 0 || reorder.isPending}",
+    "replace": "disabled={reorder.isPending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*reordering > cannot move the first"
+  },
+  {
+    "id": "b8b-g9-settings-tz",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/channel-draft.ts",
+    "find": "tz: draft.tz,",
+    "replace": "tz: \"America/Los_Angeles\",",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a channel's window > saves a window in America/New_York"
+  },
+  {
+    "id": "b8b-g9-settings-zones",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/channel-draft.ts",
+    "find": "return offered.includes(stored) ? offered : [stored, ...offered];",
+    "replace": "return offered;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a channel's window > offers the three zones"
+  },
+  {
+    "id": "b8b-g9-settings-cap",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/channel-draft.ts",
+    "find": "cap < 1 ||",
+    "replace": "cap < 0 ||",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a channel's window > refuses a daily cap of 0"
+  },
+  {
+    "id": "b8b-g9-settings-window",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/channel-draft.ts",
+    "find": "\"posting_window.from\": \"from\",",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a channel's window > refuses a window that ends"
+  },
+  {
+    "id": "b8b-g9-settings-flag-gate",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ChannelSettingsForm.tsx",
+    "find": "const gated = channel === \"facebook\" || channel === \"youtube\";",
+    "replace": "const gated = false;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the blocked channels > keeps the Facebook and YouTube switches off"
+  },
+  {
+    "id": "b8b-g9-settings-youtube-step",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ChannelSettingsForm.tsx",
+    "find": "|| channelSteps[channel] === null",
+    "replace": "|| false",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the blocked channels > lets Facebook be switched on"
+  },
+  {
+    "id": "b8b-g9-settings-health-404",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/SettingsPage.tsx",
+    "find": "if (found === undefined || !found.connected) return \"Not connected\";",
+    "replace": "if (found === undefined) return \"Connected\";\n  if (!found.connected) return \"Not connected\";",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*sign-in status > reads not connected when the health route is missing"
+  },
+  {
+    "id": "b8b-g9-settings-expired",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/SettingsPage.tsx",
+    "find": "return daysLeft !== null && daysLeft < 0 ? \"Expired\" : \"Connected\";",
+    "replace": "return \"Connected\";",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*sign-in status > reads connected and expired"
+  },
+  {
+    "id": "b8b-g9-settings-next-run",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "<LocalTime value={row.next_run_at} />",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > shows the next run in UTC"
+  },
+  {
+    "id": "b8b-g9-settings-dst-note",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/SettingsPage.tsx",
+    "find": "twice a year",
+    "replace": "now and then",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > says that a clock moves"
+  },
+  {
+    "id": "b8b-g9-settings-external",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "readonly string[] = [\"keepwarm\", \"audit\", \"backup\"];",
+    "replace": "readonly string[] = [\"audit\", \"backup\"];",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > shows an external clock's cron read only"
+  },
+  {
+    "id": "b8b-g9-settings-interval",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "patch.interval_days = days;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > saves a switched clock"
+  },
+  {
+    "id": "b8b-g9-settings-no-cron",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "if (!external) patch.cron = draft.cron.trim();",
+    "replace": "patch.cron = draft.cron.trim();",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > sends no cron for an external clock"
+  },
+  {
+    "id": "b8b-g9-settings-cron-check",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "if (!parsed.success) {",
+    "replace": "if (!parsed.success && false) {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > refuses a cron that has not five fields"
+  },
+  {
+    "id": "b8b-g9-settings-role",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ChannelSettingsForm.tsx",
+    "find": "<RoleGate action=\"automation.channels_put\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a role without the write > shows the settings and no save control"
+  },
+  {
+    "id": "b8b-g9-flags-save",
+    "test": "src/admin/settings/FlagsSection.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "putFlags({ [flag]: value })",
+    "replace": "putFlags({ [flag]: value, new_channels: true })",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/FlagsSection.test.tsx",
+    "expect": "FAIL .*the feature flags > saves archive pages with one request"
+  },
+  {
+    "id": "b8b-g9-flags-lines",
+    "test": "src/admin/settings/FlagsSection.test.tsx",
+    "file": "src/admin/settings/FlagsSection.tsx",
+    "find": "<p className=\"admin-field__hint\">{flagLabels[flag]}</p>",
+    "replace": "<p className=\"admin-field__hint\">{flag}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/FlagsSection.test.tsx",
+    "expect": "FAIL .*the feature flags > describes each flag in a line"
+  },
+  {
+    "id": "b8b-g9-flags-role",
+    "test": "src/admin/settings/FlagsSection.test.tsx",
+    "file": "src/admin/settings/FlagsSection.tsx",
+    "find": "disabled={!canEdit || save.isPending}",
+    "replace": "disabled={save.isPending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/FlagsSection.test.tsx",
+    "expect": "FAIL .*the feature flags > shows the flags to a role that cannot change them"
+  },
+  {
+    "id": "b8b-g9-settings-no-secret",
+    "kind": "manual",
+    "test": "src/admin/automation/settings.test.tsx",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "× .*sign-in status > reads connected and expired",
+    "procedure": "Two files: the row schema drops `credentials_ref` and the form never draws it, so a one-file mutation stays green. Replay: in src/admin/automation/automation-api.ts replace `.omit({ credentials_ref: true })` with an empty string, then in src/admin/automation/ChannelSettingsForm.tsx replace `{label} on` with `{label} on {JSON.stringify(row)}`; the case that reads the health route goes red on `expect(document.body.innerHTML).not.toContain(SECRET)` (the two blocked-channel cases go red as well, because their label text changed); restore both. Measured 2026-10-08."
   }
 ]

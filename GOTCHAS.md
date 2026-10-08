@@ -255,6 +255,7 @@ Entry template
 - hit again: 2026-10-05, B12 g1: a heredoc patch turned a backslash-n into a real line break in the file it patched, and a patch script whose find string did not match changed nothing; each cost a second pass and the file was fixed with the Edit tool and read back with `grep -n` (recorded by the g1 review follow-up, which found this entry without a hit-again line).
 - hit again: 2026-10-05, B7 g1: the first attempt named a heredoc and `node -e` cost under this entry in its report, without the detail (UNPROVEN which text broke); the second attempt wrote each patch as a script file in the scratchpad (quoted heredocs, some holding `\n` escapes, which arrived intact this time, and the Write tool), each checking that its `find` occurs once, and none failed.
 - hit again: 2026-10-07, B10 g6 fix round: a heredoc patch script lost the backslashes of a `new RegExp("...\\*...")` and failed with `Invalid regular expression: Nothing to repeat`; written again with the Write tool, without a regular expression.
+- hit again: 2026-10-08, B8b g9: a heredoc holding a test file with an apostrophe in a title ("the editor's note") ended in `unexpected EOF` and wrote nothing; the file went in with the Write tool.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -5380,6 +5381,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a test that asserts a control is locked by a role gate uses `element.matches(":disabled")`, never the `disabled` property or attribute of the control.
 - proof: `cd app && node scripts/watchfail.mjs --file src/admin/automation/recipes.test.tsx --find 'getByLabelText("Name").matches(":disabled")' --replace 'getByLabelText("Name").hasAttribute("disabled")' --run 'bunx vitest run --project component src/admin/automation/recipes.test.tsx -t "without the recipes permission"' --expect 'FAIL .*without the recipes permission'` → `WATCHED-FAIL OK` (2026-10-08).
 - added: 2026-10-08
+- hit again: 2026-10-08, B8b g9: `expect(select).toHaveProperty("disabled", true)` for a channel form locked by `RoleGate` failed in `settings.test.tsx`; `.matches(":disabled")` fixed it, found by the first run (cost one run).
 
 ## P-2508 · `watchfail.mjs --registry --changed origin/main` in a lane that holds several groups replays the whole slice, and a kill leaves mutated source files behind
 - symptom: B8b g7's rework ran `--changed origin/main` to replay its own entries; it selected every entry of groups 1 to 8, ran past the 120 s tool timeout and moved to the background. Starting a second replay beside it, then killing both, left `RecipeList.tsx`, `src/server/lib/admin-response.ts` and `admin-route.ts` mutated in the tree (`git status` showed them modified).
@@ -5421,4 +5423,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the lane rewrote the rule line of P-1917 (step 7a, `x-mop-cache: bypass`); main still holds the base text of that line, so the git merge takes the lane's body cleanly, but `lostLines(theirsById, "main")` reports every main line absent from the result, including lines the lane changed against an unchanged base.
 - rule: a main line that equals the base line and is absent from the result is a lane edit, not a loss; until `workspace/05-plans/bank-merge.mjs` skips such lines (a plan change, ruling needed), a merge-only run returns blocked with the helper's words, never resolves GOTCHAS.md by hand (P-525).
 - proof: `git show 6eda9a41:GOTCHAS.md | awk '/^## P-1917/{f=1;next}/^## /{f=0}f' | grep '^- rule' | md5sum` equals the same command on `origin/main` -> same hash (main's line is the base's).
+- added: 2026-10-08
+
+## P-2509 · A plan step that has the browser call a server function breaks R06: `stepForChannel` sits behind the job runner's step registry
+- symptom: B8b step 9 says the YouTube switch stays off "while `stepForChannel("youtube")` is null". That function is in `src/server/automation/catalog.ts`, which imports `../jobs/steps/index.ts`; browser code may not import `src/server` (R06), so the form could not call it as written. The first form that used the table directly (`channelSteps.youtube === null`) then failed lint with `no-unnecessary-condition` ("comparison is always true"), because an `as const` table knows the answer for the literal key.
+- cause: the plan named the function, not the layer; the table behind it is plain data.
+- rule: the channel-to-step table is `channelSteps` in `src/domain/automation.ts` (`as const satisfies Record<Channel, string | null>`); `stepForChannel` in the catalog returns it typed as `StepType | null` for the planner, and the browser reads the table by a key typed `Channel` (`channelSteps[channel] === null`, never a literal key). A plan line that has a screen call a server function names the domain table instead.
+- proof: `cd app && bunx vitest run --project unit tests/unit/automation/catalog.test.ts -t "maps each channel"` passes; `bunx vitest run --project component src/admin/automation/settings.test.tsx -t "blocked channels"` passes and entry `b8b-g9-settings-youtube-step` turns "lets Facebook be switched on" red (2026-10-08).
+- added: 2026-10-08
+
+## P-2510 · A new screen test that copies the fetch stub and router mount of an older one trips jscpd at 0.0%, and `bun run check` shows it only after lint and knip
+- symptom: B8b g9's `bun run check` stopped four times in a row: a lint error, then knip (an exported type and an exported constant nothing imported), then jscpd (`Clone found (tsx)`: 13 lines of `emails.test.tsx`, the `vi.stubGlobal("fetch", ...)`, layout and `mountRoutes` block, repeated in `reasons.test.tsx` and `settings.test.tsx`).
+- cause: `check` runs its gates in order and stops at the first red one; the screen tests of one folder share a setup block, and the threshold is no clone at all.
+- rule: before the first `check` of a new screen, run `bun run knip` and `bun run jscpd` by themselves (seconds each); the setup block of a screen test goes through `mountAdminPage` in `src/admin/automation/test-mount.tsx` and a helper or type is exported only when another file imports it.
+- proof: `cd app && bun run jscpd` exits 0 with `reasons.test.tsx` and `settings.test.tsx` importing `mountAdminPage`; before the helper existed the same command printed `Found 2 clones` and `ERROR: jscpd found too many duplicates (0.0%) over threshold (0.0%)`, naming `emails.test.tsx [105:93 - 117:22]` (2026-10-08).
 - added: 2026-10-08

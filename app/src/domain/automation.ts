@@ -76,6 +76,19 @@ export const channels = [
 ] as const;
 export type Channel = (typeof channels)[number];
 
+/**
+ * The catalog step that posts to each channel, `null` where none does. The browser reads it to keep a channel's switch
+ * off (screen 20); `stepForChannel` in `server/automation/catalog.ts` answers the planner from the same table.
+ */
+export const channelSteps = {
+  instagram: "post_meta",
+  facebook: "post_meta",
+  x: "post_x",
+  linkedin: "post_linkedin",
+  newsletter: "queue_digest",
+  youtube: null,
+} as const satisfies Record<Channel, string | null>;
+
 const wallTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use 24 hour time, HH:MM");
 
 function isTimeZone(value: string): boolean {
