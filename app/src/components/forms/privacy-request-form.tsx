@@ -15,8 +15,9 @@ import { Field } from "./field";
 import { DeliveryNotice, FormError, SentNotice } from "./form-notice";
 import { Honeypot } from "./honeypot";
 
-export function PrivacyRequestForm({ kind: initialKind }: { kind?: SubjectRequest["kind"] }) {
-  const [kind, setKind] = useState<SubjectRequest["kind"]>(initialKind ?? subjectRequestKinds[0]);
+export function PrivacyRequestForm({ kind: linked }: { kind?: SubjectRequest["kind"] }) {
+  const [chosen, setChosen] = useState<SubjectRequest["kind"]>();
+  const kind = chosen ?? linked ?? subjectRequestKinds[0];
   const { state, run, pending } = useAsyncAction((form: HTMLFormElement) => {
     const data = new FormData(form);
     const note = formText(data, "note");
@@ -56,7 +57,7 @@ export function PrivacyRequestForm({ kind: initialKind }: { kind?: SubjectReques
               value={option}
               checked={kind === option}
               onChange={() => {
-                setKind(option);
+                setChosen(option);
               }}
             />
             {t.privacyRequest.kinds[option]}

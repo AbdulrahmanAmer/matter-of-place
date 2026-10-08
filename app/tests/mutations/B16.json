@@ -727,10 +727,37 @@
     "id": "b16-g6-preselect-form",
     "test": "tests/unit/privacy-request.test.tsx",
     "file": "src/components/forms/privacy-request-form.tsx",
-    "find": "useState<SubjectRequest[\"kind\"]>(initialKind ?? subjectRequestKinds[0])",
-    "replace": "useState<SubjectRequest[\"kind\"]>(subjectRequestKinds[0])",
+    "find": "chosen ?? linked ?? subjectRequestKinds[0]",
+    "replace": "chosen ?? subjectRequestKinds[0]",
     "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
     "expect": "FAIL .*> the link from the privacy page > preselects opt out"
+  },
+  {
+    "id": "b16-g6-preselect-page",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/routes/_site.privacy-request.tsx",
+    "find": "hydrated && kind !== undefined ? { kind } : {}",
+    "replace": "{}",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page, through the stored page > stores the page without the kind"
+  },
+  {
+    "id": "b16-g6-stored-ignores-kind",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/routes/_site.privacy-request.tsx",
+    "find": "    () => false,\n  );",
+    "replace": "    () => true,\n  );",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page, through the stored page > stores the page without the kind"
+  },
+  {
+    "id": "b16-g6-click-wins",
+    "test": "tests/unit/privacy-request.test.tsx",
+    "file": "src/components/forms/privacy-request-form.tsx",
+    "find": "setChosen(option);",
+    "replace": "setChosen(linked ?? option);",
+    "run": "bunx vitest run --project component tests/unit/privacy-request.test.tsx",
+    "expect": "FAIL .*> the link from the privacy page, through the stored page > submits the kind the visitor clicks"
   },
   {
     "id": "b16-g6-track-always",

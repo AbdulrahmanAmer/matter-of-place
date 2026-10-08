@@ -1,10 +1,22 @@
 // B16 step 6: the privacy request form offers the four kinds, carries the honeypot, preselects from the link on the
 // privacy page, tracks after a received request only, and keeps what was typed when the send fails.
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  RouterProvider,
+} from "@tanstack/react-router";
+import { createElement } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { PrivacyRequestForm } from "../../src/components/forms/privacy-request-form";
 import { subjectRequestKinds } from "../../src/domain/contracts";
+import type * as Analytics from "../../src/lib/analytics";
 import { track } from "../../src/lib/analytics";
 import { getTurnstileToken } from "../../src/lib/turnstile";
 import { Route } from "../../src/routes/_site.privacy-request";
@@ -12,7 +24,10 @@ import { services, ServiceError } from "../../src/services";
 import { createHttpServices } from "../../src/services/http";
 import type { FetchImpl } from "../../src/services/http/client";
 
-vi.mock("../../src/lib/analytics", () => ({ track: vi.fn() }));
+vi.mock("../../src/lib/analytics", async (importOriginal) => ({
+  ...(await importOriginal<typeof Analytics>()),
+  track: vi.fn(),
+}));
 vi.mock("../../src/lib/turnstile", () => ({ getTurnstileToken: vi.fn() }));
 
 const RECEIPT = { id: "r1", receivedAt: "2026-10-08T10:00:00Z" };
@@ -64,6 +79,79 @@ describe("the link from the privacy page", () => {
     expect(
       screen.getByRole<HTMLInputElement>("radio", { name: "Know what you hold about me" }).checked,
     ).toBe(false);
+  });
+});
+
+describe("the link from the privacy page, through the stored page", () => {
+  const path = "/privacy-request?kind=opt_out";
+  const checkedKind = (root: ParentNode) =>
+    root.querySelector<HTMLInputElement>('input[name="kind"]:checked')?.value;
+
+  /** The page of the real route, with its own search validation, under a bare root: the document shell is not under test. */
+  async function routerAt(location: string) {
+    const { component, validateSearch } = Route.options;
+    if (component === undefined) throw new Error("the route has no component");
+    const root = createRootRoute({ component: Outlet });
+    const page = createRoute({
+      getParentRoute: () => root,
+      id: Route.id,
+      path: "/privacy-request",
+      ...(validateSearch === undefined ? {} : { validateSearch }),
+      component,
+    });
+    const router = createRouter({
+      routeTree: root.addChildren([page]),
+      history: createMemoryHistory({ initialEntries: [location] }),
+    });
+    await router.load();
+    return createElement(RouterProvider, { router });
+  }
+
+  async function hydratedAt(location: string) {
+    const stored = renderToString(await routerAt(location));
+    const container = document.createElement("div");
+    container.innerHTML = stored;
+    document.body.append(container);
+    const serverKind = checkedKind(container);
+    await act(async () => {
+      hydrateRoot(container, await routerAt(location));
+    });
+    return { container, serverKind };
+  }
+
+  async function send(container: HTMLElement) {
+    const request = vi.spyOn(services.subjects, "request").mockResolvedValue({ ok: true });
+    fireEvent.change(container.querySelector('input[name="email"]') ?? container, {
+      target: { value: "reader@example.com" },
+    });
+    fireEvent.submit(container.querySelector("form") ?? container);
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+    return request;
+  }
+
+  it("stores the page without the kind, then selects it after hydration and submits it", async () => {
+    const { container, serverKind } = await hydratedAt(path);
+    expect(serverKind).toBe("access");
+    await waitFor(() => {
+      expect(checkedKind(container)).toBe("opt_out");
+    });
+    const request = await send(container);
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ kind: "opt_out" }));
+    container.remove();
+  });
+
+  it("submits the kind the visitor clicks after the link's kind was applied", async () => {
+    const { container } = await hydratedAt(path);
+    await waitFor(() => {
+      expect(checkedKind(container)).toBe("opt_out");
+    });
+    fireEvent.click(container.querySelector('input[value="access"]') ?? container);
+    expect(checkedKind(container)).toBe("access");
+    const request = await send(container);
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ kind: "access" }));
+    container.remove();
   });
 });
 
