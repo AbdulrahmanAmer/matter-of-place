@@ -6002,3 +6002,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a cost for a restamp after a merge of main cites P-2314, and one for a check that printed OK or crashed because the rename was not committed cites P-318, each with a "hit again" line when the lane hit it again. Open the entry before citing it (P-2456).
 - proof: `awk '/^## P-511 /{f=1;next} /^## /{f=0} f' GOTCHAS.md | grep -c "restamp\|migrations:check\|committed"` → `0`; the same filter on `P-318` with `committ` → `4`, on `P-2314` with `restamp` → `2`.
 - added: 2026-10-08
+
+## P-2464 · The lane's restamp commit renamed the standalone migration but left the old version in a test's relative path, so `check` fails on ENOENT in CI and the merge gate stops
+- symptom: PR 227 `check` job: `tests/unit/email/render.test.ts > equals the standalone row the B11 migration sets` fails with ENOENT on `supabase/migrations/20261008141205_standalone_template.sql`; locally `bun run migrations:restamp` says "nothing to do" because the renames are already ahead of main, so the tool cannot repair it.
+- cause: commit 1532632f renamed the five lane migrations (141201 to 170647 and so on) but its diff touches no file under `app/tests`; the test still names 141205. The restamp script rewrites every tracked file, so that commit was not produced by one clean run of it (how the test file was missed is not proven).
+- rule: after any restamp, run `grep -rn "<each old version>" app workspace` from the tree root before committing; a hit is a missed reference to fix in the same commit. A merge-only run does not fix it: it returns blocked naming the file.
+- proof: `grep -rn "20261008141205" app/tests` -> one hit in `app/tests/unit/email/render.test.ts` while `ls app/supabase/migrations | grep standalone` prints `20261008170650_standalone_template.sql` (2026-10-08, B11 merge run).
+- added: 2026-10-08
