@@ -116,13 +116,10 @@ begin
       returning * into v_schedule;
       v_after := to_jsonb(v_schedule);
   end case;
-  -- STUB(B8b step 6): unconditional write_audit
-  if to_regproc('public.write_audit') is not null then
-    perform public.write_audit(
-      p_actor, p_actor_kind, 'automation.revisions_restore', v_revision.table_name, v_revision.row_id, v_before,
-      v_after, p_request_id, null
-    );
-  end if;
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'automation.revisions_restore', v_revision.table_name, v_revision.row_id, v_before,
+    v_after, p_request_id, null
+  );
   return v_after;
 end;
 $$;

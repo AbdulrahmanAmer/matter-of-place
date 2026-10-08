@@ -1,8 +1,8 @@
 import { appRoles } from "../../../domain/contracts.ts";
 import type { PermissionEntry } from "../authz.ts";
 
-// B8b's Permissions table. Its rows arrive with B7's `write_audit`, which refuses an action no `action_roles` row
-// holds, and B8b's guarded put functions call it from the moment it exists (P-2000).
+// B8b's Permissions table. Every put function of the group audits through `write_audit`, which refuses an action no
+// `action_roles` row holds: a change here regenerates that seed (P-2000).
 const writers = ["chief_editor", "media_ops", "admin"] as const;
 
 export const automation = [

@@ -357,7 +357,7 @@ describe("templates, reasons and channels", () => {
       );
       const { id } = await one<{ id: string }>(
         db,
-        `select public.automation_put_reason(null, '{"code": "test_reason", "label": "Test", "email_paragraph": "x"}',
+        `select public.automation_put_reason('{"code": "test_reason", "label": "Test", "email_paragraph": "x"}',
            $1, 'human', 'req-1') ->> 'id' as id`,
         [await staff(db, "human")],
       );
@@ -466,6 +466,177 @@ describe("automation_restore_revision", () => {
       ]);
     });
     expect(outcome).toBe("42501 human_only");
+  });
+});
+
+/** The actions of the `audit_log` rows written under `requestId`. */
+async function auditActions(db: Db, requestId: string): Promise<string[]> {
+  return (
+    await db.query<{ action: string }>(
+      "select action from public.audit_log where request_id = $1",
+      [requestId],
+    )
+  ).rows.map((row) => row.action);
+}
+
+type PutCall = (db: Db, actor: string, requestId: string) => Promise<unknown>;
+
+const putCalls: Record<string, PutCall> = {
+  automation_put_recipe: async (db, actor, requestId) => {
+    await recipe(db, "subject_request.received");
+    return db.query(
+      `select public.automation_put_recipe('subject_request.received', '{"name": "Audited"}', $1, 'human', $2)`,
+      [actor, requestId],
+    );
+  },
+  automation_put_template: async (db, actor, requestId) =>
+    db.query(
+      `select public.automation_put_template($1, '{"subject": "Audited"}', $2, 'human', $3)`,
+      [(await template(db)).key, actor, requestId],
+    ),
+  automation_put_channel: async (db, actor, requestId) => {
+    await db.query(
+      `insert into public.channel_settings (channel, posting_window) values ('facebook', '{"tz": "UTC"}')
+       on conflict (channel) do update set enabled = true`,
+    );
+    return db.query(
+      `select public.automation_put_channel('facebook', '{"enabled": false}', $1, 'human', $2)`,
+      [actor, requestId],
+    );
+  },
+  automation_put_schedule: async (db, actor, requestId) => {
+    await schedule(db, "digest");
+    return db.query(
+      `select public.automation_put_schedule('digest', '{"enabled": false}', $1, 'human', $2)`,
+      [actor, requestId],
+    );
+  },
+  automation_put_reason: (db, actor, requestId) =>
+    db.query(
+      `select public.automation_put_reason('{"code": "test_audit", "label": "Test", "email_paragraph": "x"}',
+         $1, 'human', $2)`,
+      [actor, requestId],
+    ),
+  automation_reorder_reasons: async (db, actor, requestId) => {
+    const ids = (
+      await db.query<{ id: string }>(
+        "select id from public.decline_reasons order by sort desc, code",
+      )
+    ).rows.map((row) => row.id);
+    return db.query("select public.automation_reorder_reasons($1, $2, 'human', $3)", [
+      ids,
+      actor,
+      requestId,
+    ]);
+  },
+  automation_restore_revision: async (db, actor, requestId) => {
+    const row = await recipe(db, "subject_request.received");
+    await db.query(
+      `select public.automation_put_recipe('subject_request.received', '{"name": "After"}', $1, 'human', 'req-edit')`,
+      [actor],
+    );
+    const edit = (await revisions(db, row.id)).find((r) => r.actor_id === actor);
+    if (edit === undefined) throw new Error("the edit wrote no revision");
+    return db.query("select public.automation_restore_revision($1, $2, 'human', $3)", [
+      edit.id,
+      actor,
+      requestId,
+    ]);
+  },
+};
+
+describe("audit (step 6, Permissions, DB-04)", () => {
+  it("one call of each put function writes exactly one audit_log row whose action is its matrix id", async () => {
+    const actions = await withRollback(async (db) => {
+      const actor = await staff(db, "human");
+      const written: Record<string, string[]> = {};
+      for (const [name, call] of Object.entries(putCalls)) {
+        const requestId = `req-${randomUUID()}`;
+        await call(db, actor, requestId);
+        written[name] = await auditActions(db, requestId);
+      }
+      return written;
+    });
+    expect(actions).toEqual({
+      automation_put_recipe: ["automation.recipes_put"],
+      automation_put_template: ["automation.templates_put"],
+      automation_put_channel: ["automation.channels_put"],
+      automation_put_schedule: ["automation.schedules_put"],
+      automation_put_reason: ["automation.reasons_put"],
+      automation_reorder_reasons: ["automation.reasons_put"],
+      automation_restore_revision: ["automation.revisions_restore"],
+    });
+  });
+
+  it("settings_put_flags writes the flags row and one automation.flags_put row with before and after", async () => {
+    const result = await withRollback(async (db) => {
+      await db.query(
+        `insert into public.settings (key, value) values ('flags', '{"archive_pages": false, "new_channels": false}')
+         on conflict (key) do update set value = excluded.value`,
+      );
+      const requestId = `req-${randomUUID()}`;
+      await db.query(
+        `select public.settings_put_flags('{"archive_pages": true}', $1, 'human', $2)`,
+        [await staff(db, "human"), requestId],
+      );
+      const { value } = await one<{ value: Record<string, boolean> }>(
+        db,
+        "select value from public.settings where key = 'flags'",
+      );
+      const audit = (
+        await db.query<{ action: string; before: unknown; after: unknown }>(
+          "select action, before, after from public.audit_log where request_id = $1",
+          [requestId],
+        )
+      ).rows;
+      return { value, audit };
+    });
+    expect(result).toEqual({
+      value: { archive_pages: true, new_channels: false },
+      audit: [
+        {
+          action: "automation.flags_put",
+          before: { archive_pages: false },
+          after: { archive_pages: true },
+        },
+      ],
+    });
+  });
+
+  it("no put function still holds the STUB(B8b step 6) guard", async () => {
+    const functions = await withRollback(
+      async (db) =>
+        (
+          await db.query<{ proname: string; guarded: boolean }>(
+            `select proname, prosrc like '%to_regproc%' as guarded from pg_proc
+             where pronamespace = 'public'::regnamespace and proname = any ($1) order by 1`,
+            [[...Object.keys(putCalls), "settings_put_flags"]],
+          )
+        ).rows,
+    );
+    expect(functions).toEqual(
+      [...Object.keys(putCalls), "settings_put_flags"]
+        .sort()
+        .map((proname) => ({ proname, guarded: false })),
+    );
+  });
+
+  it("automation_put_recipe with an agent's id and p_actor_kind human raises 42501 and leaves the recipe", async () => {
+    const result = await withRollback(async (db) => {
+      const row = await recipe(db, "subject_request.received");
+      const outcome = await attempt(
+        db,
+        `select public.automation_put_recipe('subject_request.received', '{"name": "Posing"}', $1, 'human', 'req-1')`,
+        [await staff(db, "agent")],
+      );
+      const { name } = await one<{ name: string }>(
+        db,
+        "select name from public.automation_recipes where id = $1",
+        [row.id],
+      );
+      return { outcome, name };
+    });
+    expect(result).toEqual({ outcome: "42501 forbidden", name: "Before" });
   });
 });
 
