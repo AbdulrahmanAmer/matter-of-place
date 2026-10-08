@@ -8,9 +8,10 @@ import { adminClient, signInAs } from "./helpers/session";
 // B8 step 10 (screen 16). One dead job is committed through the service role; its payload names a random property, so
 // the entity link and `?entity=` filter are checked against PostgREST on the database the Worker reads (the
 // `entityJobsFilter` text). Rows are never deleted: the delete of a job cascades into `job_events`, which is
-// append-only (`append_only`). The job carries the marker `e2e-jobs` and this run's id in its key and error, every
-// assertion finds it by that text, and the last test ends it through the admin cancel action, so it stays as a
-// cancelled row until the launch switch's `db:reset` clears it (ASSUMED H35 (4)). It writes rows, so
+// append-only (`append_only`). The job carries the marker `e2e-jobs` and this run's id in its key and error: the banner
+// assertions find it by that error text, the row assertions by its entity label. The last test ends it through the admin
+// cancel action, so it stays as a cancelled row until the launch switch's `db:reset` clears it (ASSUMED H35 (4)). A run
+// in which an earlier test fails leaves the job `dead` or `queued`, and nothing cancels it. It writes rows, so
 // `assertNotProduction` refuses once `settings.environment` is `production` (ruling H35 (5)) and the writer lock is
 // held from the start of `beforeAll` to the end of `afterAll` (G34). Its type, `e2e_jobs`, names no step in
 // `src/server/jobs/steps`, so a runner has no code for it.
@@ -21,6 +22,7 @@ const ID_PREFIX = 8;
 const runId = randomUUID();
 const propertyId = randomUUID();
 const entityLabel = `property ${propertyId.slice(0, ID_PREFIX)}`;
+const CANCEL_WAIT_MS = 15_000;
 const MARKER = "e2e-jobs";
 const error = `${MARKER} dead job ${runId}`;
 const key = `${MARKER}:${runId}`;
@@ -118,6 +120,7 @@ test("Cancel job ends the retried job as cancelled", async ({ browser }) => {
   await drawer.getByRole("button", { name: "Cancel job" }).click();
   const answered = page.waitForResponse(
     (response) => new URL(response.url()).pathname === `/api/admin/jobs/${jobId}/cancel`,
+    { timeout: CANCEL_WAIT_MS },
   );
   await page
     .getByRole("dialog", { name: "Cancel this job" })

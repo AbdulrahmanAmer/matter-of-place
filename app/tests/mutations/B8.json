@@ -2795,8 +2795,9 @@
     "file": "src/admin/jobs/jobs-api.ts",
     "find": "export const cancelJob = (id: string) => act(id, \"cancel\");",
     "replace": "export const cancelJob = (id: string) => act(id, \"retry\");",
-    "run": "E2E_TARGET=built E2E_PORT=8998 bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts --grep \"Cancel job ends\"",
-    "expect": "Test timeout of 30000ms exceeded"
+    "run": "export VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build && E2E_TARGET=built E2E_PORT=8998 bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts",
+    "expect": "Timeout 15000ms exceeded while waiting for event \"response\"",
+    "after": "export VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA && bun run build"
   },
   {
     "id": "b8g1-guard-spec",
