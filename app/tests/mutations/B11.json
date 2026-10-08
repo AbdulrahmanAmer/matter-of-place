@@ -2704,5 +2704,140 @@
     "find": "const DAY = 30;",
     "replace": "const DAY = 30;\nconst SECOND = \"staff+ceo@matterofplace.com\";",
     "expect": "FAIL.*names exactly one staff address"
+  },
+  {
+    "id": "b11g2-nts-guard-draft",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "await assertNotProduction({ dbUrl });",
+    "replace": "void dbUrl;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --make-draft > refuses after the launch switch"
+  },
+  {
+    "id": "b11g2-nts-i-mean-it",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "if (values[\"i-mean-it\"] !== true) return refuse(\"--i-mean-it required\");",
+    "replace": "void 0;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > refuses without --i-mean-it"
+  },
+  {
+    "id": "b11g2-nts-actor-required",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "if (!makingDraft && actor === undefined) return refuse(\"--actor <staff email> required\");",
+    "replace": "void 0;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > refuses without --i-mean-it or without --actor"
+  },
+  {
+    "id": "b11g2-nts-release-lock",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "    await release();",
+    "replace": "    void release;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > confirms each address"
+  },
+  {
+    "id": "b11g2-nts-draft-keep",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "if (open.blocks.length > 0) {",
+    "replace": "if (open.blocks.length < 0) {",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --make-draft > leaves a draft that already has blocks alone"
+  },
+  {
+    "id": "b11g2-nts-draft-newest",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "order by published_at desc limit 1",
+    "replace": "order by published_at asc limit 1",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --make-draft > saves one story block"
+  },
+  {
+    "id": "b11g2-nts-draft-no-story",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "console.log(\"no published story\");\n    return 1;",
+    "replace": "console.log(\"no published story\");\n    return 0;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --make-draft > exits 1 with no published story"
+  },
+  {
+    "id": "b11g2-nts-source-test",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "[email, hash, \"test\"],",
+    "replace": "[email, hash, \"web\"],",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > confirms each address"
+  },
+  {
+    "id": "b11g2-nts-lowercase",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": ".map((email) => email.trim().toLowerCase())",
+    "replace": ".map((email) => email.trim())",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > confirms each address"
+  },
+  {
+    "id": "b11g2-nts-send-now",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "select public.newsletter_approve_issue($1, null, $2, 'human', $3)",
+    "replace": "select public.newsletter_approve_issue($1, now() + interval '1 day', $2, 'human', $3)",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > confirms each address"
+  },
+  {
+    "id": "b11g2-nts-commit-before-approve",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "    await db.query(\"commit\");",
+    "replace": "    void 0;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > approves only after the subscribers are confirmed"
+  },
+  {
+    "id": "b11g2-nts-give-up",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "const GIVE_UP_MS = 300_000;",
+    "replace": "const GIVE_UP_MS = 30_000;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > prints the status and exits 1"
+  },
+  {
+    "id": "b11g2-nts-actor-lookup",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "if (actor === undefined) return refuse(`no human staff user",
+    "replace": "if (false) return refuse(`no human staff user",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > refuses an actor that is not a human staff user"
+  },
+  {
+    "id": "b11g2-nts-draft-blocks",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "draft === undefined || draft.blocks.length === 0",
+    "replace": "draft === undefined",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > refuses when the draft has no blocks"
+  },
+  {
+    "id": "b11g2-nts-rollback",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "scripts/newsletter-test-send.ts",
+    "find": "    await db.query(\"rollback\");",
+    "replace": "    void 0;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL.*> newsletter-test-send --to > rolls back and approves nothing"
   }
 ]
