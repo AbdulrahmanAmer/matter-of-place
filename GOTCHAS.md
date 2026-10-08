@@ -5892,3 +5892,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: on a conflict inside a list of pending items, first ask whether the sides added or removed. For a list that shrinks, drop every entry whose action now has a route on the merged tree, and let the test that reads the list say which: `cd app && bunx vitest run tests/unit/admin-routes-parity.test.ts` after the merge, with `stale` empty. Keep-both-sides applies to lists that only grow.
 - proof: `git show 18c062a3 --format= -- app/tests/unit/admin-routes-parity.test.ts | grep -c '^-  "'` → `2` (the two lines removed by the resolution that made the parity test pass).
 - added: 2026-10-08
+
+## P-2518 · A red `preview` job whose `wait` step ends "did not answer ten times" can be Cloudflare rate-limiting the workers.dev hostname, not the branch
+- symptom: B8b merge gate, PR 249 at c147c64d: deploy run 37820206822 failed at `wait` with `the Worker did not answer ten times in a row in 180 s`, then `observatory: no grade ... status 422, error scan-failed`; `gh run rerun --failed` failed the same way. `build`, `check`, `db` and `e2e` of the same head were green.
+- cause: `curl -s -D - https://pr-249.holy-meadow-4327.workers.dev/` answered `HTTP/1.1 429` with Cloudflare's page "This website has been temporarily rate limited" and no `x-request-id`, so the wait step's header test never matched. The deploy and secrets steps had succeeded: the Worker existed.
+- rule: before reading a `wait` failure as a branch defect, curl the preview URL with `-D -`: a 429 from Cloudflare's own page is the hostname rate limit; one rerun does not clear it, so wait before the second.
+- proof: `curl -s -o /dev/null -w "%{http_code}\n" https://pr-249.holy-meadow-4327.workers.dev/` printed `429` at 2026-10-08 18:07 +0000 while the same head's other jobs passed.
+- added: 2026-10-08
