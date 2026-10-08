@@ -4703,6 +4703,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - added: 2026-10-08
 - enforced-by: `tests/unit/watchfail.test.ts` ("--changed <ref> also replays an entry the registry gained since <ref>")
 
+## P-540 · `quiet.mjs -- bun run check | tail -1 && git commit ...` commits and pushes on a red check: the pipeline exit is tail's, not the check's
+- symptom: 2026-10-08 05:20, the watchfail PR (226) was pushed with its check having printed `quiet: exit 1`; the chain went on because `| tail -1` ended the pipeline with 0. The same check passed on the next run (load), so the red line's content is UNPROVEN.
+- cause: a pipeline's status is its last command's; `&&` after `| tail` tests tail.
+- rule: never pipe a gate before `&&`: run `node ../workspace/05-plans/quiet.mjs -- bun run check` on its own line and test `$?`, or `set -o pipefail` first; the gate's exit decides the push, not its last line.
+- proof: `bash -c 'false | tail -1 && echo pushed'` prints `pushed`; with `set -o pipefail` it prints nothing.
+- added: 2026-10-08
+
 ## P-538 · The root checkout is read by the board and shared with background gate chains: a `git checkout` there while another command runs puts edits on the wrong tree
 - symptom: 2026-10-07 09:05, a background chain's `git checkout --detach origin/main` ran while the orchestrator was re-anchoring registry entries on `chore/bundle-check-entry-lazy` in the same checkout; the edit landed on a detached main tree, the replay reported one entry STALE against the wrong file, and the work was redone in a worktree.
 - cause: one working tree, two writers; `git checkout` is global to the tree.
