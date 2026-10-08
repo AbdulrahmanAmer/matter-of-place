@@ -89,12 +89,15 @@ import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/publi
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
 import { Route as ApiAdminPeopleIdNotesRouteImport } from './routes/api/admin/people.$id.notes'
+import { Route as ApiAdminPropertiesIdAgentPreviewRouteImport } from './routes/api/admin/properties.$id.agent-preview'
 import { Route as ApiAdminPropertiesIdFeaturesRouteImport } from './routes/api/admin/properties.$id.features'
 import { Route as ApiAdminPropertiesIdPreviewTokenRouteImport } from './routes/api/admin/properties.$id.preview-token'
 import { Route as ApiAdminPropertiesIdPublishRouteImport } from './routes/api/admin/properties.$id.publish'
 import { Route as ApiAdminPropertiesIdRankRouteImport } from './routes/api/admin/properties.$id.rank'
 import { Route as ApiAdminPropertiesIdRelatedRouteImport } from './routes/api/admin/properties.$id.related'
+import { Route as ApiAdminPropertiesIdRevokePreviewsRouteImport } from './routes/api/admin/properties.$id.revoke-previews'
 import { Route as ApiAdminPropertiesIdTimelineRouteImport } from './routes/api/admin/properties.$id.timeline'
+import { Route as ApiAdminPropertiesIdUnpublishRouteImport } from './routes/api/admin/properties.$id.unpublish'
 import { Route as ApiAdminSubmissionsIdAcceptRouteImport } from './routes/api/admin/submissions.$id.accept'
 import { Route as ApiAdminSubmissionsIdAssetsReceivedRouteImport } from './routes/api/admin/submissions.$id.assets-received'
 import { Route as ApiAdminSubmissionsIdDeclineRouteImport } from './routes/api/admin/submissions.$id.decline'
@@ -522,6 +525,12 @@ const ApiAdminPeopleIdNotesRoute = ApiAdminPeopleIdNotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => ApiAdminPeopleIdRoute,
 } as any)
+const ApiAdminPropertiesIdAgentPreviewRoute =
+  ApiAdminPropertiesIdAgentPreviewRouteImport.update({
+    id: '/agent-preview',
+    path: '/agent-preview',
+    getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
 const ApiAdminPropertiesIdFeaturesRoute =
   ApiAdminPropertiesIdFeaturesRouteImport.update({
     id: '/features',
@@ -552,10 +561,22 @@ const ApiAdminPropertiesIdRelatedRoute =
     path: '/related',
     getParentRoute: () => ApiAdminPropertiesIdRoute,
   } as any)
+const ApiAdminPropertiesIdRevokePreviewsRoute =
+  ApiAdminPropertiesIdRevokePreviewsRouteImport.update({
+    id: '/revoke-previews',
+    path: '/revoke-previews',
+    getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
 const ApiAdminPropertiesIdTimelineRoute =
   ApiAdminPropertiesIdTimelineRouteImport.update({
     id: '/timeline',
     path: '/timeline',
+    getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
+const ApiAdminPropertiesIdUnpublishRoute =
+  ApiAdminPropertiesIdUnpublishRouteImport.update({
+    id: '/unpublish',
+    path: '/unpublish',
     getParentRoute: () => ApiAdminPropertiesIdRoute,
   } as any)
 const ApiAdminSubmissionsIdAcceptRoute =
@@ -693,12 +714,15 @@ export interface FileRoutesByFullPath {
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/properties/$id/agent-preview': typeof ApiAdminPropertiesIdAgentPreviewRoute
   '/api/admin/properties/$id/features': typeof ApiAdminPropertiesIdFeaturesRoute
   '/api/admin/properties/$id/preview-token': typeof ApiAdminPropertiesIdPreviewTokenRoute
   '/api/admin/properties/$id/publish': typeof ApiAdminPropertiesIdPublishRoute
   '/api/admin/properties/$id/rank': typeof ApiAdminPropertiesIdRankRoute
   '/api/admin/properties/$id/related': typeof ApiAdminPropertiesIdRelatedRoute
+  '/api/admin/properties/$id/revoke-previews': typeof ApiAdminPropertiesIdRevokePreviewsRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
+  '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
@@ -786,12 +810,15 @@ export interface FileRoutesByTo {
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/properties/$id/agent-preview': typeof ApiAdminPropertiesIdAgentPreviewRoute
   '/api/admin/properties/$id/features': typeof ApiAdminPropertiesIdFeaturesRoute
   '/api/admin/properties/$id/preview-token': typeof ApiAdminPropertiesIdPreviewTokenRoute
   '/api/admin/properties/$id/publish': typeof ApiAdminPropertiesIdPublishRoute
   '/api/admin/properties/$id/rank': typeof ApiAdminPropertiesIdRankRoute
   '/api/admin/properties/$id/related': typeof ApiAdminPropertiesIdRelatedRoute
+  '/api/admin/properties/$id/revoke-previews': typeof ApiAdminPropertiesIdRevokePreviewsRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
+  '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
@@ -884,12 +911,15 @@ export interface FileRoutesById {
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/people/$id/notes': typeof ApiAdminPeopleIdNotesRoute
+  '/api/admin/properties/$id/agent-preview': typeof ApiAdminPropertiesIdAgentPreviewRoute
   '/api/admin/properties/$id/features': typeof ApiAdminPropertiesIdFeaturesRoute
   '/api/admin/properties/$id/preview-token': typeof ApiAdminPropertiesIdPreviewTokenRoute
   '/api/admin/properties/$id/publish': typeof ApiAdminPropertiesIdPublishRoute
   '/api/admin/properties/$id/rank': typeof ApiAdminPropertiesIdRankRoute
   '/api/admin/properties/$id/related': typeof ApiAdminPropertiesIdRelatedRoute
+  '/api/admin/properties/$id/revoke-previews': typeof ApiAdminPropertiesIdRevokePreviewsRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
+  '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
@@ -982,12 +1012,15 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/properties/$id/agent-preview'
     | '/api/admin/properties/$id/features'
     | '/api/admin/properties/$id/preview-token'
     | '/api/admin/properties/$id/publish'
     | '/api/admin/properties/$id/rank'
     | '/api/admin/properties/$id/related'
+    | '/api/admin/properties/$id/revoke-previews'
     | '/api/admin/properties/$id/timeline'
+    | '/api/admin/properties/$id/unpublish'
     | '/api/admin/submissions/$id/accept'
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
@@ -1075,12 +1108,15 @@ export interface FileRouteTypes {
     | '/api/admin/submissions'
     | '/api/admin/channels/ids/$key'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/properties/$id/agent-preview'
     | '/api/admin/properties/$id/features'
     | '/api/admin/properties/$id/preview-token'
     | '/api/admin/properties/$id/publish'
     | '/api/admin/properties/$id/rank'
     | '/api/admin/properties/$id/related'
+    | '/api/admin/properties/$id/revoke-previews'
     | '/api/admin/properties/$id/timeline'
+    | '/api/admin/properties/$id/unpublish'
     | '/api/admin/submissions/$id/accept'
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
@@ -1172,12 +1208,15 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/'
     | '/api/admin/channels/ids/$key'
     | '/api/admin/people/$id/notes'
+    | '/api/admin/properties/$id/agent-preview'
     | '/api/admin/properties/$id/features'
     | '/api/admin/properties/$id/preview-token'
     | '/api/admin/properties/$id/publish'
     | '/api/admin/properties/$id/rank'
     | '/api/admin/properties/$id/related'
+    | '/api/admin/properties/$id/revoke-previews'
     | '/api/admin/properties/$id/timeline'
+    | '/api/admin/properties/$id/unpublish'
     | '/api/admin/submissions/$id/accept'
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
@@ -1796,6 +1835,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPeopleIdNotesRouteImport
       parentRoute: typeof ApiAdminPeopleIdRoute
     }
+    '/api/admin/properties/$id/agent-preview': {
+      id: '/api/admin/properties/$id/agent-preview'
+      path: '/agent-preview'
+      fullPath: '/api/admin/properties/$id/agent-preview'
+      preLoaderRoute: typeof ApiAdminPropertiesIdAgentPreviewRouteImport
+      parentRoute: typeof ApiAdminPropertiesIdRoute
+    }
     '/api/admin/properties/$id/features': {
       id: '/api/admin/properties/$id/features'
       path: '/features'
@@ -1831,11 +1877,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPropertiesIdRelatedRouteImport
       parentRoute: typeof ApiAdminPropertiesIdRoute
     }
+    '/api/admin/properties/$id/revoke-previews': {
+      id: '/api/admin/properties/$id/revoke-previews'
+      path: '/revoke-previews'
+      fullPath: '/api/admin/properties/$id/revoke-previews'
+      preLoaderRoute: typeof ApiAdminPropertiesIdRevokePreviewsRouteImport
+      parentRoute: typeof ApiAdminPropertiesIdRoute
+    }
     '/api/admin/properties/$id/timeline': {
       id: '/api/admin/properties/$id/timeline'
       path: '/timeline'
       fullPath: '/api/admin/properties/$id/timeline'
       preLoaderRoute: typeof ApiAdminPropertiesIdTimelineRouteImport
+      parentRoute: typeof ApiAdminPropertiesIdRoute
+    }
+    '/api/admin/properties/$id/unpublish': {
+      id: '/api/admin/properties/$id/unpublish'
+      path: '/unpublish'
+      fullPath: '/api/admin/properties/$id/unpublish'
+      preLoaderRoute: typeof ApiAdminPropertiesIdUnpublishRouteImport
       parentRoute: typeof ApiAdminPropertiesIdRoute
     }
     '/api/admin/submissions/$id/accept': {
@@ -2083,21 +2143,28 @@ const ApiAdminPeopleIdRouteWithChildren =
   ApiAdminPeopleIdRoute._addFileChildren(ApiAdminPeopleIdRouteChildren)
 
 interface ApiAdminPropertiesIdRouteChildren {
+  ApiAdminPropertiesIdAgentPreviewRoute: typeof ApiAdminPropertiesIdAgentPreviewRoute
   ApiAdminPropertiesIdFeaturesRoute: typeof ApiAdminPropertiesIdFeaturesRoute
   ApiAdminPropertiesIdPreviewTokenRoute: typeof ApiAdminPropertiesIdPreviewTokenRoute
   ApiAdminPropertiesIdPublishRoute: typeof ApiAdminPropertiesIdPublishRoute
   ApiAdminPropertiesIdRankRoute: typeof ApiAdminPropertiesIdRankRoute
   ApiAdminPropertiesIdRelatedRoute: typeof ApiAdminPropertiesIdRelatedRoute
+  ApiAdminPropertiesIdRevokePreviewsRoute: typeof ApiAdminPropertiesIdRevokePreviewsRoute
   ApiAdminPropertiesIdTimelineRoute: typeof ApiAdminPropertiesIdTimelineRoute
+  ApiAdminPropertiesIdUnpublishRoute: typeof ApiAdminPropertiesIdUnpublishRoute
 }
 
 const ApiAdminPropertiesIdRouteChildren: ApiAdminPropertiesIdRouteChildren = {
+  ApiAdminPropertiesIdAgentPreviewRoute: ApiAdminPropertiesIdAgentPreviewRoute,
   ApiAdminPropertiesIdFeaturesRoute: ApiAdminPropertiesIdFeaturesRoute,
   ApiAdminPropertiesIdPreviewTokenRoute: ApiAdminPropertiesIdPreviewTokenRoute,
   ApiAdminPropertiesIdPublishRoute: ApiAdminPropertiesIdPublishRoute,
   ApiAdminPropertiesIdRankRoute: ApiAdminPropertiesIdRankRoute,
   ApiAdminPropertiesIdRelatedRoute: ApiAdminPropertiesIdRelatedRoute,
+  ApiAdminPropertiesIdRevokePreviewsRoute:
+    ApiAdminPropertiesIdRevokePreviewsRoute,
   ApiAdminPropertiesIdTimelineRoute: ApiAdminPropertiesIdTimelineRoute,
+  ApiAdminPropertiesIdUnpublishRoute: ApiAdminPropertiesIdUnpublishRoute,
 }
 
 const ApiAdminPropertiesIdRouteWithChildren =

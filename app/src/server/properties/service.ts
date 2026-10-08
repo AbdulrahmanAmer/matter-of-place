@@ -11,11 +11,13 @@ import {
   type Representative,
   type RepresentativeListInput,
   type RepresentativePut,
+  type agentPreviewInputSchema,
   type featuresInputSchema,
   type propertyUpdateInputSchema,
   type publishInputSchema,
   type rankInputSchema,
   type relatedInputSchema,
+  type unpublishInputSchema,
 } from "../../domain/admin-properties";
 import type { DecisionAnswer, TimelineEntry } from "../../domain/admin-submissions";
 import { fromRpcError } from "../lib/admin-errors";
@@ -43,6 +45,15 @@ const REPRESENTATIVE_CURSOR = /^([0-9a-f-]{36})~([\s\S]*)$/;
 const listRowsSchema = z.array(propertyListRowSchema);
 const representativeRowsSchema = z.array(representativeSchema);
 const publishedSchema = z.object({ event_id: z.string().uuid(), version: z.number().int() });
+const agentPreviewSchema = z.object({
+  slug: z.string(),
+  preview_nonce: z.string(),
+  version: z.number().int(),
+});
+
+/** The public page of a property with a draft token, as the editor's frame and the agent's link open it. */
+const previewUrl = (slug: string, token: string) =>
+  `/property/${encodeURIComponent(slug)}?preview=${encodeURIComponent(token)}`;
 
 function propertyCursor(cursor: string) {
   const [, at, id] = PROPERTY_CURSOR.exec(cursor) ?? [];
@@ -172,6 +183,28 @@ export async function publishProperty(
   return { ...(await afterDecision(db, published.event_id)), version: published.version };
 }
 
+/**
+ * `POST /api/admin/properties/:id/unpublish`: to archived with its reason, in one `unpublish_property` call. A takedown
+ * also cancels the property's queued posts and queues `takedown_media` in the same transaction (invariant 13, E2E-01).
+ */
+export async function unpublishProperty(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof unpublishInputSchema>,
+): Promise<DecisionAnswer & { version: number }> {
+  authorize(actor, "properties.unpublish");
+  const { data, error } = await db.rpc("unpublish_property", {
+    p_property_id: input.id,
+    p_reason: input.reason,
+    p_takedown: input.takedown,
+    ...auditContext(actor),
+    ...(input.note === undefined || input.note === "" ? {} : { p_note: input.note }),
+  });
+  if (error !== null) throw fromRpcError(error);
+  const unpublished = publishedSchema.parse(data);
+  return { ...(await afterDecision(db, unpublished.event_id)), version: unpublished.version };
+}
+
 /** `PUT /api/admin/properties/:id/rank`: a rank another property holds is swapped, so each stays unique. */
 export async function setRanks(
   actor: AdminActor,
@@ -277,7 +310,55 @@ export async function issuePreviewToken(
   if (found === null) throw notFound();
   const { token, expiresAt } = await signPreview(key, id, found.preview_nonce, "editor");
   return {
-    url: `/property/${encodeURIComponent(found.property.slug)}?preview=${encodeURIComponent(token)}`,
+    url: previewUrl(found.property.slug, token),
     expires_at: expiresAt.toISOString(),
   };
+}
+
+/**
+ * `POST /api/admin/properties/:id/agent-preview`: moves the property to agent review and answers the public page with a
+ * 7 day link for the agent (invariant 14, GG-07). `key` is PREVIEW_TOKEN_SECRET as the route read it from `env.ts`.
+ */
+export async function issueAgentPreview(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof agentPreviewInputSchema>,
+  key: string | undefined,
+): Promise<{ url: string; expires_at: string; version: number }> {
+  authorize(actor, "properties.agent_preview");
+  // Refused before the state moves, so a Worker without the key leaves the property where it was.
+  if (key === undefined) {
+    throw new AppError("preview_secret_missing", undefined, "Preview links are not set up here.");
+  }
+  const { data, error } = await db.rpc("issue_agent_preview", {
+    p_property_id: input.id,
+    p_expected_version: input.expected_version,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  const issued = agentPreviewSchema.parse(data);
+  const { token, expiresAt } = await signPreview(key, input.id, issued.preview_nonce, "agent");
+  return {
+    url: previewUrl(issued.slug, token),
+    expires_at: expiresAt.toISOString(),
+    version: issued.version,
+  };
+}
+
+/**
+ * `POST /api/admin/properties/:id/revoke-previews`: a new preview nonce, so every editor and agent link of this property
+ * answers 404 from now on; other properties' links are untouched.
+ */
+export async function revokePreviews(
+  actor: AdminActor,
+  db: Db,
+  id: string,
+): Promise<{ version: number }> {
+  authorize(actor, "properties.revoke_previews");
+  const { data, error } = await db.rpc("rotate_preview_nonce", {
+    p_property_id: id,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return { version: data };
 }
