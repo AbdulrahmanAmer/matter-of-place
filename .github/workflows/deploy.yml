@@ -216,11 +216,26 @@ jobs:
         run: |
           echo "::warning title=overflow red on the preview::advisory under ruling H67 until GOTCHAS P-1936 is closed; read the overflow step"
           echo "overflow: red on the preview (advisory, H67, P-1936)" >> "$GITHUB_STEP_SUMMARY"
+      # Ruling H71 (2026-10-08): Lighthouse stays a gate, but one hung Lighthouse run of one page on the preview
+      # (runs 37708860863 and 37714114735: 9m46s and 9m47s inside `bun run lhci`, cancelled at the job limit; a plain
+      # rerun passed in about 4 minutes) must not cost a human rerun. The same command runs at most twice, each attempt
+      # bounded to 10 minutes; two failures exit 1, so the gate still refuses. A genuine budget failure also runs
+      # twice and refuses twice. Never continue-on-error here (pinned by tests/unit/hygiene.test.ts).
       - name: lighthouse
+        id: lighthouse
+        timeout-minutes: 22
         if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
         run: |
           urls=$(node scripts/lhci-urls.mjs "$PREVIEW_URL")
-          bun run lhci -- $(printf '%s\n' "$urls" | sed 's/^/--collect.url=/')
+          for attempt in 1 2; do
+            if timeout 600 bun run lhci -- $(printf '%s\n' "$urls" | sed 's/^/--collect.url=/'); then
+              exit 0
+            fi
+            if [ "$attempt" = 1 ]; then
+              echo "::warning title=lighthouse attempt $attempt did not finish::preview hang, retried (ruling H71)"
+            fi
+          done
+          exit 1
       - name: comment
         env:
           GH_TOKEN: ${{ github.token }}
