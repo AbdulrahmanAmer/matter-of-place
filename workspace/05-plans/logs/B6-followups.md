@@ -104,7 +104,7 @@ Review of group g5: no blocking defect. Seven follow-ups below, word for word wi
    What: Follow-up. When the wait times out, waitForUpload ignores the error from its jobs query (lines 97-102: job.data ?? []) and prints 'invoice_pdf job: none'. A failed read then looks like a job that was never enqueued. The exit code is still 1, so nothing passes that should fail.
    Evidence: Read: scripts/invoice-smoke.ts:97-102 never checks job.error
 
-4. File: `app/supabase/migrations/20261007051516_action_roles.sql`. Blocking: no.
+4. File: `app/supabase/migrations/20261008040839_action_roles.sql`. Blocking: no.
    What: Follow-up and UNPROVEN. The g5 work commit bc65f84 also carries a regenerated action_roles migration and a restamp of g3's migration, which is merge fallout outside the group's file list (P-2314). It is proven only by bun run check's sync test here. Its database proof is the CI db job on the pull request, which has not run for this commit.
    Evidence: git show --stat bc65f84 -- app/supabase/migrations: one rename plus one new 101-line file
 

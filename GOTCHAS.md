@@ -4241,7 +4241,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: right after the merge commit run `bun run migrations:check`, `bun run migrations:restamp` when it asks, commit the rename, then `bun run scripts/gen-action-roles.mjs` (rows are only upserted, so a second file is safe) and commit that before the first `bun run check`.
 - proof: `cd app && bunx vitest run tests/unit/action-roles.sync.test.ts` → `2 passed` after the generator; `ls supabase/migrations | grep action_roles | tail -3` lists the lane's two files after main's.
 - added: 2026-10-07
-- hit again: 2026-10-07, B6 g3: the merge of main (B10 channels, reports) left the lane's newest `action_roles` file without those actions; `bun run scripts/gen-action-roles.mjs` wrote `20261007082141_action_roles.sql` and `action-roles.sync.test.ts` went green.
+- hit again: 2026-10-07, B6 g3: the merge of main (B10 channels, reports) left the lane's newest `action_roles` file without those actions; `bun run scripts/gen-action-roles.mjs` wrote `20261008040840_action_roles.sql` and `action-roles.sync.test.ts` went green.
 
 ## P-2315 · `scripts/gen-action-roles.mjs` has no dry run and ignores every flag: `--check` wrote a new migration into a read-only review
 - symptom: a reviewer ran `bun run scripts/gen-action-roles.mjs --check` to see whether the file was in sync. It printed `wrote supabase/migrations/20261007043422_action_roles.sql 91 actions` and `git status` showed `?? supabase/migrations/20261007043422_action_roles.sql`: a read-only check had added a migration to the snapshot, which was deleted by hand.
