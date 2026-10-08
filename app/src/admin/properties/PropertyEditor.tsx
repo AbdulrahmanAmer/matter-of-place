@@ -235,6 +235,7 @@ export function PropertyEditor({
         </Tabs>
       </div>
       <PublishBar
+        propertyId={id}
         state={state}
         takenDown={takenDown}
         marketSlug={detail.property.market_slug}

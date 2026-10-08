@@ -24,6 +24,7 @@ export const emailTemplateKeys = [
   "subject_ack",
   "repermission",
   "market_open",
+  "campaign_report",
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -144,6 +145,15 @@ export const variablesByKey = {
   subject_ack: ["kind_label", "due_date"],
   repermission: ["confirm_url"],
   market_open: ["market_name", "market_url"],
+  campaign_report: [
+    "property_name",
+    "period",
+    "impressions",
+    "reach",
+    "clicks",
+    "video_views",
+    "ctr",
+  ],
 } as const satisfies Record<EmailTemplateKey, readonly string[]>;
 
 type VariableName = (typeof variablesByKey)[EmailTemplateKey][number];
@@ -205,6 +215,13 @@ const sampleValues = (siteUrl: string): Record<VariableName, string> => ({
   due_date: "November 18, 2026",
   market_name: "California",
   market_url: `${siteUrl}/california`,
+  property_name: "Alder Court",
+  period: "October 5, 2026 to October 11, 2026",
+  impressions: "3,500",
+  reach: "1,000",
+  clicks: "42",
+  video_views: "1,200",
+  ctr: "1.2%",
 });
 
 /** A value for every variable of `key`; every sample URL is built on `siteUrl`. */

@@ -5,6 +5,7 @@ import { RoleGate } from "../ui/RoleGate";
 import { StatusPill, type Tone } from "../ui/StatusPill";
 import { AgentPreviewButton, type AgentLink } from "./AgentPreviewButton";
 import { Checklist } from "./Checklist";
+import { RerenderAssetsButton } from "./RerenderAssetsButton";
 
 type EditorialState = PropertyRecord["editorial_state"];
 
@@ -22,6 +23,7 @@ const tone: Record<EditorialState, Tone> = {
  * reason, and an archived property that was not taken down can still be.
  */
 export function PublishBar({
+  propertyId,
   state,
   takenDown,
   marketSlug,
@@ -35,6 +37,7 @@ export function PublishBar({
   onSendAgent,
   onRevokePreviews,
 }: {
+  propertyId: string;
   state: EditorialState;
   takenDown: boolean;
   marketSlug: string;
@@ -95,6 +98,7 @@ export function PublishBar({
             </button>
           </RoleGate>
         ) : null}
+        <RerenderAssetsButton propertyId={propertyId} />
         {state === "published" || (state === "archived" && !takenDown) ? (
           <RoleGate action="properties.unpublish">
             <button
