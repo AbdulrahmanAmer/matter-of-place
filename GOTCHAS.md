@@ -5350,3 +5350,4 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: re-run as `NODE_OPTIONS=--max-old-space-size=4096 bun run check` and keep the variable for the group's later checks, builds and tests; the builders' brief carries the line. No lane pause for a node heap OOM; a pause needs a killed process, a worker crash or a Chromium failure with low free memory.
 - proof: `node -e "console.log(require(v8).getHeapStatistics().heap_size_limit/1048576|0)"` prints about 2096 (the default) and `NODE_OPTIONS=--max-old-space-size=4096 node -e ...` prints about 4144.
 - added: 2026-10-08
+- hit again: 2026-10-08, B8 g1 step 10: the first `bun run check` after merging origin/main died in the lint stage with exit 134 (heap out of memory, other lanes running); the re-run with `NODE_OPTIONS=--max-old-space-size=4096` passed.
