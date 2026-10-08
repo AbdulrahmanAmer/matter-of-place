@@ -1,0 +1,88 @@
+/* Screen 22, reports: the open report, and the print sheet that Export opens (G22). */
+
+.admin-report {
+  display: grid;
+  gap: var(--admin-space-4);
+  margin-top: var(--admin-space-6);
+  padding: var(--admin-space-5);
+  border: 1px solid var(--border);
+}
+
+.admin-report > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--admin-space-3);
+}
+
+.admin-report h2 {
+  font-size: 28px;
+}
+
+.admin-report h3 {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-report__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--admin-space-4);
+}
+
+.admin-report__facts dt {
+  color: var(--muted-foreground);
+}
+
+.admin-report__facts dd {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* The print sheet: the open report alone, black on white paper, letter size. The bar, the navigation, the buttons and
+   anything marked data-print="hide" are gone. */
+@media print {
+  @page {
+    size: letter;
+    margin: 0.75in;
+  }
+
+  [data-print="hide"],
+  .admin-skip,
+  button {
+    display: none;
+  }
+
+  .admin-frame {
+    display: block;
+    min-height: 0;
+  }
+
+  .admin-main {
+    padding: 0;
+  }
+
+  html,
+  body,
+  .admin-main,
+  .admin-report {
+    background: none;
+    color: var(--foreground);
+  }
+
+  .admin-report {
+    margin-top: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .admin-report * {
+    background: none;
+    color: var(--foreground);
+  }
+}

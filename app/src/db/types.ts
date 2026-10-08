@@ -1200,6 +1200,9 @@ isOneToOne: false
 "clear_media_staging":
 { Args: { "p_items": Json }; Returns: number
                            },
+"complete_distributed_submissions":
+{ Args: { "p_now": string }; Returns: number
+                           },
 "confirm_subscriber":
 { Args: { "p_token_hash": string }; Returns: string
                            },
