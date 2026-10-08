@@ -558,7 +558,8 @@ Where the code differs from the plan text: (1) `automation_put_reason` takes `p_
 - Database, dev profile, mop-dev inside rolled-back transactions with the new migration as `MOP_MUTATION_SQL` (not the CI job), `node node_modules/vitest/vitest.mjs run --project db tests/db/<file>`, one file at a time:
    automation: Tests  32 passed (32) / actor: Tests  6 passed (6) / fanout: Tests  10 passed (10)
    function-source: differs [] ; withoutFile ["complete_distributed_submissions"] (main's 20261008052357 migration has no function file; not this group's)
-- CI on PR 240 (head 40c9b576): check pass 3m37s, build pass 35s, preview-db pass 16s, db skipping (draft, P-2001). The CI `db` job and the type-drift check are UNPROVEN until the pull request is marked ready.
+- CI on PR 240 (head 40c9b576): check pass 3m37s, build pass 35s, preview-db pass 16s, db skipping (draft, P-2001). The CI `db` job and the type-drift check were UNPROVEN until the pull request was marked ready.
+- CI on PR 240 after it was marked ready (run 37746221588, head 0fc61ce6): check, build, db and e2e success. db job: `type drift` step `wrote src/db/types.ts` then `git diff --exit-code src/db/types.ts` passed (the hand entries equal the generator), `tests/db/automation.db.test.ts (32 tests)`, `Test Files  54 passed (54)`, `Tests  739 passed | 1 skipped (740)`.
 - `bunx vitest run tests/unit/automation/service.test.ts tests/unit/automation/flags-put.test.ts tests/unit/admin-routes-parity.test.ts tests/unit/action-roles.sync.test.ts` → Test Files  4 passed (4), Tests  55 passed (55)
 - `bunx vitest run tests/unit/flags.test.ts` → Test Files  1 passed (1), Tests  12 passed (12)
 - `git grep -n "STUB(B8b step 6)" -- supabase src` → only the seven lines of `20261004115859_automation.sql` (history, on main); none in `supabase/sql/functions`. `bun run stubs` (after the merge of main) → `stubs: 12 markers, 0 on closed slices`.
