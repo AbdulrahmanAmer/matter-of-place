@@ -237,3 +237,37 @@ Recorded from the g6 review (no blocking defect). The seventh item concerned GOT
 - what: The step-6 proof names `bun run scripts/gen-action-roles.mjs`, and it was not run. The author says the matrix is unchanged and that the script writes a duplicate migration on every run. tests/unit/action-roles.sync.test.ts passes, so the seed equals the matrix. The proof line and the script's behaviour need an orchestrator ruling. Live HTTP calls to the 16 new routes are also UNPROVEN: they are covered only by the parity and authz sweep and by service unit tests against fakeDb.
 - evidence: bunx vitest run tests/unit/action-roles.sync.test.ts passes (inside the 67/67 run). The author's own unproven list.
 - blocking: false
+
+## g7 · steps 7
+
+Recorded from the g7 review (no blocking defect). None is blocking.
+
+### 1. app/src/admin/automation/RecipesPage.tsx
+
+- what: Follow-up. The plan's Files line asks for 'the pending skeleton through B7's shared admin route options'. The route has no pendingComponent, and the page's loading state is the text line 'Loading recipes.' rather than B7's AdminPending skeleton. The other screens built under H66 (assets.index.lazy.tsx, people.$id.lazy.tsx, properties.$id.lazy.tsx) draw <AdminPending /> in the page. The route comment's reason, 'no loader, so there is no pending screen', is also inexact by reading. TanStack Router shows a route's pending component while a lazyRouteComponent chunk preloads, not only while a loader runs. A loading state does exist, so C17 is met. The gap is consistency, not behaviour.
+- evidence: RecipesPage.tsx:34 `if (recipes.isPending) return <p role="status">Loading recipes.</p>;`. `grep -rn "pendingComponent\|AdminPending" src/routes src/admin/ui` shows the in-page AdminPending pattern in three other screens and no pendingComponent in automation.recipes.tsx.
+- blocking: false
+
+### 2. app/src/admin/automation/RecipesPage.tsx
+
+- what: Follow-up (suspected by reading, not run). With an empty recipe list there is no empty state of its own. The page shows an empty Events nav beside 'Choose an event. Pick one on the left', which points at nothing. The seed holds one recipe per event type, so production should never reach this.
+- evidence: RecipesPage.tsx:53-55 renders the EmptyState only when `open === undefined`, with no branch for `items.length === 0`.
+- blocking: false
+
+### 3. app/src/admin/automation/RecipeEditor.tsx
+
+- what: Follow-up, already listed by the author. The plan's Contract item 9 says server errors carry a JSON path so the form shows them inline. A 422 such as an unknown send_email.template is shown as one message under the form, because B7's adminFetch drops `issues`. Also open: the heading order h1 then h3 (axe heading-order is a moderate rule, so R47's serious/critical bar is not crossed), no guard for an unsaved draft when another event is picked, and maxSteps and the 120-character name limit copied from src/domain/automation.ts.
+- evidence: B8b.md line 53 ('Errors carry a JSON path so the form shows them inline'); RecipeEditor.tsx:104 `<h3>Steps</h3>` under the page h1; recipe-draft.ts:128 `export const maxSteps = 20;` beside the unexported `maxSteps` in domain/automation.ts:35.
+- blocking: false
+
+### 4. workspace/05-plans/B8b.md
+
+- what: Follow-up for the orchestrator to fold. GET /api/admin/automation/recipes now also answers `steps` (the catalog without Zod schemas), and the plan and API contract text do not say so. R42 asks for the `a-` admin selector prefix, but every admin stylesheet, this one included, uses `admin-`.
+- evidence: service.ts getRecipes returns `{ items, steps: stepCatalog() }`; STANDARDS.md line 272 'admin selectors use the `a-` prefix'; automation.css selectors are all `.admin-*`.
+- blocking: false
+
+### 5. app/src/server/automation/service.ts
+
+- what: UNPROVEN against reality (the author says so). The `steps` field of GET /recipes is tested only against fake-db in service.test.ts. Screen 17 is tested only against a stand-in fetch written by the same author. No built Worker answer and no browser render of the screen was observed.
+- evidence: recipes.test.tsx:200-235 stubs global fetch with a hand-written API; the log's g7 UNPROVEN line.
+- blocking: false
