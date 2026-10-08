@@ -107,3 +107,25 @@
 2. File `src/components/forms/privacy-request-form.tsx` (not blocking).
    What: The plan says 'A 422 shows forms.invalid beside the fields'. The form shows it once, as the FormError alert under the fields, with no field marked. That is the shared useAsyncAction behaviour. The author recorded it as left, but the log puts it under use-async-action and it does not appear in B16-followups.md.
    Evidence: tests/unit/privacy-request.test.tsx line 194 asserts the single role=alert text 'Please check the highlighted details.' and no per-field error. use-async-action.ts messageFor maps validation to t.forms.invalid in state.message only.
+
+## g7 · steps 7
+
+1. File `workspace/05-plans/B16.md (step 7 proof)` (not blocking).
+   What: The plan's own curl proof for step 7, `grep -c '"@type":"Organization"'` prints 1, cannot fail on this page. grep -c counts lines and the SSR HTML is one line. It printed 1 for the old inline literal before this change. It would also print 1 if the home head emitted two Organization nodes, or if the head were reverted to the old literal. No unit test or registry entry covers the head() wiring of _site.index.tsx: if the head goes back to the old literal, every unit test stays green. The author said this (UNPROVEN: head wiring). What actually shows the change is their second grep -o, which carries @id and description.
+   Evidence: Confirmed by running: on the 8849 Worker, `grep -c` gives 1 and `grep -a -o '"@type":"Organization"' | wc -l` gives 2 on the same file. Suggested fix: change the proof to `grep -o '"@id":"https://matterofplace.com/#organization"' | wc -l` equal to 1, or add a head() unit case for the home route.
+
+2. File `app/tests/unit/submissions.service.test.ts, app/tests/unit/illustrative-labels.test.tsx` (not blocking).
+   What: Two files outside the group's file list were edited. The first belongs to B7, edited as a merge fix (a public_state stub in decisionDb). The second changed because the home loader now returns `site`. Neither is a gate configuration under H46. Both edits are necessary, minimal and named in the log. The orchestrator should know that slice/b16 now writes a B7 test file, in case the B7 lane is editing it too.
+   Evidence: git show --stat c27cf521 lists both files. Their diffs are one stub line plus an import, and one mock line plus an import.
+
+3. File `workspace/05-plans/logs/B16.md (costTime of the return)` (not blocking).
+   What: The third costTime item (tsc refused head({ matches }) loaderData, so the author switched to the home loader's `site`) lists entry P-1945. P-1945 is about the submissions.service merge stub, and the item itself says 'No entry: under a few minutes'. The entry field does not match the cost. Either bank it (the matches union has no typed loaderData, so return what head needs from the route's own loader) or drop the entry name.
+   Evidence: git diff 54312682 c27cf521 -- GOTCHAS.md shows only P-1945 (the merge stub) and a P-094 hit-again line. Nothing covers the matches/loaderData approach.
+
+4. File `app/src/lib/seo.ts:152` (not blocking).
+   What: organizationJsonLd returns an untyped object literal, not a schema-dts Organization, unlike the jsonld.ts builders. A misspelled or undefined Schema.org key would not be caught by tsc. B13's watched-fail (h) assumes builders are typed, and B13-followups line 36 already records that pageHead's jsonLd is loosened to `object`. This belongs to B13's extension (logo, contactPoint, re-export from jsonld.ts), which is now unblocked once B16 is on main (B13-followups lines 36 and 64).
+   Evidence: Read: src/lib/seo.ts 152-171, no type annotation. src/lib/jsonld.ts imports `Organization` from schema-dts and uses it only for `publisher`.
+
+5. File `workspace/05-plans/logs/B16.md (g7 block)` (not blocking).
+   What: Small imprecision: the log says head builds `[organizationJsonLd(loaderData.site), websiteLd()]`. The code is `organizationJsonLd(loaderData?.site ?? emptySiteSettings)`, which falls back to the empty site when the loader did not resolve. The behaviour is sound (it matches useSite's noSite). The log line just leaves out the fallback.
+   Evidence: Read: app/src/routes/_site.index.tsx line 45.
