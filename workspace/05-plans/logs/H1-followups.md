@@ -27,3 +27,27 @@
    - Evidence: I reproduced both mutants by hand in scratch copies. aa went to pass and exit 0; the first-line mutant made X-1 pass. H1.json lists only h1g2-* entries.
 
 The three follow-ups whose file is GOTCHAS.md are banked as P-2808 (the rework of the fix round), P-2809 (the shared scratchpad) and a hit-again line on G-031 (forks worker timeout, `--maxWorkers=1` rerun).
+
+## g2 · steps 2
+
+1. `app/scripts/harden/rate-probe.ts` (not blocking)
+   - What: R50 says dev-script processes never see production or account-wide credentials, and it is enforced by scripts/lib/guard-env.mjs. rate-probe.ts and upload-probe.ts commit rows to mop-dev with DEV_DB_URL and the dev service role, but neither calls guardEnv(), while every other writing dev script does (admin-smoke, seed, set-site, job-selftest and others). I could not name a concrete harm: both probes read only DEV_ names. That is why this is a follow-up and not a blocker.
+   - Evidence: I loaded the full .env into a shell, which brings in SUPABASE_ACCESS_TOKEN and PROD_TURNSTILE_SECRET. In that shell both probes ran to 'rate ok' and 'upload ok'. The vitest db project in the same shell refused: 'refusing: ops variables in this shell PROD_TURNSTILE_SECRET SUPABASE_ACCESS_TOKEN'. grep -rln guardEnv scripts lists neither probe.
+
+2. `app/tests/e2e/admin-authz.spec.ts` (not blocking)
+   - What: For every role except commercial, the expected verdict comes from permission(action).roles, which is the code under test. If the matrix is widened for any role other than commercial, the expectation and the behaviour change together and the spec stays green. Only commercial writes have an independent list (COMMERCIAL_WRITES). Watched-fail (y) asks only for commercial, so the contract holds. What the spec does not prove is that the matrix itself is right for the other five roles. That is left to B7's authz.matrix.test.
+   - Evidence: Lines 30-36 build `roles: permission(r.tag.action).roles` in the Bun child. Lines 148-150 judge allowed = route.roles.some(...) for every role that is not commercial.
+
+3. `app/scripts/harden/fixtures/zone-rules-bad-ratelimit.json` (not blocking)
+   - What: zone-rules-bad-ratelimit.json and zone-rules-country-block.json, the fixtures the plan names for watched-fail (k), are referenced by nothing in the repo. The registry entries h1g2-k-* mutate zone-rules.json instead. Both files do turn waf-check red when run by hand. Either wire them into the registry or a checklist control, or note why they stay.
+   - Evidence: grep -rn 'zone-rules-bad-ratelimit\|zone-rules-country-block' outside GOTCHAS finds only the plan and the log. waf-check --fixture on each file exited 1 with the expected line.
+
+4. `workspace/05-plans/logs/H1.md` (not blocking)
+   - What: The plan's watched-fail list includes two items on this group's own files that the log neither reports nor marks UNPROVEN. One is (kk): the rate-probe cleanup without mop.retention. The other is (ii): check-headers --cache red on an HTML s-maxage of 60, and HSTS without includeSubDomains. I ran (kk) myself and it went red for the right reason ('cleanup failed subscribers'). The log should record (kk), and (ii) should be run or marked UNPROVEN.
+   - Evidence: The g2 watched-fail block of logs/H1.md lists a, s, q, z, G-1300, rule 6, guard, k, ss, b, uu, v, rr, y and (dd) UNPROVEN, with no (kk) and no (ii). My replay of (kk) gave WATCHED-FAIL OK KK:review-kk-no-retention.
+
+5. `app/scripts/harden/rate-probe.ts` (not blocking)
+   - What: Both probes' cleanups delete every rate_limits row whose bucket matches 'subscribers:%' (or 'submissions:%') since the probe started. That includes hits other lanes' Workers or tests wrote in that window without taking the G34 lock. This could make another lane's rate-limit assertion flaky. The fix is to narrow the delete to the key_hash of the probe's own CLIENT_IP and email.
+   - Evidence: rate-probe.ts cleanup(): "select id::text as id from rate_limits where bucket like 'subscribers:%' and at >= $1". upload-probe.ts uses the same with 'submissions:%'. Suspected by reading, not observed.
+
+The two follow-ups whose file is GOTCHAS.md are banked as P-2810 (two parallel specs signing in the same user) and P-2811 (the free-plan daily Workers limit, error 1027, and the request cost of a run-all against prod-config).
