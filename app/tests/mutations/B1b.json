@@ -3927,6 +3927,78 @@
     "expect": "FAIL .*> refuses a log whose steps are not the nine the script writes"
   },
   {
+    "id": "h73-lh-attempts",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "export const LIGHTHOUSE_ATTEMPTS = 2;",
+    "replace": "export const LIGHTHOUSE_ATTEMPTS = 3;",
+    "expect": "FAIL .*> fails when both attempts fail, never makes a third"
+  },
+  {
+    "id": "h73-lh-first-pass",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "last !== undefined && last.code !== 0 && attempts.length < LIGHTHOUSE_ATTEMPTS",
+    "replace": "last !== undefined && attempts.length < LIGHTHOUSE_ATTEMPTS",
+    "expect": "FAIL .*> makes one attempt when the first passes"
+  },
+  {
+    "id": "h73-lh-note",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "? `attempt ${String(attempts.length)} of ${String(LIGHTHOUSE_ATTEMPTS)}`",
+    "replace": "? \"\"",
+    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
+  },
+  {
+    "id": "h73-lh-kept-5",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "done.verdict === \"pass\" ? 5 : TAIL",
+    "replace": "done.verdict === \"pass\" ? 1 : TAIL",
+    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
+  },
+  {
+    "id": "h73-lh-kept-20",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "done.verdict === \"pass\" ? 5 : TAIL",
+    "replace": "done.verdict === \"pass\" ? 5 : 5",
+    "expect": "FAIL .*> fails when both attempts fail, never makes a third"
+  },
+  {
+    "id": "h73-lh-last-decides",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "const done = judged(last, \"lighthouse\", label);",
+    "replace": "const done = judged(first, \"lighthouse\", label);",
+    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
+  },
+  {
+    "id": "h73-lh-heading",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "const RETRIED = \"did not finish, retried under ruling H71\";",
+    "replace": "const RETRIED = \"did not finish\";",
+    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
+  },
+  {
+    "id": "h73-lh-render",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "    ...earlier,\n",
+    "replace": "    ...[],\n",
+    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
+  },
+  {
     "id": "h73-gate-standin",
     "test": "tests/unit/merge-gate.test.ts",
     "file": "../workspace/05-plans/merge-gate.mjs",
