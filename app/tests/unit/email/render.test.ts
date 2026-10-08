@@ -232,7 +232,7 @@ describe("template files", () => {
   it("equals the standalone row the B11 migration sets, key by key", () => {
     const sql = readFileSync(
       new URL(
-        "../../../supabase/migrations/20261008141205_standalone_template.sql",
+        "../../../supabase/migrations/20261008170650_standalone_template.sql",
         import.meta.url,
       ),
       "utf8",
