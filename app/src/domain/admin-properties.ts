@@ -82,6 +82,7 @@ const propertyRecordSchema = z.object({
   editorial_state: z.enum(editorialStates),
   published_at: z.string().nullable(),
   first_published_at: z.string().nullable(),
+  taken_down_at: z.string().nullable(),
   updated_at: z.string(),
   version,
 });
@@ -235,6 +236,37 @@ export const createFromSubmissionAnswerSchema = z.object({
 
 /** `POST properties/:id/preview-token`: the public page with a 15 minute draft token, for the Preview tab. */
 export const previewTokenAnswerSchema = z.object({ url: z.string(), expires_at: z.string() });
+
+/** Why a property leaves the catalog (invariant 13, GP-03); `unpublish_property` refuses any other. */
+export const unpublishReasons = [
+  "owner_request",
+  "rights_takedown",
+  "factual_error",
+  "other",
+] as const;
+
+export type UnpublishReason = (typeof unpublishReasons)[number];
+
+/** `POST properties/:id/unpublish`: a takedown also answers 410 for the slug and removes the media (E2E-01). */
+export const unpublishInputSchema = propertyIdInputSchema
+  .extend({
+    reason: z.enum(unpublishReasons),
+    note: z.string().trim().max(2000).optional(),
+    takedown: z.boolean(),
+  })
+  .refine((input) => input.reason !== "other" || (input.note ?? "") !== "", {
+    message: "Add a note for the reason.",
+    path: ["note"],
+  });
+
+/** What the unpublish dialog sends; the id is in the address. */
+export type UnpublishBody = Omit<z.input<typeof unpublishInputSchema>, "id">;
+
+/** `POST properties/:id/agent-preview`: moves the property to agent review at the version the editor read. */
+export const agentPreviewInputSchema = propertyIdInputSchema.extend({ expected_version: version });
+
+/** The 7 day link for the agent, and the row's new version. */
+export const agentPreviewAnswerSchema = previewTokenAnswerSchema.extend({ version });
 
 /**
  * The fields the public page needs that a draft may leave empty (invariant 8, G62). `hero_image` has its own checklist

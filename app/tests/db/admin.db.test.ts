@@ -2,16 +2,24 @@
 // `action_roles` and the agent daily caps (migration `admin_audit`, invariants 3, 18 and 19). Step 4: `start_review`,
 // `add_submission_note` and `list_submissions` (migration `admin_submissions_read`). Step 5: the one payments read of
 // `getSubmission`. Step 6: the four decision functions and the agent daily cap (migration `admin_submissions_decisions`).
-// Step 7: the property functions (migration `admin_properties`).
+// Step 7: the property functions (migration `admin_properties`). Step 7a: unpublish, takedown and agent preview
+// (migration `admin_takedown`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { asRole, createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
 import { createInvoice, createSubmission, publishedProperty } from "../fixtures/factories";
 import { serviceClient } from "../fixtures/service";
+import { stepSchema } from "../../src/domain/automation";
 import { marketTimezone } from "../../src/domain/market-time";
+import { planEvent } from "../../src/server/automation/plan";
+import { getStep } from "../../src/server/jobs/steps";
+import type { JsonObject } from "../../src/server/jobs/types";
+import { fromRpcError } from "../../src/server/lib/admin-errors";
+import { signPreview, verifyPreview } from "../../src/server/lib/preview-token";
 import { newestPaymentId } from "../../src/server/submissions/service";
 
 async function one<T extends object>(db: Db, sql: string, params: unknown[] = []): Promise<T> {
@@ -1321,6 +1329,403 @@ describe("set_ranks, set_features and upsert_representative", () => {
         [id],
       );
       expect(row).toEqual({ name: "Ana Agent", brokerage: "Coast Two", audits: 2 });
+    });
+  });
+});
+
+// Step 7a: unpublish and takedown, the agent's preview link and the slug lock (migration `admin_takedown`, invariants
+// 8, 13 and 14, E2E-01).
+
+/** The case runs only against a database that holds the step's migration (P-328). */
+async function assertStep7a(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.unpublish_property') is not null
+       and to_regproc('public.issue_agent_preview') is not null
+       and to_regproc('public.rotate_preview_nonce') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const UNPUBLISH = "select public.unpublish_property($1, $2, $3, $4, 'human', 'req-up', $5)";
+const ISSUE = "select public.issue_agent_preview($1, $2, $3, 'human', 'req-ap') as answer";
+
+interface Unpublished {
+  editorial_state: string;
+  published: boolean;
+  archived: boolean;
+  unpublish_reason: string | null;
+  unpublished: boolean;
+  taken_down: boolean;
+  gone: boolean;
+}
+
+/** The row after an unpublish, and whether B2's snapshot lists its slug under `gone`. */
+const unpublishedRow = (db: Db, id: string) =>
+  one<Unpublished>(
+    db,
+    `select p.editorial_state, p.published_at is not null as published, p.archived_at is not null as archived,
+       p.unpublish_reason, p.unpublished_at is not null as unpublished, p.taken_down_at is not null as taken_down,
+       coalesce(public.public_catalog_snapshot() -> 'gone', '[]'::jsonb) ? p.slug as gone
+     from public.properties p where p.id = $1`,
+    [id],
+  );
+
+async function takedownJobs(db: Db, id: string) {
+  const { rows } = await db.query<{
+    type: string;
+    status: string;
+    max_attempts: number;
+    property_id: string;
+  }>(
+    `select type, status::text, max_attempts, payload -> 'data' ->> 'property_id' as property_id
+     from public.jobs where type = 'takedown_media' and payload -> 'data' ->> 'property_id' = $1::text`,
+    [id],
+  );
+  return rows;
+}
+
+/** A social job of `type` for `property`, as B10's steps queue them. */
+async function postJob(db: Db, type: string, property: string, status: string): Promise<string> {
+  const { id } = await one<{ id: string }>(
+    db,
+    `insert into public.jobs (type, payload, idempotency_key, status)
+     values ($1, jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', $2::uuid)),
+       $1 || ':' || $2 || ':' || gen_random_uuid(), $3::public.job_status)
+     returning id`,
+    [type, property, status],
+  );
+  return id;
+}
+
+async function jobStatuses(db: Db, ids: string[]): Promise<string[]> {
+  const { rows } = await db.query<{ status: string }>(
+    "select status::text from public.jobs where id = any ($1::uuid[]) order by array_position($1::uuid[], id)",
+    [ids],
+  );
+  return rows.map((row) => row.status);
+}
+
+async function count(db: Db, sql: string, params: unknown[]): Promise<number> {
+  return (await one<{ n: number }>(db, sql, params)).n;
+}
+
+describe("unpublish_property", () => {
+  it("refuses an empty reason, an unknown one and other without a note with validation, and changes nothing", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const { id } = await publishedProperty(db, { n: 9970 });
+      const outcomes = [
+        await attempt(db, UNPUBLISH, [id, "", false, editor, null]),
+        await attempt(db, UNPUBLISH, [id, null, false, editor, null]),
+        await attempt(db, UNPUBLISH, [id, "bored", false, editor, null]),
+        await attempt(db, UNPUBLISH, [id, "other", false, editor, " "]),
+      ];
+      expect({ outcomes, row: (await unpublishedRow(db, id)).editorial_state }).toEqual({
+        outcomes: ["22023 validation", "22023 validation", "22023 validation", "22023 validation"],
+        row: "published",
+      });
+    });
+  });
+
+  it("an ordinary unpublish archives with its reason, leaves taken_down_at null and the slug out of gone, and queues no takedown_media job", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const { id } = await publishedProperty(db, { n: 9971 });
+      await db.query(UNPUBLISH, [id, "factual_error", false, editor, "Wrong year."]);
+      expect({ row: await unpublishedRow(db, id), jobs: await takedownJobs(db, id) }).toEqual({
+        row: {
+          editorial_state: "archived",
+          published: false,
+          archived: true,
+          unpublish_reason: "factual_error",
+          unpublished: true,
+          taken_down: false,
+          gone: false,
+        },
+        jobs: [],
+      });
+    });
+  });
+
+  it("a takedown sets taken_down_at, lists the slug under gone, takes a new preview_nonce, cancels the property's queued posts and queues one takedown_media job", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const { id } = await publishedProperty(db, { n: 9972 });
+      const { id: other } = await publishedProperty(db, { n: 9973 });
+      const posts = [
+        await postJob(db, "post_meta", id, "queued"),
+        await postJob(db, "post_x", id, "waiting_approval"),
+        await postJob(db, "post_linkedin", id, "queued"),
+      ];
+      const untouched = [
+        await postJob(db, "post_x", other, "queued"),
+        await postJob(db, "post_meta", id, "running"),
+      ];
+      const NONCE = "select preview_nonce::text as nonce from public.properties where id = $1";
+      const before = await one<{ nonce: string }>(db, NONCE, [id]);
+      await db.query(UNPUBLISH, [id, "rights_takedown", true, editor, null]);
+      expect({
+        nonceRotated: (await one<{ nonce: string }>(db, NONCE, [id])).nonce !== before.nonce,
+        row: await unpublishedRow(db, id),
+        posts: await jobStatuses(db, posts),
+        untouched: await jobStatuses(db, untouched),
+        takedown: await takedownJobs(db, id),
+        key: await count(
+          db,
+          "select count(*)::int as n from public.jobs where idempotency_key = 'takedown_media:' || $1::text",
+          [id],
+        ),
+      }).toEqual({
+        nonceRotated: true,
+        row: {
+          editorial_state: "archived",
+          published: false,
+          archived: true,
+          unpublish_reason: "rights_takedown",
+          unpublished: true,
+          taken_down: true,
+          gone: true,
+        },
+        posts: ["cancelled", "cancelled", "cancelled"],
+        untouched: ["queued", "running"],
+        takedown: [{ type: "takedown_media", status: "queued", max_attempts: 12, property_id: id }],
+        key: 1,
+      });
+    });
+  });
+
+  it("an archived property can still be taken down once; a second takedown and a draft are refused with wrong_state", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const { id } = await publishedProperty(db, { n: 9974 });
+      const { id: draft } = await publishedProperty(db, {
+        n: 9975,
+        editorial_state: "draft",
+        published_at: null,
+      });
+      await db.query(UNPUBLISH, [id, "owner_request", false, editor, null]);
+      const takedown = await attempt(db, UNPUBLISH, [id, "owner_request", true, editor, null]);
+      const again = await attempt(db, UNPUBLISH, [id, "owner_request", true, editor, null]);
+      const fromDraft = await attempt(db, UNPUBLISH, [draft, "owner_request", true, editor, null]);
+      expect({
+        takedown,
+        again,
+        fromDraft,
+        gone: (await unpublishedRow(db, id)).gone,
+        jobs: (await takedownJobs(db, id)).length,
+      }).toEqual({
+        takedown: "ok",
+        again: "P0001 wrong_state",
+        fromDraft: "P0001 wrong_state",
+        gone: true,
+        jobs: 1,
+      });
+    });
+  });
+
+  it("writes one property.unpublished event with reason and takedown, and the seeded recipe plans bump_catalog_version and purge_cache for it", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const { id, slug } = await publishedProperty(db, { n: 9976 });
+      const { answer } = await one<{ answer: { event_id: string; version: number } }>(
+        db,
+        "select public.unpublish_property($1, 'owner_request', true, $2, 'human', 'req-up', 'Asked by phone.') as answer",
+        [id, editor],
+      );
+      const events = await db.query<{ id: string; payload: JsonObject }>(
+        "select id, payload from public.events where type = 'property.unpublished' and entity_id = $1",
+        [id],
+      );
+      const audit = await one<{ n: number; note: string }>(
+        db,
+        `select count(*)::int as n, max(note) as note from public.audit_log
+         where action = 'properties.unpublish' and entity_id = $1`,
+        [id],
+      );
+      const recipe = await one<{ id: string; enabled: boolean; steps: unknown }>(
+        db,
+        "select id, enabled, steps from public.automation_recipes where trigger = 'property.unpublished'",
+      );
+      const event = events.rows[0];
+      if (event === undefined) throw new Error("no property.unpublished event");
+      const plan = planEvent(
+        {
+          id: recipe.id,
+          trigger: "property.unpublished",
+          enabled: recipe.enabled,
+          steps: z.array(stepSchema).parse(recipe.steps),
+        },
+        { id: event.id, payload: event.payload },
+        { registry: getStep },
+      );
+      expect({
+        events: events.rows.length,
+        answered: event.id === answer.event_id,
+        payload: event.payload,
+        audit,
+        planned: plan.planned.map((job) => job.type),
+      }).toEqual({
+        events: 1,
+        answered: true,
+        payload: {
+          property_id: id,
+          slug,
+          market: "california",
+          reason: "owner_request",
+          takedown: true,
+        },
+        audit: { n: 1, note: "Asked by phone." },
+        planned: ["bump_catalog_version", "purge_cache"],
+      });
+    });
+  });
+
+  it("refuses a visual editor through write_audit with 42501 and leaves the property published", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const visual = await createStaffUser(db, ["visual_editor"]);
+      const { id } = await publishedProperty(db, { n: 9977 });
+      expect({
+        outcome: await attempt(db, UNPUBLISH, [id, "owner_request", true, visual, null]),
+        row: (await unpublishedRow(db, id)).editorial_state,
+      }).toEqual({ outcome: "42501 forbidden", row: "published" });
+    });
+  });
+});
+
+/** The admin's answer to a slug change through `update_property`: null when saved, else the mapped error. */
+async function renameThroughAdmin(db: Db, id: string, slug: string, actor: string) {
+  const version = await versionOf(db, id);
+  await db.query("savepoint rename");
+  try {
+    await db.query(
+      "select public.update_property($1, $2, jsonb_build_object('slug', $3::text), $4, 'human', 'req-sl')",
+      [id, version, slug, actor],
+    );
+    await db.query("release savepoint rename");
+    return null;
+  } catch (error) {
+    await db.query("rollback to savepoint rename");
+    const mapped = fromRpcError(error);
+    return { status: mapped.status, code: mapped.code };
+  }
+}
+
+describe("the slug lock", () => {
+  it("a slug change after publish is 422 slug_locked, and a rename before publish writes one slug_history row", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const published = await publishedProperty(db, { n: 9978 });
+      const draft = await publishedProperty(db, {
+        n: 9979,
+        editorial_state: "draft",
+        published_at: null,
+      });
+      const locked = await renameThroughAdmin(db, published.id, "renamed-after-9978", editor);
+      const free = await renameThroughAdmin(db, draft.id, "renamed-before-9979", editor);
+      const { rows } = await db.query<{ slug: string }>(
+        "select slug from public.slug_history where property_id = $1",
+        [draft.id],
+      );
+      expect({ locked, free, history: rows.map((row) => row.slug) }).toEqual({
+        locked: { status: 422, code: "slug_locked" },
+        free: null,
+        history: [draft.slug],
+      });
+    });
+  });
+});
+
+describe("agent preview", () => {
+  it("issue_agent_preview moves a draft to agent_review with one audit row and answers its slug and nonce; a published one is wrong_state and a stale version version_conflict", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const draft = await publishedProperty(db, {
+        n: 9980,
+        editorial_state: "draft",
+        published_at: null,
+      });
+      const published = await publishedProperty(db, { n: 9981 });
+      const stale = await attempt(db, ISSUE, [draft.id, 99, editor]);
+      const wrong = await attempt(db, ISSUE, [
+        published.id,
+        await versionOf(db, published.id),
+        editor,
+      ]);
+      const { answer } = await one<{
+        answer: { slug: string; preview_nonce: string; version: number };
+      }>(db, ISSUE, [draft.id, await versionOf(db, draft.id), editor]);
+      const row = await one<{ editorial_state: string; preview_nonce: string; version: number }>(
+        db,
+        "select editorial_state, preview_nonce, version from public.properties where id = $1",
+        [draft.id],
+      );
+      expect({
+        stale,
+        wrong,
+        answer,
+        state: row.editorial_state,
+        audits: await count(
+          db,
+          "select count(*)::int as n from public.audit_log where action = 'properties.agent_preview' and entity_id = $1",
+          [draft.id],
+        ),
+      }).toEqual({
+        stale: "40001 version_conflict",
+        wrong: "P0001 wrong_state",
+        answer: { slug: draft.slug, preview_nonce: row.preview_nonce, version: row.version },
+        state: "agent_review",
+        audits: 1,
+      });
+    });
+  });
+
+  it("after rotate_preview_nonce the old agent token no longer verifies, another property's link still verifies, and one properties.revoke_previews audit row holds no nonce", async () => {
+    await withRollback(async (db) => {
+      await assertStep7a(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const key = "admin-db-preview-key";
+      const nonceOf = async (id: string) =>
+        (
+          await one<{ nonce: string }>(
+            db,
+            "select preview_nonce::text as nonce from public.properties where id = $1",
+            [id],
+          )
+        ).nonce;
+      const draftOf = (n: number) =>
+        publishedProperty(db, { n, editorial_state: "draft", published_at: null });
+      const { id } = await draftOf(9982);
+      const { id: other } = await draftOf(9983);
+      const { answer } = await one<{ answer: { preview_nonce: string } }>(db, ISSUE, [
+        id,
+        await versionOf(db, id),
+        editor,
+      ]);
+      const { token } = await signPreview(key, id, answer.preview_nonce, "agent");
+      const { token: otherToken } = await signPreview(key, other, await nonceOf(other), "agent");
+      const before = await verifyPreview(key, token, await nonceOf(id));
+      await db.query("select public.rotate_preview_nonce($1, $2, 'human', 'req-rv')", [id, editor]);
+      const audits = await db.query<{ keys: string[] }>(
+        `select array(select jsonb_object_keys(before || after)) as keys from public.audit_log
+         where action = 'properties.revoke_previews' and entity_id = $1`,
+        [id],
+      );
+      expect({
+        before,
+        after: await verifyPreview(key, token, await nonceOf(id)),
+        other: await verifyPreview(key, otherToken, await nonceOf(other)),
+        audits: audits.rows.length,
+        nonceAudited: audits.rows.some((row) => row.keys.includes("preview_nonce")),
+      }).toEqual({ before: true, after: false, other: true, audits: 1, nonceAudited: false });
     });
   });
 });

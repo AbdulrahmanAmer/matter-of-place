@@ -1,25 +1,30 @@
 import "../fixtures/worker-env";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Json } from "../../src/db";
-import type { PropertyDetail } from "../../src/domain/admin-properties";
+import { unpublishInputSchema, type PropertyDetail } from "../../src/domain/admin-properties";
 import type { AdminActor } from "../../src/server/lib/admin-route";
 import { AppError } from "../../src/server/lib/errors";
+import { verifyPreview } from "../../src/server/lib/preview-token";
+import { getDraftProperty } from "../../src/server/previews/service";
 import {
   createFromSubmission,
   getProperty,
+  issueAgentPreview,
   issuePreviewToken,
   listProperties,
   listRepresentatives,
   publishProperty,
   putRepresentative,
+  revokePreviews,
   setFeatures,
   setRanks,
+  unpublishProperty,
   updateProperty,
 } from "../../src/server/properties/service";
 import { fakeDb, type FakeDb } from "../fixtures/fake-db";
 import { withTables, type Row } from "../fixtures/table-stub";
 
-// Screens 7 and 8 (B7 step 7): who may read and write a property, what each write sends, and what a refused write
+// Screens 7 and 8 (B7 steps 7 and 7a): who may read and write a property, what each write sends, and what a refused write
 // answers. The SQL behind each RPC is proved in tests/db/admin.db.test.ts.
 
 const PROPERTY = "00000000-0000-4000-8000-0000000000b1";
@@ -88,6 +93,7 @@ const complete: PropertyDetail = {
     editorial_state: "review",
     published_at: null,
     first_published_at: null,
+    taken_down_at: null,
     updated_at: "2026-10-07T12:00:00Z",
     version: 3,
   },
@@ -417,5 +423,198 @@ describe("issuePreviewToken", () => {
       status: 503,
       code: "preview_secret_missing",
     });
+  });
+});
+
+// Step 7a: unpublish and takedown, the agent's link and its revocation (invariants 13 and 14).
+
+/** An unpublish that the SQL accepts: the event is written, and no recipe plans a job for it here. */
+function unpublishDb() {
+  return withTables(
+    fakeDb({ rpc: { unpublish_property: () => ({ event_id: EVENT, version: 6 }) } }),
+    {
+      events: [
+        { id: EVENT, type: "property.unpublished", payload: {}, at: "2026-10-08T12:00:00Z" },
+      ],
+      automation_recipes: [] as Row[],
+      jobs: [] as Row[],
+    },
+  );
+}
+
+describe("unpublishProperty", () => {
+  it("sends the reason, the takedown and the note in one unpublish_property call and answers its event and version", async () => {
+    const db = unpublishDb();
+    const answer = await unpublishProperty(editor, db, {
+      id: PROPERTY,
+      reason: "other",
+      note: "Sold privately.",
+      takedown: true,
+    });
+    expect({ answer, args: db.calls.find((call) => call.kind === "rpc")?.args[0] }).toEqual({
+      answer: { event_id: EVENT, jobs: [], version: 6 },
+      args: {
+        p_property_id: PROPERTY,
+        p_reason: "other",
+        p_takedown: true,
+        p_actor: "00000000-0000-4000-8000-000000000001",
+        p_actor_kind: "human",
+        p_request_id: "req-props",
+        p_note: "Sold privately.",
+      },
+    });
+  });
+
+  it("unpublish without a reason is 422: the route's schema refuses it, and so does the SQL", async () => {
+    const parsed = (input: Record<string, unknown>) =>
+      unpublishInputSchema.safeParse({ id: PROPERTY, takedown: false, ...input }).success;
+    const db = fakeDb({ rpc: { unpublish_property: () => sqlError("validation", "22023") } });
+    expect({
+      missing: parsed({}),
+      empty: parsed({ reason: "" }),
+      otherWithoutNote: parsed({ reason: "other", note: " " }),
+      otherWithNote: parsed({ reason: "other", note: "Sold privately." }),
+      sql: await outcome(
+        unpublishProperty(editor, db, { id: PROPERTY, reason: "owner_request", takedown: false }),
+      ),
+    }).toEqual({
+      missing: false,
+      empty: false,
+      otherWithoutNote: false,
+      otherWithNote: true,
+      sql: { status: 422, code: "validation" },
+    });
+  });
+
+  it("refuses a visual editor an unpublish with 403 before any database call", async () => {
+    const db = fakeDb();
+    expect({
+      answer: await outcome(
+        unpublishProperty(actor(["visual_editor"]), db, {
+          id: PROPERTY,
+          reason: "owner_request",
+          takedown: true,
+        }),
+      ),
+      calls: db.calls.length,
+    }).toEqual({ answer: { status: 403, code: "forbidden" }, calls: 0 });
+  });
+});
+
+describe("issueAgentPreview", () => {
+  const KEY = "agent-preview-test-key";
+  const NONCE = "00000000-0000-4000-8000-0000000000f1";
+  const DAY = 24 * 60 * 60 * 1000;
+  const issued = () =>
+    fakeDb({
+      rpc: {
+        issue_agent_preview: (args) =>
+          args.p_expected_version === 3
+            ? { slug: "san-francisco-00000000", preview_nonce: NONCE, version: 4 }
+            : sqlError("version_conflict", "40001"),
+        preview_property: () => null,
+      },
+    });
+  const tokenOf = (url: string) => decodeURIComponent(url.split("?preview=")[1] ?? "");
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("answers a 7 day agent link signed with the nonce issue_agent_preview returned, and the new version", async () => {
+    const db = issued();
+    const answer = await issueAgentPreview(editor, db, { id: PROPERTY, expected_version: 3 }, KEY);
+    const lifetime = Date.parse(answer.expires_at) - Date.now();
+    expect({
+      url: answer.url.startsWith("/property/san-francisco-00000000?preview="),
+      signed: await verifyPreview(KEY, tokenOf(answer.url), NONCE),
+      days: Math.round(lifetime / DAY),
+      version: answer.version,
+      calls: rpcNames(db),
+    }).toEqual({
+      url: true,
+      signed: true,
+      days: 7,
+      version: 4,
+      calls: ["rpc:issue_agent_preview"],
+    });
+  });
+
+  it("an agent token still opens on day 6 and is refused on day 8 with a faked clock, with no database call", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.parse("2026-10-08T12:00:00Z") });
+    const { url } = await issueAgentPreview(
+      editor,
+      issued(),
+      { id: PROPERTY, expected_version: 3 },
+      KEY,
+    );
+    const open = async (day: number) => {
+      vi.setSystemTime(Date.parse("2026-10-08T12:00:00Z") + day * DAY);
+      const db = issued();
+      return {
+        answer: await outcome(getDraftProperty(db, "san-francisco-00000000", tokenOf(url), KEY)),
+        calls: db.calls.length,
+      };
+    };
+    // Day 6 reaches the one read of the nonce (this fake has no row, so it is 404 there); day 8 never does.
+    expect({ day6: await open(6), day8: await open(8) }).toEqual({
+      day6: { answer: { status: 404, code: "not_found" }, calls: 1 },
+      day8: { answer: { status: 404, code: "not_found" }, calls: 0 },
+    });
+  });
+
+  it("a Worker without the key answers 503 before the state moves, and a stale version is 409 stale", async () => {
+    const db = issued();
+    expect({
+      missing: await outcome(
+        issueAgentPreview(editor, db, { id: PROPERTY, expected_version: 3 }, undefined),
+      ),
+      callsWithoutKey: db.calls.length,
+      stale: await outcome(
+        issueAgentPreview(editor, db, { id: PROPERTY, expected_version: 2 }, KEY),
+      ),
+    }).toEqual({
+      missing: { status: 503, code: "preview_secret_missing" },
+      callsWithoutKey: 0,
+      stale: { status: 409, code: "stale" },
+    });
+  });
+
+  it("refuses commercial an agent link with 403 before any database call", async () => {
+    const db = fakeDb();
+    expect({
+      answer: await outcome(
+        issueAgentPreview(actor(["commercial"]), db, { id: PROPERTY, expected_version: 3 }, KEY),
+      ),
+      calls: db.calls.length,
+    }).toEqual({ answer: { status: 403, code: "forbidden" }, calls: 0 });
+  });
+});
+
+describe("revokePreviews", () => {
+  it("calls rotate_preview_nonce once and answers the new version", async () => {
+    const db = fakeDb({ rpc: { rotate_preview_nonce: () => 8 } });
+    expect({
+      answer: await revokePreviews(actor(["visual_editor"]), db, PROPERTY),
+      calls: rpcNames(db),
+      args: db.calls[0]?.args[0],
+    }).toEqual({
+      answer: { version: 8 },
+      calls: ["rpc:rotate_preview_nonce"],
+      args: {
+        p_property_id: PROPERTY,
+        p_actor: "00000000-0000-4000-8000-000000000001",
+        p_actor_kind: "human",
+        p_request_id: "req-props",
+      },
+    });
+  });
+
+  it("refuses commercial a revocation with 403 before any database call", async () => {
+    const db = fakeDb();
+    expect({
+      answer: await outcome(revokePreviews(actor(["commercial"]), db, PROPERTY)),
+      calls: db.calls.length,
+    }).toEqual({ answer: { status: 403, code: "forbidden" }, calls: 0 });
   });
 });

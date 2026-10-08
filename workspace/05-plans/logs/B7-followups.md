@@ -555,3 +555,47 @@ what: Note for step 10, not this group's file. The e2e job's 'dev vars' step wri
 evidence: Lines 295-308 of ci.yml list the echoed names, and PREVIEW_TOKEN_SECRET is not among them. signPreview in src/server/lib/preview-token.ts throws preview_secret_missing when the key is undefined.
 
 blocking: false
+
+## g3 · steps 7a
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The two follow-ups whose file is GOTCHAS.md are banked as P-2137 (new) and a hit-again line under P-2133, not listed here.
+
+### 1. app/supabase/migrations/20261008092407_admin_takedown.sql (a takedown audits both preview nonces)
+
+what: A takedown stores both preview nonces, the old one and the new one, in audit_log. rotate_preview_nonce in the same migration strips the nonce on purpose, with the comment 'staff read it, and a nonce is half of a link'. The two functions contradict each other. A leak would still need PREVIEW_TOKEN_SECRET before anyone could forge a link, so this is not exploitable alone.
+
+evidence: unpublish_property sets preview_nonce = gen_random_uuid() when p_takedown, then calls write_audit(..., to_jsonb(v_before), to_jsonb(v_after), ...) without '- preview_nonce'. write_audit keeps every changed key (write_audit.sql line 63, 'is distinct from'), so both nonces land in before/after. Found by reading, not run.
+
+blocking: false
+
+### 2. app/src/server/lib/permissions/properties.ts (properties.unpublish is neither humanOnly nor capped)
+
+what: properties.unpublish (which includes a takedown) is neither humanOnly nor counted by assert_agent_daily_cap. An agent key with an editor role can therefore take down any number of properties. A takedown is irreversible: the slug answers 410 forever and the takedown_media job deletes the media. R12 asks for humanOnly or a cap on an action that changes public visibility. The matrix is step 1's and the plan does not ask step 7a to add a cap, so this is a follow-up for the orchestrator (decide humanOnly on takedown, or count it under the cap).
+
+evidence: Matrix line 20: { action: "properties.unpublish", group: "properties", roles: editors } with no humanOnly. action_roles rows: ('properties.unpublish', array['chief_editor','managing_editor'], false). unpublish_property calls no assert_agent_daily_cap, while publish_property does. Found by reading.
+
+blocking: false
+
+### 3. workspace/05-plans/B7.md (plan line 17 f is stale; the orchestrator folds it)
+
+what: Plan line 17 f says cachedResponse in cache.ts writes the bypass label for both preview params. A ?preview= page never reaches the cache hook; pipeline.ts now sets the label in the neverCached branch. The author already named this stale line as the orchestrator's to fold; it is recorded here so it is not dropped.
+
+evidence: src/server/lib/pipeline.ts:296 `if (framing === "self" && !headers.has("x-mop-cache")) headers.set("x-mop-cache", "bypass");`. Unit case 'labels a preview-token answer x-mop-cache bypass' and watched-fail b7-g3a-pipe-bypass OK.
+
+blocking: false
+
+### 4. app/src/admin/properties/UnpublishDialog.tsx (UNPROVEN: no component test, never run in a browser; the dialog keeps its state across cancel)
+
+what: UNPROVEN: UnpublishDialog, AgentPreviewButton and the PublishBar/PropertyEditor wiring have no component test and were never run in a browser (the author says so). Separately, by reading: the dialog keeps its reason, note and takedown state across cancel and reopen, so a cancelled takedown reopens with Takedown still ticked. The confirm label then says 'Take down', so the editor can see it.
+
+evidence: git diff origin/main...slice/b7 adds no *.test.tsx case for either component. The useState hooks in UnpublishDialog are never reset in onCancel.
+
+blocking: false
+
+### 5. app/tests/mutations/B7.json (nine of the ten g3a sql entries match only the test title)
+
+what: Nine of the ten g3a sql entries match only the test title (for example '× .*after rotate_preview_nonce...'), so a red for any reason counts as OK. Today the registry sql holds only the mutated function. Before main pushes the migration, a plain replay of an entry whose test also calls another 7a function goes red on assertStep7a, not on the mutation. The author replayed with the migration prepended, and so did I, so the current proofs hold. After the push the entries are correct as written.
+
+evidence: Without MOP_MUTATION_SQL, admin-cache.db.test.ts goes red on 'expected false to be true' (assertStep7a). That is the same red that would satisfy a title-only expect.
+
+blocking: false
