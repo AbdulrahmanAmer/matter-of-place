@@ -311,3 +311,21 @@
    - Evidence: select status,count(*) from public.jobs where type='e2e_jobs' -> dead 13 before my run
 
 (One further follow-up has GOTCHAS.md as its file: the laptop proof command copied from a log without the dev profile; banked as P-2608.)
+
+## g1 · steps 9,10a
+
+1. `app/docs/runbooks/jobs.md` (not blocking)
+   - What: Stale proof status in the runbook (the snapshot is removed; the line is about 137 of jobs.md, in section 'Takedown of a property's files'). It says B7's unpublish_property 'is to enqueue it when p_takedown is true (UNPROVEN until B7's migration is on main)'. B7's 20261008092407_admin_takedown.sql is now on origin/main, and this group proved the enqueue against mop-dev. An operator reading it during an incident would wrongly think the enqueue is not wired. Low harm, because the idempotency key takedown_media:<id> dedupes a manual enqueue.
+   - Evidence: git ls-tree --name-only origin/main app/supabase/migrations/ | grep takedown lists 20261008092407_admin_takedown.sql. bunx vitest run --project db tests/db/admin.db.test.ts -t takedown gives 4 passed on mop-dev.
+
+2. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: The 84 'bad' of the author's local whole-diff watchfail replay (643 entries, against mop-dev) were never explained. The output was lost to a redirect. The author marks it UNPROVEN and relies on CI's --kinds unit,sql replay (160 ok, 0 bad), which I confirmed. Whether the 84 are only entries that need unpushed migrations, or other kinds that CI never selects, is not shown.
+   - Evidence: Log line 'replayed 643: ok 559, bad 84; I did not isolate the 84'. The CI db log shows 'watchfail --changed origin/main --kinds unit,sql ... replayed 160: ok 160, bad 0'.
+
+3. `app/src/server/jobs/system/takedown-media.ts` (not blocking)
+   - What: Suspected by reading, not run: the job never re-checks that the property is still taken down (STANDARDS R31, C12). editorial_transition_allowed permits archived to draft, and a storage outage can delay the delete pass by hours (12 attempts, an hour's wait per outage). So a takedown that is reversed before the job runs still deletes the files. The plan's contract does not ask for this check, and a rights takedown is deliberate, so this is a note for later.
+   - Evidence: supabase/sql/functions/editorial_transition_allowed.sql:24 ('archived','draft'). takedown-media.ts run() reads only takedown_media_keys and ctx.job.result and never reads properties.taken_down_at.
+
+4. `workspace/05-plans/B8.md` (not blocking)
+   - What: The live Storage proof of step 10a is BLOCKED and still open: upload test/<run id>/og.png, enqueue takedown_media, job done with result.deleted >= 1, then curl the public URL. It is also not known which HTTP code Storage returns for a missing public object. It can run only after main pushes 20261008135944_takedown.sql. Until then the delete path has been exercised only against a fake media store and a stubbed fetch, so it is UNPROVEN against real Storage.
+   - Evidence: git ls-tree origin/main app/supabase/migrations shows no takedown.sql (only admin_takedown). tests/unit/jobs/takedown-media.test.ts mocks deleteObjects and stubs fetch.
