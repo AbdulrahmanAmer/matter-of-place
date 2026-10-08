@@ -3748,5 +3748,105 @@
     "replace": "false",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
     "expect": "× .*shows the request id when the list does not load"
+  },
+  {
+    "id": "b10g10-ara-order",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "const DAY_MS = 86_400_000;",
+    "replace": "const DAY_MS = -86_400_000;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > guards, takes the lock"
+  },
+  {
+    "id": "b10g10-ara-fixture",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "meta: { fixture: \"rehearsal\" },",
+    "replace": "meta: {},",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > inserts two pending fixture carousels"
+  },
+  {
+    "id": "b10g10-ara-revision",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "(latest.data[0]?.revision ?? 0) + 1",
+    "replace": "1",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > takes the next free revision"
+  },
+  {
+    "id": "b10g10-ara-production",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "await assertNotProduction();",
+    "replace": "void 0;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > refuses after the launch switch"
+  },
+  {
+    "id": "b10g10-ara-target",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "assertDevTarget(values.target);",
+    "replace": "void values.target;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > refuses --target prod"
+  },
+  {
+    "id": "b10g10-ara-restore",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "await writeInstagram(db, before);",
+    "replace": "void 0;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > restores the instagram row and releases the lock"
+  },
+  {
+    "id": "b10g10-ara-feature-wait",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "if (approvedFeature && !(await awaitInstagramPost(db, feature))) exit = 1;",
+    "replace": "if (!(await awaitInstagramPost(db, feature))) exit = 1;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > exits 1 and does not wait for a post"
+  },
+  {
+    "id": "b10g10-ara-campaign",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "if (outcome.status !== expected) exit = 1;",
+    "replace": "if (outcome.status !== expected && id === feature) exit = 1;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > exits 1 when the Campaign asset is approved"
+  },
+  {
+    "id": "b10g10-ara-poll",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "const GIVE_UP_MS = 150_000;",
+    "replace": "const GIVE_UP_MS = 300_000;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > polls for the post row for 150 seconds"
+  },
+  {
+    "id": "b10g10-ara-blocked",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "if (feature === undefined || campaign === undefined) {",
+    "replace": "if (feature === undefined && campaign === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > stops BLOCKED"
   }
 ]
