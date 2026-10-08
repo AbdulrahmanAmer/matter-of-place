@@ -56,6 +56,9 @@ export const siteSettingsSchema = z.object({
 
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;
 
+/** The body of `GET /api/public/site`: the identity and whether illustrative content may show (invariant 6). */
+export type PublicSite = SiteSettings & { illustrativeContent: boolean };
+
 export const emptySiteSettings: SiteSettings = siteSettingsSchema.parse({});
 
 /** The values that are set, trimmed and in order: nothing renders for a null or blank one (invariant 2). */

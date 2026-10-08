@@ -83,11 +83,8 @@ describe("reelCopy", () => {
     expect(fixture.copy).toEqual(reelCopy(fixture.property));
   });
 
-  it("starts the credit of B16's footer line", ({ skip }) => {
-    // B16 step 4 has not landed: strings.ts still reads "An Omnikom company." (GOTCHAS P-2101). Only that old value skips.
-    const footer: string = t.footer.line;
-    skip(footer === "An Omnikom company.");
-    expect(footer.startsWith(reelCopy(fixture.property).credit)).toBe(true);
+  it("starts the credit of B16's footer line", () => {
+    expect(t.footer.line.startsWith(reelCopy(fixture.property).credit)).toBe(true);
   });
 });
 
