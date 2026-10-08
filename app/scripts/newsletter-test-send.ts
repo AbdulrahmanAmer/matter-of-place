@@ -55,7 +55,7 @@ const sample: RenderIssue = {
       deck: "A 1926 Spanish Revival house in Pasadena.",
       image_key: "sample/alder-court/og.jpg",
       image_url: `${site.siteUrl}/media/sample/alder-court/og.jpg`,
-      link: `${site.siteUrl}/california/alder-court`,
+      link: `${site.siteUrl}/property/alder-court`,
     },
     {
       id: "b3",

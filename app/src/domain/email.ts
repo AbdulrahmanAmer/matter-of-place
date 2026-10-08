@@ -240,7 +240,7 @@ const sampleValues = (siteUrl: string): Record<VariableName, string | SampleBloc
     deck: "A 1926 Spanish Revival house in Pasadena.",
     image_key: "sample/alder-court/og.jpg",
     image_url: `${siteUrl}/media/sample/alder-court/og.jpg`,
-    link: `${siteUrl}/california/alder-court`,
+    link: `${siteUrl}/property/alder-court`,
   },
 });
 

@@ -1882,8 +1882,8 @@
     "id": "b11-g6-routes-pending-stale",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "tests/unit/admin-routes-parity.test.ts",
-    "find": "  \"reports.email\",\n];",
-    "replace": "  \"reports.email\",\n  \"newsletter.build\",\n];",
+    "find": "  \"reports.export\",\n];",
+    "replace": "  \"reports.export\",\n  \"newsletter.build\",\n];",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*gives every matrix action a route"
   },
@@ -2988,6 +2988,6 @@
     "test": "tests/db/newsletter.db.test.ts",
     "sql": "update public.email_templates set variables = '{subject,preheader}' where key = 'standalone';",
     "run": "bunx vitest run --project db tests/db/newsletter.db.test.ts -t \"the standalone row is enabled\"",
-    "expect": "× .*the standalone row is enabled[sS]*AssertionError"
+    "expect": "× .*the standalone row is enabled[\\s\\S]*AssertionError"
   }
 ]
