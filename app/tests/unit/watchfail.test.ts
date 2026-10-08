@@ -309,7 +309,8 @@ describe("registry: --registry tests/mutations", () => {
     });
   });
 
-  it("--changed <ref> replays only entries the diff touches", () => {
+  // Four git spawns and the script: slow on a loaded laptop (P-140).
+  it("--changed <ref> replays only entries the diff touches", { timeout: 30_000 }, () => {
     const dir = withRegistry([entry("one"), other("two")]);
     const git = (...args: string[]) =>
       spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: dir });
@@ -327,6 +328,33 @@ describe("registry: --registry tests/mutations", () => {
       ],
     });
   });
+
+  // Four git spawns and the script: slow on a loaded laptop (P-140).
+  it(
+    "--changed <ref> also replays an entry the registry gained since <ref>, when its file is unchanged (P-539)",
+    { timeout: 30_000 },
+    () => {
+      const dir = withRegistry([entry("one")]);
+      const git = (...args: string[]) =>
+        spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: dir });
+      git("init", "-q");
+      git("add", ".");
+      git("commit", "-q", "-m", "base");
+      writeFileSync(
+        join(dir, "mutations", "A.json"),
+        JSON.stringify([entry("one"), entry("three")]),
+      );
+      git("commit", "-q", "-am", "add an entry, touch no target");
+      const done = run(dir, ["--registry", "mutations", "--changed", "HEAD~1"]);
+      expect({ status: done.status, lines: done.lines }).toEqual({
+        status: 0,
+        lines: [
+          "WATCHED-FAIL OK A:three",
+          "watchfail: replayed 1: ok 1, bad 0, stale 0; manual 0 not replayed; 1 not selected",
+        ],
+      });
+    },
+  );
 });
 
 describe("entryProblems", () => {

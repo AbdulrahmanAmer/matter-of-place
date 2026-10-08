@@ -63,6 +63,12 @@ const lastGoodWritten = new Map<string, number>();
 const isReadRequest = (request: Request): boolean =>
   request.method === "GET" || request.method === "HEAD";
 
+/** A draft preview (B7 invariant 17 f): never looked up and never stored, though the key drops the query (rule 3). */
+const isPreviewRequest = (url: string): boolean => {
+  const search = new URL(url).searchParams;
+  return search.has("preview") || search.has("draft_token");
+};
+
 /** 200, or the cacheable 404 and 410 that name their own short lifetime; never `no-store`, a cookie or a 5xx. */
 function storable(response: Response): boolean {
   const control = response.headers.get("cache-control") ?? "";
@@ -165,7 +171,9 @@ export async function cachedResponse(
   edge?: EdgeOptions,
   db?: Db,
 ): Promise<Response> {
-  if (!isReadRequest(request)) return bypass(await build(), undefined);
+  if (isPreviewRequest(request.url) || !isReadRequest(request)) {
+    return bypass(await build(), undefined);
+  }
   const { pathname } = new URL(request.url);
   const cache = edgeCache();
   let version: number;

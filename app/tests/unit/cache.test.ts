@@ -214,6 +214,41 @@ describe("a JSON read", () => {
   });
 });
 
+describe("a draft preview (B7 invariant 17 f)", () => {
+  it.each([
+    ["json", "/api/public/properties/p1?draft_token=token-of-sixteen-plus"],
+    ["json", "/api/public/properties/p1?preview=token-of-sixteen-plus"],
+    ["html", "/property/p1?preview=token-of-sixteen-plus"],
+    ["html", "/property/p1?draft_token=token-of-sixteen-plus"],
+  ] as const)(
+    "a %s read of %s never looks up, never stores and reads no state",
+    async (kind, path) => {
+      const { cache } = await load();
+      const match = vi.fn(() => Promise.resolve(undefined));
+      const put = vi.fn(() => Promise.resolve());
+      vi.stubGlobal("caches", { default: { match, put } });
+      const db = served(7);
+      const response = await cache.cachedResponse(
+        get(path),
+        kind,
+        () => Promise.resolve(body()),
+        EDGE,
+        db,
+      );
+      expect(response.headers.get("x-mop-cache")).toBe("bypass");
+      expect({
+        match: match.mock.calls.length,
+        put: put.mock.calls.length,
+        db: db.calls.length,
+      }).toEqual({
+        match: 0,
+        put: 0,
+        db: 0,
+      });
+    },
+  );
+});
+
 describe("a stored entry while the state is stale", () => {
   it("answers a stored entry as stale while the state is stale", async () => {
     vi.stubEnv("CATALOG_VERSION_TTL_MS", "0");
