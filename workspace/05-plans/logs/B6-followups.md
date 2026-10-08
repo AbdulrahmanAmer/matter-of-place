@@ -166,3 +166,28 @@ Review of group c3h: no blocking defect. Seven follow-ups: two concern GOTCHAS.m
 5. File: `app/tests/e2e/admin-invoice.spec.ts`. Blocking: no.
    What: UNPROVEN, as the author says and as I reproduced: all seven rehearsal tests beyond the issue confirmation. The by-hand E2E_FULL_STACK=1 run on mop-dev still gets a 403 forbidden at spec:230, because B6's three action_roles migrations are not on main (0 payments.* rows on mop-dev). Also UNPROVEN: the picker and unaccepted manual entries since the kind change, and CI's real result for this PR. The proof of the slice's observed exit is still open until B6 is merged, main pushes the migrations, and the Proof 4 command is run once.
    Evidence: my run: 1 failed, 6 did not run, with the trace resource holding {"error":{"code":"forbidden"...}}; mop-dev query: payments action_roles 0, B6 migrations applied 0
+
+## g1 · steps 7
+
+Review of group g1 (plan step 7): no blocking defect. Five follow-ups below, word for word with their evidence; the sixth, the clobbered scratchpad, concerns GOTCHAS.md and is banked as a hit-again line in P-536.
+
+1. File: `app/tests/unit/admin-nav.test.ts`. Blocking: no.
+   What: The plan's step 7 case says screen 5's entry is in routesById of the generated route tree and renders for managing_editor and commercial. The new case (lines about 112-143) works out route ids from the file names in src/routes/admin with its own regex, not from routeTree.gen.ts, and calls visibleNav with everyAction() instead of actionsOf('managing_editor') and actionsOf('commercial'), even though actionsOf is defined in the same file. It is not blocking because nav.ts entry 5 names no action, so every role sees it, and a route path that does not match its file name fails the typecheck. But the role half of the proof is never asserted.
+   Evidence: Read at HEAD: `visibleNav({ hasRoute: (routeId) => routes.has(routeId), actions: everyAction() })`; there is no routesById or routeTree import (grep of tests/unit for routesById/routeTree finds only boundaries.test.ts and essentials.test.ts). nav.ts lines 100-106: the screen 5 entry has no action.
+
+2. File: `workspace/05-plans/logs/B6.md`. Blocking: no.
+   What: The closing block says '43 b6-s7-* entries read OK'. tests/mutations/B6.json holds 44 b6-s7-* entries, and all 44 replay WATCHED-FAIL OK. The count is off by one. The claim it supports, that every entry passes, holds.
+   Evidence: node -e filter of B6.json for ids starting b6-s7 prints 44; the per-id replay gave ok=44 total=44
+   Handling: the log block is append-only, so the count is stated in the "## g1 · follow-ups recorded" block of B6.md.
+
+3. File: `app/src/routes/admin/invoices.index.tsx`. Blocking: no.
+   What: The plan's FILES line says each route uses adminRouteOptions() (errorComponent plus a 300 ms pendingComponent). The three invoice routes are H66 shells with .lazy.tsx pages that set errorComponent: AdminRouteError and have no pendingComponent. This matches B7's People routes and the log's P-2322 note, so the code follows the ruling and the plan line is out of date. The orchestrator should update it.
+   Evidence: invoices.*.lazy.tsx each set `errorComponent: AdminRouteError`; adminRouteOptions() is used only in tests (grep src); people.index.lazy.tsx uses the same pattern
+
+4. File: `app/src/admin/invoices/InvoiceForm.tsx`. Blocking: no.
+   What: These gaps are admitted NOT DONE and stay as follow-ups. (1) The preferred payment method is free text checked only by a pattern, and the server does not check it against the payment methods in settings (invoice-snapshot.ts copies preferredMethod into the snapshot unchecked). An unknown id is frozen into an issued invoice, and InvoicePreview's `preferred` lookup then finds nothing. (2) The readiness list appears only after the first 409 invoice_not_ready. (3) The FILES line asks for one test per component; ActivateButton, MarkPaidDialog, WaiveDialog, VoidDialog, WaiveWithoutInvoiceDialog, InvoiceForm and InvoicePreview are covered only inside the combined InvoiceDetail.test.tsx. The report says these items 'need other groups'. That is true for (1) and (2), but not for (3).
+   Evidence: InvoiceForm.tsx: `<input type="text" pattern={METHOD_ID} ...>`; server/payments/invoice-snapshot.ts:66 `preferred_method: preferredMethod` with no membership check; ls src/admin/invoices shows 4 test files for 16 components and modules
+
+5. File: `app/src/admin/invoices/IssuePicker.tsx`. Blocking: no.
+   What: The picker reads only the first page (50 rows) of Accepted requests and ignores next_cursor. A 51st accepted request with no invoice can never be picked here, though it can still be reached through /admin/invoices/new?submission_id=. The code comment admits the limit. This is a follow-up for when the backlog can exceed one page.
+   Evidence: IssuePicker.tsx:7-14 calls useSubmissions({ workflow_state: 'Accepted' }) with no cursor or pager; the comment says 'at most one page of 50'
