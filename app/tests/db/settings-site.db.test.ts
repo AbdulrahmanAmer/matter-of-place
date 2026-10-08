@@ -1,6 +1,7 @@
-// B16 step 2: `settings_put_site` is the one write of `settings.site`. It audits in the same transaction, B2's trigger
+// B16 steps 2 and 5: `settings_put_site` is the one write of `settings.site`. It audits in the same transaction, B2's trigger
 // moves catalog_version, only the service role may call it, and the stored row parses with the domain schema.
 import { describe, expect, it } from "vitest";
+import { retentionPeriods } from "../../src/domain/retention";
 import { siteSettingsSchema } from "../../src/domain/settings";
 import { asRole, withRollback, type Db } from "../fixtures/db";
 
@@ -82,5 +83,26 @@ describe("settings.site", () => {
           .rows[0]?.value,
     );
     expect(siteSettingsSchema.safeParse(value).success).toBe(true);
+  });
+});
+
+describe("retention", () => {
+  it("retention_policies holds every period of retentionPeriods, key by key", async () => {
+    const rows = await withRollback(async (db) => {
+      const read = await db.query<{ key: string; months: number; days: number; hours: number }>(
+        `select key,
+                (extract(year from keep_for) * 12 + extract(month from keep_for))::int as months,
+                extract(day from keep_for)::int as days,
+                extract(hour from keep_for)::int as hours
+           from public.retention_policies where key = any($1::text[])`,
+        [Object.keys(retentionPeriods)],
+      );
+      return new Map(read.rows.map((row) => [row.key, row]));
+    });
+    for (const [key, period] of Object.entries(retentionPeriods)) {
+      const row = rows.get(key);
+      const stored = row && { months: row.months, days: row.days, hours: row.hours };
+      expect([key, stored]).toEqual([key, { months: 0, days: 0, hours: 0, ...period }]);
+    }
   });
 });

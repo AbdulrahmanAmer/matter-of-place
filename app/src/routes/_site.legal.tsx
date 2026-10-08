@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
@@ -7,6 +8,7 @@ import { breadcrumbLd } from "../lib/jsonld";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
+import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/legal")({
   head: () =>
@@ -21,6 +23,12 @@ export const Route = createFileRoute("/_site/legal")({
 
 function LegalPage() {
   const { legal, illustrativeContent } = useSite();
+  const navigate = useNavigate();
+  // A fragment never reaches the server, so the old /legal#privacy and /legal#terms links move here, in the browser.
+  useEffect(() => {
+    if (window.location.hash === "#privacy") void navigate({ to: "/privacy", replace: true });
+    else if (window.location.hash === "#terms") void navigate({ to: "/terms", replace: true });
+  }, [navigate]);
   return (
     <main>
       <PageIntro
@@ -53,6 +61,13 @@ function LegalPage() {
           Editorial consideration is free and cannot be purchased. Paid packages amplify properties
           that have already been accepted editorially; they do not influence whether a property is
           accepted.
+        </p>
+
+        <h2>Privacy and terms</h2>
+        <p>
+          How personal information is handled is on the <Link to="/privacy">{t.nav.privacy}</Link>{" "}
+          page. The terms for submitting a property are on the{" "}
+          <Link to="/terms">{t.nav.terms}</Link> page.
         </p>
 
         <div className="section-block">

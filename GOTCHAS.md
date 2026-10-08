@@ -719,6 +719,7 @@ Entry template
 - hit again: 2026-10-04, B3 g6: `git merge origin/main` printed `merge-gotchas: both sides changed P-008, P-094, P-320; ours kept, compare by hand` and left GOTCHAS.md conflicted with no markers; the main side's `hit again` lines were copied in by a script and each entry's `- added:` moved back to the last line, then `check-gotchas.mjs` printed OK.
 - hit again: 2026-10-04, B4 g6: three merges of origin/main in one group stopped on `both sides changed P-008` (and `G-031` twice) with no markers; a scratch script took the main side's entry and inserted each line only the lane held after its preceding line, then `sort | uniq -d` over each entry printed nothing and `check-gotchas.mjs` printed OK.
 - hit again: 2026-10-05, B15 g6: `git merge origin/main` printed `merge-gotchas: both sides changed P-712; ours kept, compare by hand` and left GOTCHAS.md unmerged with no markers; both sides had appended one `hit again` line to P-712, so the fix was to keep ours and insert theirs' line after it. Proof: `grep -c "hit again: 2026-10-05, B15 g6" GOTCHAS.md` prints 1 and `node workspace/05-plans/check-gotchas.mjs` prints OK.
+- hit again: 2026-10-08, B16 g5: a patch script built with a backslash-escaped template literal (`<\/loc>`) did not match the file and stopped with `missing`; the replacement went in with the Edit tool.
 - added: 2026-10-02
 - hit again: 2026-10-05, B5 g1 review: the merge driver reordered entries, so the branch's GOTCHAS.md diff against main was 896 added and 883 deleted lines although only P-1202 and six hit-again lines were new. Sorted lines of main and branch differ by additions only (no line lost), and the heading order shows blocks G-104..P-330 and P-800..P-511 moved; the churn makes the bank's diff unreadable in review. Review it by entry, not by line: `diff <(grep '^## ' <(git show origin/main:GOTCHAS.md) | sort) <(grep '^## ' GOTCHAS.md | sort)` lists the real additions.
 - hit again: 2026-10-04, B3 g8: `git merge origin/main` printed `merge-gotchas: both sides changed P-094, P-310, P-706, P-1001; ours kept, compare by hand`; the four theirs-only `hit again` lines were copied in by a script that diffed each entry against the base, and `check-gotchas.mjs` printed OK.
@@ -4602,6 +4603,30 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: B16 g4 removed the two sections and left the footer and consent-notice links as they were; step 5 adds the two links on `/legal`, the footer links and the redirect together with the pages. The slice must not reach main with step 4 and without step 5 (UNPROVEN as a deployed state; it never ships alone because the workflow merges the slice whole).
 - proof: `cd app && git grep -n 'hash="privacy"\|hash="terms"' -- src` lists the footer and the consent notice until step 5 removes them (the step 5 grep of the plan prints nothing then) (measured 2026-10-07, B16 g4).
 - added: 2026-10-07
+
+## P-1009 · A domain file cannot import `src/config/site.ts`: the job runner loads the domain under Deno, where `import.meta.env` does not exist
+- severity: warn
+- symptom: B16 step 5 says `currentRightsVersion` in `src/domain/contracts.ts` is redefined as `legalVersions.terms` from `src/config/site.ts`. With that import, `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` printed `TS2339 [ERROR]: Property 'env' does not exist on type 'ImportMeta'` at `src/config/site.ts:9`, and at run time the module would throw on `env.VITE_SITE_URL`.
+- cause: `src/domain/**` is Deno-loaded (eslint `DENO_FILES`); `admin-team.ts` and `omnikom.ts` import `contracts.ts`, so the whole of `site.ts` entered the runner graph. `site.ts` reads `import.meta.env`, a Vite feature.
+- rule: a file under `src/domain` imports nothing from `src/config`. `currentRightsVersion` keeps its own literal in `contracts.ts` and `tests/unit/legal-pages.test.tsx` asserts it equals `legalVersions.terms`; both change in the same commit when the terms version moves. Run the `deno check` above after any import added to a Deno-loaded file.
+- proof: `cd app && deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` → `Check supabase/functions/job-runner/index.ts`, exit 0; with `import { legalVersions } from "../config/site.ts"` added to `src/domain/contracts.ts` → the TS2339 error above (measured 2026-10-08, B16 g5).
+- added: 2026-10-08
+
+## P-1010 · Step 5 lists `/privacy-request` in the route fixtures one step before the page exists
+- severity: warn
+- symptom: the plan puts `/privacy-request` into `staticRoutes` and `_site.privacy-request.tsx` into `routeFileCoverage` in step 5, and links to `/privacy-request` from the privacy page; step 6 creates the page. `routes-covered.test.ts` ("are all still on disk when the map names them") would fail on a map entry with no file, and a typed `<Link to="/privacy-request">` fails the typecheck before the route tree knows the path (G-021).
+- cause: the Files lines of steps 5 and 6 cut the request page at the wrong seam (as P-1008 does for `/legal`).
+- rule: B16 g5 added the three pages to the fixtures and linked the request form with plain `<a href="/privacy-request">` anchors; step 6 adds `/privacy-request` to `staticRoutes` and `routeFileCoverage` with its page and may turn the two anchors into typed links.
+- proof: `cd app && grep -n "privacy-request" src/routes/_site.privacy.tsx tests/e2e/fixtures/routes.ts` lists the two anchors and no fixture row until step 6 lands (measured 2026-10-08, B16 g5).
+- added: 2026-10-08
+
+## P-1011 · `textContent` joins neighbouring elements with no space, so a word-boundary test for `null` on a whole page misses `Contactnull`
+- severity: warn
+- symptom: B16 g5's first "no null" case ran `expect(mainText()).not.toMatch(/\bnull\b/)` over the terms page; its watched-fail (the contact link printing `String(null)`) stayed green (`BAD: wrong reason`) because the page text read `...new version.Contactnull, or the contact page.`, where a heading's last letter and `null` form one word.
+- cause: `textContent` of a container concatenates its children without separators, so a word boundary the eye sees is not in the string.
+- rule: look for a literal in a page element by element: `[...document.querySelectorAll("main *")].filter((el) => /\bnull\b/.test(el.textContent))`, which matches the link that holds it.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b16-g5-unset-null` → `WATCHED-FAIL OK B16:b16-g5-unset-null`; with the whole-page `not.toMatch` back in the test it printed `BAD: wrong reason` (measured 2026-10-08, B16 g5).
+- added: 2026-10-08
 
 ## P-537 · A change to a file that registry entries anchor on must replay every entry of that file before the push, not only the new ones; two CI cycles were lost to stale anchors in one hour
 - symptom: 2026-10-07, PR 190 (hygiene cap: four B1b entries BAD or STALE), PR 196 (budget: `b3-bc-budget`, `b3-bc-exit` named the old fixture size), PR 215 (`reach()` signature: `b3-bc-nesting`, `b3-bc-lazy` STALE). Each time the author replayed only the entries it had just written, pushed, and CI's db job found the rest; each cost a CI cycle of 10 to 20 minutes and a second push.

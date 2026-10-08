@@ -32,10 +32,7 @@ export function Footer() {
         <noscript>
           <section className="consent-notice" aria-label={t.consent.label}>
             <p className="consent-text">
-              {t.consent.text}{" "}
-              <Link to="/legal" hash="privacy">
-                {t.consent.link}
-              </Link>
+              {t.consent.text} <Link to="/privacy">{t.consent.link}</Link>
             </p>
             <div className="consent-actions">
               <a className="consent-allow" href="/api/consent?set=accept">
@@ -84,11 +81,11 @@ export function Footer() {
           <nav className="footer-col" aria-label={groups.company}>
             <h3>{groups.company}</h3>
             <Link to="/contact">{t.nav.contact}</Link>
-            <Link to="/legal" hash="privacy">
-              {t.nav.privacy}
-            </Link>
-            <Link to="/legal" hash="terms">
-              {t.nav.terms}
+            <Link to="/privacy">{t.nav.privacy}</Link>
+            <Link to="/terms">{t.nav.terms}</Link>
+            <Link to="/accessibility">{t.nav.accessibility}</Link>
+            <Link to="/privacy" hash="do-not-sell">
+              {t.nav.doNotSell}
             </Link>
             <Link to="/privacy-choices" id="consent-change" onClick={reopenNotice}>
               {t.consent.change}

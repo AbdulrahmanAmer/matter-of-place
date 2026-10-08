@@ -461,5 +461,203 @@
     "replace": "    entity: site.legal.entity ?? \"unset\",",
     "run": "bunx vitest run --project unit tests/unit/email/site-context.test.ts",
     "expect": "FAIL .*> loadSiteContext > maps an empty site to nulls"
+  },
+  {
+    "id": "b16-g5-sitemap-privacy",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/sitemap[.]xml.ts",
+    "find": "  \"/privacy\",\n  \"/terms\",",
+    "replace": "  \"/terms\",",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the sitemap > holds /privacy"
+  },
+  {
+    "id": "b16-g5-sitemap-terms",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/sitemap[.]xml.ts",
+    "find": "  \"/terms\",\n  \"/accessibility\",",
+    "replace": "  \"/accessibility\",",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the sitemap > holds /privacy"
+  },
+  {
+    "id": "b16-g5-do-not-sell-id",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "<h2 id=\"do-not-sell\">",
+    "replace": "<h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy has the do-not-sell anchor"
+  },
+  {
+    "id": "b16-g5-rights-id",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "<h2 id=\"rights-to-photographs\">",
+    "replace": "<h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy has the do-not-sell anchor"
+  },
+  {
+    "id": "b16-g5-retention-number",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "<td data-label=\"Kept for\">{keep(key)}</td>",
+    "replace": "<td data-label=\"Kept for\">{keep(key === \"analytics_daily\" ? \"analytics_events\" : key)}</td>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy prints each retention period"
+  },
+  {
+    "id": "b16-g5-terms-hash",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "Acceptance is not promised.",
+    "replace": "Acceptance is never promised.",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the terms text matches the hash"
+  },
+  {
+    "id": "b16-g5-h2-refunds",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "<h2>Refunds</h2>",
+    "replace": "<h2>Money back</h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /terms has its h1 and its h2 sections"
+  },
+  {
+    "id": "b16-g5-h2-privacy",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "<h2>Children</h2>",
+    "replace": "<h2>Minors</h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy has its h1 and its h2 sections"
+  },
+  {
+    "id": "b16-g5-h2-accessibility",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.accessibility.tsx",
+    "find": "<h2>Known limits</h2>",
+    "replace": "<h2>Limits</h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /accessibility has its h1 and its h2 sections"
+  },
+  {
+    "id": "b16-g5-rights-version",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/domain/contracts.ts",
+    "find": "currentRightsVersion = \"2026-10-08\";",
+    "replace": "currentRightsVersion = \"2026-10-01\";",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > currentRightsVersion equals legalVersions.terms"
+  },
+  {
+    "id": "b16-g5-rights-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/forms/submit/steps.tsx",
+    "find": "hash=\"rights-to-photographs\"",
+    "replace": "hash=\"rights\"",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the submit wizard's rights step links"
+  },
+  {
+    "id": "b16-g5-cookies-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "<Link to=\"/cookies\">{t.privacy.cookiesLink}</Link>",
+    "replace": "{t.privacy.cookiesLink}",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy links /cookies"
+  },
+  {
+    "id": "b16-g5-footer-do-not-sell",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "hash=\"do-not-sell\"",
+    "replace": "hash=\"privacy\"",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the footer links Privacy"
+  },
+  {
+    "id": "b16-g5-footer-terms",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<Link to=\"/terms\">{t.nav.terms}</Link>",
+    "replace": "<Link to=\"/legal\" hash=\"terms\">{t.nav.terms}</Link>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the footer links Privacy"
+  },
+  {
+    "id": "b16-g5-consent-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "<Link to=\"/privacy\">{t.consent.link}</Link>",
+    "replace": "<Link to=\"/legal\" hash=\"privacy\">{t.consent.link}</Link>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the consent notice, mounted"
+  },
+  {
+    "id": "b16-g5-choices-link",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": "<Link to=\"/privacy\">{t.consent.link}</Link>",
+    "replace": "<Link to=\"/legal\" hash=\"privacy\">{t.consent.link}</Link>",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy-choices links /privacy"
+  },
+  {
+    "id": "b16-g5-legal-terms-branch",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "    else if (window.location.hash === \"#terms\") void navigate({ to: \"/terms\", replace: true });\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the old /legal anchors > /legal with #terms lands on /terms"
+  },
+  {
+    "id": "b16-g5-legal-privacy-branch",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "if (window.location.hash === \"#privacy\") void navigate({ to: \"/privacy\", replace: true });",
+    "replace": "if (window.location.hash === \"#privacy\") void navigate({ to: \"/terms\", replace: true });",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the old /legal anchors > /legal with #privacy lands on /privacy"
+  },
+  {
+    "id": "b16-g5-legal-no-hash",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "if (window.location.hash === \"#privacy\")",
+    "replace": "if (window.location.hash !== \"#zz\")",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the old /legal anchors > /legal with no hash stays on /legal"
+  },
+  {
+    "id": "b16-g5-title-brand",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "title: t.nav.terms,",
+    "replace": "title: `${t.nav.terms} | Matter of Place | Matter of Place`,",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > the page titles carry the brand once"
+  },
+  {
+    "id": "b16-g5-unset-null",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "presentLines(useSite().contact.email)[0]",
+    "replace": "String(useSite().contact.email)",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > an unset site leaves no null"
+  },
+  {
+    "id": "b16-g5-db-retention",
+    "test": "tests/db/settings-site.db.test.ts",
+    "file": "src/domain/retention.ts",
+    "find": "analytics_daily: { months: 13 },",
+    "replace": "analytics_daily: { months: 12 },",
+    "run": "bunx vitest run --project db tests/db/settings-site.db.test.ts -t \"retention\"",
+    "expect": "FAIL .*> retention > retention_policies holds every period"
   }
 ]

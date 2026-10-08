@@ -62,9 +62,7 @@ function PrivacyChoicesPage() {
         </div>
         <p className="choice-links">
           <Link to="/cookies">{t.cookies.title}</Link>
-          <Link to="/legal" hash="privacy">
-            {t.consent.link}
-          </Link>
+          <Link to="/privacy">{t.consent.link}</Link>
         </p>
       </div>
     </main>

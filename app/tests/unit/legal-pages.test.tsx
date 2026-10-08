@@ -1,5 +1,8 @@
 // B16 step 4: the footer, /legal and /contact print what `settings.site` holds and nothing else, /legal states the
 // illustrative-content paragraph only where it is true, and the two inquiry forms say who receives the message.
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { ComponentType } from "react";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import {
@@ -10,15 +13,26 @@ import {
   createRoute,
   createRouter,
 } from "@tanstack/react-router";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { ContactForm } from "../../src/components/forms/contact-form";
-import { InquiryDialog } from "../../src/components/forms/inquiry-dialog";
+import { initialDraft } from "../../src/components/forms/submit/state";
+import { ExposureStep } from "../../src/components/forms/submit/steps";
+import { ConsentNotice } from "../../src/components/layout/consent-notice";
 import { Footer } from "../../src/components/layout/footer";
-import { siteConfig } from "../../src/config/site";
+import { InquiryDialog } from "../../src/components/forms/inquiry-dialog";
+import { legalVersions, siteConfig } from "../../src/config/site";
+import { currentRightsVersion } from "../../src/domain/contracts";
+import { retentionPeriods } from "../../src/domain/retention";
 import type { PublicSite } from "../../src/domain/settings";
 import { t } from "../../src/lib/strings";
+import { Route as accessibilityRoute } from "../../src/routes/_site.accessibility";
 import { Route as contactRoute } from "../../src/routes/_site.contact";
 import { Route as legalRoute } from "../../src/routes/_site.legal";
+import { Route as privacyRoute } from "../../src/routes/_site.privacy";
+import { Route as privacyChoicesRoute } from "../../src/routes/_site.privacy-choices";
+import { Route as termsRoute } from "../../src/routes/_site.terms";
+import { Route as sitemapRoute } from "../../src/routes/sitemap[.]xml";
 
 const UNSET: PublicSite = {
   contact: { email: null, phone: null, privacy_email: null },
@@ -40,23 +54,26 @@ const noop = () => undefined;
 const LINKS_OF_SET_VALUES =
   'a[href*="instagram.com"], a[href*="x.com"], a[href*="linkedin.com"], a[href^="mailto:"], a[href^="tel:"]';
 
-/** The root loader answers with `site`, as `__root__.tsx` does with `siteQuery()`; `Page` renders in its place. */
-async function renderPage(Page: ComponentType, site: PublicSite) {
+/** The root loader answers with `site`, as `__root__.tsx` does with `siteQuery()`; each page renders at its path. */
+async function renderAt(initial: string, pages: Record<string, ComponentType>, site: PublicSite) {
   const rootRoute = createRootRoute({ loader: () => site, component: Outlet });
-  const index = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "/",
-    component: () => <Page />,
-  });
+  const children = Object.entries(pages).map(([path, Page]) =>
+    createRoute({ getParentRoute: () => rootRoute, path, component: () => <Page /> }),
+  );
   const router = createRouter({
-    routeTree: rootRoute.addChildren([index]),
-    history: createMemoryHistory(),
+    routeTree: rootRoute.addChildren(children),
+    history: createMemoryHistory({ initialEntries: [initial] }),
   });
   await router.load();
   render(<RouterProvider router={router} />);
   await waitFor(() => {
     expect(document.body.textContent).not.toBe("");
   });
+  return router;
+}
+
+async function renderPage(Page: ComponentType, site: PublicSite) {
+  await renderAt("/", { "/": Page }, site);
 }
 
 function pageOf(route: { options: { component?: ComponentType | undefined } }): ComponentType {
@@ -154,5 +171,201 @@ describe("the parent company", () => {
     cleanup();
     await renderPage(pageOf(legalRoute), UNSET);
     expect(screen.getByText("Matter of Place is a product of Omnikom.")).toBeTruthy();
+  });
+});
+
+const mainText = () => screen.getByRole("main").textContent;
+const headings = () => screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+const hrefOf = (name: string) => screen.getByRole("link", { name }).getAttribute("href");
+
+const sections = {
+  privacy: [
+    "Who is responsible",
+    "What we collect",
+    "Where it comes from",
+    "How we use it",
+    "Who receives it",
+    "How long we keep it",
+    "Cookies and analytics",
+    "Your California privacy rights",
+    "Do Not Sell or Share My Personal Information",
+    "Children",
+    "Changes to this policy",
+    "Contact",
+  ],
+  terms: [
+    "Using this site",
+    "Accuracy of property information",
+    "Editorial independence",
+    "Submitting a property",
+    "Rights to photographs",
+    "Removal requests",
+    "Fees and payment",
+    "Refunds",
+    "No promise of results",
+    "Changes to these terms",
+    "Contact",
+  ],
+  accessibility: [
+    "Our commitment",
+    "What we do",
+    "How we check",
+    "Known limits",
+    "Tell us about a problem",
+    "Last updated",
+  ],
+};
+
+describe("the legal pages", () => {
+  it.each([
+    ["/privacy", privacyRoute, sections.privacy, "Privacy"],
+    ["/terms", termsRoute, sections.terms, "Terms for Professionals"],
+    ["/accessibility", accessibilityRoute, sections.accessibility, "Accessibility"],
+  ] as const)("%s has its h1 and its h2 sections in order", async (_path, route, h2s, h1) => {
+    await renderPage(pageOf(route), UNSET);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(h1);
+    expect(headings()).toEqual(h2s);
+  });
+
+  it("an unset site leaves no null and no empty paragraph on any of the three", async () => {
+    for (const route of [privacyRoute, termsRoute, accessibilityRoute]) {
+      await renderPage(pageOf(route), UNSET);
+      const withNull = [...document.querySelectorAll("main *")].filter((el) =>
+        /\bnull\b/.test(el.textContent),
+      );
+      expect(withNull).toEqual([]);
+      expect(
+        [...document.querySelectorAll("p")].filter((p) => p.textContent.trim() === ""),
+      ).toEqual([]);
+      cleanup();
+    }
+  });
+
+  it("/privacy has the do-not-sell anchor and /terms the rights-to-photographs anchor", async () => {
+    await renderPage(pageOf(privacyRoute), UNSET);
+    expect(document.getElementById("do-not-sell")?.textContent).toBe(
+      "Do Not Sell or Share My Personal Information",
+    );
+    cleanup();
+    await renderPage(pageOf(termsRoute), UNSET);
+    expect(document.getElementById("rights-to-photographs")?.textContent).toBe(
+      "Rights to photographs",
+    );
+  });
+
+  it("the page titles carry the brand once", async () => {
+    for (const route of [privacyRoute, termsRoute, accessibilityRoute]) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- these heads read no argument
+      const head = await route.options.head?.({} as never);
+      const title = head?.meta?.find((tag) => tag?.title !== undefined)?.title;
+      expect(title?.split(siteConfig.name)).toHaveLength(2);
+      expect(title?.endsWith(` | ${siteConfig.name}`)).toBe(true);
+    }
+  });
+
+  it("/privacy prints each retention period as retentionPeriods holds it", async () => {
+    await renderPage(pageOf(privacyRoute), UNSET);
+    const rows = [...document.querySelectorAll<HTMLElement>("tr[data-retention]")];
+    expect(rows.map((row) => row.dataset["retention"]).sort()).toEqual(
+      Object.keys(retentionPeriods).sort(),
+    );
+    for (const [key, period] of Object.entries(retentionPeriods)) {
+      const [entry]: [string, number][] = Object.entries(period);
+      const [unit, count] = entry ?? ["", 0];
+      const word = count === 1 ? unit.replace(/s$/, "") : unit;
+      const shown = rows.find((row) => row.dataset["retention"] === key)?.querySelector("td");
+      expect([key, shown?.textContent]).toEqual([key, `${String(count)} ${word}`]);
+    }
+  });
+
+  it("the terms text matches the hash recorded for legalVersions.terms", async () => {
+    const file = resolve(import.meta.dirname, "fixtures/legal-hashes.json");
+    const recorded = z.record(z.string(), z.string()).parse(JSON.parse(readFileSync(file, "utf8")));
+    await renderPage(pageOf(termsRoute), UNSET);
+    const hash = createHash("sha256").update(mainText()).digest("hex");
+    expect(hash).toBe(recorded[legalVersions.terms]);
+  });
+
+  it("currentRightsVersion equals legalVersions.terms", () => {
+    expect(currentRightsVersion).toBe(legalVersions.terms);
+  });
+
+  it("the submit wizard's rights step links /terms#rights-to-photographs", async () => {
+    await renderPage(() => <ExposureStep draft={initialDraft} update={noop} />, UNSET);
+    expect(hrefOf(t.nav.terms)).toBe("/terms#rights-to-photographs");
+  });
+
+  it("/privacy links /cookies", async () => {
+    await renderPage(pageOf(privacyRoute), UNSET);
+    expect(hrefOf(t.privacy.cookiesLink)).toBe("/cookies");
+  });
+
+  it("the footer links Privacy, Terms for Professionals, Accessibility and Do Not Sell or Share", async () => {
+    await renderPage(Footer, UNSET);
+    expect([
+      hrefOf(t.nav.privacy),
+      hrefOf(t.nav.terms),
+      hrefOf(t.nav.accessibility),
+      hrefOf(t.nav.doNotSell),
+    ]).toEqual(["/privacy", "/terms", "/accessibility", "/privacy#do-not-sell"]);
+  });
+
+  it("the consent notice, mounted with no stored choice, links /privacy", async () => {
+    await renderPage(ConsentNotice, UNSET);
+    expect((await screen.findByRole("link", { name: t.consent.link })).getAttribute("href")).toBe(
+      "/privacy",
+    );
+  });
+
+  it("/privacy-choices links /privacy and not /legal#privacy", async () => {
+    await renderPage(pageOf(privacyChoicesRoute), UNSET);
+    expect(hrefOf(t.consent.link)).toBe("/privacy");
+    expect(document.querySelector('a[href="/legal#privacy"]')).toBeNull();
+  });
+});
+
+describe("the sitemap", () => {
+  it("holds /privacy, /terms and /accessibility and not /privacy-request", async () => {
+    const handlers = sitemapRoute.options.server?.handlers;
+    const get = typeof handlers === "object" ? handlers["GET"] : undefined;
+    if (typeof get !== "function") throw new Error("the sitemap route has no GET handler");
+    const request = new Request(`${siteConfig.url}/sitemap.xml`);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the handler reads no argument
+    const response: unknown = await get({ request } as never);
+    if (!(response instanceof Response)) throw new Error("the sitemap answered nothing");
+    const body = await response.text();
+    const paths = [...body.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        `${siteConfig.url}/privacy`,
+        `${siteConfig.url}/terms`,
+        `${siteConfig.url}/accessibility`,
+      ]),
+    );
+    expect(paths).not.toContain(`${siteConfig.url}/privacy-request`);
+  });
+});
+
+describe("the old /legal anchors", () => {
+  const targets = { "/privacy": () => <p>privacy page</p>, "/terms": () => <p>terms page</p> };
+  const legal = pageOf(legalRoute);
+  afterEach(() => {
+    window.location.hash = "";
+  });
+
+  it.each([
+    ["#privacy", "/privacy"],
+    ["#terms", "/terms"],
+  ])("/legal with %s lands on %s", async (hash, path) => {
+    window.location.hash = hash;
+    const router = await renderAt("/legal", { "/legal": legal, ...targets }, UNSET);
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(path);
+    });
+  });
+
+  it("/legal with no hash stays on /legal", async () => {
+    const router = await renderAt("/legal", { "/legal": legal, ...targets }, UNSET);
+    expect(router.state.location.pathname).toBe("/legal");
   });
 });

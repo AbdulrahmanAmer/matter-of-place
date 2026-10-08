@@ -165,6 +165,9 @@ const en = {
     off: "Analytics are off.",
     none: "You have not chosen yet.",
   },
+  privacy: {
+    cookiesLink: "The full list of cookies is on the Cookies page.",
+  },
   cookies: {
     title: "Cookies",
     intro:

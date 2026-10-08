@@ -198,9 +198,12 @@ export const uploadLimits = {
 
 /**
  * The licence-terms version a submitter accepts; B3 writes it to `submissions.rights_version` (invariant 12).
+ * It is the version of the published terms, `legalVersions.terms` in `src/config/site.ts`; this file cannot import
+ * that one (the job runner loads it under Deno, where `site.ts` fails on `import.meta.env`), so
+ * `tests/unit/legal-pages.test.tsx` asserts the two are equal.
  * @public
  */
-export const currentRightsVersion = "2026-10-01";
+export const currentRightsVersion = "2026-10-08";
 
 /**
  * What a visitor may ask of their personal data: the values of the check on `subject_requests.kind` (G29).
