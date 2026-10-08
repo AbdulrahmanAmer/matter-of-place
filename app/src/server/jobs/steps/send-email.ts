@@ -123,7 +123,7 @@ export async function templateRow(db: Db, key: EmailTemplateKey) {
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** `*` stands for any run of characters before the `@` (invariant 6). */
-function allowListed(address: string, patterns: readonly string[]): boolean {
+export function allowListed(address: string, patterns: readonly string[]): boolean {
   return patterns.some((pattern) =>
     new RegExp(`^${pattern.split("*").map(escapeRegExp).join("[^@]*")}$`).test(address),
   );
@@ -322,7 +322,7 @@ function testVariables(
   key: EmailTemplateKey,
   data: JsonObject,
   site: SiteContext,
-): Promise<Record<string, string>> {
+): Promise<Record<string, unknown>> {
   const kind = textOf(data, "entity");
   const id = textOf(data, "entity_id");
   if (kind === null || id === null || !isEntityKind(kind)) {
@@ -336,7 +336,7 @@ async function variablesFor(
   key: EmailTemplateKey,
   data: JsonObject,
   site: SiteContext,
-): Promise<Record<string, string>> {
+): Promise<Record<string, unknown>> {
   if (data["test"] === true) return testVariables(ctx.db, key, data, site);
   const eventType = key === "admin_notify" ? await eventTypeOf(ctx) : undefined;
   return resolveVariables(ctx.db, key, data, eventType, site);
@@ -350,6 +350,12 @@ async function run(ctx: StepContext, params: unknown, data: JsonObject): Promise
   const key = !test && isConfirmKey(named) ? await confirmTemplateKey(ctx.db, data) : named;
   const row = await templateRow(ctx.db, key);
   if (!row.enabled) return skipped("template_disabled");
+  if (key === "standalone" && !test) {
+    // The Campaign email is one broadcast, not one message per address (B11 invariant 9). `standalone.ts` imports this
+    // file and `audience.ts`, which imports it too, so a static import would close a circle: it is loaded when needed.
+    const { sendStandalone } = await import("../../newsletter/standalone.ts");
+    return sendStandalone(ctx, data);
+  }
   if (!isClass(row.class)) throw new NonRetryableError("template_class_invalid");
   const to = parsed["to"];
   const recipient = await resolveRecipient(
@@ -360,7 +366,7 @@ async function run(ctx: StepContext, params: unknown, data: JsonObject): Promise
   );
   if (recipient.to.length === 0) return skipped("no_submitter");
   const site = await loadSiteContext(ctx.db);
-  let variables: Record<string, string>;
+  let variables: Record<string, unknown>;
   try {
     variables = await variablesFor(ctx, key, data, site);
   } catch (error) {

@@ -278,7 +278,7 @@ Recorded from the g8 review (no blocking defect). None is blocking. A first foll
 
 ### 1. app/src/admin/automation/emails.test.tsx
 
-- what: Suspected by reading, not run. In the test 'asks nothing of the preview route for a role the matrix leaves out' (lines 349-354), the count `api.count(POST preview) === 0` is read right after ready(), with no settled(). The watched-fail goes red because of the heading assertion, not the count. So the request-count half of the title is not proved on its own. This is the same timing pattern P-2506 banked for the save case.
+- what: Suspected by reading, not run. In the test 'asks nothing of the preview route for a role the matrix leaves out' (lines 349-354), the count `api.count(POST preview) === 0` is read right after ready(), with no settled(). The watched-fail goes red because of the heading assertion, not the count. So the request-count half of the title is not proved on its own. This is the same timing pattern P-2521 banked for the save case.
 - evidence: emails.test.tsx:349-354. Line 352 checks that the Preview heading is absent, and line 353 reads the count with no `await settled()`. The b8b-g8-preview-gated replay was WATCHED-FAIL OK, but removing the gate also brings the heading back, so the replay cannot tell which assertion caught it.
 - blocking: false
 

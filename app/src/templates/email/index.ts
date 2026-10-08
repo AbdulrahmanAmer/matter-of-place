@@ -7,7 +7,7 @@ import * as declinedFile from "./declined.tsx";
 import * as inquiryAckFile from "./inquiry-ack.tsx";
 import * as inquiryForwardFile from "./inquiry-forward.tsx";
 import * as interestConfirmFile from "./interest-confirm.tsx";
-import type { EmailDefinition, EmailProps } from "./layout.tsx";
+import type { EmailDefinition, EmailProps, TextParts } from "./layout.tsx";
 import * as invoiceFile from "./invoice.tsx";
 import * as marketOpenFile from "./market-open.tsx";
 import * as newsletterConfirmFile from "./newsletter-confirm.tsx";
@@ -16,10 +16,14 @@ import * as repermissionFile from "./repermission.tsx";
 import * as standaloneFile from "./standalone.tsx";
 import * as subjectAckFile from "./subject-ack.tsx";
 
-/** What every template file exports: its seed and the component that draws a row of that key. */
+/**
+ * What every template file exports: its seed and the component that draws a row of that key. A file that draws
+ * content of its own also exports `textParts`, so the plain-text part carries what its HTML does.
+ */
 export interface EmailTemplateFile {
   definition: EmailDefinition;
   Email: (props: EmailProps) => ReactElement;
+  textParts?: (variables: EmailProps["variables"]) => TextParts;
 }
 
 /** One entry per template file. A slice that adds a template file appends it here, with its seeded row (G46). */

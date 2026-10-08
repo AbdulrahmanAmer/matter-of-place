@@ -19,7 +19,7 @@ import { propertyDescription } from "./seo-copy";
  * of a script body (SEC-03). A field with no value is left out, never defaulted.
  */
 
-const publisher: Organization = { "@type": "Organization", name: siteConfig.name };
+const publisher = (): Organization => ({ "@type": "Organization", name: siteConfig.name });
 
 /** An address on this site's own public media route, or an absolute `https` URL; anything else is unusable. */
 function mediaAddress(value: string | undefined): string | undefined {
@@ -123,7 +123,7 @@ export function propertyListingLd(property: ListedProperty): RealEstateListing {
           },
         }
       : {}),
-    publisher,
+    publisher: publisher(),
   };
 }
 
@@ -140,8 +140,8 @@ export function articleLd(
     description: story.deck,
     datePublished: story.publishedAt,
     ...(image === undefined ? {} : { image }),
-    author: publisher,
-    publisher,
+    author: publisher(),
+    publisher: publisher(),
   };
 }
 

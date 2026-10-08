@@ -34,6 +34,7 @@ const guardedScripts = [
   "scripts/admin-smoke.ts",
   "scripts/lib/test-post.ts",
   "tests/e2e/automation-exit.spec.ts",
+  "scripts/newsletter-test-send.ts",
   "tests/e2e/admin-jobs.spec.ts",
 ];
 

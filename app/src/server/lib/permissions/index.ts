@@ -8,6 +8,7 @@ import { jobs } from "./jobs.ts";
 import { markets } from "./markets.ts";
 import { media } from "./media.ts";
 import { payments } from "./payments.ts";
+import { newsletter } from "./newsletter.ts";
 import { people } from "./people.ts";
 import { properties } from "./properties.ts";
 import { reports } from "./reports.ts";
@@ -30,6 +31,7 @@ export const permissions = [
   ...automation,
   ...dashboard,
   ...payments,
+  ...newsletter,
   ...channels,
   ...reports,
   ...people,

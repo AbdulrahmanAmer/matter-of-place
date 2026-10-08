@@ -1,5 +1,4 @@
 import { stepSpecs } from "../../automation/step-specs.ts";
-import { getSystemJob } from "../system/index.ts";
 import type { JsonObject, StepContext, StepDefinition, StepResult } from "../types.ts";
 import { NonRetryableError } from "../types.ts";
 
@@ -12,16 +11,12 @@ const spec = stepSpecs.bump_catalog_version;
 async function openMarket(ctx: StepContext, data: JsonObject): Promise<string[]> {
   const propertyId = data["property_id"];
   if (typeof propertyId !== "string") throw new NonRetryableError("property_id_missing");
-  const notify = getSystemJob("market_open_notice") !== undefined;
   const { data: slug, error } = await ctx.db.rpc("open_market_on_publish", {
     p_property_id: propertyId,
-    p_notify: notify,
+    p_notify: true,
   });
   if (error !== null) throw new Error(`open_market_on_publish_failed:${error.code}`);
-  if (typeof slug !== "string") return [];
-  // STUB(B11): market_open_notice registered
-  if (!notify) ctx.log("info", "market_open_notice_not_implemented", { slug });
-  return [slug];
+  return typeof slug === "string" ? [slug] : [];
 }
 
 async function run(ctx: StepContext, params: unknown, data: JsonObject): Promise<StepResult> {

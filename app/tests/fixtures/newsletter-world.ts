@@ -1,6 +1,9 @@
+import type { Json } from "../../src/db";
 import type { NewsletterBlock } from "../../src/domain/newsletter";
+import { resetPublicStateMemo } from "../../src/server/public/state";
 import { filteredFrom } from "./email-send";
 import type { FakeCall, FakeDb } from "./fake-db";
+import { stateJson } from "./snapshot";
 
 // The database of the Place Notes assembly (B11 step 3): tables that answer their filters as Postgres would, and the
 // two SQL functions of step 4 as handlers the test registers. They are not in the generated types yet, so the one
@@ -92,8 +95,18 @@ export const storyRow = (story: number, options: Row = {}): Row => ({
   ...options,
 });
 
-/** `calls` holds every `from` and `rpc` made, in order; an `rpc` the test did not register throws. */
+/**
+ * `calls` holds every `from` and `rpc` made, in order; an `rpc` the test did not register throws, except
+ * `public_state`: the identity lines of an email are read from the shared public state (B16), which this world
+ * answers with the `settings` row `site` when the tables hold one. That state is memoised per isolate, so a new
+ * world starts without the last one's.
+ */
 export function newsletterDb(tables: Record<string, Row[]>, rpc: Record<string, Handler> = {}) {
+  resetPublicStateMemo();
+  const site = tables["settings"]?.find((row) => row["key"] === "site")?.["value"];
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- a settings row is JSON by construction
+  const state: Handler = () => stateJson(7, { site: (site ?? null) as Json });
+  const handlers: Record<string, Handler> = { public_state: state, ...rpc };
   const calls: FakeCall[] = [];
   const from = filteredFrom(
     { newsletter_issues: [], assets: [], properties: [], stories: [], ...tables },
@@ -101,7 +114,7 @@ export function newsletterDb(tables: Record<string, Row[]>, rpc: Record<string, 
   );
   const call = (name: string, args: Record<string, unknown>) => {
     calls.push({ kind: "rpc", name, args: [args] });
-    const handler = rpc[name];
+    const handler = handlers[name];
     if (handler === undefined) throw new Error(`unexpected rpc ${name}`);
     const answer = handler(args);
     return Promise.resolve(
