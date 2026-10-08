@@ -5149,3 +5149,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: load the `.env` with the set -a line before any `supabase secrets` command. To check a flag's value, compare the listed digest with the sha256 of the expected value (for `SOCIAL_DRY_RUN` = `1` the digest is `6b86b273...`); never print or paste a value, and keep the full listing out of the log.
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; env -u SUPABASE_ACCESS_TOKEN bunx supabase secrets list --project-ref "$DEV_SUPABASE_PROJECT_REF" | head -c 200` → `{"_tag":"Error","error":{"code":"AccessTokenRequiredError", ...` (shell without the token); `printf 1 | sha256sum` → `6b86b273ff34fce1...`.
 - added: 2026-10-08
+
+## P-2501 · An axe scan taken while a dialog fades in reads the colours against the half-faded ground: red on CI, green on the laptop
+- symptom: `admin-assets.spec.ts:258` (PR 211) and `admin-newsletter.spec.ts:135` (PR 227) failed in CI, retry included, with `axe: new violations on <route> approve dialog` (`color-contrast` on both dialog buttons); the same specs passed on the laptops.
+- cause: `.admin-dialog[open]` animates opacity from 0 over 0.24 s and axe computes a colour with the element's opacity at that moment; a slower runner scans inside the window (measured with the fade stretched: opacity 0.0067, contrast 1.03 to 1.05).
+- rule: an audit that reads computed style (axe, a contrast or overflow measure) first awaits the animations that end: `settleAnimations(page)` in `tests/e2e/fixtures/a11y.ts` (ruling H72); never skip the dialog, never baseline the violation, never edit the motion for it.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-a11y-settle-wait` -> `WATCHED-FAIL OK B17:b17-a11y-settle-wait` (2026-10-08).
+- added: 2026-10-08
