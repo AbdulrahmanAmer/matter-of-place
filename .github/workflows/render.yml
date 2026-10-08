@@ -48,7 +48,12 @@ jobs:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('app/bun.lock') }}
       - run: bun install --frozen-lockfile
+      # The templates embed these three files (src/templates/social/fonts.css); a missing one renders a fallback face.
+      - name: Fonts present
+        run: test -s public/fonts/jost-latin-wght-normal.woff2 && test -s public/fonts/cormorant-garamond-latin-wght-normal.woff2 && test -s public/fonts/cormorant-garamond-latin-wght-italic.woff2
       - name: render
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
         run: bun scripts/render-job.mjs
       - name: callback
         if: always()

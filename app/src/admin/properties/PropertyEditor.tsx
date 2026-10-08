@@ -214,6 +214,7 @@ export function PropertyEditor({
         </Tabs>
       </div>
       <PublishBar
+        propertyId={id}
         state={state}
         checklist={checklist}
         pending={busy || autosave.stale}
