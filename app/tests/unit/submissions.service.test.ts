@@ -720,6 +720,17 @@ describe("withdraw", () => {
     });
   });
 
+  it("a void invoice needs no payments.void: a managing editor withdraws", async () => {
+    const { db } = withdrawDb([{ id: "p-void", submission_id: SUBMISSION, status: "void" }]);
+    expect({
+      answer: await withdraw(actor(["managing_editor"]), db, {
+        id: SUBMISSION,
+        reason: REASON_TEXT,
+      }),
+      rpc: rpcNames(db),
+    }).toEqual({ answer: { workflow_state: "Withdrawn" }, rpc: ["withdraw_submission"] });
+  });
+
   it("refuses an agent with 403 human_only before any database call", async () => {
     const { db } = withdrawDb();
     const agent: AdminActor = { ...actor(["admin"]), kind: "agent", scopes: ["submissions"] };

@@ -251,7 +251,10 @@ const history: TimelineEntry[] = [
 
 const DETAIL_PATH = `/api/admin/submissions/${ID}`;
 
-/** Answers the paths of screen 4 from `answers`, records each request as `METHOD path body`, refuses the rest. */
+/**
+ * Answers the paths of screen 4 from `answers` (a `Response` as it stands), records each request as
+ * `METHOD path body`, refuses the rest.
+ */
 function serve(answers: Record<string, unknown> = {}) {
   const table: Record<string, unknown> = {
     [`GET ${DETAIL_PATH}`]: detail(),
@@ -264,7 +267,11 @@ function serve(answers: Record<string, unknown> = {}) {
     requested.push(typeof init.body === "string" ? `${key} ${init.body}` : key);
     const body = table[key];
     return Promise.resolve(
-      body === undefined ? new Response("{}", { status: 404 }) : Response.json(body),
+      body === undefined
+        ? new Response("{}", { status: 404 })
+        : body instanceof Response
+          ? body.clone()
+          : Response.json(body),
     );
   });
   return requested;
@@ -437,13 +444,14 @@ describe("DecisionPanel", () => {
 
 describe("WithdrawDialog", () => {
   const PAYMENT = "00000000-0000-4000-8000-0000000000b1";
+  const PAYMENT_PATH = `/api/admin/payments/${PAYMENT}`;
   const invoiceIssued = {
     [`GET ${DETAIL_PATH}`]: detail({
       workflow_state: "Invoice Issued",
       accepted_at: "2026-10-02T12:00:00Z",
       payment_id: PAYMENT,
     }),
-    [`GET /api/admin/payments/${PAYMENT}`]: {
+    [`GET ${PAYMENT_PATH}`]: {
       id: PAYMENT,
       submission_id: ID,
       property_id: null,
@@ -504,5 +512,33 @@ describe("WithdrawDialog", () => {
       voids: "This also voids invoice MOP-2026-0007. Only an admin can void an invoice.",
       off: true,
     });
+  });
+
+  it("says why Withdraw is missing when the invoice does not load, with the request id", async () => {
+    serve({
+      ...invoiceIssued,
+      [`GET ${PAYMENT_PATH}`]: Response.json(
+        { error: { code: "server", message: "Something went wrong.", requestId: "req-77" } },
+        { status: 500 },
+      ),
+    });
+    mount(["submissions.withdraw", "payments.void"]);
+    expect({
+      alert: (await screen.findByRole("alert")).textContent,
+      withdraw: screen.queryByRole("button", { name: "Withdraw" }),
+    }).toEqual({ alert: "Something went wrong. Request req-77.", withdraw: null });
+  });
+
+  it("does not offer Withdraw once the invoice is paid", async () => {
+    const requested = serve({
+      ...invoiceIssued,
+      [`GET ${PAYMENT_PATH}`]: { ...invoiceIssued[`GET ${PAYMENT_PATH}`], status: "paid" },
+    });
+    mount(["submissions.withdraw", "payments.void"]);
+    await waitFor(() => {
+      expect(requested).toContain(`GET ${PAYMENT_PATH}`);
+      expect(screen.queryByText("Loading the invoice.")).toBeNull();
+    });
+    expect(screen.queryByRole("button", { name: "Withdraw" })).toBeNull();
   });
 });

@@ -4327,6 +4327,15 @@
     "expect": "× .*with a due invoice it needs payments.void"
   },
   {
+    "id": "b7-11a-svc-due-only",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    .eq(\"status\", \"due\")\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*a void invoice needs no payments.void"
+  },
+  {
     "id": "b7-11a-svc-reason",
     "test": "tests/unit/submissions.service.test.ts",
     "file": "src/server/submissions/service.ts",
@@ -4379,6 +4388,24 @@
     "replace": "",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
     "expect": "× .*keeps Withdraw request off"
+  },
+  {
+    "id": "b7-11a-ui-load-error",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/WithdrawDialog.tsx",
+    "find": "  if (payment.error !== null) {",
+    "replace": "  if (payment.error === undefined) {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*says why Withdraw is missing when the invoice does not load"
+  },
+  {
+    "id": "b7-11a-ui-paid",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/WithdrawDialog.tsx",
+    "find": "  if (!offered(detail, status)) return null;",
+    "replace": "  if (!offered(detail, null)) return null;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*does not offer Withdraw once the invoice is paid"
   },
   {
     "id": "b7-11a-db-void",
