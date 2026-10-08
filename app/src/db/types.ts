@@ -1303,6 +1303,9 @@ isOneToOne: false
 "health_cron_failures":
 { Args: { "p_since": string }; Returns: number
                            },
+"issue_agent_preview":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_expected_version": number,"p_property_id": string,"p_request_id": string }; Returns: Json
+                           },
 "issue_invoice":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_amount": number,"p_preferred_method": string,"p_product": Database["public"]['Enums']["exposure_package"],"p_request_id": string,"p_snapshot": Json,"p_submission_id": string }; Returns: {
               "event_id": string,"payment_id": string
@@ -1595,6 +1598,9 @@ isOneToOne: false
 "rollup_analytics_daily":
 { Args: { "p_from": string,"p_to": string }; Returns: number
                            },
+"rotate_preview_nonce":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_property_id": string,"p_request_id": string }; Returns: number
+                           },
 "save_property":
 { Args: { "p_expected_version": number,"p_id": string,"p_patch": Json }; Returns: {
               "address": string,
@@ -1751,6 +1757,9 @@ isOneToOne: false
                            },
 "touch_agent_key":
 { Args: { "p_key_id": string }; Returns: undefined
+                           },
+"unpublish_property":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note"?: string,"p_property_id": string,"p_reason": string,"p_request_id": string,"p_takedown": boolean }; Returns: Json
                            },
 "unsubscribe_email":
 { Args: { "p_email": string }; Returns: boolean

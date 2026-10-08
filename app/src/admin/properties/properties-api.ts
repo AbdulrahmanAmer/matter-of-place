@@ -1,4 +1,5 @@
 import {
+  agentPreviewAnswerSchema,
   createFromSubmissionAnswerSchema,
   previewTokenAnswerSchema,
   propertyDetailSchema,
@@ -9,6 +10,7 @@ import {
   versionAnswerSchema,
   type PropertyPatch,
   type RepresentativePut,
+  type UnpublishBody,
 } from "../../domain/admin-properties";
 import { adminFetch } from "../ui/admin-fetch";
 
@@ -60,6 +62,22 @@ export function publishProperty(id: string, expectedVersion: number) {
     publishAnswerSchema,
     send("POST", { expected_version: expectedVersion }),
   );
+}
+
+export function unpublishProperty(id: string, body: UnpublishBody) {
+  return adminFetch(`${propertyPath(id)}/unpublish`, publishAnswerSchema, send("POST", body));
+}
+
+export function issueAgentPreview(id: string, expectedVersion: number) {
+  return adminFetch(
+    `${propertyPath(id)}/agent-preview`,
+    agentPreviewAnswerSchema,
+    send("POST", { expected_version: expectedVersion }),
+  );
+}
+
+export function revokePreviews(id: string) {
+  return adminFetch(`${propertyPath(id)}/revoke-previews`, versionAnswerSchema, send("POST", {}));
 }
 
 export function putRanks(

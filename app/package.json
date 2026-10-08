@@ -15,7 +15,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json",
-    "lint": "eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit",
+    "lint": "NODE_OPTIONS=--max-old-space-size=4096 eslint . --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --max-warnings 0 workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit",
     "lint:fix": "eslint . --fix --max-warnings 0 && cd .. && eslint --config app/eslint.config.js --fix --max-warnings 0 workspace/05-plans/merge-gate.mjs workspace/audits/tools scripts/audit",
     "format": "prettier --config .prettierrc --write . ../workspace/05-plans/merge-gate.mjs ../workspace/audits/tools ../scripts/audit",
     "format:check": "prettier --config .prettierrc --check . ../workspace/05-plans/merge-gate.mjs ../workspace/audits/tools ../scripts/audit",

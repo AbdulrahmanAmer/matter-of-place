@@ -292,6 +292,8 @@ export async function handle(
   headers.set("x-request-id", requestId);
   if (neverCached(request, pathname, response)) {
     headers.set("cache-control", "no-store");
+    // A preview link (B7 invariant 17 f) never reaches the cache hook, and says so on a page as on the API.
+    if (framing === "self" && !headers.has("x-mop-cache")) headers.set("x-mop-cache", "bypass");
   } else if (!redirected && isPageRequest(pathname)) {
     headers.set("cache-control", browserCacheControl("html"));
   }
