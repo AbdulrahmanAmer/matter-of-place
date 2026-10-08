@@ -56,6 +56,7 @@ const detail = (
     editorial_state: state,
     published_at: null,
     first_published_at: null,
+    taken_down_at: null,
     updated_at: "2026-10-07T12:00:00Z",
     version,
   },

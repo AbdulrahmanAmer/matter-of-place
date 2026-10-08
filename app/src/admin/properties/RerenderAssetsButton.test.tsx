@@ -107,11 +107,17 @@ describe("RerenderAssetsButton", () => {
       <PublishBar
         propertyId={PROPERTY}
         state="draft"
+        takenDown={false}
+        marketSlug="los-angeles"
+        previewReady={false}
         checklist={[]}
         pending={false}
         jobs={[]}
         onMove={() => undefined}
         onPublish={() => undefined}
+        onUnpublish={() => undefined}
+        onSendAgent={() => Promise.resolve(null)}
+        onRevokePreviews={() => Promise.resolve(true)}
       />,
     );
     expect(await screen.findByRole("button", { name: "Request re-render of assets" })).toBeTruthy();

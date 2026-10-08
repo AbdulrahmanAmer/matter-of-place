@@ -320,6 +320,19 @@ describe("rule 6: never cached", () => {
     },
   );
 
+  it.each(["/property/x?preview=t", "/api/public/properties/x?draft_token=t"])(
+    "labels a preview-token answer x-mop-cache bypass and an ordinary page not: %s",
+    async (path) => {
+      const { run } = setup({ cache: memoryCache().hook });
+      const preview = await run(get(path));
+      const page = await run(get("/admin/properties"));
+      expect({
+        preview: preview.headers.get("x-mop-cache"),
+        admin: page.headers.get("x-mop-cache"),
+      }).toEqual({ preview: "bypass", admin: null });
+    },
+  );
+
   it("answers the browser with the html lifetime on a page, whatever the stored copy said", async () => {
     const { run } = setup({
       render: () =>
