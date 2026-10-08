@@ -102,7 +102,7 @@
    - Evidence: `grep -n 'format=csv' workspace/05-plans/B11.md` prints line 81; `grep -n 'newsletter' workspace/05-plans/trace.json` lists the 8 original route files only; service.ts:127 comment vs newsletter.issues.$id.send-test.ts:14.
 
 4. File: `app/tests/e2e/admin-newsletter.spec.ts`. Blocking: no.
-   - What: UNPROVEN, as the brief allows. Tests 1 to 5 and 7 have never run green against the real Worker and database, and the leaveDraft path in afterAll has never run. Neither has a watched-fail. The only browser evidence for the UI flow is a page.route-stubbed scratch spec that was not committed, and the service and SQL shapes rest on a rolled-back transaction. The send-test route was never called on mop-dev. These items close only once main pushes 20261008141201 and 20261008141202, or on CI's e2e admin step for the PR.
+   - What: UNPROVEN, as the brief allows. Tests 1 to 5 and 7 have never run green against the real Worker and database, and the leaveDraft path in afterAll has never run. Neither has a watched-fail. The only browser evidence for the UI flow is a page.route-stubbed scratch spec that was not committed, and the service and SQL shapes rest on a rolled-back transaction. The send-test route was never called on mop-dev. These items close only once main pushes 20261008170647 and 20261008170648, or on CI's e2e admin step for the PR.
    - Evidence: The mop-dev probe printed newsletter.% action_roles n=0 and newest migration 20261007043633; logs/B11.md:430.
 
 (Follow-ups 1 and 2 of the reviewer's list, two costs with no gotcha entry, are P-2420 and a hit-again line in P-1302 in GOTCHAS.md, not follow-ups.)
@@ -249,7 +249,7 @@
    - What: Follow-up. Since sampleVariables('standalone') now includes the block, a standalone test send (screen 18 sendTestEmail, scripts/email-test.ts) is built through the per-recipient transactional path. That email carries href="{{{RESEND_UNSUBSCRIBE_URL}}}", a merge tag only Broadcasts fill, so the admin receives a dead Unsubscribe link. It also points the image at ${siteUrl}/media/sample/alder-court/og.jpg, which no bucket holds. This affects staff test mail only.
    - Evidence: Suspected by reading and partly confirmed by tests. render.test.ts 'draws a standalone email's property block and unsubscribe link only when it is given a block' asserts the placeholder in the HTML rendered from sampleVariables('standalone'). send-email.ts testVariables returns sampleVariables for a test job with no entity, and standalone.test.ts 'a standalone test job' sends that HTML through sendOne.
 
-3. File: `app/supabase/migrations/20261008141205_standalone_template.sql`. Blocking: no.
+3. File: `app/supabase/migrations/20261008170650_standalone_template.sql`. Blocking: no.
    - What: Follow-up (UNPROVEN, not a defect of the code). The row update is proven only as a MOP_MUTATION_SQL prelude in rolled-back transactions on mop-dev, plus the CI db job that has not run yet. The real mop-dev standalone send (step 9's mop-dev proof) is BLOCKED on the S59 legal entity and address and on main pushing this migration. When the merge to main pushes it, re-run tests/db/email.db.test.ts without the prelude.
    - Evidence: Without the prelude, the email.db.test.ts cases 'the standalone row is B11's' and 'the seeded keys equal' are red on mop-dev today, as the author reports. My prelude run gave 30/30.
 
