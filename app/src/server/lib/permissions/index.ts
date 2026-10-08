@@ -4,6 +4,7 @@ import { automation } from "./automation.ts";
 import { channels } from "./channels.ts";
 import { dashboard } from "./dashboard.ts";
 import { inquiries } from "./inquiries.ts";
+import { jobs } from "./jobs.ts";
 import { markets } from "./markets.ts";
 import { media } from "./media.ts";
 import { payments } from "./payments.ts";
@@ -15,7 +16,7 @@ import { stories } from "./stories.ts";
 import { submissions } from "./submissions.ts";
 import { team } from "./team.ts";
 
-// One import line per group file; a later slice adds its own (B8 jobs).
+// One import line per group file.
 export const permissions = [
   ...submissions,
   ...properties,
@@ -32,5 +33,6 @@ export const permissions = [
   ...channels,
   ...reports,
   ...people,
+  ...jobs,
   ...assets,
 ] as const;
