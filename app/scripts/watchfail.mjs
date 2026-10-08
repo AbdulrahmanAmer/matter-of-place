@@ -1,12 +1,14 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
 // Watched-fail (RULE 2): break the code a test covers, see the test go red for the right reason, put the code back.
 // `node scripts/watchfail.mjs --file <path> --find "<text>" --replace "<text>" --run "<command>" --expect "<regex>"
 //    [--after "<command>"] [--record "<test name>"]`
 // `node scripts/watchfail.mjs --registry tests/mutations [--only <id>] [--changed <ref>] [--kinds unit,sql]`
+//   `--changed <ref>` selects the entries whose test or target file differs from <ref>, plus every entry the
+//   registry gained or changed since <ref> (P-539).
 // Exit 0 when every replay is red for the expected reason, 1 on a BAD one, 2 on a stale `find`, 64 on a usage error.
 
 const LEDGER = "tests/WATCHED-FAIL.md";
@@ -88,6 +90,32 @@ export function loadRegistries(dir) {
       const parsed = JSON.parse(readFileSync(join(dir, name), "utf8"));
       return { registry: basename(name, ".json"), entries: Array.isArray(parsed) ? parsed : [] };
     });
+}
+
+/**
+ * Every entry of the registry folder as committed at `ref`, keyed `<registry>:<entry JSON>`; a registry file
+ * that did not exist at `ref` contributes nothing, so all of its entries count as added.
+ * @param {string} dir
+ * @param {string} ref
+ * @returns {Set<string>}
+ */
+export function registryAt(dir, ref) {
+  /** @type {Set<string>} */
+  const keys = new Set();
+  const top = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    cwd: dir,
+    encoding: "utf8",
+  }).trim();
+  for (const name of readdirSync(dir).filter((file) => file.endsWith(".json"))) {
+    const path = relative(top, join(dir, name)).split(sep).join("/");
+    const result = spawnSync("git", ["show", `${ref}:${path}`], { cwd: dir, encoding: "utf8" });
+    if (result.status !== 0) continue;
+    /** @type {unknown} */
+    const parsed = JSON.parse(result.stdout);
+    for (const entry of Array.isArray(parsed) ? parsed : [])
+      keys.add(`${basename(name, ".json")}:${JSON.stringify(entry)}`);
+  }
+  return keys;
 }
 
 /**
@@ -278,6 +306,9 @@ async function replayRegistry({ registry, only, changed, kinds }) {
             .split(/\r?\n/)
             .filter(Boolean),
         );
+  // Entries the branch added or edited since <ref> replay too, even when the file they anchor on no longer
+  // differs from <ref> (P-539: a merge of main made a branch's entry stale and `--changed` never selected it).
+  const asOfRef = changed === undefined ? undefined : registryAt(resolve(registry), changed);
   const wanted = kinds?.split(",");
   const counts = { ok: 0, bad: 0, stale: 0, manual: 0, skipped: 0 };
   for (const { registry: name, entries } of registries) {
@@ -292,7 +323,8 @@ async function replayRegistry({ registry, only, changed, kinds }) {
       }
       const touchedByDiff =
         touched === undefined || touched.has(entry.file ?? "") || touched.has(entry.test);
-      if ((only !== undefined && entry.id !== only) || !touchedByDiff) {
+      const addedSinceRef = asOfRef !== undefined && !asOfRef.has(`${name}:${JSON.stringify(raw)}`);
+      if ((only !== undefined && entry.id !== only) || !(touchedByDiff || addedSinceRef)) {
         counts.skipped += 1;
       } else if (kindOf(entry) === "manual") {
         counts.manual += 1;
