@@ -3034,5 +3034,14 @@
     "run": "bun run build && E2E_TARGET=built E2E_PORT=8818 bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep \"approving\"",
     "expect": "Expected: \"pending\"",
     "what": "by hand with the dev profile loaded: the Approve button sends the approve at once, so the row is already approved when the dialog should still be asking"
+  },
+  {
+    "id": "b9g2-publish-bar-mounts-button",
+    "test": "src/admin/properties/RerenderAssetsButton.test.tsx",
+    "file": "src/admin/properties/PublishBar.tsx",
+    "find": "<RerenderAssetsButton propertyId={propertyId} />",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component src/admin/properties/RerenderAssetsButton.test.tsx -t \"publish bar\"",
+    "expect": "Unable to find role=\"button\" and name \"Request re-render of assets\""
   }
 ]

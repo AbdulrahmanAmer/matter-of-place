@@ -1,10 +1,10 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { AdminAsset } from "../../domain/admin-assets";
-import { AdminMeContext, type AdminMe } from "../ui/admin-me";
 import { standInForDialogs } from "../ui/test-dialog";
-import { ToastProvider } from "../ui/Toast";
+import { AdminProviders } from "../ui/test-providers";
+import { PublishBar } from "./PublishBar";
 import { RerenderAssetsButton } from "./RerenderAssetsButton";
 
 const PROPERTY = "00000000-0000-4000-8000-0000000000a1";
@@ -33,26 +33,11 @@ const row = (id: string, overrides: Partial<AdminAsset>): AdminAsset => ({
 
 const idOf = (n: number) => `00000000-0000-4000-8000-0000000000c${String(n)}`;
 
-const me = (actions: string[]): AdminMe => ({
-  actor: { id: "u1" },
-  kind: "human",
-  roles: ["media_ops"],
-  scopes: [],
-  actions,
-  environment: "production",
-});
-
-function mount(actions: string[]) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={client}>
-      <AdminMeContext value={me(actions)}>
-        <ToastProvider>
-          <RerenderAssetsButton propertyId={PROPERTY} />
-        </ToastProvider>
-      </AdminMeContext>
-    </QueryClientProvider>,
-  );
+function mount(
+  actions: string[],
+  page: ReactNode = <RerenderAssetsButton propertyId={PROPERTY} />,
+) {
+  return render(<AdminProviders actions={actions}>{page}</AdminProviders>);
 }
 
 function serve(items: AdminAsset[]) {
@@ -113,6 +98,24 @@ describe("RerenderAssetsButton", () => {
       "render coverQueued",
       "render storyQueued",
     ]);
+  });
+
+  it("is drawn in the publish bar of the open property", async () => {
+    const requested = serve([row(idOf(1), {})]);
+    mount(
+      ["assets.re_render"],
+      <PublishBar
+        propertyId={PROPERTY}
+        state="draft"
+        checklist={[]}
+        pending={false}
+        jobs={[]}
+        onMove={() => undefined}
+        onPublish={() => undefined}
+      />,
+    );
+    expect(await screen.findByRole("button", { name: "Request re-render of assets" })).toBeTruthy();
+    expect(requested).toContain(LIST);
   });
 
   it("is disabled and says there are no assets yet when the property has none", async () => {

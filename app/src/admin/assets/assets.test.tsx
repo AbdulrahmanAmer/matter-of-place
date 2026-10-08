@@ -1,11 +1,9 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { AdminAsset } from "../../domain/admin-assets";
-import { AdminMeContext, type AdminMe } from "../ui/admin-me";
 import { standInForDialogs } from "../ui/test-dialog";
-import { ToastProvider } from "../ui/Toast";
+import { AdminProviders } from "../ui/test-providers";
 import { AssetCards } from "./AssetCards";
 import { useAssets } from "./assets-queries";
 
@@ -122,30 +120,8 @@ const email = asset({
 
 const kinds = [cover, carousel, story, reel, block, email];
 
-const me = (actions: string[]): AdminMe => ({
-  actor: { id: "u1" },
-  kind: "human",
-  roles: ["media_ops"],
-  scopes: [],
-  actions,
-  environment: "production",
-});
-
-function Providers({ actions, children }: { actions: string[]; children: ReactNode }) {
-  const [client] = useState(
-    () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
-  );
-  return (
-    <QueryClientProvider client={client}>
-      <ToastProvider>
-        <AdminMeContext value={me(actions)}>{children}</AdminMeContext>
-      </ToastProvider>
-    </QueryClientProvider>
-  );
-}
-
 const mount = (page: ReactNode, actions: string[] = ALL_ACTIONS) =>
-  render(<Providers actions={actions}>{page}</Providers>);
+  render(<AdminProviders actions={actions}>{page}</AdminProviders>);
 
 const ok = (body: unknown) => () => Response.json(body);
 
@@ -153,11 +129,9 @@ const ok = (body: unknown) => () => Response.json(body);
 function serve(table: Record<string, () => Response> = {}) {
   const requested: string[] = [];
   vi.stubGlobal("fetch", (path: string, init: RequestInit = {}) => {
-    const key = `${init.method ?? "GET"} ${path}`;
-    requested.push(typeof init.body === "string" ? `${key} ${init.body}` : key);
-    const answer = table[key];
-    if (answer === undefined) return Promise.resolve(new Response("{}", { status: 404 }));
-    return Promise.resolve(answer());
+    const call = `${init.method ?? "GET"} ${path}`;
+    requested.push(typeof init.body === "string" ? `${call} ${init.body}` : call);
+    return Promise.resolve(table[call]?.() ?? new Response("{}", { status: 404 }));
   });
   return requested;
 }
