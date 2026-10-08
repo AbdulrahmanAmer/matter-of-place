@@ -208,6 +208,7 @@ const Step = z.object({
   name: z.string().optional(),
   id: z.string().optional(),
   "continue-on-error": z.boolean().optional(),
+  "timeout-minutes": z.number().optional(),
   run: z.string().optional(),
   if: z.string().optional(),
   env: z.record(z.string(), z.string()).optional(),
@@ -258,6 +259,28 @@ describe.skipIf(!existsSync(DEPLOY))("the preview steps of deploy.yml (step 12)"
       warns: true,
       summary: true,
     });
+  });
+
+  it("bounds the Lighthouse step to 22 minutes and never makes it advisory (H71)", () => {
+    const lighthouse = find("lighthouse");
+    expect({
+      id: lighthouse?.id,
+      minutes: lighthouse?.["timeout-minutes"],
+      advisory: lighthouse?.["continue-on-error"],
+      bounded: lighthouse?.run?.includes("timeout 600 bun run lhci") ?? false,
+    }).toEqual({ id: "lighthouse", minutes: 22, advisory: undefined, bounded: true });
+  });
+
+  it("runs Lighthouse at most twice, warns after the first miss and exits 1 after the second (H71)", () => {
+    const run = find("lighthouse")?.run ?? "";
+    expect({
+      attempts: run.match(/for attempt in (.*); do/)?.[1],
+      stopsAtSuccess: run.includes("exit 0"),
+      warns: run.includes(
+        "::warning title=lighthouse attempt $attempt did not finish::preview hang, retried (ruling H71)",
+      ),
+      refuses: run.trimEnd().endsWith("exit 1"),
+    }).toEqual({ attempts: "1 2", stopsAtSuccess: true, warns: true, refuses: true });
   });
 
   it("scans the preview host and still prints the grade after a red essentials step", () => {

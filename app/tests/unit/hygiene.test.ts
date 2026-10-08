@@ -21,6 +21,7 @@ const Step = z.object({
   name: z.string().optional(),
   if: z.string().optional(),
   "continue-on-error": z.boolean().optional(),
+  "timeout-minutes": z.number().optional(),
   uses: z.string().optional(),
   run: z.string().optional(),
   env: z.record(Value).optional(),
@@ -516,6 +517,26 @@ describe.skipIf(deploy === undefined)("deploy.yml pull request jobs (step 6)", (
       lighthouse: undefined,
       condition: "${{ steps.overflow.outcome == 'failure' }}",
       warns: true,
+    });
+  });
+
+  it("the Lighthouse step is a gate that survives a hung preview: two attempts of 10 minutes inside a 22 minute step (H71)", () => {
+    const step = (deployJob("preview")?.steps ?? []).find((s) => s.name === "lighthouse");
+    const run = step?.run ?? "";
+    expect({
+      id: step?.id,
+      minutes: step?.["timeout-minutes"],
+      advisory: step?.["continue-on-error"],
+      attempts: run.includes("for attempt in 1 2; do"),
+      bounded: run.includes("timeout 600 bun run lhci"),
+      refuses: run.trimEnd().endsWith("exit 1"),
+    }).toEqual({
+      id: "lighthouse",
+      minutes: 22,
+      advisory: undefined,
+      attempts: true,
+      bounded: true,
+      refuses: true,
     });
   });
 
