@@ -228,7 +228,11 @@ function readRuns(ledger, byId, now) {
       }
       for (const group of groups.values()) {
         for (const id of group.steps) {
-          auto.set(`${group.slice.id}:${id}`, group.accepted ? "accepted" : "in review");
+          // Acceptance is never taken back by a later journal: a relaunch (a merge-only run, a resume that re-sizes a
+          // done step) names the same steps without a review, and on 2026-10-08 that read as "in review" and the
+          // board dropped three accepted B7 steps.
+          const key = `${group.slice.id}:${id}`;
+          if (auto.get(key) !== "accepted") auto.set(key, group.accepted ? "accepted" : "in review");
         }
       }
       if (runEvents.length) {
