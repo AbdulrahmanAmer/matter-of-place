@@ -213,3 +213,25 @@ The tenth follow-up of the review is on GOTCHAS.md (P-718's proof names a port, 
 3. `workspace/05-plans/B9.md` (not blocking)
    - What: The group also changed three B5 files that B9.md's Files lines do not name: src/templates/email/layout.tsx (the required variables prop on EmailProps), src/templates/email/blocks.tsx (Blocks exported) and scripts/build-auth-templates.ts (passes variables: {}). Each is the smallest change that the plan's 'hands variables to the Email component as its prop' forces. The plan's Files list should name them so the one-writer accounting is accurate.
    - Evidence: git diff origin/main...slice/b9 --stat lists app/scripts/build-auth-templates.ts, app/src/templates/email/blocks.tsx and app/src/templates/email/layout.tsx. grep -nE 'layout\.tsx|blocks\.tsx|build-auth-templates' workspace/05-plans/B9.md prints nothing.
+
+## g1 · steps 10
+
+1. `PR #211 (preview check)` (not blocking)
+   - What: The author's report says the preview check was 'still pending'. It has since finished red: the preview job was cancelled at the lighthouse step. Before that, the essentials and overflow steps failed with page.goto timeouts and net::ERR_ABORTED. Those two steps are advisory under ruling H67 until P-1936 closes. Nothing in this group touches public pages, so I suspect preview flakiness and not this diff, but I have not proven that. The UNPROVEN line in the report is now out of date: re-run the preview job before the merge and record the result.
+   - Evidence: gh pr checks 211 -> 'preview fail'; gh run view 37702056719 --json jobs -> preview conclusion cancelled, step lighthouse cancelled; the job log shows 'Error: page.goto: Test timeout of 120000ms exceeded' and '##[warning]advisory under ruling H67 until GOTCHAS P-1936 is closed'
+
+2. `app/src/domain/admin-page.ts` (not blocking)
+   - What: Two documents disagree on list paging. The comment on ADMIN_PAGE_MAX says 'Invariant 17c: every admin list is one keyset page ... Each list schema in the admin-*.ts domain files extends this one'. assetListSchema in app/src/domain/admin-assets.ts uses offset 'page' plus 'total' and does not extend adminPageSchema. The code follows the B9 plan text ('50 per page', '{ items, total }'), so this is a plan-versus-B7-invariant conflict for the orchestrator to settle, not a builder defect. Offset paging is also what exposed the PGRST103 trap (G-252).
+   - Evidence: sed -n 1,12p app/src/domain/admin-page.ts; grep -n assetListSchema -A4 app/src/domain/admin-assets.ts
+
+3. `app/tests/db/assets-service.db.test.ts` (not blocking)
+   - What: No test runs waitingProperties (the jobs query on 'payload->data->>property_id') or the first page of listAssets against real PostgREST. The four rolled-back cases go through the author's own pgDb adapter. The PostgREST case uses a random property and so only takes the PGRST103 branch. My read-only probe shows PostgREST accepts the filter today, but no test would catch a regression. UNPROVEN by any test; the probe was the only check.
+   - Evidence: Read of the test file. The probe output: 'jobs in-path: ok rows=0', 'assets page1: rows=8 count=8'.
+
+4. `app/src/server/channels/service.ts` (not blocking)
+   - What: The author's own follow-up, which I did not re-run: channels' listPosts pages with a counted .range() and probably answers 500 past its last page (G-252). This is suspected by reading, and it is not this group's file.
+   - Evidence: GOTCHAS.md G-252 rule line; B9.md log rework block
+
+5. `workspace/05-plans/logs/B9.md` (not blocking)
+   - What: These items remain open and are labelled correctly in the log. BLOCKED: the live end to end, confirmed by me as 0 objects and 5 of 5 empty variants on oak-hill-residence; render.yml is not on main. NOT DONE: the 40-photograph upload measurement. UNPROVEN: the Fonts present step and CHROME_PATH in Actions. UNPROVEN: that B1b rewrites the handlers' 'private, no-store' to exactly 'no-store'. Recorded here so none of them is dropped.
+   - Evidence: psql read on mop-dev -> 0 and 5|5; the B9.md rework block
