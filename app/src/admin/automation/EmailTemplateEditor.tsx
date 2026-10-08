@@ -5,6 +5,7 @@ import { useAdminMe } from "../ui/admin-me";
 import { useToast } from "../ui/use-toast";
 import { useSaveTemplate, useSendTest, type TemplateRow } from "./automation-queries";
 import { BlocksEditor } from "./BlocksEditor";
+import { RequestFailure } from "./RequestFailure";
 import { TemplatePreview } from "./TemplatePreview";
 import {
   checkDraft,
@@ -62,6 +63,10 @@ export function EmailTemplateEditor({ template }: { template: TemplateRow }) {
           <legend className="admin-template__key">
             Template <code>{template.key}</code>
           </legend>
+          <p className="admin-field__hint">
+            Class: {template.class}. It sets the sender and the daily ceiling, and is not edited
+            here.
+          </p>
           <Field
             label="Subject"
             {...(shown?.subject === undefined ? {} : { error: shown.subject })}
@@ -141,11 +146,7 @@ export function EmailTemplateEditor({ template }: { template: TemplateRow }) {
             </button>
           </div>
         </RoleGate>
-        {save.isError ? (
-          <p role="alert" className="admin-field__error">
-            {save.error.message}
-          </p>
-        ) : null}
+        {save.isError ? <RequestFailure error={save.error} className="admin-field__error" /> : null}
       </form>
       <div className="admin-template__side">
         <VariablesList
@@ -154,12 +155,14 @@ export function EmailTemplateEditor({ template }: { template: TemplateRow }) {
           missing={missing}
           onApply={setPreviewValues}
         />
-        <TemplatePreview
-          templateKey={template.key}
-          version={template.version}
-          variables={previewValues}
-          unsaved={dirty}
-        />
+        <RoleGate action="automation.templates_preview">
+          <TemplatePreview
+            templateKey={template.key}
+            version={template.version}
+            variables={previewValues}
+            unsaved={dirty}
+          />
+        </RoleGate>
         <RoleGate action="automation.templates_send_test">
           <div className="admin-template__test">
             <button
@@ -186,9 +189,7 @@ export function EmailTemplateEditor({ template }: { template: TemplateRow }) {
                 : "Sends the saved template to your own address."}
             </p>
             {sendTest.isError ? (
-              <p role="alert" className="admin-field__error">
-                {sendTest.error.message}
-              </p>
+              <RequestFailure error={sendTest.error} className="admin-field__error" />
             ) : null}
           </div>
         </RoleGate>

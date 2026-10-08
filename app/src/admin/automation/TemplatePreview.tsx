@@ -1,5 +1,6 @@
 import type { EmailTemplateKey } from "../../domain/email";
 import { useTemplatePreview } from "./automation-queries";
+import { RequestFailure } from "./RequestFailure";
 
 /**
  * The saved template drawn by the renderer that sends it (B5), with the sample values or the ones typed beside it. The
@@ -26,7 +27,7 @@ export function TemplatePreview({
         {unsaved ? " Your unsaved changes are not in it." : ""}
       </p>
       {preview.isPending ? <p role="status">Drawing the preview.</p> : null}
-      {preview.isError ? <p role="alert">{preview.error.message}</p> : null}
+      {preview.isError ? <RequestFailure error={preview.error} /> : null}
       {preview.isSuccess ? (
         <>
           <dl className="admin-preview__head">

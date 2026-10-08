@@ -518,6 +518,7 @@ Entry template
 - rule: search tracked files with `git grep -I` (or the Grep tool); never `grep -r` from the root (a small named folder is fine). A proof that searches a file the same step created uses `git grep --untracked` or runs after `git add` (or `git add -N`); never read an empty `git grep` as "the line is not there" until `git ls-files --error-unmatch <file>` says the file is tracked.
 - proof: `git grep -c "08-visual-pass"` returns at once; from `app/`, `echo 'export const zzProbe = 1;' > scratch-probe-zz.ts; git grep -n zzProbe; echo $?; git grep -n --untracked zzProbe; rm scratch-probe-zz.ts` prints `1`, then `scratch-probe-zz.ts:1:export const zzProbe = 1;` (2026-10-03, B4 follow-up record).
 - hit again: 2026-10-03, B3 g1 review: a recursive `grep -rnE` over `app/` without `--exclude-dir` for `node_modules` and `.output` ran past the 120 s limit; the Grep tool with a glob answered in seconds.
+- hit again: 2026-10-08, B8b g8 review: a recursive `grep -rn` from `app/` for where the automation routes are registered hit the 120 s limit and was moved to the background; `git grep` answered at once.
 - merged: P-410
 - added: 2026-10-02
 
@@ -997,6 +998,7 @@ Entry template
 - hit again: 2026-10-08, B16 g7: a `python - 2>/dev/null; node -e ...` edit hung to the 120 s ceiling and wrote nothing (the node half ran only after the python process was killed, by its own process id); the edit was redone with the Edit tool.
 - hit again: 2026-10-08, B8b g7: a `python3 - <<'EOF' ... || true` ahead of a node patch moved to the background at 120 s; the node patch had not run, so the edit was redone with the Edit tool. About 3 minutes.
 - hit again: 2026-10-08, B8b g8: a patch started with `python3 - <<'EOF'` followed by an empty heredoc and then `node - <<'EOF'`; the call hung to the 120 s timeout and `taskkill //F //IM python3.exe` ended it (the node part had run). Patch with node only.
+- hit again: 2026-10-08, B8b g8 rework: a `python - <<EOF ... || node -e` guard failed on stdin, and the heredoc took the rest of the command as Python source (a SyntaxError on the `git diff` line) and only the `node -e` fallback applied the edits, so the first reading of the result was wrong; the second patch went in through a file written with Write and run with `node`.
 - added: 2026-10-02
 - hit again: 2026-10-07, B6 g1 follow-ups: a stray `python - 2>/dev/null;` typed ahead of the log heredocs hung the call to the 120 s ceiling; `wmic process where "ProcessId=<pid>" get CommandLine` showed `python.exe -` as the child I had started, and `taskkill //PID <pid> //F` ended it, after which the rest of the chain ran. Never type `python` into a chain.
 - hit again: 2026-10-04, B8 g4 follow-ups: a stray `python3 -` after a heredoc hung the shell for 120 seconds; the entry had already been appended, and the leftover `python3.exe` was killed by its own process id.

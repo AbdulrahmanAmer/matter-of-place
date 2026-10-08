@@ -2769,5 +2769,59 @@
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
     "expect": "× .*sign-in status > reads connected and expired",
     "procedure": "Two files: the row schema drops `credentials_ref` and the form never draws it, so a one-file mutation stays green. Replay: in src/admin/automation/automation-api.ts replace `.omit({ credentials_ref: true })` with an empty string, then in src/admin/automation/ChannelSettingsForm.tsx replace `{label} on` with `{label} on {JSON.stringify(row)}`; the case that reads the health route goes red on `expect(document.body.innerHTML).not.toContain(SECRET)` (the two blocked-channel cases go red as well, because their label text changed); restore both. Measured 2026-10-08."
+  },
+  {
+    "id": "b8b-g8-class-shown",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "Class: {template.class}. It sets",
+    "replace": "Class: {template.key}. It sets",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the class > shows the class of the template"
+  },
+  {
+    "id": "b8b-g8-id-read",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailsPage.tsx",
+    "find": "<RequestFailure error={templates.error} />",
+    "replace": "<p role=\"alert\">{templates.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*a failed request > names the request id when the templates did not load"
+  },
+  {
+    "id": "b8b-g8-id-preview",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/TemplatePreview.tsx",
+    "find": "<RequestFailure error={preview.error} />",
+    "replace": "<p role=\"alert\">{preview.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*a failed request > names the request id when the preview did not draw"
+  },
+  {
+    "id": "b8b-g8-id-save",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "<RequestFailure error={save.error} className=\"admin-field__error\" />",
+    "replace": "<p role=\"alert\">{save.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*a failed request > names the request id when a save fails"
+  },
+  {
+    "id": "b8b-g8-id-send-test",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "<RequestFailure error={sendTest.error} className=\"admin-field__error\" />",
+    "replace": "<p role=\"alert\">{sendTest.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*a failed request > names the request id when the test send fails"
+  },
+  {
+    "id": "b8b-g8-preview-gated",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "<RoleGate action=\"automation.templates_preview\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > asks nothing of the preview route"
   }
 ]

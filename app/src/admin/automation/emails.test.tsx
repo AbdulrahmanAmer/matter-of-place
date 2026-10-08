@@ -59,6 +59,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const serverFailure = () =>
+  Response.json(
+    { error: { code: "server", message: "The request failed." } },
+    { status: 500, headers: { "x-request-id": "req-17" } },
+  );
+
 const bodyOf = (init: RequestInit): unknown =>
   JSON.parse(typeof init.body === "string" ? init.body : "null");
 
@@ -68,7 +74,14 @@ const bodyOf = (init: RequestInit): unknown =>
  * written into the subject and one line of html; that it equals `renderTemplate` is tests/unit/automation/email-templates.test.ts),
  * and the test send. `requests` lists `METHOD path` in order.
  */
-function open(key: string, options: { actions?: string[]; queued?: boolean } = {}) {
+function open(
+  key: string,
+  options: {
+    actions?: string[];
+    queued?: boolean;
+    failing?: "read" | "save" | "preview" | "send-test";
+  } = {},
+) {
   let held = [received, standalone];
   const requests: string[] = [];
   const bodies: Record<string, unknown[]> = {};
@@ -76,8 +89,11 @@ function open(key: string, options: { actions?: string[]; queued?: boolean } = {
     const method = init.method ?? "GET";
     requests.push(`${method} ${path}`);
     (bodies[`${method} ${path}`] ??= []).push(init.body === undefined ? null : bodyOf(init));
-    if (method === "GET" && path === TEMPLATES) return Response.json({ items: held });
+    if (method === "GET" && path === TEMPLATES) {
+      return options.failing === "read" ? serverFailure() : Response.json({ items: held });
+    }
     if (method === "PUT" && path.startsWith(`${TEMPLATES}/`)) {
+      if (options.failing === "save") return serverFailure();
       const target = path.slice(TEMPLATES.length + 1);
       const patch = putBody.parse(bodyOf(init));
       const base = held.find((template) => template.key === target) ?? received;
@@ -86,6 +102,7 @@ function open(key: string, options: { actions?: string[]; queued?: boolean } = {
       return Response.json(next);
     }
     if (method === "POST" && path === PREVIEW) {
+      if (options.failing === "preview") return serverFailure();
       const asked = previewBody.parse(bodyOf(init));
       const row = held.find((template) => template.key === asked.key) ?? received;
       const values = { ...sampleVariables("received", SITE), ...asked.variables };
@@ -102,6 +119,7 @@ function open(key: string, options: { actions?: string[]; queued?: boolean } = {
       return Response.json(rendered);
     }
     if (method === "POST" && path === SEND_TEST) {
+      if (options.failing === "send-test") return serverFailure();
       return Response.json({ queued: options.queued ?? true, to: "chief@matterofplace.com" });
     }
     return new Response("{}", { status: 404 });
@@ -175,6 +193,45 @@ describe("EmailsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /A note from Matter of Place/ }));
     expect(await ready("standalone")).toBeTruthy();
     expect(screen.getByText("This email takes no variables.")).toBeTruthy();
+  });
+});
+
+describe("the class", () => {
+  it("shows the class of the template, read only", async () => {
+    open("received");
+    await ready("received");
+    expect(screen.getByText(/^Class: transactional\./)).toBeTruthy();
+    expect(screen.queryByLabelText("Class")).toBeNull();
+  });
+});
+
+describe("a failed request", () => {
+  const quoted = "The request failed. Request req-17.";
+
+  it("names the request id when the templates did not load", async () => {
+    open("received", { failing: "read" });
+    expect((await screen.findByRole("alert")).textContent).toBe(quoted);
+  });
+
+  it("names the request id when the preview did not draw", async () => {
+    open("received", { failing: "preview" });
+    await ready("received");
+    expect((await screen.findByRole("alert")).textContent).toBe(quoted);
+  });
+
+  it("names the request id when a save fails", async () => {
+    open("received", { failing: "save" });
+    await ready("received");
+    fireEvent.change(screen.getByLabelText("Subject"), { target: { value: "A new subject" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save template" }));
+    expect((await screen.findByRole("alert")).textContent).toBe(quoted);
+  });
+
+  it("names the request id when the test send fails", async () => {
+    open("received", { failing: "send-test" });
+    await ready("received");
+    fireEvent.click(screen.getByRole("button", { name: "Send test to me" }));
+    expect((await screen.findByRole("alert")).textContent).toBe(quoted);
   });
 });
 
@@ -287,6 +344,13 @@ describe("send test to me", () => {
     expect(screen.queryByRole("button", { name: "Send test to me" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save template" })).toBeNull();
     expect(screen.getByLabelText("Subject").matches(":disabled")).toBe(true);
+  });
+
+  it("asks nothing of the preview route for a role the matrix leaves out", async () => {
+    const api = open("received", { actions: ["automation.get"] });
+    await ready("received");
+    expect(screen.queryByRole("heading", { name: "Preview" })).toBeNull();
+    expect(api.count(`POST ${PREVIEW}`)).toBe(0);
   });
 });
 

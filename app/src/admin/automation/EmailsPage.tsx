@@ -3,6 +3,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { useUrlFilters } from "../ui/use-url-filters";
 import { useTemplates } from "./automation-queries";
 import { EmailTemplateEditor } from "./EmailTemplateEditor";
+import { RequestFailure } from "./RequestFailure";
 
 const filterNames = ["key"] as const;
 
@@ -16,7 +17,7 @@ export function EmailsPage() {
   const key = filters.values.key;
 
   if (templates.isPending) return <p role="status">Loading templates.</p>;
-  if (templates.isError) return <p role="alert">{templates.error.message}</p>;
+  if (templates.isError) return <RequestFailure error={templates.error} />;
 
   const open = templates.data.items.find((template) => template.key === key);
   return (
