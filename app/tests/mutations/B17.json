@@ -1834,5 +1834,35 @@
     "find": "            if timeout 600 bun run lhci",
     "replace": "            if bun run lhci",
     "expect": "the Lighthouse step is a gate that survives a hung"
+  },
+  {
+    "id": "b17-a11y-settle-wait",
+    "test": "tests/e2e/a11y-settle.spec.ts",
+    "file": "tests/e2e/fixtures/a11y.ts",
+    "find": "  const settled = await settleAnimations(page);\n",
+    "replace": "  const settled = true;\n",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bunx playwright test tests/e2e/a11y-settle.spec.ts --project=desktop -g \"scanned after the fade\" --reporter=line",
+    "expect": "axe: new violations on a11y-settle fixture",
+    "kind": "manual"
+  },
+  {
+    "id": "b17-a11y-settle-finite",
+    "test": "tests/e2e/a11y-settle.spec.ts",
+    "file": "tests/e2e/fixtures/a11y.ts",
+    "find": "          Number.isFinite(timing.endTime)\n",
+    "replace": "          timing.endTime !== undefined\n",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bunx playwright test tests/e2e/a11y-settle.spec.ts --project=desktop -g \"loops for ever\" --reporter=line",
+    "expect": "loops for ever is not waited for[^]*Expected: true",
+    "kind": "manual"
+  },
+  {
+    "id": "b17-a11y-settle-cap",
+    "test": "tests/e2e/a11y-settle.spec.ts",
+    "file": "tests/e2e/fixtures/a11y.ts",
+    "find": "      if (left <= 0) return false;\n",
+    "replace": "      if (left <= 0) return true;\n",
+    "run": "E2E_TARGET=built E2E_PORT=8938 bunx playwright test tests/e2e/a11y-settle.spec.ts --project=desktop -g \"longer than the cap\" --reporter=line",
+    "expect": "longer than the cap is reported, not hidden[^]*Expected: false",
+    "kind": "manual"
   }
 ]
