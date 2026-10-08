@@ -17,8 +17,6 @@ export type SocialChannel = (typeof socialChannels)[number];
 /** @public The database enum `social_post_status`; `enums.check.ts` holds the pair. */
 export const socialPostStatuses = ["scheduled", "posted", "failed"] as const;
 
-/** @public */
-// STUB(B10 step 8): the channel cards and the posts table of screen 12 read the labels
 export const socialChannelLabels: Record<SocialChannel, string> = {
   instagram: "Instagram",
   x: "X",
@@ -27,8 +25,6 @@ export const socialChannelLabels: Record<SocialChannel, string> = {
   youtube: "YouTube",
 };
 
-/** @public */
-// STUB(B10 step 8): the posts table of screen 12 reads the labels
 export const socialPostStatusLabels: Record<(typeof socialPostStatuses)[number], string> = {
   scheduled: "Scheduled",
   posted: "Posted",
@@ -68,10 +64,50 @@ export const socialPostSchema = z.object({
 
 export type SocialPost = z.infer<typeof socialPostSchema>;
 
+/** Rows per page of `GET /api/admin/channels/posts`. */
+export const socialPostPageSize = 50;
+
 export const socialPostListSchema = z.object({
   items: z.array(socialPostSchema),
   total: z.number().int().min(0),
 });
+
+/** The three channels that post at launch (S48); Facebook and YouTube are disabled blocks until further notice. */
+export const liveChannels = [
+  "instagram",
+  "x",
+  "linkedin",
+] as const satisfies readonly SocialChannel[];
+
+/** The two channels that exist as disabled blocks (S48); screen 12 shows them as not enabled yet. */
+export const disabledChannels = ["facebook", "youtube"] as const satisfies readonly SocialChannel[];
+
+const healthLevel = z.enum(["ok", "amber", "red"]);
+
+/** One channel of `GET /api/admin/channels/health` (screens 2 and 12); `connected` is true once its account ids are stored. */
+const channelHealthSchema = z.object({
+  channel: z.enum(socialChannels),
+  connected: z.boolean(),
+  level: healthLevel,
+  label: z.string().nullable(),
+  lastPost: z.object({ at: z.string(), permalink: z.string().nullable() }).nullable(),
+  lastError: z.object({ at: z.string(), error: z.string() }).nullable(),
+  token: z.object({
+    expiresAt: z.string().nullable(),
+    daysLeft: z.number().nullable(),
+    level: healthLevel,
+  }),
+  reads: z.object({ used: z.number(), allowance: z.number(), level: healthLevel }).optional(),
+});
+
+export type ChannelHealth = z.infer<typeof channelHealthSchema>;
+
+export const channelHealthListSchema = z.array(channelHealthSchema);
+
+/** The path parameter of the row actions `retry`, `cancel`, `metrics-refresh` and `withdrawn`. */
+export const socialPostIdInput = z.object({ id: z.string().uuid() });
+
+export const socialPostRetryInput = socialPostIdInput.extend({ force: z.boolean().optional() });
 
 const channelIdsKeys = ["meta", "x", "linkedin"] as const;
 

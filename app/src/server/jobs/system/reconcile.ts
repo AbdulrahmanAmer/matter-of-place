@@ -1,3 +1,5 @@
+import type { Json } from "../../../db/index.ts";
+import { reconcileSocial as settleSocial } from "../../channels/reconcile-social.ts";
 import type { Db } from "../../lib/db.ts";
 import { AppError } from "../../lib/errors.ts";
 import { aggregateRecentIssues } from "../../newsletter/metrics.ts";
@@ -6,7 +8,8 @@ import type { JsonObject, StepContext, SystemJobDefinition } from "../types.ts";
 import { NonRetryableError } from "../types.ts";
 
 // The 15-minute reconcile job (G10), started only by B8b's reconcile schedule row and by
-// `scripts/job-selftest.ts --reconcile`. Each slice that appends a call writes its own key of the result; uploads first.
+// `scripts/job-selftest.ts --reconcile`. Each slice that appends a call writes its own key of the result; uploads
+// first, then the social part of B10 (`reconcile-social.ts`).
 
 export interface UploadCounts {
   checked: number;
@@ -16,6 +19,12 @@ export interface UploadCounts {
 }
 
 export type ReconcileUploads = (db: Db, since: Date) => Promise<UploadCounts>;
+
+export type ReconcileSocial = (
+  ctx: StepContext,
+  params: Json,
+  now: Date,
+) => Promise<{ social: Json }>;
 
 /** B11's issue metrics, refreshed on every run from `email_events`: `{ issues }` refreshed. */
 export type AggregateIssues = (db: Db, now: Date) => Promise<{ issues: number }>;
@@ -48,17 +57,23 @@ async function sinceOf(ctx: StepContext, data: JsonObject): Promise<Date> {
 
 export function reconcileJob(
   reconcileUploads: ReconcileUploads,
+  socialPart: ReconcileSocial,
   aggregateIssues: AggregateIssues,
 ): SystemJobDefinition {
   return {
     type: "reconcile",
     sideEffect: "none",
-    async run(ctx, _params, data) {
+    timeoutMs: 40_000,
+    async run(ctx, params, data) {
       const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data));
+      const { social } = await socialPart(ctx, params, ctx.now);
       const newsletter = await aggregateIssues(ctx.db, ctx.now);
-      return { status: "done", result: { uploads: { ...uploads }, newsletter: { ...newsletter } } };
+      return {
+        status: "done",
+        result: { uploads: { ...uploads }, social, newsletter: { ...newsletter } },
+      };
     },
   };
 }
 
-export const reconcile = reconcileJob(settleUploads, aggregateRecentIssues);
+export const reconcile = reconcileJob(settleUploads, settleSocial, aggregateRecentIssues);

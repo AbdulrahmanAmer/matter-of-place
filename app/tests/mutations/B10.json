@@ -2658,5 +2658,1275 @@
     "replace": "      resolved = await resolveMarker(ctx, adapter, post, post.error);\n    } catch (error) {\n      throw error;",
     "run": "bunx vitest run --project unit tests/unit/channels/post-meta.test.ts",
     "expect": "FAIL .*post-meta.test.ts > post_meta > a temporary error while an earlier container is published, near the window end, moves the post"
+  },
+  {
+    "id": "b10g8-cards-tone",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/health.ts",
+    "find": "  red: \"danger\",\n",
+    "replace": "  red: \"warning\",\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*draws a card per live channel"
+  },
+  {
+    "id": "b10g8-cards-disabled",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "<p>Not enabled yet</p>",
+    "replace": "<p>Soon</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows Facebook and YouTube as not enabled yet"
+  },
+  {
+    "id": "b10g8-cards-disabled-state",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "{health === undefined || !isLive(channel) ? null : (",
+    "replace": "{health === undefined ? null : (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows Facebook and YouTube as not enabled yet"
+  },
+  {
+    "id": "b10g8-cards-ids-role",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "canEditIds={actions.includes(\"channels.ids_put\")}",
+    "replace": "canEditIds",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows the Account ids form on each live card"
+  },
+  {
+    "id": "b10g8-cards-ids-body",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/AccountIdsForm.tsx",
+    "find": "save.mutate(parsed.data, {",
+    "replace": "save.mutate({ ...body, token: \"x\" }, {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*sends only the fields filled in"
+  },
+  {
+    "id": "b10g8-cards-ids-parse",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/AccountIdsForm.tsx",
+    "find": "const parsed = channelIdsSchema[idsKey].safeParse(body);",
+    "replace": "const parsed = { success: true as const, data: body };",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*refuses a handle with an @"
+  },
+  {
+    "id": "b10g8-posts-red",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "  failed: \"danger\",\n",
+    "replace": "  failed: \"info\",\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*marks a failed row red"
+  },
+  {
+    "id": "b10g8-posts-commercial",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "const canAct = [",
+    "replace": "const canAct = true || [",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*gives commercial no action at all"
+  },
+  {
+    "id": "b10g8-posts-by-status",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "{post.status === \"scheduled\" && actions.includes(\"channels.cancel\") ? (",
+    "replace": "{actions.includes(\"channels.cancel\") ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*offers each row only the action of its status"
+  },
+  {
+    "id": "b10g8-posts-metrics",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/MetricsCell.tsx",
+    "find": "[\"reach\", \"Reach\"],",
+    "replace": "[\"reach\", \"Range\"],",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows the numbers a platform returned"
+  },
+  {
+    "id": "b10g8-metrics-null",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/MetricsCell.tsx",
+    "find": "typeof value === \"number\"",
+    "replace": "value !== undefined",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*leaves out a field the platform did not return"
+  },
+  {
+    "id": "b10g8-withdraw-links",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/Permalink.tsx",
+    "find": "url.startsWith(\"https://\")",
+    "replace": "url.startsWith(\"http://\")",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*lists the two flagged posts with their permalinks"
+  },
+  {
+    "id": "b10g8-withdraw-done",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/channels-api.ts",
+    "find": "`${postPath(id)}/withdrawn`",
+    "replace": "`${postPath(id)}/withdrawn-now`",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*posts Done once to the withdrawn route"
+  },
+  {
+    "id": "b10g8-withdraw-role",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/WithdrawList.tsx",
+    "find": "if (actions.includes(\"channels.mark_withdrawn\")) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*hides Done from commercial"
+  },
+  {
+    "id": "b10g8-withdraw-empty",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/WithdrawList.tsx",
+    "find": "<p>Nothing to delete by hand</p>",
+    "replace": "<p>Nothing</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*says nothing is waiting when the list is empty"
+  },
+  {
+    "id": "b10g8-page-post",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/channels-queries.ts",
+    "find": ": { post_id: post };",
+    "replace": ": { post_id: post, page: String(page) };",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*loads one row, with its error and Retry"
+  },
+  {
+    "id": "b10g8-page-filters",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/channels-queries.ts",
+    "find": "{ ...filters, page: String(page) }",
+    "replace": "{ ...filters }",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*asks for the first page with the filters of the address"
+  },
+  {
+    "id": "b10g8-tile-amber",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/channels/health.ts",
+    "find": "  amber: \"warning\",\n",
+    "replace": "  amber: \"ok\",\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*shows amber at 14 days left and red at 6"
+  },
+  {
+    "id": "b10g8-tile-never",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/channels/health.ts",
+    "find": "return \"Never expires\";",
+    "replace": "return \"Unknown\";",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*says never for a token with no expiry"
+  },
+  {
+    "id": "b10g8-tile-unconnected",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/channels/health.ts",
+    "find": "  if (!health.connected) return \"Not connected\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*says not connected while a channel has no ids"
+  },
+  {
+    "id": "b10g8-tile-dead",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/dashboard/ChannelHealthTile.tsx",
+    "find": "tone={levelTone[row.level]}",
+    "replace": "tone={levelTone[row.token.level]}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*is red for a dead token whatever days are left"
+  },
+  {
+    "id": "b10g8-tile-facts",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/channels/HealthFacts.tsx",
+    "find": "{health.lastError.error}",
+    "replace": "{health.lastError.error.length}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*shows the last post and the last error of each channel"
+  },
+  {
+    "id": "b10g8-tile-facebook",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/dashboard/ChannelHealthTile.tsx",
+    "find": "{liveChannels.flatMap((channel) => {",
+    "replace": "{[...liveChannels, \"facebook\" as const].flatMap((channel) => {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*leaves out Facebook"
+  },
+  {
+    "id": "b10g8-tile-error",
+    "kind": "file",
+    "test": "src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "file": "src/admin/dashboard/ChannelHealthTile.tsx",
+    "find": "<p role=\"alert\">",
+    "replace": "<p role=\"note\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/ChannelHealthTile.test.tsx",
+    "expect": "× .*names the failure when the health cannot be read"
+  },
+  {
+    "id": "b10g8-health-connected",
+    "kind": "file",
+    "test": "tests/unit/channels/service.test.ts",
+    "file": "src/server/channels/service.ts",
+    "find": "return typeof field === \"string\" && field !== \"\";",
+    "replace": "return typeof field === \"string\";",
+    "run": "bunx vitest run --project unit tests/unit/channels/service.test.ts",
+    "expect": "× .*is connected once the channel's account ids are stored"
+  },
+  {
+    "id": "b10g8-withdrawn-route-plain",
+    "kind": "file",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/routes/api/admin/channels.posts.$id.withdrawn.ts",
+    "find": "POST: defineAdminRoute({",
+    "replace": "POST: ((definition: unknown) => () => Promise.resolve(Response.json(definition)))({",
+    "run": "bunx vitest run --project unit tests/unit/admin-routes-parity.test.ts",
+    "expect": "channels\\.posts\\.\\$id\\.withdrawn\\.ts"
+  },
+  {
+    "id": "b10g8-e2e-commercial",
+    "kind": "manual",
+    "test": "tests/e2e/admin-channels.spec.ts",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "canEditIds={actions.includes(\"channels.ids_put\")}",
+    "replace": "canEditIds",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/admin-channels.spec.ts --grep \"commercial sees\"",
+    "expect": "Account ids|toHaveCount"
+  },
+  {
+    "id": "b10g8-e2e-retry",
+    "kind": "manual",
+    "test": "tests/e2e/admin-channels.spec.ts",
+    "file": "src/admin/channels/channels-api.ts",
+    "find": "`${postPath(id)}/retry`",
+    "replace": "`${postPath(id)}/cancel`",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/admin-channels.spec.ts --grep \"Retry enqueues\"",
+    "expect": "waitForResponse|Test timeout"
+  },
+  {
+    "id": "b10g8-e2e-disabled",
+    "kind": "manual",
+    "test": "tests/e2e/admin-channels.spec.ts",
+    "file": "src/admin/channels/ChannelCards.tsx",
+    "find": "<p>Not enabled yet</p>",
+    "replace": "<p>Soon</p>",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/admin-channels.spec.ts --grep \"Facebook and YouTube\"",
+    "expect": "Not enabled yet"
+  },
+  {
+    "id": "b10g8-e2e-no-store",
+    "kind": "manual",
+    "test": "tests/e2e/admin-channels.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "headers.set(\"cache-control\", \"no-store\");",
+    "replace": "headers.set(\"cache-control\", \"private, no-store\");",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/admin-channels.spec.ts --grep \"no-store\"",
+    "expect": "toBe|Expected|private, no-store"
+  },
+  {
+    "id": "b10g9-build-top",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "top_creative: best?.asset ?? null,",
+    "replace": "top_creative: null,",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > sums reach, impressions"
+  },
+  {
+    "id": "b10g9-build-ctr",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "ctr: total === 0 ? null : clicks / total,",
+    "replace": "ctr: clicks / total,",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > leaves ctr null"
+  },
+  {
+    "id": "b10g9-build-y",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "    clicks,\n    video_views: sum(reelViews),",
+    "replace": "    clicks: clicks + (channelMix[\"x\"]?.[\"platform_clicks\"] ?? 0),\n    video_views: sum(reelViews),",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > counts clicks from first-party visits only"
+  },
+  {
+    "id": "b10g9-build-medium",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "    .eq(\"data->utm->>utm_medium\", \"social\")\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > counts clicks from first-party visits only"
+  },
+  {
+    "id": "b10g9-build-week-end",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": ".lt(\"occurred_at\", `${weekEnd}T00:00:00Z`);",
+    "replace": ".lt(\"occurred_at\", \"2099-01-01T00:00:00Z\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > counts clicks from first-party visits only"
+  },
+  {
+    "id": "b10g9-build-reach-null",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "if (counted.reach !== null) entry[\"reach\"] = counted.reach;",
+    "replace": "entry[\"reach\"] = counted.reach ?? 0;",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > leaves out a field no post of a channel returned"
+  },
+  {
+    "id": "b10g9-build-x-days",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "channel !== \"x\" || measuredX",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > shows X as posts and clicks only"
+  },
+  {
+    "id": "b10g9-build-window",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "(campaign.ends_on === null || day <= campaign.ends_on)",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > counts a post in the week it was posted"
+  },
+  {
+    "id": "b10g9-build-newsletter",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "newsletter_clicks: owned.reduce((a, b) => a + b, 0),",
+    "replace": "newsletter_clicks: 0,",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > sums the newsletter clicks"
+  },
+  {
+    "id": "b10g9-build-no-campaign",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "if (campaign === undefined) return { skipped: \"no_campaign\" };",
+    "replace": "if (campaign === undefined) throw new Error(\"no campaign\");",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> buildCampaignReport > produces no report for a campaign that does not exist"
+  },
+  {
+    "id": "b10g9-build-monday",
+    "kind": "file",
+    "test": "tests/unit/channels/reports.test.ts",
+    "file": "src/server/reports/build.ts",
+    "find": "return addDays(iso, -((weekday + 6) % 7));",
+    "replace": "return iso;",
+    "run": "bunx vitest run --project unit tests/unit/channels/reports.test.ts",
+    "expect": "FAIL .*> the weeks > finds the Monday of an ISO week"
+  },
+  {
+    "id": "b10g9-rs-tick-key",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "idempotencyKey: `reconcile_social:${now.toISOString().slice(0, 10)}`,",
+    "replace": "idempotencyKey: `reconcile_social:${now.toISOString().slice(0, 16)}`,",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the quarter-hour runs > enqueue exactly one daily run"
+  },
+  {
+    "id": "b10g9-rs-db-error-throws",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "(error.code !== \"unavailable\" || PLATFORM_UNAVAILABLE.test(error.message))",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > throws when the token check cannot record"
+  },
+  {
+    "id": "b10g9-rs-db-error-usage",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "(error.code !== \"unavailable\" || PLATFORM_UNAVAILABLE.test(error.message))",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > throws when an X read cannot be counted"
+  },
+  {
+    "id": "b10g9-rs-db-error-vault",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "(error.code !== \"unavailable\" || PLATFORM_UNAVAILABLE.test(error.message))",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > throws when a stored token cannot be read"
+  },
+  {
+    "id": "b10g9-rs-marker-budget",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "} else if (found.status === \"restart\") {",
+    "replace": "} else if (found.status === \"restart\" || found.status === \"skipped_budget\") {",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> a marker an hour old or older .INT-01. > becomes outcome_unknown when the X read allowance is spent"
+  },
+  {
+    "id": "b10g9-rs-before5",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "if (now.getUTCHours() < DAILY_FROM_UTC_HOUR) return \"not_due\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the quarter-hour runs > enqueue exactly one daily run"
+  },
+  {
+    "id": "b10g9-rs-tick-only",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "return { social: isDaily === true ? await daily(ctx) : await tick(ctx, now) };",
+    "replace": "return { social: await daily(ctx) };",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the quarter-hour runs > make no complete_distributed_submissions call"
+  },
+  {
+    "id": "b10g9-rs-disabled",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "if (!(await reconcileEnabled(ctx.db))) return \"skipped_disabled\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > returns skipped_disabled"
+  },
+  {
+    "id": "b10g9-rs-overdue",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "const OVERDUE_MS = 48 * HOUR_MS;",
+    "replace": "const OVERDUE_MS = 46 * HOUR_MS;",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > fails a scheduled row 48 hours and a minute past its time"
+  },
+  {
+    "id": "b10g9-rs-ages",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "const METRIC_DAYS = [1, 3, 7, 14, 28];",
+    "replace": "const METRIC_DAYS = [1, 2, 3, 7, 14, 28];",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > fetches Instagram and LinkedIn posts aged"
+  },
+  {
+    "id": "b10g9-rs-x-days",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "const DEFAULT_X_METRICS_DAYS = [7, 28];",
+    "replace": "const DEFAULT_X_METRICS_DAYS = [1, 7, 28];",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > fetches X posts only on the days"
+  },
+  {
+    "id": "b10g9-rs-x-empty",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "settingsOf(world, \"x\").metrics_days ?? DEFAULT_X_METRICS_DAYS;",
+    "replace": "settingsOf(world, \"x\").metrics_days?.length ? settingsOf(world, \"x\").metrics_days : DEFAULT_X_METRICS_DAYS;",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > makes no X metric fetch while metrics_days is empty"
+  },
+  {
+    "id": "b10g9-rs-budget",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/x.ts",
+    "find": "if (reads >= allowance * METRICS_SHARE) return { status: \"skipped_budget\" };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > makes no X metric fetch at the read budget"
+  },
+  {
+    "id": "b10g9-rs-errors",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "tally.errors.push(describeError(post.id, error));\n      continue;",
+    "replace": "throw error;",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > counts one platform error and still fetches"
+  },
+  {
+    "id": "b10g9-rs-dberror",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "  if (error !== null) throw unavailable(what);\n  return data;\n}\n\nconst isSocialChannel",
+    "replace": "  if (error !== null) return data;\n  return data;\n}\n\nconst isSocialChannel",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > throws on a database error"
+  },
+  {
+    "id": "b10g9-rs-complete",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "{ p_now: ctx.now.toISOString() }",
+    "replace": "{ p_now: \"2020-01-01T00:00:00.000Z\" }",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > makes one complete_distributed_submissions call"
+  },
+  {
+    "id": "b10g9-rs-tokens",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "report[channel] = await checkChannelToken(ctx, channel);",
+    "replace": "report[channel] = \"ok\";",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> the daily part > checks the X and LinkedIn tokens"
+  },
+  {
+    "id": "b10g9-rs-lookup",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "found = await lookup.findRecentPost(post.error, new Date(post.scheduled_at), ctx);",
+    "replace": "found = { status: \"not_found\" };",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*.*> is resolved by the platform's lookup"
+  },
+  {
+    "id": "b10g9-rs-unknown",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "found.status === \"in_progress\" ? \"container_timeout\" : \"outcome_unknown\",",
+    "replace": "\"container_timeout\",",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*.*> becomes outcome_unknown when the lookup finds nothing"
+  },
+  {
+    "id": "b10g9-rs-young",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "Date.parse(post.updated_at) < ctx.now.getTime() - MARKER_MS",
+    "replace": "Date.parse(post.updated_at) < ctx.now.getTime()",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*.*> is left alone while it is younger than an hour"
+  },
+  {
+    "id": "b10g9-rs-post-ids",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "if (ids !== undefined) return { social: await refreshNamed(ctx, ids) };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> a run with post_ids > fetches the metrics of those posts only"
+  },
+  {
+    "id": "b10g9-rs-ids-filter",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": ".in(\"id\", ids)",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*> a run with post_ids > fetches the metrics of those posts only"
+  },
+  {
+    "id": "b10g9-rs-reports-70",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "const end = campaign.ends_on ?? addDays(start, NO_WINDOW_DAYS);",
+    "replace": "const end = campaign.ends_on ?? \"9999-12-31\";",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*.*> builds none for a campaign with no end"
+  },
+  {
+    "id": "b10g9-rs-reports-first",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "start = first[0]?.posted_at?.slice(0, 10) ?? null;",
+    "replace": "start = null;",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*.*> starts a campaign with no starts_on at its first posted row"
+  },
+  {
+    "id": "b10g9-rs-not-started",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "find": "tally.not_started += 1;",
+    "replace": "tally.not_started += 0;",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "expect": "FAIL .*.*> skips a campaign with no starts_on and no posted row"
+  },
+  {
+    "id": "b10g9-job-result",
+    "kind": "file",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "result: { uploads: { ...uploads }, social }",
+    "replace": "result: { uploads: { ...uploads } }",
+    "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts",
+    "expect": "FAIL .*> reconcile > stores the counts under result.uploads and the social part"
+  },
+  {
+    "id": "b10g9-job-args",
+    "kind": "file",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "socialPart(ctx, params, ctx.now)",
+    "replace": "socialPart(ctx, {}, ctx.now)",
+    "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts",
+    "expect": "FAIL .*> reconcile > hands the social part the job's params"
+  },
+  {
+    "id": "b10g9-job-throws",
+    "kind": "file",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "const { social } = await socialPart(ctx, params, ctx.now);",
+    "replace": "const { social } = await socialPart(ctx, params, ctx.now).catch(() => ({ social: null }));",
+    "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts",
+    "expect": "FAIL .*> reconcile > throws when the social part throws"
+  },
+  {
+    "id": "b10g9-job-wired",
+    "kind": "file",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "reconcileJob(settleUploads, settleSocial, aggregateRecentIssues)",
+    "replace": "reconcileJob(settleUploads, () => Promise.resolve({ social: null }), aggregateRecentIssues)",
+    "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts",
+    "expect": "FAIL .*> reconcile > runs the real parts"
+  },
+  {
+    "id": "b10g9-esj-enabled",
+    "kind": "file",
+    "test": "tests/unit/scripts/enqueue-system-job.test.ts",
+    "file": "scripts/enqueue-system-job.ts",
+    "find": "if (row?.enabled === false) {",
+    "replace": "if (row?.enabled === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/scripts/enqueue-system-job.test.ts",
+    "expect": "FAIL .*> enqueue-system-job > makes no RPC call and exits 0 when the type's schedule row is disabled"
+  },
+  {
+    "id": "b10g9-esj-lock",
+    "kind": "file",
+    "test": "tests/unit/scripts/enqueue-system-job.test.ts",
+    "file": "scripts/enqueue-system-job.ts",
+    "find": "const release = await holdDevLock();",
+    "replace": "const release = () => Promise.resolve();",
+    "run": "bunx vitest run --project unit tests/unit/scripts/enqueue-system-job.test.ts",
+    "expect": "FAIL .*> enqueue-system-job > takes the dev lock once"
+  },
+  {
+    "id": "b10g9-esj-prod",
+    "kind": "file",
+    "test": "tests/unit/scripts/enqueue-system-job.test.ts",
+    "file": "scripts/enqueue-system-job.ts",
+    "find": "  assertDevTarget(values.target);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/scripts/enqueue-system-job.test.ts",
+    "expect": "FAIL .*> enqueue-system-job > refuses --target prod"
+  },
+  {
+    "id": "b10g9-esj-key",
+    "kind": "file",
+    "test": "tests/unit/scripts/enqueue-system-job.test.ts",
+    "file": "scripts/enqueue-system-job.ts",
+    "find": "`${type}:manual:${minuteOf(now)}`",
+    "replace": "`${type}:manual:${now.toISOString().slice(0, 10)}`",
+    "run": "bunx vitest run --project unit tests/unit/scripts/enqueue-system-job.test.ts",
+    "expect": "FAIL .*> enqueue-system-job > enqueues reconcile once with the minute"
+  },
+  {
+    "id": "b10g9-esj-exists",
+    "kind": "file",
+    "test": "tests/unit/scripts/enqueue-system-job.test.ts",
+    "file": "scripts/enqueue-system-job.ts",
+    "find": "${id === null ? \"exists\" : \"enqueued\"}",
+    "replace": "enqueued",
+    "run": "bunx vitest run --project unit tests/unit/scripts/enqueue-system-job.test.ts",
+    "expect": "FAIL .*> enqueue-system-job > prints exists"
+  },
+  {
+    "id": "b10g9-esj-params",
+    "kind": "file",
+    "test": "tests/unit/scripts/enqueue-system-job.test.ts",
+    "file": "scripts/enqueue-system-job.ts",
+    "find": "? { daily: true }",
+    "replace": "? {}",
+    "run": "bunx vitest run --project unit tests/unit/scripts/enqueue-system-job.test.ts",
+    "expect": "FAIL .*> enqueue-system-job > enqueues reconcile once with the minute"
+  },
+  {
+    "id": "b10g9-esj-type",
+    "kind": "file",
+    "test": "tests/unit/scripts/enqueue-system-job.test.ts",
+    "file": "scripts/enqueue-system-job.ts",
+    "find": "if (values.type === undefined || values.type === \"\") {",
+    "replace": "if (values.type === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/scripts/enqueue-system-job.test.ts",
+    "expect": "FAIL .*> enqueue-system-job > refuses to run without --type"
+  },
+  {
+    "id": "b10g9-esj-release",
+    "kind": "file",
+    "test": "tests/unit/scripts/enqueue-system-job.test.ts",
+    "file": "scripts/enqueue-system-job.ts",
+    "find": "    await release();",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/scripts/enqueue-system-job.test.ts",
+    "expect": "FAIL .*> enqueue-system-job > releases the lock when the RPC fails"
+  },
+  {
+    "id": "b10g9-svc-page",
+    "kind": "file",
+    "test": "tests/unit/reports/service.test.ts",
+    "file": "src/server/reports/service.ts",
+    "find": ".range(from, from + reportPageSize - 1)",
+    "replace": ".range(from, from + 99)",
+    "run": "bunx vitest run --project unit tests/unit/reports/service.test.ts",
+    "expect": "FAIL .*> listReports > returns 50 of 51 rows"
+  },
+  {
+    "id": "b10g9-svc-name",
+    "kind": "file",
+    "test": "tests/unit/reports/service.test.ts",
+    "file": "src/server/reports/service.ts",
+    "find": "property_name: campaigns.properties.title,",
+    "replace": "property_name: \"\",",
+    "run": "bunx vitest run --project unit tests/unit/reports/service.test.ts",
+    "expect": "FAIL .*> listReports > returns 50 of 51 rows"
+  },
+  {
+    "id": "b10g9-svc-campaign",
+    "kind": "file",
+    "test": "tests/unit/reports/service.test.ts",
+    "file": "src/server/reports/service.ts",
+    "find": "if (input.campaign_id !== undefined) query = query.eq(\"campaign_id\", input.campaign_id);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reports/service.test.ts",
+    "expect": "FAIL .*> listReports > narrows to one campaign"
+  },
+  {
+    "id": "b10g9-svc-role",
+    "kind": "file",
+    "test": "tests/unit/reports/service.test.ts",
+    "file": "src/server/reports/service.ts",
+    "find": "authorize(actor, \"reports.list\");",
+    "replace": "authorize(actor, \"reports.email\");",
+    "run": "bunx vitest run --project unit tests/unit/reports/service.test.ts",
+    "expect": "FAIL .*> listReports > is allowed to every role"
+  },
+  {
+    "id": "b10g9-svc-404",
+    "kind": "file",
+    "test": "tests/unit/reports/service.test.ts",
+    "file": "src/server/reports/service.ts",
+    "find": "if (row === undefined) throw",
+    "replace": "if (row === undefined && false) throw",
+    "run": "bunx vitest run --project unit tests/unit/reports/service.test.ts",
+    "expect": "FAIL .*> getReport > answers one report, and 404"
+  },
+  {
+    "id": "b10g9-svc-z",
+    "kind": "file",
+    "test": "tests/unit/reports/service.test.ts",
+    "file": "src/server/reports/service.ts",
+    "find": "authorize(actor, \"reports.email\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reports/service.test.ts",
+    "expect": "FAIL .*> emailReport > is refused for commercial"
+  },
+  {
+    "id": "b10g9-svc-202",
+    "kind": "file",
+    "test": "tests/unit/reports/service.test.ts",
+    "file": "src/server/reports/service.ts",
+    "find": "status: 202,",
+    "replace": "status: 200,",
+    "run": "bunx vitest run --project unit tests/unit/reports/service.test.ts",
+    "expect": "FAIL .*> emailReport > makes one email_campaign_report call"
+  },
+  {
+    "id": "b10g9-svc-dup",
+    "kind": "file",
+    "test": "tests/unit/reports/service.test.ts",
+    "file": "src/server/reports/service.ts",
+    "find": "jobId === null ? { job_id: null, duplicate: true } : { job_id: jobId }",
+    "replace": "{ job_id: jobId }",
+    "run": "bunx vitest run --project unit tests/unit/reports/service.test.ts",
+    "expect": "FAIL .*> emailReport > answers duplicate"
+  },
+  {
+    "id": "b10g9-var-count",
+    "kind": "file",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "impressions: formatCount(report.impressions),",
+    "replace": "impressions: String(report.impressions),",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "FAIL .*> resolveVariables > campaign_report writes the week"
+  },
+  {
+    "id": "b10g9-var-null",
+    "kind": "file",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "report.ctr === null ? NOT_MEASURED",
+    "replace": "report.ctr === null ? \"0%\"",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "FAIL .*> resolveVariables > campaign_report writes the week"
+  },
+  {
+    "id": "b10g9-var-recipient",
+    "kind": "file",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  campaign_report: \"submitter\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "FAIL .*> resolveVariables > campaign_report names a missing report"
+  },
+  {
+    "id": "b10g9-var-missing",
+    "kind": "file",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "found(rowsOf(result, \"campaign_reports\")[0], \"report\")",
+    "replace": "rowsOf(result, \"campaign_reports\")[0]",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "FAIL .*> resolveVariables > campaign_report names a missing report"
+  },
+  {
+    "id": "b10g9-tpl-wording",
+    "kind": "file",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "src/templates/email/campaign-report.tsx",
+    "find": "from the links we posted.",
+    "replace": "from the links your agent posted.",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "FAIL .*> owner wording > campaign_report says nothing that depends on who submitted"
+  },
+  {
+    "id": "b10g9-tpl-lint",
+    "kind": "file",
+    "test": "tests/unit/email/lint.test.ts",
+    "file": "src/templates/email/campaign-report.tsx",
+    "find": "from the links we posted.",
+    "replace": "from the links we posted — here.",
+    "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
+    "expect": "FAIL .*> lintEmail > campaign_report has no finding"
+  },
+  {
+    "id": "b10g9-ui-state",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/figures.ts",
+    "find": "if (report.impressions === 0 && report.reach === 0 && report.clicks === 0) return \"none\";",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> the reports table > lists each week with its figures"
+  },
+  {
+    "id": "b10g9-ui-notmeasured",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/figures.ts",
+    "find": "ratio === null ? NOT_MEASURED",
+    "replace": "ratio === null ? \"0.0%\"",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> the reports table > lists each week with its figures"
+  },
+  {
+    "id": "b10g9-ui-empty",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportTable.tsx",
+    "find": "title=\"No reports yet\"",
+    "replace": "title=\"Nothing\"",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> the reports table > says no report exists yet"
+  },
+  {
+    "id": "b10g9-ui-campaign",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/reports-queries.ts",
+    "find": "...(campaign === undefined ? {} : { campaign_id: campaign }),",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> the reports table > narrows to a campaign from the address"
+  },
+  {
+    "id": "b10g9-ui-notracked",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "data.media_spend === 0 ? \"Not tracked\"",
+    "replace": "data.media_spend === 0 ? \"0\"",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> the open report > shows what is not measured as such"
+  },
+  {
+    "id": "b10g9-ui-geo",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "Object.keys(data.geography).length === 0 ? NOT_MEASURED : \"Measured\"",
+    "replace": "\"Measured\"",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> the open report > shows what is not measured as such"
+  },
+  {
+    "id": "b10g9-ui-print",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "  window.print();\n",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> Export and Email to submitter > calls window.print once"
+  },
+  {
+    "id": "b10g9-ui-export-gate",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "actions.includes(\"reports.export\")",
+    "replace": "actions.includes(\"reports.nothing\")",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> Export and Email to submitter > calls window.print once"
+  },
+  {
+    "id": "b10g9-ui-email-gate",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "{actions.includes(\"reports.email\") ? <EmailButton id={id} /> : null}",
+    "replace": "<EmailButton id={id} />",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> Export and Email to submitter > hides Email to submitter"
+  },
+  {
+    "id": "b10g9-ui-email-post",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "send.mutate(id, {",
+    "replace": "send.mutate(id);send.mutate(id, {",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> Export and Email to submitter > posts once from Email to submitter"
+  },
+  {
+    "id": "b10g9-ui-email-confirm",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "setAsking(true);",
+    "replace": "send.mutate(id);",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> Export and Email to submitter > asks first and posts nothing when the person cancels"
+  },
+  {
+    "id": "b10g9-ui-dup",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "\"Already queued\"",
+    "replace": "\"Queued\"",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> Export and Email to submitter > says Already queued"
+  },
+  {
+    "id": "b10g9-ui-error",
+    "kind": "file",
+    "test": "src/admin/reports/reports.test.tsx",
+    "file": "src/admin/reports/ReportDetail.tsx",
+    "find": "{failure === null ? null : failure.message}",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/reports/reports.test.tsx",
+    "expect": "FAIL .*> Export and Email to submitter > shows the refusal"
+  },
+  {
+    "id": "b10g9-g60-30-day",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.complete_distributed_submissions(p_now timestamptz)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row record;\n  v_moved integer := 0;\nbegin\n  -- G60, DL-09: a Published or Distribution Active submission completes once its campaign's ends_on is before p_now's\n  -- UTC date, or, when the property has no campaign or no campaign with an end (a product with no window, ruling H17),\n  -- 30 days after the property was published. Each move is checked again by enforce_editorial_gate.\n  for v_row in\n    select s.id, s.workflow_state\n    from public.submissions s\n    join public.properties pr on pr.submission_id = s.id\n    where s.workflow_state in ('Published', 'Distribution Active')\n      and (\n        exists (\n          select 1 from public.campaigns c\n          where c.property_id = pr.id and c.ends_on < (p_now at time zone 'utc')::date\n        )\n        or (\n          false\n          and pr.published_at <= p_now - interval '30 days'\n        )\n      )\n    order by s.id\n    for update of s\n  loop\n    if public.submission_transition_allowed(v_row.workflow_state, 'Completed') then\n      update public.submissions set workflow_state = 'Completed' where id = v_row.id;\n      v_moved := v_moved + 1;\n    end if;\n  end loop;\n  return v_moved;\nend;\n$$;\n\nrevoke execute on function public.complete_distributed_submissions(timestamptz) from public, anon, authenticated;\ngrant execute on function public.complete_distributed_submissions(timestamptz) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"completes what is due\"",
+    "expect": "FAIL .*complete_distributed_submissions .G60, DL-09. > completes what is due"
+  },
+  {
+    "id": "b10g9-g60-published",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.complete_distributed_submissions(p_now timestamptz)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row record;\n  v_moved integer := 0;\nbegin\n  -- G60, DL-09: a Published or Distribution Active submission completes once its campaign's ends_on is before p_now's\n  -- UTC date, or, when the property has no campaign or no campaign with an end (a product with no window, ruling H17),\n  -- 30 days after the property was published. Each move is checked again by enforce_editorial_gate.\n  for v_row in\n    select s.id, s.workflow_state\n    from public.submissions s\n    join public.properties pr on pr.submission_id = s.id\n    where s.workflow_state in ('Distribution Active')\n      and (\n        exists (\n          select 1 from public.campaigns c\n          where c.property_id = pr.id and c.ends_on < (p_now at time zone 'utc')::date\n        )\n        or (\n          not exists (select 1 from public.campaigns c where c.property_id = pr.id and c.ends_on is not null)\n          and pr.published_at <= p_now - interval '30 days'\n        )\n      )\n    order by s.id\n    for update of s\n  loop\n    if public.submission_transition_allowed(v_row.workflow_state, 'Completed') then\n      update public.submissions set workflow_state = 'Completed' where id = v_row.id;\n      v_moved := v_moved + 1;\n    end if;\n  end loop;\n  return v_moved;\nend;\n$$;\n\nrevoke execute on function public.complete_distributed_submissions(timestamptz) from public, anon, authenticated;\ngrant execute on function public.complete_distributed_submissions(timestamptz) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"completes what is due\"",
+    "expect": "FAIL .*complete_distributed_submissions .G60, DL-09. > completes what is due"
+  },
+  {
+    "id": "b10g9-g60-ends-on",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.complete_distributed_submissions(p_now timestamptz)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row record;\n  v_moved integer := 0;\nbegin\n  -- G60, DL-09: a Published or Distribution Active submission completes once its campaign's ends_on is before p_now's\n  -- UTC date, or, when the property has no campaign or no campaign with an end (a product with no window, ruling H17),\n  -- 30 days after the property was published. Each move is checked again by enforce_editorial_gate.\n  for v_row in\n    select s.id, s.workflow_state\n    from public.submissions s\n    join public.properties pr on pr.submission_id = s.id\n    where s.workflow_state in ('Published', 'Distribution Active')\n      and (\n        exists (\n          select 1 from public.campaigns c\n          where c.property_id = pr.id and c.ends_on < (p_now at time zone 'utc')::date + 2\n        )\n        or (\n          not exists (select 1 from public.campaigns c where c.property_id = pr.id and c.ends_on is not null)\n          and pr.published_at <= p_now - interval '30 days'\n        )\n      )\n    order by s.id\n    for update of s\n  loop\n    if public.submission_transition_allowed(v_row.workflow_state, 'Completed') then\n      update public.submissions set workflow_state = 'Completed' where id = v_row.id;\n      v_moved := v_moved + 1;\n    end if;\n  end loop;\n  return v_moved;\nend;\n$$;\n\nrevoke execute on function public.complete_distributed_submissions(timestamptz) from public, anon, authenticated;\ngrant execute on function public.complete_distributed_submissions(timestamptz) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"completes what is due\"",
+    "expect": "FAIL .*complete_distributed_submissions .G60, DL-09. > completes what is due"
+  },
+  {
+    "id": "b10g9-g60-open",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "create or replace function public.complete_distributed_submissions(p_now timestamptz)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row record;\n  v_moved integer := 0;\nbegin\n  -- G60, DL-09: a Published or Distribution Active submission completes once its campaign's ends_on is before p_now's\n  -- UTC date, or, when the property has no campaign or no campaign with an end (a product with no window, ruling H17),\n  -- 30 days after the property was published. Each move is checked again by enforce_editorial_gate.\n  for v_row in\n    select s.id, s.workflow_state\n    from public.submissions s\n    join public.properties pr on pr.submission_id = s.id\n    where s.workflow_state in ('Published', 'Distribution Active')\n      and (\n        exists (\n          select 1 from public.campaigns c\n          where c.property_id = pr.id and c.ends_on < (p_now at time zone 'utc')::date\n        )\n        or (\n          not exists (select 1 from public.campaigns c where c.property_id = pr.id and c.ends_on is not null)\n          and pr.published_at <= p_now - interval '20 days'\n        )\n      )\n    order by s.id\n    for update of s\n  loop\n    if public.submission_transition_allowed(v_row.workflow_state, 'Completed') then\n      update public.submissions set workflow_state = 'Completed' where id = v_row.id;\n      v_moved := v_moved + 1;\n    end if;\n  end loop;\n  return v_moved;\nend;\n$$;\n\nrevoke execute on function public.complete_distributed_submissions(timestamptz) from public, anon, authenticated;\ngrant execute on function public.complete_distributed_submissions(timestamptz) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"completes what is due\"",
+    "expect": "FAIL .*complete_distributed_submissions .G60, DL-09. > completes what is due"
+  },
+  {
+    "id": "b10g9-template-seed",
+    "kind": "sql",
+    "test": "tests/db/social.db.test.ts",
+    "sql": "insert into public.email_templates (key, class, subject, preheader, body, variables, enabled) values ('campaign_report', 'transactional', 'wrong', 'p', '[{\"type\": \"signature\"}]', '{}', true) on conflict (key) do update set subject = excluded.subject, body = excluded.body;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"is seeded enabled and transactional\"",
+    "expect": "FAIL .*the campaign_report template .G22, G46. > is seeded enabled and transactional"
+  },
+  {
+    "id": "b10g8-retry-confirm",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "            setAsking(\"retry\");",
+    "replace": "            retry.mutate({ id: post.id, force }, settle(\"Retry queued.\"));",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*asks before it retries"
+  },
+  {
+    "id": "b10g8-retry-force",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "retry.mutate({ id: post.id, force }, settle(\"Retry queued.\"));\n        }}",
+    "replace": "retry.mutate({ id: post.id, force: false }, settle(\"Retry queued.\"));\n        }}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*retries with force when the post-again box is ticked"
+  },
+  {
+    "id": "b10g8-cancel-confirm",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "            setAsking(\"cancel\");",
+    "replace": "            cancel.mutate(post.id, settle(\"Post cancelled.\"));",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*asks before it cancels a scheduled post"
+  },
+  {
+    "id": "b10g8-withdraw-confirm",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/WithdrawList.tsx",
+    "find": "            setAsking(row);",
+    "replace": "            done.mutate(row.id);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*asks before it marks a post as withdrawn"
+  },
+  {
+    "id": "b10g8-withdraw-request-id",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/WithdrawList.tsx",
+    "find": "failure instanceof AdminApiError && failure.requestId !== undefined",
+    "replace": "false",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows the request id when the list does not load"
+  },
+  {
+    "id": "b10g10-ara-order",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "const DAY_MS = 86_400_000;",
+    "replace": "const DAY_MS = -86_400_000;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > guards, takes the lock"
+  },
+  {
+    "id": "b10g10-ara-fixture",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "meta: { fixture: \"rehearsal\" },",
+    "replace": "meta: {},",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > inserts two pending fixture carousels"
+  },
+  {
+    "id": "b10g10-ara-revision",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "(latest.data[0]?.revision ?? 0) + 1",
+    "replace": "1",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > takes the next free revision"
+  },
+  {
+    "id": "b10g10-ara-production",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "await assertNotProduction();",
+    "replace": "void 0;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > refuses after the launch switch"
+  },
+  {
+    "id": "b10g10-ara-target",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "assertDevTarget(values.target);",
+    "replace": "void values.target;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > refuses --target prod"
+  },
+  {
+    "id": "b10g10-ara-restore",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "await writeInstagram(db, before);",
+    "replace": "void 0;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > restores the instagram row and releases the lock"
+  },
+  {
+    "id": "b10g10-ara-feature-wait",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "if (approvedFeature && !(await awaitInstagramPost(db, feature))) exit = 1;",
+    "replace": "if (!(await awaitInstagramPost(db, feature))) exit = 1;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > exits 1 and does not wait for a post"
+  },
+  {
+    "id": "b10g10-ara-campaign",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "if (outcome.status !== expected) exit = 1;",
+    "replace": "if (outcome.status !== expected && id === feature) exit = 1;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > exits 1 when the Campaign asset is approved"
+  },
+  {
+    "id": "b10g10-ara-poll",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "const GIVE_UP_MS = 150_000;",
+    "replace": "const GIVE_UP_MS = 300_000;",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > polls for the post row for 150 seconds"
+  },
+  {
+    "id": "b10g10-ara-blocked",
+    "kind": "file",
+    "test": "tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "file": "scripts/auto-approve-rehearsal.ts",
+    "find": "if (feature === undefined || campaign === undefined) {",
+    "replace": "if (feature === undefined && campaign === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/scripts/auto-approve-rehearsal.test.ts",
+    "expect": "FAIL .*> auto-approve-rehearsal > stops BLOCKED"
+  },
+  {
+    "id": "b10g9-rs-withdrawn",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "find": "      .is(\"withdrawn_at\", null)\n      .gte(\"posted_at\"",
+    "replace": "      .gte(\"posted_at\"",
+    "expect": "FAIL .*> asks nothing of a withdrawn post"
+  },
+  {
+    "id": "b10g9-rs-shape",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "find": "|answered an unexpected shape/",
+    "replace": "/",
+    "expect": "FAIL .*> counts a tweet X no longer answers for"
+  },
+  {
+    "id": "b10g9-rs-noanswer",
+    "kind": "file",
+    "test": "tests/unit/channels/reconcile.test.ts",
+    "file": "src/server/channels/reconcile-social.ts",
+    "run": "bunx vitest run --project unit tests/unit/channels/reconcile.test.ts",
+    "find": "/^[A-Za-z]+ did not answer\\.$|answered",
+    "replace": "/answered",
+    "expect": "FAIL .*> counts a platform that does not answer"
   }
 ]

@@ -220,4 +220,33 @@ describe("channelHealth", () => {
       ),
     ).toEqual({ instagram: "red", facebook: "red", x: "red", linkedin: "amber" });
   });
+
+  it("is connected once the channel's account ids are stored, and not before", async () => {
+    const connected = async (settings: Record<string, unknown>[]) =>
+      Object.fromEntries(
+        (await channelHealth(commercial, db({}, [], settings), NOW)).map((health) => [
+          health.channel,
+          health.connected,
+        ]),
+      );
+    expect(await connected([])).toEqual({
+      instagram: false,
+      facebook: false,
+      x: false,
+      linkedin: false,
+    });
+    expect(
+      await connected([
+        meta({ page_id: "1" }),
+        oauth("x", { user_id: "7" }),
+        oauth("linkedin", { organization_urn: "" }),
+      ]),
+    ).toEqual({ instagram: false, facebook: false, x: true, linkedin: false });
+    expect(
+      await connected([
+        meta({ page_id: "1", ig_user_id: "2" }),
+        oauth("linkedin", { organization_urn: "urn:li:organization:5" }),
+      ]),
+    ).toEqual({ instagram: true, facebook: true, x: false, linkedin: true });
+  });
 });

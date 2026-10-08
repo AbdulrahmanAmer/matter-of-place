@@ -6,7 +6,7 @@ import type { Db } from "../lib/db.ts";
 import { readVar } from "../lib/runtime-env.ts";
 import { openToken } from "../subscribers/confirm-email.ts";
 import { loadSiteContext, resolveAdminRecipients, type SiteContext } from "./context.ts";
-import { formatDate, formatUsd } from "./format.ts";
+import { formatCount, formatDate, formatPercent, formatUsd } from "./format.ts";
 import { interpolate } from "./render.ts";
 
 // The two questions a send asks of the database: who gets this email, and what do its variables say. Every read is
@@ -158,6 +158,7 @@ const defaultRecipient: Partial<Record<EmailTemplateKey, string>> = {
   repermission: "subscriber",
   subject_ack: "requester",
   admin_notify: "admins",
+  campaign_report: "submitter",
 };
 
 const recipientMissing = () => new NonRetryableError("recipient_missing");
@@ -593,6 +594,29 @@ async function adminNotify(resolve: Resolve): Promise<Variables> {
   return { headline: interpolate(headline, { summary, link_url }), summary, link_url };
 }
 
+const NOT_MEASURED = "Not measured";
+
+/** A weekly report: the property, the week and the figures, each as the page shows it (G22). */
+async function campaignReport({ db, data }: Resolve): Promise<Variables> {
+  const result = await db
+    .from("campaign_reports")
+    .select(
+      "period_start, period_end, impressions, reach, clicks, video_views, ctr, campaigns!inner(properties!inner(title))",
+    )
+    .eq("id", need(data, "report_id"))
+    .limit(1);
+  const report = found(rowsOf(result, "campaign_reports")[0], "report");
+  return {
+    property_name: report.campaigns.properties.title,
+    period: `${formatDate(report.period_start)} to ${formatDate(report.period_end)}`,
+    impressions: formatCount(report.impressions),
+    reach: formatCount(report.reach),
+    clicks: formatCount(report.clicks),
+    video_views: report.video_views === null ? NOT_MEASURED : formatCount(report.video_views),
+    ctr: report.ctr === null ? NOT_MEASURED : formatPercent(report.ctr),
+  };
+}
+
 const resolvers: Record<EmailTemplateKey, (resolve: Resolve) => Promise<Variables>> = {
   received: submitted,
   accepted: submitted,
@@ -609,6 +633,7 @@ const resolvers: Record<EmailTemplateKey, (resolve: Resolve) => Promise<Variable
   // B11 invariant 14: the market_open_notice job passes both variables to renderTemplate itself.
   market_open: () => Promise.resolve({}),
   subject_ack: subjectAck,
+  campaign_report: campaignReport,
 };
 
 /**
