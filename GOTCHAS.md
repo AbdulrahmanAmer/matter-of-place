@@ -5949,3 +5949,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: every laptop proof line that starts Playwright, a db test or a script that calls `guardEnv()` begins with `eval "$(node scripts/load-env.mjs --profile dev)"` in the same shell call, and the red output a log quotes names the case that failed, never `refusing:`. A `refusing: DEV_DB_URL is not set` result is a missing profile, not a finding.
 - proof: `cd app && E2E_TARGET=built E2E_PORT=8996 env -u CLOUDFLARE_API_TOKEN bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts` -> `Error: refusing: DEV_DB_URL is not set`; the same line after `eval "$(node scripts/load-env.mjs --profile dev)"` reaches the cases (2026-10-08, B8 c8j review).
 - added: 2026-10-08
+
+## P-2609 · A costTime line names a bank entry from memory, and the entry it names is about something else
+- symptom: B11 c11u review: the report said the 84 BAD / 4 stale replay run without the dev profile was "Already banked as P-2508". P-2508 is about `renderTemplate` building the text part from blocks only and does not mention the dev profile. The cost was banked, in the P-066 hit-again line of c11t and in P-310, so nothing was lost, but the pointer sent a reader to the wrong entry.
+- cause: the id was written from memory of the lane's own recent entries instead of looked up by the words of the cost.
+- rule: before a report names an entry for a cost, run `grep -n "<words of the cost>" GOTCHAS.md` and cite the ids it prints; a cost with no hit gets a new entry, not a guessed id.
+- proof: `grep -n "84 BAD\|without the dev profile" GOTCHAS.md` -> lines in P-066 (hit again, c11t) and P-310, none in P-2508 (2026-10-08, B11 c11u review).
+- added: 2026-10-08

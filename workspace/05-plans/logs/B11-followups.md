@@ -284,3 +284,15 @@
 3. File: `workspace/05-plans/logs/B11.md`. Blocking: no.
    - What: The full --changed replay printed 84 BAD entries. The author read one of them (a tests/db entry, 'No test files found' without the dev profile) and labelled all 84 as db entries that are not from this group. That label is UNPROVEN for the other 83 until CI's db job or a dev-profile replay confirms it. I re-checked the part this group could have broken (78 B11 unit entries on send, standalone and service): all OK.
    - Evidence: Author's log: 'replayed 643: ok 559, bad 84 ... the others were not read'.
+
+## c11u · steps 9
+
+1. File: `app/docs/runbooks/email.md`. Blocking: no.
+   - What: Line 37 still says 'The plain-text part is written from the resolved blocks'. After this change, renderTemplate also adds a template file's textParts: lead goes before the blocks and trail after the footer lines, which is how the standalone link and unsubscribe address get into the text. The runbook is out of date, but it is not one of this group's files, so this is for the orchestrator to fold in.
+   - Evidence: git grep -n 'plain-text part is written' app/docs/runbooks/email.md -> line 37; render.ts:154 `const parts = file?.textParts?.(variables) ?? { lead: [], trail: [] };`
+
+2. File: `app/src/templates/email/index.ts`. Blocking: no.
+   - What: C05 note, not a defect. EmailTemplateFile gains an optional textParts hook and a TextParts interface, and standalone.tsx is the only file that implements it. I accept it: it is the smallest way to make preview, the [Test] send, email-shots and the real send share one text renderer, which is the point of the fix. Record it in case a second self-drawing template never comes.
+   - Evidence: git grep -n 'textParts' app/src -> only index.ts:26, render.ts:154 and standalone.tsx:33
+
+(A third follow-up, whose file is GOTCHAS.md, is banked as P-2609 in the gotcha bank, not listed here.)
