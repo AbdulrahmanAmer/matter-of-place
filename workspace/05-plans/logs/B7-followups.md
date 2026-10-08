@@ -731,3 +731,31 @@ what: The preview job is still UNPROVEN, as the author says. It failed again at 
 evidence: gh run view 37821472990 --log-failed: 'the Worker did not answer ten times in a row in 180 s'; curl -w '%{http_code}' https://pr-250.holy-meadow-4327.workers.dev/ printed 429.
 
 blocking: false
+
+## g1 · steps 11a
+
+None blocks. Each entry is the reviewer's text, with its file and evidence.
+
+### 1. app/supabase/sql/functions/withdraw_submission.sql
+
+what: C11 (STANDARDS section 4) asks for a test that runs a new state-changing function together with its race partner. No test runs withdraw_submission at the same time as mark_payment_paid or waive_payment. The author marked this UNPROVEN and gave the lock-order reasoning in the log. I checked that reasoning by reading the code, not by running it: mark_payment_paid and void_payment both take the payment `for update` and re-check `status <> 'due'`. enforce_editorial_gate refuses Withdrawn while a paid payment exists. issue_invoice and record_waiver lock the submission. I found no interleaving that leaves a Withdrawn request with a paid invoice, so this is not blocking.
+
+evidence: grep -n 'for update' app/supabase/sql/functions/mark_payment_paid.sql app/supabase/sql/functions/void_payment.sql; there is no concurrent withdraw case in tests/db/*.db.test.ts
+
+blocking: false
+
+### 2. app/tests/unit/submissions.service.test.ts
+
+what: The 422 case ('a reason under 3 characters answers 422 and asks the database nothing') builds its own route with defineAdminRoute instead of importing the shipped route file `app/src/routes/api/admin/submissions.$id.withdraw.ts`. The shipped file and its `output: assetsReceivedAnswerSchema` are covered only by the parity sweeps. Today both use the same withdrawInputSchema object, so the case still catches a schema change (b7-11a-reason-min goes red). It would not catch the route file switching to a different input schema.
+
+evidence: In the test, `defineAdminRoute({ method: "POST", action: "submissions.withdraw", input: withdrawInputSchema, handler: ... }, deps)` has no import from routes/api/admin/submissions.$id.withdraw.ts
+
+blocking: false
+
+### 3. app/src/server/submissions/service.ts
+
+what: The comment on withdraw says that inside the call `write_audit refuses the void again` for a non-admin. No database test checks that: the only DB withdraw case uses an admin. The service's own payments.void check is proven (b7-11a-svc-void-gate), but the database's second check for a managing_editor withdrawing over a due invoice is not exercised by this group. It is UNPROVEN here, though it is probably covered in general by actor.db.test.ts and the payments.void action_roles row (['admin']).
+
+evidence: tests/db/gate.db.test.ts: both DL-04 cases call createStaffUser(db, ["admin"]); there is no managing_editor case that expects 42501
+
+blocking: false
