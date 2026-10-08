@@ -41,3 +41,17 @@
    Evidence: gh pr checks 209: 'db pass 3m1s', 'preview fail 7m32s'. gh run view 37573151075 --job 112636074297 --log: 'db tests/db/settings-site.db.test.ts (5 tests)'. gh run view 37573151038 --log-failed: '7 flaky ... 48 passed', then '##[error]Process completed with exit code 1'.
 
 (The fifth g2 follow-up, a GOTCHAS.md cost, went to the bank as a hit-again line in P-508.)
+
+## g3 · steps 3
+
+1. File `app/src/services/http/index.ts` (not blocking).
+   What: UNPROVEN in live mode. Every proof (mine and the author's) ran a build with no VITE_API_BASE_URL, so services resolve to localSite, and the root loader and /legal never call the http adapter's site.get() (api.get("/site", publicSiteSchema)) against the route. No test covers site.get: tests/unit/http-adapter.test.ts has no site case. Under that local build, /legal on the MOP_ENV=production Worker still carries the 'fictional' paragraph, because localSite answers illustrativeContent true. This is harmless only because deploy.yml's production job always sets VITE_API_BASE_URL. The author's log already admits that the root loader and siteQuery have no test of their own.
+   Evidence: In my production-mode Worker run, curl /legal | grep -ac fictional printed 1, while /api/public/site printed illustrativeContent:false. src/services/index.ts selects localServices when VITE_API_BASE_URL is unset. grep -n site tests/unit/http-adapter.test.ts finds no site.get case.
+
+2. File `app/src/routes/__root.tsx` (not blocking).
+   What: The root loader makes every page depend on GET /api/public/site. In a live build, a failed site fetch on a cache miss throws in the root loader and the whole page renders the root error page, not just the footer. ensureQueryData also never refetches stale data, so client navigations keep the first site value for the session. The plan asks for this loader, so this is a note for a later slice, not a defect of this step.
+   Evidence: Read only, not run: loader: ({ context }) => context.queryClient.ensureQueryData(siteQuery()) at __root.tsx:22
+
+3. File `workspace/05-plans/B16.md` (not blocking).
+   What: Stale plan text for step 3. It says path /site, handler GET, and 'drop the /site row' in watched-fail (o). The tree uses the full path /api/public/site, handler ANY, and catalogRead. The author banked this as P-1941; the orchestrator should fold the fix into the plan.
+   Evidence: plan-brief Files list: 'createFileRoute(...)({ server: { handlers: { GET: ...' versus app/src/routes/api/public/site.ts 'handlers: { ANY: ...'
