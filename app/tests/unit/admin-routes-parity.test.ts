@@ -19,14 +19,6 @@ import { fakeDb } from "../fixtures/fake-db";
 // after step 15a.
 // A literal list, so an action a later slice adds to the matrix without its route turns this test red.
 const routesPending: readonly ActionId[] = [
-  "media.list",
-  "media.variants_status",
-  "media.upload_url",
-  "media.attach",
-  "media.reorder",
-  "media.alt",
-  "media.replace",
-  "media.delete",
   "inquiries.list",
   "inquiries.get",
   "inquiries.assignees",

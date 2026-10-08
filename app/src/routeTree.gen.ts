@@ -58,6 +58,7 @@ import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.
 import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
 import { Route as AdminInvoicesIdRouteImport } from './routes/admin/invoices.$id'
 import { Route as AdminInvoicesNewRouteImport } from './routes/admin/invoices.new'
+import { Route as AdminMediaIndexRouteImport } from './routes/admin/media.index'
 import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.index'
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminPropertiesIndexRouteImport } from './routes/admin/properties.index'
@@ -97,6 +98,12 @@ import { Route as ApiAdminAutomationScheduleSettingsRouteImport } from './routes
 import { Route as ApiAdminAutomationTemplatesRouteImport } from './routes/api/admin/automation.templates'
 import { Route as ApiAdminChannelsHealthRouteImport } from './routes/api/admin/channels.health'
 import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
+import { Route as ApiAdminMediaIndexRouteImport } from './routes/api/admin/media.index'
+import { Route as ApiAdminMediaIdRouteImport } from './routes/api/admin/media.$id'
+import { Route as ApiAdminMediaAttachRouteImport } from './routes/api/admin/media.attach'
+import { Route as ApiAdminMediaReorderRouteImport } from './routes/api/admin/media.reorder'
+import { Route as ApiAdminMediaUploadUrlRouteImport } from './routes/api/admin/media.upload-url'
+import { Route as ApiAdminMediaVariantsStatusRouteImport } from './routes/api/admin/media.variants-status'
 import { Route as ApiAdminPaymentsIndexRouteImport } from './routes/api/admin/payments.index'
 import { Route as ApiAdminPaymentsIdRouteImport } from './routes/api/admin/payments.$id'
 import { Route as ApiAdminPaymentsIssueInvoiceRouteImport } from './routes/api/admin/payments.issue-invoice'
@@ -130,6 +137,7 @@ import { Route as ApiAdminAutomationScheduleSettingsKeyRouteImport } from './rou
 import { Route as ApiAdminAutomationTemplatesKeyRouteImport } from './routes/api/admin/automation.templates.$key'
 import { Route as ApiAdminAutomationTemplatesPreviewRouteImport } from './routes/api/admin/automation.templates.preview'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
+import { Route as ApiAdminMediaIdReplaceRouteImport } from './routes/api/admin/media.$id.replace'
 import { Route as ApiAdminPaymentsIdMarkPaidRouteImport } from './routes/api/admin/payments.$id.mark-paid'
 import { Route as ApiAdminPaymentsIdPdfRouteImport } from './routes/api/admin/payments.$id.pdf'
 import { Route as ApiAdminPaymentsIdVoidRouteImport } from './routes/api/admin/payments.$id.void'
@@ -420,6 +428,11 @@ const AdminInvoicesNewRoute = AdminInvoicesNewRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/invoices.new.lazy').then((d) => d.Route),
 )
+const AdminMediaIndexRoute = AdminMediaIndexRouteImport.update({
+  id: '/media/',
+  path: '/media/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPeopleIndexRoute = AdminPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -632,6 +645,37 @@ const ApiAdminChannelsPostsRoute = ApiAdminChannelsPostsRouteImport.update({
   path: '/api/admin/channels/posts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminMediaIndexRoute = ApiAdminMediaIndexRouteImport.update({
+  id: '/api/admin/media/',
+  path: '/api/admin/media/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaIdRoute = ApiAdminMediaIdRouteImport.update({
+  id: '/api/admin/media/$id',
+  path: '/api/admin/media/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaAttachRoute = ApiAdminMediaAttachRouteImport.update({
+  id: '/api/admin/media/attach',
+  path: '/api/admin/media/attach',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaReorderRoute = ApiAdminMediaReorderRouteImport.update({
+  id: '/api/admin/media/reorder',
+  path: '/api/admin/media/reorder',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaUploadUrlRoute = ApiAdminMediaUploadUrlRouteImport.update({
+  id: '/api/admin/media/upload-url',
+  path: '/api/admin/media/upload-url',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaVariantsStatusRoute =
+  ApiAdminMediaVariantsStatusRouteImport.update({
+    id: '/api/admin/media/variants-status',
+    path: '/api/admin/media/variants-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminPaymentsIndexRoute = ApiAdminPaymentsIndexRouteImport.update({
   id: '/api/admin/payments/',
   path: '/api/admin/payments/',
@@ -812,6 +856,11 @@ const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
   id: '/api/admin/channels/ids/$key',
   path: '/api/admin/channels/ids/$key',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMediaIdReplaceRoute = ApiAdminMediaIdReplaceRouteImport.update({
+  id: '/replace',
+  path: '/replace',
+  getParentRoute: () => ApiAdminMediaIdRoute,
 } as any)
 const ApiAdminPaymentsIdMarkPaidRoute =
   ApiAdminPaymentsIdMarkPaidRouteImport.update({
@@ -1069,6 +1118,7 @@ export interface FileRoutesByFullPath {
   '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
+  '/admin/media/': typeof AdminMediaIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
@@ -1088,6 +1138,11 @@ export interface FileRoutesByFullPath {
   '/api/admin/automation/templates': typeof ApiAdminAutomationTemplatesRouteWithChildren
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
+  '/api/admin/media/$id': typeof ApiAdminMediaIdRouteWithChildren
+  '/api/admin/media/attach': typeof ApiAdminMediaAttachRoute
+  '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
+  '/api/admin/media/upload-url': typeof ApiAdminMediaUploadUrlRoute
+  '/api/admin/media/variants-status': typeof ApiAdminMediaVariantsStatusRoute
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -1106,6 +1161,7 @@ export interface FileRoutesByFullPath {
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
+  '/api/admin/media/': typeof ApiAdminMediaIndexRoute
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
@@ -1122,6 +1178,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/media/$id/replace': typeof ApiAdminMediaIdReplaceRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -1220,6 +1277,7 @@ export interface FileRoutesByTo {
   '/admin/assets': typeof AdminAssetsIndexRoute
   '/admin/channels': typeof AdminChannelsIndexRoute
   '/admin/invoices': typeof AdminInvoicesIndexRoute
+  '/admin/media': typeof AdminMediaIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/properties': typeof AdminPropertiesIndexRoute
   '/admin/reports': typeof AdminReportsIndexRoute
@@ -1239,6 +1297,11 @@ export interface FileRoutesByTo {
   '/api/admin/automation/templates': typeof ApiAdminAutomationTemplatesRouteWithChildren
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
+  '/api/admin/media/$id': typeof ApiAdminMediaIdRouteWithChildren
+  '/api/admin/media/attach': typeof ApiAdminMediaAttachRoute
+  '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
+  '/api/admin/media/upload-url': typeof ApiAdminMediaUploadUrlRoute
+  '/api/admin/media/variants-status': typeof ApiAdminMediaVariantsStatusRoute
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -1257,6 +1320,7 @@ export interface FileRoutesByTo {
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/assets': typeof ApiAdminAssetsIndexRoute
+  '/api/admin/media': typeof ApiAdminMediaIndexRoute
   '/api/admin/payments': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties': typeof ApiAdminPropertiesIndexRoute
@@ -1273,6 +1337,7 @@ export interface FileRoutesByTo {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/media/$id/replace': typeof ApiAdminMediaIdReplaceRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -1376,6 +1441,7 @@ export interface FileRoutesById {
   '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
+  '/admin/media/': typeof AdminMediaIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
@@ -1395,6 +1461,11 @@ export interface FileRoutesById {
   '/api/admin/automation/templates': typeof ApiAdminAutomationTemplatesRouteWithChildren
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
+  '/api/admin/media/$id': typeof ApiAdminMediaIdRouteWithChildren
+  '/api/admin/media/attach': typeof ApiAdminMediaAttachRoute
+  '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
+  '/api/admin/media/upload-url': typeof ApiAdminMediaUploadUrlRoute
+  '/api/admin/media/variants-status': typeof ApiAdminMediaVariantsStatusRoute
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
   '/api/admin/payments/issue-invoice': typeof ApiAdminPaymentsIssueInvoiceRoute
   '/api/admin/people/$id': typeof ApiAdminPeopleIdRouteWithChildren
@@ -1413,6 +1484,7 @@ export interface FileRoutesById {
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
+  '/api/admin/media/': typeof ApiAdminMediaIndexRoute
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
@@ -1429,6 +1501,7 @@ export interface FileRoutesById {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/media/$id/replace': typeof ApiAdminMediaIdReplaceRoute
   '/api/admin/payments/$id/mark-paid': typeof ApiAdminPaymentsIdMarkPaidRoute
   '/api/admin/payments/$id/pdf': typeof ApiAdminPaymentsIdPdfRoute
   '/api/admin/payments/$id/void': typeof ApiAdminPaymentsIdVoidRoute
@@ -1532,6 +1605,7 @@ export interface FileRouteTypes {
     | '/admin/assets/'
     | '/admin/channels/'
     | '/admin/invoices/'
+    | '/admin/media/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/reports/'
@@ -1551,6 +1625,11 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates'
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
+    | '/api/admin/media/$id'
+    | '/api/admin/media/attach'
+    | '/api/admin/media/reorder'
+    | '/api/admin/media/upload-url'
+    | '/api/admin/media/variants-status'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1569,6 +1648,7 @@ export interface FileRouteTypes {
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
     | '/api/admin/assets/'
+    | '/api/admin/media/'
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
@@ -1585,6 +1665,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/media/$id/replace'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1683,6 +1764,7 @@ export interface FileRouteTypes {
     | '/admin/assets'
     | '/admin/channels'
     | '/admin/invoices'
+    | '/admin/media'
     | '/admin/people'
     | '/admin/properties'
     | '/admin/reports'
@@ -1702,6 +1784,11 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates'
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
+    | '/api/admin/media/$id'
+    | '/api/admin/media/attach'
+    | '/api/admin/media/reorder'
+    | '/api/admin/media/upload-url'
+    | '/api/admin/media/variants-status'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1720,6 +1807,7 @@ export interface FileRouteTypes {
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
     | '/api/admin/assets'
+    | '/api/admin/media'
     | '/api/admin/payments'
     | '/api/admin/people'
     | '/api/admin/properties'
@@ -1736,6 +1824,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/media/$id/replace'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1838,6 +1927,7 @@ export interface FileRouteTypes {
     | '/admin/assets/'
     | '/admin/channels/'
     | '/admin/invoices/'
+    | '/admin/media/'
     | '/admin/people/'
     | '/admin/properties/'
     | '/admin/reports/'
@@ -1857,6 +1947,11 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates'
     | '/api/admin/channels/health'
     | '/api/admin/channels/posts'
+    | '/api/admin/media/$id'
+    | '/api/admin/media/attach'
+    | '/api/admin/media/reorder'
+    | '/api/admin/media/upload-url'
+    | '/api/admin/media/variants-status'
     | '/api/admin/payments/$id'
     | '/api/admin/payments/issue-invoice'
     | '/api/admin/people/$id'
@@ -1875,6 +1970,7 @@ export interface FileRouteTypes {
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
     | '/api/admin/assets/'
+    | '/api/admin/media/'
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
@@ -1891,6 +1987,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/media/$id/replace'
     | '/api/admin/payments/$id/mark-paid'
     | '/api/admin/payments/$id/pdf'
     | '/api/admin/payments/$id/void'
@@ -1966,6 +2063,11 @@ export interface RootRouteChildren {
   ApiAdminAutomationTemplatesRoute: typeof ApiAdminAutomationTemplatesRouteWithChildren
   ApiAdminChannelsHealthRoute: typeof ApiAdminChannelsHealthRoute
   ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRouteWithChildren
+  ApiAdminMediaIdRoute: typeof ApiAdminMediaIdRouteWithChildren
+  ApiAdminMediaAttachRoute: typeof ApiAdminMediaAttachRoute
+  ApiAdminMediaReorderRoute: typeof ApiAdminMediaReorderRoute
+  ApiAdminMediaUploadUrlRoute: typeof ApiAdminMediaUploadUrlRoute
+  ApiAdminMediaVariantsStatusRoute: typeof ApiAdminMediaVariantsStatusRoute
   ApiAdminPaymentsIdRoute: typeof ApiAdminPaymentsIdRouteWithChildren
   ApiAdminPaymentsIssueInvoiceRoute: typeof ApiAdminPaymentsIssueInvoiceRoute
   ApiAdminPeopleIdRoute: typeof ApiAdminPeopleIdRouteWithChildren
@@ -1979,6 +2081,7 @@ export interface RootRouteChildren {
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
   ApiAdminAssetsIndexRoute: typeof ApiAdminAssetsIndexRoute
+  ApiAdminMediaIndexRoute: typeof ApiAdminMediaIndexRoute
   ApiAdminPaymentsIndexRoute: typeof ApiAdminPaymentsIndexRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminPropertiesIndexRoute: typeof ApiAdminPropertiesIndexRoute
@@ -2331,6 +2434,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInvoicesNewRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/media/': {
+      id: '/admin/media/'
+      path: '/media'
+      fullPath: '/admin/media/'
+      preLoaderRoute: typeof AdminMediaIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/people/': {
       id: '/admin/people/'
       path: '/people'
@@ -2604,6 +2714,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminChannelsPostsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/media/': {
+      id: '/api/admin/media/'
+      path: '/api/admin/media'
+      fullPath: '/api/admin/media/'
+      preLoaderRoute: typeof ApiAdminMediaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/$id': {
+      id: '/api/admin/media/$id'
+      path: '/api/admin/media/$id'
+      fullPath: '/api/admin/media/$id'
+      preLoaderRoute: typeof ApiAdminMediaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/attach': {
+      id: '/api/admin/media/attach'
+      path: '/api/admin/media/attach'
+      fullPath: '/api/admin/media/attach'
+      preLoaderRoute: typeof ApiAdminMediaAttachRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/reorder': {
+      id: '/api/admin/media/reorder'
+      path: '/api/admin/media/reorder'
+      fullPath: '/api/admin/media/reorder'
+      preLoaderRoute: typeof ApiAdminMediaReorderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/upload-url': {
+      id: '/api/admin/media/upload-url'
+      path: '/api/admin/media/upload-url'
+      fullPath: '/api/admin/media/upload-url'
+      preLoaderRoute: typeof ApiAdminMediaUploadUrlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/variants-status': {
+      id: '/api/admin/media/variants-status'
+      path: '/api/admin/media/variants-status'
+      fullPath: '/api/admin/media/variants-status'
+      preLoaderRoute: typeof ApiAdminMediaVariantsStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/payments/': {
       id: '/api/admin/payments/'
       path: '/api/admin/payments'
@@ -2834,6 +2986,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/channels/ids/$key'
       preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/media/$id/replace': {
+      id: '/api/admin/media/$id/replace'
+      path: '/replace'
+      fullPath: '/api/admin/media/$id/replace'
+      preLoaderRoute: typeof ApiAdminMediaIdReplaceRouteImport
+      parentRoute: typeof ApiAdminMediaIdRoute
     }
     '/api/admin/payments/$id/mark-paid': {
       id: '/api/admin/payments/$id/mark-paid'
@@ -3173,6 +3332,7 @@ interface AdminRouteChildren {
   AdminAssetsIndexRoute: typeof AdminAssetsIndexRoute
   AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
   AdminInvoicesIndexRoute: typeof AdminInvoicesIndexRoute
+  AdminMediaIndexRoute: typeof AdminMediaIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminPropertiesIndexRoute: typeof AdminPropertiesIndexRoute
   AdminReportsIndexRoute: typeof AdminReportsIndexRoute
@@ -3194,6 +3354,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAssetsIndexRoute: AdminAssetsIndexRoute,
   AdminChannelsIndexRoute: AdminChannelsIndexRoute,
   AdminInvoicesIndexRoute: AdminInvoicesIndexRoute,
+  AdminMediaIndexRoute: AdminMediaIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminPropertiesIndexRoute: AdminPropertiesIndexRoute,
   AdminReportsIndexRoute: AdminReportsIndexRoute,
@@ -3426,6 +3587,18 @@ const ApiAdminChannelsPostsRouteWithChildren =
     ApiAdminChannelsPostsRouteChildren,
   )
 
+interface ApiAdminMediaIdRouteChildren {
+  ApiAdminMediaIdReplaceRoute: typeof ApiAdminMediaIdReplaceRoute
+}
+
+const ApiAdminMediaIdRouteChildren: ApiAdminMediaIdRouteChildren = {
+  ApiAdminMediaIdReplaceRoute: ApiAdminMediaIdReplaceRoute,
+}
+
+const ApiAdminMediaIdRouteWithChildren = ApiAdminMediaIdRoute._addFileChildren(
+  ApiAdminMediaIdRouteChildren,
+)
+
 interface ApiAdminPaymentsIdRouteChildren {
   ApiAdminPaymentsIdMarkPaidRoute: typeof ApiAdminPaymentsIdMarkPaidRoute
   ApiAdminPaymentsIdPdfRoute: typeof ApiAdminPaymentsIdPdfRoute
@@ -3562,6 +3735,11 @@ const rootRouteChildren: RootRouteChildren = {
     ApiAdminAutomationTemplatesRouteWithChildren,
   ApiAdminChannelsHealthRoute: ApiAdminChannelsHealthRoute,
   ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRouteWithChildren,
+  ApiAdminMediaIdRoute: ApiAdminMediaIdRouteWithChildren,
+  ApiAdminMediaAttachRoute: ApiAdminMediaAttachRoute,
+  ApiAdminMediaReorderRoute: ApiAdminMediaReorderRoute,
+  ApiAdminMediaUploadUrlRoute: ApiAdminMediaUploadUrlRoute,
+  ApiAdminMediaVariantsStatusRoute: ApiAdminMediaVariantsStatusRoute,
   ApiAdminPaymentsIdRoute: ApiAdminPaymentsIdRouteWithChildren,
   ApiAdminPaymentsIssueInvoiceRoute: ApiAdminPaymentsIssueInvoiceRoute,
   ApiAdminPeopleIdRoute: ApiAdminPeopleIdRouteWithChildren,
@@ -3577,6 +3755,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
   ApiAdminAssetsIndexRoute: ApiAdminAssetsIndexRoute,
+  ApiAdminMediaIndexRoute: ApiAdminMediaIndexRoute,
   ApiAdminPaymentsIndexRoute: ApiAdminPaymentsIndexRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminPropertiesIndexRoute: ApiAdminPropertiesIndexRoute,

@@ -30,6 +30,14 @@ async function assertStep7(db: Db): Promise<void> {
   expect(rows[0]?.present).toBe(true);
 }
 
+/** The case runs only against a database that holds step 8's migration (P-328). */
+async function assertStep8(db: Db): Promise<void> {
+  const { rows } = await db.query<{ present: boolean }>(
+    "select to_regproc('public.reorder_media') is not null and to_regproc('public.set_media_alt') is not null as present",
+  );
+  expect(rows[0]?.present).toBe(true);
+}
+
 /** The case runs only against a database that holds step 7a's migration (P-328). */
 async function assertStep7a(db: Db): Promise<void> {
   const { rows } = await db.query<{ present: boolean }>(
@@ -142,6 +150,34 @@ describe("catalog_version and the property writes (F25 a)", () => {
         unpublish: 1,
         takedown: 1,
       });
+    });
+  });
+
+  it("a media reorder raises it by exactly one, and an alt edit by exactly one (B2's property_media trigger)", async () => {
+    await withRollback(async (db) => {
+      await assertStep8(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const id = await inReview(db, 9996);
+      const { rows } = await db.query<{ id: string }>(
+        "select id from public.property_media where property_id = $1 order by sort_order",
+        [id],
+      );
+      const order = rows.map((row) => row.id);
+      const bumpOf = async (sql: string, params: unknown[]) => {
+        const before = await catalogVersion(db);
+        await db.query(sql, params);
+        return (await catalogVersion(db)) - before;
+      };
+      expect({
+        reorder: await bumpOf(
+          "select public.reorder_media($1, $2::uuid[], $3, 'human', 'req-cv')",
+          [id, [...order.slice(0, 4), order[5], order[4]], editor],
+        ),
+        alt: await bumpOf("select public.set_media_alt($1, 'The terrace', $2, 'human', 'req-cv')", [
+          order[0],
+          editor,
+        ]),
+      }).toEqual({ reorder: 1, alt: 1 });
     });
   });
 });
