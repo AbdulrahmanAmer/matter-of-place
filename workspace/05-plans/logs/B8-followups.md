@@ -244,3 +244,23 @@
    - Evidence: git log -1 origin/main -- app/supabase/migrations/20261004060603_system_jobs.sql -> 0f200b7e. MOP_MUTATION_SQL=<old sql> bunx vitest run --project db tests/db/jobs.db.test.ts -t "emit_event inserts a row" on mop-dev -> 'cannot remove parameter defaults from existing function'.
 
 (Two further follow-ups have GOTCHAS.md as their file: the missing hit-again line on P-008, added to that entry, and the reviewer's cost of running a gate beside a replay, banked as P-2604.)
+
+## g1 · steps 10
+
+1. `app/src/routes/admin/jobs.index.tsx` (not blocking)
+   - What: Suspected from reading, not run. The shell's comment says a non-uuid `entity` or `job` in the search is dropped, but the page never reads the validated search. JobsPage reads raw `location.searchStr` through useUrlFilters and useOpenJob (JobsPage.tsx, `params.get(OPEN)`). So `?job=abc` still opens the drawer and requests `/api/admin/jobs/abc`, and fetchJob builds that path without encodeURIComponent (jobs-api.ts `jobPath`). The server-side uuid checks keep this harmless: it is a GET and the answer must parse as jobDetailSchema. Still, the comment describes protection the page does not have, and validateSearch's uuid filter does nothing for screen 16.
+   - Evidence: jobs.index.tsx lines 4-5 comment and validateSearch; JobsPage.tsx useOpenJob reads `new URLSearchParams(location.searchStr).get("job")`; use-url-filters.ts reads `location.searchStr`. No test mounts the real Route: jobs.test.tsx uses pageRoute from test-router, so validateSearch is never run.
+
+2. `tests/mutations/B8.json` (not blocking)
+   - What: The manual entry b8g1-e2e-retry (retryJob posts to cancel, expect 'Expected: 200') has no working control on mop-dev today. The unmutated spec already fails there with 'Expected: 200, Received: 500', because admin_retry_job is not on mop-dev. A replay now would print OK without the mutation being what turned it red. It becomes a real watched-fail only once main pushes 20261008065327_jobs_admin.sql or it runs on the CI stack, and then the unmutated spec must be seen green first. The author disclosed that it was not replayed.
+   - Evidence: Retry case on the built Worker against mop-dev, unmutated: admin-jobs.spec.ts:79 Expected: 200, Received: 500. pg_proc where proname like 'admin_%job%' returns [].
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: Two plan lines for step 10 no longer match what was built. (1) The proof command `bunx playwright test --project admin tests/e2e/admin-jobs.spec.ts` reads the file as a second project; `--project=admin` is needed (banked as P-2602). (2) FILES says the route sets the pending skeleton through B7's adminRouteOptions(). Under ruling H66 the shell cannot import it, the sibling screens (channels, reports, assets) set only errorComponent in the .lazy.tsx file, and this route has no loader. The deviation is logged. The plan text is the orchestrator's to update.
+   - Evidence: P-2602 symptom (1); jobs.index.lazy.tsx sets only errorComponent; query.ts adminRouteOptions is used by no route under src/routes/admin.
+
+4. `app/src/admin/jobs (UNPROVEN items, carried forward)` (not blocking)
+   - What: Still UNPROVEN, as the author says, and to be closed later: the Retry e2e (dead to queued, with the banner emptying) on CI's live e2e stack; Approve and Cancel against a real database (they are unit-tested with a stubbed fetch only); a brand check of screen 16 by eye or viewport screenshot (C18; only axe was run).
+   - Evidence: Reproduced the 500 at admin-jobs.spec.ts:79 on mop-dev. The CI e2e job (ci.yml line 337, E2E_STACK=1 bunx playwright test --project=admin) runs on a supabase start stack built from the branch's migrations, so it is the proof once the pull request runs.
+
+(One further follow-up has GOTCHAS.md as its file: the reviewer's cost of a shared scratchpad file name overwritten by another agent, recorded as a hit-again line on P-2136.)
