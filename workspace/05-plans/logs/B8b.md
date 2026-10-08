@@ -660,3 +660,12 @@ Bank: G-1151 (a real form write in an e2e needs the live build with the Turnstil
 
 ## g8 · follow-ups recorded
 The g8 review found no blocking defect and listed four follow-ups. One is a cost with no entry in the bank (a relative scratch redirect wrote `D:/tmp_ids.txt` outside the lane, filed by the author under P-094 instead of P-071): banked as a "hit again" line on P-071, no new entry. The other three are in `logs/B8b-followups.md` under "## g8 · steps 8": the preview-gated test reads a request count with no `settled()`, the editor's block and row limits copy the schema literals, and `Send test to me` needs a ruling under C17. No code changed. `D:/tmp_ids.txt` is still on disk for the orchestrator to remove.
+
+## g9 · steps 9 · rework after the review
+Started from c07e38ec on slice/b8b (merge-base with origin/main 3ae67bdf); handed in at the commit that carries this block.
+Fixed: screen 20 read a dead token as Connected (blocking, P-2512): `credentialsOf` in `SettingsPage.tsx` now reads `token.level` too, so red with no expiry or more than 7 days left reads Expired. Small follow-ups inside this group's files: a blocked channel stored as on can still be switched off (`ChannelSettingsForm.tsx`), and screen 19 draws an empty state with no reasons (`ReasonsTable.tsx`, C17). Not done: `emails.test.tsx` (step 8's file) still carries its own copy of the fetch stub that `test-mount.tsx` now holds; another group's file, left for the agent that records follow-ups.
+Proof `bunx vitest run src/admin/automation/reasons src/admin/automation/settings src/admin/settings/FlagsSection`: `Test Files 3 passed (3)`, `Tests 29 passed (29)`.
+Proof `bun run check` (via quiet.mjs): `quiet: ok`. Proof `bun run build`: `quiet: ok` (warnings from rolldown only).
+Watched-fail, by id (P-2508): 25 non-sql g9 settings and reasons entries (the three new ones among them) replayed `WATCHED-FAIL OK` after prettier; `b8b-g9-settings-expired` was stale (its `find` line is gone) and now finds `if (daysLeft !== null && daysLeft < 0) return "Expired";`. The three new entries: `b8b-g9-settings-dead-token`, `b8b-g9-settings-blocked-on`, `b8b-g9-reasons-empty`. `b8b-g9-settings-no-secret` is kind manual and not replayed. The `--changed origin/main` replay was not used to completion (P-2508, hit again).
+Not proved: the health answer is a stand-in (the test mock), not B10's route on a running Worker.
+Bank: P-2512 (new), P-2508 (hit again).

@@ -5,6 +5,9 @@ import { ChannelSettingsForm, type Credentials } from "./ChannelSettingsForm";
 import { RequestFailure } from "./RequestFailure";
 import { ScheduleSettingsForm } from "./ScheduleSettingsForm";
 
+/** Days left at or under which the health route turns a live token red (server/channels/service.ts RED_DAYS). */
+const redDays = 7;
+
 /**
  * A channel's sign-in from the health route of screen 12. A route that is missing or fails reads as not connected: the
  * screen never guesses a better answer, and it never shows the name or value of a secret (G-006).
@@ -17,8 +20,11 @@ function credentialsOf(
   if (health.isPending) return "Checking";
   const found = health.data?.find((entry) => entry.channel === channel);
   if (found === undefined || !found.connected) return "Not connected";
-  const { daysLeft } = found.token;
-  return daysLeft !== null && daysLeft < 0 ? "Expired" : "Connected";
+  const { daysLeft, level } = found.token;
+  if (daysLeft !== null && daysLeft < 0) return "Expired";
+  // Red with no expiry, or with more than a week left, is a token the daily check marked dead.
+  const dead = level === "red" && (daysLeft === null || daysLeft > redDays);
+  return dead ? "Expired" : "Connected";
 }
 
 /** Screen 20: the posting window and approval of each channel, and the clocks that run the schedules. */

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { declineReasonSchema } from "../../domain/automation";
+import { EmptyState } from "../ui/EmptyState";
 import { Field } from "../ui/Field";
 import { RoleGate } from "../ui/RoleGate";
 import { StatusPill } from "../ui/StatusPill";
@@ -173,83 +174,89 @@ export function ReasonsTable({ items }: { items: readonly ReasonRow[] }) {
 
   return (
     <>
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <caption>Decline reasons, in the order of the decline menu</caption>
-          <thead>
-            <tr>
-              <th scope="col">Reason</th>
-              <th scope="col">Email paragraph</th>
-              <th scope="col">State</th>
-              <RoleGate action="automation.reasons_put">
-                <th scope="col">Change</th>
-              </RoleGate>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, index) => (
-              <tr key={item.id}>
-                <td>
-                  <span className="admin-recipes__name">{item.label}</span>
-                  <br />
-                  <code>{item.code}</code>
-                </td>
-                <td className="admin-reasons__paragraph">
-                  {item.email_paragraph === "" ? (
-                    <span className="admin-field__hint">The editor's note is the message.</span>
-                  ) : (
-                    item.email_paragraph
-                  )}
-                </td>
-                <td>
-                  <StatusPill
-                    label={item.enabled ? "On" : "Off"}
-                    tone={item.enabled ? "ok" : "neutral"}
-                  />
-                </td>
+      {items.length === 0 ? (
+        <EmptyState title="No decline reasons">
+          A declined submission has no reason to choose from until one is added.
+        </EmptyState>
+      ) : (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <caption>Decline reasons, in the order of the decline menu</caption>
+            <thead>
+              <tr>
+                <th scope="col">Reason</th>
+                <th scope="col">Email paragraph</th>
+                <th scope="col">State</th>
                 <RoleGate action="automation.reasons_put">
-                  <td>
-                    <div className="admin-actions">
-                      <button
-                        type="button"
-                        className="admin-button admin-button--quiet"
-                        aria-label={`Move ${item.label} up`}
-                        disabled={index === 0 || reorder.isPending}
-                        onClick={() => {
-                          reorder.mutate(moved(items, index, -1));
-                        }}
-                      >
-                        Up
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-button admin-button--quiet"
-                        aria-label={`Move ${item.label} down`}
-                        disabled={index === items.length - 1 || reorder.isPending}
-                        onClick={() => {
-                          reorder.mutate(moved(items, index, 1));
-                        }}
-                      >
-                        Down
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-button admin-button--quiet"
-                        aria-label={`Edit ${item.label}`}
-                        onClick={() => {
-                          setOpen(item.id);
-                        }}
-                      >
-                        Edit
-                      </button>
-                    </div>
-                  </td>
+                  <th scope="col">Change</th>
                 </RoleGate>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <tr key={item.id}>
+                  <td>
+                    <span className="admin-recipes__name">{item.label}</span>
+                    <br />
+                    <code>{item.code}</code>
+                  </td>
+                  <td className="admin-reasons__paragraph">
+                    {item.email_paragraph === "" ? (
+                      <span className="admin-field__hint">The editor's note is the message.</span>
+                    ) : (
+                      item.email_paragraph
+                    )}
+                  </td>
+                  <td>
+                    <StatusPill
+                      label={item.enabled ? "On" : "Off"}
+                      tone={item.enabled ? "ok" : "neutral"}
+                    />
+                  </td>
+                  <RoleGate action="automation.reasons_put">
+                    <td>
+                      <div className="admin-actions">
+                        <button
+                          type="button"
+                          className="admin-button admin-button--quiet"
+                          aria-label={`Move ${item.label} up`}
+                          disabled={index === 0 || reorder.isPending}
+                          onClick={() => {
+                            reorder.mutate(moved(items, index, -1));
+                          }}
+                        >
+                          Up
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-button admin-button--quiet"
+                          aria-label={`Move ${item.label} down`}
+                          disabled={index === items.length - 1 || reorder.isPending}
+                          onClick={() => {
+                            reorder.mutate(moved(items, index, 1));
+                          }}
+                        >
+                          Down
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-button admin-button--quiet"
+                          aria-label={`Edit ${item.label}`}
+                          onClick={() => {
+                            setOpen(item.id);
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </RoleGate>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {reorder.isError ? (
         <RequestFailure error={reorder.error} className="admin-field__error" />
       ) : null}

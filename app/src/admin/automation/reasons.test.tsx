@@ -44,8 +44,8 @@ const bodyOf = (init: RequestInit): unknown =>
  * The decline reasons as the Worker holds them: a list in `sort` order, a create that goes last, an edit by id and the
  * one order route that renumbers. `requests` lists `METHOD path` in order, `bodies` what each write sent.
  */
-function open(options: { actions?: string[]; refuse?: string } = {}) {
-  let held = [...seeded];
+function open(options: { actions?: string[]; refuse?: string; none?: boolean } = {}) {
+  let held = options.none === true ? [] : [...seeded];
   const requests: string[] = [];
   const bodies: Record<string, unknown[]> = {};
   const answer = (path: string, init: RequestInit): Response => {
@@ -119,6 +119,15 @@ describe("the list", () => {
     expect(labels()).toHaveLength(3);
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByText("Change")).toBeNull();
+  });
+});
+
+describe("an empty list", () => {
+  it("says so and still offers the add control", async () => {
+    open({ none: true });
+    expect(await screen.findByText("No decline reasons")).toBeTruthy();
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.getByRole("button", { name: "Add a reason" })).toBeTruthy();
   });
 });
 

@@ -86,7 +86,7 @@ export function ChannelSettingsForm({
               <input
                 type="checkbox"
                 checked={draft.enabled}
-                disabled={notEnabledYet}
+                disabled={notEnabledYet && !row.enabled}
                 onChange={(event) => {
                   setDraft({ ...draft, enabled: event.target.checked });
                 }}

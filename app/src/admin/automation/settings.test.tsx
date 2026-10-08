@@ -74,7 +74,7 @@ const scheduleRows: ScheduleWire[] = [
   },
 ];
 
-const health = (channel: string, connected: boolean, daysLeft: number | null) => ({
+const health = (channel: string, connected: boolean, daysLeft: number | null, level = "ok") => ({
   channel,
   connected,
   level: "ok",
@@ -84,7 +84,7 @@ const health = (channel: string, connected: boolean, daysLeft: number | null) =>
   token: {
     expiresAt: daysLeft === null ? null : "2026-10-20T00:00:00.000Z",
     daysLeft,
-    level: "ok",
+    level,
   },
 });
 
@@ -114,6 +114,8 @@ interface Options {
   flags?: { new_channels: boolean };
   /** `null` is a Worker without B10's route: it answers 404. */
   health?: unknown[] | null;
+  /** Channels whose stored row is already switched on. */
+  on?: Channel[];
 }
 
 /**
@@ -121,7 +123,10 @@ interface Options {
  * patch and the next read shows it). `bodies` holds what each write sent, by `METHOD path`.
  */
 function open(options: Options = {}) {
-  let channels = [...channelRows];
+  let channels = channelRows.map((row) => ({
+    ...row,
+    enabled: row.enabled || (options.on?.includes(row.channel) ?? false),
+  }));
   let schedules = [...scheduleRows];
   const bodies: Record<string, unknown[]> = {};
   const answer = (path: string, init: RequestInit): Response => {
@@ -261,6 +266,21 @@ describe("the blocked channels", () => {
   });
 });
 
+describe("a blocked channel that is already on", () => {
+  it("can still be switched off", async () => {
+    const api = open({ flags: { new_channels: false }, on: ["facebook"] });
+    await ready();
+    const toggle = channel("Facebook").getByLabelText("Facebook on");
+    expect(toggle).toHaveProperty("disabled", false);
+    fireEvent.click(toggle);
+    fireEvent.click(channel("Facebook").getByRole("button", { name: "Save Facebook" }));
+    await screen.findByText("Facebook saved.");
+    expect(channelBody.parse(api.last(`PUT ${BASE}/channel-settings/facebook`))).toMatchObject({
+      enabled: false,
+    });
+  });
+});
+
 describe("sign-in status", () => {
   it("reads not connected when the health route is missing", async () => {
     open({ health: null });
@@ -286,6 +306,26 @@ describe("sign-in status", () => {
     expect(channel("Instagram").getByText("Connected")).toBeTruthy();
     expect(channel("LinkedIn").getByText("Not connected")).toBeTruthy();
     expect(document.body.innerHTML).not.toContain(SECRET);
+  });
+});
+
+describe("a token the daily check marked dead", () => {
+  it("reads expired when the health route is red with no expiry or a far one", async () => {
+    open({
+      health: [
+        health("instagram", true, null, "red"),
+        health("x", true, 40, "red"),
+        health("linkedin", true, 5, "red"),
+        health("facebook", true, 20, "amber"),
+      ],
+    });
+    await ready();
+    await waitFor(() => {
+      expect(channel("Instagram").getByText("Expired")).toBeTruthy();
+    });
+    expect(channel("X").getByText("Expired")).toBeTruthy();
+    expect(channel("LinkedIn").getByText("Connected")).toBeTruthy();
+    expect(channel("Facebook").getByText("Connected")).toBeTruthy();
   });
 });
 

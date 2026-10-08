@@ -2667,10 +2667,37 @@
     "id": "b8b-g9-settings-expired",
     "test": "src/admin/automation/settings.test.tsx",
     "file": "src/admin/automation/SettingsPage.tsx",
-    "find": "return daysLeft !== null && daysLeft < 0 ? \"Expired\" : \"Connected\";",
-    "replace": "return \"Connected\";",
+    "find": "if (daysLeft !== null && daysLeft < 0) return \"Expired\";",
+    "replace": "if (daysLeft === -999) return \"Expired\";",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
     "expect": "FAIL .*sign-in status > reads connected and expired"
+  },
+  {
+    "id": "b8b-g9-reasons-empty",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "{items.length === 0 ? (",
+    "replace": "{false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*an empty list > says so"
+  },
+  {
+    "id": "b8b-g9-settings-blocked-on",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ChannelSettingsForm.tsx",
+    "find": "disabled={notEnabledYet && !row.enabled}",
+    "replace": "disabled={notEnabledYet}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a blocked channel that is already on > can still be switched off"
+  },
+  {
+    "id": "b8b-g9-settings-dead-token",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/SettingsPage.tsx",
+    "find": "const dead = level === \"red\" && (daysLeft === null || daysLeft > redDays);",
+    "replace": "const dead = false;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a token the daily check marked dead > reads expired"
   },
   {
     "id": "b8b-g9-settings-next-run",
