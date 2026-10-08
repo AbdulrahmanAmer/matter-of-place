@@ -1,0 +1,57 @@
+/* Screen 9 and the Sequence tab of screen 8: the photographs of one property, their upload and their render state. */
+
+.admin-media {
+  display: grid;
+  gap: var(--admin-space-4);
+}
+
+.admin-media__thumb {
+  display: block;
+  width: 120px;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--secondary);
+}
+
+.admin-media__thumb--none {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-upload {
+  display: grid;
+  gap: var(--admin-space-2);
+  justify-items: start;
+  padding: var(--admin-space-4);
+  border: 1px dashed var(--border);
+}
+
+.admin-upload--compact {
+  padding: 0;
+  border: 0;
+}
+
+.admin-upload__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.admin-upload__hint,
+.admin-variant__note {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-variant,
+.admin-alt {
+  display: grid;
+  gap: var(--admin-space-2);
+  justify-items: start;
+}

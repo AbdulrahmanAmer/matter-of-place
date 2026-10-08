@@ -8,6 +8,7 @@ import type { RunnerEnv, StepContext, StepResult } from "../../../src/server/job
 import { logLine } from "../../../src/server/lib/log";
 import { captureException } from "../../../src/server/lib/sentry";
 import { fakeDb, type FakeDb } from "../../fixtures/fake-db";
+import { stateJson } from "../../fixtures/snapshot";
 
 const NOW = new Date("2026-10-04T13:00:00.000Z");
 const HOUR_MS = 3600 * 1000;
@@ -21,6 +22,13 @@ const quiet: HealthCounts = {
   backup: null,
 };
 
+// B16's `site_identity` check reads the shared public state; a complete site keeps it quiet here.
+const completeSite: Json = {
+  contact: { email: "hello@example.test", phone: null, privacy_email: null },
+  legal: { entity: "Example Test LLC", address: "1 Test Street, Testville, CA 90000" },
+  social: { instagram: null, x: null, linkedin: null },
+};
+
 interface Setup {
   counts?: Partial<HealthCounts>;
   cronFailures?: number;
@@ -32,6 +40,7 @@ function setup({ counts = {}, cronFailures = 0 }: Setup = {}): FakeDb {
       health_counts: () => ({ ...quiet, ...counts }),
       health_cron_failures: () => cronFailures,
       emit_event: () => "5b0c7c4e-0000-4000-8000-000000000009",
+      public_state: () => stateJson(7, { site: completeSite }),
     },
   });
   // The provider checks read settings.linkedin with one filtered select; B3's fakeDb answers only a bare select.
@@ -112,6 +121,7 @@ describe("health job", () => {
       "retention_stalled",
       "long_waits",
       "backup_fresh",
+      "site_identity",
       "github_dispatch",
       "resend_domain",
       "linkedin_version",

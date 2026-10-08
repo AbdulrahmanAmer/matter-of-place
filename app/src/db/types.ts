@@ -1020,6 +1020,13 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"dashboard_counts": {
+                  Row: {
+                    "count": number | null,"workflow_state": Database["public"]['Enums']["submission_state"] | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"invoice_list": {
                   Row: {
                     "amount": number | null,"days_open": number | null,"due_at": string | null,"id": string | null,"invoice_number": string | null,"issued_at": string | null,"overdue": boolean | null,"paid_at": string | null,"product": Database["public"]['Enums']["exposure_package"] | null,"status": Database["public"]['Enums']["payment_status"] | null,"submission_id": string | null,"submitter_email": string | null,"submitter_name": string | null
@@ -1079,6 +1086,21 @@ isOneToOne: false
 "add_submission_note":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string,"p_text": string }; Returns: Json
                            },
+"admin_approve_job":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_job_id": string,"p_request_id": string }; Returns: undefined
+                           },
+"admin_cancel_job":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_job_id": string,"p_request_id": string }; Returns: undefined
+                           },
+"admin_dashboard":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"admin_retry_job":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_job_id": string,"p_request_id": string }; Returns: undefined
+                           },
+"admin_retry_jobs":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_error_like"?: string,"p_request_id": string,"p_since"?: string,"p_type"?: string }; Returns: number
+                           },
 "agent_key_by_hash":
 { Args: { "p_hash": string }; Returns: {
               "key_id": string,"last_used_at": string,"revoked_at": string,"roles": (Database["public"]['Enums']["app_role"])[],"scopes": (string)[],"user_id": string
@@ -1101,6 +1123,9 @@ isOneToOne: false
                            },
 "assets_received":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: Database["public"]['Enums']["submission_state"]
+                           },
+"attach_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_alt"?: string,"p_media_id": string,"p_property_id": string,"p_request_id": string,"p_staging_path": string }; Returns: Json
                            },
 "attach_reel":
 { Args: { "p_asset": string,"p_detach"?: boolean,"p_property": string }; Returns: undefined
@@ -1226,6 +1251,9 @@ isOneToOne: false
                            },
 "decline_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_reason_id": string,"p_request_id": string,"p_submission_id": string }; Returns: string
+                           },
+"delete_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_media_id": string,"p_request_id": string }; Returns: string
                            },
 "drop_old_analytics_partitions":
 { Args: { "keep_months"?: number }; Returns: number
@@ -1544,13 +1572,22 @@ isOneToOne: false
 "reject_asset":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_asset": string,"p_note": string,"p_request_id"?: string }; Returns: string
                            },
+"reorder_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_order": (string)[],"p_property_id": string,"p_request_id": string }; Returns: number
+                           },
 "repermission_candidates":
 { Args: { "p_limit"?: number }; Returns: {
               "id": string
             }[]
                            },
+"replace_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_media_id": string,"p_request_id": string,"p_staging_path": string }; Returns: Json
+                           },
 "request_assets":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_submission_id": string }; Returns: string
+                           },
+"request_property_render":
+{ Args: { "p_property_id": string }; Returns: string
                            },
 "requeue_job":
 { Args: { "p_claim": string,"p_job_id": string,"p_kind": string,"p_result"?: Json,"p_run_after": string }; Returns: boolean
@@ -1705,6 +1742,9 @@ isOneToOne: false
 "set_invoice_key":
 { Args: { "p_key": string,"p_payment_id": string }; Returns: string
                            },
+"set_media_alt":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_alt": string,"p_media_id": string,"p_request_id": string }; Returns: undefined
+                           },
 "set_og_static":
 { Args: { "p_value": Json }; Returns: undefined
                            },
@@ -1754,6 +1794,12 @@ isOneToOne: false
 { Args: { "p_media_ids": (string)[],"p_submission_id": string }; Returns: {
               "media_id": string,"storage_path": string
             }[]
+                           },
+"takedown_mark_posts":
+{ Args: { "p_property_id": string }; Returns: number
+                           },
+"takedown_media_keys":
+{ Args: { "p_property_id": string }; Returns: (string)[]
                            },
 "touch_agent_key":
 { Args: { "p_key_id": string }; Returns: undefined

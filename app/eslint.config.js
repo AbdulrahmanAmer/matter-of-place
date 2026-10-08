@@ -141,6 +141,7 @@ const ADAPTER_FILES = [
   "src/server/jobs/system/health/providers.ts",
   "src/server/jobs/system/meta-token-refresh.ts",
   "src/server/jobs/steps/purge-cache.ts",
+  "src/server/media/staging.ts",
 ];
 
 const typeAwareRules = {

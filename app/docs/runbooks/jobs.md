@@ -132,6 +132,19 @@ The runner reports with its own client key (`SENTRY_DSN_JOB_RUNNER`), kept apart
 
 A job with `run_local` true waits for the caption runner on the laptop (ruling H34 (2)): the Edge Function deletes its message and leaves the job `queued`, and `ops_health` does not count it as a stale queue. When an editor types the captions on the asset's screen instead (ruling H34 (5)), the waiting job is completed with `claim_job` and then `finish_job` with `p_result => '{"manual": true}'`.
 
+## Takedown of a property's files
+
+`takedown_media` (data `{ property_id }`) removes a property's files after a rights takedown (E2E-01). B7's `unpublish_property` is to enqueue it when `p_takedown` is true (UNPROVEN until B7's migration is on `main`). Its definition declares 12 attempts, but `jobs.max_attempts` is what the enqueue passes as `p_max_attempts` (the column default is 5), so the enqueue passes 12. It runs in two passes:
+
+1. It reads the property's keys in the bucket `media` with `takedown_media_keys` (each photograph's master and every size its `variants` records, every asset file, the film and its poster, the OG image), deletes them through the Storage API and stores `deleted_at` and `deleted` in `result`. A Storage outage throws `storage_unavailable`, and the job waits an hour without using an attempt.
+2. Once `result.deleted_at` is set, a run deletes nothing: it purges `<MEDIA_PUBLIC_BASE>/<key>` for each key, at most 30 addresses to a Cloudflare call, marks the property's `posted` social posts not yet marked with `takedown_mark_posts` for withdrawal by hand, and ends `done` with `deleted`, `purged` and `posts_marked`. Without `MEDIA_PUBLIC_BASE` it purges nothing and records `purge_skipped: "no_media_public_base"`; without `CF_PURGE_TOKEN` or `CF_ZONE_ID` and with at least one key, `purge_skipped: "not_configured"`.
+
+```
+select status, attempts, result, error from jobs where type = 'takedown_media' and payload -> 'data' ->> 'property_id' = '<id>';
+```
+
+The keys stay in the property's rows after the delete, so the second pass and a later retry purge the same addresses.
+
 ## Reading a dead job
 
 ```

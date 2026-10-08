@@ -53,20 +53,8 @@ async function sourcesOf(db: Db, ids: string[]): Promise<Map<string, string>> {
   return new Map(sourcesSchema.parse(data).map((row) => [row.id, row.storage_path]));
 }
 
-interface RenderRequester {
-  rpc(
-    name: "request_property_render",
-    args: { p_property_id: string },
-  ): PromiseLike<{ data: unknown; error: unknown }>;
-}
-
 async function requestRender(db: Db, propertyId: string): Promise<string | null> {
-  // STUB(B7 step 8): the typed `db.rpc("request_property_render", ...)` replaces this cast once step 8's migration and its generated type exist
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- `request_property_render` is not in the generated types until step 8's migration lands
-  const requester = db as unknown as RenderRequester;
-  const { data, error } = await requester.rpc("request_property_render", {
-    p_property_id: propertyId,
-  });
+  const { data, error } = await db.rpc("request_property_render", { p_property_id: propertyId });
   if (error !== null) throw unavailable("request_property_render");
   return z.string().nullable().parse(data);
 }

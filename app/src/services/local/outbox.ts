@@ -1,12 +1,17 @@
 import type { Receipt } from "../../domain/contracts";
-import type { InquiryService, NewsletterService, SubmissionService } from "../types";
+import type {
+  InquiryService,
+  NewsletterService,
+  SubjectsService,
+  SubmissionService,
+} from "../types";
 
 /**
  * In-memory outbox used while no API is configured. Records live for the
  * page session only; nothing is persisted or transmitted. The shape of each
  * record equals the request body the `http` adapters send.
  */
-type OutboxKind = "inquiry" | "submission" | "subscriber";
+type OutboxKind = "inquiry" | "submission" | "subscriber" | "subject_request";
 
 type OutboxRecord = {
   id: string;
@@ -39,4 +44,11 @@ export const localSubmissions: SubmissionService = {
 
 export const localNewsletter: NewsletterService = {
   subscribe: (input) => accept("subscriber", input),
+};
+
+export const localSubjects: SubjectsService = {
+  request: async (input) => {
+    await accept("subject_request", input);
+    return { ok: true };
+  },
 };

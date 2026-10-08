@@ -8,10 +8,9 @@ One Worker serves the site and `/api/*`. GitHub Actions deploys it from the repo
 
 `VITE_*` names are build-time and public: Vite inlines them into the built JavaScript, so never put a secret in one. Secrets are set server side with `wrangler secret put`.
 
-| Variable             | Required            | Purpose                             |
-| -------------------- | ------------------- | ----------------------------------- |
-| `VITE_SITE_URL`      | production          | canonical URLs and JSON-LD          |
-| `VITE_API_BASE_URL`  | when the API exists | switches every service to live mode |
-| `VITE_INSTAGRAM_URL` | optional            | footer link appears only when set   |
+| Variable            | Required            | Purpose                             |
+| ------------------- | ------------------- | ----------------------------------- |
+| `VITE_SITE_URL`     | production          | canonical URLs and JSON-LD          |
+| `VITE_API_BASE_URL` | when the API exists | switches every service to live mode |
 
-Contact email, phone, registered entity and address are typed fields in `src/config/site.ts`, `null` until the owner confirms them. Nothing invented is rendered.
+Contact email, phone, registered entity, address and the Instagram, X and LinkedIn addresses are not build variables. They live in `settings.site`, reach the pages through `GET /api/public/site`, and `src/config/site.ts` keeps `null` for each as the local default. A value that is not set renders no line.

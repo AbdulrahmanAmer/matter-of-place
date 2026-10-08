@@ -28,6 +28,7 @@ const everyEvent: Record<AnalyticsEvent, true> = {
   search: true,
   home_finder: true,
   interest_signup: true,
+  subject_request_submitted: true,
   coming_soon_view: true,
   consent_set: true,
   web_vitals: true,

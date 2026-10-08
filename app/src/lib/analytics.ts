@@ -35,6 +35,7 @@ export const analyticsEvents = [
   "search",
   "home_finder",
   "interest_signup",
+  "subject_request_submitted",
   "coming_soon_view",
   "consent_set",
   "web_vitals",
