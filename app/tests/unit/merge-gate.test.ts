@@ -7,6 +7,7 @@ import {
   jobKeys,
 } from "../../scripts/merge-gate.mjs";
 import { mergeGate } from "../../../workspace/05-plans/merge-gate.mjs";
+import { STEPS, renderLog } from "../../scripts/preview-local.mjs";
 
 const SHA = "abaa02de74944bfc2f0a39825849da50628bb840";
 const HEAD = "0a59cc26632faeb8313bebcca9d20a407ba943c5";
@@ -289,8 +290,35 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
     files?: Answer;
     post?: Answer;
     merge?: Answer;
+    /** What `curl -D -` prints for the dev Worker (H73). */
+    edge?: Answer;
+    /** The text of the `--local-preview` log; unset, the flag is not given. */
+    local?: string;
   }
 
+  // H73: what `curl -s -o NUL -D -` printed for the dev Worker on 2026-10-08 18:42 UTC, and for a reachable one.
+  const LIMITED = { status: 0, out: "HTTP/1.1 429 Too Many Requests\r\nServer: cloudflare\r\n" };
+  const REACHABLE = { status: 0, out: "HTTP/1.1 200 OK\r\nserver: cloudflare\r\n" };
+  const LOG_PATH = "workspace/05-plans/logs/preview-local/pr-22-0a59cc2.md";
+  const localLog = (head = HEAD_SHA) =>
+    renderLog({
+      pr: "22",
+      head,
+      tree: "clean",
+      date: "2026-10-08 21:50 +0300",
+      port: 8970,
+      mode: "live",
+      steps: STEPS.map((name) => ({
+        name,
+        verdict: name === "observatory" ? "not run" : "pass",
+        detail: name === "change test" ? "changed=true (3 files)" : "10 s",
+        tail: [],
+      })),
+    });
+  const RED_PREVIEW = {
+    status: 0,
+    out: "pass\tci\tcheck\nfail\tdeploy\tpreview\nskipping\tci\tmerge-gate",
+  };
   const JOB = (id: number) => `https://github.com/o/r/actions/runs/9/job/${String(id)}`;
   const steps = (...rows: [string, string][]) => ({
     status: 0,
@@ -314,29 +342,38 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
     files = listed(DOCS),
     post = { status: 0 },
     merge = { status: 0 },
+    edge = LIMITED,
+    local,
   }: Stub) {
     const calls: string[] = [];
-    const result = mergeGate("22", (command, args) => {
-      const call = `${command} ${args.slice(0, 2).join(" ")}`;
-      calls.push(call);
-      const answer = (given: Answer) => ({ out: "", err: "", ...given });
-      if (call === CI_SHOW) return answer(ci);
-      if (command === "git") {
-        if (args[0] === "merge-base" && args[1] === "--is-ancestor")
-          return answer({ status: ancestor });
-        if (args[0] === "merge-base") return answer({ status: 0, out: "b45e" });
-        if (args[0] === "diff") return answer({ status: 0, out: gained.join("\n") });
-        return answer({ status: 0 });
-      }
-      if (call === "gh pr view") {
-        return answer(args.includes("changedFiles,files") ? files : { status: 0, out: view });
-      }
-      if (call === "gh pr checks") return answer(checks);
-      if (call === "gh api -X") return answer(post);
-      if (call === "gh pr merge") return answer(merge);
-      const job = /actions\/jobs\/([^/]+)$/.exec(args[1] ?? "")?.[1] ?? "";
-      return answer(jobs[job] ?? { status: 1, err: "HTTP 404" });
-    });
+    const preview =
+      local === undefined ? undefined : { path: LOG_PATH, read: (_path: string) => local };
+    const result = mergeGate(
+      "22",
+      (command, args) => {
+        const call = `${command} ${args.slice(0, 2).join(" ")}`;
+        calls.push(call);
+        const answer = (given: Answer) => ({ out: "", err: "", ...given });
+        if (command === "curl") return answer(edge);
+        if (call === CI_SHOW) return answer(ci);
+        if (command === "git") {
+          if (args[0] === "merge-base" && args[1] === "--is-ancestor")
+            return answer({ status: ancestor });
+          if (args[0] === "merge-base") return answer({ status: 0, out: "b45e" });
+          if (args[0] === "diff") return answer({ status: 0, out: gained.join("\n") });
+          return answer({ status: 0 });
+        }
+        if (call === "gh pr view") {
+          return answer(args.includes("changedFiles,files") ? files : { status: 0, out: view });
+        }
+        if (call === "gh pr checks") return answer(checks);
+        if (call === "gh api -X") return answer(post);
+        if (call === "gh pr merge") return answer(merge);
+        const job = /actions\/jobs\/([^/]+)$/.exec(args[1] ?? "")?.[1] ?? "";
+        return answer(jobs[job] ?? { status: 1, err: "HTTP 404" });
+      },
+      preview,
+    );
     return { ...result, calls, writes: calls.filter((call) => WRITES.includes(call)) };
   }
 
@@ -562,6 +599,90 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
       expect({ lines, writes }).toEqual({
         lines: ["merge-gate: cannot read the changed files: HTTP 502"],
         writes: [],
+      });
+    });
+  });
+
+  describe("--local-preview, while the edge answers Cloudflare's 429 (H73)", () => {
+    const EDGE_LINE =
+      "edge: https://matter-of-place-dev.holy-meadow-4327.workers.dev/ answered 429 (server cloudflare)";
+    const ACCEPTED = `merge-gate: preview accepted from local run ${LOG_PATH} (ruling H73, edge 429)`;
+
+    it("merges a red preview on a good log, prints the edge code and the trace, and records preview-local", () => {
+      const { code, lines, writes } = gate({ checks: RED_PREVIEW, local: localLog() });
+      expect({ code, lines, writes }).toEqual({
+        code: 0,
+        lines: [EDGE_LINE, "fail: deploy preview", "skipped: ci merge-gate", ACCEPTED, ""],
+        writes: ["gh api -X", "gh api -X", "gh pr merge"],
+      });
+    });
+
+    it("refuses when the edge is reachable, prints its code, and reads no check", () => {
+      const { code, lines, writes, calls } = gate({
+        checks: RED_PREVIEW,
+        local: localLog(),
+        edge: REACHABLE,
+      });
+      expect({ code, lines, writes, readChecks: calls.includes("gh pr checks") }).toEqual({
+        code: 1,
+        lines: [
+          "edge: https://matter-of-place-dev.holy-meadow-4327.workers.dev/ answered 200 (server cloudflare)",
+          "merge-gate: --local-preview refused: ruling H73 holds only while the edge answers Cloudflare's 429",
+        ],
+        writes: [],
+        readChecks: false,
+      });
+    });
+
+    it("refuses a log of another head", () => {
+      const { code, lines, writes } = gate({
+        checks: RED_PREVIEW,
+        local: localLog("f".repeat(40)),
+      });
+      expect({ code, lines, writes }).toEqual({
+        code: 1,
+        lines: [
+          EDGE_LINE,
+          `merge-gate: --local-preview refused: the log's head ${"f".repeat(40)} is not the pull request's head ${HEAD_SHA}`,
+        ],
+        writes: [],
+      });
+    });
+
+    it("still refuses any other check that is not green", () => {
+      const { code, lines, writes } = gate({
+        checks: { status: 0, out: `${RED_PREVIEW.out}\nfail\tci\te2e` },
+        local: localLog(),
+      });
+      expect({ code, lines, writes }).toEqual({
+        code: 1,
+        lines: [
+          EDGE_LINE,
+          "fail: deploy preview",
+          "skipped: ci merge-gate",
+          "fail: ci e2e",
+          "merge-gate: checks are not all green",
+        ],
+        writes: [],
+      });
+    });
+
+    it("without the flag a red preview refuses as before and the edge is not probed", () => {
+      const { code, lines, writes, calls } = gate({ checks: RED_PREVIEW });
+      expect({
+        code,
+        lines,
+        writes,
+        probed: calls.some((call) => call.startsWith("curl")),
+      }).toEqual({
+        code: 1,
+        lines: [
+          "fail: deploy preview",
+          "skipped: ci merge-gate",
+          "merge-gate: checks are not all green",
+        ],
+        writes: [],
+        probed: false,
       });
     });
   });
