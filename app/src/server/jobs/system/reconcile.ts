@@ -2,6 +2,7 @@ import type { Json } from "../../../db/index.ts";
 import { reconcileSocial as settleSocial } from "../../channels/reconcile-social.ts";
 import type { Db } from "../../lib/db.ts";
 import { AppError } from "../../lib/errors.ts";
+import { aggregateRecentIssues } from "../../newsletter/metrics.ts";
 import { reconcileUploads as settleUploads } from "../../submissions/reconcile.ts";
 import type { JsonObject, StepContext, SystemJobDefinition } from "../types.ts";
 import { NonRetryableError } from "../types.ts";
@@ -24,6 +25,9 @@ export type ReconcileSocial = (
   params: Json,
   now: Date,
 ) => Promise<{ social: Json }>;
+
+/** B11's issue metrics, refreshed on every run from `email_events`: `{ issues }` refreshed. */
+export type AggregateIssues = (db: Db, now: Date) => Promise<{ issues: number }>;
 
 const OVERLAP_MS = 15 * 60 * 1000;
 const FIRST_RUN_MS = 24 * 60 * 60 * 1000;
@@ -54,6 +58,7 @@ async function sinceOf(ctx: StepContext, data: JsonObject): Promise<Date> {
 export function reconcileJob(
   reconcileUploads: ReconcileUploads,
   socialPart: ReconcileSocial,
+  aggregateIssues: AggregateIssues,
 ): SystemJobDefinition {
   return {
     type: "reconcile",
@@ -62,9 +67,13 @@ export function reconcileJob(
     async run(ctx, params, data) {
       const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data));
       const { social } = await socialPart(ctx, params, ctx.now);
-      return { status: "done", result: { uploads: { ...uploads }, social } };
+      const newsletter = await aggregateIssues(ctx.db, ctx.now);
+      return {
+        status: "done",
+        result: { uploads: { ...uploads }, social, newsletter: { ...newsletter } },
+      };
     },
   };
 }
 
-export const reconcile = reconcileJob(settleUploads, settleSocial);
+export const reconcile = reconcileJob(settleUploads, settleSocial, aggregateRecentIssues);

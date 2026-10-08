@@ -1368,6 +1368,9 @@ isOneToOne: false
 "jobs_liveness":
 { Args: { "p_now"?: string }; Returns: Json
                            },
+"kpi_weekly":
+{ Args: { "p_week_start": string }; Returns: Json
+                           },
 "lapse_subscribers":
 { Args: { "p_grace"?: string }; Returns: number
                            },

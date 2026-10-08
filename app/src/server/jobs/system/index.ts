@@ -2,7 +2,12 @@ import type { SystemJobDefinition } from "../types.ts";
 import { copySubmissionMedia } from "./copy-submission-media.ts";
 import { health } from "./health.ts";
 import { invoicePdf } from "./invoice-pdf.ts";
+import { kpiWeekly } from "./kpi-weekly.ts";
+import { marketOpenNotice } from "./market-open-notice.ts";
 import { metaTokenRefresh } from "./meta-token-refresh.ts";
+import { newsletterHygiene } from "./newsletter-hygiene.ts";
+import { newsletterPreview } from "./newsletter-preview.ts";
+import { newsletterSend } from "./newsletter-send.ts";
 import { prune } from "./prune.ts";
 import { reconcile } from "./reconcile.ts";
 import { retention } from "./retention.ts";
@@ -17,6 +22,11 @@ const systemJobs: readonly SystemJobDefinition[] = [
   retention,
   metaTokenRefresh,
   invoicePdf,
+  newsletterSend,
+  newsletterPreview,
+  newsletterHygiene,
+  kpiWeekly,
+  marketOpenNotice,
   copySubmissionMedia,
   takedownMedia,
 ];

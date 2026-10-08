@@ -174,19 +174,9 @@ export async function ensureAudience(db: Db, key: string): Promise<string> {
     (segment) => segment.name === name,
   );
   const id = listed?.id ?? answer(idAnswer, await call("POST", "/segments", { name })).id;
-  // STUB(B11 step 4): the typed `db.rpc("newsletter_set_audience", ...)` replaces this cast once the migration's types exist
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- `newsletter_set_audience` is not in the generated types until step 4's migration lands
-  const store = db as unknown as AudienceStore;
-  const { error } = await store.rpc("newsletter_set_audience", { p_key: key, p_audience_id: id });
+  const { error } = await db.rpc("newsletter_set_audience", { p_key: key, p_audience_id: id });
   if (error !== null) throw new Error(`audience_store_failed:${error.code}`);
   return id;
-}
-
-interface AudienceStore {
-  rpc(
-    name: "newsletter_set_audience",
-    args: { p_key: string; p_audience_id: string },
-  ): PromiseLike<{ error: { code: string } | null }>;
 }
 
 /** Every contact of the audience, unsubscribed ones included. Without live sends: none. */

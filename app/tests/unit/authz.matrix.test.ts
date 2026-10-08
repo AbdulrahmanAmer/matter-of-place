@@ -103,6 +103,16 @@ payments.mark_paid                 ME AD | H
 payments.waive                     ME AD | H
 payments.void                      AD | H
 submissions.activate               ME AD | H
+newsletter.issues_list              CE ME VE MO CO AD
+newsletter.issues_get               CE ME VE MO CO AD
+newsletter.preview                  CE ME VE MO CO AD
+newsletter.subscribers_count        CE ME VE MO CO AD
+newsletter.build                    CE ME MO
+newsletter.update                   CE ME MO
+newsletter.send_test                CE ME MO
+newsletter.unapprove                CE ME MO
+newsletter.approve                  CE ME MO | H
+newsletter.subscribers_export       CE ME MO
 channels.posts_list                CE ME VE MO CO AD
 channels.health                    CE ME VE MO CO AD
 channels.retry                     CE MO AD

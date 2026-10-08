@@ -231,8 +231,10 @@ describe("the standalone email", () => {
     expect(html).toContain(`src="${block.image_url}"`);
     expect(html).toContain(`href="${block.link}"`);
     expect(html).toContain(`alt="${block.title}"`);
-    expect(html).not.toContain("{{");
-    expect(text).not.toContain("{{");
+    // The one placeholder left is Resend's unsubscribe link, which Resend fills at send time.
+    expect(html).toContain('href="{{{RESEND_UNSUBSCRIBE_URL}}}"');
+    expect(html.replace("{{{RESEND_UNSUBSCRIBE_URL}}}", "")).not.toContain("{{");
+    expect(text.replace("{{{RESEND_UNSUBSCRIBE_URL}}}", "")).not.toContain("{{");
   });
 
   it("uses the alt text of the asset when one is given", async () => {

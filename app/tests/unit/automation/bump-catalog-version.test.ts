@@ -6,20 +6,6 @@ import { NonRetryableError } from "../../../src/server/jobs/types";
 import { context, PROPERTY_ID } from "../../fixtures/asset-rows";
 import { fakeDb, type FakeDb } from "../../fixtures/fake-db";
 
-// Whether B11's `market_open_notice` system job is registered; any other type falls through to B8's real registry.
-const noticeRegistered = vi.hoisted(() => ({ value: false }));
-
-vi.mock(import("../../../src/server/jobs/system/index.ts"), async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    getSystemJob: (type: string) =>
-      type === "market_open_notice" && noticeRegistered.value
-        ? actual.getSystemJob("prune")
-        : actual.getSystemJob(type),
-  };
-});
-
 type OpenArgs = { p_property_id: string; p_notify?: boolean };
 
 interface Setup {
@@ -48,7 +34,6 @@ let lines: string[] = [];
 
 beforeEach(() => {
   lines = [];
-  noticeRegistered.value = false;
   const capture = (line: string) => {
     lines.push(line);
   };
@@ -85,22 +70,11 @@ describe("bump_catalog_version step", () => {
     expect(result).toEqual({ status: "done", result: { markets_opened: [] } });
   });
 
-  it("asks for the notice only when market_open_notice is registered", async () => {
-    noticeRegistered.value = true;
-    const withNotice = setup();
-    await run(withNotice.db, { flip_coming_soon: true });
-    noticeRegistered.value = false;
-    const without = setup();
-    await run(without.db, { flip_coming_soon: true });
-    expect([withNotice.opened[0]?.p_notify, without.opened[0]?.p_notify]).toEqual([true, false]);
-    const logged = lines.map((line) => JSON.parse(line) as unknown);
-    expect(logged).toEqual([
-      {
-        level: "info",
-        event: "market_open_notice_not_implemented",
-        slug: "california",
-      },
-    ]);
+  it("asks open_market_on_publish for the market_open_notice job, now that B11 registers it", async () => {
+    const { db, opened } = setup();
+    await run(db, { flip_coming_soon: true });
+    expect(opened.map((args) => args.p_notify)).toEqual([true]);
+    expect(lines).toEqual([]);
   });
 
   it("answers the slug the function returned, and none when the market did not change", async () => {

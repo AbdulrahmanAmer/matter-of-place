@@ -19,6 +19,7 @@ interface Mail {
 }
 
 const rendered = new Map<string, Mail>();
+
 for (const { definition } of definitions) {
   const { html, text } = await renderTemplate(
     definitionRow(definition),
