@@ -31,3 +31,14 @@ export const defaultFlags: Record<FeatureFlag, boolean> = {
 };
 
 export type Flags = Record<FeatureFlag | "coming_soon", boolean>;
+
+/** The one-line description of each flag in the editor of screen 24. */
+export const flagLabels: Record<FeatureFlag, string> = {
+  new_channels: "Lets Facebook and YouTube be switched on in channel settings.",
+  archive_pages: "Publishes the market archive pages that have enough past properties.",
+  csp_enforce: "Enforces the content security policy instead of only reporting it.",
+  maintenance: "Answers public pages with a short maintenance notice.",
+};
+
+/** The write side of `flagsSchema` (invariant 14): an unknown name is refused, never dropped. */
+export const flagsPutSchema = z.record(z.enum(featureFlags), z.boolean());

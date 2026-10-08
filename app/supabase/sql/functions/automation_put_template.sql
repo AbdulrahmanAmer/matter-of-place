@@ -46,13 +46,10 @@ begin
       p_max_attempts => 12
     );
   end if;
-  -- STUB(B8b step 6): unconditional write_audit
-  if to_regproc('public.write_audit') is not null then
-    perform public.write_audit(
-      p_actor, p_actor_kind, 'automation.templates_put', 'email_templates', v_old.id, to_jsonb(v_old),
-      to_jsonb(v_new), p_request_id, p_note
-    );
-  end if;
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'automation.templates_put', 'email_templates', v_old.id, to_jsonb(v_old),
+    to_jsonb(v_new), p_request_id, p_note
+  );
   return to_jsonb(v_new);
 end;
 $$;
