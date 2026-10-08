@@ -9,7 +9,9 @@ import { previewEmailTemplate, sendTemplateTest } from "../../../src/server/auto
 import type { SiteContext } from "../../../src/server/email/context";
 import { renderTemplate } from "../../../src/server/email/render";
 import type { AdminActor } from "../../../src/server/lib/admin-route";
+import { resetPublicStateMemo } from "../../../src/server/public/state";
 import { fakeDb } from "../../fixtures/fake-db";
+import { stateJson } from "../../fixtures/snapshot";
 
 const USER = "00000000-0000-4000-8000-000000000001";
 
@@ -126,7 +128,14 @@ describe("previewEmailTemplate", () => {
     address: null,
     contact: { email: null },
   };
-  const db = () => fakeDb({ tables: { email_templates: [stored], settings: [] } });
+  // The identity lines come from the shared public state, memoised per isolate: each case starts without the last one's.
+  const db = () => {
+    resetPublicStateMemo();
+    return fakeDb({
+      rpc: { public_state: () => stateJson(7) },
+      tables: { email_templates: [stored], settings: [] },
+    });
+  };
 
   it("returns what renderTemplate returns for the same row and the same variables", async () => {
     const given = { submitter_name: "Avery Quinn" };
