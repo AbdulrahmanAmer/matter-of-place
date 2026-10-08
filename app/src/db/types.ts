@@ -1112,7 +1112,7 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_channel": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
                            },
 "automation_put_reason":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id"?: string,"p_note"?: string,"p_patch": Json,"p_request_id": string }; Returns: Json
                            },
 "automation_put_recipe":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note"?: string,"p_patch": Json,"p_request_id": string,"p_trigger": string }; Returns: Json
@@ -1725,6 +1725,9 @@ isOneToOne: false
                            },
 "set_vault_secret":
 { Args: { "p_name": string,"p_value": string }; Returns: undefined
+                           },
+"settings_put_flags":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_value": Json }; Returns: Json
                            },
 "settings_put_invoice":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined

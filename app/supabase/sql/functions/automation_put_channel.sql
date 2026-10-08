@@ -35,13 +35,10 @@ begin
     auto_after = v_new.auto_after, credentials_ref = v_new.credentials_ref
   where id = v_old.id
   returning * into v_new;
-  -- STUB(B8b step 6): unconditional write_audit
-  if to_regproc('public.write_audit') is not null then
-    perform public.write_audit(
-      p_actor, p_actor_kind, 'automation.channels_put', 'channel_settings', v_old.id, to_jsonb(v_old),
-      to_jsonb(v_new), p_request_id, p_note
-    );
-  end if;
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'automation.channels_put', 'channel_settings', v_old.id, to_jsonb(v_old),
+    to_jsonb(v_new), p_request_id, p_note
+  );
   return to_jsonb(v_new);
 end;
 $$;
