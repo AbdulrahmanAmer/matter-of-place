@@ -39,7 +39,7 @@ export function Header() {
 
   return (
     <>
-      <header className={cx("site-header", overlay && "site-header-overlay")}>
+      <header className={cx("site-header", overlay && "site-header-overlay")} data-print="hide">
         <div className="hf-inner header-grid">
           <nav className="header-nav header-nav-left" aria-label="Main navigation">
             {primaryLinks.map((link) => (
@@ -90,7 +90,7 @@ export function Header() {
         </div>
       </header>
 
-      {!isHome && <div className="header-spacer" aria-hidden="true" />}
+      {!isHome && <div className="header-spacer" aria-hidden="true" data-print="hide" />}
 
       {menuOpen && (
         <MenuPanel

@@ -147,7 +147,7 @@
     "id": "b7-g1-routes-pending-literal",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "tests/unit/admin-routes-parity.test.ts",
-    "find": "  \"properties.rank\",\n",
+    "find": "  \"properties.unpublish\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*gives every matrix action a route"
@@ -1712,6 +1712,15 @@
     "expect": "× .*mounts none of the public chrome or it"
   },
   {
+    "id": "b7-g1c-bnd-layout-chrome-component",
+    "test": "tests/unit/admin-boundaries.test.ts",
+    "file": "src/admin/ui/AdminLayout.tsx",
+    "find": "import { AdminShell } from \"./AdminShell\";",
+    "replace": "import { AdminShell } from \"./AdminShell\";\nimport { captureAttribution } from \"../../lib/attribution\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-boundaries.test.ts",
+    "expect": "× .*mounts none of the public chrome or it"
+  },
+  {
     "id": "b7-g4-actions-owned",
     "test": "tests/unit/admin-actions.test.ts",
     "file": "src/domain/admin-submissions.ts",
@@ -2157,8 +2166,8 @@
     "id": "b7-g5-ui-start-gate",
     "test": "src/admin/requests/RequestDetail.test.tsx",
     "file": "src/admin/requests/RequestDetail.tsx",
-    "find": "canStartReview={actions.includes(\"submissions.start_review\")}",
-    "replace": "canStartReview",
+    "find": "            actions={actions}\n",
+    "replace": "            actions={[...actions, \"submissions.start_review\"]}\n",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
     "expect": "× .*offers no Start review to an actor without the action"
   },
@@ -2166,8 +2175,8 @@
     "id": "b7-g5-ui-start-state",
     "test": "src/admin/requests/RequestDetail.test.tsx",
     "file": "src/admin/requests/DecisionPanel.tsx",
-    "find": "canStartReview && offered.includes(\"start_review\") ? (",
-    "replace": "canStartReview ? (",
+    "find": "{offered.includes(\"start_review\") ? (",
+    "replace": "{actions.includes(\"submissions.start_review\") ? (",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
     "expect": "× .*hides Start review once the request is under review"
   },
@@ -2421,5 +2430,971 @@
     "sql": "create or replace function public.set_contact_notes(\n  p_contact_id uuid,\n  p_notes text,\n  p_expected_updated_at timestamptz,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns timestamptz\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.contacts;\n  v_updated_at timestamptz;\nbegin\n  -- Screen 27 (invariant 23): the internal notes on a person, saved whole. An editor who started from an older\n  -- version gets `stale`, as on stories. `write_audit` stores `{\"pii\": \"changed\"}` for `notes` (B2's pii_columns).\n  if p_notes is null or char_length(p_notes) > 5000 then\n    raise exception 'validation';\n  end if;\n  select * into v_old from public.contacts c where c.id = p_contact_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_old.updated_at is distinct from p_expected_updated_at then\n    raise exception 'stale';\n  end if;\n  update public.contacts\n  set notes = p_notes\n  where id = p_contact_id\n  returning updated_at into v_updated_at;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'people.note', 'contact', p_contact_id,\n    jsonb_build_object('id', p_contact_id, 'notes', v_old.notes),\n    jsonb_build_object('id', p_contact_id, 'notes', p_notes, 'text', p_notes),\n    p_request_id\n  );\n  return v_updated_at;\nend;\n$$;\n\nrevoke execute on function public.set_contact_notes(uuid, text, timestamptz, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_contact_notes(uuid, text, timestamptz, uuid, public.actor_kind, text)\n  to service_role;\n",
     "run": "bunx vitest run --project db tests/db/people.db.test.ts -t \"raises stale for an old version\"",
     "expect": "× .*raises stale for an old version"
+  },
+  {
+    "id": "b7-g6-svc-fanout",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    await fanoutEvent(db, eventId);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*decline writes the state, the reason and"
+  },
+  {
+    "id": "b7-g6-svc-preview-own-variables",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "const variables = await resolveVariables(db, input.template, data, undefined, site);",
+    "replace": "const variables = { note_paragraph: String(data[\"note\"] ?? \"\") };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*the decline preview is the letter send_e"
+  },
+  {
+    "id": "b7-g6-svc-accept-rpc",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "db.rpc(\"accept_submission\", {",
+    "replace": "db.rpc(\"request_assets\", {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*accept sets accepted_by and accepted_at"
+  },
+  {
+    "id": "b7-g6-svc-assets-note",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    p_note: input.note,\n",
+    "replace": "    p_note: \"\",\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*request_assets writes one submission\\.aw"
+  },
+  {
+    "id": "b7-g6-domain-assets-note-min",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/domain/admin-submissions.ts",
+    "find": "note: trimmed.pipe(z.string().min(3).max(2000)),",
+    "replace": "note: trimmed.pipe(z.string().max(2000)),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*request-assets without a note answers 42"
+  },
+  {
+    "id": "b7-g6-svc-assets-received",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "  return { workflow_state: data };",
+    "replace": "  return { workflow_state: \"Under Review\" as const };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*assets_received answers where the reques"
+  },
+  {
+    "id": "b7-g6-svc-decline-error",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    p_note: input.note ?? \"\",\n    ...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);",
+    "replace": "    p_note: input.note ?? \"\",\n    ...auditContext(actor),\n  });\n  if (error !== null) throw new AppError(\"server\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*an agent over its daily cap gets 429"
+  },
+  {
+    "id": "b7-g6-svc-reasons-enabled",
+    "test": "tests/unit/submissions.service.test.ts",
+    "file": "src/server/submissions/service.ts",
+    "find": "    .eq(\"enabled\", true)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
+    "expect": "× .*lists the enabled decline reasons in the"
+  },
+  {
+    "id": "b7-g6-ui-letter-sandbox",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/EmailPreview.tsx",
+    "find": "            sandbox=\"\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*declines with a reason and a note after "
+  },
+  {
+    "id": "b7-g6-ui-assets-ready",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/AssetsDialog.tsx",
+    "find": "const ready = note.trim().length >= NOTE_MIN;",
+    "replace": "const ready = note.trim().length > 0;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*keeps Send the request off until the not"
+  },
+  {
+    "id": "b7-g6-ui-actions-held",
+    "test": "src/admin/requests/RequestDetail.test.tsx",
+    "file": "src/admin/requests/DecisionPanel.tsx",
+    "find": "}).filter((action) => actions.includes(`submissions.${action}`));",
+    "replace": "});",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/requests/RequestDetail.test.tsx",
+    "expect": "× .*offers only the moves the actor holds"
+  },
+  {
+    "id": "b7-g6-db-decline-reviewer",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.decline_submission(\n  p_submission_id uuid,\n  p_reason_id uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_note text := nullif(btrim(coalesce(p_note, '')), '');\nbegin\n  -- B7 invariants 1, 3 and 5: Under Review to Declined, decided under the row lock, counted against an agent's daily\n  -- decisions, audited and announced in one transaction. The event's recipe sends the decline letter.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state <> 'Under Review' then\n    raise exception 'wrong_state';\n  end if;\n  if not exists (select 1 from public.decline_reasons r where r.id = p_reason_id and r.enabled) then\n    raise exception 'validation';\n  end if;\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'decisions');\n  update public.submissions s\n  set workflow_state = 'Declined',\n    decline_reason_id = p_reason_id,\n    decline_note = v_note,\n    reviewed_at = now()\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.decline', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  return public.emit_event(\n    'submission.declined', 'submission', p_submission_id,\n    public.submission_event_payload(v_after)\n      || jsonb_strip_nulls(jsonb_build_object('decline_reason_id', p_reason_id, 'note', v_note)),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.decline_submission(uuid, uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.decline_submission(uuid, uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"decline_submission declines with the rea\"",
+    "expect": "× .*decline_submission declines with the rea"
+  },
+  {
+    "id": "b7-g6-db-accept-audit",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.accept_submission(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\nbegin\n  -- B7 invariants 1, 3 and 5: Under Review to Accepted, decided under the row lock, counted against an agent's daily\n  -- decisions, audited and announced in one transaction. B6 issues the invoice from here.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state <> 'Under Review' then\n    raise exception 'wrong_state';\n  end if;\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'decisions');\n  update public.submissions s\n  set workflow_state = 'Accepted', accepted_by = p_actor, accepted_at = now()\n  where s.id = p_submission_id\n  returning * into v_after;\n  return public.emit_event(\n    'submission.accepted', 'submission', p_submission_id, public.submission_event_payload(v_after), p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.accept_submission(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.accept_submission(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"accept_submission accepts with the accep\"",
+    "expect": "× .*accept_submission accepts with the accep"
+  },
+  {
+    "id": "b7-g6-db-double-decline",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.decline_submission(\n  p_submission_id uuid,\n  p_reason_id uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_note text := nullif(btrim(coalesce(p_note, '')), '');\nbegin\n  -- B7 invariants 1, 3 and 5: Under Review to Declined, decided under the row lock, counted against an agent's daily\n  -- decisions, audited and announced in one transaction. The event's recipe sends the decline letter.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if not exists (select 1 from public.decline_reasons r where r.id = p_reason_id and r.enabled) then\n    raise exception 'validation';\n  end if;\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'decisions');\n  update public.submissions s\n  set workflow_state = 'Declined',\n    decline_reason_id = p_reason_id,\n    decline_note = v_note,\n    reviewed_by = p_actor,\n    reviewed_at = now()\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.decline', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  return public.emit_event(\n    'submission.declined', 'submission', p_submission_id,\n    public.submission_event_payload(v_after)\n      || jsonb_strip_nulls(jsonb_build_object('decline_reason_id', p_reason_id, 'note', v_note)),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.decline_submission(uuid, uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.decline_submission(uuid, uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"a second decline of the same request rai\"",
+    "expect": "× .*a second decline of the same request rai"
+  },
+  {
+    "id": "b7-g6-db-cap-dropped",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.assert_agent_daily_cap(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_group text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_actions text[];\n  v_limit integer;\n  v_count integer;\nbegin\n  -- B7 invariant 3 (SEC-11): an agent makes at most `<group>_per_day` of the group's actions per UTC day. The kind is\n  -- the stored one (DB-04): `p_actor_kind` is the caller's claim and is never read.\n  v_actions := case p_group\n    when 'decisions' then array['submissions.decline', 'submissions.accept']\n    when 'publish' then array['properties.publish', 'stories.publish']\n  end;\n  if v_actions is null then\n    raise exception 'invalid_key';\n  end if;\n  if not exists (\n    select 1 from public.user_roles r where r.user_id = p_actor and r.actor_kind = 'agent'\n  ) then\n    return;\n  end if;\n  -- Two parallel calls of one agent count one after the other, so both cannot pass on the last free slot.\n  perform pg_advisory_xact_lock(hashtext(p_actor::text));\n  select (s.value ->> (p_group || '_per_day'))::integer\n  into v_limit\n  from public.settings s\n  where s.key = 'agent_daily_limits';\n  select count(*)\n  into v_count\n  from public.audit_log a\n  where a.actor_id = p_actor\n    and a.at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'\n    and a.action = any (v_actions);\nend;\n$$;\n\nrevoke execute on function public.assert_agent_daily_cap(uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.assert_agent_daily_cap(uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"with decisions_per_day 2 an agent's thir\"",
+    "expect": "× .*with decisions_per_day 2 an agent's thir"
+  },
+  {
+    "id": "b7-g6-db-cap-claimed-kind",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.assert_agent_daily_cap(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_group text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_actions text[];\n  v_limit integer;\n  v_count integer;\nbegin\n  -- B7 invariant 3 (SEC-11): an agent makes at most `<group>_per_day` of the group's actions per UTC day. The kind is\n  -- the stored one (DB-04): `p_actor_kind` is the caller's claim and is never read.\n  v_actions := case p_group\n    when 'decisions' then array['submissions.decline', 'submissions.accept']\n    when 'publish' then array['properties.publish', 'stories.publish']\n  end;\n  if v_actions is null then\n    raise exception 'invalid_key';\n  end if;\n  if p_actor_kind = 'human' then\n    return;\n  end if;\n  -- Two parallel calls of one agent count one after the other, so both cannot pass on the last free slot.\n  perform pg_advisory_xact_lock(hashtext(p_actor::text));\n  select (s.value ->> (p_group || '_per_day'))::integer\n  into v_limit\n  from public.settings s\n  where s.key = 'agent_daily_limits';\n  select count(*)\n  into v_count\n  from public.audit_log a\n  where a.actor_id = p_actor\n    and a.at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'\n    and a.action = any (v_actions);\n  if v_count >= v_limit then\n    raise exception 'agent_daily_limit';\n  end if;\nend;\n$$;\n\nrevoke execute on function public.assert_agent_daily_cap(uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.assert_agent_daily_cap(uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"assert_agent_daily_cap refuses an unknow\"",
+    "expect": "× .*assert_agent_daily_cap refuses an unknow"
+  },
+  {
+    "id": "b7-g6-db-assets-note",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.request_assets(\n  p_submission_id uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\n  v_note text := nullif(btrim(coalesce(p_note, '')), '');\nbegin\n  -- B7 invariants 1 and 5: Under Review or Accepted to Awaiting Assets. The note says what is needed; the event carries\n  -- it, and B5's `awaiting_assets` letter reads it as `assets_note`.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state not in ('Under Review', 'Accepted') then\n    raise exception 'wrong_state';\n  end if;\n  update public.submissions s\n  set workflow_state = 'Awaiting Assets'\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.request_assets', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id, v_note\n  );\n  return public.emit_event(\n    'submission.awaiting_assets', 'submission', p_submission_id,\n    public.submission_event_payload(v_after) || jsonb_build_object('note', v_note),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.request_assets(uuid, text, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.request_assets(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"request_assets without a note raises inv\"",
+    "expect": "× .*request_assets without a note raises inv"
+  },
+  {
+    "id": "b7-g6-db-assets-received",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.assets_received(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns public.submission_state\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.submissions;\n  v_after public.submissions;\nbegin\n  -- B7 invariant 5 (ASSUMED): the material arrived. Back to Accepted when the request was accepted before, else to\n  -- Under Review. Audit only: no catalog event and no letter.\n  select * into v_before from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  if v_before.workflow_state <> 'Awaiting Assets' then\n    raise exception 'wrong_state';\n  end if;\n  update public.submissions s\n  set workflow_state = 'Accepted'::public.submission_state\n  where s.id = p_submission_id\n  returning * into v_after;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'submissions.assets_received', 'submission', p_submission_id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  return v_after.workflow_state;\nend;\n$$;\n\nrevoke execute on function public.assets_received(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.assets_received(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"assets_received returns an accepted requ\"",
+    "expect": "× .*assets_received returns an accepted requ"
+  },
+  {
+    "id": "b7-g7-pc-complete",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "narrative: paragraphs.length >= MIN_PARAGRAPHS,",
+    "replace": "narrative: paragraphs.length > MIN_PARAGRAPHS,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*passes every item on a complete property"
+  },
+  {
+    "id": "b7-g7-pc-hero",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "hero: property.hero_image !== null,",
+    "replace": "hero: true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*fails the hero alone"
+  },
+  {
+    "id": "b7-g7-pc-images",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "const MIN_IMAGES = 6;",
+    "replace": "const MIN_IMAGES = 5;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*fails the images alone"
+  },
+  {
+    "id": "b7-g7-pc-narrative",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "const paragraphs = property.story.filter((paragraph) => paragraph.trim() !== \"\");",
+    "replace": "const paragraphs = property.story;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*fails the narrative alone"
+  },
+  {
+    "id": "b7-g7-pc-facts",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "const missing = factFields.filter((field) => property[field] === null);",
+    "replace": "const missing: string[] = [];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*fails the facts alone"
+  },
+  {
+    "id": "b7-g7-pc-g62",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "  \"lot_acres\",\n  \"year_built\",",
+    "replace": "  \"year_built\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*lists exactly the null fields of a draft"
+  },
+  {
+    "id": "b7-g7-pc-active",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "const liveStatuses: readonly PropertyRecord[\"status\"][] = [\"Active\", \"Under offer\"];",
+    "replace": "const liveStatuses: readonly PropertyRecord[\"status\"][] = [\"Under offer\"];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*a Active listing with no representative"
+  },
+  {
+    "id": "b7-g7-pc-offer",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "const liveStatuses: readonly PropertyRecord[\"status\"][] = [\"Active\", \"Under offer\"];",
+    "replace": "const liveStatuses: readonly PropertyRecord[\"status\"][] = [\"Active\"];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*a Under offer listing with no representative"
+  },
+  {
+    "id": "b7-g7-pc-off-market",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "      !liveStatuses.includes(property.status) ||\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*a Off-market listing with no representative"
+  },
+  {
+    "id": "b7-g7-pc-sold",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "      !liveStatuses.includes(property.status) ||\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*a Sold listing with no representative"
+  },
+  {
+    "id": "b7-g7-pc-illustrative",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "      !liveStatuses.includes(property.status) ||\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*a Illustrative listing with no representative"
+  },
+  {
+    "id": "b7-g7-pc-owner",
+    "test": "tests/unit/publish-checklist.test.ts",
+    "file": "src/domain/admin-properties.ts",
+    "find": "      representative !== null ||\n      property.presented_by_owner,",
+    "replace": "      representative !== null,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/publish-checklist.test.ts",
+    "expect": "× .*a live listing presented by the owner"
+  },
+  {
+    "id": "b7-g7-pt-editor",
+    "test": "tests/unit/preview-token.test.ts",
+    "file": "src/server/lib/preview-token.ts",
+    "find": "editor: 15 * 60,",
+    "replace": "editor: 16 * 60,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/preview-token.test.ts",
+    "expect": "× .*an editor token is live for 15 minutes"
+  },
+  {
+    "id": "b7-g7-pt-agent",
+    "test": "tests/unit/preview-token.test.ts",
+    "file": "src/server/lib/preview-token.ts",
+    "find": "agent: 7 * 24 * 60 * 60",
+    "replace": "agent: 8 * 24 * 60 * 60",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/preview-token.test.ts",
+    "expect": "× .*an agent token is live for 7 days"
+  },
+  {
+    "id": "b7-g7-pt-nonce",
+    "test": "tests/unit/preview-token.test.ts",
+    "file": "src/server/lib/preview-token.ts",
+    "find": "hmacSha256(key, `${propertyId}.${exp}.${nonce}`);",
+    "replace": "hmacSha256(key, `${propertyId}.${exp}`);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/preview-token.test.ts",
+    "expect": "× .*verifies with the property's nonce only"
+  },
+  {
+    "id": "b7-g7-pt-unset",
+    "test": "tests/unit/preview-token.test.ts",
+    "file": "src/server/lib/preview-token.ts",
+    "find": "  if (key === undefined || propertyId === undefined || exp === undefined) return null;",
+    "replace": "  if (propertyId === undefined || exp === undefined) return null;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/preview-token.test.ts",
+    "expect": "× .*refuses a malformed token and anything when the key is unset"
+  },
+  {
+    "id": "b7-g7-pt-missing",
+    "test": "tests/unit/preview-token.test.ts",
+    "file": "src/server/lib/preview-token.ts",
+    "find": "  if (key === undefined) {\n    throw new AppError(",
+    "replace": "  if (key === \"never\") {\n    throw new AppError(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/preview-token.test.ts",
+    "expect": "× .*signPreview with an undefined key throws"
+  },
+  {
+    "id": "b7-g7-ps-good",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/previews/service.ts",
+    "find": "if (property.slug !== slug ||",
+    "replace": "if (property.slug === slug ||",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*answers the draft for a live token"
+  },
+  {
+    "id": "b7-g7-ps-malformed",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/lib/preview-token.ts",
+    "find": "\\.(\\d{1,12})\\.([\\w-]{43})$/;",
+    "replace": "\\.(\\d{1,12})\\.([\\w=-]{43,44})$/;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*a malformed signature is 404 with no database call"
+  },
+  {
+    "id": "b7-g7-ps-key",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/lib/preview-token.ts",
+    "find": "  return timingSafeEqual(fromBase64Url(mac), await signed(key, propertyId, exp, nonce));",
+    "replace": "  return true;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*a well formed signature under another key"
+  },
+  {
+    "id": "b7-g7-ps-expired",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/previews/service.ts",
+    "find": "  if (propertyId === null) throw notFound();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*an expired token and an unset key are 404"
+  },
+  {
+    "id": "b7-g7-ps-rotated",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/lib/preview-token.ts",
+    "find": "hmacSha256(key, `${propertyId}.${exp}.${nonce}`);",
+    "replace": "hmacSha256(key, `${propertyId}.${exp}`);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*a rotated nonce is 404"
+  },
+  {
+    "id": "b7-g7-ps-slug",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/previews/service.ts",
+    "find": "if (property.slug !== slug ||",
+    "replace": "if (",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*a token of the property opened under another slug"
+  },
+  {
+    "id": "b7-g7-ps-incomplete",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/previews/service.ts",
+    "find": "if (error !== null || !parsed.success) throw notFound();",
+    "replace": "if (error !== null) throw notFound();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*a property that is gone, or a draft the public page cannot show"
+  },
+  {
+    "id": "b7-g7-ps-bypass",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (!out.headers.has(\"x-mop-cache\")) out.headers.set(\"x-mop-cache\", \"bypass\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*answers the draft no-store, bypass and noindex"
+  },
+  {
+    "id": "b7-g7-ps-robots",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "      headers: { \"cache-control\": \"no-store\", \"x-robots-tag\": \"noindex, nofollow\" },",
+    "replace": "      headers: { \"cache-control\": \"no-store\" },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*answers the draft no-store, bypass and noindex"
+  },
+  {
+    "id": "b7-g7-ps-route",
+    "test": "tests/unit/previews.service.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  if (token !== undefined && route.draftService !== undefined) {",
+    "replace": "  if (token === undefined && route.draftService !== undefined) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/previews.service.test.ts",
+    "expect": "× .*answers a wrong token 404 without a database call"
+  },
+  {
+    "id": "b7-g7-cache-preview-1",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (isPreviewRequest(request.url) || !isReadRequest(request)) {",
+    "replace": "  if (!isReadRequest(request)) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/cache.test.ts",
+    "expect": "× .*a json read of /api/public/properties/p1\\?draft_token=token-of-sixteen-plus never looks up"
+  },
+  {
+    "id": "b7-g7-cache-preview-2",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (isPreviewRequest(request.url) || !isReadRequest(request)) {",
+    "replace": "  if (!isReadRequest(request)) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/cache.test.ts",
+    "expect": "× .*a json read of /api/public/properties/p1\\?preview=token-of-sixteen-plus never looks up"
+  },
+  {
+    "id": "b7-g7-cache-preview-3",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (isPreviewRequest(request.url) || !isReadRequest(request)) {",
+    "replace": "  if (!isReadRequest(request)) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/cache.test.ts",
+    "expect": "× .*a html read of /property/p1\\?preview=token-of-sixteen-plus never looks up"
+  },
+  {
+    "id": "b7-g7-cache-preview-4",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  if (isPreviewRequest(request.url) || !isReadRequest(request)) {",
+    "replace": "  if (!isReadRequest(request)) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/cache.test.ts",
+    "expect": "× .*a html read of /property/p1\\?draft_token=token-of-sixteen-plus never looks up"
+  },
+  {
+    "id": "b7-g7-print-page",
+    "test": "tests/unit/print-dossier.test.ts",
+    "file": "src/styles/print.css",
+    "find": "size: letter;",
+    "replace": "size: a4;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/print-dossier.test.ts",
+    "expect": "× .*hides every element marked data-print=hide in print"
+  },
+  {
+    "id": "b7-g7-print-import",
+    "test": "tests/unit/print-dossier.test.ts",
+    "file": "src/styles.css",
+    "find": "@import \"./styles/print.css\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/print-dossier.test.ts",
+    "expect": "× .*is imported by the site's stylesheet entry"
+  },
+  {
+    "id": "b7-g7-print-header",
+    "test": "tests/unit/print-dossier.test.ts",
+    "file": "src/components/layout/header.tsx",
+    "find": " overlay && \"site-header-overlay\")} data-print=\"hide\">",
+    "replace": " overlay && \"site-header-overlay\")}>",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/print-dossier.test.ts",
+    "expect": "× .*components/layout/header\\.tsx marks its root element"
+  },
+  {
+    "id": "b7-g7-print-footer",
+    "test": "tests/unit/print-dossier.test.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<footer className=\"site-footer\" data-print=\"hide\">",
+    "replace": "<footer className=\"site-footer\">",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/print-dossier.test.ts",
+    "expect": "× .*components/layout/footer\\.tsx marks its root element"
+  },
+  {
+    "id": "b7-g7-print-concierge",
+    "test": "tests/unit/print-dossier.test.ts",
+    "file": "src/components/property/concierge.tsx",
+    "find": "aria-label=\"Ask Matter of Place\" data-print=\"hide\">",
+    "replace": "aria-label=\"Ask Matter of Place\">",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/print-dossier.test.ts",
+    "expect": "× .*components/property/concierge\\.tsx marks its root element"
+  },
+  {
+    "id": "b7-g7-print-sticky-actions",
+    "test": "tests/unit/print-dossier.test.ts",
+    "file": "src/components/property/sticky-actions.tsx",
+    "find": "aria-label=\"Property actions\" data-print=\"hide\">",
+    "replace": "aria-label=\"Property actions\">",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/print-dossier.test.ts",
+    "expect": "× .*components/property/sticky-actions\\.tsx marks its root element"
+  },
+  {
+    "id": "b7-g7-svc-list",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "    p_limit: input.limit + 1,\n    ...(input.editorial_state",
+    "replace": "    p_limit: input.limit,\n    ...(input.editorial_state",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*asks list_properties for one row more than a page"
+  },
+  {
+    "id": "b7-g7-svc-cursor",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  if (at === undefined || id === undefined) throw invalidCursor();",
+    "replace": "  if (at === \"never\") throw invalidCursor();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*refuses a cursor it did not write"
+  },
+  {
+    "id": "b7-g7-svc-get",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  if (data === null) throw notFound();\n  return propertyDetailSchema",
+    "replace": "  return propertyDetailSchema",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*answers the detail of one property_detail call"
+  },
+  {
+    "id": "b7-g7-svc-create",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  authorize(actor, \"properties.create_from_submission\");\n",
+    "replace": "  authorize(actor, \"properties.create_from_submission\");\n  await db.storage.from(\"submissions\").list(\"staging\");\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*returns the RPC's property_id and copy_job_id"
+  },
+  {
+    "id": "b7-g7-svc-create-role",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  authorize(actor, \"properties.create_from_submission\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*refuses media ops with 403"
+  },
+  {
+    "id": "b7-g7-svc-fresh",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "    p_id: input.id,\n    p_expected_version: input.expected_version,",
+    "replace": "    p_id: input.id,\n    p_expected_version: input.expected_version + 1,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*a fresh expected_version answers version \\+ 1"
+  },
+  {
+    "id": "b7-g7-svc-stale",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "    p_id: input.id,\n    p_expected_version: input.expected_version,",
+    "replace": "    p_id: input.id,\n    p_expected_version: 3,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*a stale expected_version is 409 stale"
+  },
+  {
+    "id": "b7-g7-svc-sessions",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "    p_id: input.id,\n    p_expected_version: input.expected_version,",
+    "replace": "    p_id: input.id,\n    p_expected_version: input.expected_version + 1,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*two sessions that read version 3"
+  },
+  {
+    "id": "b7-g7-svc-publish",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "version: published.version };",
+    "replace": "version: published.version + 1 };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*publishes a complete property"
+  },
+  {
+    "id": "b7-g7-svc-publish-ts",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  if (failing.length > 0) {",
+    "replace": "  if (failing.length > 99) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*refuses a property without a hero in TS"
+  },
+  {
+    "id": "b7-g7-svc-cap",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  if (error !== null) throw fromRpcError(error);\n  const published",
+    "replace": "  if (error !== null) throw new AppError(\"server\", undefined, \"x\");\n  const published",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*an agent's sixth publish in a UTC day"
+  },
+  {
+    "id": "b7-g7-svc-publish-role",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  authorize(actor, \"properties.publish\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*refuses a visual editor with 403"
+  },
+  {
+    "id": "b7-g7-svc-ranks",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "    ...(input.featured_rank === null ? {} : { p_featured_rank: input.featured_rank }),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*setRanks sends the ranks it was given"
+  },
+  {
+    "id": "b7-g7-svc-rank-role",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  authorize(actor, \"properties.rank\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*a rank is the editors' alone"
+  },
+  {
+    "id": "b7-g7-svc-features",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "await db.rpc(\"set_features\", {",
+    "replace": "await db.rpc(\"set_related\", {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*setFeatures sends the whole list in order"
+  },
+  {
+    "id": "b7-g7-svc-rep",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "    ...(id === undefined ? {} : { p_id: id }),",
+    "replace": "    p_id: id,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*putRepresentative inserts without an id"
+  },
+  {
+    "id": "b7-g7-svc-reps",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "    ...(input.q === undefined || input.q === \"\" ? {} : { p_search: input.q }),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*listRepresentatives passes the search"
+  },
+  {
+    "id": "b7-g7-svc-token",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "?preview=${encodeURIComponent(token)}",
+    "replace": "?draft_token=${encodeURIComponent(token)}",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*answers the public page with a 15 minute draft token"
+  },
+  {
+    "id": "b7-g7-svc-token-key",
+    "test": "tests/unit/properties.service.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "await signPreview(key, id,",
+    "replace": "await signPreview(key ?? \"fallback\", id,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/properties.service.test.ts",
+    "expect": "× .*answers 503 preview_secret_missing"
+  },
+  {
+    "id": "b7-g7-budget-create",
+    "test": "tests/unit/subrequest-budget.test.ts",
+    "file": "src/server/properties/service.ts",
+    "find": "  authorize(actor, \"properties.create_from_submission\");\n",
+    "replace": "  authorize(actor, \"properties.create_from_submission\");\n  await db.storage.from(\"submissions\").list(\"staging\");\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/subrequest-budget.test.ts",
+    "expect": "× .*keeps Create property from a request with 40 photographs"
+  },
+  {
+    "id": "b7-g7-copy-registered",
+    "test": "tests/unit/jobs/copy-submission-media.test.ts",
+    "file": "src/server/jobs/system/index.ts",
+    "find": "  copySubmissionMedia,\n];",
+    "replace": "];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/copy-submission-media.test.ts",
+    "expect": "× .*is registered as a system job"
+  },
+  {
+    "id": "b7-g7-copy-render",
+    "test": "tests/unit/jobs/copy-submission-media.test.ts",
+    "file": "src/server/jobs/system/copy-submission-media.ts",
+    "find": "render_job_id: await requestRender(ctx.db, propertyId)",
+    "replace": "render_job_id: null",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/copy-submission-media.test.ts",
+    "expect": "× .*copies each photograph to its staging path by id"
+  },
+  {
+    "id": "b7-g7-copy-batch",
+    "test": "tests/unit/jobs/copy-submission-media.test.ts",
+    "file": "src/server/jobs/system/copy-submission-media.ts",
+    "find": "const BATCH = 20;",
+    "replace": "const BATCH = 40;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/copy-submission-media.test.ts",
+    "expect": "× .*copies at most 20 a run"
+  },
+  {
+    "id": "b7-g7-copy-missing",
+    "test": "tests/unit/jobs/copy-submission-media.test.ts",
+    "file": "src/server/jobs/system/copy-submission-media.ts",
+    "find": "(row) => !listed.has(row.staging_path),",
+    "replace": "() => true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/copy-submission-media.test.ts",
+    "expect": "× .*lists the folder once a run and copies only"
+  },
+  {
+    "id": "b7-g7-copy-duplicate",
+    "test": "tests/unit/jobs/copy-submission-media.test.ts",
+    "file": "src/server/jobs/system/copy-submission-media.ts",
+    "find": "if (error !== null && !duplicateSchema.safeParse(error).success) throw storageUnavailable();",
+    "replace": "if (error !== null) throw storageUnavailable();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/copy-submission-media.test.ts",
+    "expect": "× .*counts an object that already exists as copied"
+  },
+  {
+    "id": "b7-g7-copy-error",
+    "test": "tests/unit/jobs/copy-submission-media.test.ts",
+    "file": "src/server/jobs/system/copy-submission-media.ts",
+    "find": "  if (error !== null) throw storageUnavailable();\n  return new Set",
+    "replace": "  if (error !== null) return new Set<string>();\n  return new Set",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/copy-submission-media.test.ts",
+    "expect": "× .*throws storage_unavailable on any other Storage error"
+  },
+  {
+    "id": "b7-g7-copy-payload",
+    "test": "tests/unit/jobs/copy-submission-media.test.ts",
+    "file": "src/server/jobs/system/copy-submission-media.ts",
+    "find": "if (typeof propertyId !== \"string\") throw new NonRetryableError(\"invalid_property_id\");",
+    "replace": "if (propertyId === \"never\") throw new NonRetryableError(\"invalid_property_id\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/copy-submission-media.test.ts",
+    "expect": "× .*refuses a payload without a property id"
+  },
+  {
+    "id": "b7-g7-autosave-serial",
+    "test": "src/admin/properties/use-autosave.test.ts",
+    "file": "src/admin/properties/use-autosave.ts",
+    "find": "    while (inFlight.current !== null) {",
+    "replace": "    while (inFlight.current === undefined) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/properties/use-autosave.test.ts",
+    "expect": "× .*two sequential PATCHes carrying v and v\\+1"
+  },
+  {
+    "id": "b7-g7-autosave-version",
+    "test": "src/admin/properties/use-autosave.test.ts",
+    "file": "src/admin/properties/use-autosave.ts",
+    "find": "        version.current = next;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/properties/use-autosave.test.ts",
+    "expect": "× .*two sequential PATCHes carrying v and v\\+1"
+  },
+  {
+    "id": "b7-g7-autosave-flush",
+    "test": "src/admin/properties/use-autosave.test.ts",
+    "file": "src/admin/properties/use-autosave.ts",
+    "find": "    await drain();\n    return version.current;",
+    "replace": "    return version.current;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/properties/use-autosave.test.ts",
+    "expect": "× .*type then publish within 500 ms"
+  },
+  {
+    "id": "b7-g7-autosave-stale",
+    "test": "src/admin/properties/use-autosave.test.ts",
+    "file": "src/admin/properties/use-autosave.ts",
+    "find": "        if (isStale(failure)) blocked.current = \"stale\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 src/admin/properties/use-autosave.test.ts",
+    "expect": "× .*a 409 from another session keeps the field text"
+  },
+  {
+    "id": "b7-g7-ui-stale",
+    "test": "src/admin/properties/properties.test.tsx",
+    "file": "src/admin/properties/PropertyEditor.tsx",
+    "find": "{autosave.stale ? (",
+    "replace": "{false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/properties/properties.test.tsx",
+    "expect": "× .*a 409 from another session shows Reload, someone saved"
+  },
+  {
+    "id": "b7-g7-ui-reload",
+    "test": "src/admin/properties/properties.test.tsx",
+    "file": "src/admin/properties/PropertyEditor.tsx",
+    "find": "      autosave.adopt(fresh.property.version);",
+    "replace": "      autosave.adopt(detail.property.version);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/properties/properties.test.tsx",
+    "expect": "× .*Reload lays the unsaved field over the fresh row"
+  },
+  {
+    "id": "b7-g7-ui-publish",
+    "test": "src/admin/properties/properties.test.tsx",
+    "file": "src/admin/properties/PropertyEditor.tsx",
+    "find": "            setState(\"published\");",
+    "replace": "            setState(\"review\");",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/properties/properties.test.tsx",
+    "expect": "× .*publishes a ready property at its version"
+  },
+  {
+    "id": "b7-g7-ui-gate",
+    "test": "src/admin/properties/properties.test.tsx",
+    "file": "src/admin/properties/PublishBar.tsx",
+    "find": "disabled={pending || !ready}",
+    "replace": "disabled={pending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/properties/properties.test.tsx",
+    "expect": "× .*keeps Publish off while a checklist item fails"
+  },
+  {
+    "id": "b7-g7-ui-orientation",
+    "test": "src/admin/properties/properties.test.tsx",
+    "file": "src/admin/properties/SequenceTab.tsx",
+    "find": "<td>{row.orientation ?? \"\"}</td>",
+    "replace": "<td>{row.orientation ?? \"landscape\"}</td>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/properties/properties.test.tsx",
+    "expect": "× .*shows orientation as text with no control for it"
+  },
+  {
+    "id": "b7-g7-ui-list",
+    "test": "src/admin/properties/properties.test.tsx",
+    "file": "src/admin/properties/PropertiesTable.tsx",
+    "find": "<a href={`/admin/properties/${row.id}`} onClick={stopRow}>",
+    "replace": "<a href={`/admin/property/${row.id}`} onClick={stopRow}>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/properties/properties.test.tsx",
+    "expect": "× .*lists a property with its state and links it"
+  },
+  {
+    "id": "b7-g7-ui-create",
+    "test": "src/admin/properties/properties.test.tsx",
+    "file": "src/admin/properties/NewFromRequest.tsx",
+    "find": "<RoleGate action=\"properties.create_from_submission\">",
+    "replace": "<RoleGate action=\"me\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/properties/properties.test.tsx",
+    "expect": "× .*offers Create property for each accepted request"
+  },
+  {
+    "id": "b7-g7-db-slug",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.create_property_from_submission(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_sub public.submissions;\n  v_id uuid;\n  v_base text;\n  v_slug text;\n  v_suffix integer := 1;\n  v_representative uuid;\n  v_after public.properties;\n  v_job uuid;\nbegin\n  -- DL-02: serialised with B6's activate_submission on the submission row; B2's unique index on\n  -- properties.submission_id is the backstop.\n  perform 1 from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Idempotent: a second call returns the property and its copy job and writes nothing.\n  select p.id into v_id from public.properties p where p.submission_id = p_submission_id;\n  if found then\n    return jsonb_build_object(\n      'property_id', v_id,\n      'copy_job_id', (\n        select j.id from public.jobs j where j.idempotency_key = 'copy_submission_media:' || v_id::text\n      )\n    );\n  end if;\n  select * into v_sub from public.submissions s where s.id = p_submission_id;\n  if v_sub.accepted_at is null or v_sub.workflow_state not in (\n    'Accepted', 'Awaiting Assets', 'Invoice Issued', 'Scheduled', 'Published', 'Distribution Active', 'Completed'\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- G62: the city slugified, then the first eight characters of the id; editable until the first publication.\n  v_id := gen_random_uuid();\n  v_base := btrim(left(regexp_replace(lower(v_sub.city), '[^a-z0-9]+', '-', 'g'), 100), '-');\n  v_base := case when v_base = '' then '' else v_base || '-' end || right(v_id::text, 8);\n  v_slug := v_base;\n  while exists (select 1 from public.properties p where p.slug = v_slug)\n    or exists (select 1 from public.slug_history h where h.slug = v_slug) loop\n    v_suffix := v_suffix + 1;\n    v_slug := v_base || '-' || v_suffix::text;\n  end loop;\n\n  -- S55: an agent's request links the representative with that address (or a new one); an owner's links none.\n  if v_sub.submitter_kind = 'agent' then\n    select r.id into v_representative\n    from public.representatives r\n    where lower(r.email) = lower(v_sub.submitter_email)\n    order by r.created_at, r.id\n    limit 1;\n    if not found then\n      insert into public.representatives (name, brokerage, email, phone)\n      values (v_sub.submitter_name, coalesce(v_sub.brokerage, ''), v_sub.submitter_email, v_sub.submitter_phone)\n      returning id into v_representative;\n    end if;\n  end if;\n\n  -- Every column the request has no value for stays null until an editor fills it (G62); B7 writes no placeholder.\n  insert into public.properties (\n    id, slug, title, market_slug, city, state, country, address, price, beds, baths, interior_sq_ft, year_built,\n    type, architect, designer, listing_url, story, status, source, submission_id, created_by, updated_by,\n    editorial_state, representative_id, presented_by_owner\n  ) values (\n    v_id, v_slug, v_sub.address,\n    case v_sub.state when 'California' then 'california' when 'New York' then 'new-york' else 'florida' end,\n    v_sub.city, v_sub.state::text, 'United States', v_sub.address, v_sub.price, v_sub.beds, v_sub.baths,\n    v_sub.interior_sq_ft, v_sub.year_built, v_sub.property_type, v_sub.architect, v_sub.designer,\n    v_sub.listing_url, array[v_sub.story], 'Active', 'Submission', p_submission_id, p_actor, p_actor,\n    'draft', v_representative, v_sub.submitter_kind = 'owner'\n  )\n  returning * into v_after;\n\n  -- Invariant 21 (a): each row takes the id of the photograph it copies, so the copy job finds its source by id.\n  insert into public.property_media (id, property_id, staging_path, sort_order)\n  select m.id, v_id,\n    'staging/' || v_id::text || '/' || m.id::text || '.' || substring(m.storage_path from '\\.([^./]+)$'),\n    (row_number() over (order by m.sort_order, m.uploaded_at, m.id) - 1)::integer\n  from public.submission_media m\n  where m.submission_id = p_submission_id and m.uploaded_at is not null;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.create_from_submission', 'property', v_id, null, to_jsonb(v_after),\n    p_request_id\n  );\n  -- E2E-02, PERF-07: the photographs are copied by the job runner, never inside a request.\n  v_job := public.enqueue_job(\n    'copy_submission_media',\n    jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', v_id)),\n    'copy_submission_media:' || v_id::text\n  );\n  return jsonb_build_object('property_id', v_id, 'copy_job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.create_property_from_submission(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.create_property_from_submission(uuid, uuid, public.actor_kind, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"makes one draft from an accepted Los Angeles request\"",
+    "expect": "× .*makes one draft from an accepted Los Angeles request"
+  },
+  {
+    "id": "b7-g7-db-media-ids",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.create_property_from_submission(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_sub public.submissions;\n  v_id uuid;\n  v_base text;\n  v_slug text;\n  v_suffix integer := 1;\n  v_representative uuid;\n  v_after public.properties;\n  v_job uuid;\nbegin\n  -- DL-02: serialised with B6's activate_submission on the submission row; B2's unique index on\n  -- properties.submission_id is the backstop.\n  perform 1 from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Idempotent: a second call returns the property and its copy job and writes nothing.\n  select p.id into v_id from public.properties p where p.submission_id = p_submission_id;\n  if found then\n    return jsonb_build_object(\n      'property_id', v_id,\n      'copy_job_id', (\n        select j.id from public.jobs j where j.idempotency_key = 'copy_submission_media:' || v_id::text\n      )\n    );\n  end if;\n  select * into v_sub from public.submissions s where s.id = p_submission_id;\n  if v_sub.accepted_at is null or v_sub.workflow_state not in (\n    'Accepted', 'Awaiting Assets', 'Invoice Issued', 'Scheduled', 'Published', 'Distribution Active', 'Completed'\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- G62: the city slugified, then the first eight characters of the id; editable until the first publication.\n  v_id := gen_random_uuid();\n  v_base := btrim(left(regexp_replace(lower(v_sub.city), '[^a-z0-9]+', '-', 'g'), 100), '-');\n  v_base := case when v_base = '' then '' else v_base || '-' end || left(v_id::text, 8);\n  v_slug := v_base;\n  while exists (select 1 from public.properties p where p.slug = v_slug)\n    or exists (select 1 from public.slug_history h where h.slug = v_slug) loop\n    v_suffix := v_suffix + 1;\n    v_slug := v_base || '-' || v_suffix::text;\n  end loop;\n\n  -- S55: an agent's request links the representative with that address (or a new one); an owner's links none.\n  if v_sub.submitter_kind = 'agent' then\n    select r.id into v_representative\n    from public.representatives r\n    where lower(r.email) = lower(v_sub.submitter_email)\n    order by r.created_at, r.id\n    limit 1;\n    if not found then\n      insert into public.representatives (name, brokerage, email, phone)\n      values (v_sub.submitter_name, coalesce(v_sub.brokerage, ''), v_sub.submitter_email, v_sub.submitter_phone)\n      returning id into v_representative;\n    end if;\n  end if;\n\n  -- Every column the request has no value for stays null until an editor fills it (G62); B7 writes no placeholder.\n  insert into public.properties (\n    id, slug, title, market_slug, city, state, country, address, price, beds, baths, interior_sq_ft, year_built,\n    type, architect, designer, listing_url, story, status, source, submission_id, created_by, updated_by,\n    editorial_state, representative_id, presented_by_owner\n  ) values (\n    v_id, v_slug, v_sub.address,\n    case v_sub.state when 'California' then 'california' when 'New York' then 'new-york' else 'florida' end,\n    v_sub.city, v_sub.state::text, 'United States', v_sub.address, v_sub.price, v_sub.beds, v_sub.baths,\n    v_sub.interior_sq_ft, v_sub.year_built, v_sub.property_type, v_sub.architect, v_sub.designer,\n    v_sub.listing_url, array[v_sub.story], 'Active', 'Submission', p_submission_id, p_actor, p_actor,\n    'draft', v_representative, v_sub.submitter_kind = 'owner'\n  )\n  returning * into v_after;\n\n  -- Invariant 21 (a): each row takes the id of the photograph it copies, so the copy job finds its source by id.\n  insert into public.property_media (id, property_id, staging_path, sort_order)\n  select gen_random_uuid(), v_id,\n    'staging/' || v_id::text || '/' || m.id::text || '.' || substring(m.storage_path from '\\.([^./]+)$'),\n    (row_number() over (order by m.sort_order, m.uploaded_at, m.id) - 1)::integer\n  from public.submission_media m\n  where m.submission_id = p_submission_id and m.uploaded_at is not null;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.create_from_submission', 'property', v_id, null, to_jsonb(v_after),\n    p_request_id\n  );\n  -- E2E-02, PERF-07: the photographs are copied by the job runner, never inside a request.\n  v_job := public.enqueue_job(\n    'copy_submission_media',\n    jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', v_id)),\n    'copy_submission_media:' || v_id::text\n  );\n  return jsonb_build_object('property_id', v_id, 'copy_job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.create_property_from_submission(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.create_property_from_submission(uuid, uuid, public.actor_kind, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"copies three uploaded photographs as staged rows\"",
+    "expect": "× .*copies three uploaded photographs as staged rows"
+  },
+  {
+    "id": "b7-g7-db-rep-case",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.create_property_from_submission(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_sub public.submissions;\n  v_id uuid;\n  v_base text;\n  v_slug text;\n  v_suffix integer := 1;\n  v_representative uuid;\n  v_after public.properties;\n  v_job uuid;\nbegin\n  -- DL-02: serialised with B6's activate_submission on the submission row; B2's unique index on\n  -- properties.submission_id is the backstop.\n  perform 1 from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Idempotent: a second call returns the property and its copy job and writes nothing.\n  select p.id into v_id from public.properties p where p.submission_id = p_submission_id;\n  if found then\n    return jsonb_build_object(\n      'property_id', v_id,\n      'copy_job_id', (\n        select j.id from public.jobs j where j.idempotency_key = 'copy_submission_media:' || v_id::text\n      )\n    );\n  end if;\n  select * into v_sub from public.submissions s where s.id = p_submission_id;\n  if v_sub.accepted_at is null or v_sub.workflow_state not in (\n    'Accepted', 'Awaiting Assets', 'Invoice Issued', 'Scheduled', 'Published', 'Distribution Active', 'Completed'\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- G62: the city slugified, then the first eight characters of the id; editable until the first publication.\n  v_id := gen_random_uuid();\n  v_base := btrim(left(regexp_replace(lower(v_sub.city), '[^a-z0-9]+', '-', 'g'), 100), '-');\n  v_base := case when v_base = '' then '' else v_base || '-' end || left(v_id::text, 8);\n  v_slug := v_base;\n  while exists (select 1 from public.properties p where p.slug = v_slug)\n    or exists (select 1 from public.slug_history h where h.slug = v_slug) loop\n    v_suffix := v_suffix + 1;\n    v_slug := v_base || '-' || v_suffix::text;\n  end loop;\n\n  -- S55: an agent's request links the representative with that address (or a new one); an owner's links none.\n  if v_sub.submitter_kind = 'agent' then\n    select r.id into v_representative\n    from public.representatives r\n    where r.email = v_sub.submitter_email\n    order by r.created_at, r.id\n    limit 1;\n    if not found then\n      insert into public.representatives (name, brokerage, email, phone)\n      values (v_sub.submitter_name, coalesce(v_sub.brokerage, ''), v_sub.submitter_email, v_sub.submitter_phone)\n      returning id into v_representative;\n    end if;\n  end if;\n\n  -- Every column the request has no value for stays null until an editor fills it (G62); B7 writes no placeholder.\n  insert into public.properties (\n    id, slug, title, market_slug, city, state, country, address, price, beds, baths, interior_sq_ft, year_built,\n    type, architect, designer, listing_url, story, status, source, submission_id, created_by, updated_by,\n    editorial_state, representative_id, presented_by_owner\n  ) values (\n    v_id, v_slug, v_sub.address,\n    case v_sub.state when 'California' then 'california' when 'New York' then 'new-york' else 'florida' end,\n    v_sub.city, v_sub.state::text, 'United States', v_sub.address, v_sub.price, v_sub.beds, v_sub.baths,\n    v_sub.interior_sq_ft, v_sub.year_built, v_sub.property_type, v_sub.architect, v_sub.designer,\n    v_sub.listing_url, array[v_sub.story], 'Active', 'Submission', p_submission_id, p_actor, p_actor,\n    'draft', v_representative, v_sub.submitter_kind = 'owner'\n  )\n  returning * into v_after;\n\n  -- Invariant 21 (a): each row takes the id of the photograph it copies, so the copy job finds its source by id.\n  insert into public.property_media (id, property_id, staging_path, sort_order)\n  select m.id, v_id,\n    'staging/' || v_id::text || '/' || m.id::text || '.' || substring(m.storage_path from '\\.([^./]+)$'),\n    (row_number() over (order by m.sort_order, m.uploaded_at, m.id) - 1)::integer\n  from public.submission_media m\n  where m.submission_id = p_submission_id and m.uploaded_at is not null;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.create_from_submission', 'property', v_id, null, to_jsonb(v_after),\n    p_request_id\n  );\n  -- E2E-02, PERF-07: the photographs are copied by the job runner, never inside a request.\n  v_job := public.enqueue_job(\n    'copy_submission_media',\n    jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', v_id)),\n    'copy_submission_media:' || v_id::text\n  );\n  return jsonb_build_object('property_id', v_id, 'copy_job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.create_property_from_submission(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.create_property_from_submission(uuid, uuid, public.actor_kind, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"links an agent\"",
+    "expect": "× .*links an agent's representative by address"
+  },
+  {
+    "id": "b7-g7-db-accepted",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.create_property_from_submission(\n  p_submission_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_sub public.submissions;\n  v_id uuid;\n  v_base text;\n  v_slug text;\n  v_suffix integer := 1;\n  v_representative uuid;\n  v_after public.properties;\n  v_job uuid;\nbegin\n  -- DL-02: serialised with B6's activate_submission on the submission row; B2's unique index on\n  -- properties.submission_id is the backstop.\n  perform 1 from public.submissions s where s.id = p_submission_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Idempotent: a second call returns the property and its copy job and writes nothing.\n  select p.id into v_id from public.properties p where p.submission_id = p_submission_id;\n  if found then\n    return jsonb_build_object(\n      'property_id', v_id,\n      'copy_job_id', (\n        select j.id from public.jobs j where j.idempotency_key = 'copy_submission_media:' || v_id::text\n      )\n    );\n  end if;\n  select * into v_sub from public.submissions s where s.id = p_submission_id;\n  if false and v_sub.workflow_state not in (\n    'Accepted', 'Awaiting Assets', 'Invoice Issued', 'Scheduled', 'Published', 'Distribution Active', 'Completed'\n  ) then\n    raise exception 'wrong_state';\n  end if;\n\n  -- G62: the city slugified, then the first eight characters of the id; editable until the first publication.\n  v_id := gen_random_uuid();\n  v_base := btrim(left(regexp_replace(lower(v_sub.city), '[^a-z0-9]+', '-', 'g'), 100), '-');\n  v_base := case when v_base = '' then '' else v_base || '-' end || left(v_id::text, 8);\n  v_slug := v_base;\n  while exists (select 1 from public.properties p where p.slug = v_slug)\n    or exists (select 1 from public.slug_history h where h.slug = v_slug) loop\n    v_suffix := v_suffix + 1;\n    v_slug := v_base || '-' || v_suffix::text;\n  end loop;\n\n  -- S55: an agent's request links the representative with that address (or a new one); an owner's links none.\n  if v_sub.submitter_kind = 'agent' then\n    select r.id into v_representative\n    from public.representatives r\n    where lower(r.email) = lower(v_sub.submitter_email)\n    order by r.created_at, r.id\n    limit 1;\n    if not found then\n      insert into public.representatives (name, brokerage, email, phone)\n      values (v_sub.submitter_name, coalesce(v_sub.brokerage, ''), v_sub.submitter_email, v_sub.submitter_phone)\n      returning id into v_representative;\n    end if;\n  end if;\n\n  -- Every column the request has no value for stays null until an editor fills it (G62); B7 writes no placeholder.\n  insert into public.properties (\n    id, slug, title, market_slug, city, state, country, address, price, beds, baths, interior_sq_ft, year_built,\n    type, architect, designer, listing_url, story, status, source, submission_id, created_by, updated_by,\n    editorial_state, representative_id, presented_by_owner\n  ) values (\n    v_id, v_slug, v_sub.address,\n    case v_sub.state when 'California' then 'california' when 'New York' then 'new-york' else 'florida' end,\n    v_sub.city, v_sub.state::text, 'United States', v_sub.address, v_sub.price, v_sub.beds, v_sub.baths,\n    v_sub.interior_sq_ft, v_sub.year_built, v_sub.property_type, v_sub.architect, v_sub.designer,\n    v_sub.listing_url, array[v_sub.story], 'Active', 'Submission', p_submission_id, p_actor, p_actor,\n    'draft', v_representative, v_sub.submitter_kind = 'owner'\n  )\n  returning * into v_after;\n\n  -- Invariant 21 (a): each row takes the id of the photograph it copies, so the copy job finds its source by id.\n  insert into public.property_media (id, property_id, staging_path, sort_order)\n  select m.id, v_id,\n    'staging/' || v_id::text || '/' || m.id::text || '.' || substring(m.storage_path from '\\.([^./]+)$'),\n    (row_number() over (order by m.sort_order, m.uploaded_at, m.id) - 1)::integer\n  from public.submission_media m\n  where m.submission_id = p_submission_id and m.uploaded_at is not null;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.create_from_submission', 'property', v_id, null, to_jsonb(v_after),\n    p_request_id\n  );\n  -- E2E-02, PERF-07: the photographs are copied by the job runner, never inside a request.\n  v_job := public.enqueue_job(\n    'copy_submission_media',\n    jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('property_id', v_id)),\n    'copy_submission_media:' || v_id::text\n  );\n  return jsonb_build_object('property_id', v_id, 'copy_job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.create_property_from_submission(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.create_property_from_submission(uuid, uuid, public.actor_kind, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"refuses a request that is not accepted\"",
+    "expect": "× .*refuses a request that is not accepted"
+  },
+  {
+    "id": "b7-g7-db-timezone",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.market_timezone(p_market_slug text)\nreturns text\nlanguage sql\nimmutable\nsecurity definer\nset search_path = ''\nas $$\n  -- B7 invariant 8 (DL-09): mirrors marketTimezone of src/domain/market-time.ts.\n  select case when p_market_slug = 'california' then 'America/New_York' else 'America/New_York' end;\n$$;\n\nrevoke execute on function public.market_timezone(text) from public, anon, authenticated;\ngrant execute on function public.market_timezone(text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"equals marketTimezone for the three markets\"",
+    "expect": "× .*equals marketTimezone for the three markets"
+  },
+  {
+    "id": "b7-g7-db-stale",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.update_property(\n  p_id uuid,\n  p_expected_version integer,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_state public.editorial_state := (p_patch ->> 'editorial_state')::public.editorial_state;\nbegin\n  -- B7 invariant 7 (GD-01): B2's save_property holds the lock and the version; this function only audits. The one key\n  -- beyond its allow-list is the editor's move between draft and review (ASSUMED: the plan names no other path).\n  select * into v_before from public.properties p where p.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_state is not null and v_state not in ('draft', 'review') then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_after := public.save_property(\n    p_id, v_before.version, (p_patch - 'editorial_state') || jsonb_build_object('updated_by', p_actor)\n  );\n  if v_state is not null and v_state <> v_after.editorial_state then\n    update public.properties p set editorial_state = v_state, archived_at = null where p.id = p_id returning * into v_after;\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.update', 'property', p_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  return v_after.version;\nend;\n$$;\n\nrevoke execute on function public.update_property(uuid, integer, jsonb, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.update_property(uuid, integer, jsonb, uuid, public.actor_kind, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"answers version\"",
+    "expect": "× .*answers version \\+ 1 at the version read"
+  },
+  {
+    "id": "b7-g7-db-g62",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.publish_property(\n  p_property_id uuid,\n  p_expected_version integer,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_missing text[];\n  v_state public.submission_state;\n  v_first boolean;\n  v_today date;\n  v_event uuid;\nbegin\n  -- B7 invariants 3 and 8: counted against an agent's daily publishes, then the lock and the version (GD-01).\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'publish');\n  v_before := public.save_property(p_property_id, p_expected_version, '{}'::jsonb);\n  if v_before.editorial_state not in ('review', 'agent_review') then\n    raise exception 'wrong_state';\n  end if;\n  -- G62: every field the public page needs, the hero and six photographs with alt text; the message names each gap.\n  v_missing := array_remove(array[\n    case when v_before.region_slug is null then 'region_slug' end,\n    case when v_before.neighborhood is null then 'neighborhood' end,\n    case when v_before.country is null then 'country' end,\n    case when v_before.price is null then 'price' end,\n    case when v_before.beds is null then 'beds' end,\n    case when v_before.baths is null then 'baths' end,\n    case when v_before.interior_sq_ft is null then 'interior_sq_ft' end,\n    case when v_before.lot_acres is null then 'lot_acres' end,\n    case when v_before.year_built is null then 'year_built' end,\n    case when v_before.hero_image is null then 'hero_image' end,\n    case when v_before.place is null then 'place' end,\n    case when (\n      select count(*) from public.property_media m\n      where m.property_id = p_property_id and m.media_key is not null and btrim(coalesce(m.alt, '')) <> ''\n    ) < 6 then 'six images with alt text' end\n  ], null);\n  if cardinality(v_missing) > 0 then\n    raise exception 'publish_incomplete' using errcode = '23514', detail = 'Missing: ' || array_to_string(v_missing, ', ');\n  end if;\n\n  -- DL-03: the request gates the first publication only, and moves to Published with it.\n  v_first := v_before.first_published_at is null;\n  if v_before.submission_id is not null then\n    select s.workflow_state into v_state from public.submissions s where s.id = v_before.submission_id for update;\n    if v_first then\n      if v_state <> 'Scheduled' then\n        raise exception 'wrong_state';\n      end if;\n      update public.submissions s set workflow_state = 'Published' where s.id = v_before.submission_id;\n    elsif v_state not in ('Published', 'Distribution Active', 'Completed') then\n      raise exception 'wrong_state';\n    end if;\n  end if;\n\n  update public.properties p\n  set editorial_state = 'published', published_at = now(), updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  -- DL-09: the campaign runs from the first publication's day in the market's zone; a republish keeps its dates.\n  if v_first then\n    v_today := (now() at time zone public.market_timezone(v_after.market_slug))::date;\n    update public.campaigns c\n    set starts_on = v_today,\n      ends_on = v_today + public.package_duration_days(c.package) - 1\n    where c.property_id = p_property_id;\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.publish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := public.emit_event(\n    'property.published', 'property', p_property_id,\n    jsonb_strip_nulls(jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'tier', v_after.campaign_tier,\n      'market', v_after.market_slug,\n      'submission_id', v_after.submission_id\n    )),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"names every empty field of a draft\"",
+    "expect": "× .*names every empty field of a draft"
+  },
+  {
+    "id": "b7-g7-db-hero",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.publish_property(\n  p_property_id uuid,\n  p_expected_version integer,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_missing text[];\n  v_state public.submission_state;\n  v_first boolean;\n  v_today date;\n  v_event uuid;\nbegin\n  -- B7 invariants 3 and 8: counted against an agent's daily publishes, then the lock and the version (GD-01).\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'publish');\n  v_before := public.save_property(p_property_id, p_expected_version, '{}'::jsonb);\n  if v_before.editorial_state not in ('review', 'agent_review') then\n    raise exception 'wrong_state';\n  end if;\n  -- G62: every field the public page needs, the hero and six photographs with alt text; the message names each gap.\n  v_missing := array_remove(array[\n    case when v_before.region_slug is null then 'region_slug' end,\n    case when v_before.neighborhood is null then 'neighborhood' end,\n    case when v_before.country is null then 'country' end,\n    case when v_before.price is null then 'price' end,\n    case when v_before.beds is null then 'beds' end,\n    case when v_before.baths is null then 'baths' end,\n    case when v_before.interior_sq_ft is null then 'interior_sq_ft' end,\n    case when v_before.lot_acres is null then 'lot_acres' end,\n    case when v_before.year_built is null then 'year_built' end,\n    case when v_before.style is null then 'style' end,\n    case when v_before.place is null then 'place' end,\n    case when (\n      select count(*) from public.property_media m\n      where m.property_id = p_property_id and m.media_key is not null and btrim(coalesce(m.alt, '')) <> ''\n    ) < 6 then 'six images with alt text' end\n  ], null);\n  if cardinality(v_missing) > 0 then\n    raise exception 'publish_incomplete' using errcode = '23514', detail = 'Missing: ' || array_to_string(v_missing, ', ');\n  end if;\n\n  -- DL-03: the request gates the first publication only, and moves to Published with it.\n  v_first := v_before.first_published_at is null;\n  if v_before.submission_id is not null then\n    select s.workflow_state into v_state from public.submissions s where s.id = v_before.submission_id for update;\n    if v_first then\n      if v_state <> 'Scheduled' then\n        raise exception 'wrong_state';\n      end if;\n      update public.submissions s set workflow_state = 'Published' where s.id = v_before.submission_id;\n    elsif v_state not in ('Published', 'Distribution Active', 'Completed') then\n      raise exception 'wrong_state';\n    end if;\n  end if;\n\n  update public.properties p\n  set editorial_state = 'published', published_at = now(), updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  -- DL-09: the campaign runs from the first publication's day in the market's zone; a republish keeps its dates.\n  if v_first then\n    v_today := (now() at time zone public.market_timezone(v_after.market_slug))::date;\n    update public.campaigns c\n    set starts_on = v_today,\n      ends_on = v_today + public.package_duration_days(c.package) - 1\n    where c.property_id = p_property_id;\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.publish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := public.emit_event(\n    'property.published', 'property', p_property_id,\n    jsonb_strip_nulls(jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'tier', v_after.campaign_tier,\n      'market', v_after.market_slug,\n      'submission_id', v_after.submission_id\n    )),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"refuses a property without a hero\"",
+    "expect": "× .*refuses a property without a hero with publish_incomplete"
+  },
+  {
+    "id": "b7-g7-db-dl09",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.publish_property(\n  p_property_id uuid,\n  p_expected_version integer,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_missing text[];\n  v_state public.submission_state;\n  v_first boolean;\n  v_today date;\n  v_event uuid;\nbegin\n  -- B7 invariants 3 and 8: counted against an agent's daily publishes, then the lock and the version (GD-01).\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'publish');\n  v_before := public.save_property(p_property_id, p_expected_version, '{}'::jsonb);\n  if v_before.editorial_state not in ('review', 'agent_review') then\n    raise exception 'wrong_state';\n  end if;\n  -- G62: every field the public page needs, the hero and six photographs with alt text; the message names each gap.\n  v_missing := array_remove(array[\n    case when v_before.region_slug is null then 'region_slug' end,\n    case when v_before.neighborhood is null then 'neighborhood' end,\n    case when v_before.country is null then 'country' end,\n    case when v_before.price is null then 'price' end,\n    case when v_before.beds is null then 'beds' end,\n    case when v_before.baths is null then 'baths' end,\n    case when v_before.interior_sq_ft is null then 'interior_sq_ft' end,\n    case when v_before.lot_acres is null then 'lot_acres' end,\n    case when v_before.year_built is null then 'year_built' end,\n    case when v_before.style is null then 'style' end,\n    case when v_before.hero_image is null then 'hero_image' end,\n    case when v_before.place is null then 'place' end,\n    case when (\n      select count(*) from public.property_media m\n      where m.property_id = p_property_id and m.media_key is not null and btrim(coalesce(m.alt, '')) <> ''\n    ) < 6 then 'six images with alt text' end\n  ], null);\n  if cardinality(v_missing) > 0 then\n    raise exception 'publish_incomplete' using errcode = '23514', detail = 'Missing: ' || array_to_string(v_missing, ', ');\n  end if;\n\n  -- DL-03: the request gates the first publication only, and moves to Published with it.\n  v_first := v_before.first_published_at is null;\n  if v_before.submission_id is not null then\n    select s.workflow_state into v_state from public.submissions s where s.id = v_before.submission_id for update;\n    if v_first then\n      if v_state <> 'Scheduled' then\n        raise exception 'wrong_state';\n      end if;\n      update public.submissions s set workflow_state = 'Published' where s.id = v_before.submission_id;\n    elsif v_state not in ('Published', 'Distribution Active', 'Completed') then\n      raise exception 'wrong_state';\n    end if;\n  end if;\n\n  update public.properties p\n  set editorial_state = 'published', published_at = now(), updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  -- DL-09: the campaign runs from the first publication's day in the market's zone; a republish keeps its dates.\n  if v_first then\n    v_today := (now() at time zone public.market_timezone(v_after.market_slug))::date;\n    update public.campaigns c\n    set starts_on = v_today,\n      ends_on = v_today + public.package_duration_days(c.package)\n    where c.property_id = p_property_id;\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.publish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := public.emit_event(\n    'property.published', 'property', p_property_id,\n    jsonb_strip_nulls(jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'tier', v_after.campaign_tier,\n      'market', v_after.market_slug,\n      'submission_id', v_after.submission_id\n    )),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"publishes a Scheduled request\"",
+    "expect": "× .*publishes a Scheduled request's property"
+  },
+  {
+    "id": "b7-g7-db-dl03",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.publish_property(\n  p_property_id uuid,\n  p_expected_version integer,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_missing text[];\n  v_state public.submission_state;\n  v_first boolean;\n  v_today date;\n  v_event uuid;\nbegin\n  -- B7 invariants 3 and 8: counted against an agent's daily publishes, then the lock and the version (GD-01).\n  perform public.assert_agent_daily_cap(p_actor, p_actor_kind, 'publish');\n  v_before := public.save_property(p_property_id, p_expected_version, '{}'::jsonb);\n  if v_before.editorial_state not in ('review', 'agent_review') then\n    raise exception 'wrong_state';\n  end if;\n  -- G62: every field the public page needs, the hero and six photographs with alt text; the message names each gap.\n  v_missing := array_remove(array[\n    case when v_before.region_slug is null then 'region_slug' end,\n    case when v_before.neighborhood is null then 'neighborhood' end,\n    case when v_before.country is null then 'country' end,\n    case when v_before.price is null then 'price' end,\n    case when v_before.beds is null then 'beds' end,\n    case when v_before.baths is null then 'baths' end,\n    case when v_before.interior_sq_ft is null then 'interior_sq_ft' end,\n    case when v_before.lot_acres is null then 'lot_acres' end,\n    case when v_before.year_built is null then 'year_built' end,\n    case when v_before.style is null then 'style' end,\n    case when v_before.hero_image is null then 'hero_image' end,\n    case when v_before.place is null then 'place' end,\n    case when (\n      select count(*) from public.property_media m\n      where m.property_id = p_property_id and m.media_key is not null and btrim(coalesce(m.alt, '')) <> ''\n    ) < 6 then 'six images with alt text' end\n  ], null);\n  if cardinality(v_missing) > 0 then\n    raise exception 'publish_incomplete' using errcode = '23514', detail = 'Missing: ' || array_to_string(v_missing, ', ');\n  end if;\n\n  -- DL-03: the request gates the first publication only, and moves to Published with it.\n  v_first := v_before.first_published_at is null;\n  if v_before.submission_id is not null then\n    select s.workflow_state into v_state from public.submissions s where s.id = v_before.submission_id for update;\n    if v_first then\n      if v_state <> 'Scheduled' then\n        raise exception 'wrong_state';\n      end if;\n      update public.submissions s set workflow_state = 'Published' where s.id = v_before.submission_id;\n    elsif v_state not in ('Published', 'Distribution Active', 'Completed') then\n      raise exception 'wrong_state';\n    end if;\n  end if;\n\n  update public.properties p\n  set editorial_state = 'published', published_at = now(), updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  -- DL-09: the campaign runs from the first publication's day in the market's zone; a republish keeps its dates.\n  if true then\n    v_today := (now() at time zone public.market_timezone(v_after.market_slug))::date;\n    update public.campaigns c\n    set starts_on = v_today,\n      ends_on = v_today + public.package_duration_days(c.package) - 1\n    where c.property_id = p_property_id;\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.publish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := public.emit_event(\n    'property.published', 'property', p_property_id,\n    jsonb_strip_nulls(jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'tier', v_after.campaign_tier,\n      'market', v_after.market_slug,\n      'submission_id', v_after.submission_id\n    )),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"republishes after a factual error\"",
+    "expect": "× .*republishes after a factual error unpublish"
+  },
+  {
+    "id": "b7-g7-db-cap",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.publish_property(\n  p_property_id uuid,\n  p_expected_version integer,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_missing text[];\n  v_state public.submission_state;\n  v_first boolean;\n  v_today date;\n  v_event uuid;\nbegin\n  -- B7 invariants 3 and 8: counted against an agent's daily publishes, then the lock and the version (GD-01).\n  v_before := public.save_property(p_property_id, p_expected_version, '{}'::jsonb);\n  if v_before.editorial_state not in ('review', 'agent_review') then\n    raise exception 'wrong_state';\n  end if;\n  -- G62: every field the public page needs, the hero and six photographs with alt text; the message names each gap.\n  v_missing := array_remove(array[\n    case when v_before.region_slug is null then 'region_slug' end,\n    case when v_before.neighborhood is null then 'neighborhood' end,\n    case when v_before.country is null then 'country' end,\n    case when v_before.price is null then 'price' end,\n    case when v_before.beds is null then 'beds' end,\n    case when v_before.baths is null then 'baths' end,\n    case when v_before.interior_sq_ft is null then 'interior_sq_ft' end,\n    case when v_before.lot_acres is null then 'lot_acres' end,\n    case when v_before.year_built is null then 'year_built' end,\n    case when v_before.style is null then 'style' end,\n    case when v_before.hero_image is null then 'hero_image' end,\n    case when v_before.place is null then 'place' end,\n    case when (\n      select count(*) from public.property_media m\n      where m.property_id = p_property_id and m.media_key is not null and btrim(coalesce(m.alt, '')) <> ''\n    ) < 6 then 'six images with alt text' end\n  ], null);\n  if cardinality(v_missing) > 0 then\n    raise exception 'publish_incomplete' using errcode = '23514', detail = 'Missing: ' || array_to_string(v_missing, ', ');\n  end if;\n\n  -- DL-03: the request gates the first publication only, and moves to Published with it.\n  v_first := v_before.first_published_at is null;\n  if v_before.submission_id is not null then\n    select s.workflow_state into v_state from public.submissions s where s.id = v_before.submission_id for update;\n    if v_first then\n      if v_state <> 'Scheduled' then\n        raise exception 'wrong_state';\n      end if;\n      update public.submissions s set workflow_state = 'Published' where s.id = v_before.submission_id;\n    elsif v_state not in ('Published', 'Distribution Active', 'Completed') then\n      raise exception 'wrong_state';\n    end if;\n  end if;\n\n  update public.properties p\n  set editorial_state = 'published', published_at = now(), updated_by = p_actor\n  where p.id = p_property_id\n  returning * into v_after;\n\n  -- DL-09: the campaign runs from the first publication's day in the market's zone; a republish keeps its dates.\n  if v_first then\n    v_today := (now() at time zone public.market_timezone(v_after.market_slug))::date;\n    update public.campaigns c\n    set starts_on = v_today,\n      ends_on = v_today + public.package_duration_days(c.package) - 1\n    where c.property_id = p_property_id;\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.publish', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  v_event := public.emit_event(\n    'property.published', 'property', p_property_id,\n    jsonb_strip_nulls(jsonb_build_object(\n      'property_id', p_property_id,\n      'slug', v_after.slug,\n      'tier', v_after.campaign_tier,\n      'market', v_after.market_slug,\n      'submission_id', v_after.submission_id\n    )),\n    p_actor\n  );\n  return jsonb_build_object('event_id', v_event, 'version', v_after.version);\nend;\n$$;\n\nrevoke execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.publish_property(uuid, integer, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"sixth publish in a UTC day\"",
+    "expect": "× .*sixth publish in a UTC day raises agent_daily_limit"
+  },
+  {
+    "id": "b7-g7-db-rank-swap",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.set_ranks(\n  p_property_id uuid,\n  p_expected_version integer,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_hero_rank integer default null,\n  p_featured_rank integer default null\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.properties;\n  v_after public.properties;\n  v_hero_holder uuid;\n  v_featured_holder uuid;\nbegin\n  -- B7 invariant 7: a rank another property holds is swapped in this transaction, so each rank stays unique.\n  select * into v_before from public.properties p where p.id = p_property_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  select p.id into v_hero_holder from public.properties p\n  where p.hero_rank = p_hero_rank and p.id <> p_property_id for update;\n  select p.id into v_featured_holder from public.properties p\n  where p.featured_rank = p_featured_rank and p.id <> p_property_id for update;\n  update public.properties p set hero_rank = null where p.id = v_hero_holder;\n  update public.properties p set featured_rank = null where p.id = v_featured_holder;\n  v_after := public.save_property(\n    p_property_id, p_expected_version,\n    jsonb_build_object('hero_rank', p_hero_rank, 'featured_rank', p_featured_rank, 'updated_by', p_actor)\n  );\n  update public.properties p set hero_rank = v_before.hero_rank where p.id = v_hero_holder;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.rank', 'property', p_property_id, to_jsonb(v_before), to_jsonb(v_after),\n    p_request_id\n  );\n  return v_after.version;\nend;\n$$;\n\nrevoke execute on function public.set_ranks(uuid, integer, uuid, public.actor_kind, text, integer, integer)\n  from public, anon, authenticated;\ngrant execute on function public.set_ranks(uuid, integer, uuid, public.actor_kind, text, integer, integer)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"set_ranks swaps a featured rank\"",
+    "expect": "× .*set_ranks swaps a featured rank another property holds"
+  },
+  {
+    "id": "b7-g7-db-features-dup",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.set_features(\n  p_property_id uuid,\n  p_expected_version integer,\n  p_features text[],\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before text[];\n  v_after public.properties;\nbegin\n  -- B7 invariant 7: the lock and the version first, then the whole ordered list replaced.\n  v_after := public.save_property(p_property_id, p_expected_version, '{}'::jsonb);\n  if false then\n    raise exception 'invalid_key';\n  end if;\n  select coalesce(array_agg(r.feature order by r.sort_order, r.feature), '{}') into v_before\n  from public.property_features r where r.property_id = p_property_id;\n  delete from public.property_features r where r.property_id = p_property_id;\n  insert into public.property_features (property_id, feature, sort_order)\n  select p_property_id, feature, (position - 1)::integer\n  from unnest(p_features) with ordinality as listed (feature, position);\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.update', 'property', p_property_id, jsonb_build_object('features', v_before),\n    jsonb_build_object('features', p_features), p_request_id\n  );\n  return v_after.version;\nend;\n$$;\n\nrevoke execute on function public.set_features(uuid, integer, text[], uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_features(uuid, integer, text[], uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"set_features leaves exactly the list\"",
+    "expect": "× .*set_features leaves exactly the list in order"
+  },
+  {
+    "id": "b7-g7-db-rep-update",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.upsert_representative(\n  p_fields jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_id uuid default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.representatives;\n  v_after public.representatives;\nbegin\n  -- B7: name, brokerage, license, email and phone only; the photo has no upload here. B2's trigger on representatives\n  -- bumps catalog_version.\n  if exists (\n    select 1 from jsonb_object_keys(p_fields) k where k not in ('name', 'brokerage', 'license', 'email', 'phone')\n  ) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  if p_id is null then\n    insert into public.representatives (name, brokerage, license, email, phone)\n    values (\n      p_fields ->> 'name', p_fields ->> 'brokerage', p_fields ->> 'license', p_fields ->> 'email', p_fields ->> 'phone'\n    )\n    returning * into v_after;\n  else\n    select * into v_before from public.representatives r where r.id = p_id for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n    update public.representatives r\n    set name = case when p_fields ? 'name' then p_fields ->> 'name' else r.name end,\n      brokerage = r.brokerage,\n      license = case when p_fields ? 'license' then p_fields ->> 'license' else r.license end,\n      email = case when p_fields ? 'email' then p_fields ->> 'email' else r.email end,\n      phone = case when p_fields ? 'phone' then p_fields ->> 'phone' else r.phone end\n    where r.id = p_id\n    returning * into v_after;\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'properties.representative_put', 'representative', v_after.id, to_jsonb(v_before),\n    to_jsonb(v_after), p_request_id\n  );\n  return v_after.id;\nend;\n$$;\n\nrevoke execute on function public.upsert_representative(jsonb, uuid, public.actor_kind, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.upsert_representative(jsonb, uuid, public.actor_kind, text, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"upsert_representative inserts without an id\"",
+    "expect": "× .*upsert_representative inserts without an id"
+  },
+  {
+    "id": "b7-g7-cache-index",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "drop index public.properties_list_idx;\ncreate index properties_list_idx on public.properties (editorial_state, updated_at, id);\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"the properties list pages by state\"",
+    "expect": "× .*the properties list pages by state"
+  },
+  {
+    "id": "b7-g7-cache-publish",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "alter table public.properties disable trigger properties_bump_catalog_version_upd;\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"publish_property raises it by exactly one\"",
+    "expect": "× .*publish_property raises it by exactly one"
+  },
+  {
+    "id": "b7-g7-cache-draft",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "drop trigger properties_bump_catalog_version_upd on public.properties;\ncreate trigger properties_bump_catalog_version_upd after update on public.properties\nfor each row execute function public.tg_bump_catalog_version();\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"an edit of a published row\"",
+    "expect": "× .*an edit of a published row raises it by exactly one"
   }
 ]

@@ -1639,9 +1639,9 @@
   {
     "id": "b17-g8-layout-admin",
     "test": "tests/unit/essentials.test.ts",
-    "file": "src/routes/admin.tsx",
-    "find": "import { installClientErrorListeners } from \"../lib/report-error\";\n",
-    "replace": "import { installClientErrorListeners as realInstall } from \"../lib/report-error\";\nimport { startWebVitals } from \"../lib/web-vitals\";\n\nconst installClientErrorListeners = () => {\n  startWebVitals();\n  return realInstall();\n};\n",
+    "file": "src/admin/ui/AdminLayout.tsx",
+    "find": "import { installClientErrorListeners } from \"../../lib/report-error\";\n",
+    "replace": "import { installClientErrorListeners as realInstall } from \"../../lib/report-error\";\nimport { startWebVitals } from \"../../lib/web-vitals\";\n\nconst installClientErrorListeners = () => {\n  startWebVitals();\n  return realInstall();\n};\n",
     "run": "bun run test tests/unit/essentials.test.ts -t site-layout",
     "expect": "× .*site-layout: the admin layout starts neither"
   },

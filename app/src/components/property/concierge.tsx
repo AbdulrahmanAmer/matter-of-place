@@ -70,7 +70,7 @@ export function AskMatterOfPlace({
   }
 
   return (
-    <aside className="concierge-panel" aria-label="Ask Matter of Place">
+    <aside className="concierge-panel" aria-label="Ask Matter of Place" data-print="hide">
       <div className="concierge-head">
         <span className="eyebrow">ASK MATTER OF PLACE</span>
         <button

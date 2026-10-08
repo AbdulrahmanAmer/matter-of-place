@@ -154,12 +154,33 @@ function fromService(route: PublicRoute, value: unknown): Response {
     : Response.json(value, { status: route.status, headers });
 }
 
+/** The `draft_token` a row's query keeps, or undefined; a malformed one is the same 404 as a wrong one. */
+function draftTokenOf(route: PublicRoute, request: Request): string | undefined {
+  const search = new URL(request.url).searchParams;
+  if (route.query === undefined || !search.has("draft_token")) return undefined;
+  const parsed = route.query.safeParse(Object.fromEntries(search));
+  if (!parsed.success) {
+    throw new AppError("not_found", undefined, "There is nothing at this address.");
+  }
+  return parsed.data.draft_token;
+}
+
 async function read(match: Match, request: Request, db: Db, ctx: PublicCtx): Promise<Response> {
   const { route, params } = match;
   if (route.raw === true || route.cache === undefined) {
     throw new AppError("server", undefined, "A read route needs its cache options.");
   }
   const input = route.schema === undefined ? undefined : route.schema.parse(params[0]);
+  const token = draftTokenOf(route, request);
+  if (token !== undefined && route.draftService !== undefined) {
+    // Never stored and never served from the cache (rule 6): `handlePublic` labels it `bypass`. A draft is never indexed.
+    const slug = params[0] ?? "";
+    const draft = await route.draftService(db, slug, token, ctx.env.PREVIEW_TOKEN_SECRET);
+    return Response.json(draft, {
+      status: route.status,
+      headers: { "cache-control": "no-store", "x-robots-tag": "noindex, nofollow" },
+    });
+  }
   const tags = route.cache.tags.map((tag) => tag.replace("$slug", params[0] ?? ""));
   const build = async (): Promise<Response> => {
     try {
