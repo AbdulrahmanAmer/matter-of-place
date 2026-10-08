@@ -4,6 +4,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Report } from "../../domain/reports";
+import { serveAdmin as serve } from "../../../tests/fixtures/admin-serve";
 import { AdminMeContext, type AdminMe } from "../ui/admin-me";
 import { mountRoutes, pageRoute } from "../ui/test-router";
 import { ToastProvider } from "../ui/Toast";
@@ -65,21 +66,6 @@ const me = (actions: string[]): AdminMe => ({
 });
 
 const REPORTS = "/api/admin/reports";
-
-/** Answers the paths of screen 22 from `answers` (a `Response` as it is), records each request, refuses the rest. */
-function serve(answers: Record<string, unknown>) {
-  const requested: string[] = [];
-  vi.stubGlobal("fetch", (path: string, init: RequestInit = {}) => {
-    const key = `${init.method ?? "GET"} ${path}`;
-    requested.push(key);
-    const body = answers[key];
-    if (body instanceof Response) return Promise.resolve(body);
-    return Promise.resolve(
-      body === undefined ? new Response("{}", { status: 404 }) : Response.json(body),
-    );
-  });
-  return requested;
-}
 
 const list = (items: Report[]) => ({ items, total: items.length });
 

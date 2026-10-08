@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SocialPost } from "../../domain/channels";
+import { serveAdmin as serve } from "../../../tests/fixtures/admin-serve";
 import { channelHealth } from "../../../tests/fixtures/channel-health";
 import { AdminMeContext, type AdminMe } from "../ui/admin-me";
 import { mountRoutes, pageRoute } from "../ui/test-router";
@@ -103,20 +104,6 @@ const mount = (actions: string[], page: ReactNode) => render(providers(actions, 
 const list = (items: SocialPost[]) => ({ items, total: items.length });
 
 const POSTS = "/api/admin/channels/posts";
-
-/** Answers the paths of screen 12 from `answers`, records each request as `METHOD path body`, refuses the rest. */
-function serve(answers: Record<string, unknown>) {
-  const requested: string[] = [];
-  vi.stubGlobal("fetch", (path: string, init: RequestInit = {}) => {
-    const key = `${init.method ?? "GET"} ${path}`;
-    requested.push(typeof init.body === "string" ? `${key} ${init.body}` : key);
-    const body = answers[key];
-    return Promise.resolve(
-      body === undefined ? new Response("{}", { status: 404 }) : Response.json(body),
-    );
-  });
-  return requested;
-}
 
 const healthRows = [
   channelHealth("instagram", {

@@ -4762,11 +4762,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: from `app/`, with the dev profile and that export, `E2E_PORT=8968 env -u CLOUDFLARE_API_TOKEN bunx playwright test tests/e2e/admin-channels.spec.ts` → `4 passed`; without the export → `1 failed`, `Received: 503`.
 - added: 2026-10-08
 
-## P-2220 · `watchfail.mjs --registry tests/mutations --changed origin/main` selects committed entries only, so a group's uncommitted registry lines are never replayed and the summary still reads `ok N, bad 0`
+## P-2220 · Before a4c12d73, `watchfail.mjs --registry tests/mutations --changed origin/main` selected committed entries only, so a group's uncommitted registry lines were never replayed and the summary still read `ok N, bad 0`
 - symptom: B10 g9 added 75 entries (`b10g9-*`) to `tests/mutations/B10.json` and ran the reviewer's command before committing: `watchfail: replayed 60: ok 60, bad 0, stale 0; manual 4 not replayed; 3696 not selected`, and `grep -c b10g9 /tmp/wf.out` printed 0. The 60 were earlier groups' entries, about 12 minutes of replay.
 - cause: `--changed <ref>` lists files with `git diff --name-only --relative <ref>...HEAD` (`scripts/watchfail.mjs`, `replayRegistry`), which holds commits only. A file changed in the working tree is not in the list, so no entry that names it is selected, and the count printed is whatever the commits selected.
-- rule: before the commit, replay the group's own entries from a scratch registry folder that holds only them (P-2218) and compare the replayed count with the entries added; after the commit, `--changed origin/main` covers them. Never read `ok N, bad 0` without checking that N includes the ids you wrote.
-- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed origin/main 2>&1 | grep -c "<id prefix of an uncommitted entry>"` → `0`; after `git commit` of that entry the same command prints a line for it (measured 2026-10-08, B10 g9).
+- rule: on a tree whose `scripts/watchfail.mjs` has no `registryAt` (a lane that has not merged main past a4c12d73, P-539), replay the group's own entries from a scratch registry folder that holds only them (P-2218) before the commit and compare the replayed count with the entries added. Never read `ok N, bad 0` without checking that N includes the ids you wrote.
+- proof: `cd app && grep -c registryAt scripts/watchfail.mjs` → `0` on the tree that measured the symptom (B10 g9 before its merge of main) and at least `2` after a4c12d73, which also replays the entries the working registry gained since the ref; there `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main | grep -c "<id prefix of an uncommitted entry>"` is not 0 (measured 2026-10-08, B10 g9).
 - added: 2026-10-08
 
 ## P-2221 · A plan proof that greps a function name for "one line" is true only when the file imports it under an alias, as B8's reconcile.ts does for `reconcileUploads`
