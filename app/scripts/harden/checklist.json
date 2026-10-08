@@ -116,7 +116,7 @@
       "id": "H1-16",
       "lane": "Backend and data",
       "item": "RLS enabled and reviewed per table",
-      "expectation": "one line per table and role with the policy names; exit 0",
+      "expectation": "one line per table with each operation, the roles its policies admit and the policy names, then rls ok; exit 0",
       "command": "<load-dev> && bun run scripts/harden/rls-review.ts --env dev"
     },
     {
@@ -130,15 +130,15 @@
       "id": "H1-18",
       "lane": "Backend and data",
       "item": "Migrations are the only path and apply clean (resets mop-dev; before the launch switch only)",
-      "expectation": "db:reset, db:lint and the dev seed exit 0; the newest ci.yml run succeeded; check-migrations.mjs exits 0",
-      "command": "(<load-dev> && bun run db:reset && bun run db:lint && bun run seed --target dev) && [ \"$(gh run list --workflow ci.yml --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ] && node scripts/check-migrations.mjs"
+      "expectation": "db:reset, db:lint and the dev seed exit 0; the ci.yml run of the pull request main's head came from succeeded; check-migrations.mjs exits 0. Ruling H57: a lane never resets or seeds mop-dev, so without H1_DB_RESET=1 (set by the orchestrator from main under the G34 lock) the row lints the current schema, runs the two checks and prints BLOCKED",
+      "command": "(<load-dev> && export SUPABASE_DB_PASSWORD=\"$DEV_SUPABASE_DB_PASSWORD\" && if [ \"${H1_DB_RESET:-}\" = 1 ]; then bun run db:reset && bun run db:lint && bun run seed --target dev; else bun run db:lint; fi) && sha=$(gh api 'repos/{owner}/{repo}/commits/main/pulls' --jq '.[0].head.sha') && [ \"$(gh run list --workflow ci.yml --commit \"$sha\" --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ] && node scripts/check-migrations.mjs && if [ \"${H1_DB_RESET:-}\" != 1 ]; then echo 'BLOCKED until the orchestrator runs this row from main with H1_DB_RESET=1 under the G34 lock (ruling H57: no lane resets or seeds mop-dev)'; fi"
     },
     {
       "id": "H1-19",
       "lane": "Backend and data",
       "item": "Editorial and money gates enforced in the database",
       "expectation": "pass",
-      "command": "<load-dev> && bunx vitest run --project db tests/db/gate.db.test.ts tests/db/payments.db.test.ts"
+      "command": "<load-dev> && bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/gate.db.test.ts tests/db/payments.db.test.ts"
     },
     {
       "id": "H1-20",

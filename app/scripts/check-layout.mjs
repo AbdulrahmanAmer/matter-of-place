@@ -134,6 +134,7 @@ export const APP_ROWS = [
       "scripts/lib/*.{ts,mjs}",
       "scripts/{audit,harden,launch}/**/*.{ts,mjs}",
       "scripts/harden/checklist.json",
+      "scripts/harden/rls-review.sql",
       "scripts/**/fixtures/**",
       "scripts/omnikom-mock.wrangler.toml",
     ],

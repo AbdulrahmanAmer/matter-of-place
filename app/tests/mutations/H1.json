@@ -148,5 +148,62 @@
     "replace": "    scripts: [...new Set(hashed.slice(1, scripts.length))],",
     "run": "rebuild and serve on 8878 as h1g2-b-hsts, then E2E_TARGET=url E2E_MODE=local E2E_BASE_URL=http://127.0.0.1:8878 bunx playwright test --project=harden tests/e2e/csp.spec.ts",
     "expect": "\"directive\": \"script-src-elem\""
+  },
+  {
+    "id": "h1g3-c-table-without-rls",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "create table public.h1_scratch_no_rls (id int)",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(a\\) RLS off: h1_scratch_no_rls"
+  },
+  {
+    "id": "h1g3-d-anon-select-jobs",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "grant select on public.jobs to anon",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(b\\) anon holds select on jobs"
+  },
+  {
+    "id": "h1g3-e-audit-log-update-policy",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "create policy h1_scratch_update on public.audit_log for update to authenticated using (true)",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(d\\) insert-only audit_log: policy h1_scratch_update allows UPDATE"
+  },
+  {
+    "id": "h1g3-review-c-dropped-policy",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "drop policy payments_update_finance on public.payments",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(c\\) payments update: no policy for managing_editor, admin"
+  },
+  {
+    "id": "h1g3-review-e-no-search-path",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "create function public.h1_scratch() returns int language sql security definer as $$ select 1 $$; revoke all on function public.h1_scratch() from public, anon, authenticated",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(e\\) security definer without a fixed search_path: public\\.h1_scratch\\(\\)"
+  },
+  {
+    "id": "h1g3-review-e-anon-executes",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "create function public.h1_scratch() returns int language sql security definer set search_path = '' as $$ select 1 $$; grant execute on function public.h1_scratch() to anon",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(e\\) security definer executable by anon: public\\.h1_scratch\\(\\)"
+  },
+  {
+    "id": "h1g3-m-migration-without-down",
+    "test": "tests/db/migration-headers.test.ts",
+    "file": "supabase/migrations/20261008150152_admin_dashboard.sql",
+    "find": "-- down:\n--   drop function public.admin_dashboard();",
+    "replace": "--\n--   drop function public.admin_dashboard();",
+    "run": "bunx vitest run --project db tests/db/migration-headers.test.ts",
+    "expect": "× .*every migration opens with -- down: or -- irreversible: in its first 30 lines[\\s\\S]*20261008150152_admin_dashboard\\.sql"
   }
 ]
