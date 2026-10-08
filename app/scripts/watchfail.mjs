@@ -296,16 +296,29 @@ function usage(message) {
 async function replayRegistry({ registry, only, changed, kinds }) {
   const registries = loadRegistries(resolve(registry));
   if (registries.length === 0) return usage(`no *.json in ${registry}`);
+  // Changed paths come from the repository root, not `--relative`, which drops every path outside this
+  // folder: an entry anchored on `../.github/workflows/deploy.yml` was never selected (P-542).
+  const top =
+    changed === undefined
+      ? ""
+      : execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
   const touched =
     changed === undefined
       ? undefined
       : new Set(
-          execFileSync("git", ["diff", "--name-only", "--relative", `${changed}...HEAD`], {
+          execFileSync("git", ["diff", "--name-only", `${changed}...HEAD`], {
             encoding: "utf8",
+            cwd: top,
           })
             .split(/\r?\n/)
             .filter(Boolean),
         );
+  /**
+   * An entry's anchor as the repository-root path git prints, whatever folder the registry anchors it from.
+   * @param {string} path
+   * @returns {string}
+   */
+  const fromTop = (path) => relative(top, resolve(path)).split(sep).join("/");
   // Entries the branch added or edited since <ref> replay too, even when the file they anchor on no longer
   // differs from <ref> (P-539: a merge of main made a branch's entry stale and `--changed` never selected it).
   const asOfRef = changed === undefined ? undefined : registryAt(resolve(registry), changed);
@@ -322,7 +335,9 @@ async function replayRegistry({ registry, only, changed, kinds }) {
         continue;
       }
       const touchedByDiff =
-        touched === undefined || touched.has(entry.file ?? "") || touched.has(entry.test);
+        touched === undefined ||
+        (entry.file !== undefined && touched.has(fromTop(entry.file))) ||
+        touched.has(fromTop(entry.test));
       const addedSinceRef = asOfRef !== undefined && !asOfRef.has(`${name}:${JSON.stringify(raw)}`);
       if ((only !== undefined && entry.id !== only) || !(touchedByDiff || addedSinceRef)) {
         counts.skipped += 1;

@@ -3960,20 +3960,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh run view 37432245009 --log-failed | grep -c "Test timeout of 30000ms exceeded"` → at least 16; `git log --oneline -1 origin/main -- app/tests/e2e/fixtures/page.ts` → `c488a29 e2e: measure overflow after the entrance animations end ...`.
 - added: 2026-10-06
 
-## P-2029 · A staged photograph that becomes the first of a published property nulls `hero_image`, and B2's publish gate refuses the write
-- symptom: B7 g1 step 8: the case `attach_media on a published property queues one render_variants job too (G66)` failed with `error: publish_incomplete` at the `attach_media` call, on the factory's published property, which has no `property_media` row.
-- cause: `attach_media` gives the staged row the next `sort_order`, which is 0 on a property with no photograph, so B2's `property_media_hero_image` trigger sets `properties.hero_image` to the row's null `media_key`, and `enforce_publish_gate` refuses a published row without a hero. `reorder_media` moving a staged photograph to the top of a live page meets the same gate.
-- rule: a db case that attaches to or reorders a published property gives it stored photographs first (`sixPhotographs` in `tests/db/admin.db.test.ts`). A live page's hero is a stored photograph: an order that puts a staged one first on a published property answers 422 `publish_incomplete` by design, never by accident in a fixture.
-- proof: from `app/` with the dev profile and `MOP_MUTATION_SQL="$(cat supabase/migrations/<ts>_admin_media.sql)"`, `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/admin.db.test.ts -t media` → `Tests  11 passed | 45 skipped (56)`; with the `sixPhotographs` line of `attachQueuesOne` removed → `1 failed`, `error: publish_incomplete` (measured 2026-10-08, B7 g1).
-- added: 2026-10-08
-
-## P-2030 · A sql watched-fail that turns one `or` of a three-part guard into `and` stays green: `and` binds tighter
-- symptom: B7 g1 (step 8): `b7-g8-db-reorder` replaced `or not (p_order <@ v_before)` with `and not (...)` in `reorder_media`'s guard and replayed `WATCHED-FAIL BAD: stayed green`; the partial order still raised `reorder_mismatch`.
-- cause: the guard reads `A or B or C`; the mutation made it `A or B and not C`, which SQL reads as `A or (B and not C)`, so the cardinality test `A` alone still raised for the case the test makes.
-- rule: a watched-fail of a guard with several conditions removes the whole guard (`if false then`), or the one condition the test's case trips, never an operator in the middle of it; replay it before naming it in a log.
-- proof: `cd app && node -e "const e=require('./tests/mutations/B7.json').find(x=>x.id==='b7-g8-db-reorder');console.log(e.sql.includes('if false then'))"` → `true`; its replay from a scratch registry with the migration prepended → `WATCHED-FAIL OK B7:b7-g8-db-reorder` (2026-10-08).
-- added: 2026-10-08
-
 ## G-901 · A test or script client built from `SUPABASE_URL` on this laptop writes to another business's production project
 - paths: app/tests/e2e/helpers/session.ts, app/scripts/seed-admin-users.ts, app/tests/fixtures/service.ts
 - severity: warn
@@ -5138,13 +5124,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `git show 6eda9a41:GOTCHAS.md | awk '/^## P-1917/{f=1;next}/^## /{f=0}f' | grep '^- rule' | md5sum` equals the same command on `origin/main` -> same hash (main's line is the base's).
 - added: 2026-10-08
 
-## P-2028 · B7 step 8's smoke cleanup names "the values of variants" as media keys, and its `deleteObjects` reads the shell's `SUPABASE_URL`
-- symptom: B7 g1 (step 8): the plan's Files line says the `upload --render` cleanup deletes `deleteObjects("media", [media_key, ...values of variants])` of `src/server/lib/media-store.ts`. Reading B9's code took the time: `property_media.variants` holds sizes (`{ "hero": { "w": 1600, "h": 1067 } }`), not keys, and `deleteObjects` builds its address from `readVar("SUPABASE_URL")`, the name G-901 says belongs to another business on this laptop unless the dev profile overwrote it.
-- cause: the plan was written before B9 fixed the key layout: every rendition key is derived from the master, `v/<owner>/<n>-<sha8>/<size>.<ext>` (`variantKeys` in `scripts/variants.ts`, P-335).
-- rule: a script that removes a stored photograph from the bucket `media` derives the keys with `variantKeys(owner, n, sha8)` from the master `o/<owner>/<n>-<sha8>.webp`, and removes them through `serviceClient()` (the dev profile's own names), never through `deleteObjects` from a laptop script.
-- proof: `cd app && grep -n "variantKeys\|serviceClient" scripts/admin-smoke.ts` → the import lines and the cleanup's `storage.storage.from("media").remove(storedKeys(mediaKey))`; `grep -n "const sizes" src/server/jobs/steps/render-variants.ts` → `z.record(z.string(), z.object({ w: z.number(), h: z.number() }))` (2026-10-08). The `--render` leg itself is UNPROVEN until B9's render_variants is deployed.
-- added: 2026-10-08
-
 ## P-731 · A brief that says a file "does not exist on main" can name a file the lane branch already holds: Write overwrote it
 - symptom: B9 c5n's brief said `tests/unit/assets/templates.test.ts` does not exist on main; the builder wrote it with Write, the hook raised no refusal, and the 197-line SSR snapshot file of B9 g4 (Cover, Story, OgCard, carousel, 22 registry entries) was replaced until `git status` showed ` M` instead of `??`. `git checkout --` restored it and the new cases were appended.
 - cause: the brief was written against main, and the lane branch carries earlier groups' commits (`7982a01` added the file); Write replaces a file it was not told to read.
@@ -5400,6 +5379,14 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && eval "$(node scripts/load-env.mjs --profile dev)"; env -u SUPABASE_ACCESS_TOKEN bunx supabase secrets list --project-ref "$DEV_SUPABASE_PROJECT_REF" | head -c 200` → `{"_tag":"Error","error":{"code":"AccessTokenRequiredError", ...` (shell without the token); `printf 1 | sha256sum` → `6b86b273ff34fce1...`.
 - added: 2026-10-08
 
+## P-542 · `watchfail.mjs --changed <ref>` never selected an entry anchored outside `app/`: `git diff --name-only --relative` run from `app/` drops every path above it
+- symptom: 2026-10-08 14:55, orchestrator: 273 registry entries anchor on a `file` or `test` that starts with `../` (`../.github/workflows/deploy.yml`, `../launch/reel/cues.mjs`, `../workspace/05-plans/merge-gate.mjs`). `B17:b17-deploy-lighthouse-gate` went stale when PR 241 changed `deploy.yml`; no `--changed origin/main` replay selected it, and PR 244's CI tripped on it by accident.
+- cause: `replayRegistry()` listed changed files with `git diff --name-only --relative <ref>...HEAD` from `app/`; `--relative` keeps only paths under the current folder and strips that prefix, so the set held `src/x.ts` but never `.github/workflows/deploy.yml`, and an entry's raw `../.github/...` could not match it either way.
+- rule: list changed paths from the repository root (`git rev-parse --show-toplevel`, `git diff --name-only <ref>...HEAD` run there, no `--relative`) and compare each entry's `file` and `test` as repository-root paths (`relative(top, resolve(path))`). Any new selection test for `--changed` needs a fixture whose registry sits in a sub-folder of the repository and anchors on a file above it.
+- proof: `cd app && bunx vitest run --project unit tests/unit/watchfail.test.ts -t "above the registry"` passes both cases; `node scripts/watchfail.mjs --registry tests/mutations --only wf-outside-resolve` and `--only wf-outside-quiet` print `WATCHED-FAIL OK B4:<id>`.
+- added: 2026-10-08
+- enforced-by: tests/unit/watchfail.test.ts ("--changed <ref> replays an entry anchored on a changed file above the registry's folder (P-542)" and its unchanged-file sibling)
+
 ## P-541 · A check stage on a shared lane machine dies with "JavaScript heap out of memory": node's 2 GB heap ceiling under five concurrent checks, not the machine running dry
 - symptom: 2026-10-08 11:44, Dell, B11 g1 builder (lane D:/mop-build/b11): `bun run check` printed `FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory` (Mark-Compact 2036 MB -> 2028 MB of a 2054 MB limit) after 304 s while five agents ran; the system had 1.96 GB free.
 - cause: the stage was `eslint . --max-warnings 0` (type-aware lint, R01 projectService, holds the program of about 2,000 files in memory; exit 134); node sizes its default old-space limit from the machine (the Dell gave 2054 MB, this laptop gives 4288) and under load eslint crosses the smaller one. The machine was not out of memory.
@@ -5420,6 +5407,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the reporter's `×` line is indented under its describe and names only the test; the describe path appears only on the `FAIL` line. Two describes with the same test title cannot be told apart by `×`.
 - rule: a registry `expect` matches `× .*<title>` when the title is unique in the file, and `FAIL .*> <describe> > <title>` when it is not.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b8b-g6-putrecipe-authorize` → `WATCHED-FAIL OK B8b:b8b-g6-putrecipe-authorize` (measured 2026-10-08).
+- added: 2026-10-08
+
+## P-2029 · A staged photograph that becomes the first of a published property nulls `hero_image`, and B2's publish gate refuses the write
+- symptom: B7 g1 step 8: the case `attach_media on a published property queues one render_variants job too (G66)` failed with `error: publish_incomplete` at the `attach_media` call, on the factory's published property, which has no `property_media` row.
+- cause: `attach_media` gives the staged row the next `sort_order`, which is 0 on a property with no photograph, so B2's `property_media_hero_image` trigger sets `properties.hero_image` to the row's null `media_key`, and `enforce_publish_gate` refuses a published row without a hero. `reorder_media` moving a staged photograph to the top of a live page meets the same gate.
+- rule: a db case that attaches to or reorders a published property gives it stored photographs first (`sixPhotographs` in `tests/db/admin.db.test.ts`). A live page's hero is a stored photograph: an order that puts a staged one first on a published property answers 422 `publish_incomplete` by design, never by accident in a fixture.
+- proof: from `app/` with the dev profile and `MOP_MUTATION_SQL="$(cat supabase/migrations/<ts>_admin_media.sql)"`, `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/admin.db.test.ts -t media` → `Tests  11 passed | 45 skipped (56)`; with the `sixPhotographs` line of `attachQueuesOne` removed → `1 failed`, `error: publish_incomplete` (measured 2026-10-08, B7 g1).
+- added: 2026-10-08
+
+## P-2030 · A sql watched-fail that turns one `or` of a three-part guard into `and` stays green: `and` binds tighter
+- symptom: B7 g1 (step 8): `b7-g8-db-reorder` replaced `or not (p_order <@ v_before)` with `and not (...)` in `reorder_media`'s guard and replayed `WATCHED-FAIL BAD: stayed green`; the partial order still raised `reorder_mismatch`.
+- cause: the guard reads `A or B or C`; the mutation made it `A or B and not C`, which SQL reads as `A or (B and not C)`, so the cardinality test `A` alone still raised for the case the test makes.
+- rule: a watched-fail of a guard with several conditions removes the whole guard (`if false then`), or the one condition the test's case trips, never an operator in the middle of it; replay it before naming it in a log.
+- proof: `cd app && node -e "const e=require('./tests/mutations/B7.json').find(x=>x.id==='b7-g8-db-reorder');console.log(e.sql.includes('if false then'))"` → `true`; its replay from a scratch registry with the migration prepended → `WATCHED-FAIL OK B7:b7-g8-db-reorder` (2026-10-08).
+- added: 2026-10-08
+
+## P-2028 · B7 step 8's smoke cleanup names "the values of variants" as media keys, and its `deleteObjects` reads the shell's `SUPABASE_URL`
+- symptom: B7 g1 (step 8): the plan's Files line says the `upload --render` cleanup deletes `deleteObjects("media", [media_key, ...values of variants])` of `src/server/lib/media-store.ts`. Reading B9's code took the time: `property_media.variants` holds sizes (`{ "hero": { "w": 1600, "h": 1067 } }`), not keys, and `deleteObjects` builds its address from `readVar("SUPABASE_URL")`, the name G-901 says belongs to another business on this laptop unless the dev profile overwrote it.
+- cause: the plan was written before B9 fixed the key layout: every rendition key is derived from the master, `v/<owner>/<n>-<sha8>/<size>.<ext>` (`variantKeys` in `scripts/variants.ts`, P-335).
+- rule: a script that removes a stored photograph from the bucket `media` derives the keys with `variantKeys(owner, n, sha8)` from the master `o/<owner>/<n>-<sha8>.webp`, and removes them through `serviceClient()` (the dev profile's own names), never through `deleteObjects` from a laptop script.
+- proof: `cd app && grep -n "variantKeys\|serviceClient" scripts/admin-smoke.ts` → the import lines and the cleanup's `storage.storage.from("media").remove(storedKeys(mediaKey))`; `grep -n "const sizes" src/server/jobs/steps/render-variants.ts` → `z.record(z.string(), z.object({ w: z.number(), h: z.number() }))` (2026-10-08). The `--render` leg itself is UNPROVEN until B9's render_variants is deployed.
 - added: 2026-10-08
 
 ## P-1004 · Generated function types mark no argument nullable: a typed `db.rpc` refuses `p_actor: null`
