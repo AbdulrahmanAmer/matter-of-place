@@ -293,3 +293,43 @@ Recorded from the g8 review (no blocking defect). None is blocking. A first foll
 - what: Note for the slice e2e. 'Send test to me' (line 166 onward) sends mail through Resend on one click, with no confirm Dialog. STANDARDS C17 asks for a confirm Dialog on every external action. The plan's proof wording ('posts once') and the per-minute idempotency key make a single click reasonable, so this needs a ruling on whether a test mail to oneself counts as external under C17. It is not a defect of this step.
 - evidence: EmailTemplateEditor.tsx:166-195. STANDARDS.md:431 (C17)
 - blocking: false
+
+## g9 · steps 9
+
+Recorded from the g9 review (no blocking defect). None is blocking. No follow-up names GOTCHAS.md, so no bank entry was added.
+
+### 1. app/src/admin/automation/SettingsPage.tsx
+
+- what: Screen 20 shows only a partial view of the token's state. credentialsOf (lines 115-128) ignores the top-level `level` that the health answer also sends, and that level turns red when a post failed with `token_dead` (the deadRow case in server/channels/service.ts around line 180). It also treats an `amber` token whose label is 'API version expired' as Connected. In both cases screens 2 and 12 show red or amber while screen 20 says Connected. The author already lists the 0 to 7 days-left dead-token case as UNPROVEN. The fix belongs in B10's health answer (send token_state, or an explicit credentials state), not in a client heuristic.
+- evidence: Found by reading, not run. service.ts: `level: worst(token.level, deadRow ? "red" : "ok", ...)` and `token_state === "version_expired"` gives `level: "amber", label: "API version expired"`. SettingsPage.tsx reads only `found.token.{daysLeft,level}`. The test fixture settings.test.tsx:80 hard-codes the top-level `level: "ok"` for every row, which is the 'ok only' fixture that P-2512's own rule forbids.
+- blocking: false
+
+### 2. app/src/admin/automation/automation-queries.ts
+
+- what: Saving or reordering a decline reason invalidates only adminKeys.automation (and the dashboard). The decline menu on the request screen reads the same reasons under a different key, [...adminKeys.submissions.all(), "decline-reasons"] (requests-queries.ts:79). In one admin session, a request detail opened in the last 30 s (staleTime) can therefore offer the old list or order, even though screen 19 says 'A change applies to the next decline'.
+- evidence: Found by reading. useSaveReason and useReorderReasons call `onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all())`. requests-queries.ts:79 uses `queryKey: [...adminKeys.submissions.all(), "decline-reasons"]`. query.ts sets staleTime: 30_000.
+- blocking: false
+
+### 3. app/src/admin/settings/FlagsSection.tsx
+
+- what: A single click on a checkbox flips maintenance or csp_enforce immediately: maintenance answers every public page with the maintenance notice. There is no confirm Dialog. STANDARDS C17 asks that a destructive action go through the confirm Dialog. The change is reversible and step 9 does not ask for a confirm, so this is a follow-up to settle when FlagsSection is mounted on screen 24 (B7 step 15).
+- evidence: Found by reading. FlagsSection.tsx lines 33-46: `onChange={(event) => { save.mutate({ flag, value: event.target.checked }, ...) }}` with no Dialog.
+- blocking: false
+
+### 4. app/src/admin/automation/emails.test.tsx
+
+- what: The author reported this themselves. Step 8's test still keeps its own copy of the fetch stub and router mount that test-mount.tsx now holds. It is another group's file and jscpd passes today, so this is a follow-up to record.
+- evidence: From the author's unproven list and the g9 rework log block. `bun run check` passed (jscpd included), so no gate is red.
+- blocking: false
+
+### 5. app/src/admin/automation/settings.test.tsx
+
+- what: The secret-leak guard (b8b-g9-settings-no-secret) is a manual registry entry, so CI's watchfail never replays it. If a later change adds credentials_ref back to channelRowSchema, nothing mechanical shows that the guard can still go red.
+- evidence: tests/mutations/B8b.json, entry b8b-g9-settings-no-secret: kind manual, a two-file procedure. The author's log reports one hand replay on 2026-10-08. I did not repeat it.
+- blocking: false
+
+### 6. FlagsSection mount (src/routes/admin/settings.index.tsx)
+
+- what: NOT DONE by design: FlagsSection is not mounted on screen 24 because B7 step 15 has not created settings.index.tsx. Until that step lands, nothing in the app renders the component. The orchestrator must make sure B7 step 15, or whoever lands after it, adds the one import line. Otherwise the flags have no editor.
+- evidence: `grep -rn FlagsSection src` finds only FlagsSection.tsx and its test. `ls src/routes/admin | grep settings` shows only automation.settings.tsx. The group title excepts this mount.
+- blocking: false
