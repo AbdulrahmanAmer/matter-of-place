@@ -4,7 +4,7 @@
 // `getSubmission`. Step 6: the four decision functions and the agent daily cap (migration `admin_submissions_decisions`).
 // Step 7: the property functions (migration `admin_properties`). Step 7a: unpublish, takedown and agent preview
 // (migration `admin_takedown`). Step 8: the media functions and the one render job per property (migration
-// `admin_media`).
+// `admin_media`). Step 11: assign, forward, close and the list of inquiries (migration `admin_inquiries`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
@@ -2037,6 +2037,158 @@ describe("media", () => {
         partial: "22023 reorder_mismatch",
         order: [second, first],
       });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 11's migration (P-328). */
+async function assertStep11(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    "select to_regproc('public.forward_inquiry') is not null and to_regproc('public.list_inquiries') is not null as present",
+  );
+  expect(present).toBe(true);
+}
+
+async function createInquiry(db: Db, received: string): Promise<string> {
+  const { id } = await one<{ id: string }>(
+    db,
+    `insert into public.inquiries (intent, name, email, message, source_path, received_at)
+     values ('showing', 'Fixture', 'inquiry@fixtures.invalid', 'Hello', '/property/fixture', $1::timestamptz)
+     returning id`,
+    [received],
+  );
+  return id;
+}
+
+const ASSIGN = "select public.assign_inquiry($1, $2, $3, 'human', 'req-inquiries') as state";
+const FORWARD = "select public.forward_inquiry($1, $2, 'human', 'req-inquiries') as job";
+const CLOSE = "select public.close_inquiry($1, $2, 'human', 'req-inquiries') as state";
+
+async function stateOf(db: Db, id: string): Promise<string> {
+  return (
+    await one<{ state: string }>(db, "select state::text from public.inquiries where id = $1", [id])
+  ).state;
+}
+
+async function auditCount(db: Db, action: string, id: string): Promise<number> {
+  return count(
+    db,
+    "select count(*)::int as n from public.audit_log where action = $1 and entity_id = $2",
+    [action, id],
+  );
+}
+
+describe("inquiries (step 11)", () => {
+  it("assign_inquiry moves a new inquiry to in_progress for the editor, close_inquiry closes it, and a closed one refuses all three", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const assignee = await createStaffUser(db, ["chief_editor"]);
+      const id = await createInquiry(db, "2026-10-01T12:00:00Z");
+      const assigned = await one<{ state: string }>(db, ASSIGN, [id, assignee, editor]);
+      const row = await one<{ assigned_to: string }>(
+        db,
+        "select assigned_to from public.inquiries where id = $1",
+        [id],
+      );
+      const closed = await one<{ state: string }>(db, CLOSE, [id, editor]);
+      expect({
+        assigned: assigned.state,
+        assignedTo: row.assigned_to,
+        closed: closed.state,
+        stored: await stateOf(db, id),
+        audits: [
+          await auditCount(db, "inquiries.assign", id),
+          await auditCount(db, "inquiries.close", id),
+        ],
+        refusals: [
+          await attempt(db, ASSIGN, [id, assignee, editor]),
+          await attempt(db, FORWARD, [id, editor]),
+          await attempt(db, CLOSE, [id, editor]),
+        ],
+      }).toEqual({
+        assigned: "in_progress",
+        assignedTo: assignee,
+        closed: "closed",
+        stored: "closed",
+        audits: [1, 1],
+        refusals: ["P0001 wrong_state", "P0001 wrong_state", "P0001 wrong_state"],
+      });
+    });
+  });
+
+  it("assign_inquiry refuses an assignee who may not act on inquiries with validation", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const commercial = await createStaffUser(db, ["commercial"]);
+      const id = await createInquiry(db, "2026-10-01T12:00:00Z");
+      expect({
+        refused: await attempt(db, ASSIGN, [id, commercial, editor]),
+        state: await stateOf(db, id),
+      }).toEqual({ refused: "22023 validation", state: "new" });
+    });
+  });
+
+  it("two forward_inquiry calls create jobs keyed :1 and :2, write two inquiries.forward rows and leave the state", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const id = await createInquiry(db, "2026-10-01T12:00:00Z");
+      const first = await one<{ job: string }>(db, FORWARD, [id, editor]);
+      const second = await one<{ job: string }>(db, FORWARD, [id, editor]);
+      const jobs = await db.query<{ idempotency_key: string; payload: unknown }>(
+        "select idempotency_key, payload from public.jobs where id = any ($1::uuid[]) order by idempotency_key",
+        [[first.job, second.job]],
+      );
+      expect({
+        jobs: jobs.rows,
+        audits: await auditCount(db, "inquiries.forward", id),
+        state: await stateOf(db, id),
+      }).toEqual({
+        jobs: [
+          { idempotency_key: `webhook_omnikom:${id}:1`, payload: { data: { inquiry_id: id } } },
+          { idempotency_key: `webhook_omnikom:${id}:2`, payload: { data: { inquiry_id: id } } },
+        ],
+        audits: 2,
+        state: "new",
+      });
+    });
+  });
+
+  it("forward_inquiry raises enqueue_failed and writes no audit row when enqueue_job_manual queues nothing (DB-09)", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const id = await createInquiry(db, "2026-10-01T12:00:00Z");
+      await db.query(
+        `create or replace function public.enqueue_job_manual(
+           p_type text, p_entity_id uuid, p_payload jsonb, p_max_attempts int default 5
+         ) returns uuid language sql as $$ select null::uuid $$`,
+      );
+      expect({
+        refused: await attempt(db, FORWARD, [id, editor]),
+        audits: await auditCount(db, "inquiries.forward", id),
+      }).toEqual({ refused: "P0001 enqueue_failed", audits: 0 });
+    });
+  });
+
+  it("list_inquiries filters by state and pages newest first after a cursor", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const assignee = await createStaffUser(db, ["managing_editor"]);
+      const old = await createInquiry(db, "2000-01-01T00:00:00Z");
+      const older = await createInquiry(db, "1999-12-31T00:00:00Z");
+      const taken = await createInquiry(db, "1999-12-30T00:00:00Z");
+      await db.query(ASSIGN, [taken, assignee, editor]);
+      const page = await db.query<{ id: string }>(
+        `select id from public.list_inquiries(10, 'new', '2000-01-01T00:00:00Z', $1)
+         where id = any ($2::uuid[])`,
+        [old, [old, older, taken]],
+      );
+      expect(page.rows.map((found) => found.id)).toEqual([older]);
     });
   });
 });

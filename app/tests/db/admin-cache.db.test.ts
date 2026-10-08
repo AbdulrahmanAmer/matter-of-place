@@ -92,6 +92,15 @@ describe("admin list indexes", () => {
       "CREATE INDEX representatives_name_idx ON public.representatives USING btree (lower(name), id)",
     ]);
   });
+
+  it("the inquiries list index leads with the state and pages by received_at desc, id", async () => {
+    const definitions = await withRollback((db) =>
+      indexDefinitions(db, "inquiries", ["inquiries_list_idx"]),
+    );
+    expect(definitions).toEqual([
+      "CREATE INDEX inquiries_list_idx ON public.inquiries USING btree (state, received_at DESC, id)",
+    ]);
+  });
 });
 
 describe("catalog_version and the property writes (F25 a)", () => {

@@ -147,7 +147,7 @@
     "id": "b7-g1-routes-pending-literal",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "tests/unit/admin-routes-parity.test.ts",
-    "find": "  \"inquiries.list\",\n",
+    "find": "  \"stories.list\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*gives every matrix action a route"
@@ -4098,5 +4098,223 @@
     "replace": "value={formatNumber((data.counts[state] ?? 0) + 1)}",
     "run": "E2E_TARGET=built E2E_DATASET=1 E2E_PORT=8948 bun run build && bunx playwright test tests/e2e/admin-editorial.spec.ts --project=admin -g \"the dashboard counts\" --reporter=line",
     "expect": "Expected: [0-9]"
+  },
+  {
+    "id": "b7-11-svc-list-limit",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "p_limit: input.limit + 1,",
+    "replace": "p_limit: input.limit,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*lists one page for commercial"
+  },
+  {
+    "id": "b7-11-svc-list-forward",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "    forward_available: forwardAvailable(registry),\n",
+    "replace": "    forward_available: true,\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*lists one page for commercial"
+  },
+  {
+    "id": "b7-11-svc-cursor",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "return { p_after_id: id, p_after_received_at: at };",
+    "replace": "return { p_after_id: at, p_after_received_at: id };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*gives a full page the cursor"
+  },
+  {
+    "id": "b7-11-svc-bad-cursor",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "throw new AppError(\"validation\", undefined, \"This page link is no longer valid.\");",
+    "replace": "return { p_after_id: cursor, p_after_received_at: cursor };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*refuses a cursor it did not make"
+  },
+  {
+    "id": "b7-11-svc-forward-registry",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "isImplemented(\"webhook_omnikom\", registry)",
+    "replace": "isImplemented(\"webhook_omnikom\")",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*answers forward_available false"
+  },
+  {
+    "id": "b7-11-svc-get-404",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "if (data === null) throw new AppError(\"not_found\"",
+    "replace": "if (data === undefined) throw new AppError(\"not_found\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*answers 404 for an id with no row"
+  },
+  {
+    "id": "b7-11-svc-assignees-disabled",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": ".filter((role) => role.disabled_at === null)",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*lists each enabled human editor once"
+  },
+  {
+    "id": "b7-11-svc-assign-args",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "p_assignee: assignee,",
+    "replace": "p_assignee: id,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*assign answers in_progress"
+  },
+  {
+    "id": "b7-11-svc-close-rpc",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "db.rpc(\"close_inquiry\", {",
+    "replace": "db.rpc(\"assign_inquiry\", {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*close answers closed"
+  },
+  {
+    "id": "b7-11-svc-forward-job",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "return { job_id: data };",
+    "replace": "return { job_id: id };",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*forward answers the job"
+  },
+  {
+    "id": "b7-11-svc-commercial-forward",
+    "test": "tests/unit/inquiries.service.test.ts",
+    "file": "src/server/inquiries/service.ts",
+    "find": "authorize(actor, \"inquiries.forward\");",
+    "replace": "authorize(actor, \"inquiries.list\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/inquiries.service.test.ts",
+    "expect": "× .*commercial gets 403 on assign, forward and close"
+  },
+  {
+    "id": "b7-11-ui-open-id",
+    "test": "src/admin/inquiries/inquiries.test.tsx",
+    "file": "src/admin/inquiries/InquiriesPage.tsx",
+    "find": "return { id: id ?? null, show };",
+    "replace": "return { id: null, show };",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/inquiries/inquiries.test.tsx",
+    "expect": "× .*opened at /admin/inquiries\\?id="
+  },
+  {
+    "id": "b7-11-ui-forward-disabled",
+    "test": "src/admin/inquiries/inquiries.test.tsx",
+    "file": "src/admin/inquiries/InquiryDrawer.tsx",
+    "find": "const canForward = open && inquiry.forward_available && inquiry.anonymised_at === null;",
+    "replace": "const canForward = open && inquiry.anonymised_at === null;",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/inquiries/inquiries.test.tsx",
+    "expect": "× .*disables Forward with a note"
+  },
+  {
+    "id": "b7-11-ui-anonymised-drawer",
+    "test": "src/admin/inquiries/inquiries.test.tsx",
+    "file": "src/admin/inquiries/InquiryDrawer.tsx",
+    "find": "const anonymised = inquiry.anonymised_at !== null;",
+    "replace": "const anonymised = false;",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/inquiries/inquiries.test.tsx",
+    "expect": "× .*an anonymised inquiry shows Anonymised"
+  },
+  {
+    "id": "b7-11-ui-reader",
+    "test": "src/admin/inquiries/inquiries.test.tsx",
+    "file": "src/admin/inquiries/InquiryDrawer.tsx",
+    "find": "<RoleGate action=\"inquiries.forward\">",
+    "replace": "<RoleGate action=\"inquiries.get\">",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/inquiries/inquiries.test.tsx",
+    "expect": "× .*shows no Assign, Forward or Close to a reader"
+  },
+  {
+    "id": "b7-11-ui-forward-skipped",
+    "test": "src/admin/inquiries/inquiries.test.tsx",
+    "file": "src/admin/inquiries/InquiryDrawer.tsx",
+    "find": "{skipped ? <p>",
+    "replace": "{false ? <p>",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/inquiries/inquiries.test.tsx",
+    "expect": "× .*Forward posts once"
+  },
+  {
+    "id": "b7-11-ui-assign-body",
+    "test": "src/admin/inquiries/inquiries.test.tsx",
+    "file": "src/admin/inquiries/AssignDialog.tsx",
+    "find": "onAssign(chosen);",
+    "replace": "onAssign(current ?? \"\");",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/inquiries/inquiries.test.tsx",
+    "expect": "× .*Assign posts the chosen editor"
+  },
+  {
+    "id": "b7-11-ui-table-anonymised",
+    "test": "src/admin/inquiries/inquiries.test.tsx",
+    "file": "src/admin/inquiries/InquiriesTable.tsx",
+    "find": "row.anonymised_at === null ? value",
+    "replace": "true ? value",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/inquiries/inquiries.test.tsx",
+    "expect": "× .*shows Anonymised in place of the name"
+  },
+  {
+    "id": "b7-11-db-cc-forward-state",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.forward_inquiry(\n  p_inquiry_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.inquiries;\n  v_job uuid;\nbegin\n  -- Screen 11: one more `webhook_omnikom` job, keyed `webhook_omnikom:<id>:<n>` by B8. The state stays as it is:\n  -- B15's step sets `forwarded` after Omnikom answers 2xx. A closed or anonymised inquiry is not sent.\n  select * into v_before from public.inquiries i where i.id = p_inquiry_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_before.state = 'closed' or v_before.anonymised_at is not null then\n    raise exception 'wrong_state';\n  end if;\n\n  v_job := public.enqueue_job_manual(\n    'webhook_omnikom',\n    p_inquiry_id,\n    jsonb_build_object('data', jsonb_build_object('inquiry_id', p_inquiry_id))\n  );\n  -- DB-09: no job means no forward, so the audit row is not written and nothing reports one.\n  if v_job is null then\n    raise exception 'enqueue_failed';\n  end if;\n\n  update public.inquiries set state = 'forwarded' where id = p_inquiry_id;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'inquiries.forward', 'inquiry', p_inquiry_id,\n    jsonb_build_object('id', p_inquiry_id),\n    jsonb_build_object('id', p_inquiry_id, 'job_id', v_job),\n    p_request_id\n  );\n  return v_job;\nend;\n$$;\n\nrevoke execute on function public.forward_inquiry(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.forward_inquiry(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"two forward_inquiry calls\"",
+    "expect": "× .*two forward_inquiry calls create jobs"
+  },
+  {
+    "id": "b7-11-db-ww-forward-null",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.forward_inquiry(\n  p_inquiry_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.inquiries;\n  v_job uuid;\nbegin\n  -- Screen 11: one more `webhook_omnikom` job, keyed `webhook_omnikom:<id>:<n>` by B8. The state stays as it is:\n  -- B15's step sets `forwarded` after Omnikom answers 2xx. A closed or anonymised inquiry is not sent.\n  select * into v_before from public.inquiries i where i.id = p_inquiry_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_before.state = 'closed' or v_before.anonymised_at is not null then\n    raise exception 'wrong_state';\n  end if;\n\n  v_job := public.enqueue_job_manual(\n    'webhook_omnikom',\n    p_inquiry_id,\n    jsonb_build_object('data', jsonb_build_object('inquiry_id', p_inquiry_id))\n  );\n  -- DB-09: no job means no forward, so the audit row is not written and nothing reports one.\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'inquiries.forward', 'inquiry', p_inquiry_id,\n    jsonb_build_object('id', p_inquiry_id),\n    jsonb_build_object('id', p_inquiry_id, 'job_id', v_job),\n    p_request_id\n  );\n  return v_job;\nend;\n$$;\n\nrevoke execute on function public.forward_inquiry(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.forward_inquiry(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"raises enqueue_failed\"",
+    "expect": "× .*forward_inquiry raises enqueue_failed"
+  },
+  {
+    "id": "b7-11-db-assign-state",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.assign_inquiry(\n  p_inquiry_id uuid,\n  p_assignee uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns public.inquiry_state\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.inquiries;\n  v_state public.inquiry_state;\nbegin\n  -- Screen 11: the assignee is a person who may act on inquiries (the roles of `inquiries.assign`). Assigning a new\n  -- inquiry moves it to in_progress; a forwarded one keeps its state. A closed inquiry is not reopened (R22).\n  select * into v_before from public.inquiries i where i.id = p_inquiry_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_before.state = 'closed' then\n    raise exception 'wrong_state';\n  end if;\n  if not exists (\n    select 1\n    from public.user_roles r\n    join public.action_roles a on a.action = 'inquiries.assign'\n    where r.user_id = p_assignee\n      and r.disabled_at is null\n      and r.actor_kind = 'human'\n      and r.role = any (a.roles)\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'Choose an editor who can act on inquiries.';\n  end if;\n\n  v_state := v_before.state;\n  update public.inquiries\n  set assigned_to = p_assignee, state = v_state\n  where id = p_inquiry_id;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'inquiries.assign', 'inquiry', p_inquiry_id,\n    jsonb_build_object('id', p_inquiry_id, 'assigned_to', v_before.assigned_to, 'state', v_before.state),\n    jsonb_build_object('id', p_inquiry_id, 'assigned_to', p_assignee, 'state', v_state),\n    p_request_id\n  );\n  return v_state;\nend;\n$$;\n\nrevoke execute on function public.assign_inquiry(uuid, uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.assign_inquiry(uuid, uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"assign_inquiry moves a new inquiry\"",
+    "expect": "× .*assign_inquiry moves a new inquiry to in_progress"
+  },
+  {
+    "id": "b7-11-db-assign-role",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.assign_inquiry(\n  p_inquiry_id uuid,\n  p_assignee uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns public.inquiry_state\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.inquiries;\n  v_state public.inquiry_state;\nbegin\n  -- Screen 11: the assignee is a person who may act on inquiries (the roles of `inquiries.assign`). Assigning a new\n  -- inquiry moves it to in_progress; a forwarded one keeps its state. A closed inquiry is not reopened (R22).\n  select * into v_before from public.inquiries i where i.id = p_inquiry_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_before.state = 'closed' then\n    raise exception 'wrong_state';\n  end if;\n  if not exists (\n    select 1\n    from public.user_roles r\n    join public.action_roles a on a.action = 'inquiries.assign'\n    where r.user_id = p_assignee\n      and r.disabled_at is null\n      and r.actor_kind = 'human'\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'Choose an editor who can act on inquiries.';\n  end if;\n\n  v_state := case when v_before.state = 'new' then 'in_progress'::public.inquiry_state else v_before.state end;\n  update public.inquiries\n  set assigned_to = p_assignee, state = v_state\n  where id = p_inquiry_id;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'inquiries.assign', 'inquiry', p_inquiry_id,\n    jsonb_build_object('id', p_inquiry_id, 'assigned_to', v_before.assigned_to, 'state', v_before.state),\n    jsonb_build_object('id', p_inquiry_id, 'assigned_to', p_assignee, 'state', v_state),\n    p_request_id\n  );\n  return v_state;\nend;\n$$;\n\nrevoke execute on function public.assign_inquiry(uuid, uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.assign_inquiry(uuid, uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"refuses an assignee\"",
+    "expect": "× .*assign_inquiry refuses an assignee"
+  },
+  {
+    "id": "b7-11-db-close-closed",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.close_inquiry(\n  p_inquiry_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns public.inquiry_state\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.inquiries;\nbegin\n  -- Screen 11: any open inquiry closes, and a closed one stays closed (R22).\n  select * into v_before from public.inquiries i where i.id = p_inquiry_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n\n  update public.inquiries set state = 'closed' where id = p_inquiry_id;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'inquiries.close', 'inquiry', p_inquiry_id,\n    jsonb_build_object('id', p_inquiry_id, 'state', v_before.state),\n    jsonb_build_object('id', p_inquiry_id, 'state', 'closed'),\n    p_request_id\n  );\n  return 'closed'::public.inquiry_state;\nend;\n$$;\n\nrevoke execute on function public.close_inquiry(uuid, uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.close_inquiry(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"assign_inquiry moves a new inquiry\"",
+    "expect": "× .*assign_inquiry moves a new inquiry to in_progress"
+  },
+  {
+    "id": "b7-11-db-list-state",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.list_inquiries(\n  p_limit integer,\n  p_state public.inquiry_state default null,\n  p_after_received_at timestamptz default null,\n  p_after_id uuid default null\n)\nreturns setof public.inquiries\nlanguage sql\nstable\nset search_path = ''\nas $$\n  -- Screen 11 (invariant 17c): one keyset page, newest first, ordered as the list index `inquiries_list_idx` is.\n  select i.*\n  from public.inquiries i\n  where true\n    and (\n      p_after_received_at is null\n      or i.received_at < p_after_received_at\n      or (i.received_at = p_after_received_at and i.id > p_after_id)\n    )\n  order by i.received_at desc, i.id\n  limit p_limit;\n$$;\n\nrevoke execute on function public.list_inquiries(integer, public.inquiry_state, timestamptz, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.list_inquiries(integer, public.inquiry_state, timestamptz, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"list_inquiries filters by state\"",
+    "expect": "× .*list_inquiries filters by state"
+  },
+  {
+    "id": "b7-11-db-list-index",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "drop index public.inquiries_list_idx;\ncreate index inquiries_list_idx on public.inquiries (received_at desc, id);\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"inquiries list index\"",
+    "expect": "× .*the inquiries list index leads with the state"
   }
 ]

@@ -1121,6 +1121,9 @@ isOneToOne: false
 "assert_agent_daily_cap":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_group": string }; Returns: undefined
                            },
+"assign_inquiry":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_assignee": string,"p_inquiry_id": string,"p_request_id": string }; Returns: Database["public"]['Enums']["inquiry_state"]
+                           },
 "assets_received":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: Database["public"]['Enums']["submission_state"]
                            },
@@ -1225,6 +1228,9 @@ isOneToOne: false
 "clear_media_staging":
 { Args: { "p_items": Json }; Returns: number
                            },
+"close_inquiry":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_inquiry_id": string,"p_request_id": string }; Returns: Database["public"]['Enums']["inquiry_state"]
+                           },
 "complete_distributed_submissions":
 { Args: { "p_now": string }; Returns: number
                            },
@@ -1322,6 +1328,9 @@ isOneToOne: false
 "forget_webhook_receipt":
 { Args: { "p_id": string,"p_provider": string }; Returns: undefined
                            },
+"forward_inquiry":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_inquiry_id": string,"p_request_id": string }; Returns: string
+                           },
 "get_vault_secret":
 { Args: { "p_name": string }; Returns: string
                            },
@@ -1362,6 +1371,37 @@ isOneToOne: false
 "lapse_subscribers":
 { Args: { "p_grace"?: string }; Returns: number
                            },
+"list_inquiries":
+{ Args: { "p_after_id"?: string,"p_after_received_at"?: string,"p_limit": number,"p_state"?: Database["public"]['Enums']["inquiry_state"] }; Returns: {
+              "anonymised_at": string | null,
+"assigned_to": string | null,
+"attribution": NonNullable<Json>,
+"details": NonNullable<Json>,
+"email": string,
+"forwarded_at": string | null,
+"forwarded_payload": Json | null,
+"id": string,
+"intent": Database["public"]['Enums']["inquiry_intent"],
+"ip_hash": string | null,
+"location": string | null,
+"message": string,
+"name": string,
+"phone": string | null,
+"received_at": string,
+"source_path": string,
+"state": Database["public"]['Enums']["inquiry_state"],
+"subject_kind": string | null,
+"subject_slug": string | null,
+"subject_title": string | null,
+"topic": string | null,
+"turnstile_ok": boolean
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "inquiries"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "list_properties":
 { Args: { "p_after_id"?: string,"p_after_updated_at"?: string,"p_limit": number,"p_market"?: string,"p_states"?: (Database["public"]['Enums']["editorial_state"])[] }; Returns: {
               "campaign_tier": Database["public"]['Enums']["campaign_tier"],"editorial_state": Database["public"]['Enums']["editorial_state"],"featured_rank": number,"hero_rank": number,"id": string,"market_slug": string,"published_at": string,"region_slug": string,"slug": string,"source": Database["public"]['Enums']["submission_source"],"title": string,"updated_at": string

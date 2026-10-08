@@ -10,7 +10,15 @@ import { propertySchema } from "./property.ts";
  * Cloudflare Worker). Field names match the columns in supabase/migrations (G-004).
  */
 
-const inquiryIntents = ["showing", "ask", "similar", "sell", "invest", "agent", "general"] as const;
+export const inquiryIntents = [
+  "showing",
+  "ask",
+  "similar",
+  "sell",
+  "invest",
+  "agent",
+  "general",
+] as const;
 const inquiryIntentSchema = z.enum(inquiryIntents);
 export type InquiryIntent = z.infer<typeof inquiryIntentSchema>;
 
