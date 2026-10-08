@@ -2480,8 +2480,8 @@
     "id": "b7-g6-svc-assets-received",
     "test": "tests/unit/submissions.service.test.ts",
     "file": "src/server/submissions/service.ts",
-    "find": "  return { workflow_state: data };",
-    "replace": "  return { workflow_state: \"Under Review\" as const };",
+    "find": "    p_submission_id: input.id,\n    ...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);\n  return { workflow_state: data };",
+    "replace": "    p_submission_id: input.id,\n    ...auditContext(actor),\n  });\n  if (error !== null) throw fromRpcError(error);\n  return { workflow_state: \"Under Review\" as const };",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/submissions.service.test.ts",
     "expect": "× .*assets_received answers where the reques"
   },
