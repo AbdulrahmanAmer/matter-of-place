@@ -2004,5 +2004,167 @@
     "replace": "Date.parse(sibling.created_at) > DIGEST_GIVE_UP_MS",
     "run": "bunx vitest run --project unit tests/unit/newsletter/digest-notify.test.ts",
     "expect": "FAIL.*stops waiting an hour after the job was made and says the draft is not ready"
+  },
+  {
+    "id": "b11-standalone-delegation-lost",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "key === \"standalone\" && !test",
+    "replace": "key === \"never_standalone\" && !test",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*creates one broadcast to market-ca for a California property"
+  },
+  {
+    "id": "b11-standalone-create-twice",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "if (id === undefined) {",
+    "replace": "if (id === undefined || id !== undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*resumes a crash between create and send"
+  },
+  {
+    "id": "b11-standalone-sent-again",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "if (stored?.sent_at !== undefined) return done({ skipped: \"already_sent\" });",
+    "replace": "if (stored?.sent_at === \"never\") return done({ skipped: \"already_sent\" });",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*skips an asset that was already sent"
+  },
+  {
+    "id": "b11-standalone-takedown-ignored",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "property.editorial_state !== \"published\" || property.taken_down_at !== null",
+    "replace": "property.editorial_state !== \"published\"",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*sends nothing for a property unpublished or taken down"
+  },
+  {
+    "id": "b11-standalone-adopt-skipped",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "(await accepted(target.broadcastId))",
+    "replace": "!(await accepted(target.broadcastId))",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*adopts a broadcast Resend already sent"
+  },
+  {
+    "id": "b11-standalone-conflict-unconfirmed",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "if (error instanceof Conflict && (await accepted(id))) return adopt(ctx, target, id);",
+    "replace": "if (error instanceof Conflict && (await accepted(id)) && false) return adopt(ctx, target, id);",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*confirms a Conflict from the send through getBroadcast"
+  },
+  {
+    "id": "b11-standalone-recipients-unwritten",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "{ id, recipients, sent_at: ctx.now.toISOString() });\n  return done({ broadcast_id: id, recipients });",
+    "replace": "{ id, sent_at: ctx.now.toISOString() });\n  return done({ broadcast_id: id, recipients });",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*ends sent with a dry_ broadcast id"
+  },
+  {
+    "id": "b11-standalone-wait-shortened",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "const WAIT_MS = 3_600_000;",
+    "replace": "const WAIT_MS = 3_000_000;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*waits an hour for a pending asset"
+  },
+  {
+    "id": "b11-standalone-rejected-retried",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "if (status === \"rejected\") throw new NonRetryableError(\"asset_not_approved\");",
+    "replace": "if (status === \"rejected\") return null;",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*gives up on a rejected asset"
+  },
+  {
+    "id": "b11-standalone-oldest-revision",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": ".order(\"revision\", { ascending: false })",
+    "replace": ".order(\"revision\", { ascending: true })",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*reads the highest revision of the asset"
+  },
+  {
+    "id": "b11-standalone-address-unchecked",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "site.entity === null || site.address === null || ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*throws footer_incomplete when the legal address is null"
+  },
+  {
+    "id": "b11-standalone-link-unchecked",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": " || !drawn.html.includes(UNSUBSCRIBE_URL)",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*throws footer_incomplete when the rendered HTML lacks"
+  },
+  {
+    "id": "b11-standalone-campaign-renamed",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "`standalone-${property.slug}`",
+    "replace": "`issue-${property.slug}`",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*puts utm_campaign=standalone-"
+  },
+  {
+    "id": "b11-standalone-channel-ignored",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "if (!(await channelEnabled(db))) return done",
+    "replace": "if (!(await channelEnabled(db)) && false) return done",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*skips while the newsletter channel is off"
+  },
+  {
+    "id": "b11-standalone-quota-reason",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "return { status: \"retry_at\", at: quota.at, reason: \"quota\" };",
+    "replace": "return { status: \"retry_at\", at: quota.at, reason: \"other\" };",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*holds 30 recipients with 25 sent today"
+  },
+  {
+    "id": "b11-standalone-plan-retried",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "if (quota.status === \"exceeds_plan\") {",
+    "replace": "if (quota.status === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*refuses 51 recipients as quota_exceeds_plan"
+  },
+  {
+    "id": "b11-standalone-rate-limit-thrown",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/newsletter/standalone.ts",
+    "find": "if (error instanceof RateLimited) {",
+    "replace": "if (error instanceof Error && error.name === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*returns retry_at five seconds ahead on a 429"
+  },
+  {
+    "id": "b11-standalone-test-job-delegated",
+    "test": "tests/unit/newsletter/standalone.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "key === \"standalone\" && !test",
+    "replace": "key === \"standalone\"",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
+    "expect": "FAIL.*sends one .Test. message to the actor"
   }
 ]

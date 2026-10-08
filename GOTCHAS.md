@@ -4654,6 +4654,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `which psql` prints nothing on this session; the probe with the `file:///` import printed `{ n: 0 }` for the `newsletter.%` rows of `action_roles` (measured 2026-10-08).
 - added: 2026-10-08
 
+## P-2416 · Delegating the `standalone` template to `sendStandalone` breaks B5's own priority test, and a static import of it closes a circle
+- symptom: B11 g8 (step 9) put `if (key === "standalone" && !test)` into `send_email`; `tests/unit/email/send-email.test.ts` "priority: a bulk send at bulk_cap waits and a transactional one sends" went red with `NonRetryableError: property_id_missing` although the plan says "B5's email suite still passes". A static `import { sendStandalone }` in `send-email.ts` would also close `send-email.ts` -> `standalone.ts` -> `audience.ts` -> `send-email.ts` (`allowListed`).
+- cause: B5's test used `standalone` as its one bulk-class template for the per-recipient path; the plan did not list that test among the files B11 changes. Another bulk template (`market_open`) has a seed body with `{{market_name}}`, so the test needs a row override to run.
+- rule: when a step makes a template key take another path, grep the tests for that key first (`git grep -n '"standalone"' tests`) and move the test that used it as a stand-in to another bulk key in the same commit, naming it in the log; load the delegate with `await import()` and a comment, as `auto-approve.ts` does for `fanout.ts` (G-1000), never a static import that closes a circle.
+- proof: `cd app && bunx vitest run --project unit tests/unit/email/send-email.test.ts tests/unit/newsletter/standalone.test.ts` -> all passed on slice/b11 at g8; with the test's `market_open` put back to `standalone` it prints `FAIL ... priority: a bulk send at bulk_cap waits` (measured 2026-10-08).
+- added: 2026-10-08
+
+## P-2417 · `watchfail --changed origin/main` reads committed work only: before the commit it replays other groups' entries and skips the new ones, in about ten minutes
+- symptom: after g8 added `src/server/newsletter/standalone.ts` and 18 entries for it, `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` ran about 10 minutes (307 entries of every group already on the branch) and replayed only 3 of the 18 new ones (those whose file, `send-email.ts`, is tracked and committed earlier).
+- cause: the script selects by `git diff --name-only --relative origin/main...HEAD`, a three-dot diff to `HEAD`: nothing uncommitted counts, `git add -N` included, while the branch's earlier groups are all in the diff.
+- rule: replay the entries of uncommitted work by id (`node scripts/watchfail.mjs --registry tests/mutations --only <id>`, one call per id in a shell loop), and run `--changed origin/main` only after the commit, as the last gate; never edit a mutated file while a replay runs.
+- proof: `cd app && git diff --name-only --relative origin/main...HEAD | grep -c newsletter/standalone` printed `0` with the file written and staged with `git add -N`, and `--only b11-standalone-wait-shortened` printed `WATCHED-FAIL OK B11:b11-standalone-wait-shortened` (measured 2026-10-08).
+- added: 2026-10-08
+
 ## P-2200 · A B10 script cannot call the RPCs and tables of `social.sql` through the typed client before that migration merges
 - symptom: B10 g1 (step 0) has to write scripts that call `store_channel_token`, `put_channel_ids`, `get_vault_secret` and read `social_posts`, but `src/db/types.ts` lists none of `store_channel_token`, `put_channel_ids` and `record_channel_check` and no `social_posts` table (`get_vault_secret` is there since B8's retention migration) until step 6's migration is merged and `bun run gen:types` has run. A typed `createClient<Database>` call fails `bun run typecheck`, an untyped client fails the lint (P-810), and a cast fails `no-unsafe-type-assertion`.
 - cause: the plan puts the scripts in step 0 and the migration in step 6; "through the service role" assumed the generated types would already name them.

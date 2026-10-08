@@ -120,9 +120,15 @@ describe("send_email", () => {
   });
 
   it("priority: a bulk send at bulk_cap waits and a transactional one sends", async () => {
-    const { run } = setup({ sentToday: 50, notify: [ADMIN] });
+    // `market_open` stands for a bulk template here: `standalone` is one broadcast and never reaches `sendOne`.
+    const note = [{ type: "paragraph", text: "Open." }, { type: "signature" }];
+    const { run } = setup({
+      sentToday: 50,
+      notify: [ADMIN],
+      templates: { market_open: { subject: "Open", body: note } },
+    });
     const bulk = await run(
-      { template: "standalone", to: "admins" },
+      { template: "market_open", to: "admins" },
       { submission_id: SUBMISSION_ID },
     );
     const transactional = await run();

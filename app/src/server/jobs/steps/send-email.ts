@@ -350,6 +350,12 @@ async function run(ctx: StepContext, params: unknown, data: JsonObject): Promise
   const key = !test && isConfirmKey(named) ? await confirmTemplateKey(ctx.db, data) : named;
   const row = await templateRow(ctx.db, key);
   if (!row.enabled) return skipped("template_disabled");
+  if (key === "standalone" && !test) {
+    // The Campaign email is one broadcast, not one message per address (B11 invariant 9). `standalone.ts` imports this
+    // file and `audience.ts`, which imports it too, so a static import would close a circle: it is loaded when needed.
+    const { sendStandalone } = await import("../../newsletter/standalone.ts");
+    return sendStandalone(ctx, data);
+  }
   if (!isClass(row.class)) throw new NonRetryableError("template_class_invalid");
   const to = parsed["to"];
   const recipient = await resolveRecipient(
