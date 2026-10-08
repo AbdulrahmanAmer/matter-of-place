@@ -102,7 +102,7 @@
    - Evidence: `grep -n 'format=csv' workspace/05-plans/B11.md` prints line 81; `grep -n 'newsletter' workspace/05-plans/trace.json` lists the 8 original route files only; service.ts:127 comment vs newsletter.issues.$id.send-test.ts:14.
 
 4. File: `app/tests/e2e/admin-newsletter.spec.ts`. Blocking: no.
-   - What: UNPROVEN, as the brief allows. Tests 1 to 5 and 7 have never run green against the real Worker and database, and the leaveDraft path in afterAll has never run. Neither has a watched-fail. The only browser evidence for the UI flow is a page.route-stubbed scratch spec that was not committed, and the service and SQL shapes rest on a rolled-back transaction. The send-test route was never called on mop-dev. These items close only once main pushes 20261008030619 and 20261008030620, or on CI's e2e admin step for the PR.
+   - What: UNPROVEN, as the brief allows. Tests 1 to 5 and 7 have never run green against the real Worker and database, and the leaveDraft path in afterAll has never run. Neither has a watched-fail. The only browser evidence for the UI flow is a page.route-stubbed scratch spec that was not committed, and the service and SQL shapes rest on a rolled-back transaction. The send-test route was never called on mop-dev. These items close only once main pushes 20261008065240 and 20261008065241, or on CI's e2e admin step for the PR.
    - Evidence: The mop-dev probe printed newsletter.% action_roles n=0 and newest migration 20261007043633; logs/B11.md:430.
 
 (Follow-ups 1 and 2 of the reviewer's list, two costs with no gotcha entry, are P-2420 and a hit-again line in P-1302 in GOTCHAS.md, not follow-ups.)

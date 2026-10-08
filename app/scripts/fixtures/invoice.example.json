@@ -1,0 +1,31 @@
+{
+  "prefix": "MOP",
+  "due_days": 14,
+  "terms": "Payable within 14 days of the invoice date.",
+  "late_terms": "Payment is due by the date shown. Overdue amounts may be subject to a late charge.",
+  "tax_line": "No sales tax is charged on this invoice.",
+  "payment_methods": [
+    {
+      "id": "bank_transfer",
+      "label": "Bank transfer",
+      "instructions": "Test only (dev): no real account. Bank transfer to the test account named in this line."
+    },
+    {
+      "id": "wire",
+      "label": "Wire transfer",
+      "instructions": "Test only (dev): no real account. Wire to the test account named in this line."
+    },
+    {
+      "id": "card_by_phone",
+      "label": "Card by phone",
+      "instructions": "Test only (dev): no real account. Card payments by phone are not taken."
+    }
+  ],
+  "campaign_days": {
+    "The Feature": null,
+    "The Reach": null,
+    "The Campaign": 14,
+    "Five Features": null
+  },
+  "billing_email": "billing@example.invalid"
+}

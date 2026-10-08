@@ -2,6 +2,7 @@
 // `fixtures.invalid`, so cleanup and counts never touch another row (invariant 8).
 import type { z } from "zod";
 import type { inquirySchema, submissionSchema, subscriberSchema } from "../../src/domain/contracts";
+import type { IssueInvoiceInput } from "../../src/domain/payments";
 
 export type InquiryInput = z.input<typeof inquirySchema>;
 export type SubmissionInput = z.input<typeof submissionSchema> & { website: string };
@@ -44,4 +45,14 @@ export function validSubmission(overrides: Partial<SubmissionInput> = {}): Submi
 
 export function validSubscriber(overrides: Partial<SubscriberInput> = {}): SubscriberInput {
   return { email: "reader@fixtures.invalid", source: "home", ...overrides };
+}
+
+/** The body of `payments.issue-invoice` for a request that exists only in the test's own rows. */
+export function validIssueInvoice(overrides: Partial<IssueInvoiceInput> = {}): IssueInvoiceInput {
+  const base = {
+    submissionId: "0b6a1f4e-3c52-4d7a-9e18-5a2f7c1d9b60",
+    product: "The Feature",
+    preferredMethod: "bank_transfer",
+  } satisfies IssueInvoiceInput;
+  return { ...base, ...overrides };
 }

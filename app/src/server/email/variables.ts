@@ -1,15 +1,11 @@
 import { z } from "zod";
 import type { EmailTemplateKey } from "../../domain/email.ts";
+import { invoiceSnapshotSchema } from "../../domain/payments.ts";
 import { NonRetryableError, type JsonObject } from "../jobs/types.ts";
 import type { Db } from "../lib/db.ts";
 import { readVar } from "../lib/runtime-env.ts";
 import { openToken } from "../subscribers/confirm-email.ts";
-import {
-  loadSiteContext,
-  readSettings,
-  resolveAdminRecipients,
-  type SiteContext,
-} from "./context.ts";
+import { loadSiteContext, resolveAdminRecipients, type SiteContext } from "./context.ts";
 import { formatDate, formatUsd } from "./format.ts";
 import { interpolate } from "./render.ts";
 
@@ -282,13 +278,11 @@ async function awaitingAssets({ db, data }: Resolve): Promise<Variables> {
   return { ...facts(submission), assets_note: text(data, "note") ?? "" };
 }
 
-// STUB(B6 step 8): terms, billing_email and the payment methods come from payments.invoice_snapshot, not settings.invoice
-const invoiceSettings = z.object({
-  terms: z.string(),
-  billing_email: z.string(),
-  payment_methods: z
-    .array(z.object({ id: z.string(), label: z.string(), instructions: z.string() }))
-    .default([]),
+/** The frozen terms of an issued invoice: what the PDF shows, so the mail never disagrees with it. */
+const invoiceTerms = invoiceSnapshotSchema.pick({
+  terms: true,
+  billing_email: true,
+  instructions: true,
 });
 
 async function invoice({ db, data }: Resolve): Promise<Variables> {
@@ -298,7 +292,7 @@ async function invoice({ db, data }: Resolve): Promise<Variables> {
     throw new NonRetryableError("payment_id_missing");
   const query = db
     .from("payments")
-    .select("amount, invoice_number, product, preferred_method, submission_id");
+    .select("amount, invoice_number, invoice_snapshot, product, preferred_method, submission_id");
   const result =
     paymentId !== null
       ? await query.eq("id", paymentId).limit(1)
@@ -310,11 +304,12 @@ async function invoice({ db, data }: Resolve): Promise<Variables> {
   if (payment.invoice_number === null)
     throw new NonRetryableError("missing_variable:invoice_number");
   const submission = await needSubmission(db, payment.submission_id);
-  const settings = invoiceSettings.safeParse((await readSettings(db, ["invoice"])).get("invoice"));
-  if (!settings.success) throw new NonRetryableError("invoice_settings_missing");
-  const { terms, billing_email, payment_methods } = settings.data;
-  const chosen = payment_methods.find((method) => method.id === payment.preferred_method);
-  const described = payment_methods.filter((method) => method.instructions !== "");
+  if (payment.invoice_snapshot === null) throw new NonRetryableError("snapshot_missing");
+  const snapshot = invoiceTerms.safeParse(payment.invoice_snapshot);
+  if (!snapshot.success) throw new NonRetryableError("snapshot_malformed");
+  const { terms, billing_email, instructions } = snapshot.data;
+  const chosen = instructions.find((method) => method.id === payment.preferred_method);
+  const described = instructions.filter((method) => method.instructions !== "");
   return {
     ...facts(submission),
     invoice_number: payment.invoice_number,
