@@ -235,3 +235,25 @@ The tenth follow-up of the review is on GOTCHAS.md (P-718's proof names a port, 
 5. `workspace/05-plans/logs/B9.md` (not blocking)
    - What: These items remain open and are labelled correctly in the log. BLOCKED: the live end to end, confirmed by me as 0 objects and 5 of 5 empty variants on oak-hill-residence; render.yml is not on main. NOT DONE: the 40-photograph upload measurement. UNPROVEN: the Fonts present step and CHROME_PATH in Actions. UNPROVEN: that B1b rewrites the handlers' 'private, no-store' to exactly 'no-store'. Recorded here so none of them is dropped.
    - Evidence: psql read on mop-dev -> 0 and 5|5; the B9.md rework block
+
+## g2 · steps 11
+
+1. `app/src/admin/properties/RerenderAssetsButton.tsx` (not blocking)
+   - What: Follow-up. Screen 8's button reads the property's assets through useAssets but never shows assets.error. If GET /api/admin/assets?property_id=<id> fails (a 5xx, a lost connection, a 403), `current` stays empty, the button stays disabled, and the 'No assets yet.' note is also hidden because assets.data is undefined. The person sees a grey button with no reason and no request id. C17 asks for an error state with the request id. I marked this non-blocking because the button is a widget inside screen 8, not a screen of its own, and screen 10 shows the same error with the request id.
+   - Evidence: Found by reading, not run. Lines 34-38 and 72-90: `assets.error` is never referenced, and the only states drawn are disabled/enabled and 'No assets yet.' when assets.data !== undefined.
+
+2. `app/src/admin/properties/PropertyEditor.tsx` (not blocking)
+   - What: Follow-up for the orchestrator (stale plan line). The group edited a B7 file the step does not name: one line, `propertyId={id}`. It also changed PublishBar's props, which goes past the step's 'one import and one render line'. The log (B9.md line 506) says why: PublishBar had no property id. The plan text for step 11 under Files Change should name both edits.
+   - Evidence: git diff origin/main...slice/b9 -- app/src/admin/properties/PropertyEditor.tsx shows +propertyId={id}; PublishBar.tsx shows +propertyId prop, type and render line (4 lines).
+
+3. `app/src/admin/assets/AssetCards.tsx` (not blocking)
+   - What: Follow-up, found by reading. Re-render is offered on a rejected card, including a revision that is already superseded. When a newer pending revision of that kind exists, rerender_asset returns that pending revision and its job and renders nothing new (`if v_latest.revision > v_asset.revision and v_latest.status = 'pending' then return ...`). The dialog still says 'A new revision is rendered and this one is marked rejected as superseded', which is false for a card that is already rejected. The toast says 'sent to render again'. This copy misleads, but no data is at risk.
+   - Evidence: Found by reading, not run. AssetCards.tsx lines 89-95 (the confirmCopy.rerender body) and lines 192-205 (Re-render is shown for every status except published), compared with supabase/sql/functions/rerender_asset.sql lines 32-35.
+
+4. `app/src/admin/assets/assets-queries.ts` (not blocking)
+   - What: Follow-ups the author already listed, recorded here so none is dropped. (1) useRerenderAssets uses Promise.all, so if one asset's call fails, the jobs that did start are hidden; the button only shows the error toast. (2) RerenderAssetsButton reads only the first page of 50. listAssets orders by status before created_at, so after enough re-renders the rejected rows could crowd a current revision off page 1. (3) JobWatcher stays 'Queued' because no jobs read route exists. (4) Published assets count as current for the screen 8 button, while a published card offers no Re-render.
+   - Evidence: Found by reading. assets-queries.ts line 33 `Promise.all(ids.map(rerenderAsset))`; RerenderAssetsButton.tsx line 34 `useAssets({ property_id: propertyId })` with no page; service.ts lines 127-130 `.order("status").order("created_at", { ascending: false })`.
+
+5. `app/tests/e2e/admin-assets.spec.ts` (not blocking)
+   - What: UNPROVEN, not a defect of the code. Step 11's live whole path is NOT DONE: no property was published, no render jobs ran and no caption runner ran. The spec proves screen 10 on rows it seeds, with pictures served by page.route; in this snapshot .tmp/r is absent, so every picture fell back to tests/fixtures/photo.jpg. The spec has never run in CI's admin e2e job (there is no CI run for d2fbc5f). The axe checkpoint calls were not watched-fail. The six manual registry entries were not replayed after the merge, by the author or by me.
+   - Evidence: `ls app/.tmp/r` printed nothing in the snapshot. Log B9.md lines 467, 494 and 514. My e2e run passed 5/5 on the fallback photograph.
