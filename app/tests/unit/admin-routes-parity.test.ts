@@ -57,8 +57,6 @@ const routesPending: readonly ActionId[] = [
   "audit.subject_delete",
   "audit.subject_opt_out",
   "audit.subject_status",
-  "automation.templates_send_test",
-  "dashboard.get",
   // B10: reports.export is the browser's print and never gets a route (G22).
   "reports.export",
 ];
