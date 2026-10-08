@@ -106,3 +106,33 @@
    - Evidence: The mop-dev probe printed newsletter.% action_roles n=0 and newest migration 20261007043633; logs/B11.md:430.
 
 (Follow-ups 1 and 2 of the reviewer's list, two costs with no gotcha entry, are P-2420 and a hit-again line in P-1302 in GOTCHAS.md, not follow-ups.)
+
+## g8 · steps 9
+
+1. File: `workspace/05-plans/logs/B11.md`. Blocking: no.
+   - What: The pasted output for Proof 2 (line 409) does not reproduce. The log says 'Test Files 1 passed | 43 skipped (44), Tests 2 passed | 532 skipped (534)'. The same command at b2e5da8 prints 'Test Files 1 passed (1), Tests 1 passed | 20 skipped (21)'. Only one test title in the repository matches 'approving a standalone' (tests/db/newsletter.db.test.ts:595). So the pasted counts come from some other run or tree, not this commit. The point the proof makes, that the approval-link case passes on mop-dev, does hold, so I am not counting this as a failed proof. The log line should be corrected so it does not suggest two cases cover the link.
+   - Evidence: cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bunx vitest run --project db tests/db/newsletter.db.test.ts -t "approving a standalone" -> Tests 1 passed | 20 skipped (21); grep -rn 'approving a standalone' tests/ -> one test.
+
+2. File: `app/tests/unit/newsletter/standalone.test.ts`. Blocking: no.
+   - What: Invariant 4 says every broadcast must carry List-Unsubscribe and List-Unsubscribe-Post (one-click unsubscribe, a CAN-SPAM and bulk-sender requirement). No test checks those headers on the standalone broadcast, and none checks the plain-text unsubscribe line. Today's code is correct, but deleting either one leaves all 18 tests green. The plan's step 9 proof list does not ask for these, so this is a follow-up: assert the POST /broadcasts body on the fake provider (headers, and a text part holding the unsubscribe variable and the footer lines).
+   - Evidence: node scripts/watchfail.mjs --file src/server/newsletter/standalone.ts --find '"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",' --replace '' --run 'bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts' --expect FAIL -> WATCHED-FAIL BAD: stayed green. The same happens when '`Unsubscribe: ${UNSUBSCRIBE_URL}`' is replaced with '`x`'.
+
+3. File: `app/tests/unit/newsletter/standalone.test.ts`. Blocking: no.
+   - What: Lines 331-344: the utm test reads renderTemplate's mocked call arguments, which is an internal call shape (R53 / C10). The same link can be seen from outside, in the text field of the POST /broadcasts body on the fake provider. Once PR 211 lands and the render is real, move the assertion there.
+   - Evidence: Read: vi.mocked(renderTemplate).mock.calls[0]?.[1] at line 335. standaloneText puts block.link into the broadcast's text (standalone.ts:250).
+
+4. File: `app/src/server/newsletter/standalone.ts`. Blocking: no.
+   - What: Suspected from reading, not confirmed. Nothing stops two standalone send_email jobs for the same property from running at the same time. The 'create at most once' rule is read-then-create on assets.meta.broadcast.id, and createBroadcast sends no Idempotency-Key. One way to get two jobs: the property is published, unpublished and published again before the asset is approved. That leaves two jobs in waiting_approval, and standalone_approve_job approves every one that matches. If two runner ticks overlap, each job reads no id, creates its own broadcast and sends it, so subscribers get the email twice. Inside one tick the runner works through a batch one job at a time, which makes this unlikely. The plan prescribes this design, and newsletter_send has an extra markSending compare-and-set that the standalone lacks. Follow-up for a plan note (C11 race partner, R22 / R28).
+   - Evidence: Read: supabase/sql/functions/standalone_approve_job.sql uses 'perform approve_job(j.id, ...) from jobs j where ... waiting_approval', with no limit. src/server/automation/plan.ts:109 builds the key as `${event.id}:${step.id}`, so each publish event plans its own job. standalone.ts:200-213 reads the stored id, then creates.
+
+5. File: `app/src/server/newsletter/standalone.ts`. Blocking: no.
+   - What: channelEnabled, recipientCount, notifyAdmin, accepted, broadcast and deliver are near copies of the same helpers in src/server/jobs/system/newsletter-send.ts. That is below jscpd's 70-token threshold, and C05 only names helpers in lib or fixture folders, so it is not a rule breach. Two copies of the INT-10 adoption logic can drift apart. Consider a shared broadcast helper in src/server/newsletter/ when PR 211's follow-up touches this file.
+   - Evidence: grep -rn 'function channelEnabled\|function recipientCount\|const accepted' src -> newsletter-send.ts:66, :76, :104 and standalone.ts.
+
+6. File: `workspace/05-plans/B11.md`. Blocking: no.
+   - What: Stale plan line (the orchestrator's to fold). The step 9 Files list does not name tests/unit/email/send-email.test.ts, but the delegation makes changing it necessary: B5's priority test used 'standalone' as its stand-in bulk template. The author changed it, logged it and banked it as P-2416. The changed test still fails when its bulk branch is removed (b5-aa-priority WATCHED-FAIL OK).
+   - Evidence: git show b2e5da8 -- app/tests/unit/email/send-email.test.ts; node scripts/watchfail.mjs --registry tests/mutations --only b5-aa-priority -> WATCHED-FAIL OK.
+
+7. File: `app/src/templates/email/standalone.tsx`. Blocking: no.
+   - What: NOT DONE, honestly declared and the blocker is real. The commercial footer is not in the file yet, and nothing proves the real rendered standalone HTML contains {{{RESEND_UNSUBSCRIBE_URL}}} and the legal address. The steps are blocked on B9 PR 211, which is still OPEN and rewrites this file. Until then every real standalone send ends footer_incomplete. That is safe: it fails closed. The step-4 row update and the variablesByKey sample block wait on the same PR (P-2403). The mop-dev proof waits on S59 and B9's og variant. The group must be reopened when PR 211 merges.
+   - Evidence: gh pr view 211 --json state,files -> state OPEN, files include app/src/templates/email/standalone.tsx, app/src/server/email/render.ts and app/src/templates/email/layout.tsx.
