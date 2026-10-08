@@ -2436,8 +2436,8 @@
     "id": "mg-gather-head",
     "test": "tests/unit/merge-gate.test.ts",
     "file": "scripts/merge-gate.mjs",
-    "find": "`repos/${REPO}/commits/${headSha}/status?per_page=100`",
-    "replace": "`repos/${REPO}/commits/${sha}/status?per_page=100`",
+    "find": "`repos/${REPO}/commits/${headSha}/statuses?per_page=100`",
+    "replace": "`repos/${REPO}/commits/${sha}/statuses?per_page=100`",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "finds the pull request merged as this commit and reads its head"
   },
@@ -3970,5 +3970,95 @@
     "find": "if (local !== undefined && workflow === \"deploy\"",
     "replace": "if (workflow === \"deploy\"",
     "expect": "FAIL .*> without the flag a red preview refuses as before"
+  },
+  {
+    "id": "h73-pl-accept",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (refusal === \"\") notes.push(PREVIEW_LOCAL_TRACE);",
+    "replace": "if (refusal === \"accepted\") notes.push(PREVIEW_LOCAL_TRACE);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "passes a failed preview on the owner's preview-local status, and prints the trace"
+  },
+  {
+    "id": "h73-pl-creator",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (local.creator !== OWNER) {",
+    "replace": "if (local.creator === \"\") {",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a preview-local status created by another login"
+  },
+  {
+    "id": "h73-pl-context",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "statuses.find((status) => status.context === \"preview-local\")",
+    "replace": "statuses.find((status) => status.context !== \"preview\")",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a failed preview without the status, as before"
+  },
+  {
+    "id": "h73-pl-others",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (refusal === \"\") notes.push(PREVIEW_LOCAL_TRACE);",
+    "replace": "if (refusal === \"\") notes.push(...failures.splice(0), PREVIEW_LOCAL_TRACE);",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "still refuses another required check that is not green"
+  },
+  {
+    "id": "h73-pl-state",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (local.state !== \"success\") return",
+    "replace": "if (local.state === \"error\") return",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a status that is not success, names no H73 or another log, or a preview that did not fail"
+  },
+  {
+    "id": "h73-pl-ruling",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "!/^H73: /.test(local.description ?? \"\") ||",
+    "replace": "!/^/.test(local.description ?? \"\") ||",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a status that is not success, names no H73 or another log, or a preview that did not fail"
+  },
+  {
+    "id": "h73-pl-log",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": ".endsWith(`, ${log}`)",
+    "replace": ".endsWith(\".md\")",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a status that is not success, names no H73 or another log, or a preview that did not fail"
+  },
+  {
+    "id": "h73-pl-failure",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "if (conclusion !== \"failure\") return",
+    "replace": "if (conclusion === \"pending\") return",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "refuses a status that is not success, names no H73 or another log, or a preview that did not fail"
+  },
+  {
+    "id": "h73-pl-creator-read",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "([context = \"\", state = \"\", description = \"\", creator = \"\"])",
+    "replace": "([context = \"\", state = \"\", creator = \"\", description = \"\"])",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "finds the pull request merged as this commit and reads its head"
+  },
+  {
+    "id": "h73-pl-list",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/merge-gate.mjs",
+    "find": "/statuses?per_page=100`",
+    "replace": "/status?per_page=100`",
+    "run": "bunx vitest run tests/unit/merge-gate.test.ts",
+    "expect": "finds the pull request merged as this commit and reads its head"
   }
 ]

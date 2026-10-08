@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  PREVIEW_LOCAL_TRACE,
   REQUIRED_PR_CHECKS,
   evaluateMergeGate,
   gatherInput,
@@ -11,7 +12,7 @@ import { STEPS, renderLog } from "../../scripts/preview-local.mjs";
 
 const SHA = "abaa02de74944bfc2f0a39825849da50628bb840";
 const HEAD = "0a59cc26632faeb8313bebcca9d20a407ba943c5";
-const PR = { number: 23, author: "AbdulrahmanAmer" };
+const PR = { number: 23, author: "AbdulrahmanAmer", head: HEAD };
 const DEFINED = ["check", "build", "db", "e2e", "preview", "merge-gate"];
 
 const run = (name: string, conclusion: string | null, status = "completed", id = 1) => ({
@@ -94,7 +95,7 @@ describe("evaluateMergeGate", () => {
 
   it("does not require preview from Dependabot, and says so", () => {
     const checkRuns = GREEN.filter((r) => r.name !== "preview");
-    const dependabot = { number: 24, author: "dependabot[bot]" };
+    const dependabot = { number: 24, author: "dependabot[bot]", head: HEAD };
     expect([evaluate({ pr: dependabot, checkRuns }).lines, evaluate({ checkRuns }).lines]).toEqual([
       [
         "preview not required: author is dependabot[bot]",
@@ -169,6 +170,80 @@ describe("evaluateMergeGate, a head with several runs of one check", () => {
   });
 });
 
+describe("evaluateMergeGate, a preview-local status on the head (H73)", () => {
+  // As workspace/05-plans/merge-gate.mjs posts it for the log pr-23-0a59cc2.md.
+  const LOCAL = {
+    context: "preview-local",
+    state: "success",
+    description: "H73: preview behaviour run on the laptop, pr-23-0a59cc2.md",
+    creator: "AbdulrahmanAmer",
+  };
+  const redPreview = GREEN.map((r) => (r.name === "preview" ? run("preview", "failure") : r));
+  const withLocal = (local: Partial<typeof LOCAL>) => [...GATE, { ...LOCAL, ...local }];
+
+  it("passes a failed preview on the owner's preview-local status, and prints the trace", () => {
+    expect(evaluate({ checkRuns: redPreview, statuses: withLocal({}) })).toEqual({
+      ok: true,
+      lines: [PREVIEW_LOCAL_TRACE, OK],
+    });
+    expect(PREVIEW_LOCAL_TRACE).toBe(
+      "merge-gate: preview accepted from the preview-local status (ruling H73)",
+    );
+  });
+
+  it("refuses a preview-local status created by another login", () => {
+    expect(
+      evaluate({ checkRuns: redPreview, statuses: withLocal({ creator: "someone" }) }),
+    ).toEqual({
+      ok: false,
+      lines: [
+        `unverified merge ${SHA}: preview failure; preview-local created by someone, not AbdulrahmanAmer`,
+      ],
+    });
+  });
+
+  it("refuses a failed preview without the status, as before", () => {
+    expect(evaluate({ checkRuns: redPreview })).toEqual({
+      ok: false,
+      lines: [`unverified merge ${SHA}: preview failure`],
+    });
+  });
+
+  it("still refuses another required check that is not green", () => {
+    const checkRuns = redPreview.map((r) => (r.name === "e2e" ? run("e2e", "failure") : r));
+    expect(evaluate({ checkRuns, statuses: withLocal({}) })).toEqual({
+      ok: false,
+      lines: [`unverified merge ${SHA}: e2e failure`, PREVIEW_LOCAL_TRACE],
+    });
+  });
+
+  it("refuses a status that is not success, names no H73 or another log, or a preview that did not fail", () => {
+    const cancelled = GREEN.map((r) => (r.name === "preview" ? run("preview", "cancelled") : r));
+    const refusal = (why: string) => [`unverified merge ${SHA}: preview ${why}`];
+    expect({
+      pending: evaluate({ checkRuns: redPreview, statuses: withLocal({ state: "pending" }) }).lines,
+      noRuling: evaluate({
+        checkRuns: redPreview,
+        statuses: withLocal({
+          description: "preview behaviour run on the laptop, pr-23-0a59cc2.md",
+        }),
+      }).lines,
+      otherLog: evaluate({
+        checkRuns: redPreview,
+        statuses: withLocal({
+          description: "H73: preview behaviour run on the laptop, pr-22-0a59cc2.md",
+        }),
+      }).lines,
+      cancelled: evaluate({ checkRuns: cancelled, statuses: withLocal({}) }).lines,
+    }).toEqual({
+      pending: refusal("failure; preview-local pending"),
+      noRuling: refusal("failure; preview-local does not name H73 and pr-23-0a59cc2.md"),
+      otherLog: refusal("failure; preview-local does not name H73 and pr-23-0a59cc2.md"),
+      cancelled: refusal("cancelled; preview-local covers a failed preview, not cancelled"),
+    });
+  });
+});
+
 describe("jobKeys", () => {
   it("reads the job keys of the jobs map and nothing else", () => {
     const text = [
@@ -201,7 +276,7 @@ describe("gatherInput", () => {
   const WORKFLOW = "name: ci\njobs:\n  check:\n    steps: []\n  build:\n    steps: []\n";
   // Recorded from `gh api` with the --jq filters of scripts/merge-gate.mjs (2026-10-02).
   const PULLS = `${SHA}\t23\t${HEAD}\tAbdulrahmanAmer\n`;
-  const STATUS = "merge-gate\tsuccess\n";
+  const STATUS = "merge-gate\tsuccess\t\tAbdulrahmanAmer\n";
   const RUNS = "11\tcheck\tcompleted\tsuccess\n12\tbuild\tin_progress\t\n";
 
   function gather(pulls = PULLS) {
@@ -231,13 +306,15 @@ describe("gatherInput", () => {
       calls,
     }).toEqual({
       pr: PR,
-      statuses: GATE,
+      statuses: [
+        { context: "merge-gate", state: "success", description: "", creator: "AbdulrahmanAmer" },
+      ],
       checkRuns: [run("check", "success", "completed", 11), run("build", null, "in_progress", 12)],
       definedJobs: ["check", "build"],
       ciHeavy: "off",
       calls: [
         `repos/AbdulrahmanAmer/matter-of-place/commits/${SHA}/pulls`,
-        `repos/AbdulrahmanAmer/matter-of-place/commits/${HEAD}/status?per_page=100`,
+        `repos/AbdulrahmanAmer/matter-of-place/commits/${HEAD}/statuses?per_page=100`,
         `repos/AbdulrahmanAmer/matter-of-place/commits/${HEAD}/check-runs?per_page=100`,
       ],
     });
