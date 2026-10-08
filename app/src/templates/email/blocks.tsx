@@ -115,7 +115,7 @@ function BlockView({ block }: { block: EmailBlock }) {
   }
 }
 
-function Blocks({ blocks }: { blocks: readonly EmailBlock[] }) {
+export function Blocks({ blocks }: { blocks: readonly EmailBlock[] }) {
   return (
     <>
       {blocks.map((block, index) => (
