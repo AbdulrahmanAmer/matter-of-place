@@ -1707,6 +1707,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -n "Math[.]" app/src/templates/social/slides.ts` → only the LinkedIn photo count (`Math.min(LINKEDIN_PHOTOS, ...)`), no clamp in `planCarousel` (2026-10-03).
 - added: 2026-10-03
 - hit again: 2026-10-04, B9 c6u: `if (stored.has(key)) continue;` in the seed's `uploadAll` guarded a repeated key that the catalog never produces (`(owner, n)` is unique per image); its watched-fail stayed green, so the line was deleted.
+- hit again: 2026-10-08, B8b g6: `guardApproval` in `src/server/automation/service.ts` began with `if (actor.kind !== "agent") return;`, but both callers enter it only for an agent; the watched-fail `b8b-g6-approval-person` that flipped the check stayed green. The check and the `actor` parameter were deleted (`guardAgentApproval(current, next)`), and the entry now removes the caller's `actor.kind === "agent"` condition. Proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b8b-g6-approval-person` → `WATCHED-FAIL OK B8b:b8b-g6-approval-person`.
 
 ## P-712 · `bun run check` under load runs past the 600 s tool ceiling, and its vitest stage can then fail with `Failed to start forks worker ... Timeout waiting for worker to respond`: that is not a red test
 - symptom: the B9 g4 review ran `bun run check` in the foreground with other lanes running. The call passed the 600 s Bash ceiling and the vitest stage failed on `tests/unit/analytics.test.ts` with `Failed to start forks worker ... Timeout waiting for worker to respond`, which reads as a red gate. `bun run test` alone, re-run afterwards, passed 32 of 32 files.
@@ -2944,6 +2945,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: write `default null` on every parameter a caller may omit before writing the first caller, and put the defaulted parameters last (reorder the signature when the plan's order has a required one after them: `set_asset_caption(p_asset, p_actor, p_actor_kind, p_captions default null, ...)`); omit the argument in TypeScript instead of passing null.
 - proof: `cd app && grep -n '"upsert_asset_stub":' -A1 src/db/types.ts | grep -c '"p_job_id"?: string'` → `1`.
 - added: 2026-10-04
+- hit again: 2026-10-08, B8b g6: `automation_put_reason(p_id uuid, p_patch, ...)` (step 1) takes a null `p_id` to insert a reason, but the generated type is `"p_id": string`, so the route that creates a reason could not call it. The plan says step 6 keeps "the same signatures"; the function now reads `(p_patch, p_actor, p_actor_kind, p_request_id, p_note default null, p_id default null)` and `bun run db:fn` wrote the `drop function` of the old list into `<ts>_automation_audit.sql`; the SQL callers in `tests/db/automation.db.test.ts` and the registry entry `b8b-g1-reason-last` moved to the new list. Proof: `cd app && grep -n '"automation_put_reason":' -A1 src/db/types.ts | grep -c '"p_id"?: string'` → `1`.
 
 ## P-722 · A registry `-t` pattern that matches no test stays green: `%s` of an object row prints `[object Object]`, and a literal `*` in a title is a regex quantifier
 - symptom: B9 g6's replay printed `WATCHED-FAIL BAD: stayed green` for `b9g6-approved-render_cover` (title `approved %s untouched by a second publish` over rows of objects, which vitest prints as `[object Object]`, so `-t "approved cover ..."` ran no test and exited 0) and for `b9g6-auth-claim_media_for_render` (the title holds `select * from`, and in `-t` the unescaped `*` made `select * from` match "select from"). A third entry went red for a syntax error its own mutation made (`data? ?? wanted`), which `wrong reason` caught.
@@ -5013,4 +5015,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `.admin-dialog[open]` animates opacity from 0 over 0.24 s and axe computes a colour with the element's opacity at that moment; a slower runner scans inside the window (measured with the fade stretched: opacity 0.0067, contrast 1.03 to 1.05).
 - rule: an audit that reads computed style (axe, a contrast or overflow measure) first awaits the animations that end: `settleAnimations(page)` in `tests/e2e/fixtures/a11y.ts` (ruling H72); never skip the dialog, never baseline the violation, never edit the motion for it.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-a11y-settle-wait` -> `WATCHED-FAIL OK B17:b17-a11y-settle-wait` (2026-10-08).
+- added: 2026-10-08
+
+## P-2502 · B8b step 6 puts `putFlags` in `src/server/lib/flags.ts` and has the flags route call it, but an admin route may import only services
+- symptom: B8b g6, `bun run check`: `tests/unit/admin-authz-sweep.test.ts` "import only the wrapper, services and domain" failed with `automation.flags.ts: ../../../server/lib/flags`.
+- cause: the plan's Files line names `src/server/lib/flags.ts` (B3b's reader file) as the home of `putFlags` and says the route's PUT calls it; B7's sweep allows a route file only `server/lib/admin-route`, `server/**/service`, `domain/**`, the router and zod (R11).
+- rule: a write that a plan puts outside a service file reaches its route through the group's service (`export { putFlags } from "../lib/flags.ts"` in `src/server/automation/service.ts`); never widen the sweep's allow-list for one route.
+- proof: `cd app && bunx vitest run tests/unit/admin-authz-sweep.test.ts` passes on slice/b8b at B8b g6; with `import { putFlags } from "../../../server/lib/flags";` in `src/routes/api/admin/automation.flags.ts` it fails as above (measured 2026-10-08).
+- added: 2026-10-08
+
+## P-2503 · A registry `expect` of `× .*<describe> > <title>` never matches: vitest's `×` line carries the test title alone
+- symptom: B8b g6, first replay of the new unit entries: `WATCHED-FAIL BAD: wrong reason` for `b8b-g6-putrecipe-authorize` and `b8b-g6-puttemplate-authorize`, whose expects were `× .*putRecipe > commercial gets 403 and no database call`; the red run printed `× commercial gets 403 and no database call 6ms` and `FAIL  |unit| tests/unit/automation/service.test.ts > putRecipe > commercial gets 403 ...`.
+- cause: the reporter's `×` line is indented under its describe and names only the test; the describe path appears only on the `FAIL` line. Two describes with the same test title cannot be told apart by `×`.
+- rule: a registry `expect` matches `× .*<title>` when the title is unique in the file, and `FAIL .*> <describe> > <title>` when it is not.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b8b-g6-putrecipe-authorize` → `WATCHED-FAIL OK B8b:b8b-g6-putrecipe-authorize` (measured 2026-10-08).
 - added: 2026-10-08

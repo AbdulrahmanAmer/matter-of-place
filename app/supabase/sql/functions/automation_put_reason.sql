@@ -1,10 +1,10 @@
 create or replace function public.automation_put_reason(
-  p_id uuid,
   p_patch jsonb,
   p_actor uuid,
   p_actor_kind public.actor_kind,
   p_request_id text,
-  p_note text default null
+  p_note text default null,
+  p_id uuid default null
 )
 returns jsonb
 language plpgsql
@@ -21,6 +21,7 @@ begin
   ) then
     raise exception 'invalid_patch_key' using errcode = '22023';
   end if;
+  -- A null p_id inserts a new reason; it is the last argument with a default, so a typed client leaves it out (P-721).
   if p_id is not null then
     select * into v_old from public.decline_reasons where id = p_id for update;
     if not found then
@@ -49,18 +50,15 @@ begin
     where id = p_id
     returning * into v_new;
   end if;
-  -- STUB(B8b step 6): unconditional write_audit
-  if to_regproc('public.write_audit') is not null then
-    perform public.write_audit(
-      p_actor, p_actor_kind, 'automation.reasons_put', 'decline_reasons', v_new.id,
-      case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id, p_note
-    );
-  end if;
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'automation.reasons_put', 'decline_reasons', v_new.id,
+    case when p_id is null then null else to_jsonb(v_old) end, to_jsonb(v_new), p_request_id, p_note
+  );
   return to_jsonb(v_new);
 end;
 $$;
 
-revoke execute on function public.automation_put_reason(uuid, jsonb, uuid, public.actor_kind, text, text)
+revoke execute on function public.automation_put_reason(jsonb, uuid, public.actor_kind, text, text, uuid)
   from public, anon, authenticated;
-grant execute on function public.automation_put_reason(uuid, jsonb, uuid, public.actor_kind, text, text)
+grant execute on function public.automation_put_reason(jsonb, uuid, public.actor_kind, text, text, uuid)
   to service_role;
