@@ -43,7 +43,7 @@ const videoRowSchema = z.object({
   duration: z.string(),
 });
 
-const representativeRowSchema = z.object({
+export const representativeRowSchema = z.object({
   id: z.string(),
   name: z.string(),
   brokerage: z.string(),
@@ -54,7 +54,7 @@ const representativeRowSchema = z.object({
 });
 
 // A published row is complete (`enforce_publish_gate`), so the fields the gate checks are not nullable here.
-const propertyRowSchema = z.object({
+export const propertyRowSchema = z.object({
   id: z.string(),
   slug: z.string(),
   title: z.string(),

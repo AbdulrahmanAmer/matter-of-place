@@ -7,7 +7,7 @@ import { sendTestToActor } from "../../../src/server/newsletter/service";
 import { newsletterDb, uuid } from "../../fixtures/newsletter-world";
 
 // Screen 13's "Send a test" mails the person who pressed it: the route passes no address, the service reads the
-// sign-in address of the actor (P-2406, P-2410).
+// sign-in address of the actor (P-2422, P-2410).
 
 const ISSUE = uuid(900);
 

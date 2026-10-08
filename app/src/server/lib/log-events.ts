@@ -41,6 +41,7 @@ export const LogEvent = [
   "resend_quota_daily",
   "social_dry_run",
   "thumbnail_sign_failed",
+  "decision_jobs_unread",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

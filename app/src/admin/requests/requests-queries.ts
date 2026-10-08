@@ -2,11 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminKeys, invalidateAfterWrite } from "../query";
 import {
   addNote,
+  decide,
+  fetchDeclineReasons,
   fetchOriginal,
   fetchSubmission,
   fetchSubmissions,
   fetchTimeline,
+  markAssetsReceived,
+  previewEmail,
   startReview,
+  type Decision,
 } from "./requests-api";
 
 /** The filters of screen 3 that live in the address, beside the cursor. */
@@ -66,4 +71,47 @@ export function useAddNote(id: string) {
 /** Asks for the address of one original; nothing is cached, the address lives ten minutes. */
 export function useOriginal(id: string) {
   return useMutation({ mutationFn: (mediaId: string) => fetchOriginal(id, mediaId) });
+}
+
+/** The reasons the decline dialog offers, read once it opens. */
+export function useDeclineReasons(open: boolean) {
+  return useQuery({
+    queryKey: [...adminKeys.submissions.all(), "decline-reasons"],
+    queryFn: fetchDeclineReasons,
+    enabled: open,
+  });
+}
+
+/** One decision on this request; it settles the request lists, its detail and its history. */
+export function useDecision(id: string, decision: Decision) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Readonly<Record<string, string>>) => decide(id, decision, body),
+    onSettled: () =>
+      invalidateAfterWrite(
+        queryClient,
+        adminKeys.submissions.all(),
+        adminKeys.submissions.timeline(id),
+      ),
+  });
+}
+
+export function useAssetsReceived(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => markAssetsReceived(id),
+    onSettled: () =>
+      invalidateAfterWrite(
+        queryClient,
+        adminKeys.submissions.all(),
+        adminKeys.submissions.timeline(id),
+      ),
+  });
+}
+
+/** Renders the letter a decision would send; asked for by a button, never cached. */
+export function useEmailPreview(id: string) {
+  return useMutation({
+    mutationFn: (body: Parameters<typeof previewEmail>[1]) => previewEmail(id, body),
+  });
 }

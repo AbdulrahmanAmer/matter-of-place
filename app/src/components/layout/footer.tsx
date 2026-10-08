@@ -18,7 +18,7 @@ function reopenNotice(event: MouseEvent) {
 export function Footer() {
   const groups = t.footer.groups;
   return (
-    <footer className="site-footer">
+    <footer className="site-footer" data-print="hide">
       <div className="hf-inner">
         <ConsentNotice />
         <noscript>
