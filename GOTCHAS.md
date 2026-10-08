@@ -5173,3 +5173,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: an audit that reads computed style (axe, a contrast or overflow measure) first awaits the animations that end: `settleAnimations(page)` in `tests/e2e/fixtures/a11y.ts` (ruling H72); never skip the dialog, never baseline the violation, never edit the motion for it.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-a11y-settle-wait` -> `WATCHED-FAIL OK B17:b17-a11y-settle-wait` (2026-10-08).
 - added: 2026-10-08
+
+## P-1947 · Appending an entry to `healthChecks` breaks `health.test.ts` unseen, and a module memo cannot be emptied from inside a test file that mocks the module
+- symptom: B16 g8 added `site_identity` to `healthChecks`. `tests/unit/jobs/health.test.ts` then listed ten check names, not eleven, and its `fakeDb` answered no `public_state`, so every case would have failed `site_identity` and emitted a second `health.failed`. In the new `health-site.test.ts` the case "no last good copy" returned `public_state_stale`, not the error code: an earlier case had filled the memo of `state.ts`, `vi.resetModules()` did not empty it, and the module was mocked with a factory that kept the old instance.
+- cause: the plan's text says the entry calls `getPublicState(ctx.db)` and reads `stale: true` from it; `getPublicState` returns the state only, `readState` (same file) returns `{ state, stale }`. `resetPublicStateMemo()` keeps the last good copy by design, so only a fresh import has none.
+- rule: a slice that appends a health check edits `health.test.ts` in the same step (the name list and the rpc the check reads). To get a cold isolate in a test, `vi.doUnmock(<module>)` then `vi.resetModules()` then a dynamic `import()` of the module under test. Use `readState`, not `getPublicState`, where `stale` matters.
+- proof: `cd app && bunx vitest run tests/unit/health-site.test.ts tests/unit/jobs/health.test.ts` -> `Tests  22 passed (22)` (2026-10-08); `node scripts/watchfail.mjs --registry tests/mutations --only b16-g8-cold-code` -> `WATCHED-FAIL OK B16:b16-g8-cold-code`
+- added: 2026-10-08
