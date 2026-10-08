@@ -3,15 +3,21 @@ import type { Database, Json } from "../../../src/db";
 import { runDueSchedules } from "../../../src/server/jobs/scheduler";
 import { fakeDb, type FakeDb } from "../../fixtures/fake-db";
 
-// System job types a case registers; any other type falls through to B8's real registry.
+// System job types a case registers; any other type falls through to B8's real registry, except the two clocks of
+// B11, which stay unregistered here so the branch that only moves `next_run_at` keeps its cases until it is deleted.
 const registered = vi.hoisted(() => new Set<string>());
+const CLOCKS = ["kpi_weekly", "newsletter_hygiene"];
 
 vi.mock(import("../../../src/server/jobs/system/index.ts"), async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
     getSystemJob: (type: string) =>
-      registered.has(type) ? actual.getSystemJob("prune") : actual.getSystemJob(type),
+      registered.has(type)
+        ? actual.getSystemJob("prune")
+        : CLOCKS.includes(type)
+          ? undefined
+          : actual.getSystemJob(type),
   };
 });
 

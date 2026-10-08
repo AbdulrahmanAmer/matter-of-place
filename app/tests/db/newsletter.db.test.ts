@@ -668,6 +668,131 @@ describe("standalone approval and the market-open key", () => {
   });
 });
 
+interface Silent {
+  /** How long ago the subscriber confirmed (and never clicked since), as a Postgres interval. */
+  confirmed: string;
+  /** How long ago the re-permission ask went out, when it did. */
+  asked?: string;
+}
+
+async function silent(db: Db, input: Silent): Promise<string> {
+  return scalar<string>(
+    db,
+    `insert into public.subscribers (email, source, confirmed_at, repermission_sent_at)
+     values ($1, 'footer', now() - $2::interval, case when $3::interval is not null then now() - $3::interval end)
+     returning id as v`,
+    [`test-${randomUUID()}@example.test`, input.confirmed, input.asked ?? null],
+  );
+}
+
+/** What the first two steps of one `runHygiene` do (invariant 10), in SQL: ask up to 20 candidates, then lapse. */
+async function hygieneRun(db: Db): Promise<{ asked: string[]; lapsed: number }> {
+  const { rows } = await db.query<{ id: string }>(
+    "select id from public.repermission_candidates(20)",
+  );
+  for (const { id } of rows) {
+    await db.query("select public.issue_repermission($1, $2)", [id, `hash-${id}`]);
+  }
+  return {
+    asked: rows.map(({ id }) => id),
+    lapsed: await scalar<number>(db, "select public.lapse_subscribers() as v"),
+  };
+}
+
+const askedSubscribed = (db: Db): Promise<number> =>
+  scalar<number>(
+    db,
+    "select count(*)::int as v from public.subscribers where repermission_sent_at is not null and unsubscribed_at is null",
+  );
+
+describe("list hygiene", () => {
+  it("hygiene asks a subscriber silent for 13 months once: a second run the same day asks nobody", async () => {
+    const result = await withRollback(async (db) => {
+      const id = await silent(db, { confirmed: "13 months" });
+      const first = await hygieneRun(db);
+      const second = await hygieneRun(db);
+      const read = await one<{ asked_now: boolean; hash: string | null }>(
+        db,
+        "select repermission_sent_at = now() as asked_now, confirm_token_hash as hash from public.subscribers where id = $1",
+        [id],
+      );
+      return {
+        first: first.asked.includes(id),
+        second: second.asked.includes(id),
+        read,
+        hash: `hash-${id}`,
+      };
+    });
+    expect({ first: result.first, second: result.second, askedNow: result.read.asked_now }).toEqual(
+      {
+        first: true,
+        second: false,
+        askedNow: true,
+      },
+    );
+    expect(result.read.hash).toBe(result.hash);
+  });
+
+  it("hygiene leaves a subscriber who clicked the confirm link unasked from then on", async () => {
+    const result = await withRollback(async (db) => {
+      const id = await silent(db, { confirmed: "13 months" });
+      await hygieneRun(db);
+      await db.query("select public.confirm_subscriber($1)", [`hash-${id}`]);
+      const read = await one<{ asked: boolean; engaged: boolean }>(
+        db,
+        "select repermission_sent_at is not null as asked, last_engaged_at is not null as engaged from public.subscribers where id = $1",
+        [id],
+      );
+      return { read, again: (await hygieneRun(db)).asked.includes(id) };
+    });
+    expect(result).toEqual({ read: { asked: false, engaged: true }, again: false });
+  });
+
+  it("hygiene archives and unsubscribes one asked 31 days ago with no engagement, with one count-only audit row", async () => {
+    const result = await withRollback(async (db) => {
+      const lapsing = await silent(db, { confirmed: "2 years", asked: "31 days" });
+      const waiting = await silent(db, { confirmed: "2 years", asked: "10 days" });
+      const run = await hygieneRun(db);
+      const states = await db.query<{ id: string; archived: boolean; unsubscribed: boolean }>(
+        `select id, archived_at is not null as archived, unsubscribed_at is not null as unsubscribed
+         from public.subscribers where id = any($1)`,
+        [[lapsing, waiting]],
+      );
+      const audit = await db.query<{ actor_id: string | null; after: Record<string, unknown> }>(
+        "select actor_id, after from public.audit_log where action = 'subscribers.lapse' and at = now()",
+      );
+      return {
+        lapsed: run.lapsed,
+        states: Object.fromEntries(
+          states.rows.map((row) => [row.id, [row.archived, row.unsubscribed]]),
+        ),
+        audit: audit.rows,
+        lapsing,
+        waiting,
+      };
+    });
+    expect(result.states).toEqual({
+      [result.lapsing]: [true, true],
+      [result.waiting]: [false, false],
+    });
+    expect(result.audit).toEqual([{ actor_id: null, after: { count: result.lapsed } }]);
+  });
+
+  it("hygiene leaves exactly the asked and still subscribed rows the fixture expects", async () => {
+    const counts = await withRollback(async (db) => {
+      const before = await askedSubscribed(db);
+      await silent(db, { confirmed: "13 months" });
+      await silent(db, { confirmed: "14 months" });
+      await silent(db, { confirmed: "11 months" });
+      await silent(db, { confirmed: "2 years", asked: "10 days" });
+      await silent(db, { confirmed: "2 years", asked: "31 days" });
+      await hygieneRun(db);
+      return (await askedSubscribed(db)) - before;
+    });
+    expect(counts).toBe(3);
+  });
+});
+
 describe("grants", () => {
   it("authenticated can call none of the newsletter functions", async () => {
     const callable = await withRollback(async (db) => {
