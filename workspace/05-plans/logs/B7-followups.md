@@ -599,3 +599,63 @@ what: Nine of the ten g3a sql entries match only the test title (for example '×
 evidence: Without MOP_MUTATION_SQL, admin-cache.db.test.ts goes red on 'expected false to be true' (assertStep7a). That is the same red that would satisfy a title-only expect.
 
 blocking: false
+
+## g1 · steps 8
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. None has GOTCHAS.md as its file, so none is banked there.
+
+### 1. app/src/server/media/service.ts (attachMedia and attach_media check only a prefix; dot segments pass)
+
+what: SUSPECTED BY READING (Supabase Storage server side not exercised). attachMedia (line 96) and attach_media (migration line 82) check only a prefix: the path must start with staging/<property_id>/<media_id>. and nothing else is checked. A path with dot segments such as staging/<pid>/<mid>./../../../<other key>.jpg passes both checks. storage-js puts the path into the URL of /object/sign/<bucket>/<path> unencoded, and URL parsing collapses the dot segments. So sniffStaged signs and reads a different object, which can be another submission's private original or a key in another bucket, and attach_media stores that path for B9's render to publish. The concrete input is a POST to media/attach carrying that path from any actor holding media.attach (CE, ME, VE or an agent key). replaceMedia already uses a whole-name regex (replacePathOf). Attach should use the same anchored pattern, and so should the SQL guard. Staff can already open originals, so this is not an escalation, which is why it is a follow-up and not blocking.
+
+evidence: node -e "console.log(new URL('https://x.supabase.co/storage/v1/object/sign/submissions/staging/p/m./../../../../documents/inv.pdf').pathname)" prints /storage/v1/object/sign/documents/inv.pdf. storage-js createSignedUrl builds `${url}/object/sign/${bucketId}/${path}` with no encoding. A read-only probe on mop-dev found no object to sign, so the server side is unproven.
+
+blocking: false
+
+### 2. app/src/server/media/service.ts (stagedState maps job status 'failed' to the state 'failed')
+
+what: stagedState (line 231) maps job status 'failed' to the state 'failed'. In B8 'failed' is a runnable backoff state: the job is re-queued, and claim and resend select status in ('queued','failed'). The plan names only 'dead' as failed. A render that fails once (for example a Storage hiccup) shows 'Render failed' and the Retry or 'media ops can retry it' note while it is still retrying by itself. useVariantsStatus polls only while some row is 'processing', so the screen stays on 'Render failed' after the automatic retry succeeds, until something else refetches.
+
+evidence: grep -n "status in ('queued', 'failed')" app/supabase/migrations/20261003185349_jobs.sql (lines 81, 323, 589); service.ts line 231 `if (job.status === "failed" || job.status === "dead") return "failed"`; media-queries.ts refetchInterval polls only while an item is "processing"
+
+blocking: false
+
+### 3. app/tests/db/admin.db.test.ts (the reorder_media case trips only the cardinality condition)
+
+what: BY READING, not replayed. The reorder_media guard has three conditions: cardinality, distinct count, and p_order <@ v_before. The only db case trips the cardinality condition (it names one of two photographs). The rewritten mutation b7-g8-db-reorder ('if false then') proves the guard as a whole. It does not prove the other two conditions: an order such as [first, first], or one carrying another property's id, is not tested. A mutation that drops either condition would stay green. [first, first] would leave duplicate sort_order values.
+
+evidence: tests/db/admin.db.test.ts, case 'reorder_media puts the named order in place and refuses an order that leaves a photograph out': partial = REORDER [second] only
+
+blocking: false
+
+### 4. app/tests/unit/media.service.test.ts (replaceMedia, reorderMedia and setMediaAlt have no unit case)
+
+what: replaceMedia, reorderMedia and setMediaAlt have no unit case. Nothing tests replace's whole-name regex or its removal of the previous staged file when the paths differ, and no watched-fail covers them. The SQL side of replace is covered by db cases. The brief's listed unit cases do not require these, so this is a follow-up.
+
+evidence: grep -n "replaceMedia\|reorderMedia\|setMediaAlt" app/tests/unit/media.service.test.ts finds nothing (the imports are attachMedia, createUploadUrl, deleteMedia, listMedia and variantsStatus only)
+
+blocking: false
+
+### 5. app/src/admin/media/VariantStatus.tsx (the failed note shows to every role and links to a screen that does not exist)
+
+what: Until B8 step 9 adds jobs.retry to the matrix, every role sees the note 'Render failed, media ops can retry it in Jobs', media_ops and admin included. The note links to /admin/jobs?entity=<id>, and that screen does not exist yet (no src/routes/admin/jobs*). The author disclosed that no actor sees Retry. The note's dead link and its wrong audience were not disclosed.
+
+evidence: grep -rn "jobs.retry" app/src/server/lib/permissions/ finds nothing; ls app/src/routes/admin | grep -i job finds nothing; RoleGate takes a plain string, so tsc cannot catch it
+
+blocking: false
+
+### 6. app/src/server/jobs/steps/render-variants.ts (STUB(B7 step 8) at line 139, B9's file)
+
+what: B9's file still carries `STUB(B7 step 8)` at line 139: at 40 claimed rows, one request_property_render call should queue the next job for the rows beyond 40. B7 step 8 now provides that function but cannot edit B9's file (one writer per file). Until B9 replaces the stub, a property with more than 40 staged photographs leaves the extra rows staged with no job. The author recorded this. It is routed here so the orchestrator assigns it to B9.
+
+evidence: grep -rn "STUB(B7" app/src prints render-variants.ts:139
+
+blocking: false
+
+### 7. app/tests/fixtures/service.ts (stale docstring, file outside the group)
+
+what: Stale comment in a file outside the group. serviceClient's docstring says 'It never deletes; deletes go through removeFixtureRows over pg'. admin-smoke.ts's upload cleanup now removes Storage objects through serviceClient(): removeStaged(storage, ...) and storage.from("media").remove(...).
+
+evidence: app/tests/fixtures/service.ts docstring; git diff origin/main...slice/b7 -- app/scripts/admin-smoke.ts (cleanup block)
+
+blocking: false
