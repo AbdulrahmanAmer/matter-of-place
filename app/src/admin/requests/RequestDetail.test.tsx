@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type {
   SubmissionDetail,
   SubmissionNote,
@@ -335,5 +335,100 @@ describe("RequestDetail", () => {
       asked: [`GET ${DETAIL_PATH}/media/${PHOTO}/original`],
       opened: [["https://signed.test/front.jpg", "_blank", "noopener,noreferrer"]],
     });
+  });
+});
+
+describe("DecisionPanel", () => {
+  const REASON = "00000000-0000-4000-8000-0000000000e1";
+  const editor = [
+    "submissions.decline",
+    "submissions.accept",
+    "submissions.request_assets",
+    "submissions.email_preview",
+  ];
+  const underReview = { [`GET ${DETAIL_PATH}`]: detail({ workflow_state: "Under Review" }) };
+
+  // jsdom has no showModal or close on <dialog>; these only toggle `open`, as dialogs.test.tsx does.
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal = function showModal() {
+      this.setAttribute("open", "");
+    };
+    HTMLDialogElement.prototype.close = function close() {
+      this.removeAttribute("open");
+    };
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("declines with a reason and a note after previewing the letter, once, and shows the job it started", async () => {
+    const requested = serve({
+      ...underReview,
+      "GET /api/admin/submissions/decline-reasons": {
+        items: [{ id: REASON, code: "not_a_fit", label: "Not a fit" }],
+      },
+      [`POST ${DETAIL_PATH}/email-preview`]: {
+        subject: "About 12 Fixture Lane",
+        preheader: "",
+        html: "<p>Thank you</p>",
+      },
+      [`POST ${DETAIL_PATH}/decline`]: {
+        event_id: "00000000-0000-4000-8000-0000000000f9",
+        jobs: [
+          { id: "00000000-0000-4000-8000-0000000000fa", type: "send_email", status: "queued" },
+        ],
+      },
+    });
+    mount(editor);
+    fireEvent.click(await screen.findByRole("button", { name: "Decline" }));
+    const dialog = within(screen.getByRole("dialog", { name: "Decline this request" }));
+    await dialog.findByRole("option", { name: "Not a fit" });
+    fireEvent.change(dialog.getByLabelText("Reason"), { target: { value: REASON } });
+    fireEvent.change(dialog.getByLabelText("Note to the sender"), {
+      target: { value: "Not this season." },
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Preview the letter" }));
+    const letter = await dialog.findByTitle("Letter preview");
+    fireEvent.click(dialog.getByRole("button", { name: "Decline" }));
+    const jobs = await screen.findByRole("list", { name: "Jobs started" });
+    expect({
+      letter: [letter.getAttribute("sandbox"), letter.getAttribute("srcdoc")],
+      posts: requested.filter((line) => line.startsWith("POST")),
+      jobs: jobs.textContent,
+    }).toEqual({
+      letter: ["", "<p>Thank you</p>"],
+      posts: [
+        `POST ${DETAIL_PATH}/email-preview {"template":"declined","decline_reason_id":"${REASON}","note":"Not this season."}`,
+        `POST ${DETAIL_PATH}/decline {"decline_reason_id":"${REASON}","note":"Not this season."}`,
+      ],
+      jobs: "send emailQueued",
+    });
+  });
+
+  it("keeps Send the request off until the note says what is needed", async () => {
+    serve(underReview);
+    mount(editor);
+    fireEvent.click(await screen.findByRole("button", { name: "Request material" }));
+    const dialog = within(screen.getByRole("dialog", { name: "Request material" }));
+    const send = dialog.getByRole("button", { name: "Send the request" });
+    const field = dialog.getByLabelText("What we need");
+    fireEvent.change(field, { target: { value: "ab" } });
+    const short = send.hasAttribute("disabled");
+    fireEvent.change(field, { target: { value: "Ten interiors" } });
+    expect({ short, enough: send.hasAttribute("disabled") }).toEqual({
+      short: true,
+      enough: false,
+    });
+  });
+
+  it("offers only the moves the actor holds", async () => {
+    serve(underReview);
+    mount(["submissions.accept"]);
+    await screen.findByRole("button", { name: "Accept" });
+    expect({
+      decline: screen.queryByRole("button", { name: "Decline" }),
+      material: screen.queryByRole("button", { name: "Request material" }),
+    }).toEqual({ decline: null, material: null });
   });
 });

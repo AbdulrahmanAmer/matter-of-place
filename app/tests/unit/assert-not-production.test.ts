@@ -31,6 +31,7 @@ const guardedScripts = [
   "scripts/with-maintenance.ts",
   "scripts/auth-invite-test.ts",
   "scripts/set-site.ts",
+  "scripts/admin-smoke.ts",
   "scripts/lib/test-post.ts",
 ];
 

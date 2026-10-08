@@ -26,7 +26,7 @@ export function Footer() {
     { label: t.nav.linkedin, href: social.linkedin },
   ].flatMap(({ label, href }) => presentLines(href).map((url) => ({ label, url })));
   return (
-    <footer className="site-footer">
+    <footer className="site-footer" data-print="hide">
       <div className="hf-inner">
         <ConsentNotice />
         <noscript>

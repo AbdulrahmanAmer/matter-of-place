@@ -375,6 +375,11 @@ export const signedUploadsSchema = z.object({
 /** `GET /subscribers/confirm?token=`: the 32 random bytes of `newToken`, base64url. */
 export const confirmQuerySchema = z.object({ token: z.string().regex(/^[\w-]{43}$/) });
 
+/** `GET /properties/:slug?draft_token=` (B7 invariant 17 f): every other query parameter is dropped (architecture 13 rule 3). */
+export const previewQuerySchema = z
+  .object({ draft_token: z.string().min(16).max(512).optional() })
+  .strip();
+
 /** `POST /subjects/request` (GP-01): what a visitor asks of the personal data we hold. */
 export const subjectRequestSchema = z.object({
   email,
