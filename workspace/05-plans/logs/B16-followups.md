@@ -129,3 +129,21 @@
 5. File `workspace/05-plans/logs/B16.md (g7 block)` (not blocking).
    What: Small imprecision: the log says head builds `[organizationJsonLd(loaderData.site), websiteLd()]`. The code is `organizationJsonLd(loaderData?.site ?? emptySiteSettings)`, which falls back to the empty site when the loader did not resolve. The behaviour is sound (it matches useSite's noSite). The log line just leaves out the fallback.
    Evidence: Read: app/src/routes/_site.index.tsx line 45.
+
+## g8 · steps 8
+
+1. File `app/tests/unit/health-site.test.ts` (not blocking).
+   What: siteDb() (lines 35-63) replaces fakeDb's `from` with a hand-rolled stub that answers any table with { data: null } through select().eq().maybeSingle(). That bypasses fakeDb's 'unexpected table' throw that STANDARDS R50 relies on. The stub is needed because fakeDb (B3's tests/fixtures/fake-db.ts) has no maybeSingle for the provider check's settings.linkedin read. The 'one state read' case asserts from: {} for site_identity itself, which offsets the risk. No concrete product failure, so this is a follow-up: extend fakeDb (B3) and drop the override.
+   Evidence: tests/fixtures/fake-db.ts:61-77: `from` throws `unexpected table ${name}` for unregistered tables and its query builder has is/gt/eq/in/lte/lt/order/limit but no maybeSingle. providers.ts:101-104 calls .from("settings").select("value").eq("key","linkedin").maybeSingle().
+
+2. File `app/src/server/jobs/system/health.ts` (not blocking).
+   What: In site_identity (line 156), `error instanceof AppError ? error.code : "unavailable"` has an unreachable non-AppError arm. readState only rejects with unavailable(), an AppError whose code is 'unavailable', so the fallback literal equals the only reachable code. The cold-isolate test cannot tell the code from the literal. A mutation that replaces the whole expression with fail("unavailable") stays green. The author recorded this as a follow-up. C04-adjacent, no product impact.
+   Evidence: state.ts:72-73 `const unavailable = (): AppError => new AppError("unavailable", ...)` and state.ts:125 `if (stateMemo === undefined) throw unavailable();` are the only throws reaching readState's caller. health-site.test.ts:129-132 expects message 'unavailable'.
+
+3. File `app/tests/deno/site-context.smoke.ts` (not blocking).
+   What: UNPROVEN in CI. The plan's Verification line says the smoke runs on every pull request in B8's deno step. No such step exists: ci.yml's deno step still runs `deno check ... scripts/deno-portable.ts`, which imports state.ts, media-store.ts, events.ts and reconcile.ts but not settings/service.ts, readiness.ts or job-runner/index.ts. So neither the un-mutated smoke nor `deno check` of index.ts runs in CI. CI only runs the two b16-g8-deno-* mutations through the mutation replay step. The smoke's header comment now states this honestly. ci.yml is B8 step 5's file and the orchestrator's to wire.
+   Evidence: grep -n deno .github/workflows/ci.yml shows line 74 `run: deno check --config supabase/functions/job-runner/deno.json scripts/deno-portable.ts` and lines 207-213 (setup-deno before `watchfail --changed origin/main --kinds unit,sql`). There is no `deno test ... tests/deno/*.smoke.ts` line.
+
+4. File `app/tests/unit/site-read-path.test.ts` (not blocking).
+   What: B16 g3's file, not this group's. Its first case carries its own 30_000 ms timeout, which overrides the --testTimeout=60000 of bun run test and of the Verification command. It goes red under lane load: reproduced here once at 30043 ms while a check ran. The author saw it three times standalone. The file is already banked in G-031's hit-again line and the entry at GOTCHAS line 4881, but the flaky limit stays in the file. Either raise or remove the per-test timeout in a group that owns the file.
+   Evidence: My first run of the ten files gave 'FAIL |unit| tests/unit/site-read-path.test.ts > the site read path > makes one public_state call and no table read in 200 reads of the service and of the route  Error: Test timed out in 30000ms.' The rerun after load dropped gave 11 passed (11).
