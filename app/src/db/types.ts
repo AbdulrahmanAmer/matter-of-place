@@ -1102,6 +1102,9 @@ isOneToOne: false
 "assets_received":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: Database["public"]['Enums']["submission_state"]
                            },
+"attach_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_alt"?: string,"p_media_id": string,"p_property_id": string,"p_request_id": string,"p_staging_path": string }; Returns: Json
+                           },
 "attach_reel":
 { Args: { "p_asset": string,"p_detach"?: boolean,"p_property": string }; Returns: undefined
                            },
@@ -1226,6 +1229,9 @@ isOneToOne: false
                            },
 "decline_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_reason_id": string,"p_request_id": string,"p_submission_id": string }; Returns: string
+                           },
+"delete_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_media_id": string,"p_request_id": string }; Returns: string
                            },
 "drop_old_analytics_partitions":
 { Args: { "keep_months"?: number }; Returns: number
@@ -1544,13 +1550,22 @@ isOneToOne: false
 "reject_asset":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_asset": string,"p_note": string,"p_request_id"?: string }; Returns: string
                            },
+"reorder_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_order": (string)[],"p_property_id": string,"p_request_id": string }; Returns: number
+                           },
 "repermission_candidates":
 { Args: { "p_limit"?: number }; Returns: {
               "id": string
             }[]
                            },
+"replace_media":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_media_id": string,"p_request_id": string,"p_staging_path": string }; Returns: Json
+                           },
 "request_assets":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_submission_id": string }; Returns: string
+                           },
+"request_property_render":
+{ Args: { "p_property_id": string }; Returns: string
                            },
 "requeue_job":
 { Args: { "p_claim": string,"p_job_id": string,"p_kind": string,"p_result"?: Json,"p_run_after": string }; Returns: boolean
@@ -1704,6 +1719,9 @@ isOneToOne: false
                            },
 "set_invoice_key":
 { Args: { "p_key": string,"p_payment_id": string }; Returns: string
+                           },
+"set_media_alt":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_alt": string,"p_media_id": string,"p_request_id": string }; Returns: undefined
                            },
 "set_og_static":
 { Args: { "p_value": Json }; Returns: undefined

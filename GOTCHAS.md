@@ -254,6 +254,7 @@ Entry template
 - hit again: 2026-10-05, B12 g1: a heredoc patch turned a backslash-n into a real line break in the file it patched, and a patch script whose find string did not match changed nothing; each cost a second pass and the file was fixed with the Edit tool and read back with `grep -n` (recorded by the g1 review follow-up, which found this entry without a hit-again line).
 - hit again: 2026-10-05, B7 g1: the first attempt named a heredoc and `node -e` cost under this entry in its report, without the detail (UNPROVEN which text broke); the second attempt wrote each patch as a script file in the scratchpad (quoted heredocs, some holding `\n` escapes, which arrived intact this time, and the Write tool), each checking that its `find` occurs once, and none failed.
 - hit again: 2026-10-07, B10 g6 fix round: a heredoc patch script lost the backslashes of a `new RegExp("...\\*...")` and failed with `Invalid regular expression: Nothing to repeat`; written again with the Write tool, without a regular expression.
+- hit again: 2026-10-08, B7 g1 (step 8): two heredocs (a `node -` patch of `scripts/admin-smoke.ts` and a `cat >> tests/db/admin.db.test.ts` block holding `'human'` literals) ended `unexpected EOF while looking for matching` and wrote nothing; both went in through Write as scratch files, appended with `cat`.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -3688,6 +3689,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bun run typecheck && bunx eslint tests/unit/csp-inline.test.ts --max-warnings 0` exits 0 (2026-10-05).
 - added: 2026-10-05
 - hit again: 2026-10-07, B7 g1 (step 7): `previews.service.test.ts` asserted through `async function notFound(promise) { await expect(promise).rejects... }`, and `bun run lint` refused three cases with `Test has no assertions  vitest/expect-expect`; the assertion was inlined (`await expect(call).rejects.toMatchObject(NOT_FOUND)`).
+- hit again: 2026-10-08, B7 g1 (step 8): four db cases that called a shared `attachQueuesOne(n, state)` or `replaceKeeps(n, state)` helper holding the `expect` were refused by `vitest/expect-expect`; the helpers now return `{ actual, wanted }` and each `it` asserts `expect(actual).toEqual(wanted)`.
 
 ## P-1802 · A hostile fixture that corrupts a structural field makes SSR fall back to client rendering and the assertions pass for the wrong reason
 - symptom: B13 g1's hostile story and property fixture put `</script><script>window.__x=1</script>` into `currency`; `Intl.NumberFormat` threw `RangeError: Invalid currency code`, the server render errored, and TanStack Start wrote `Switched to client rendering because the server rendering errored` into the HTML, so the page held no listing text and "no `<script>window.__x`" held for the wrong reason.
@@ -3935,6 +3937,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh run view 37432245009 --log-failed | grep -c "Test timeout of 30000ms exceeded"` → at least 16; `git log --oneline -1 origin/main -- app/tests/e2e/fixtures/page.ts` → `c488a29 e2e: measure overflow after the entrance animations end ...`.
 - added: 2026-10-06
 
+## P-2029 · A staged photograph that becomes the first of a published property nulls `hero_image`, and B2's publish gate refuses the write
+- symptom: B7 g1 step 8: the case `attach_media on a published property queues one render_variants job too (G66)` failed with `error: publish_incomplete` at the `attach_media` call, on the factory's published property, which has no `property_media` row.
+- cause: `attach_media` gives the staged row the next `sort_order`, which is 0 on a property with no photograph, so B2's `property_media_hero_image` trigger sets `properties.hero_image` to the row's null `media_key`, and `enforce_publish_gate` refuses a published row without a hero. `reorder_media` moving a staged photograph to the top of a live page meets the same gate.
+- rule: a db case that attaches to or reorders a published property gives it stored photographs first (`sixPhotographs` in `tests/db/admin.db.test.ts`). A live page's hero is a stored photograph: an order that puts a staged one first on a published property answers 422 `publish_incomplete` by design, never by accident in a fixture.
+- proof: from `app/` with the dev profile and `MOP_MUTATION_SQL="$(cat supabase/migrations/<ts>_admin_media.sql)"`, `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/admin.db.test.ts -t media` → `Tests  11 passed | 45 skipped (56)`; with the `sixPhotographs` line of `attachQueuesOne` removed → `1 failed`, `error: publish_incomplete` (measured 2026-10-08, B7 g1).
+- added: 2026-10-08
+
+
+## P-2030 · A sql watched-fail that turns one `or` of a three-part guard into `and` stays green: `and` binds tighter
+- symptom: B7 g1 (step 8): `b7-g8-db-reorder` replaced `or not (p_order <@ v_before)` with `and not (...)` in `reorder_media`'s guard and replayed `WATCHED-FAIL BAD: stayed green`; the partial order still raised `reorder_mismatch`.
+- cause: the guard reads `A or B or C`; the mutation made it `A or B and not C`, which SQL reads as `A or (B and not C)`, so the cardinality test `A` alone still raised for the case the test makes.
+- rule: a watched-fail of a guard with several conditions removes the whole guard (`if false then`), or the one condition the test's case trips, never an operator in the middle of it; replay it before naming it in a log.
+- proof: `cd app && node -e "const e=require('./tests/mutations/B7.json').find(x=>x.id==='b7-g8-db-reorder');console.log(e.sql.includes('if false then'))"` → `true`; its replay from a scratch registry with the migration prepended → `WATCHED-FAIL OK B7:b7-g8-db-reorder` (2026-10-08).
+- added: 2026-10-08
 ## G-901 · A test or script client built from `SUPABASE_URL` on this laptop writes to another business's production project
 - paths: app/tests/e2e/helpers/session.ts, app/scripts/seed-admin-users.ts, app/tests/fixtures/service.ts
 - severity: warn
@@ -5096,6 +5112,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `git show 6eda9a41:GOTCHAS.md | awk '/^## P-1917/{f=1;next}/^## /{f=0}f' | grep '^- rule' | md5sum` equals the same command on `origin/main` -> same hash (main's line is the base's).
 - added: 2026-10-08
 
+## P-2028 · B7 step 8's smoke cleanup names "the values of variants" as media keys, and its `deleteObjects` reads the shell's `SUPABASE_URL`
+- symptom: B7 g1 (step 8): the plan's Files line says the `upload --render` cleanup deletes `deleteObjects("media", [media_key, ...values of variants])` of `src/server/lib/media-store.ts`. Reading B9's code took the time: `property_media.variants` holds sizes (`{ "hero": { "w": 1600, "h": 1067 } }`), not keys, and `deleteObjects` builds its address from `readVar("SUPABASE_URL")`, the name G-901 says belongs to another business on this laptop unless the dev profile overwrote it.
+- cause: the plan was written before B9 fixed the key layout: every rendition key is derived from the master, `v/<owner>/<n>-<sha8>/<size>.<ext>` (`variantKeys` in `scripts/variants.ts`, P-335).
+- rule: a script that removes a stored photograph from the bucket `media` derives the keys with `variantKeys(owner, n, sha8)` from the master `o/<owner>/<n>-<sha8>.webp`, and removes them through `serviceClient()` (the dev profile's own names), never through `deleteObjects` from a laptop script.
+- proof: `cd app && grep -n "variantKeys\|serviceClient" scripts/admin-smoke.ts` → the import lines and the cleanup's `storage.storage.from("media").remove(storedKeys(mediaKey))`; `grep -n "const sizes" src/server/jobs/steps/render-variants.ts` → `z.record(z.string(), z.object({ w: z.number(), h: z.number() }))` (2026-10-08). The `--render` leg itself is UNPROVEN until B9's render_variants is deployed.
+- added: 2026-10-08
+
 ## P-731 · A brief that says a file "does not exist on main" can name a file the lane branch already holds: Write overwrote it
 - symptom: B9 c5n's brief said `tests/unit/assets/templates.test.ts` does not exist on main; the builder wrote it with Write, the hook raised no refusal, and the 197-line SSR snapshot file of B9 g4 (Cover, Story, OgCard, carousel, 22 registry entries) was replaced until `git status` showed ` M` instead of `??`. `git checkout --` restored it and the new cases were appended.
 - cause: the brief was written against main, and the lane branch carries earlier groups' commits (`7982a01` added the file); Write replaces a file it was not told to read.
@@ -5357,6 +5380,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: re-run as `NODE_OPTIONS=--max-old-space-size=4096 bun run check` and keep the variable for the group's later checks, builds and tests; the builders' brief carries the line. No lane pause for a node heap OOM; a pause needs a killed process, a worker crash or a Chromium failure with low free memory.
 - proof: `node -e "console.log(require(v8).getHeapStatistics().heap_size_limit/1048576|0)"` prints about 2096 (the default) and `NODE_OPTIONS=--max-old-space-size=4096 node -e ...` prints about 4144.
 - added: 2026-10-08
+- hit again: 2026-10-08, B7 g1 (step 8): `bun run lint` alone died with `FATAL ERROR: Ineffective mark-compacts near heap limit` after 173 s; rerun with `NODE_OPTIONS=--max-old-space-size=4096` it finished and reported the real findings.
 
 ## P-2502 · B8b step 6 puts `putFlags` in `src/server/lib/flags.ts` and has the flags route call it, but an admin route may import only services
 - symptom: B8b g6, `bun run check`: `tests/unit/admin-authz-sweep.test.ts` "import only the wrapper, services and domain" failed with `automation.flags.ts: ../../../server/lib/flags`.
