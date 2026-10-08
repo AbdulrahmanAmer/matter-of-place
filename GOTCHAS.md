@@ -4720,6 +4720,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `.github/workflows/deploy.yml` gives the `preview` job `timeout-minutes: 20` and its `lighthouse` step `timeout-minutes: 22` with two attempts of `timeout 600`. The steps before Lighthouse take about 4 minutes and a hung attempt 1 takes 10, so attempt 2 has about 6 minutes left, less than a full run of the page list.
 - rule: a red `preview` job whose only failure is `lighthouse cancelled` after the H71 warning is this environment hang, not the branch: rerun the failed job once (`gh run rerun <run> --failed`) and report both runs. The owner of `deploy.yml` raises the job limit above the steps before Lighthouse plus two 10-minute attempts, or the retry never gets its time.
 - proof: `gh run view 37731474092 --log --job 113161392010 | grep -a lighthouse | grep -a -E "attempt 1 did not finish|canceled"` prints the warning line at 05:29:26 and the cancel at 05:36:06; `grep -n "timeout-minutes: 20" .github/workflows/deploy.yml` lists line 83 (the `preview` job) (measured 2026-10-08).
+- hit again: 2026-10-08, B7 g2 round 1, PR 248 at 965a268f: deploy run 37800785601's `preview` failed after `lighthouse attempt 1 did not finish` and an `lhci` SIGTERM at 15:42 UTC; `gh run rerun 37800785601 --failed` gave attempt 2 `preview success`.
 - added: 2026-10-08
 
 ## P-2127 · `fakeDb` answers a table with all its rows, has no `or` or `maybeSingle`, and a stub that sorts per `order()` call hides a wrong order
