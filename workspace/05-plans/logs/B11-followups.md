@@ -86,3 +86,23 @@
    - Evidence: Author's unproven list and the slice log block "g2 · steps 3 (fix round after the second review)".
 
 (Follow-up 4 of the reviewer's list, a cost with no gotcha entry, is a hit-again line in P-076 in GOTCHAS.md, not a follow-up.)
+
+## g6 · steps 7
+
+1. File: `app/src/routes/admin/newsletter.index.lazy.tsx`. Blocking: no.
+   - What: C17 asks for an error with the request id, and the Build button misses it. Line 84 shows `toast({ message: error.message, tone: "danger" })`, so a 500 or 403 on POST /issues/build shows no request id. This is the one place on screen 13 that the review fix's failureText did not reach; the subscribers tab, the preview and the editor all quote the id now. The same pattern exists in requests.index.tsx:60, so it is a consistency gap, not a regression.
+   - Evidence: Read: newsletter.index.lazy.tsx:83-85, compared with newsletter.$id.lazy.tsx:96 and newsletter.index.lazy.tsx:105, which use failureText.
+
+2. File: `app/tests/e2e/admin-newsletter.spec.ts`. Blocking: no.
+   - What: Suspected by reading, not run. Suppose beforeAll fails after holdDevLock() but before signInAs() assigns `context` (for example a sign-in failure). Then afterAll's finally block calls `context.close()` on undefined and throws a TypeError. That hides the real error and skips `delete process.env.MOP_DEV_LOCK_HELD` and `release()`. Because the lock is a session advisory lock, it is held until the Playwright worker process exits rather than released at once. Guarding the close (`await context?.close()` with context typed as optional) fixes it.
+   - Evidence: Read: admin-newsletter.spec.ts:21 (`let context: BrowserContext;`), :48-54 (release assigned before signInAs), :73-81 (finally block). tests/fixtures/dev-lock.ts:16 takes pg_advisory_lock on its own client.
+
+3. File: `workspace/05-plans/B11.md`. Blocking: no.
+   - What: Plan drift that the author disclosed and that belongs to the orchestrator to fold in. Line 81 still describes `GET ?format=csv` on newsletter.subscribers.ts, but the build has its own route newsletter.subscribers.export.ts (P-2410). trace.json:512-519 does not list newsletter.subscribers.export.ts or the two .lazy.tsx route files. The doc comment on sendTest in src/server/newsletter/service.ts:126-129 says 'the route reads it', but the route calls sendTestToActor.
+   - Evidence: `grep -n 'format=csv' workspace/05-plans/B11.md` prints line 81; `grep -n 'newsletter' workspace/05-plans/trace.json` lists the 8 original route files only; service.ts:127 comment vs newsletter.issues.$id.send-test.ts:14.
+
+4. File: `app/tests/e2e/admin-newsletter.spec.ts`. Blocking: no.
+   - What: UNPROVEN, as the brief allows. Tests 1 to 5 and 7 have never run green against the real Worker and database, and the leaveDraft path in afterAll has never run. Neither has a watched-fail. The only browser evidence for the UI flow is a page.route-stubbed scratch spec that was not committed, and the service and SQL shapes rest on a rolled-back transaction. The send-test route was never called on mop-dev. These items close only once main pushes 20261007045428 and 20261007082148, or on CI's e2e admin step for the PR.
+   - Evidence: The mop-dev probe printed newsletter.% action_roles n=0 and newest migration 20261007043633; logs/B11.md:430.
+
+(Follow-ups 1 and 2 of the reviewer's list, two costs with no gotcha entry, are P-2420 and a hit-again line in P-1302 in GOTCHAS.md, not follow-ups.)
