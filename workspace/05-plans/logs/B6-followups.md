@@ -141,3 +141,28 @@ The two GOTCHAS.md follow-ups, kept here word for word for the record:
 
 - P-2319 gives the wrong cause, so its rule is wrong too. It says a lane that merged main 'differs from the ref in files other lanes changed after the merge base'. In fact --changed selects the whole slice's diff since the merge base: 92 B6 entries plus 43 other-slice entries on files B6 edited. Merging main does not grow that set. The rule ('use --changed only when the lane has not merged main') therefore steers lanes away from the one replay that catches cross-slice regressions on shared files, for a reason that is not true. The entry should also say that db-project entries (for example B2:f-matrix) go BAD in a unit shell without the dev profile, so that 'bad 1' does not look like a regression. Evidence: Confirmed by running (see follow-up 1). Banked: P-2319 rewritten.
 - P-2320's proof is `import('file:///D:/mop-build/b6/app/node_modules/playwright/index.mjs')`. That only shows node can import playwright, from a lane path that disappears when the lane is removed. It does not show the claimed symptom (bun plus Playwright hangs, no PDF rasteriser). A proof should be runnable from any tree, and it should show the thing the rule depends on. Evidence: Suspected by reading the entry text in the diff; not run by the reviewer. Banked: P-2320 proof replaced by one that runs from any tree (no rasteriser on the PATH; Playwright loads under node).
+
+## c3h · steps 8-9
+
+Review of group c3h: no blocking defect. Seven follow-ups: two concern GOTCHAS.md (hit-again lines added to P-1930, P-310 and P-2321, not listed again here as open work); the other five are below, word for word with their evidence.
+
+1. File: `app/src/admin/invoices/InvoiceDetail.test.tsx`. Blocking: no.
+   What: The jscpd clone between this file's serve() helper and B7's src/admin/properties/properties.test.tsx was cleared by renaming the local variable key to route (merge 25afac5e). That breaks the token match without removing the duplicate. The same fetch-stub helper now exists three times: InvoiceDetail.test.tsx:141, properties.test.tsx:88 and RequestDetail.test.tsx:255. This gets around G04/R04 (the copy-detection rule) rather than meeting it (C05 also asks for one shared copy). It is test-only and no product behaviour changes. It belongs in a shared tests/fixtures helper, or as an accepted exception recorded in the bank.
+   Evidence: git diff 25afac5e^1 25afac5e -- app/src/admin/invoices/InvoiceDetail.test.tsx (three lines key->route); grep -rn 'function serve' app/src
+
+2. File: `workspace/07-admin-platform/admin-screens.md`. Blocking: no.
+   What: Line 50 still gives B6 step 9's proof as `E2E_TARGET=dev bunx playwright test --project admin tests/e2e/admin-invoice.spec.ts` on mop-dev. Under H70 that command exits 0 with 7 skipped, so anyone who follows it sees a green that tested nothing (it also carries the `--project admin` form that P-1218/GOTCHAS:3628 says fails). The log's orchestrator note names B6.md only. It leaves out this file and workspace/05-plans/sizing/B6.json g6 ('which also runs in CI's admin project'). This is the orchestrator's file to update.
+   Evidence: sed -n 50p workspace/07-admin-platform/admin-screens.md; my run without E2E_FULL_STACK printed '7 skipped', exit 0
+
+3. File: `app/tests/mutations/B6.json`. Blocking: no.
+   What: b6-g3-e2e-mail-status cannot reliably fail. expect.poll stops at the first match, so the mutant .toBe("sent") stays green whenever the email_messages row reads sent at the first poll, which is the normal order (sent before the delivered webhook). The `what` says so and the entry is manual, but no replay of it can show that accepting 'delivered' is load-bearing. It needs a deterministic form (for example, poll until delivered or until a fixed wait has passed, then assert the set) or an explicit UNPROVEN that stays open.
+   Evidence: git show 0583b773 -- app/tests/mutations/B6.json (what text); spec .poll(...).toMatch(/^(sent|delivered)$/)
+
+4. File: `workspace/05-plans/logs/B6.md`. Blocking: no.
+   What: The round-3 block says 'two lines of g1's InvoiceDetail.test.tsx' changed. Its own Merge line and the diff show three. The hand-in's gotchasAdded is [] even though this round added hit-again lines to P-1908, P-537 and P-094 and edited P-2329 and P-2323. These are small bookkeeping inconsistencies.
+   Evidence: workspace/05-plans/logs/B6.md:424 vs :426; git diff 25afac5e^1 25afac5e -- app/src/admin/invoices/InvoiceDetail.test.tsx
+   Handling: the log block is append-only, so the count is stated in the "## c3h · follow-ups recorded" block of B6.md.
+
+5. File: `app/tests/e2e/admin-invoice.spec.ts`. Blocking: no.
+   What: UNPROVEN, as the author says and as I reproduced: all seven rehearsal tests beyond the issue confirmation. The by-hand E2E_FULL_STACK=1 run on mop-dev still gets a 403 forbidden at spec:230, because B6's three action_roles migrations are not on main (0 payments.* rows on mop-dev). Also UNPROVEN: the picker and unaccepted manual entries since the kind change, and CI's real result for this PR. The proof of the slice's observed exit is still open until B6 is merged, main pushes the migrations, and the Proof 4 command is run once.
+   Evidence: my run: 1 failed, 6 did not run, with the trace resource holding {"error":{"code":"forbidden"...}}; mop-dev query: payments action_roles 0, B6 migrations applied 0
