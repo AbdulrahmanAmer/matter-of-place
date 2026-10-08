@@ -126,6 +126,35 @@ describe("outbound calls per request (E2E-02)", () => {
     expect(response.status).toBe(200);
     expect(siteverify.mock.calls.length + db.calls.length).toBeLessThanOrEqual(CEILING);
   });
+
+  it("keeps Create property from a request with 40 photographs at 35 calls or fewer (B7 step 7)", async () => {
+    await load();
+    const { createFromSubmission } = await import("../../src/server/properties/service");
+    const propertyId = randomUUID();
+    const db = fakeDb({
+      rpc: {
+        // The photographs are copied by the job the RPC queues, so their number changes nothing here.
+        create_property_from_submission: () => ({
+          property_id: propertyId,
+          copy_job_id: randomUUID(),
+        }),
+      },
+    });
+    const answer = await createFromSubmission(
+      {
+        userId: randomUUID(),
+        kind: "human",
+        roles: ["managing_editor"],
+        scopes: [],
+        requestId: "req-budget-0003",
+      },
+      db,
+      randomUUID(),
+    );
+    expect(answer.property_id).toBe(propertyId);
+    expect(db.calls.filter((call) => call.kind === "storage")).toEqual([]);
+    expect(db.calls.length).toBeLessThanOrEqual(CEILING);
+  });
 });
 
 describe("outbound calls of an admin activation (E2E-02, PERF-07)", () => {

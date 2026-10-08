@@ -141,9 +141,9 @@ function mount(actions: string[], page: ReactNode) {
 function serve(answers: Record<string, unknown>) {
   const requested: string[] = [];
   vi.stubGlobal("fetch", (path: string, init: RequestInit = {}) => {
-    const key = `${init.method ?? "GET"} ${path}`;
-    requested.push(typeof init.body === "string" ? `${key} ${init.body}` : key);
-    const body = answers[key];
+    const route = `${init.method ?? "GET"} ${path}`;
+    requested.push(typeof init.body === "string" ? `${route} ${init.body}` : route);
+    const body = answers[route];
     return Promise.resolve(
       body instanceof Response
         ? body
