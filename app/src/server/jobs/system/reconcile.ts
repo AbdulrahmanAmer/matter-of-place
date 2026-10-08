@@ -1,3 +1,5 @@
+import type { Json } from "../../../db/index.ts";
+import { reconcileSocial as settleSocial } from "../../channels/reconcile-social.ts";
 import type { Db } from "../../lib/db.ts";
 import { AppError } from "../../lib/errors.ts";
 import { reconcileUploads as settleUploads } from "../../submissions/reconcile.ts";
@@ -5,7 +7,8 @@ import type { JsonObject, StepContext, SystemJobDefinition } from "../types.ts";
 import { NonRetryableError } from "../types.ts";
 
 // The 15-minute reconcile job (G10), started only by B8b's reconcile schedule row and by
-// `scripts/job-selftest.ts --reconcile`. Each slice that appends a call writes its own key of the result; uploads first.
+// `scripts/job-selftest.ts --reconcile`. Each slice that appends a call writes its own key of the result; uploads
+// first, then the social part of B10 (`reconcile-social.ts`).
 
 export interface UploadCounts {
   checked: number;
@@ -15,6 +18,12 @@ export interface UploadCounts {
 }
 
 export type ReconcileUploads = (db: Db, since: Date) => Promise<UploadCounts>;
+
+export type ReconcileSocial = (
+  ctx: StepContext,
+  params: Json,
+  now: Date,
+) => Promise<{ social: Json }>;
 
 const OVERLAP_MS = 15 * 60 * 1000;
 const FIRST_RUN_MS = 24 * 60 * 60 * 1000;
@@ -42,15 +51,20 @@ async function sinceOf(ctx: StepContext, data: JsonObject): Promise<Date> {
   return new Date(ctx.now.getTime() - FIRST_RUN_MS);
 }
 
-export function reconcileJob(reconcileUploads: ReconcileUploads): SystemJobDefinition {
+export function reconcileJob(
+  reconcileUploads: ReconcileUploads,
+  socialPart: ReconcileSocial,
+): SystemJobDefinition {
   return {
     type: "reconcile",
     sideEffect: "none",
-    async run(ctx, _params, data) {
+    timeoutMs: 40_000,
+    async run(ctx, params, data) {
       const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data));
-      return { status: "done", result: { uploads: { ...uploads } } };
+      const { social } = await socialPart(ctx, params, ctx.now);
+      return { status: "done", result: { uploads: { ...uploads }, social } };
     },
   };
 }
 
-export const reconcile = reconcileJob(settleUploads);
+export const reconcile = reconcileJob(settleUploads, settleSocial);
