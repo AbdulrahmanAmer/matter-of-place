@@ -295,4 +295,4 @@
    - What: C05 note, not a defect. EmailTemplateFile gains an optional textParts hook and a TextParts interface, and standalone.tsx is the only file that implements it. I accept it: it is the smallest way to make preview, the [Test] send, email-shots and the real send share one text renderer, which is the point of the fix. Record it in case a second self-drawing template never comes.
    - Evidence: git grep -n 'textParts' app/src -> only index.ts:26, render.ts:154 and standalone.tsx:33
 
-(A third follow-up, whose file is GOTCHAS.md, is banked as P-2609 in the gotcha bank, not listed here.)
+(A third follow-up, whose file is GOTCHAS.md, is banked as P-2463 in the gotcha bank, not listed here.)
