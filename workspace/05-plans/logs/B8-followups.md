@@ -220,3 +220,19 @@
    - Evidence: Read: system_jobs.sql around line 150 and ops_heartbeat.sql:51 both guard with to_regclass. automation.sql:74 creates the table unconditionally.
 
 (A fifth follow-up, the reviewer's costTime entry that the author assigned to P-310 without a line for quiet.mjs, has GOTCHAS.md as its file and is banked as a hit-again line on P-310.)
+
+## g1 · steps 9
+
+1. `app/src/domain/jobs.ts` (not blocking)
+   - What: The comment on jobRetryBulkSchema says the rule of at least one filter means 'a request never retries every dead job'. That is not true. Sending error_like '%' (or a since far in the past) passes the schema, and admin_retry_jobs then requeues every dead job that has an error. The plan only asks for at least one filter, so the behaviour meets the plan. The comment claims a guarantee the code does not give. Fix the comment, or refuse a pattern that is only wildcards.
+   - Evidence: Confirmed by running: on mop-dev in a rolled-back transaction, `select public.admin_retry_jobs(<media_ops human>, 'human', 'r13', p_error_like => '%')` returned 115. The comment is at src/domain/jobs.ts, just above `export const jobRetryBulkSchema`.
+
+2. `app/tests/unit/jobs/service.test.ts` (not blocking)
+   - What: No test exercises the `since` filter of retry-bulk, in either layer. I deleted the line in retryBulkJobs that passes `since` to the RPC, and service.test.ts stayed green. tests/db/jobs.db.test.ts never passes a non-null p_since, so removing the `finished_at >= p_since` clause in admin_retry_jobs would also go unnoticed (that half is from reading the test, not run). The code is correct today. If it regresses, a 'retry since one hour ago' request would quietly requeue every older dead job of that type. The plan's proof does not ask for this case, so it is a follow-up.
+   - Evidence: Confirmed by running: scratch watchfail entry rev-since-dropped (find `...(input.since === undefined ? {} : { p_since: input.since }),` replaced with nothing) gave `WATCHED-FAIL BAD: stayed green`. `grep -n since tests/db/jobs.db.test.ts` shows only `since: null` in the expected audit row.
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: The plan text no longer matches what was built, and the log records each departure: (1) admin_retry_jobs takes (p_actor, p_actor_kind, p_request_id, p_type, p_error_like, p_since) with the filters last and defaulted (P-915), not the plan's order. The plan and the B10.md, B8.md and B8b.md review lines still show the old order. (2) listJobs makes two selects on a page after a cursor (ties, then older rows, because of R44), while plan line 90 says 'one supabase-js select'. (3) jobStatusLabels and the JobStatus re-export named for src/domain/jobs.ts were left out (knip, R04). Step 10 has to add them where it first uses them. The orchestrator should fold all three into the plan.
+   - Evidence: From reading: B8.md lines 90, 91 and 93 compared with app/supabase/migrations/20261008065327_jobs_admin.sql (the admin_retry_jobs signature), app/src/server/jobs/service.ts (`after()`) and app/src/domain/jobs.ts (no jobStatusLabels). The log block '## g1 · steps 9', under 'Choices the plan left open', records all three.
+
+(A fourth follow-up, the rework of `listJobs` after a jscpd clone that the bank did not hold, has GOTCHAS.md as its file and is banked as P-2600.)

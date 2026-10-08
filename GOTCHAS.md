@@ -5017,3 +5017,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: an audit that reads computed style (axe, a contrast or overflow measure) first awaits the animations that end: `settleAnimations(page)` in `tests/e2e/fixtures/a11y.ts` (ruling H72); never skip the dialog, never baseline the violation, never edit the motion for it.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-a11y-settle-wait` -> `WATCHED-FAIL OK B17:b17-a11y-settle-wait` (2026-10-08).
 - added: 2026-10-08
+
+## P-2600 · A new keyset list service that copies `listPayments`' page logic fails `jscpd` at `bun run check`, after every unit test was green
+- symptom: B8 g1 step 9: the first `bun run check` failed `jscpd` on a 93-token clone of `listPayments`' page logic in `listJobs` (`src/server/jobs/service.ts`); typecheck, lint and the unit tests had passed. `listJobs` was rewritten to page through its own `pageOf`, and a full `bun run check` ran again.
+- cause: `.jscpd.json` has `minTokens 70` and `threshold 0` (R04); the limit-plus-one trim and `next_cursor` build of `src/server/payments/service.ts` is longer than that, and the plan line "keyset paging as listPayments" invites copying it (same cause as P-2121 and P-1221).
+- rule: a new keyset list service writes its own page helper from the start (`pageOf` in `src/server/jobs/service.ts`) instead of copying `listPayments`' trim, and runs `bun run jscpd` right after the first green unit run, before the full check.
+- proof: `cd app && bun run jscpd` -> `Found 0 clones.` on slice/b8 (2026-10-08); with `listJobs` carrying `listPayments`' page block again it prints the clone.
+- hit again: P-2121 and P-1221 name the same gate for a render step and a script; none covers a list service.
+- added: 2026-10-08
