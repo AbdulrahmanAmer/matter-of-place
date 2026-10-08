@@ -28,12 +28,16 @@ const PRODUCT_LINE = "Exceptional property. Properly considered.";
 const EMBLEM_PATH = "/apple-touch-icon.png";
 const EMBLEM_SIZE = 36;
 
-/** What a template component receives: text and links already interpolated, empty blocks already dropped. */
+/**
+ * What a template component receives: text and links already interpolated, empty blocks already dropped, and the
+ * variables as the caller gave them, so a file that draws its own content (an object such as `block`) can read them.
+ */
 export interface EmailProps {
   title: string;
   preheader: string;
   blocks: readonly EmailBlock[];
   site: SiteContext;
+  variables: Readonly<Record<string, unknown>>;
 }
 
 /** One template file's seed and metadata; the stored row is what is sent (invariant 1). */

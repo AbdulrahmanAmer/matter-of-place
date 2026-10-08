@@ -4,6 +4,7 @@ import { JobWatcher, type WatchedJob } from "../ui/JobWatcher";
 import { RoleGate } from "../ui/RoleGate";
 import { StatusPill, type Tone } from "../ui/StatusPill";
 import { Checklist } from "./Checklist";
+import { RerenderAssetsButton } from "./RerenderAssetsButton";
 
 type EditorialState = PropertyRecord["editorial_state"];
 
@@ -20,6 +21,7 @@ const tone: Record<EditorialState, Tone> = {
  * every checklist item passes (CE, ME). A published property saves each edit to the live page.
  */
 export function PublishBar({
+  propertyId,
   state,
   checklist,
   pending,
@@ -27,6 +29,7 @@ export function PublishBar({
   onMove,
   onPublish,
 }: {
+  propertyId: string;
   state: EditorialState;
   checklist: readonly ChecklistResult[];
   pending: boolean;
@@ -81,6 +84,7 @@ export function PublishBar({
             </button>
           </RoleGate>
         ) : null}
+        <RerenderAssetsButton propertyId={propertyId} />
       </div>
       <JobWatcher jobs={jobs} />
     </aside>

@@ -123,6 +123,12 @@ jobs.retry                         MO AD
 jobs.cancel                        MO AD
 jobs.approve                       MO AD | H
 jobs.retry_bulk                    MO AD | H
+assets.list                        CE ME VE MO CO AD
+assets.get                         CE ME VE MO CO AD
+assets.approve                     CE MO
+assets.reject                      CE MO
+assets.re_render                   CE MO
+assets.caption                     CE MO
 `;
 
 const ROLE: Record<string, AppRole> = {

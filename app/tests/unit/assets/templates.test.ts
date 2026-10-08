@@ -1,6 +1,9 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { SiteContext } from "../../../src/server/email/context";
+import { renderTemplate, type RenderRow } from "../../../src/server/email/render";
+import { lintEmail } from "../../../scripts/lib/email-lint";
 import fixture from "../../../src/templates/social/fixtures/property.fixture.json";
 import { CarouselSlide } from "../../../src/templates/social/Carousel.tsx";
 import { Cover } from "../../../src/templates/social/Cover.tsx";
@@ -193,5 +196,155 @@ describe("the social templates", () => {
       false,
       false,
     ]);
+  });
+});
+
+const site: SiteContext = {
+  siteUrl: "https://matterofplace.com",
+  entity: null,
+  address: null,
+  contact: { email: null },
+};
+
+// The stored block of a Campaign property and the row B11 seeds for `standalone`: no blocks of its own.
+const block = {
+  title: "412 Alder Lane",
+  deck: "A quiet house above the water.",
+  image_key: "properties/p1/og.webp",
+  image_url: "https://matterofplace.com/media/properties/p1/og.webp",
+  link: "https://matterofplace.com/properties/alder-lane?utm_source=newsletter",
+};
+
+const standalone: RenderRow = {
+  key: "standalone",
+  subject: "{{subject}}",
+  preheader: "{{preheader}}",
+  body: [],
+};
+const variables = { subject: "Alder Lane", preheader: "A new property" };
+
+describe("the standalone email", () => {
+  it("draws the property block it is given, from an empty body, with no placeholder left", async () => {
+    const { html, text } = await renderTemplate(standalone, { ...variables, block }, site);
+    expect(html).toContain(block.title);
+    expect(html).toContain(block.deck);
+    expect(html).toContain(`src="${block.image_url}"`);
+    expect(html).toContain(`href="${block.link}"`);
+    expect(html).toContain(`alt="${block.title}"`);
+    expect(html).not.toContain("{{");
+    expect(text).not.toContain("{{");
+  });
+
+  it("uses the alt text of the asset when one is given", async () => {
+    const { html } = await renderTemplate(
+      standalone,
+      { ...variables, block: { ...block, alt: "The house at dusk" } },
+      site,
+    );
+    expect(html).toContain('alt="The house at dusk"');
+  });
+
+  it("draws no property block when it is given none", async () => {
+    const { html } = await renderTemplate(standalone, variables, site);
+    expect(html).not.toContain("View the property");
+    expect(html).not.toContain(block.title);
+    expect(html).not.toContain('<img src="https://matterofplace.com/media');
+  });
+
+  it("passes the email gate on the block it draws: an image with a width and no empty link", async () => {
+    const { html, text } = await renderTemplate(standalone, { ...variables, block }, site);
+    // The plain-text part of a Campaign email does not yet hold the block's link (B11's follow-up), so text-url is left out.
+    const rules = lintEmail(html, text, "standalone")
+      .map((finding) => finding.rule)
+      .filter((rule) => rule !== "text-url");
+    expect(rules).toEqual([]);
+  });
+
+  it("refuses a block whose link or image is not an https address", async () => {
+    for (const bad of [
+      { ...block, link: "javascript:alert(1)" },
+      { ...block, image_url: "http://matterofplace.com/media/properties/p1/og.webp" },
+    ]) {
+      await expect(renderTemplate(standalone, { ...variables, block: bad }, site)).rejects.toThrow(
+        "template_render_failed",
+      );
+    }
+  });
+
+  it("refuses a block that is not a block", async () => {
+    await expect(
+      renderTemplate(standalone, { ...variables, block: { title: "No picture" } }, site),
+    ).rejects.toThrow("template_render_failed");
+  });
+});
+
+// vitest resolves the Node build of @react-email/render; the Worker resolves the `workerd` condition, the edge build.
+// A throwing component resolves with a fallback in the first and rejects in the second (measured 2026-10-07).
+const edgeBuild = "../../../node_modules/@react-email/render/dist/edge/index.mjs";
+
+describe("the standalone email under the render build the Worker bundles", () => {
+  afterEach(() => {
+    vi.doUnmock("@react-email/render");
+    vi.resetModules();
+  });
+
+  async function underEdge() {
+    vi.resetModules();
+    vi.doMock("@react-email/render", () => import(/* @vite-ignore */ edgeBuild));
+    const [{ renderTemplate: render }, { NonRetryableError }] = await Promise.all([
+      import("../../../src/server/email/render"),
+      import("../../../src/server/jobs/types"),
+    ]);
+    return { render, NonRetryableError };
+  }
+
+  it("still draws the property block it is given", async () => {
+    const { render } = await underEdge();
+    const { html } = await render(standalone, { ...variables, block }, site);
+    expect(html).toContain(block.title);
+  });
+
+  it("refuses a block that is not a block as a NonRetryableError, with the reason kept", async () => {
+    const { render, NonRetryableError } = await underEdge();
+    const failure: unknown = await render(
+      standalone,
+      { ...variables, block: { ...block, link: "javascript:alert(1)" } },
+      site,
+    ).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(NonRetryableError);
+    expect(failure).toHaveProperty("message", "template_render_failed");
+    expect(failure).toHaveProperty("cause.message", "standalone_block_invalid");
+  });
+});
+
+describe("variables that are not text", () => {
+  it("are not interpolated: a placeholder naming one has no value", async () => {
+    const row: RenderRow = {
+      ...standalone,
+      body: [{ type: "paragraph", text: "{{block}}" }],
+    };
+    await expect(renderTemplate(row, { ...variables, block }, site)).rejects.toThrow(
+      "missing_variable:block",
+    );
+  });
+
+  it("are not checked as addresses, but a text one in a button still is", async () => {
+    const off = { ...block, link: "https://example.com/elsewhere" };
+    const { html } = await renderTemplate(standalone, { ...variables, block: off }, site);
+    expect(html).toContain(`href="${off.link}"`);
+    const button: RenderRow = {
+      ...standalone,
+      body: [{ type: "button", label: "Open", url: "{{url}}" }],
+    };
+    await expect(renderTemplate(button, { ...variables, url: off.link }, site)).rejects.toThrow(
+      "url_off_site",
+    );
+  });
+});
+
+describe("an empty body", () => {
+  it("is refused for a key whose template only draws the row's blocks", async () => {
+    const row: RenderRow = { key: "received", subject: "Received", preheader: "", body: [] };
+    await expect(renderTemplate(row, {}, site)).rejects.toThrow("template_body_invalid");
   });
 });
