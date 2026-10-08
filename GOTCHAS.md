@@ -4774,3 +4774,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a resumed builder first runs `git status --short` and compares each modified or committed file of the WIP with the registry (`find` present once, `replace` absent: a scan over `tests/mutations/*.json`); after stopping a replay, `git status --short` again and restore the mutated file from `HEAD` when no other work is uncommitted. Never commit while a replay runs in the same tree.
 - proof: `git -C D:/mop-build/admin show b1a638b:app/src/server/public/pipeline.ts | grep -cF "...[{ bucket:"` → `1` (the mutation), and the same at `61dacc8` → `0` (restored; measured 2026-10-08).
 - added: 2026-10-08
+
+## P-539 · `watchfail --changed origin/main` skipped a branch's own new registry entry once a merge of main made its target file equal to main's; the entry was stale and only the reviewer saw it
+- symptom: 2026-10-08 04:00, B11 step 7 (review af38d8a4): after `git merge origin/main`, `tests/unit/admin-routes-parity.test.ts` on slice/b11 equalled main's, so `--changed origin/main` listed no diff for it and never selected the branch's new entry `b11-g6-routes-pending-stale`, whose `find` still named the pre-merge list end (`"automation.templates_send_test",
+];` against `"reports.email",
+];`). The author reported `28 replayed, 0 stale`; CI's mutation step would have exited 2 on the next branch to touch the file.
+- cause: `--changed` selected by file diff only; an entry is also made stale by main moving its target, and after the merge the branch no longer differs on that file.
+- rule: `--changed <ref>` now also selects every entry the registry gained or changed since `<ref>` (`registryAt()` in `scripts/watchfail.mjs` reads each registry file at `<ref>` with `git show`). Keep running it from `app/` before every push (P-537); after a merge of main it covers the group's own entries without `--only`.
+- proof: `cd app && bunx vitest run --project unit tests/unit/watchfail.test.ts -t "P-539"` → `WATCHED-FAIL OK A:three` selected with no target file changed; with the `|| addedSinceRef` term removed the case goes red (`- "WATCHED-FAIL OK A:three"`), measured 2026-10-08.
+- added: 2026-10-08
+- enforced-by: `tests/unit/watchfail.test.ts` ("--changed <ref> also replays an entry the registry gained since <ref>")
+
+## P-540 · `quiet.mjs -- bun run check | tail -1 && git commit ...` commits and pushes on a red check: the pipeline exit is tail's, not the check's
+- symptom: 2026-10-08 05:20, the watchfail PR (226) was pushed with its check having printed `quiet: exit 1`; the chain went on because `| tail -1` ended the pipeline with 0. The same check passed on the next run (load), so the red line's content is UNPROVEN.
+- cause: a pipeline's status is its last command's; `&&` after `| tail` tests tail.
+- rule: never pipe a gate before `&&`: run `node ../workspace/05-plans/quiet.mjs -- bun run check` on its own line and test `$?`, or `set -o pipefail` first; the gate's exit decides the push, not its last line.
+- proof: `bash -c 'false | tail -1 && echo pushed'` prints `pushed`; with `set -o pipefail` it prints nothing.
+- added: 2026-10-08
