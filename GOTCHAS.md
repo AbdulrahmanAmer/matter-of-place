@@ -5050,3 +5050,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: an audit that reads computed style (axe, a contrast or overflow measure) first awaits the animations that end: `settleAnimations(page)` in `tests/e2e/fixtures/a11y.ts` (ruling H72); never skip the dialog, never baseline the violation, never edit the motion for it.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-a11y-settle-wait` -> `WATCHED-FAIL OK B17:b17-a11y-settle-wait` (2026-10-08).
 - added: 2026-10-08
+
+## P-2027 · bank-merge refuses a lane edit of an entry main did not touch: its lost-line check counts the lane's own rewrite as a line main lost
+- symptom: the B7 merge into main at 5bfdf875 + origin/main 5bfdf875..6eda9a41+ stopped with `bank-merge: refused, nothing written` and `line lost: main P-1917: - rule: a test that claims "the HTML does not vary" ...`, while `P-008` was the only conflict it resolved.
+- cause: the lane rewrote the rule line of P-1917 (step 7a, `x-mop-cache: bypass`); main still holds the base text of that line, so the git merge takes the lane's body cleanly, but `lostLines(theirsById, "main")` reports every main line absent from the result, including lines the lane changed against an unchanged base.
+- rule: a main line that equals the base line and is absent from the result is a lane edit, not a loss; until `workspace/05-plans/bank-merge.mjs` skips such lines (a plan change, ruling needed), a merge-only run returns blocked with the helper's words, never resolves GOTCHAS.md by hand (P-525).
+- proof: `git show 6eda9a41:GOTCHAS.md | awk '/^## P-1917/{f=1;next}/^## /{f=0}f' | grep '^- rule' | md5sum` equals the same command on `origin/main` -> same hash (main's line is the base's).
+- added: 2026-10-08
