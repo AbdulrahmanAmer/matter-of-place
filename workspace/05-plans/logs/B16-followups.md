@@ -97,3 +97,13 @@
    Evidence: author's own proofs list; I replayed only the 24 b16-g5 entries (all OK), as the brief directs
 
 (The sixth follow-up, a GOTCHAS.md cost, went to the bank as P-1946: lesson 5 of the map names `watchfail --check`, which does not exist; the reviewer's note on P-094 and confirming a process command line before stopping it is in the same entry.)
+
+## g6 · steps 6
+
+1. File `workspace/05-plans/logs/B16.md` (not blocking).
+   What: The g6 rework block gives the wrong cause for the UNPROVEN item. It says the Playwright submit 'never reached the network (the Turnstile token is not available to a headless page here)'. The real cause: the build had no VITE_API_BASE_URL, so services resolved to localServices and the form wrote to the in-memory outbox. getTurnstileToken returns null when no site key is set, and the request is still sent. A later prover (HARDEN's end-to-end submit) would chase Turnstile instead of building in live mode. Reviewer evidence closes the item itself: a live build sends the right kind in a real browser.
+   Evidence: In the local build, grep -rlo '/subjects/request' .output/public/assets found nothing, and Playwright showed sent=[] with the confirmation displayed. After MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public bun run build, Playwright sent kind opt_out (no click) and kind access (after clicking access), each through the intercepted POST.
+
+2. File `src/components/forms/privacy-request-form.tsx` (not blocking).
+   What: The plan says 'A 422 shows forms.invalid beside the fields'. The form shows it once, as the FormError alert under the fields, with no field marked. That is the shared useAsyncAction behaviour. The author recorded it as left, but the log puts it under use-async-action and it does not appear in B16-followups.md.
+   Evidence: tests/unit/privacy-request.test.tsx line 194 asserts the single role=alert text 'Please check the highlighted details.' and no per-field error. use-async-action.ts messageFor maps validation to t.forms.invalid in state.message only.
