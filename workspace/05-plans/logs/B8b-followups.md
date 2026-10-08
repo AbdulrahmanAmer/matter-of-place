@@ -333,3 +333,31 @@ Recorded from the g9 review (no blocking defect). None is blocking. No follow-up
 - what: NOT DONE by design: FlagsSection is not mounted on screen 24 because B7 step 15 has not created settings.index.tsx. Until that step lands, nothing in the app renders the component. The orchestrator must make sure B7 step 15, or whoever lands after it, adds the one import line. Otherwise the flags have no editor.
 - evidence: `grep -rn FlagsSection src` finds only FlagsSection.tsx and its test. `ls src/routes/admin | grep settings` shows only automation.settings.tsx. The group title excepts this mount.
 - blocking: false
+
+## g10 · steps 10
+
+Recorded from the g10 review (no blocking defect). None is blocking. Two further items of that review name GOTCHAS.md and went into the bank (P-2513, and a hit-again line on the guardEnv entry), not here.
+
+### 1. app/tests/e2e/automation-exit.spec.ts
+
+- what: The spec never deletes the agent identity it creates or the key rows it adds. On mop-dev, which becomes production at the launch switch (H35), it leaves an auth user e2e-automation-agent@matterofplace.invalid with an active media_ops agent role (disabled_at null), plus one revoked agent_keys row per run. The plan's proof says 'the spec deletes the rows it creates', and the spec's header comment lists what stays (the events row) without naming these. No key is live, so this is not an exploit today. After launch, though, the Team screen would show an enabled test agent in production.
+- evidence: Queried mop-dev after my run: user_roles for that email returns [{role: media_ops, actor_kind: agent, disabled_at: null}]. 33 agent_keys rows match label 'e2e automation exit%' and 0 of them are unrevoked. The afterAll at lines 126-145 revokes the key and deletes only the submission.
+- blocking: false
+
+### 2. app/tests/e2e/automation-exit.spec.ts
+
+- what: The screen 16 negative assertion (line 338, not.toContainText(/notify admin/i)) has no watched-fail of its own; the author says so. Reading the code, I think it can go red: the jobs filter includes job_event_entity_id.eq.<id>, and words(row.type) renders notify_admin as 'notify admin'. Neither point was proven by running.
+- evidence: src/server/lib/jobs.ts:65-73 entityJobsFilter; src/admin/jobs/JobsTable.tsx:46 words(row.type). There is no registry entry that mutates only the screen 16 path.
+- blocking: false
+
+### 3. app/tests/e2e/automation-exit.spec.ts
+
+- what: The plan's proof is only partly met. The agent key is inserted straight into agent_keys instead of being created through B7 step 14's team service, which is not on main. This stays UNPROVEN until step 14 lands and the insert is replaced, as the author's own unproven list says.
+- evidence: Lines 104-119 insert into user_roles and agent_keys with pg.
+- blocking: false
+
+### 4. workspace/05-plans/B8b.md
+
+- what: Stale plan text, for the orchestrator to fold in. Step 10's proof says 'a limit above 50 is clamped to 50' and calls the cursor `before`. The code refuses a limit over 50 with 422 and names the cursor `cursor` (<at>~<id>). Watched-fail (n) 'drop ... the 50 clamp' is met by b8b-g10-limit-clamp against the refusal, not against a clamp.
+- evidence: src/server/automation/service.ts listRevisions and revisionsInput = adminPageSchema.extend(...); the existing case 'refuses a limit over 50 and a cursor that is not <at>~<id> with 422'.
+- blocking: false
