@@ -2,6 +2,8 @@ import { useState } from "react";
 import { socialChannelLabels, type SocialPost } from "../../domain/channels";
 import { pluralize } from "../../lib/format";
 import { useAdminMe } from "../ui/admin-me";
+import { AdminApiError } from "../ui/admin-fetch";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { DataTable, type Column } from "../ui/DataTable";
 import { useToast } from "../ui/use-toast";
 import { useMarkWithdrawn, useWithdrawList } from "./channels-queries";
@@ -29,6 +31,7 @@ export function WithdrawList() {
   const list = useWithdrawList();
   const done = useMarkWithdrawn();
   const [now] = useState(() => Date.now());
+  const [asking, setAsking] = useState<SocialPost | null>(null);
   const failure = list.error;
   const columns: Column<SocialPost>[] = [
     { key: "channel", header: "Channel", render: (row) => socialChannelLabels[row.channel] },
@@ -50,14 +53,7 @@ export function WithdrawList() {
           className="admin-button admin-button--quiet"
           disabled={done.isPending}
           onClick={() => {
-            done.mutate(row.id, {
-              onSuccess: () => {
-                toast({ message: "Marked as withdrawn." });
-              },
-              onError: (error) => {
-                toast({ message: error.message, tone: "danger" });
-              },
-            });
+            setAsking(row);
           }}
         >
           Done
@@ -75,9 +71,45 @@ export function WithdrawList() {
         rows={list.data?.items ?? []}
         rowId={(row) => row.id}
         loading={list.isPending}
-        error={failure === null ? null : { message: failure.message }}
+        error={
+          failure === null
+            ? null
+            : {
+                message: failure.message,
+                ...(failure instanceof AdminApiError && failure.requestId !== undefined
+                  ? { requestId: failure.requestId }
+                  : {}),
+              }
+        }
         empty={<p>Nothing to delete by hand</p>}
       />
+      <ConfirmDialog
+        open={asking !== null}
+        title="Mark as deleted"
+        confirmLabel="Mark as deleted"
+        pending={done.isPending}
+        onCancel={() => {
+          setAsking(null);
+        }}
+        onConfirm={() => {
+          if (asking === null) return;
+          done.mutate(asking.id, {
+            onSuccess: () => {
+              setAsking(null);
+              toast({ message: "Marked as withdrawn." });
+            },
+            onError: (error) => {
+              setAsking(null);
+              toast({ message: error.message, tone: "danger" });
+            },
+          });
+        }}
+      >
+        <p>
+          Confirm the {asking === null ? "" : socialChannelLabels[asking.channel]} post is deleted
+          on its platform. The row leaves this list.
+        </p>
+      </ConfirmDialog>
     </section>
   );
 }

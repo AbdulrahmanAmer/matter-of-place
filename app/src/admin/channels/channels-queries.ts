@@ -46,7 +46,7 @@ export function useChannelHealth() {
 }
 
 /** Every write of screen 12 refreshes the whole feature: the table, the withdraw list and the cards. */
-function usePostAction(action: (id: string) => Promise<unknown>) {
+function usePostAction<Variables>(action: (variables: Variables) => Promise<unknown>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: action,
@@ -54,7 +54,8 @@ function usePostAction(action: (id: string) => Promise<unknown>) {
   });
 }
 
-export const useRetry = () => usePostAction(retryPost);
+export const useRetry = () =>
+  usePostAction(({ id, force }: { id: string; force: boolean }) => retryPost(id, force));
 export const useCancel = () => usePostAction(cancelPost);
 export const useRefreshMetrics = () => usePostAction(refreshMetrics);
 export const useMarkWithdrawn = () => usePostAction(markWithdrawn);

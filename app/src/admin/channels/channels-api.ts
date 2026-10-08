@@ -26,8 +26,13 @@ export function fetchHealth() {
   return adminFetch("/api/admin/channels/health", channelHealthListSchema);
 }
 
-export function retryPost(id: string) {
-  return adminFetch(`${postPath(id)}/retry`, jobAnswer, { method: "POST" });
+/** `force` skips the check for an earlier post of the property on the channel: a deliberate repost (invariant 2). */
+export function retryPost(id: string, force: boolean) {
+  return adminFetch(`${postPath(id)}/retry`, jobAnswer, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ force }),
+  });
 }
 
 export function cancelPost(id: string) {

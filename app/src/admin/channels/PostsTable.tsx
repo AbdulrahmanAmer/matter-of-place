@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 import {
   disabledChannels,
   liveChannels,
@@ -8,6 +8,7 @@ import {
   type SocialPost,
 } from "../../domain/channels";
 import { useAdminMe } from "../ui/admin-me";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { DataTable, type Column } from "../ui/DataTable";
 import { EmptyState } from "../ui/EmptyState";
 import { Field } from "../ui/Field";
@@ -49,23 +50,36 @@ function ActionButton({
   );
 }
 
-/** Retry for a failed row, Cancel for a scheduled one and a metrics refresh for a posted one, each for its own roles. */
+type Asking = "retry" | "cancel" | null;
+
+/**
+ * Retry for a failed row, Cancel for a scheduled one and a metrics refresh for a posted one, each for its own roles.
+ * Retry and Cancel confirm first: Retry sends the post to a public platform, and its "post again" box is the
+ * deliberate repost of invariant 2.
+ */
 function PostActions({ post }: { post: SocialPost }) {
   const { actions } = useAdminMe();
   const toast = useToast();
   const retry = useRetry();
   const cancel = useCancel();
   const refresh = useRefreshMetrics();
-  const run = (mutation: ReturnType<typeof useRetry>, done: string) => {
-    mutation.mutate(post.id, {
-      onSuccess: () => {
-        toast({ message: done });
-      },
-      onError: (error) => {
-        toast({ message: error.message, tone: "danger" });
-      },
-    });
+  const [asking, setAsking] = useState<Asking>(null);
+  const [force, setForce] = useState(false);
+  const label = socialChannelLabels[post.channel];
+  const close = () => {
+    setAsking(null);
+    setForce(false);
   };
+  const settle = (done: string) => ({
+    onSuccess: () => {
+      close();
+      toast({ message: done });
+    },
+    onError: (error: Error) => {
+      close();
+      toast({ message: error.message, tone: "danger" });
+    },
+  });
   return (
     <div className="admin-actions">
       {post.status === "failed" && actions.includes("channels.retry") ? (
@@ -73,7 +87,7 @@ function PostActions({ post }: { post: SocialPost }) {
           label="Retry"
           pending={retry.isPending}
           onClick={() => {
-            run(retry, "Retry queued.");
+            setAsking("retry");
           }}
         />
       ) : null}
@@ -82,7 +96,7 @@ function PostActions({ post }: { post: SocialPost }) {
           label="Cancel"
           pending={cancel.isPending}
           onClick={() => {
-            run(cancel, "Post cancelled.");
+            setAsking("cancel");
           }}
         />
       ) : null}
@@ -91,10 +105,50 @@ function PostActions({ post }: { post: SocialPost }) {
           label="Refresh metrics"
           pending={refresh.isPending}
           onClick={() => {
-            run(refresh, "Metrics refresh queued.");
+            refresh.mutate(post.id, settle("Metrics refresh queued."));
           }}
         />
       ) : null}
+      <ConfirmDialog
+        open={asking === "retry"}
+        title={`Retry the ${label} post`}
+        confirmLabel="Retry"
+        pending={retry.isPending}
+        onCancel={close}
+        onConfirm={() => {
+          retry.mutate({ id: post.id, force }, settle("Retry queued."));
+        }}
+      >
+        <p>The post is sent to {label} again.</p>
+        <Field
+          label="Post again even if this property is already posted on this channel"
+          hint="Only for a deliberate repost, or when the first try ended with an unknown outcome."
+        >
+          {(control) => (
+            <input
+              {...control}
+              type="checkbox"
+              checked={force}
+              onChange={(event) => {
+                setForce(event.target.checked);
+              }}
+            />
+          )}
+        </Field>
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={asking === "cancel"}
+        title={`Cancel the ${label} post`}
+        confirmLabel="Cancel post"
+        danger
+        pending={cancel.isPending}
+        onCancel={close}
+        onConfirm={() => {
+          cancel.mutate(post.id, settle("Post cancelled."));
+        }}
+      >
+        <p>The scheduled post is marked failed and will not be sent.</p>
+      </ConfirmDialog>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet } from "@tanstack/react-router";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { SocialPost } from "../../domain/channels";
 import { serveAdmin as serve } from "../../../tests/fixtures/admin-serve";
 import { channelHealth } from "../../../tests/fixtures/channel-health";
@@ -124,6 +124,16 @@ const healthRows = [
 
 const card = (name: string) => screen.getByRole("article", { name });
 
+// jsdom has no showModal or close on <dialog>; these toggle `open` as the browser's do (as in dialogs.test.tsx).
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.removeAttribute("open");
+  };
+});
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -219,19 +229,60 @@ describe("ChannelCards", () => {
 describe("PostsTable", () => {
   const filters = { values: {}, onChange: () => undefined };
 
+  const retryRoute = `POST ${POSTS}/${FAILED}/retry`;
+  const writes = (requested: string[]) => requested.filter((line) => line.startsWith("POST"));
+  const retryDialog = () => within(screen.getByRole("dialog", { name: "Retry the X post" }));
+
   it("marks a failed row red and gives it a Retry that posts once to its retry route", async () => {
-    const requested = serve({ [`POST ${POSTS}/${FAILED}/retry`]: { job_id: "j1" } });
+    const requested = serve({ [retryRoute]: { job_id: "j1" } });
     mount(operatorActions, <PostsTable rows={[failed]} filters={filters} />);
     expect(within(screen.getByRole("table")).getByText("Failed").getAttribute("data-tone")).toBe(
       "danger",
     );
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    fireEvent.click(retryDialog().getByRole("button", { name: "Retry" }));
     await waitFor(() => {
-      expect(requested).toContain(`POST ${POSTS}/${FAILED}/retry`);
+      expect(requested).toContain(`${retryRoute} {"force":false}`);
     });
-    expect(requested.filter((line) => line.startsWith("POST"))).toEqual([
-      `POST ${POSTS}/${FAILED}/retry`,
-    ]);
+    expect(writes(requested)).toEqual([`${retryRoute} {"force":false}`]);
+  });
+
+  it("asks before it retries and sends nothing when the person backs out", () => {
+    const requested = serve({ [retryRoute]: { job_id: "j1" } });
+    mount(operatorActions, <PostsTable rows={[failed]} filters={filters} />);
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(writes(requested)).toEqual([]);
+    fireEvent.click(retryDialog().getByRole("button", { name: "Cancel" }));
+    expect(writes(requested)).toEqual([]);
+    expect(screen.queryByRole("dialog", { name: "Retry the X post" })).toBeNull();
+  });
+
+  it("retries with force when the post-again box is ticked, and only then", async () => {
+    const requested = serve({ [retryRoute]: { job_id: "j1" } });
+    mount(operatorActions, <PostsTable rows={[failed]} filters={filters} />);
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    const box = retryDialog().getByLabelText(
+      "Post again even if this property is already posted on this channel",
+    );
+    expect(box).toHaveProperty("checked", false);
+    fireEvent.click(box);
+    fireEvent.click(retryDialog().getByRole("button", { name: "Retry" }));
+    await waitFor(() => {
+      expect(writes(requested)).toEqual([`${retryRoute} {"force":true}`]);
+    });
+  });
+
+  it("asks before it cancels a scheduled post, then posts once to its cancel route", async () => {
+    const cancelRoute = `POST ${POSTS}/${SCHEDULED}/cancel`;
+    const requested = serve({ [cancelRoute]: { cancelled: true } });
+    mount(operatorActions, <PostsTable rows={[scheduled]} filters={filters} />);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(writes(requested)).toEqual([]);
+    const dialog = within(screen.getByRole("dialog", { name: "Cancel the X post" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Cancel post" }));
+    await waitFor(() => {
+      expect(writes(requested)).toEqual([cancelRoute]);
+    });
   });
 
   it("gives commercial no action at all", () => {
@@ -289,12 +340,41 @@ describe("WithdrawList", () => {
     mount(operatorActions, <WithdrawList />);
     const done = await screen.findAllByRole("button", { name: "Done" });
     fireEvent.click(done[0] ?? document.body);
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Mark as deleted" })).getByRole("button", {
+        name: "Mark as deleted",
+      }),
+    );
     await waitFor(() => {
       expect(requested.filter((line) => line.startsWith("POST"))).toHaveLength(1);
     });
     expect(requested.filter((line) => line.startsWith("POST"))).toEqual([
       `POST ${POSTS}/${TAKEN_DOWN}/withdrawn`,
     ]);
+  });
+
+  it("asks before it marks a post as withdrawn and sends nothing when the person backs out", async () => {
+    const requested = serve(answers);
+    mount(operatorActions, <WithdrawList />);
+    const done = await screen.findAllByRole("button", { name: "Done" });
+    fireEvent.click(done[0] ?? document.body);
+    const dialog = within(screen.getByRole("dialog", { name: "Mark as deleted" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+    expect(requested.filter((line) => line.startsWith("POST"))).toEqual([]);
+    expect(screen.queryByRole("dialog", { name: "Mark as deleted" })).toBeNull();
+  });
+
+  it("shows the request id when the list does not load", async () => {
+    serve({
+      [`GET ${POSTS}?withdraw=true`]: Response.json(
+        { error: { code: "unavailable", message: "The database is not available." } },
+        { status: 503, headers: { "x-request-id": "req-77" } },
+      ),
+    });
+    mount(operatorActions, <WithdrawList />);
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "The database is not available. Request req-77.",
+    );
   });
 
   it("hides Done from commercial, who still see the list", async () => {

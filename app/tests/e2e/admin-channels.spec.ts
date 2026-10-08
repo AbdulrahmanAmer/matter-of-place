@@ -4,13 +4,17 @@ import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs
 import { deterministicUuid } from "../fixtures/clock";
 import { holdDevLock } from "../fixtures/dev-lock";
 import { publishedProperty } from "../fixtures/factories";
+import { checkpoint } from "./fixtures/a11y";
 import { signInAs } from "./helpers/session";
 
 // B10 step 8 (screen 12). The failed and the posted row are seeded through the social.sql functions the posting steps
 // use, so no platform is called (invariant 1). It commits rows to mop-dev, so it runs before the launch switch only:
 // `assertNotProduction` refuses once `settings.environment` is `production` (ruling H35 (5)), and the writer lock is held
 // from the start of `beforeAll` to the end of `afterAll` (G34). Rows are never deleted: the scheduled row the retry
-// leaves is failed again with error `test`, and the property stays a draft so no public page lists it.
+// leaves is failed again with error `test`, and the property stays a draft so no public page lists it. The one
+// exception to "ends by failing its own rows" is the posted Instagram row: `fail_social_post` only changes a scheduled
+// row, so it stays posted (permalink `.../p/e2e-channels/`) and shows as Instagram's last post on screens 2 and 12
+// until the launch switch's `db:reset` clears it (ASSUMED H35 (4)).
 
 const MEDIA_OPS = "staff+mediaops@matterofplace.com";
 const COMMERCIAL = "staff+commercial@matterofplace.com";
@@ -86,6 +90,7 @@ test("commercial sees the failed row and no Retry", async ({ browser }) => {
   await page.goto(`/admin/channels?post=${failedId}`);
   await expect(postsTable(page).getByText("test", { exact: true })).toBeVisible();
   await expect(postsTable(page).getByText("Failed")).toBeVisible();
+  await checkpoint(page, "/admin/channels (commercial)");
   await expect(page.getByRole("button", { name: "Retry" })).toHaveCount(0);
   await expect(page.getByRole("form", { name: "Account ids" })).toHaveCount(0);
   await context.close();
@@ -101,6 +106,10 @@ test("the failed row is red and Retry enqueues one post_x job for it", async ({ 
       new URL(response.url()).pathname === `/api/admin/channels/posts/${failedId}/retry`,
   );
   await page.getByRole("button", { name: "Retry" }).click();
+  const dialog = page.getByRole("dialog", { name: "Retry the X post" });
+  await expect(dialog).toBeVisible();
+  await checkpoint(page, "/admin/channels (retry dialog)");
+  await dialog.getByRole("button", { name: "Retry" }).click();
   expect((await answered).status()).toBe(200);
   const keys = await db.query<{ idempotency_key: string }>(
     "select idempotency_key from public.jobs where idempotency_key like $1",
@@ -127,6 +136,7 @@ test("the posted row links to its post, and Facebook and YouTube are not enabled
     await expect(card.getByRole("switch")).toHaveCount(0);
   }
   await expect(page.getByRole("form", { name: "Account ids" })).toHaveCount(3);
+  await checkpoint(page, "/admin/channels");
   await context.close();
 });
 

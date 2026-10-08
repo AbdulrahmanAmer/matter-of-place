@@ -3698,5 +3698,55 @@
     "sql": "insert into public.email_templates (key, class, subject, preheader, body, variables, enabled) values ('campaign_report', 'transactional', 'wrong', 'p', '[{\"type\": \"signature\"}]', '{}', true) on conflict (key) do update set subject = excluded.subject, body = excluded.body;",
     "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/social.db.test.ts -t \"is seeded enabled and transactional\"",
     "expect": "FAIL .*the campaign_report template .G22, G46. > is seeded enabled and transactional"
+  },
+  {
+    "id": "b10g8-retry-confirm",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "            setAsking(\"retry\");",
+    "replace": "            retry.mutate({ id: post.id, force }, settle(\"Retry queued.\"));",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*asks before it retries"
+  },
+  {
+    "id": "b10g8-retry-force",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "retry.mutate({ id: post.id, force }, settle(\"Retry queued.\"));\n        }}",
+    "replace": "retry.mutate({ id: post.id, force: false }, settle(\"Retry queued.\"));\n        }}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*retries with force when the post-again box is ticked"
+  },
+  {
+    "id": "b10g8-cancel-confirm",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/PostsTable.tsx",
+    "find": "            setAsking(\"cancel\");",
+    "replace": "            cancel.mutate(post.id, settle(\"Post cancelled.\"));",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*asks before it cancels a scheduled post"
+  },
+  {
+    "id": "b10g8-withdraw-confirm",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/WithdrawList.tsx",
+    "find": "            setAsking(row);",
+    "replace": "            done.mutate(row.id);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*asks before it marks a post as withdrawn"
+  },
+  {
+    "id": "b10g8-withdraw-request-id",
+    "kind": "file",
+    "test": "src/admin/channels/channels.test.tsx",
+    "file": "src/admin/channels/WithdrawList.tsx",
+    "find": "failure instanceof AdminApiError && failure.requestId !== undefined",
+    "replace": "false",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
+    "expect": "× .*shows the request id when the list does not load"
   }
 ]
