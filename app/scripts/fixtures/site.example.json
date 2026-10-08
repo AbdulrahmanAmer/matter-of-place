@@ -1,0 +1,16 @@
+{
+  "contact": {
+    "email": "hello@matterofplace.com",
+    "phone": "+1 555 0100",
+    "privacy_email": "privacy@matterofplace.com"
+  },
+  "legal": {
+    "entity": "Example Fixture Holdings LLC",
+    "address": "100 Example Street, Suite 0, Testville, CA 90000"
+  },
+  "social": {
+    "instagram": "https://www.instagram.com/example.fixture",
+    "x": null,
+    "linkedin": null
+  }
+}

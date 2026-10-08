@@ -16,6 +16,7 @@ import { StoryCard } from "../../src/components/site/story-card";
 import { markets } from "../../src/data/markets";
 import { properties } from "../../src/data/properties";
 import { stories } from "../../src/data/stories";
+import { emptySiteSettings } from "../../src/domain/settings";
 import { Route as HomeRoute } from "../../src/routes/_site.index";
 import { Route as PropertyRoute } from "../../src/routes/_site.property.$slug";
 import { t } from "../../src/lib/strings";
@@ -51,6 +52,7 @@ function renderHome(status: "Active" | "Illustrative") {
     featured: [card],
     preview: status === "Illustrative" ? [card] : [],
     markets: [open],
+    site: { ...emptySiteSettings, illustrativeContent: false },
   });
   const Page = HomeRoute.options.component;
   if (Page === undefined) throw new Error("home route has no component");

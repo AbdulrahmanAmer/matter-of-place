@@ -127,6 +127,30 @@ It checks 200 `miss` with `public, max-age=31536000, immutable`, then `hit` with
 
 `POST /subjects/request` stores a `subject_requests` row with `due_at = received_at + 45 days` and answers a `Receipt` that never says whether a record exists for the email. Nothing is fulfilled inside the request. A person on the team checks identity by replying to the requester's own address, then exports or deletes by hand from B7 screen 25 (UNPROVEN until that screen exists: until then use `bun run db:psql`). The clock of 45 days runs from `received_at` and the email is never logged.
 
+## Site identity
+
+`settings.site` holds the legal entity, the registered address, the contact email and phone and the social links. The pages, the route below, the readiness list and the identity lines of the emails read it through the shared public state (`getSiteSettings`), not from the table. Two readers take the row from the table itself: the reply address of `send_email` (`readSettings`) and the invoice inputs (`readInvoiceInputs`, which reads `site` and `invoice` and never goes through the public-state memo).
+
+| Route                  | Answers                                                                              | Cache                                                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/public/site` | `PublicSite`: the `settings.site` leaves (null when unset) and `illustrativeContent` | json kind: the visitor gets `Cache-Control: public, max-age=60`; the stored copy carries `s-maxage=31536000` and `Cache-Tag: catalog` |
+
+The headers are read from the route row and the json cache kind (`browserCacheControl`, `toStored`), not measured with curl on a deployed Worker: UNPROVEN until a preview answers. `illustrativeContent` is forced to false when `MOP_ENV` is `production`. A write bumps `catalog_version` in the same transaction (B2's trigger on `settings`), so each isolate sees the new value within its 15 second memo and the cached answer is keyed to the new version.
+
+Until screen 24 is used, `scripts/set-site.ts` is how the row is written. Run it from `app/` in a Git Bash shell with the dev profile loaded:
+
+```
+eval "$(node scripts/load-env.mjs --profile dev)"
+bun run scripts/set-site.ts --file scripts/fixtures/site.example.json
+```
+
+- `site.example.json` sets a fake entity, a fake address and a phone, and the Instagram link, leaving `social.x` and `social.linkedin` null; it is for tests only. `site.empty.json` restores the shared `mop-dev` row to the seeded default: `contact.email` `hello@matterofplace.com`, `contact.privacy_email` `privacy@matterofplace.com`, every other leaf null. The database is shared, so run the empty fixture when you are done.
+- It prints `missing: <the required keys still unset, space separated>`, or `missing: none`. A schema error prints the failing field paths and an RPC error prints its code; both exit 1 and change nothing, so run the same command again.
+- It refuses with `refusing: production database` and exits 1 once L1's launch switch has made the one database production (ruling H35 (5)). After that, screen 24 is the only writer and enters the real values.
+- It takes the `mop-dev-tests` advisory lock first and waits while another writer holds it, so the write does not land beside a test run or a seed. When `MOP_DEV_LOCK_HELD=1` is set the parent already holds the lock and the script does not take it.
+
+The daily `health` job has a `site_identity` check. With every required field set it passes. With fields missing it warns when the function's `MOP_ENV` is `development` or `preview` and fails otherwise, an unset value included; a failure reaches the operator as a `health.failed` event. It also fails with `public_state_stale` when the database did not answer and only a last good copy was left, because that copy proves nothing about the present row.
+
 ## Search
 
 `POST /search` and `POST /concierge` run in the Worker over the memoised snapshot (a token index built on the first call of a catalog version). pgvector is revisited only above 500 published properties; check with `select count(*) from properties where editorial_state = 'published'`. The single-snapshot design is revisited at the same size (architecture 13).
