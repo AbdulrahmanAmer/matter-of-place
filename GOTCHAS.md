@@ -5007,3 +5007,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a resumed builder first runs `git status --short` and compares each modified or committed file of the WIP with the registry (`find` present once, `replace` absent: a scan over `tests/mutations/*.json`); after stopping a replay, `git status --short` again and restore the mutated file from `HEAD` when no other work is uncommitted. Never commit while a replay runs in the same tree.
 - proof: `git -C D:/mop-build/admin show b1a638b:app/src/server/public/pipeline.ts | grep -cF "...[{ bucket:"` → `1` (the mutation), and the same at `61dacc8` → `0` (restored; measured 2026-10-08).
 - added: 2026-10-08
+
+## P-2501 · An axe scan taken while a dialog fades in reads the colours against the half-faded ground: red on CI, green on the laptop
+- symptom: `admin-assets.spec.ts:258` (PR 211) and `admin-newsletter.spec.ts:135` (PR 227) failed in CI, retry included, with `axe: new violations on <route> approve dialog` (`color-contrast` on both dialog buttons); the same specs passed on the laptops.
+- cause: `.admin-dialog[open]` animates opacity from 0 over 0.24 s and axe computes a colour with the element's opacity at that moment; a slower runner scans inside the window (measured with the fade stretched: opacity 0.0067, contrast 1.03 to 1.05).
+- rule: an audit that reads computed style (axe, a contrast or overflow measure) first awaits the animations that end: `settleAnimations(page)` in `tests/e2e/fixtures/a11y.ts` (ruling H72); never skip the dialog, never baseline the violation, never edit the motion for it.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b17-a11y-settle-wait` -> `WATCHED-FAIL OK B17:b17-a11y-settle-wait` (2026-10-08).
+- added: 2026-10-08
