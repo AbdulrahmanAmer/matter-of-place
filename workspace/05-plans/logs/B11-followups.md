@@ -220,3 +220,21 @@
 5. File: `tests/db/newsletter.db.test.ts`. Blocking: no.
    - What: Follow-up. UNPROVEN against the database. The typed calls are checked only against unit-test fakes and the generated types. The newsletter db tests and the CI db job were not run for this commit, and none exists for it.
    - Evidence: The author's unproven list; this review was told no CI run exists for abb6988.
+
+## g2 · steps 8
+
+1. File: `D:/mop-build/b11-review/app/scripts/newsletter-test-send.ts`. Blocking: no.
+   - What: Lines 135-150 (confirmTestSubscribers): running --to again re-subscribes any listed address that has unsubscribed, because confirm_subscriber sets unsubscribed_at = null. The on-conflict branch also overwrites the source of any existing row with 'test'. The plan's step 8 proof says 'one test address unsubscribes through the link ... a second issue excludes it (recipients = 2)'. If the operator sends the second issue with the same `--to <a>,<b>,<c>` command, the unsubscribe is silently undone and recipients is 3. Neither the script header nor the plan says that the second send must name only the two remaining addresses, or that the script should skip unsubscribed rows. This is not blocking because the plan's file contract requires the confirm_subscriber call, and the addresses are the operator's own test mailboxes on a pre-launch database.
+   - Evidence: Confirmed by running: a scratch transaction on mop-dev, rolled back, ran the script's exact upsert and confirm, set unsubscribed_at, then ran them again. Result: {"source":"test","confirmed":true,"resubscribed":true,"confirm_token_hash":null}. See also supabase/sql/functions/confirm_subscriber.sql (`unsubscribed_at = null`).
+
+2. File: `D:/mop-build/b11-review/app/scripts/newsletter-test-send.ts`. Blocking: no.
+   - What: Line 232 and lines 184-195: the G34 lock comes from holdDevLock on a second pg connection, but the plan says 'one pg connection holding the G34 lock'. This is the project-wide pattern, so it does not matter much. The lock is then held for the whole 5-minute poll, which blocks every other lane's mop-dev tests for that time, although the poll writes nothing. The poll also keeps going after a terminal send error, and it sleeps once more after the final read (61 sleeps for 61 reads, and the test pins 61).
+   - Evidence: I found this by reading the code; the unit test 'prints the status and exits 1 when the issue is not sent within five minutes' asserts toHaveBeenCalledTimes(61) for sleep and release last.
+
+3. File: `D:/mop-build/b11-review/app/scripts/newsletter-test-send.ts`. Blocking: no.
+   - What: UNPROVEN live path, which the author disclosed: on mop-dev today --to would confirm and commit the test subscribers and then fail at approve with 'forbidden', because the newsletter.approve row of action_roles is only in this branch's unpushed migration 20261008092913_action_roles.sql. The confirmed test rows would stay behind. The whole --to path (approve, poll, sent <id>) is UNPROVEN until main pushes the migration, B5 step 5 sets the secrets and B16 stores the legal entity and address.
+   - Evidence: Confirmed by running: a read-only query `select count(*) from action_roles where action='newsletter.approve'` returned 0 on mop-dev; in the rolled-back scratch transaction the approve raised 'forbidden' until the row was inserted.
+
+4. File: `D:/mop-build/b11-review/workspace/05-plans/logs/B11-followups.md`. Blocking: no.
+   - What: Line 155 still says that step 12's `scripts/newsletter-test-send.ts --make-draft --i-mean-it` 'does not exist until the blocked step 8 lands', and line 156 says the script offers only --dry. This group made both lines stale. The orchestrator should fold them.
+   - Evidence: grep -n newsletter-test-send workspace/05-plans/logs/B11-followups.md
