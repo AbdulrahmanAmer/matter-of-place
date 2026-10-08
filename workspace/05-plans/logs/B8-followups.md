@@ -220,3 +220,112 @@
    - Evidence: Read: system_jobs.sql around line 150 and ops_heartbeat.sql:51 both guard with to_regclass. automation.sql:74 creates the table unconditionally.
 
 (A fifth follow-up, the reviewer's costTime entry that the author assigned to P-310 without a line for quiet.mjs, has GOTCHAS.md as its file and is banked as a hit-again line on P-310.)
+
+## g1 · steps 9
+
+1. `app/src/domain/jobs.ts` (not blocking)
+   - What: The comment on jobRetryBulkSchema says the rule of at least one filter means 'a request never retries every dead job'. That is not true. Sending error_like '%' (or a since far in the past) passes the schema, and admin_retry_jobs then requeues every dead job that has an error. The plan only asks for at least one filter, so the behaviour meets the plan. The comment claims a guarantee the code does not give. Fix the comment, or refuse a pattern that is only wildcards.
+   - Evidence: Confirmed by running: on mop-dev in a rolled-back transaction, `select public.admin_retry_jobs(<media_ops human>, 'human', 'r13', p_error_like => '%')` returned 115. The comment is at src/domain/jobs.ts, just above `export const jobRetryBulkSchema`.
+
+2. `app/tests/unit/jobs/service.test.ts` (not blocking)
+   - What: No test exercises the `since` filter of retry-bulk, in either layer. I deleted the line in retryBulkJobs that passes `since` to the RPC, and service.test.ts stayed green. tests/db/jobs.db.test.ts never passes a non-null p_since, so removing the `finished_at >= p_since` clause in admin_retry_jobs would also go unnoticed (that half is from reading the test, not run). The code is correct today. If it regresses, a 'retry since one hour ago' request would quietly requeue every older dead job of that type. The plan's proof does not ask for this case, so it is a follow-up.
+   - Evidence: Confirmed by running: scratch watchfail entry rev-since-dropped (find `...(input.since === undefined ? {} : { p_since: input.since }),` replaced with nothing) gave `WATCHED-FAIL BAD: stayed green`. `grep -n since tests/db/jobs.db.test.ts` shows only `since: null` in the expected audit row.
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: The plan text no longer matches what was built, and the log records each departure: (1) admin_retry_jobs takes (p_actor, p_actor_kind, p_request_id, p_type, p_error_like, p_since) with the filters last and defaulted (P-915), not the plan's order. The plan and the B10.md, B8.md and B8b.md review lines still show the old order. (2) listJobs makes two selects on a page after a cursor (ties, then older rows, because of R44), while plan line 90 says 'one supabase-js select'. (3) jobStatusLabels and the JobStatus re-export named for src/domain/jobs.ts were left out (knip, R04). Step 10 has to add them where it first uses them. The orchestrator should fold all three into the plan.
+   - Evidence: From reading: B8.md lines 90, 91 and 93 compared with app/supabase/migrations/20261008135942_jobs_admin.sql (the admin_retry_jobs signature), app/src/server/jobs/service.ts (`after()`) and app/src/domain/jobs.ts (no jobStatusLabels). The log block '## g1 · steps 9', under 'Choices the plan left open', records all three.
+
+(A fourth follow-up, the rework of `listJobs` after a jscpd clone that the bank did not hold, has GOTCHAS.md as its file and is banked as P-2600.)
+
+## c8e · steps 9
+
+1. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: The c8e block says the --only replay ran 'against mop-dev, which does not hold this branch's migrations'. P-2601 and the commit message also call 20261004060603_system_jobs.sql 'the branch's migration'. That migration is already on origin/main, and mop-dev holds its defaults: the old mutant fails on mop-dev with the same 'cannot remove parameter defaults' error. The wording reads as if only CI could show the defect, but it reproduces locally. Imprecise, not false about jobs_admin.
+   - Evidence: git log -1 origin/main -- app/supabase/migrations/20261004060603_system_jobs.sql -> 0f200b7e. MOP_MUTATION_SQL=<old sql> bunx vitest run --project db tests/db/jobs.db.test.ts -t "emit_event inserts a row" on mop-dev -> 'cannot remove parameter defaults from existing function'.
+
+(Two further follow-ups have GOTCHAS.md as their file: the missing hit-again line on P-008, added to that entry, and the reviewer's cost of running a gate beside a replay, banked as P-2604.)
+
+## g1 · steps 10
+
+1. `app/src/routes/admin/jobs.index.tsx` (not blocking)
+   - What: Suspected from reading, not run. The shell's comment says a non-uuid `entity` or `job` in the search is dropped, but the page never reads the validated search. JobsPage reads raw `location.searchStr` through useUrlFilters and useOpenJob (JobsPage.tsx, `params.get(OPEN)`). So `?job=abc` still opens the drawer and requests `/api/admin/jobs/abc`, and fetchJob builds that path without encodeURIComponent (jobs-api.ts `jobPath`). The server-side uuid checks keep this harmless: it is a GET and the answer must parse as jobDetailSchema. Still, the comment describes protection the page does not have, and validateSearch's uuid filter does nothing for screen 16.
+   - Evidence: jobs.index.tsx lines 4-5 comment and validateSearch; JobsPage.tsx useOpenJob reads `new URLSearchParams(location.searchStr).get("job")`; use-url-filters.ts reads `location.searchStr`. No test mounts the real Route: jobs.test.tsx uses pageRoute from test-router, so validateSearch is never run.
+
+2. `tests/mutations/B8.json` (not blocking)
+   - What: The manual entry b8g1-e2e-retry (retryJob posts to cancel, expect 'Expected: 200') has no working control on mop-dev today. The unmutated spec already fails there with 'Expected: 200, Received: 500', because admin_retry_job is not on mop-dev. A replay now would print OK without the mutation being what turned it red. It becomes a real watched-fail only once main pushes 20261008135942_jobs_admin.sql or it runs on the CI stack, and then the unmutated spec must be seen green first. The author disclosed that it was not replayed.
+   - Evidence: Retry case on the built Worker against mop-dev, unmutated: admin-jobs.spec.ts:79 Expected: 200, Received: 500. pg_proc where proname like 'admin_%job%' returns [].
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: Two plan lines for step 10 no longer match what was built. (1) The proof command `bunx playwright test --project admin tests/e2e/admin-jobs.spec.ts` reads the file as a second project; `--project=admin` is needed (banked as P-2602). (2) FILES says the route sets the pending skeleton through B7's adminRouteOptions(). Under ruling H66 the shell cannot import it, the sibling screens (channels, reports, assets) set only errorComponent in the .lazy.tsx file, and this route has no loader. The deviation is logged. The plan text is the orchestrator's to update.
+   - Evidence: P-2602 symptom (1); jobs.index.lazy.tsx sets only errorComponent; query.ts adminRouteOptions is used by no route under src/routes/admin.
+
+4. `app/src/admin/jobs (UNPROVEN items, carried forward)` (not blocking)
+   - What: Still UNPROVEN, as the author says, and to be closed later: the Retry e2e (dead to queued, with the banner emptying) on CI's live e2e stack; Approve and Cancel against a real database (they are unit-tested with a stubbed fetch only); a brand check of screen 16 by eye or viewport screenshot (C18; only axe was run).
+   - Evidence: Reproduced the 500 at admin-jobs.spec.ts:79 on mop-dev. The CI e2e job (ci.yml line 337, E2E_STACK=1 bunx playwright test --project=admin) runs on a supabase start stack built from the branch's migrations, so it is the proof once the pull request runs.
+
+(One further follow-up has GOTCHAS.md as its file: the reviewer's cost of a shared scratchpad file name overwritten by another agent, recorded as a hit-again line on P-2136.)
+
+## g2 · steps 10a
+
+1. `app/supabase/sql/functions/takedown_media_keys.sql` (not blocking)
+   - What: Follow-up, suspected by reading, not run. The key list is built from the property's current rows. A public object whose row is gone or was replaced is never deleted or purged. Example: apply_media_variants (line 22) overwrites media_key when a photograph is rendered again with different content, and nothing in the repo deletes the old master or its sizes from the media bucket. The same happens to any photograph whose property_media row is removed before the takedown. In a rights takedown the disputed photograph is often the one an editor removed first, and it would stay at /media/o/<slug>/<n>-<sha8>.webp and its v/ sizes. The plan specifies this row-based design, so it is not this step's defect. Closing it needs either a Storage list by the property's o/<owner>/ and v/<owner>/ prefixes, or a delete of the objects whenever a row loses its key.
+   - Evidence: grep -ln 'delete from public.property_media' supabase/sql/functions/*.sql returns nothing; grep deleteObjects src scripts finds only takedown-media.ts; apply_media_variants.sql line 22 sets `variants = case when m.media_key = i.media_key then ... else i.variants end` together with `set media_key = i.media_key`
+
+2. `app/src/server/jobs/system/takedown-media.ts` (not blocking)
+   - What: Follow-up, suspected by reading. purge() runs before markPosts(). purgeUrls throws NonRetryableError on any Cloudflare 4xx other than 429, for example a revoked token, a wrong zone, or file URLs outside CF_ZONE_ID's zone such as the workers.dev MEDIA_PUBLIC_BASE on dev. That kills the job, and takedown_mark_posts never runs, so live posts never reach the 'Withdraw by hand' list. The plan asks for this order (3 then 4), so it is not blocking here. Marking posts before the purge, or catching a final purge refusal into purge_skipped, would separate the human withdrawal list from cache housekeeping. The live proof waits for `done`, so on dev it will show whether Cloudflare refuses workers.dev URLs.
+   - Evidence: purge-cache.ts send(): `if (!response.ok) throw new NonRetryableError(...)`; takedown-media.ts lines: `const purged = await purge(ctx, keys); const postsMarked = await markPosts(...)`; the runner's fail() with dead=true for NonRetryableError
+
+3. `workspace/05-plans/B8.md` (not blocking)
+   - What: Follow-up for the orchestrator to fold. Several plan lines no longer match main. Step 10a's Files line says 'each value of variants' and asks for to_regclass/execute guards. The log-events.ts Change line appends takedown_posts_unavailable. The db proof clause says 'takedown_mark_posts returns 0 while social_posts is absent'. The author deviated correctly and banked it as P-2605, but the plan still says the old thing.
+   - Evidence: git grep -n 'create table public.assets\|create table public.social_posts' -- app/supabase/migrations gives two lines; log-events.ts already holds runner_beat_failed (line 16) and has no takedown_posts_unavailable
+
+4. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: Follow-up. Checklist C22: the new job type takedown_media states no unit cost: Storage delete calls (1 per 1,000 keys), Cloudflare purge calls (1 per 30 keys), 2 RPCs per pass, 2 passes, and the P-009 line it draws on. The cost is small and the job is rare.
+   - Evidence: awk '/^## g2/,0' workspace/05-plans/logs/B8.md | grep -i 'cost\|P-009' returns nothing
+
+5. `app/src/server/jobs/system/takedown-media.ts` (not blocking)
+   - What: Follow-up, suspected by reading. Suppose the runner dies after deleteObjects succeeds but before requeue_job stores deleted_at. The rerun deletes again, which is harmless, but records `deleted: 0` because the objects are already gone. The live proof's pass condition 'result.deleted at least 1' would then read as a failure even though the takedown worked. Worth one sentence in the runbook or the live-proof text.
+   - Evidence: run(): `if (done === null) { const { deleted } = await deleteObjects("media", keys); return { status: "retry_at", ... result: { deleted_at, deleted } } }`; media-store deleteBatch counts only what Storage reports it removed
+
+6. `app/supabase/sql/functions/mark_social_post_posted.sql` (not blocking)
+   - What: Follow-up for B10, suspected by reading. A post that is already past post-to-channel's editorial_state check when the takedown commits can land 'posted' after takedown_mark_posts has run. It is then never marked withdraw_required_at, and that live post never appears on screen 12. Fix: either mark_social_post_posted sets withdraw_required_at when properties.taken_down_at is not null, or the takedown re-marks once later.
+   - Evidence: grep -n 'taken_down\|withdraw_required' mark_social_post_posted.sql set_social_post_inflight.sql finds nothing; post-to-channel.ts:427 checks editorial_state only before the call
+
+
+## c8j · steps 10
+
+1. `app/tests/e2e/admin-jobs.spec.ts` (not blocking)
+   - What: UNPROVEN, not a defect of the code: the new Cancel case and both new watched-fails (c8j-e2e-cancel, c8j-e2e-no-delete) have never run green or red for the right reason. admin_retry_job and admin_cancel_job are in 20261008135942_jobs_admin.sql, which is not on mop-dev (ruling H57). C08 of STANDARDS stays open until someone replays both entries after main pushes the migration, and CI's e2e job (a fresh supabase start stack, ci.yml:265) passes on the PR.
+   - Evidence: pg_proc query on mop-dev returns []; the control run fails at :81:37 with 500, 3 did not run. Reading confirms the mutant logic: in c8j-e2e-cancel, cancelJob posting to /retry means no /cancel response arrives, so the test hits its 15 s timeout. The confirm dialog 'Cancel this job', the queued status in CANCELLABLE and the 'Cancelled' label all match JobDrawer.tsx:23,96 and JobStatus.tsx:11.
+
+2. `workspace/05-plans/B8.md` (not blocking)
+   - What: Stale plan text (the orchestrator's to fold, as the author noted). Line 109 still says the spec inserts a job with key `test:<run id>` that is 'removed in afterAll'. The spec now uses key `e2e-jobs:<run id>` and deletes nothing. Line 176's `idempotency_key like 'test:%'` cleanup check no longer covers this spec's rows.
+   - Evidence: grep -n 'removed in .afterAll' workspace/05-plans/B8.md matches line 109
+
+3. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: The proof commands in the log and the claim do not load the dev profile. Re-run exactly as written, the spec refuses in beforeAll with 'refusing: DEV_DB_URL is not set', so it never reaches the failure the log claims to show. The same is true of the `run` fields of the two c8j registry entries. This cost one wasted e2e run during review. The run lines should start with eval "$(node scripts/load-env.mjs --profile dev)" (G-901 convention).
+   - Evidence: E2E_TARGET=built E2E_PORT=8996 env -u CLOUDFLARE_API_TOKEN bunx playwright test --project=admin tests/e2e/admin-jobs.spec.ts -> 'Error: refusing: DEV_DB_URL is not set' at assert-not-production.mjs:50
+
+4. `app/tests/e2e/admin-jobs.spec.ts` (not blocking)
+   - What: Every laptop run before the migration is pushed leaves another dead e2e_jobs row on mop-dev, 14 now including the one from this review. The banner is newest first with a limit of 5 (service.ts:40, jobs-queries.ts:61), and the spec filters by its own run id, so these rows do not break the spec. They do fill the Dead jobs banner on mop-dev until the launch switch's db:reset, as P-2607 already says. Note only: avoid more laptop full-spec runs until the push.
+   - Evidence: select status,count(*) from public.jobs where type='e2e_jobs' -> dead 13 before my run
+
+(One further follow-up has GOTCHAS.md as its file: the laptop proof command copied from a log without the dev profile; banked as P-2608.)
+
+## g1 · steps 9,10a
+
+1. `app/docs/runbooks/jobs.md` (not blocking)
+   - What: Stale proof status in the runbook (the snapshot is removed; the line is about 137 of jobs.md, in section 'Takedown of a property's files'). It says B7's unpublish_property 'is to enqueue it when p_takedown is true (UNPROVEN until B7's migration is on main)'. B7's 20261008092407_admin_takedown.sql is now on origin/main, and this group proved the enqueue against mop-dev. An operator reading it during an incident would wrongly think the enqueue is not wired. Low harm, because the idempotency key takedown_media:<id> dedupes a manual enqueue.
+   - Evidence: git ls-tree --name-only origin/main app/supabase/migrations/ | grep takedown lists 20261008092407_admin_takedown.sql. bunx vitest run --project db tests/db/admin.db.test.ts -t takedown gives 4 passed on mop-dev.
+
+2. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: The 84 'bad' of the author's local whole-diff watchfail replay (643 entries, against mop-dev) were never explained. The output was lost to a redirect. The author marks it UNPROVEN and relies on CI's --kinds unit,sql replay (160 ok, 0 bad), which I confirmed. Whether the 84 are only entries that need unpushed migrations, or other kinds that CI never selects, is not shown.
+   - Evidence: Log line 'replayed 643: ok 559, bad 84; I did not isolate the 84'. The CI db log shows 'watchfail --changed origin/main --kinds unit,sql ... replayed 160: ok 160, bad 0'.
+
+3. `app/src/server/jobs/system/takedown-media.ts` (not blocking)
+   - What: Suspected by reading, not run: the job never re-checks that the property is still taken down (STANDARDS R31, C12). editorial_transition_allowed permits archived to draft, and a storage outage can delay the delete pass by hours (12 attempts, an hour's wait per outage). So a takedown that is reversed before the job runs still deletes the files. The plan's contract does not ask for this check, and a rights takedown is deliberate, so this is a note for later.
+   - Evidence: supabase/sql/functions/editorial_transition_allowed.sql:24 ('archived','draft'). takedown-media.ts run() reads only takedown_media_keys and ctx.job.result and never reads properties.taken_down_at.
+
+4. `workspace/05-plans/B8.md` (not blocking)
+   - What: The live Storage proof of step 10a is BLOCKED and still open: upload test/<run id>/og.png, enqueue takedown_media, job done with result.deleted >= 1, then curl the public URL. It is also not known which HTTP code Storage returns for a missing public object. It can run only after main pushes 20261008135944_takedown.sql. Until then the delete path has been exercised only against a fake media store and a stubbed fetch, so it is UNPROVEN against real Storage.
+   - Evidence: git ls-tree origin/main app/supabase/migrations shows no takedown.sql (only admin_takedown). tests/unit/jobs/takedown-media.test.ts mocks deleteObjects and stubs fetch.
