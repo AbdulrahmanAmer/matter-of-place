@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { Tables } from "../../../src/db";
 import {
+  getRecipes,
   listRevisions,
   putChannelSettings,
   putRecipe,
@@ -417,5 +418,34 @@ describe("listRevisions", () => {
       status: 422,
     });
     expect(database.calls).toEqual([]);
+  });
+});
+
+describe("getRecipes", () => {
+  const recipe: Tables<"automation_recipes"> = {
+    id: ROW,
+    trigger: "submission.received",
+    name: "Submission received",
+    enabled: true,
+    steps: [],
+    version: 1,
+    created_at: AT,
+    updated_at: AT,
+  };
+
+  it("answers the recipes with the step catalog the editor draws from, without any Zod schema", async () => {
+    const { items, steps } = await getRecipes(commercial, db({ automation_recipes: [recipe] }));
+    expect(items).toEqual([recipe]);
+    expect(steps).toHaveLength(17);
+    expect(steps.find((spec) => spec.type === "purge_cache")).toMatchObject({
+      label: "Purge cache",
+      local: false,
+      implemented: true,
+      fields: [
+        { key: "scope", kind: "select" },
+        { key: "indexnow", kind: "boolean" },
+      ],
+    });
+    expect(JSON.stringify(steps)).not.toContain("paramsSchema");
   });
 });

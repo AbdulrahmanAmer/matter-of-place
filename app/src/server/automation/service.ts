@@ -21,7 +21,7 @@ import { authorize, ForbiddenError } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError, fromZod } from "../lib/errors.ts";
 import { getFlags } from "../lib/flags.ts";
-import { getSpec } from "./catalog.ts";
+import { getSpec, isImplemented, listStepSpecs } from "./catalog.ts";
 import { dueAt, nextRun } from "./cron.ts";
 import { dryRun, type DryRunResult } from "./dry-run.ts";
 
@@ -223,10 +223,26 @@ async function readClock(
   return row;
 }
 
-/** `GET /api/admin/automation/recipes`: one recipe per event type. */
+/** What the recipe editor draws a step from: each spec without its Zod schema, which stays on the server. */
+function stepCatalog() {
+  return listStepSpecs().map(({ type, label, description, heavy, local, fields }) => ({
+    type,
+    label,
+    description,
+    heavy,
+    local: local ?? false,
+    implemented: isImplemented(type),
+    fields,
+  }));
+}
+
+/** `GET /api/admin/automation/recipes`: one recipe per event type, and the step catalog the editor offers. */
 export async function getRecipes(actor: AdminActor, db: Db) {
   authorize(actor, "automation.get");
-  return { items: await rows(db.from("automation_recipes").select("*").order("trigger")) };
+  return {
+    items: await rows(db.from("automation_recipes").select("*").order("trigger")),
+    steps: stepCatalog(),
+  };
 }
 
 /** `PUT /api/admin/automation/recipes/:trigger`. */

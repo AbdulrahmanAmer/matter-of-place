@@ -936,6 +936,7 @@ Entry template
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
 - hit again: 2026-10-04, B8b c2s: a `python - <<'EOF' || echo nopython` guard with an empty body ran in front of a node patch; the call moved to the background at 120 s, the node patch ran when python was killed, and the file then needed its backslashes put back by hand (P-008). About 5 minutes.
+- hit again: 2026-10-08, B8b g7: a `python3 - <<'EOF' ... || true` ahead of a node patch moved to the background at 120 s; the node patch had not run, so the edit was redone with the Edit tool. About 3 minutes.
 - hit again: 2026-10-06, B12 g1: a `python3 - <<'EOF' ... || echo nopython` guard in front of a node patch hung to the 120 s ceiling; the node patch ran when python was killed. About 4 minutes; two python processes had to be found by parent id and one was already gone.
 - hit again: 2026-10-06, B5 g5: a `python - <<'EOF' || node -e ...` guard hung to the 120 s ceiling before a one-line edit of `package.json`; the edit was redone with Edit. About 2 minutes.
 - hit again: 2026-10-03, B3 g1 (review fix): a `python - <<EOF || echo nopython` line ahead of a `node` patch hung 120 seconds in the background; the process id was found with `tasklist`, stopped with `taskkill //PID`, and the `node` half had run once the interpreter ended. An earlier B3 g1 run of the same kind is listed in the review; neither was banked until now.
@@ -4920,6 +4921,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: re-run as `NODE_OPTIONS=--max-old-space-size=4096 bun run check` and keep the variable for the group's later checks, builds and tests; the builders' brief carries the line. No lane pause for a node heap OOM; a pause needs a killed process, a worker crash or a Chromium failure with low free memory.
 - proof: `node -e "console.log(require(v8).getHeapStatistics().heap_size_limit/1048576|0)"` prints about 2096 (the default) and `NODE_OPTIONS=--max-old-space-size=4096 node -e ...` prints about 4144.
 - added: 2026-10-08
+- hit again: 2026-10-08, B8b g7: the first `bun run check` of the group died the same way in the lint stage after about 3 minutes; the line above fixed it on the re-run.
 
 ## P-540 · `quiet.mjs -- bun run check | tail -1 && git commit ...` commits and pushes on a red check: the pipeline exit is tail's, not the check's
 - symptom: 2026-10-08 05:20, the watchfail PR (226) was pushed with its check having printed `quiet: exit 1`; the chain went on because `| tail -1` ended the pipeline with 0. The same check passed on the next run (load), so the red line's content is UNPROVEN.
@@ -5330,3 +5332,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a test that replaces a dependency with `vi.doMock` calls `vi.resetModules()`, registers the mock, then loads the module under test with `await import(...)`; `afterEach` runs `vi.doUnmock` and `vi.resetModules()`. A mocked test is watched-fail on the mock itself (point it at the wrong path and see it red).
 - proof: `cd app && grep -nE "underEdge|doMock|resetModules" tests/unit/assets/templates.test.ts` shows `underEdge` (resetModules, doMock, dynamic imports); `node scripts/watchfail.mjs --registry tests/mutations --only c5n-edge-build` → `WATCHED-FAIL OK` (the mocked path changed to `dist/node`) (2026-10-07).
 - added: 2026-10-07
+
+## P-2504 · A screen step names its components but not the route that carries their data: the step specs sat only in server code
+- symptom: B8b step 7 says `ParamsForm` "renders `fields`" and that they "come from `src/server/automation/step-specs.ts`", but browser code may not import `src/server` (R06, `tests/unit/boundaries.test.ts`) and no admin route sent the specs: `GET /api/admin/automation/recipes` answered the rows only. Found by reading before writing, so no code was lost; the step could not be built as written.
+- cause: the plan lists the screen's files and the stored data, not the API answer each component reads. A second gap of the same kind: the plan says server errors carry a JSON path "so the form shows them inline", but `adminFetch` (B7) keeps only `code`, `message` and `requestId` of an error body and drops `issues`.
+- rule: before building a screen step, write down for each datum the route that carries it and read that route's answer; when none does, add the smallest field to the existing GET (here `steps`, the specs without their Zod schema, in `getRecipes`), test it beside the service tests, and say so in the log. The recipe form checks what it can before the save (required, number limits, the draft against `recipeSchema`) and shows the server's message for the rest; per-field server errors need `adminFetch` to keep `issues`, which is B7's file.
+- proof: `cd app && bunx vitest run --project unit tests/unit/automation/service.test.ts -t getRecipes` → `1 passed`; `grep -n "issues" app/src/admin/ui/admin-fetch.ts` → no hit.
+- added: 2026-10-08
+
+## G-1150 · A form that shows its own field messages sets `noValidate`: a number input with `min` or `max` cancels the submit first
+- paths: app/src/admin/**
+- severity: warn
+- symptom: in the recipe editor's test a Save with 9 in a field whose `max` is 8 did nothing: no request and none of the form's own messages (`Unable to find an element with the text: At most 8`).
+- cause: the browser, and jsdom, validate a form against its inputs' `min`, `max` and `required` on submit and stop before the `submit` event, so the handler that builds the messages never runs; in a real browser the person sees the native bubble instead of the console's wording.
+- rule: a `<form>` whose handler shows field errors carries `noValidate`; the limits stay on the inputs as hints.
+- proof: `cd app && bunx vitest run --project component src/admin/automation/recipes.test.tsx -t "refuse a number over the limit"` → `1 passed`; with `noValidate` removed from the form in `src/admin/automation/RecipeEditor.tsx` it fails with the message above (measured 2026-10-08).
+- added: 2026-10-08

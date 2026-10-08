@@ -2077,5 +2077,185 @@
     "sql": "create or replace function public.automation_put_recipe(\n  p_trigger text,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.automation_recipes;\n  v_new public.automation_recipes;\nbegin\n  -- Invariant 8: one row per event type comes from the seed; this function never inserts.\n  select * into v_old from public.automation_recipes where trigger = p_trigger for update;\n  if not found then\n    raise exception 'unknown_trigger' using errcode = 'P0002';\n  end if;\n  if exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (array['name', 'enabled', 'steps'])) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_new := jsonb_populate_record(v_old, p_patch);\n  -- Invariant 7: the revision trigger reads the actor of this transaction.\n  perform set_config('mop.actor_id', coalesce(p_actor::text, ''), true);\n  perform set_config('mop.actor_kind', coalesce(p_actor_kind::text, ''), true);\n  perform set_config('mop.note', coalesce(p_note, ''), true);\n  update public.automation_recipes\n  set name = v_new.name, enabled = v_new.enabled, steps = v_new.steps\n  where id = v_old.id\n  returning * into v_new;\n  -- SEC-11, ruling H23: an agent's change reaches a human in the same transaction.\n  if p_actor_kind = 'agent' then\n    perform public.enqueue_job(\n      'notify_admin',\n      jsonb_build_object(\n        'params', jsonb_build_object('headline', 'Agent changed automation'),\n        'data', jsonb_build_object('summary', 'recipe ' || p_trigger, 'link_path', '/admin/automation/revisions')\n      ),\n      'agent_automation:' || p_request_id,\n      p_max_attempts => 12\n    );\n  end if;\n  perform public.write_audit(\n    null, p_actor_kind, 'automation.recipes_put', 'automation_recipes', v_old.id, to_jsonb(v_old),\n    to_jsonb(v_new), p_request_id, p_note\n  );\n  return to_jsonb(v_new);\nend;\n$$;\n\nrevoke execute on function public.automation_put_recipe(text, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.automation_put_recipe(text, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
     "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"with an agent's id and p_actor_kind human raises 42501\"",
     "expect": "× .*with an agent's id and p_actor_kind human raises 42501[\\s\\S]*\"outcome\": \"ok\""
+  },
+  {
+    "id": "b8b-g7-list-current",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeList.tsx",
+    "find": "aria-current={recipe.trigger === selected ? \"true\" : undefined}",
+    "replace": "aria-current={undefined}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > lists a recipe per event"
+  },
+  {
+    "id": "b8b-g7-choose-event",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipesPage.tsx",
+    "find": "<EmptyState title=\"Choose an event\">",
+    "replace": "<EmptyState title=\"Pick an event\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > asks to choose an event"
+  },
+  {
+    "id": "b8b-g7-not-built",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/StepCard.tsx",
+    "find": "spec?.implemented === false ?",
+    "replace": "spec?.implemented === true ?",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > marks a step the catalog has not built yet"
+  },
+  {
+    "id": "b8b-g7-params-default",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/ParamsForm.tsx",
+    "find": "\"Choose\" : \"Default\"",
+    "replace": "\"Choose\" : \"None\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the settings of a step > draw one control per field"
+  },
+  {
+    "id": "b8b-g7-params-blank-number",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/ParamsForm.tsx",
+    "find": "if (raw === \"\") set(field.key, undefined);",
+    "replace": "if (raw === \"\") set(field.key, 0);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the settings of a step > are written only for the keys the person set"
+  },
+  {
+    "id": "b8b-g7-required",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/recipe-draft.ts",
+    "find": "return field.required === true ? \"Required\" : undefined;",
+    "replace": "return undefined;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the settings of a step > stop a save with a message"
+  },
+  {
+    "id": "b8b-g7-max",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/recipe-draft.ts",
+    "find": "value > field.max)",
+    "replace": "value > field.max + 1)",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the settings of a step > refuse a number over the limit"
+  },
+  {
+    "id": "b8b-g7-conditions-empty",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/ConditionsField.tsx",
+    "find": "next.length === 0 ? kept : [...kept, [key, next]]",
+    "replace": "[...kept, [key, next]]",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the conditions of a step > are written as the groups picked"
+  },
+  {
+    "id": "b8b-g7-save-refetch",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),",
+    "replace": "onSettled: () => undefined,",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > sends the changed recipe, refetches"
+  },
+  {
+    "id": "b8b-g7-refusal",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "{save.isError ? (",
+    "replace": "{false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > shows the server's refusal"
+  },
+  {
+    "id": "b8b-g7-order",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "steps.splice(index + by, 0, moved);",
+    "replace": "steps.splice(index, 0, moved);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > puts steps in the order chosen"
+  },
+  {
+    "id": "b8b-g7-new-id",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/recipe-draft.ts",
+    "find": "for (let n = 2;",
+    "replace": "for (let n = 3;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > puts steps in the order chosen"
+  },
+  {
+    "id": "b8b-g7-discard",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "setDraft(draftOf(recipe));",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > can be discarded"
+  },
+  {
+    "id": "b8b-g7-save-gate",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "<RoleGate action=\"automation.recipes_put\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > leaves a person without the recipes permission"
+  },
+  {
+    "id": "b8b-g7-read-only",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "disabled={!canEdit || save.isPending}",
+    "replace": "disabled={save.isPending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > leaves a person without the recipes permission"
+  },
+  {
+    "id": "b8b-g7-dry-trigger",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "dryRun.mutate({ trigger, entityId",
+    "replace": "dryRun.mutate({ trigger: \"x\", entityId",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > plans the saved recipe"
+  },
+  {
+    "id": "b8b-g7-dry-reason",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "<span>{skipReasonLabels[step.reason]}</span>",
+    "replace": "<span>{step.reason}</span>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > plans the saved recipe"
+  },
+  {
+    "id": "b8b-g7-dry-uuid",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "!UUID.test(trimmed)",
+    "replace": "UUID.test(trimmed)",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > sends the record id when one is given"
+  },
+  {
+    "id": "b8b-g7-dry-unsaved",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "{unsaved ? \" It reads",
+    "replace": "{!unsaved ? \" It reads",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > sends the record id when one is given"
+  },
+  {
+    "id": "b8b-g7-catalog",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "    steps: stepCatalog(),",
+    "replace": "    steps: [],",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "FAIL .*getRecipes > answers the recipes with the step catalog"
   }
 ]

@@ -46,6 +46,7 @@ import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.ind
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as AdminAssetsIndexRouteImport } from './routes/admin/assets.index'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
+import { Route as AdminAutomationRecipesRouteImport } from './routes/admin/automation.recipes'
 import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
 import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
 import { Route as AdminInvoicesIdRouteImport } from './routes/admin/invoices.$id'
@@ -337,6 +338,11 @@ const AdminAssetsIndexRoute = AdminAssetsIndexRouteImport.update({
 const AdminAuthConfirmRoute = AdminAuthConfirmRouteImport.update({
   id: '/auth/confirm',
   path: '/auth/confirm',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAutomationRecipesRoute = AdminAutomationRecipesRouteImport.update({
+  id: '/automation/recipes',
+  path: '/automation/recipes',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminChannelsIndexRoute = AdminChannelsIndexRouteImport.update({
@@ -952,6 +958,7 @@ export interface FileRoutesByFullPath {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
@@ -1090,6 +1097,7 @@ export interface FileRoutesByTo {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
@@ -1233,6 +1241,7 @@ export interface FileRoutesById {
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/people/$id': typeof AdminPeopleIdRoute
@@ -1376,6 +1385,7 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/automation/recipes'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
     | '/admin/people/$id'
@@ -1514,6 +1524,7 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/automation/recipes'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
     | '/admin/people/$id'
@@ -1656,6 +1667,7 @@ export interface FileRouteTypes {
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/automation/recipes'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
     | '/admin/people/$id'
@@ -2084,6 +2096,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/confirm'
       fullPath: '/admin/auth/confirm'
       preLoaderRoute: typeof AdminAuthConfirmRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/automation/recipes': {
+      id: '/admin/automation/recipes'
+      path: '/automation/recipes'
+      fullPath: '/admin/automation/recipes'
+      preLoaderRoute: typeof AdminAutomationRecipesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/channels/': {
@@ -2901,6 +2920,7 @@ const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
+  AdminAutomationRecipesRoute: typeof AdminAutomationRecipesRoute
   AdminInvoicesIdRoute: typeof AdminInvoicesIdRoute
   AdminInvoicesNewRoute: typeof AdminInvoicesNewRoute
   AdminPeopleIdRoute: typeof AdminPeopleIdRoute
@@ -2918,6 +2938,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
+  AdminAutomationRecipesRoute: AdminAutomationRecipesRoute,
   AdminInvoicesIdRoute: AdminInvoicesIdRoute,
   AdminInvoicesNewRoute: AdminInvoicesNewRoute,
   AdminPeopleIdRoute: AdminPeopleIdRoute,

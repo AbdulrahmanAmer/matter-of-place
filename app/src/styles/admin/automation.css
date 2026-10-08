@@ -1,0 +1,231 @@
+/* Screen 17, recipes: the event list beside one recipe, its steps, and the dry run. Tokens only. */
+
+.admin-recipes__intro {
+  margin-bottom: var(--admin-space-5);
+  color: var(--muted-foreground);
+}
+
+.admin-recipes {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) minmax(0, 1fr);
+  gap: var(--admin-space-6);
+  align-items: start;
+}
+
+.admin-recipes__list ul {
+  display: grid;
+  border-top: 1px solid var(--border);
+}
+
+.admin-recipes__list button {
+  display: grid;
+  gap: var(--admin-space-1);
+  width: 100%;
+  padding: var(--admin-space-3) var(--admin-space-2);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.admin-recipes__list button[aria-current="true"] {
+  border-left: 2px solid var(--foreground);
+  padding-left: var(--admin-space-3);
+  background: var(--muted);
+}
+
+.admin-recipes__name {
+  font-weight: 500;
+}
+
+.admin-recipes__list code,
+.admin-step__name code,
+.admin-recipe__event code {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.admin-recipes__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-2);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+/* One recipe */
+.admin-recipe,
+.admin-recipe form,
+.admin-recipe__fields {
+  display: grid;
+  gap: var(--admin-space-4);
+  min-width: 0;
+}
+
+.admin-recipe__fields {
+  padding: 0;
+  border: 0;
+}
+
+.admin-recipe__event {
+  margin-bottom: var(--admin-space-3);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-recipe__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--admin-space-3);
+}
+
+.admin-recipe__save {
+  align-items: center;
+}
+
+/* Steps */
+.admin-steps {
+  display: grid;
+  gap: var(--admin-space-3);
+  list-style: none;
+}
+
+.admin-step {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding: var(--admin-space-4);
+  border: 1px solid var(--border);
+}
+
+.admin-step[data-enabled="false"] .admin-step__name {
+  color: var(--muted-foreground);
+}
+
+.admin-step[data-invalid="true"] {
+  border-color: var(--status-danger);
+}
+
+.admin-step__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-3);
+}
+
+.admin-step__position {
+  min-width: 24px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-step__name {
+  display: grid;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.admin-step__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--admin-space-2);
+}
+
+.admin-step__about,
+.admin-step__none {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.admin-step summary {
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-step details[open] summary {
+  margin-bottom: var(--admin-space-3);
+}
+
+.admin-step h4,
+.admin-dryrun h4 {
+  margin-top: var(--admin-space-3);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Settings and conditions */
+.admin-params,
+.admin-conditions {
+  display: grid;
+  gap: var(--admin-space-3);
+}
+
+.admin-params__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-2) var(--admin-space-4);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-params__group legend {
+  float: left;
+  min-width: 80px;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--admin-space-2);
+  font-size: 13px;
+}
+
+/* Dry run */
+.admin-dryrun {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding-top: var(--admin-space-4);
+  border-top: 1px solid var(--border);
+}
+
+.admin-dryrun__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--admin-space-3);
+}
+
+.admin-dryrun__result ul {
+  display: grid;
+  gap: var(--admin-space-2);
+  list-style: none;
+}
+
+.admin-dryrun__result li code {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 800px) {
+  .admin-recipes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
