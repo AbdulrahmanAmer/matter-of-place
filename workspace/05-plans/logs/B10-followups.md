@@ -267,3 +267,13 @@ Reviewer's follow-ups of the resume run, none blocking, recorded word for word w
 - what: Suspected by reading. In publishInstagram (lines 360-367), a freshly created container that ends ERROR is always thrown as GraphError class non_retryable, and the row then fails at once (invariant 3b). It is never classified through meta-errors.ts. A container ERROR is often Meta failing to fetch the media, which can be transient (Risks: a Cloudflare rule or a slow /media URL). The plan only specifies ERROR for a stored marker: clear it and create a new container. The post-to-channel group (step 6) should decide whether a fresh-container ERROR retries inside the window. This is a plan fold, not a contract break.
 - evidence: meta.ts:360-367; plan invariant 2 ('ERROR or EXPIRED clears the marker ... and creates a new container in the same run') and invariant 5 ('Meta's own fetch failing comes back as a Graph media error and is classified by meta-errors.ts').
 - blocking: false
+
+## g5 · steps 5a
+
+Second review of g5 (the resume run of 2026-10-08): no blocking defect, two follow-ups, recorded word for word with their evidence. The one that concerns GOTCHAS.md is banked as P-2218.
+
+### app/src/server/channels/post-to-channel.ts
+
+- what: Follow-up, not this group's file (g6 or the orchestrator). Found by reading, not confirmed by running. The provider reset time that g5 computes is never used. x-errors.ts and linkedin-errors.ts fill ChannelFailure.retryAt from X's x-rate-limit-reset and 24-hour reset headers and from LinkedIn's Retry-After. No production code reads it: onFailure in post-to-channel.ts (lines 316-358) sends every retry_at failure to planRetry, which uses B8's backoff and the posting window. So a 429 that resets in 15 minutes gets retried at 30 s, 1 minute and 2 minutes before the reset, and the X monthly usage cap burns the 12 attempts and up to 3 window moves before the row fails. STANDARDS R34 says a quota or plan-limit answer maps to retry_at at the provider's own reset time, never a fixed guess. Plan invariant 3a treats retry_at like retryable, so the plan and R34 disagree. The orchestrator should settle which one rules. This does not block g5: the classification R34 asks of this group is there and tested.
+- evidence: grep -rn "retryAt" app/src --include=*.ts finds only the producers (oauth-tokens.ts:27, x-errors.ts, linkedin-errors.ts) plus resend.ts and window.ts, which have their own unrelated retryAt. platformFailure() in post-to-channel.ts:297-313 copies only class, message and code from ChannelApiError.detail.
+- blocking: false
