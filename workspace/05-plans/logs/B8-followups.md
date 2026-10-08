@@ -236,3 +236,11 @@
    - Evidence: From reading: B8.md lines 90, 91 and 93 compared with app/supabase/migrations/20261008065327_jobs_admin.sql (the admin_retry_jobs signature), app/src/server/jobs/service.ts (`after()`) and app/src/domain/jobs.ts (no jobStatusLabels). The log block '## g1 · steps 9', under 'Choices the plan left open', records all three.
 
 (A fourth follow-up, the rework of `listJobs` after a jscpd clone that the bank did not hold, has GOTCHAS.md as its file and is banked as P-2600.)
+
+## c8e · steps 9
+
+1. `workspace/05-plans/logs/B8.md` (not blocking)
+   - What: The c8e block says the --only replay ran 'against mop-dev, which does not hold this branch's migrations'. P-2601 and the commit message also call 20261004060603_system_jobs.sql 'the branch's migration'. That migration is already on origin/main, and mop-dev holds its defaults: the old mutant fails on mop-dev with the same 'cannot remove parameter defaults' error. The wording reads as if only CI could show the defect, but it reproduces locally. Imprecise, not false about jobs_admin.
+   - Evidence: git log -1 origin/main -- app/supabase/migrations/20261004060603_system_jobs.sql -> 0f200b7e. MOP_MUTATION_SQL=<old sql> bunx vitest run --project db tests/db/jobs.db.test.ts -t "emit_event inserts a row" on mop-dev -> 'cannot remove parameter defaults from existing function'.
+
+(Two further follow-ups have GOTCHAS.md as their file: the missing hit-again line on P-008, added to that entry, and the reviewer's cost of running a gate beside a replay, banked as P-2604.)
