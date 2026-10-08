@@ -503,3 +503,55 @@ what: Note for the log. The author's UNPROVEN item 'signed-in admin layout, the 
 evidence: See the reran entry 'node scratchpad/b7rev-signed.mjs': frame 1 on /admin, 'Requests' h1, 'Request not found', AdminRouteError with request id, pageerrors []
 
 blocking: false
+
+## g2 · steps 7
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The reviewer listed no follow-up whose file is GOTCHAS.md, so this group banks no gotcha entry.
+
+### 1. app/src/server/previews/service.ts
+
+what: Undocumented design choice. A draft that is missing any field the published-row mapper requires (region_slug, neighborhood, style, place, hero_image and others) does not parse in getDraftProperty and answers 404. A fresh draft made from a request therefore cannot be previewed until its facts and hero are complete. PreviewTab hides the frame until then and says why. The plan says preview_property serves 'any editorial_state', which says nothing about completeness. This choice is written down only in a code comment, not in ASSUMED.md or the log.
+
+evidence: Found by reading. previews/service.ts line 29 has the comment 'An incomplete draft does not parse'. tests/unit/previews.service.test.ts:122 is titled 'a property that is gone, or a draft the public page cannot show yet, is 404'. PreviewTab.tsx returns 'The preview opens once the facts and the hero are complete.' grep in logs/B7.md and B7-followups.md finds no record of it.
+
+blocking: false
+
+### 2. app/supabase/migrations/20261007223746_admin_properties.sql
+
+what: In update_property (lines 161-177), a PATCH that carries editorial_state runs a second UPDATE after save_property. B2's properties_version_bump trigger then fires again, so that one PATCH raises version by 2, not 1. This is not a correctness fault: the function returns the final version and the client adopts it. But it departs from invariant 7's 'exactly one' bump, and the editorial_state key that bypasses save_property's allow-list is an ASSUMED extension recorded only in a SQL comment.
+
+evidence: Found by reading lines 172-177: save_property(...) is followed by 'update public.properties p set editorial_state = v_state, archived_at = null ... returning * into v_after'. No db test covers the version after a PATCH that changes state. The admin.db 'version + 1' case patches plain fields only.
+
+blocking: false
+
+### 3. app/src/admin/properties/PropertyEditor.tsx
+
+what: reload() (lines 123-133) has try/finally with no catch and is called as `void reload()` from StaleBanner. If the re-read fails (network, 5xx), the rejection goes unhandled and the editor sees no message: the Reload button just stops spinning. That is a C06/C17 gap: the error state is not rendered and has no request id.
+
+evidence: Found by reading. Line 186 is `onReload={() => void reload()}`. reload() has `try { const fresh = await onReload(); ... } finally { setReloading(false); }`. properties.$id.lazy.tsx throws 'The property could not be reloaded.' and refetch uses throwOnError: true.
+
+blocking: false
+
+### 4. app/src/admin/properties/use-autosave.ts
+
+what: Lines 111 and 125 use `.catch(() => undefined)`, the literal shape R10 names. Behaviour is fine: the failure was already published to state.error and blocked by sendPending, so nothing is lost. The comment explaining that is missing, so the next reader or lint selector will take it for a swallow.
+
+evidence: Found by reading. `await inFlight.current.done.catch(() => undefined);` and `drain().catch(() => undefined);`
+
+blocking: false
+
+### 5. app/src/server/jobs/system/copy-submission-media.ts
+
+what: Merge-order window. The job ends by calling request_property_render, which no migration on this branch or on main defines; it arrives with step 8's admin_media migration. The STUB(B7 step 8) marker is present, so R05 holds. But once this accepted migration group merges to main ahead of step 8, every 'Create property' on mop-dev queues a copy job that copies the photographs and then throws 'unavailable' at the last call, retrying until step 8 lands or the job goes dead. Worth stating in the step 8 brief or the runbook. Separately, Storage copy and the duplicate answer ({statusCode: '409'}) are proven only against the unit fake, so they are UNPROVEN against real Supabase Storage.
+
+evidence: grep -rln request_property_render app/supabase app/src matched only src/server/jobs/steps/render-variants.ts and copy-submission-media.ts (both STUB comments), with no SQL definition. tests/unit/jobs/copy-submission-media.test.ts uses a fake storage.
+
+blocking: false
+
+### 6. .github/workflows/ci.yml
+
+what: Note for step 10, not this group's file. The e2e job's 'dev vars' step writes CSRF_SECRET and CONFIRM_TOKEN_SECRET but not PREVIEW_TOKEN_SECRET. When step 10's admin-editorial Preview-tab leg runs in CI, POST properties/:id/preview-token will answer 503 preview_secret_missing. The existing follow-up 7 in B7-followups.md covers the deployed Workers' secrets, not CI's .dev.vars.
+
+evidence: Lines 295-308 of ci.yml list the echoed names, and PREVIEW_TOKEN_SECRET is not among them. signPreview in src/server/lib/preview-token.ts throws preview_secret_missing when the key is undefined.
+
+blocking: false
