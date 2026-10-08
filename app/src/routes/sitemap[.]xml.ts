@@ -14,6 +14,9 @@ const staticPaths = [
   "/contact",
   "/faq",
   "/legal",
+  "/privacy",
+  "/terms",
+  "/accessibility",
 ];
 
 const entry = (path: string, lastmod?: string) =>
