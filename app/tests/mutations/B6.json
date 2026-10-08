@@ -1399,21 +1399,25 @@
   },
   {
     "id": "b6-g3-e2e-picker",
+    "kind": "manual",
     "test": "tests/e2e/admin-invoice.spec.ts",
     "file": "src/admin/invoices/IssuePicker.tsx",
     "find": "aria-label=\"Accepted requests\"",
     "replace": "aria-label=\"Requests\"",
     "run": "E2E_FULL_STACK=1 E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts -g \"issues the next invoice number\" --reporter=line",
-    "expect": "name: 'Accepted requests'"
+    "expect": "name: 'Accepted requests'",
+    "what": "by hand against mop-dev (needs a browser and the served app, which CI's db job has neither of): the picker loses its accessible name, so the first test fails at getByRole region Accepted requests"
   },
   {
     "id": "b6-g3-e2e-unaccepted",
+    "kind": "manual",
     "test": "tests/e2e/admin-invoice.spec.ts",
     "file": "src/admin/invoices/InvoiceForm.tsx",
     "find": "Accept this request before issuing an invoice.",
     "replace": "This request is not ready.",
     "run": "E2E_FULL_STACK=1 E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts -g \"cannot be invoiced from the screen\" --reporter=line",
-    "expect": "Accept this request before issuing an invoice"
+    "expect": "Accept this request before issuing an invoice",
+    "what": "by hand against mop-dev (needs a browser and the served app, which CI's db job has neither of): the form's refusal copy changes, so the unaccepted-request test fails on its text"
   },
   {
     "id": "b6-s7-filters-print",
@@ -1498,12 +1502,14 @@
   },
   {
     "id": "b6-g3-e2e-guard",
+    "kind": "manual",
     "test": "tests/e2e/admin-invoice.spec.ts",
     "file": "tests/e2e/admin-invoice.spec.ts",
     "find": "test.skip(!process.env[\"E2E_FULL_STACK\"], \"needs the job runner and B7's activation\");",
     "replace": "test.skip(false, \"needs the job runner and B7's activation\");",
     "run": "DEV_DB_URL= E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts --reporter=line",
-    "expect": "refusing: DEV_DB_URL is not set"
+    "expect": "refusing: DEV_DB_URL is not set",
+    "what": "by hand (the run starts Playwright's webServer, which CI's db job does not have): with the guard gone and no stack the spec fails in beforeAll instead of skipping"
   },
   {
     "id": "b6-g3-e2e-mail-status",
@@ -1514,6 +1520,6 @@
     "replace": ".toBe(\"sent\");",
     "run": "E2E_FULL_STACK=1 E2E_RESEND=1 E2E_TARGET=dev E2E_PORT=8978 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts",
     "expect": "Expected: \"sent\"",
-    "what": "not replayable until PR 213 (B7 step 7) is on main and EMAIL_LIVE=1 is set on the runner: the seventh test sits behind six serial tests that need the job runner and create_property_from_submission. Replay by hand then; the row reads delivered once the dev webhook (email.delivered) has run, so the exact-sent mutant is red."
+    "what": "not replayable until PR 213 (B7 step 7) is on main and EMAIL_LIVE=1 is set on the runner: the seventh test sits behind six serial tests that need the job runner and create_property_from_submission. Replay by hand then; the row reads delivered once the dev webhook (email.delivered) has run, so the exact-sent mutant is red only if the first poll already reads delivered (expect.poll stops at the first match). When replayed, record the status the row had at the first poll; a sent first read leaves the mutant green."
   }
 ]
