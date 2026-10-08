@@ -4364,6 +4364,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a change to a workflow script is proved by parsing it as the tool does: strip `export ` from the meta line and feed the text to `new (Object.getPrototypeOf(async function(){}).constructor)("agent","parallel","pipeline","phase","log","args","budget","workflow", text)`; "ok" or the real error. `~/.claude/hooks/postwrite-sanity.mjs` does exactly that for every file under `.claude/workflows/` on Write and Edit since 2026-10-07, so an edit through the editor tool is caught at once; an edit through a shell one-liner is not, one more reason to edit these files with the editor tool. Inside a template literal every backtick of quoted shell text is escaped with a backslash.
 - proof: with main's build-slice.js at 7531328 the parse above throws `SyntaxError: Unexpected identifier 'eval'`; with the two backticks escaped (PR 179) it prints ok; `node --check` prints nothing for both.
 - added: 2026-10-07
+- hit again: 2026-10-08 09:30, orchestrator: the mergeOnly brief (PR 235) carried two raw backticks; `node --check` passed, the post-write hook never ran because the edit came through a `node -e` script in Bash, and the Dell runner found it with the vm wrap at launch. Rule stays: workflow files are edited with the Edit tool so the hook parses them, and the wrap check runs before the push.
 
 ## P-1932 · What gave the bundle its bytes back: a server-only schema inside `domain/contracts.ts` and a click-only dialog imported by a route, found by attributing the built chunk to source files
 - symptom: B17 c8, merge of main at 7e4b7a9: `node scripts/bundle-check.mjs` printed 156,440 for `_site.property.$slug` and 153,855 for `_site.$market.index` against 153,600. Guessing which module to trim cost the first half hour: the shared small chunks (Picture, cards) are 100 to 600 bytes each and the entry chunk is 144 KB.
@@ -4845,6 +4846,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never pipe a gate before `&&`: run `node ../workspace/05-plans/quiet.mjs -- bun run check` on its own line and test `$?`, or `set -o pipefail` first; the gate's exit decides the push, not its last line.
 - proof: `bash -c 'false | tail -1 && echo pushed'` prints `pushed`; with `set -o pipefail` it prints nothing.
 - added: 2026-10-08
+- hit again: 2026-10-08 09:40, orchestrator: the same shape twice more in one hour (`bun run migrations:check 2>&1 | tail -1 && git commit`): the b9 restamp was pushed while the check printed exit 1 (it passed on the committed tree, so no harm, but the push did not wait for the proof).
 
 ## P-2305 · A merge agent chased a moving main: three merges of origin/main in twenty minutes, each restarting CI, because the gate refused "rebase first" for every records commit
 - symptom: `merge-gate.mjs 185` printed `rebase first` three times; each answer was a merge of origin/main, a push and a 7 minute CI run, and main had moved again by the time the checks were green.
