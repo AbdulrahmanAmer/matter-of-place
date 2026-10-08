@@ -637,7 +637,7 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; }
 ${errors}
 <div class="hero">
 <p class="figure" aria-hidden="true">${o.percent}%</p>
-<div><p class="lead">${o.percent} percent to launch. ${o.accepted} of ${o.total} steps accepted, ${o.total - o.accepted} to go, ${o.inReview} in work.${pending}</p>
+<div><p class="lead">${o.percent} percent done. ${o.accepted} of ${o.total} steps accepted, ${o.total - o.accepted} to go, ${o.inReview} in work.${pending}</p>
 <span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.accepted, o.total)}%"></span><span class="review" style="width:${pct(o.inReview, o.total)}%"></span></span></div>
 </div>
 <div class="tiles">
