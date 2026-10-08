@@ -560,7 +560,7 @@ blocking: false
 
 None blocks. Each entry is the reviewer's text, with its file and evidence. The two follow-ups whose file is GOTCHAS.md are banked as P-2137 (new) and a hit-again line under P-2133, not listed here.
 
-### 1. app/supabase/migrations/20261008050813_admin_takedown.sql (a takedown audits both preview nonces)
+### 1. app/supabase/migrations/20261008092407_admin_takedown.sql (a takedown audits both preview nonces)
 
 what: A takedown stores both preview nonces, the old one and the new one, in audit_log. rotate_preview_nonce in the same migration strips the nonce on purpose, with the comment 'staff read it, and a nonce is half of a link'. The two functions contradict each other. A leak would still need PREVIEW_TOKEN_SECRET before anyone could forge a link, so this is not exploitable alone.
 
