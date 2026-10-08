@@ -917,6 +917,7 @@ Entry template
 - rule: do not run python in this project (P-008 sends anything with a backslash through Edit or Write). A script goes in a file run with `node`, or an edit goes through the Edit tool; never start an interpreter that can wait for stdin inside a chain. If python is unavoidable, use `python3 -c "..."` or a file, wrapped in `timeout 8`. When a call is moved to the background, run `git diff <files it can touch>` before the next edit, and when an Edit says `String to replace not found` for text just seen, read `git diff` of that file first.
 - proof: `timeout 8 python3 -c "print('ok')"` → `ok`; `timeout 8 python3 - </dev/null 2>&1 | head -c 400` → the version banner, then `Traceback ...` and, further down, `OSError: [WinError 6] The handle is invalid` (2026-10-02); `grep -c '"watchfail"' app/package.json` prints `1` (it printed `2` before the clean-up, B4 g1).
 - merged: P-400
+- hit again: 2026-10-08, B16 g5 fix round: a `python3 - <<'EOF' 2>/dev/null || echo nopy` guard moved to the background at 120 s; the stray python process was stopped by its id. About 2 minutes.
 - hit again: 2026-10-08, B16 g6: a `python - <<'EOF' 2>/dev/null || echo nopython` guard ahead of a `grep` hung to the 120 s ceiling; the python process was found with `tasklist` and stopped by its id. About 2 minutes.
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
@@ -4629,6 +4630,22 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `textContent` of a container concatenates its children without separators, so a word boundary the eye sees is not in the string.
 - rule: look for a literal in a page element by element: `[...document.querySelectorAll("main *")].filter((el) => /\bnull\b/.test(el.textContent))`, which matches the link that holds it.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b16-g5-unset-null` → `WATCHED-FAIL OK B16:b16-g5-unset-null`; with the whole-page `not.toMatch` back in the test it printed `BAD: wrong reason` (measured 2026-10-08, B16 g5).
+- added: 2026-10-08
+
+## P-1012 · A privacy-page sentence names a retention period the build does not enforce, and the retention test cannot see it because it reads only the table rows
+- severity: warn
+- symptom: B16 g5's CCPA table said hashed IP addresses were kept 25 hours in the Identifiers row. Only `rate_limits` rows are deleted after 25 hours; `submissions.rights_ip_hash`, `submissions.ip_hash`, `inquiries.ip_hash` and `subject_requests.ip_hash` are never cleared (215 submissions on mop-dev held a `rights_ip_hash` older than 25 hours). A fresh reviewer found it; `legal-pages.test.tsx` only compared the `tr[data-retention]` cells.
+- cause: a period was copied from `retentionPeriods` into prose about a data category, and the key's own scope (rate-limit records) was lost on the way.
+- rule: write every retention sentence against the retention functions in `20261004065712_retention.sql` (`grep -n ip_hash` there finds none), name the table the period belongs to, and say plainly what stays; a test reads the prose cell, not only the table.
+- proof: `cd app && grep -c ip_hash supabase/migrations/20261004065712_retention.sql` → `0`; `node scripts/watchfail.mjs --registry tests/mutations --only b16-g5-ip-hash-kept` → `WATCHED-FAIL OK B16:b16-g5-ip-hash-kept`.
+- added: 2026-10-08
+
+## P-1013 · `eval "$(node scripts/load-env.mjs --profile dev)"` run from the tree root loads nothing and exits 0, so a `&&` chain goes on without `DEV_DB_URL`
+- severity: warn
+- symptom: a reviewer ran the brief's dev-profile line from the tree root: `Cannot find module '...\scripts\load-env.mjs'` on stderr, then `eval` of the empty substitution exited 0 and the db test ran with no `DEV_DB_URL`.
+- cause: the script lives in `app/scripts`, and `eval "$(cmd)"` returns the status of `eval`, not of `cmd` (a sibling of P-1930).
+- rule: run it from `app/`, keep the output in a variable and fail on its status: `out=$(node scripts/load-env.mjs --profile dev) && eval "$out" && test -n "$DEV_DB_URL"`.
+- proof: `cd app && out=$(node scripts/load-env.mjs --profile dev 2>/dev/null) && eval "$out" && test -n "$DEV_DB_URL" && echo ok` → `ok`; from the tree root `eval "$(node scripts/load-env.mjs --profile dev)"; echo $?` → the module error, then `0` (measured 2026-10-08, B16 g5 review).
 - added: 2026-10-08
 
 ## P-537 · A change to a file that registry entries anchor on must replay every entry of that file before the push, not only the new ones; two CI cycles were lost to stale anchors in one hour

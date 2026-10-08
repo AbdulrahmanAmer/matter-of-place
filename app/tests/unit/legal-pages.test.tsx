@@ -278,6 +278,16 @@ describe("the legal pages", () => {
     }
   });
 
+  it("/privacy limits the hours to rate-limit records and says a hash on a record stays with it", async () => {
+    await renderPage(pageOf(privacyRoute), UNSET);
+    const row = screen.getByRole("rowheader", { name: "Identifiers" }).closest("tr");
+    const kept = row?.querySelectorAll("td")[3]?.textContent ?? "";
+    const hours = `${String(retentionPeriods.rate_limits.hours)} hours`;
+    expect(kept.split(hours)).toHaveLength(2);
+    expect(kept).toContain(`rate-limit records after ${hours}`);
+    expect(kept).toContain("stays with that record");
+  });
+
   it("the terms text matches the hash recorded for legalVersions.terms", async () => {
     const file = resolve(import.meta.dirname, "fixtures/legal-hashes.json");
     const recorded = z.record(z.string(), z.string()).parse(JSON.parse(readFileSync(file, "utf8")));
@@ -362,6 +372,7 @@ describe("the old /legal anchors", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe(path);
     });
+    expect(router.history.canGoBack()).toBe(false);
   });
 
   it("/legal with no hash stays on /legal", async () => {

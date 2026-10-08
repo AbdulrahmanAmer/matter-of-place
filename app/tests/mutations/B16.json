@@ -661,6 +661,24 @@
     "expect": "FAIL .*> retention > retention_policies holds every period"
   },
   {
+    "id": "b16-g5-ip-hash-kept",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "; one stored with an inquiry, a privacy request or a rights confirmation stays with that record.",
+    "replace": ".",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the legal pages > /privacy limits the hours"
+  },
+  {
+    "id": "b16-g5-legal-replace",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "void navigate({ to: \"/privacy\", replace: true });",
+    "replace": "void navigate({ to: \"/privacy\" });",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
+    "expect": "FAIL .*> the old /legal anchors > /legal with #privacy lands on /privacy"
+  },
+  {
     "id": "b16-g6-kinds-four",
     "test": "tests/unit/privacy-request.test.tsx",
     "file": "src/components/forms/privacy-request-form.tsx",

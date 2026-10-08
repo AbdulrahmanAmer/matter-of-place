@@ -60,7 +60,7 @@ const categories: readonly {
     what: "Name, email, phone, and an IP address held only as a hash for rate limits and rights records.",
     source: "You, through the forms.",
     purpose: "To reply to you, run the service and limit abuse.",
-    kept: `Inquiries ${keep("inquiries_anonymise")}, privacy requests ${keep("subject_requests")}, hashed IP addresses ${keep("rate_limits")}.`,
+    kept: `Inquiries ${keep("inquiries_anonymise")}, privacy requests ${keep("subject_requests")}. A hashed IP address is deleted from rate-limit records after ${keep("rate_limits")}; one stored with an inquiry, a privacy request or a rights confirmation stays with that record.`,
     receives: "Supabase, Resend, Cloudflare.",
   },
   {
