@@ -3944,13 +3944,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: from `app/` with the dev profile and `MOP_MUTATION_SQL="$(cat supabase/migrations/<ts>_admin_media.sql)"`, `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/admin.db.test.ts -t media` → `Tests  11 passed | 45 skipped (56)`; with the `sixPhotographs` line of `attachQueuesOne` removed → `1 failed`, `error: publish_incomplete` (measured 2026-10-08, B7 g1).
 - added: 2026-10-08
 
-
 ## P-2030 · A sql watched-fail that turns one `or` of a three-part guard into `and` stays green: `and` binds tighter
 - symptom: B7 g1 (step 8): `b7-g8-db-reorder` replaced `or not (p_order <@ v_before)` with `and not (...)` in `reorder_media`'s guard and replayed `WATCHED-FAIL BAD: stayed green`; the partial order still raised `reorder_mismatch`.
 - cause: the guard reads `A or B or C`; the mutation made it `A or B and not C`, which SQL reads as `A or (B and not C)`, so the cardinality test `A` alone still raised for the case the test makes.
 - rule: a watched-fail of a guard with several conditions removes the whole guard (`if false then`), or the one condition the test's case trips, never an operator in the middle of it; replay it before naming it in a log.
 - proof: `cd app && node -e "const e=require('./tests/mutations/B7.json').find(x=>x.id==='b7-g8-db-reorder');console.log(e.sql.includes('if false then'))"` → `true`; its replay from a scratch registry with the migration prepended → `WATCHED-FAIL OK B7:b7-g8-db-reorder` (2026-10-08).
 - added: 2026-10-08
+
 ## G-901 · A test or script client built from `SUPABASE_URL` on this laptop writes to another business's production project
 - paths: app/tests/e2e/helpers/session.ts, app/scripts/seed-admin-users.ts, app/tests/fixtures/service.ts
 - severity: warn
@@ -4568,6 +4568,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before any push that touches a source or test file, run `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` from `app/` (it selects every entry whose test file or target changed against main) and push only on `bad 0, stale 0`; when that run is too long for the Bash limit, run it with `run_in_background` and wait. An entry's `find` names the smallest stable text, never a whole line that a signature or a format change rewrites.
 - proof: PR 215's db job printed `replayed 144: ok 142, bad 0, stale 2` for the two entries the author had not replayed; `--changed origin/main` run on the branch afterwards selected both.
 - added: 2026-10-07
+- hit again: 2026-10-08 14:20, orchestrator, PR 244: the lint script gained an env prefix and the push ran `bun run lint` alone; CI's mutation replay found two stale anchors on package.json (`hy-lint-warnings`, `hy-lint-warnings-app`) and the hygiene pin on the script text failed. The rule is every push, including one-line script changes.
 - hit again: 2026-10-08, B6 c3h round 3: after `git merge origin/main` brought B7's `copySubmissionMedia` into the system job list, `b6-g5-job-registered` (find `  invoicePdf,\n];`) was STALE and only the 12-minute `--changed origin/main` replay showed it; the find is now `  invoicePdf,\n`, one line, so a neighbour appended after it cannot break it. A find that spans the end of a list is stale the day another slice appends to that list.
 - hit again: 2026-10-08, B10 g9 round 3: three entries of `app/tests/mutations/B10.json` (`b10g9-rs-db-error-throws`, `-usage`, `-vault`) were STALE after the fix round rewrote `isPlatformError`, because their `find` was the old line and only the one-id replays of the 31 entries on `reconcile-social.ts` and `reconcile.ts` showed it. The cost was listed under P-2454, which holds the defect, not the replay rule; this entry is the one to open. Proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b10g9-rs-db-error-throws` → `WATCHED-FAIL OK`.
 
