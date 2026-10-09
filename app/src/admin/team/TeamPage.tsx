@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { AgentKeyRow, KeyCreated } from "../../domain/admin-team";
+import { AdminApiError } from "../ui/admin-fetch";
 import { AdminPending } from "../ui/AdminPending";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { useToast } from "../ui/use-toast";
@@ -22,10 +23,22 @@ import {
   useSetDisabled,
   useTeamUsers,
 } from "./team-queries";
+import { UserChangeDialog, type UserChange } from "./UserChangeDialog";
 import { UsersTable } from "./UsersTable";
 
 const failure = (error: unknown) =>
   error instanceof Error ? error.message : "This change could not be made.";
+
+/** A failed read as the tables and the limits section show it, with the request id when the API sent one. */
+const readError = (error: Error | null) =>
+  error === null
+    ? null
+    : {
+        message: error.message,
+        ...(error instanceof AdminApiError && error.requestId !== undefined
+          ? { requestId: error.requestId }
+          : {}),
+      };
 
 /** Keyset pages: the cursors of the pages before the current one, and the current one last. */
 function usePages() {
@@ -66,10 +79,12 @@ export function TeamPage() {
   const [issued, setIssued] = useState<KeyCreated | null>(null);
   const [revoking, setRevoking] = useState<AgentKeyRow | null>(null);
   const [revokeAllOpen, setRevokeAllOpen] = useState(false);
+  const [change, setChange] = useState<UserChange | null>(null);
 
   const fail = (error: unknown) => {
     toast({ message: failure(error), tone: "danger" });
   };
+  const limitsError = readError(limits.error);
   const userRows = users.data?.items ?? [];
   const agents = userRows
     .filter((row) => row.actor_kind === "agent")
@@ -86,18 +101,18 @@ export function TeamPage() {
         <UsersTable
           rows={userRows}
           loading={users.isPending}
-          error={users.error === null ? null : { message: failure(users.error) }}
+          error={readError(users.error)}
           pager={userPages.pager(users.data?.next_cursor)}
           actions={{
             pending: userPending,
             onGrant: (id, role) => {
               grant.mutate({ id, role }, { onError: fail });
             },
-            onRevoke: (id, role) => {
-              revoke.mutate({ id, role }, { onError: fail });
+            onRevoke: (row, role) => {
+              setChange({ kind: "revoke", row, role });
             },
-            onDisable: (id, disabled) => {
-              disable.mutate({ id, disabled }, { onError: fail });
+            onDisable: (row) => {
+              setChange({ kind: "disable", row });
             },
           }}
         />
@@ -149,7 +164,7 @@ export function TeamPage() {
         <AgentKeysTable
           rows={keys.data?.items ?? []}
           loading={keys.isPending}
-          error={keys.error === null ? null : { message: failure(keys.error) }}
+          error={readError(keys.error)}
           pager={keyPages.pager(keys.data?.next_cursor)}
           agentName={agentName}
           pending={keyPending}
@@ -167,7 +182,12 @@ export function TeamPage() {
       </section>
       <section aria-labelledby="team-limits">
         <h2 id="team-limits">Agent daily limits</h2>
-        {limits.data === undefined ? (
+        {limitsError !== null ? (
+          <p role="alert">
+            {limitsError.message}
+            {limitsError.requestId === undefined ? null : ` Request ${limitsError.requestId}.`}
+          </p>
+        ) : limits.data === undefined ? (
           <AdminPending />
         ) : (
           <DailyLimitsForm
@@ -208,6 +228,26 @@ export function TeamPage() {
       >
         <p>{revoking?.label} stops working on its next request.</p>
       </ConfirmDialog>
+      <UserChangeDialog
+        change={change}
+        pending={userPending}
+        onConfirm={(next) => {
+          const done = {
+            onSettled: () => {
+              setChange(null);
+            },
+            onError: fail,
+          };
+          if (next.kind === "revoke") {
+            revoke.mutate({ id: next.row.user_id, role: next.role }, done);
+          } else {
+            disable.mutate({ id: next.row.user_id, disabled: !next.row.disabled }, done);
+          }
+        }}
+        onCancel={() => {
+          setChange(null);
+        }}
+      />
       <RevokeAllDialog
         open={revokeAllOpen}
         pending={revokeAll.isPending}

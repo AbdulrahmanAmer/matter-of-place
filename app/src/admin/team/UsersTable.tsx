@@ -13,8 +13,9 @@ type TableProps = ComponentProps<typeof DataTable<TeamUser>>;
 interface UserActions {
   pending: boolean;
   onGrant: (id: string, role: AppRole) => void;
-  onRevoke: (id: string, role: AppRole) => void;
-  onDisable: (id: string, disabled: boolean) => void;
+  /** Both open a confirmation first (C17); the write is sent from there. */
+  onRevoke: (row: TeamUser, role: AppRole) => void;
+  onDisable: (row: TeamUser) => void;
 }
 
 function RoleList({ row, actions }: { row: TeamUser; actions: UserActions }) {
@@ -32,7 +33,7 @@ function RoleList({ row, actions }: { row: TeamUser; actions: UserActions }) {
               aria-label={`Remove ${roleLabels[role]} from ${row.display_name ?? row.email}`}
               disabled={actions.pending}
               onClick={() => {
-                actions.onRevoke(row.user_id, role);
+                actions.onRevoke(row, role);
               }}
             >
               Remove
@@ -40,7 +41,8 @@ function RoleList({ row, actions }: { row: TeamUser; actions: UserActions }) {
           ) : null}
         </span>
       ))}
-      {missing.length > 0 ? (
+      {/* An agent keeps the role it was created with: grant_role refuses a human grant to an agent account. */}
+      {row.actor_kind === "human" && missing.length > 0 ? (
         <select
           aria-label={`Add a role to ${row.display_name ?? row.email}`}
           value=""
@@ -89,7 +91,7 @@ export function UsersTable({
             className="admin-button admin-button--quiet"
             disabled={actions.pending}
             onClick={() => {
-              actions.onDisable(row.user_id, !row.disabled);
+              actions.onDisable(row);
             }}
           >
             {row.disabled ? "Enable" : "Disable"}

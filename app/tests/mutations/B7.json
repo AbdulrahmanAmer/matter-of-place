@@ -5501,5 +5501,59 @@
     "sql": "create or replace function public.put_setting(\n  p_key text,\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The audit action of each key this function may write; step 15 adds its settings keys here.\n  v_action text := case when p_key in ('agent_daily_limits', 'invoice') then 'team.limits_put' end;\n  v_before jsonb;\nbegin\n  if v_action is null then\n    raise exception 'invalid_key';\n  end if;\n  if jsonb_typeof(p_value) is distinct from 'object' then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  select s.value into v_before from public.settings s where s.key = p_key for update;\n  insert into public.settings (key, value) values (p_key, p_value)\n  on conflict (key) do update set value = excluded.value;\n  perform public.write_audit(\n    p_actor, p_actor_kind, v_action, 'settings.' || p_key, null, v_before, p_value, p_request_id\n  );\n  return p_value;\nend;\n$$;\n\nrevoke execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"put_setting writes agent_daily_limits\"",
     "expect": "FAIL .*> team \\(step 14\\) > put_setting writes agent_daily_limits"
+  },
+  {
+    "id": "b7-14-screen-disable-confirm",
+    "file": "src/admin/team/TeamPage.tsx",
+    "find": "setChange({ kind: \"disable\", row });",
+    "replace": "disable.mutate({ id: row.user_id, disabled: !row.disabled });",
+    "test": "src/admin/team/team.test.tsx",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/team/team.test.tsx -t \"asks before disabling an account\"",
+    "expect": "× .*asks before disabling an account"
+  },
+  {
+    "id": "b7-14-screen-revoke-confirm",
+    "file": "src/admin/team/TeamPage.tsx",
+    "find": "setChange({ kind: \"revoke\", row, role });",
+    "replace": "revoke.mutate({ id: row.user_id, role });",
+    "test": "src/admin/team/team.test.tsx",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/team/team.test.tsx -t \"asks before removing a role\"",
+    "expect": "× .*asks before removing a role"
+  },
+  {
+    "id": "b7-14-screen-invite-confirm",
+    "file": "src/admin/team/InviteForm.tsx",
+    "find": "setConfirming(true);",
+    "replace": "void onInvite({ email, display_name: name, roles: [...roles] }).catch(() => undefined);",
+    "test": "src/admin/team/team.test.tsx",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/team/team.test.tsx -t \"asks before sending an invitation\"",
+    "expect": "× .*asks before sending an invitation"
+  },
+  {
+    "id": "b7-14-screen-agent-no-grant",
+    "file": "src/admin/team/UsersTable.tsx",
+    "find": "{row.actor_kind === \"human\" && missing.length > 0 ? (",
+    "replace": "{missing.length > 0 ? (",
+    "test": "src/admin/team/team.test.tsx",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/team/team.test.tsx -t \"offers Add a role on a person but not on an agent\"",
+    "expect": "× .*offers Add a role on a person but not on an agent"
+  },
+  {
+    "id": "b7-14-screen-limits-error",
+    "file": "src/admin/team/TeamPage.tsx",
+    "find": "{limitsError !== null ? (",
+    "replace": "{limitsError === undefined ? (",
+    "test": "src/admin/team/team.test.tsx",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/team/team.test.tsx -t \"shows a failed limits read with its request id\"",
+    "expect": "× .*shows a failed limits read with its request id"
+  },
+  {
+    "id": "b7-14-screen-disable-cancel",
+    "file": "src/admin/team/UserChangeDialog.tsx",
+    "find": "      onCancel={onCancel}",
+    "replace": "      onCancel={() => {\n        if (change !== null) onConfirm(change);\n      }}",
+    "test": "src/admin/team/team.test.tsx",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/team/team.test.tsx -t \"sends nothing on Cancel\"",
+    "expect": "× .*sends nothing on Cancel"
   }
 ]

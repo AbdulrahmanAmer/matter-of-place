@@ -2,9 +2,13 @@ import { useState } from "react";
 import type { InviteInput } from "../../domain/admin-team";
 import { appRoles, roleLabels } from "../../domain/contracts";
 import type { AppRole } from "../../domain/rows";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Field } from "../ui/Field";
 
-/** Invites a person by email with one or more roles; Supabase Auth sends the invitation mail. */
+/**
+ * Invites a person by email with one or more roles. Supabase Auth sends the invitation mail, so the person confirms
+ * the address and roles once before it goes (C17).
+ */
 export function InviteForm({
   pending,
   onInvite,
@@ -16,6 +20,7 @@ export function InviteForm({
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [roles, setRoles] = useState<readonly AppRole[]>([]);
+  const [confirming, setConfirming] = useState(false);
   const toggle = (role: AppRole, on: boolean) => {
     setRoles((current) => (on ? [...current, role] : current.filter((item) => item !== role)));
   };
@@ -24,14 +29,7 @@ export function InviteForm({
       className="admin-toolbar"
       onSubmit={(event) => {
         event.preventDefault();
-        onInvite({ email, display_name: name, roles: [...roles] }).then(
-          () => {
-            setEmail("");
-            setName("");
-            setRoles([]);
-          },
-          () => undefined,
-        );
+        setConfirming(true);
       }}
     >
       <Field label="Email">
@@ -79,6 +77,32 @@ export function InviteForm({
       <button type="submit" className="admin-button" disabled={pending || roles.length === 0}>
         Send invitation
       </button>
+      <ConfirmDialog
+        open={confirming}
+        title="Send an invitation"
+        confirmLabel="Send invitation"
+        pending={pending}
+        onConfirm={() => {
+          onInvite({ email, display_name: name, roles: [...roles] }).then(
+            () => {
+              setConfirming(false);
+              setEmail("");
+              setName("");
+              setRoles([]);
+            },
+            () => {
+              setConfirming(false);
+            },
+          );
+        }}
+        onCancel={() => {
+          setConfirming(false);
+        }}
+      >
+        <p>
+          An invitation goes to {email} now, as {roles.map((role) => roleLabels[role]).join(", ")}.
+        </p>
+      </ConfirmDialog>
     </form>
   );
 }
