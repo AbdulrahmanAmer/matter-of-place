@@ -5347,5 +5347,159 @@
     "sql": "create or replace function public.set_market_coming_soon(\n  p_slug text,\n  p_coming_soon boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_notify boolean default false\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.markets;\n  v_new public.markets;\nbegin\n  -- B7 step 13, screen 15. The row is locked, so two editors who press the toggle at once do not both open the market.\n  select * into v_old from public.markets m where m.slug = p_slug for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if p_coming_soon is null then\n    raise exception 'invalid_key';\n  end if;\n  -- Already in the state asked for: nothing changes, nothing is audited and the catalog version stays.\n\n  -- One update, so B2's trigger on markets raises catalog_version once (F25 a).\n  update public.markets m set coming_soon = p_coming_soon where m.slug = p_slug returning * into v_new;\n\n  -- G15, G37, G58: the interest-only signups of a market opened by hand get their one mail. The key\n  -- `market_open:<market>` is the one B8b's open_market_on_publish uses, so opening again later (or through a\n  -- publication) finds it taken and sends nothing twice. p_notify is false until the job type has a handler (G37).\n  if p_notify and not p_coming_soon then\n    perform public.enqueue_job(\n      'market_open_notice',\n      jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('market', p_slug)),\n      'market_open:' || p_slug,\n      p_max_attempts => 12\n    );\n  end if;\n\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'markets.coming_soon', 'markets.' || p_slug, null,\n    jsonb_build_object('coming_soon', v_old.coming_soon), jsonb_build_object('coming_soon', v_new.coming_soon),\n    p_request_id\n  );\n  return jsonb_build_object('slug', p_slug, 'coming_soon', v_new.coming_soon, 'updated_at', v_new.updated_at);\nend;\n$$;\n\nrevoke execute on function public.set_market_coming_soon(text, boolean, uuid, public.actor_kind, text, boolean)\n  from public, anon, authenticated;\ngrant execute on function public.set_market_coming_soon(text, boolean, uuid, public.actor_kind, text, boolean)\n  to service_role;\n",
     "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"set_market_coming_soon to the state a market is already in\"",
     "expect": "× .*set_market_coming_soon to the state a market is already in leaves it"
+  },
+  {
+    "id": "b7-14-svc-invite-note",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "p_note: \"invite\",",
+    "replace": "p_note: \"\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> inviteUser > calls inviteUserByEmail once"
+  },
+  {
+    "id": "b7-14-svc-no-rollback",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "const { error } = await db.auth.admin.deleteUser(userId);",
+    "replace": "const error = null;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> inviteUser > a failed grant_role deletes the new auth user"
+  },
+  {
+    "id": "b7-14-svc-email-exists",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "error.code === \"email_exists\"",
+    "replace": "error.code === \"email_taken\"",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> inviteUser > an address that already has an account"
+  },
+  {
+    "id": "b7-14-svc-raw-key",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "p_hash: await hashAgentKey(key),",
+    "replace": "p_hash: key,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> agent keys > returns the key once with the mopk_ prefix"
+  },
+  {
+    "id": "b7-14-svc-agent-kind",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "p_user_kind: \"agent\",",
+    "replace": "p_user_kind: \"human\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> agent keys > createAgent makes a confirmed .invalid auth user"
+  },
+  {
+    "id": "b7-14-humanonly",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/lib/permissions/team.ts",
+    "find": "const guarded = { roles: [\"admin\"], humanOnly: true, recentAuth: true } as const;",
+    "replace": "const guarded = { roles: [\"admin\"], recentAuth: true } as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> person only > refuses an agent with human_only on every team function"
+  },
+  {
+    "id": "b7-14-humanonly-route",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/lib/permissions/team.ts",
+    "find": "const guarded = { roles: [\"admin\"], humanOnly: true, recentAuth: true } as const;",
+    "replace": "const guarded = { roles: [\"admin\"], recentAuth: true } as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> person only > an agent key gets 403 human_only from every team route"
+  },
+  {
+    "id": "b7-14-revoked-401",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/lib/agent-keys.ts",
+    "find": "row === undefined || row.revoked_at !== null || row.roles.length === 0",
+    "replace": "row === undefined || row.roles.length === 0",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> agent keys > revoke_all_agent_keys revokes every live key"
+  },
+  {
+    "id": "b7-14-last-admin-code",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/lib/error-codes.ts",
+    "find": "  last_admin: 409,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> last admin > setUserDisabled answers 409 last_admin"
+  },
+  {
+    "id": "b7-14-scopes-list",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/domain/admin-team.ts",
+    "find": "  \"jobs\",\n  \"assets\",\n] as const;",
+    "replace": "  \"jobs\",\n] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
+    "expect": "FAIL .*> agentScopes > is every route group of the matrix but team and settings"
+  },
+  {
+    "id": "b7-14-db-revoke-last-admin",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.revoke_role(\n  p_user uuid,\n  p_role public.app_role,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.user_roles;\nbegin\n  -- One writer at a time on the admin rows, so two revokes cannot each leave the other as the last admin.\n  perform pg_advisory_xact_lock(hashtext('team.last_admin'));\n  if false then\n    raise exception 'last_admin' using detail = 'The team needs at least one active administrator.';\n  end if;\n  delete from public.user_roles r\n  where r.user_id = p_user and r.role = p_role\n  returning * into v_row;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'team.role_revoke', 'user_roles', v_row.id,\n    jsonb_build_object('id', v_row.id, 'user_id', p_user, 'role', p_role), null, p_request_id\n  );\nend;\n$$;\n\nrevoke execute on function public.revoke_role(uuid, public.app_role, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.revoke_role(uuid, public.app_role, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"with one enabled admin, revoke_role of its admin row\"",
+    "expect": "FAIL .*> team \\(step 14\\) > with one enabled admin, revoke_role of its admin row"
+  },
+  {
+    "id": "b7-14-db-disable-last-admin",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.set_user_disabled(\n  p_user uuid,\n  p_disabled boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before boolean;\nbegin\n  perform pg_advisory_xact_lock(hashtext('team.last_admin'));\n  select bool_and(r.disabled_at is not null) into v_before\n  from public.user_roles r\n  where r.user_id = p_user;\n  if v_before is null then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A repeat changes nothing and writes no audit row.\n  if v_before = p_disabled then\n    return p_disabled;\n  end if;\n  if false then\n    raise exception 'last_admin' using detail = 'The team needs at least one active administrator.';\n  end if;\n  update public.user_roles r\n  set disabled_at = case when p_disabled then now() end\n  where r.user_id = p_user;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'team.user_disable', 'users', p_user,\n    jsonb_build_object('id', p_user, 'disabled', v_before),\n    jsonb_build_object('id', p_user, 'disabled', p_disabled),\n    p_request_id\n  );\n  return p_disabled;\nend;\n$$;\n\nrevoke execute on function public.set_user_disabled(uuid, boolean, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_user_disabled(uuid, boolean, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"with one enabled admin, revoke_role of its admin row\"",
+    "expect": "FAIL .*> team \\(step 14\\) > with one enabled admin, revoke_role of its admin row"
+  },
+  {
+    "id": "b7-14-db-agent-admin",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.is_last_admin(p_user_id uuid)\nreturns boolean\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- True when this user holds the only enabled `admin` row of a person: taking it away would leave no one to run the\n  -- team, since an agent is refused on every `team` route (invariant 3).\n  select exists (\n      select 1 from public.user_roles r\n      where r.user_id = p_user_id and r.role = 'admin' and r.disabled_at is null and r.actor_kind = 'human'\n    )\n    and not exists (\n      select 1 from public.user_roles r\n      where r.user_id <> p_user_id and r.role = 'admin' and r.disabled_at is null\n    );\n$$;\n\nrevoke execute on function public.is_last_admin(uuid) from public, anon, authenticated;\ngrant execute on function public.is_last_admin(uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"an agent holding admin does not count as a second admin\"",
+    "expect": "FAIL .*> team \\(step 14\\) > an agent holding admin does not count as a second admin"
+  },
+  {
+    "id": "b7-14-db-revoke-all",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.revoke_all_agent_keys(\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_count integer;\nbegin\n  -- Every live key at once; `verifyKey` looks the key up on each request, so the next call of any of them is 401.\n  update public.agent_keys k set revoked_at = now() where k.revoked_at is null and k.created_at < now();\n  get diagnostics v_count = row_count;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'team.revoke_all_keys', 'agent_keys', null, null,\n    jsonb_build_object('count', v_count), p_request_id\n  );\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.revoke_all_agent_keys(uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.revoke_all_agent_keys(uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"revoke_all_agent_keys returns the number of unrevoked keys\"",
+    "expect": "FAIL .*> team \\(step 14\\) > revoke_all_agent_keys returns the number of unrevoked keys"
+  },
+  {
+    "id": "b7-14-db-team-users-email",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.team_users(p_limit integer default 50, p_cursor uuid default null)\nreturns table (\n  user_id uuid,\n  email text,\n  display_name text,\n  roles public.app_role[],\n  actor_kind public.actor_kind,\n  disabled boolean,\n  last_active_at timestamptz\n)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- Screen 23: one row per user of `user_roles`, keyset-paged on the leading column of `unique (user_id, role)`.\n  select r.user_id,\n    null::text,\n    max(r.display_name),\n    array_agg(r.role order by r.role),\n    min(r.actor_kind),\n    bool_and(r.disabled_at is not null),\n    greatest(u.last_sign_in_at, (select max(k.last_used_at) from public.agent_keys k where k.user_id = r.user_id))\n  from public.user_roles r\n  join auth.users u on u.id = r.user_id\n  where p_cursor is null or r.user_id > p_cursor\n  group by r.user_id, u.email, u.last_sign_in_at\n  order by r.user_id\n  limit least(greatest(coalesce(p_limit, 50), 1), 50);\n$$;\n\nrevoke execute on function public.team_users(integer, uuid) from public, anon, authenticated;\ngrant execute on function public.team_users(integer, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"team_users returns a staff user made with createStaffUser\"",
+    "expect": "FAIL .*> team \\(step 14\\) > team_users returns a staff user made with createStaffUser"
+  },
+  {
+    "id": "b7-14-db-grant-kind",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.grant_role(\n  p_user uuid,\n  p_role public.app_role,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_user_kind public.actor_kind default 'human',\n  p_display_name text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_kind public.actor_kind := 'human';\n  v_name text := p_display_name;\n  v_disabled timestamptz;\n  v_id uuid;\nbegin\n  -- A user who already has roles keeps their kind and name; a new role of a disabled user starts disabled.\n  perform 1 from public.user_roles r where r.user_id = p_user for update;\n  if found then\n    select min(r.actor_kind), max(r.display_name),\n      case when bool_and(r.disabled_at is not null) then now() end\n    into v_kind, v_name, v_disabled\n    from public.user_roles r\n    where r.user_id = p_user;\n    if v_kind <> p_user_kind then\n      raise exception 'invalid_key';\n    end if;\n  end if;\n  insert into public.user_roles (user_id, role, actor_kind, display_name, disabled_at)\n  values (p_user, p_role, v_kind, v_name, v_disabled)\n  returning id into v_id;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'team.role_grant', 'user_roles', v_id, null,\n    jsonb_build_object('id', v_id, 'user_id', p_user, 'role', p_role, 'actor_kind', v_kind, 'display_name', v_name),\n    p_request_id, nullif(p_note, '')\n  );\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.grant_role(uuid, public.app_role, text, uuid, public.actor_kind, text, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.grant_role(uuid, public.app_role, text, uuid, public.actor_kind, text, public.actor_kind, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"grant_role with p_user_kind agent and p_display_name Queue bot\"",
+    "expect": "FAIL .*> team \\(step 14\\) > grant_role with p_user_kind agent and p_display_name Queue bot"
+  },
+  {
+    "id": "b7-14-db-key-kind",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.create_agent_key(\n  p_user uuid,\n  p_hash text,\n  p_label text,\n  p_scopes text[],\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_id uuid;\nbegin\n  -- Only the sha256 of the key arrives here; the key itself is shown once by the Worker and never stored.\n  if false then\n    raise exception 'invalid_kind';\n  end if;\n  -- `team` and `settings` are never an agent's (invariant 3).\n  if p_scopes && array['team', 'settings'] then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  insert into public.agent_keys (user_id, key_hash, label, scopes)\n  values (p_user, p_hash, p_label, p_scopes)\n  returning id into v_id;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'team.agent_key_create', 'agent_keys', v_id, null,\n    jsonb_build_object('id', v_id, 'user_id', p_user, 'label', p_label, 'scopes', to_jsonb(p_scopes)),\n    p_request_id\n  );\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.create_agent_key(uuid, text, text, text[], uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.create_agent_key(uuid, text, text, text[], uuid, public.actor_kind, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"create_agent_key stores the hash for an agent only\"",
+    "expect": "FAIL .*> team \\(step 14\\) > create_agent_key stores the hash for an agent only"
+  },
+  {
+    "id": "b7-14-db-put-invoice",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.put_setting(\n  p_key text,\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The audit action of each key this function may write; step 15 adds its settings keys here.\n  v_action text := case when p_key in ('agent_daily_limits', 'invoice') then 'team.limits_put' end;\n  v_before jsonb;\nbegin\n  if v_action is null then\n    raise exception 'invalid_key';\n  end if;\n  if jsonb_typeof(p_value) is distinct from 'object' then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  select s.value into v_before from public.settings s where s.key = p_key for update;\n  insert into public.settings (key, value) values (p_key, p_value)\n  on conflict (key) do update set value = excluded.value;\n  perform public.write_audit(\n    p_actor, p_actor_kind, v_action, 'settings.' || p_key, null, v_before, p_value, p_request_id\n  );\n  return p_value;\nend;\n$$;\n\nrevoke execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"put_setting writes agent_daily_limits\"",
+    "expect": "FAIL .*> team \\(step 14\\) > put_setting writes agent_daily_limits"
   }
 ]

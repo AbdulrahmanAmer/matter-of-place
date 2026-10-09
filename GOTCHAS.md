@@ -270,6 +270,7 @@ Entry template
 - hit again: 2026-10-05, B7 g1: the first attempt named a heredoc and `node -e` cost under this entry in its report, without the detail (UNPROVEN which text broke); the second attempt wrote each patch as a script file in the scratchpad (quoted heredocs, some holding `\n` escapes, which arrived intact this time, and the Write tool), each checking that its `find` occurs once, and none failed.
 - hit again: 2026-10-07, B10 g6 fix round: a heredoc patch script lost the backslashes of a `new RegExp("...\\*...")` and failed with `Invalid regular expression: Nothing to repeat`; written again with the Write tool, without a regular expression.
 - hit again: 2026-10-09, B7 g3 (step 13): two heredocs and one `node -e` whose text held apostrophes (`market's`) and backticks ended in `unexpected EOF` and wrote nothing; the files were written with the Write tool and the one-line patches with the Edit tool.
+- hit again: 2026-10-09, B7 g4: one Bash call holding a quoted heredoc (`cat >> src/server/team/service.ts <<'EOF'`, about 200 lines with backticks and apostrophes) and a `node -e '...'` patch with `\"` escapes ended in `unexpected EOF while looking for matching ''`, and none of it ran; the block went in with Write to a scratch file and `cat >>`.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -1348,6 +1349,7 @@ Entry template
 - hit again: 2026-10-04, B3 g8: five new tests failed lint with the same rule on `JSON.parse(...) as T`, `await response.json() as T` and `... as Property`; parse with a Zod schema (`beaconBody.parse(JSON.parse(text))`) and give a helper the narrow `Pick<>` type it reads instead of casting a partial object.
 - hit again: 2026-10-04, B9 c6u: `bun run lint` refused `no-unsafe-type-assertion` on a cast in the new `tests/unit/assets/variants-upload.test.ts`; the cast was replaced by a type guard as above, and the group's costTime named this entry.
 - hit again: 2026-10-07, B10 g4: `tests/unit/channels/meta.test.ts` was refused for `kind as never`, `(error as Error).message`, `z.any().parse(...)` and `Array.isArray(unknown) ? [...value]`; a `failure(promise): Promise<Error>` helper (instanceof check), a typed `AssetKind[]`, a `Json` parameter and `value.map((item: unknown) => item)` replaced them.
+- hit again: 2026-10-09, B7 g4: `expect.objectContaining(...)` inside a `toEqual` object failed `@typescript-eslint/no-unsafe-assignment` in `tests/db/admin.db.test.ts`; the case selects the two audit fields it checks in SQL and compares plain rows.
 
 ## P-318 · `scripts/check-migrations.mjs` reads only committed migrations: run before the commit it prints OK without seeing a new file
 - symptom: the B2 g6 log recorded `migration-order: OK (3 on main, 3 added)` while migrations 7 and 8 were new and uncommitted. On the shipped tree the same command says `(3 on main, 5 added)`. The reviewer had to re-run it to learn that the first run had not checked the two new files.
@@ -5843,6 +5845,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a catalog check on `mop-dev` is a db test case or a node `pg` script that reads `DEV_DB_URL` after `eval "$(node scripts/load-env.mjs --profile dev)"`; the db vitest project needs no `psql`. Do not install a client to make one command work.
 - proof: `command -v psql || echo none` prints `none`, and `cd app && eval "$(node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/admin-cache.db.test.ts -t "stories list index"` still runs (it fails on `mop-dev` before the migration is pushed and passes with `MOP_MUTATION_SQL` set to the migration, P-312).
 - added: 2026-10-09
+- hit again: 2026-10-09, B7 g4: `bun run db:psql -- -v ON_ERROR_STOP=1 -f <file>` for the dry apply of `admin_team.sql` printed `Executable not found in $PATH: "psql"`; a node `pg` script ran the file and a `team_users(3)` read inside one transaction that ends in `rollback`.
 
 ## P-2421 · A second email shell next to `layout.tsx` is a jscpd clone: the Html, Head, Body, Preview, Container run is 91 tokens
 - symptom: B11 g4's `place-notes.tsx` (its own shell, because `Layout` prints a footer of its own and the issue footer carries the unsubscribe link) passed tsc, lint and knip, then `bun run check` stopped at `ERROR: jscpd found too many duplicates (0.0%) over threshold (0.0%)`: `layout.tsx` 96:78-107:12 against `place-notes.tsx` 64:87-75:12 (12 lines, 91 tokens). About 6 minutes with the full check run twice.
@@ -6090,4 +6093,32 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the combined endpoint summarises statuses per context and drops the creator; the list endpoint `commits/<sha>/statuses` returns every status with `creator.login`, newest first.
 - rule: a check on the author of a commit status reads `commits/<sha>/statuses` and takes the first entry per context as the current one.
 - proof: `gh api repos/AbdulrahmanAmer/matter-of-place/commits/<head of PR 248>/statuses --jq '.[0].creator.login'` prints the login; the same path with `/status` and `.statuses[0].creator` prints null.
+- added: 2026-10-09
+
+## P-2041 · B7 step 14's `PUT team/limits` calls `put_setting`, which the plan creates only in step 15's `admin_settings` migration
+- symptom: B7 g4 (step 14): the Files line says "The cap goes through `put_setting('agent_daily_limits', ...)`" and the step lists the daily caps and `team.limits.ts`, while `put_setting` belongs to step 15's `<ts>_admin_settings.sql`; on slice/b7 `grep -rln put_setting supabase/sql/functions` found nothing.
+- cause: the plan orders the route before the function it calls.
+- rule: step 14's `admin_team.sql` creates `put_setting` from `supabase/sql/functions/put_setting.sql` with the one key `agent_daily_limits` (audit `team.limits_put`); step 15 adds `coming_soon_global` and `notifications` to its `case`, regenerates it with `bun run db:fn put_setting` into its own migration, and its tests cover the other keys.
+- proof: `cd app && grep -n "when 'agent_daily_limits'" supabase/sql/functions/put_setting.sql` prints the `case` line; with the dev profile, `MOP_MUTATION_SQL="$(cat supabase/migrations/20261009004133_admin_team.sql)" env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/admin.db.test.ts -t "put_setting writes agent_daily_limits"` → `1 passed` (2026-10-09).
+- added: 2026-10-09
+
+## P-2042 · Postgres has no `max(uuid)`: the id before a uuid is found by order and limit
+- symptom: B7 g4: the `team_users` db cases read one user's row with `team_users(1, (select max(r.user_id) from public.user_roles r where r.user_id < $1))` and both failed with `error: function max(uuid) does not exist`.
+- cause: `min` and `max` have no `uuid` variant on mop-dev's Postgres (SQLSTATE 42883).
+- rule: the predecessor of a uuid is `(select r.user_id from ... where r.user_id < $1 order by r.user_id desc limit 1)`; its null for the smallest id starts the page at the first row.
+- proof: from `app/` with the dev profile, `node -e "const pg=require('pg');const c=new pg.Client({connectionString:process.env.DEV_DB_URL});c.connect().then(()=>c.query('select max(gen_random_uuid())')).catch(e=>console.log(e.code,e.message)).finally(()=>c.end())"` → `42883 function max(uuid) does not exist` (2026-10-09).
+- added: 2026-10-09
+
+## P-2043 · `z.custom<T>().parse(proxy)` reads the value, so a Proxy that throws on every property cannot be typed through zod
+- symptom: B7 g4's first "refuses an agent with human_only" case in `tests/unit/team.service.test.ts` failed with `Error: db_touched` thrown from `getParsedType` (`zod/v3/helpers/util.js:117`), before any service ran.
+- cause: zod inspects the input's type on every parse, `z.custom` included, and that reads properties of the Proxy.
+- rule: a unit test's "must not touch the database" client is `fakeDb()` with nothing registered (every call throws `unexpected ...`), or a Proxy typed without zod; never `z.custom().parse(proxy)`.
+- proof: from `app/`, a scratch `probe.ts` holding `import { z } from "zod"; try { z.custom().parse(new Proxy({}, { get: () => { throw new Error("db_touched"); } })); console.log("no access"); } catch (e) { console.log(e instanceof Error ? e.message : e); }` run with `bun run ./probe.ts` prints `db_touched` (2026-10-09).
+- added: 2026-10-09
+
+## P-2044 · A helper typed `PromiseLike<{ data: T; error: unknown }>` infers `T` as `X | null` from a supabase-js answer
+- symptom: B7 g4: `tsc` refused five calls of `rpcOrThrow` in `src/server/team/service.ts` (`Type 'string | null' is not assignable to type 'string'`, `'rows' is possibly 'null'`).
+- cause: supabase-js answers `PostgrestResponseSuccess<T> | PostgrestResponseFailure`, whose failure side has `data: null`; one object parameter merges both sides into `data: T | null`.
+- rule: type the parameter as the union `{ data: T; error: null } | { data: null; error: PostgrestError }` and narrow on `result.error !== null`, as `rpcOrThrow` in `src/server/team/service.ts` does.
+- proof: `cd app && bunx tsc -p tsconfig.json --noEmit` exits 0 on slice/b7 at B7 g4; with the parameter written as `PromiseLike<{ data: T; error: unknown }>` it prints the five errors above (2026-10-09).
 - added: 2026-10-09

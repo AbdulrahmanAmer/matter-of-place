@@ -6,14 +6,22 @@
 // (migration `admin_takedown`). Step 8: the media functions and the one render job per property (migration
 // `admin_media`). Step 11: assign, forward, close and the list of inquiries (migration `admin_inquiries`).
 // Step 12: save, publish and unpublish of stories and their list (migration `admin_stories`).
-// Step 13: update_market and set_market_coming_soon (migration `admin_markets`).
+// Step 13: update_market and set_market_coming_soon (migration `admin_markets`). Step 14: roles, the last admin,
+// agent keys, `team_users` and the agent daily caps through `put_setting` (migration `admin_team`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { asRole, createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
+import {
+  asRole,
+  createAuthUser,
+  createStaffUser,
+  dbNow,
+  withRollback,
+  type Db,
+} from "../fixtures/db";
 import { createInvoice, createSubmission, publishedProperty } from "../fixtures/factories";
 import { serviceClient } from "../fixtures/service";
 import { stepSchema } from "../../src/domain/automation";
@@ -2905,6 +2913,247 @@ describe("markets (step 13)", () => {
         commercial: await call("california", commercial),
         unknown: await call("texas", editor),
       }).toEqual({ commercial: "42501 forbidden", unknown: "P0002 not_found" });
+    });
+  });
+});
+
+async function assertStep14(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.team_users') is not null
+       and to_regproc('public.revoke_all_agent_keys') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+/** Leaves `admin` with the only enabled admin row of the transaction: every other admin row is disabled in it. */
+async function onlyAdmin(db: Db, roles: string[]): Promise<string> {
+  await db.query(
+    "update public.user_roles set disabled_at = now() where role = 'admin' and disabled_at is null",
+  );
+  return createStaffUser(db, roles);
+}
+
+const REVOKE_ROLE = "select public.revoke_role($1, $2::public.app_role, $3, 'human', 'r-team')";
+const DISABLE = "select public.set_user_disabled($1, $2, $3, 'human', 'r-team')";
+const GRANT =
+  "select public.grant_role($1, $2::public.app_role, $3, $4, 'human', 'r-team', $5::public.actor_kind, $6)";
+
+/** The `team_users` row of one user: the page that starts right after the user id before it. */
+async function teamRow(db: Db, userId: string): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await db.query<Record<string, unknown>>(
+    `select t.user_id, t.email, t.display_name, t.roles::text[] as roles, t.actor_kind, t.disabled
+     from public.team_users(1, (
+       select r.user_id from public.user_roles r where r.user_id < $1 order by r.user_id desc limit 1
+     )) t`,
+    [userId],
+  );
+  return rows.find((row) => row["user_id"] === userId);
+}
+
+async function teamAudit(db: Db, action: string): Promise<unknown[]> {
+  const { rows } = await db.query<{ after: unknown; note: string | null }>(
+    "select after, note from public.audit_log where request_id = 'r-team' and action = $1 order by id",
+    [action],
+  );
+  return rows;
+}
+
+describe("team (step 14)", () => {
+  it("with one enabled admin, revoke_role of its admin row and set_user_disabled of the user each raise last_admin; with a second admin both pass", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const first = await onlyAdmin(db, ["admin", "chief_editor"]);
+      const alone = {
+        revoke: await attempt(db, REVOKE_ROLE, [first, "admin", first]),
+        disable: await attempt(db, DISABLE, [first, true, first]),
+      };
+      const second = await createStaffUser(db, ["admin"]);
+      const paired = {
+        revoke: await attempt(db, REVOKE_ROLE, [first, "admin", second]),
+        disable: await attempt(db, DISABLE, [first, true, second]),
+      };
+      expect({
+        alone,
+        paired,
+        audit: {
+          revoke: (await teamAudit(db, "team.role_revoke")).length,
+          disable: await teamAudit(db, "team.user_disable"),
+        },
+      }).toEqual({
+        alone: { revoke: "P0001 last_admin", disable: "P0001 last_admin" },
+        paired: { revoke: "ok", disable: "ok" },
+        audit: {
+          revoke: 1,
+          disable: [{ after: { id: first, disabled: true }, note: null }],
+        },
+      });
+    });
+  });
+
+  it("an agent holding admin does not count as a second admin", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const person = await onlyAdmin(db, ["admin"]);
+      const bot = await createAuthUser(db);
+      await db.query(
+        "insert into public.user_roles (user_id, role, actor_kind) values ($1, 'admin', 'agent')",
+        [bot],
+      );
+      expect(await attempt(db, DISABLE, [person, true, person])).toBe("P0001 last_admin");
+    });
+  });
+
+  it("revoke_all_agent_keys returns the number of unrevoked keys, leaves none unrevoked and writes one team.revoke_all_keys row with the count", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const bot = await createAuthUser(db);
+      await db.query(
+        `insert into public.agent_keys (user_id, key_hash, label, revoked_at)
+         values ($1, md5(random()::text), 'a', null), ($1, md5(random()::text), 'b', null),
+                ($1, md5(random()::text), 'old', now() - interval '1 day')`,
+        [bot],
+      );
+      const { live } = await one<{ live: number }>(
+        db,
+        "select count(*)::int as live from public.agent_keys where revoked_at is null",
+      );
+      const { revoked } = await one<{ revoked: number }>(
+        db,
+        "select public.revoke_all_agent_keys($1, 'human', 'r-team') as revoked",
+        [admin],
+      );
+      const { left } = await one<{ left: number }>(
+        db,
+        "select count(*)::int as left from public.agent_keys where revoked_at is null",
+      );
+      expect({ revoked, left, audit: await teamAudit(db, "team.revoke_all_keys") }).toEqual({
+        revoked: live,
+        left: 0,
+        audit: [{ after: { count: live }, note: null }],
+      });
+      expect(live).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it("team_users returns a staff user made with createStaffUser with its auth email, its role, kind human and not disabled", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const { email } = await one<{ email: string }>(
+        db,
+        "select email from auth.users where id = $1",
+        [editor],
+      );
+      expect(await teamRow(db, editor)).toEqual({
+        user_id: editor,
+        email,
+        display_name: null,
+        roles: ["managing_editor"],
+        actor_kind: "human",
+        disabled: false,
+      });
+    });
+  });
+
+  it("grant_role with p_user_kind agent and p_display_name Queue bot leaves an agent row with that name, team_users returns it and a staff user, and a human grant to it raises invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const bot = await createAuthUser(db);
+      await db.query(GRANT, [bot, "managing_editor", "agent_create", admin, "agent", "Queue bot"]);
+      const { rows } = await db.query<{ actor_kind: string; display_name: string }>(
+        "select actor_kind, display_name from public.user_roles where user_id = $1",
+        [bot],
+      );
+      const kinds = [await teamRow(db, bot), await teamRow(db, editor)].map((row) => [
+        row?.["user_id"],
+        row?.["actor_kind"],
+        row?.["display_name"],
+      ]);
+      expect({
+        rows,
+        kinds,
+        human: await attempt(db, GRANT, [bot, "media_ops", null, admin, "human", null]),
+        audit: (
+          await db.query(
+            `select after ->> 'role' as role, after ->> 'actor_kind' as kind, note
+             from public.audit_log where request_id = 'r-team' and action = 'team.role_grant'`,
+          )
+        ).rows,
+      }).toEqual({
+        rows: [{ actor_kind: "agent", display_name: "Queue bot" }],
+        kinds: [
+          [bot, "agent", "Queue bot"],
+          [editor, "human", null],
+        ],
+        human: "P0001 invalid_key",
+        audit: [{ role: "managing_editor", kind: "agent", note: "agent_create" }],
+      });
+    });
+  });
+
+  it("create_agent_key stores the hash for an agent only, refuses the team scope, and revoke_agent_key revokes once", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const bot = await createAuthUser(db);
+      await db.query(GRANT, [bot, "managing_editor", "agent_create", admin, "agent", "Queue bot"]);
+      const create = (user: string, scopes: string[]) =>
+        `select public.create_agent_key('${user}', 'hash-${randomUUID()}', 'k', '{${scopes.join(",")}}', '${admin}', 'human', 'r-team') as id`;
+      const refused = {
+        human: await attempt(db, create(admin, ["submissions"])),
+        team: await attempt(db, create(bot, ["submissions", "team"])),
+      };
+      const { id } = await one<{ id: string }>(db, create(bot, ["submissions"]));
+      const revoke = "select public.revoke_agent_key($1, $2, 'human', 'r-team')";
+      const first = await attempt(db, revoke, [id, admin]);
+      const again = await attempt(db, revoke, [id, admin]);
+      const { rows } = await db.query<{ revoked: boolean }>(
+        "select revoked_at is not null as revoked from public.agent_keys where id = $1",
+        [id],
+      );
+      const created = await teamAudit(db, "team.agent_key_create");
+      expect({ refused, first, again, rows, created }).toEqual({
+        refused: { human: "P0001 invalid_kind", team: "22023 validation" },
+        first: "ok",
+        again: "P0001 wrong_state",
+        rows: [{ revoked: true }],
+        created: [
+          {
+            after: { id, user_id: bot, label: "k", scopes: ["submissions"] },
+            note: null,
+          },
+        ],
+      });
+    });
+  });
+
+  it("put_setting writes agent_daily_limits with one team.limits_put row and refuses invoice with invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const value = { decisions_per_day: 9, publish_per_day: 3, requests_per_day: 500 };
+      const put = "select public.put_setting($1, $2::jsonb, $3, 'human', 'r-team')";
+      const written = await attempt(db, put, ["agent_daily_limits", JSON.stringify(value), admin]);
+      const invoice = await attempt(db, put, ["invoice", "{}", admin]);
+      const { stored } = await one<{ stored: unknown }>(
+        db,
+        "select value as stored from public.settings where key = 'agent_daily_limits'",
+      );
+      expect({
+        written,
+        invoice,
+        stored,
+        audit: (await teamAudit(db, "team.limits_put")).length,
+      }).toEqual({
+        written: "ok",
+        invoice: "P0001 invalid_key",
+        stored: value,
+        audit: 1,
+      });
     });
   });
 });
