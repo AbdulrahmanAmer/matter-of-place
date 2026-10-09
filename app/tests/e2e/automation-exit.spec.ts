@@ -32,7 +32,8 @@ import { adminClient, signInAs } from "./helpers/session";
 
 const TRIGGER = "submission.received";
 const STEP = "notify_admin_received";
-const CHIEF = "staff+chief@matterofplace.com";
+// Not `staff+chief`: that address is the newsletter spec's alone (P-2426, tests/unit/e2e-staff-isolation.test.ts). The CEO holds the chief editor role too.
+const STAFF = "staff+ceo@matterofplace.com";
 const AGENT_EMAIL = "e2e-automation-agent@matterofplace.invalid";
 const DUMMY_TOKEN = "XXXX.DUMMY.TOKEN.XXXX";
 const runTag = process.env["GITHUB_RUN_ID"] ?? "local";
@@ -185,7 +186,7 @@ async function closing(context: BrowserContext, run: () => Promise<void>): Promi
 test("a session switches the step off on screen 17 and the dry run lists it skipped", async ({
   browser,
 }) => {
-  const { context, page } = await signInAs(browser, CHIEF);
+  const { context, page } = await signInAs(browser, STAFF);
   await closing(context, async () => {
     const listed = page.waitForResponse(
       (response) =>
@@ -355,7 +356,7 @@ test.describe("with the job runner", () => {
       "select id from public.submissions where submitter_email = $1",
       [SUBMITTER],
     );
-    const staff = await signInAs(browser, CHIEF);
+    const staff = await signInAs(browser, STAFF);
     await closing(staff.context, async () => {
       await staff.page.goto(`/admin/jobs?entity=${submission.rows[0]?.id ?? ""}`);
       const jobs = staff.page.getByRole("table", { name: "Jobs" });
@@ -366,7 +367,7 @@ test.describe("with the job runner", () => {
 });
 
 test("a restore from screen 21 brings the step back", async ({ browser }) => {
-  const { context, page } = await signInAs(browser, CHIEF);
+  const { context, page } = await signInAs(browser, STAFF);
   await closing(context, async () => {
     await restoreNewest(page);
     expect(await stepOn()).toBe(true);
@@ -394,7 +395,7 @@ test("an agent key makes the same switch, screen 21 shows it with the Agent pill
   expect(switched.status()).toBe(200);
   expect(await stepOn()).toBe(false);
 
-  const { context, page } = await signInAs(browser, CHIEF);
+  const { context, page } = await signInAs(browser, STAFF);
   await closing(context, async () => {
     await page.goto("/admin/automation/revisions");
     await expect(newestRevision(page)).toContainText("Recipe · submission.received");

@@ -105,7 +105,15 @@ function open(
       if (options.failing === "preview") return serverFailure();
       const asked = previewBody.parse(bodyOf(init));
       const row = held.find((template) => template.key === asked.key) ?? received;
-      const values = { ...sampleVariables("received", SITE), ...asked.variables };
+      // Only a string value is text (textVariables in server/email/render.ts): an object such as the standalone
+      // email's `block` is drawn by its template file and never interpolated.
+      const values: Record<string, string> = {};
+      for (const [name, value] of Object.entries({
+        ...sampleVariables("received", SITE),
+        ...asked.variables,
+      })) {
+        if (typeof value === "string") values[name] = value;
+      }
       const subject = row.subject.replace(
         /\{\{(\w+)\}\}/g,
         (_match, name: string) => values[name] ?? "",
@@ -192,7 +200,15 @@ describe("EmailsPage", () => {
     expect(await screen.findByText("Choose a template")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /A note from Matter of Place/ }));
     expect(await ready("standalone")).toBeTruthy();
-    expect(screen.getByText("This email takes no variables.")).toBeTruthy();
+    // B11 gave the standalone email three variables; `block` is the property block of the campaign asset, an object
+    // its template draws, so the console lists it without a text box.
+    const list = within(screen.getByRole("region", { name: "Variables" }));
+    expect(list.getAllByRole("listitem")).toHaveLength(3);
+    expect(list.getByLabelText("Preview value for subject")).toBeTruthy();
+    expect(list.getByLabelText("Preview value for preheader")).toBeTruthy();
+    expect(list.getByText("{{block}}")).toBeTruthy();
+    expect(list.queryByLabelText("Preview value for block")).toBeNull();
+    expect(screen.queryByText("This email takes no variables.")).toBeNull();
   });
 });
 

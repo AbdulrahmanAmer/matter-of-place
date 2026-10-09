@@ -20,7 +20,7 @@ export function VariablesList({
   missing: readonly string[];
   onApply: (values: Record<string, string>) => void;
 }) {
-  const names = variablesByKey[templateKey];
+  const names: readonly string[] = variablesByKey[templateKey];
   const samples = sampleVariables(templateKey);
   const [values, setValues] = useState<Record<string, string>>({});
 
@@ -42,27 +42,37 @@ export function VariablesList({
           }}
         >
           <ul className="admin-variables__list">
-            {names.map((name) => (
-              <li key={name}>
-                <div className="admin-variables__name">
-                  <code>{`{{${name}}}`}</code>
-                  {used.includes(name) ? <StatusPill label="Used" tone="ok" /> : null}
-                </div>
-                <Field label={`Preview value for ${name}`}>
-                  {(control) => (
-                    <input
-                      {...control}
-                      type="text"
-                      value={values[name] ?? ""}
-                      placeholder={samples[name] ?? ""}
-                      onChange={(event) => {
-                        setValues({ ...values, [name]: event.target.value });
-                      }}
-                    />
+            {names.map((name) => {
+              const sample = samples[name];
+              return (
+                <li key={name}>
+                  <div className="admin-variables__name">
+                    <code>{`{{${name}}}`}</code>
+                    {used.includes(name) ? <StatusPill label="Used" tone="ok" /> : null}
+                  </div>
+                  {typeof sample === "object" ? (
+                    <p className="admin-field__hint">
+                      Drawn from the campaign asset, so the preview uses a sample you cannot type
+                      over.
+                    </p>
+                  ) : (
+                    <Field label={`Preview value for ${name}`}>
+                      {(control) => (
+                        <input
+                          {...control}
+                          type="text"
+                          value={values[name] ?? ""}
+                          placeholder={sample ?? ""}
+                          onChange={(event) => {
+                            setValues({ ...values, [name]: event.target.value });
+                          }}
+                        />
+                      )}
+                    </Field>
                   )}
-                </Field>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
           <button type="submit" className="admin-button admin-button--quiet">
             Draw preview
