@@ -6132,3 +6132,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never start a proof suite while `bun run check` runs in the same tree; run them one after the other. Send the first run of every proof to a file (`... > <scratchpad>/run.txt 2>&1; echo exit=$?`) so a one-off red can be read without a re-run.
 - proof: `cd app && node node_modules/vitest/vitest.mjs run --project unit tests/unit/team.service.test.ts --reporter=verbose > "$TEMP/out.txt" 2>&1; grep "human_only from every" "$TEMP/out.txt"` → `an agent key gets 403 human_only from every team route 1332ms` and `Tests  10 passed (10)` on slice/b7, no check running (measured 2026-10-09, B7 g4 fix round).
 - added: 2026-10-09
+
+## P-2046 · `gh run view --job <id> --log` prints nothing while other jobs of the run still run, and the jobs log API refuses to print colour codes
+- symptom: 2026-10-09, B7 g4: right after the `db` job ended green, `gh run view <run> --job <job> --log` printed only `run <run> is still in progress; logs will be available when it is complete` (exit 1, `e2e` still running), and `gh api repos/<owner>/<repo>/actions/jobs/<job>/logs` printed `the response contains terminal escape sequences; pass --allow-escape-sequences to output it anyway` (exit 1); three calls went by before the log was read.
+- cause: `gh run view --log` waits for the whole run, not the job; the job log holds ANSI colour codes and `gh api` refuses to write them to a terminal or a pipe unless told to.
+- rule: to read one finished job of a running run, call `gh api --allow-escape-sequences repos/AbdulrahmanAmer/matter-of-place/actions/jobs/<job>/logs | sed 's/\x1b\[[0-9;]*m//g' > <file>` and grep the file.
+- proof: during run 37878662658 (e2e running), `gh run view 37878662658 --job 113653001650 --log` → `run 37878662658 is still in progress`; the `gh api --allow-escape-sequences` form → 6724 lines with `watchfail: replayed 220: ok 220, bad 0, stale 0` (measured 2026-10-09, B7 g4).
+- added: 2026-10-09
