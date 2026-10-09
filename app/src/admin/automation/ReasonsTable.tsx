@@ -158,7 +158,7 @@ function moved(items: readonly ReasonRow[], from: number, step: -1 | 1): string[
   const mine = ids[from];
   const neighbour = ids[from + step];
   if (mine === undefined || neighbour === undefined) return ids;
-  
+  ids[from] = neighbour;
   ids[from + step] = mine;
   return ids;
 }
