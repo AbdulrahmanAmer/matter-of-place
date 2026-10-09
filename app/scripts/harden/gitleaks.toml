@@ -17,8 +17,9 @@ regexes = [
   '''^whsec_dGVzdC1zZWNyZXQt[A-Za-z0-9+/]*=*$''',
   # The example signing secret of Svix's verification documentation, used by resend-signature.test.ts.
   '''^whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw$''',
-  # Registry entry ids of the watched-fail tool (`b11-g2-standalone-variables`).
-  '''^b[0-9]+[a-z]?-g[0-9]+-[a-z0-9-]+$''',
+  # Registry entry ids of the watched-fail tool (`b11-g2-standalone-variables`, `b7-14-svc-raw-key`): a slice code,
+  # then lowercase words, one of them with a letter after f, which keeps a hexadecimal uuid out (RE2: no lookahead).
+  '''^[a-z]{1,2}[0-9]+[a-z0-9]*(-[a-z0-9]+)*-[a-z0-9]*[g-z][a-z0-9]*(-[a-z0-9]+)*$''',
 ]
 
 [[allowlists]]
