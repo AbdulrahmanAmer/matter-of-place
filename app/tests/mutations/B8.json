@@ -1649,8 +1649,8 @@
     "id": "rc-result",
     "test": "tests/unit/jobs/reconcile.test.ts",
     "file": "src/server/jobs/system/reconcile.ts",
-    "find": "result: { uploads: { ...uploads }, social }",
-    "replace": "result: { counts: { ...uploads }, social }",
+    "find": "result: { uploads: { ...uploads }, social, newsletter: { ...newsletter } }",
+    "replace": "result: { counts: { ...uploads }, social, newsletter: { ...newsletter } }",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/reconcile.test.ts -t \"stores the counts under result.uploads\"",
     "expect": "× .*stores the counts under result\\.uploads"
   },
@@ -2279,8 +2279,8 @@
     "id": "rc-wired",
     "test": "tests/unit/jobs/reconcile.test.ts",
     "file": "src/server/jobs/system/reconcile.ts",
-    "find": "reconcileJob(settleUploads, settleSocial)",
-    "replace": "reconcileJob(() => Promise.resolve({ checked: 0, uploaded: 0, deleted: 0, missing: 0 }), settleSocial)",
+    "find": "reconcileJob(settleUploads, settleSocial, aggregateRecentIssues)",
+    "replace": "reconcileJob(() => Promise.resolve({ checked: 0, uploaded: 0, deleted: 0, missing: 0 }), settleSocial, aggregateRecentIssues)",
     "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts -t \"runs the real parts\"",
     "expect": "to deep equally contain"
   },

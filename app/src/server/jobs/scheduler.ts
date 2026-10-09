@@ -4,7 +4,6 @@ import { AppError } from "../lib/errors.ts";
 import { emitEvent } from "../lib/events.ts";
 import { enqueueJob } from "../lib/jobs.ts";
 import { logLine } from "../lib/log.ts";
-import { getSystemJob } from "./system/index.ts";
 
 // The schedules the runner drives every tick (B8b invariant 11). `keepwarm` is fired by the Worker's `scheduled()`,
 // `audit` and `backup` by their own clocks. The clocks change only through `claim_schedule` (G43).
@@ -94,14 +93,6 @@ async function runSchedule(
   next: string,
 ): Promise<boolean> {
   const { last_run_at: old, next_run_at: oldNext } = row;
-  if ((key === "kpi_weekly" || key === "newsletter_hygiene") && getSystemJob(key) === undefined) {
-    // Only next_run_at moves, so screen 20 never shows a run that did not happen.
-    // STUB(B11): kpi_weekly and newsletter_hygiene registered
-    const advanced = await claim(db, key, old, old, next);
-    if (advanced === "claimed") logLine("info", "schedule_not_implemented", { key });
-    if (advanced === "error") logLine("warn", "schedule_claim_failed", { key });
-    return false;
-  }
   const claimedAt = now.toISOString();
   const claimed = await claim(db, key, old, claimedAt, next);
   if (claimed === "error") logLine("warn", "schedule_claim_failed", { key });
