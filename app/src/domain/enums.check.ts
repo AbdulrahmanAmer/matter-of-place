@@ -12,6 +12,7 @@ import type {
   SubmissionState,
   submitterKinds,
 } from "./contracts.ts";
+import type { inquiryStates } from "./admin-inquiries.ts";
 import type { assetKinds, assetStatuses } from "./assets.ts";
 import type { socialPostStatuses } from "./channels.ts";
 import type { JobListInput } from "./jobs.ts";
@@ -34,6 +35,7 @@ export type EnumPairs = [
   Expect<Equal<Property["type"], Enums<"property_type">>>,
   Expect<Equal<(typeof exposurePackages)[number], Enums<"exposure_package">>>,
   Expect<Equal<InquiryIntent, Enums<"inquiry_intent">>>,
+  Expect<Equal<(typeof inquiryStates)[number], Enums<"inquiry_state">>>,
   Expect<Equal<Property["status"], Enums<"listing_status">>>,
   Expect<Equal<NonNullable<Property["campaignTier"]>, Enums<"campaign_tier">>>,
   Expect<Equal<NonNullable<Property["source"]>, Enums<"submission_source">>>,
