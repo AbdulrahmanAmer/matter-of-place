@@ -980,8 +980,8 @@
     "id": "x-group",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/ci.yml",
-    "find": "    timeout-minutes: 20\n",
-    "replace": "    timeout-minutes: 20\n    concurrency:\n      group: mop-dev\n",
+    "find": "    timeout-minutes: 35\n",
+    "replace": "    timeout-minutes: 35\n    concurrency:\n      group: mop-dev\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "[+] +\"db: group:"
   },

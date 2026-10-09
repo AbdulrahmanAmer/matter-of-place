@@ -5,17 +5,19 @@ import { retentionPeriods } from "../domain/retention";
 import { presentLines, privacyLines } from "../domain/settings";
 import { pluralize } from "../lib/format";
 import { breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/privacy")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: t.nav.privacy,
       description: pageDescription("privacy"),
       path: "/privacy",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [breadcrumbLd([{ name: t.nav.privacy, path: "/privacy" }])],
     }),
   component: PrivacyPage,

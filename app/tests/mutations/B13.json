@@ -2440,5 +2440,32 @@
     "find": "return ALLOWED_UNTIL.find(({ pattern }) => pattern.test(`${name}: ${problem}`))?.until;",
     "replace": "return ALLOWED_UNTIL.find(({ pattern }) => pattern.test(`${name}: ${problem}`))?.until ?? (name === \"status\" ? \"B16\" : undefined);",
     "expect": "allows nothing else"
+  },
+  {
+    "id": "b13-mf-og-privacy",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "      image: ogImageFor({ key: \"default\", ogStatic: ogStaticOf(matches) }),\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx -t \"og:image\"",
+    "expect": "FAIL .*> the legal pages > the page heads name the site's default card as their og:image"
+  },
+  {
+    "id": "b13-mf-og-terms",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "      image: ogImageFor({ key: \"default\", ogStatic: ogStaticOf(matches) }),\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx -t \"og:image\"",
+    "expect": "FAIL .*> the legal pages > the page heads name the site's default card as their og:image"
+  },
+  {
+    "id": "b13-mf-og-accessibility",
+    "test": "tests/unit/legal-pages.test.tsx",
+    "file": "src/routes/_site.accessibility.tsx",
+    "find": "      image: ogImageFor({ key: \"default\", ogStatic: ogStaticOf(matches) }),\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx -t \"og:image\"",
+    "expect": "FAIL .*> the legal pages > the page heads name the site's default card as their og:image"
   }
 ]

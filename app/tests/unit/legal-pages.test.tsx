@@ -256,11 +256,20 @@ describe("the legal pages", () => {
 
   it("the page titles carry the brand once", async () => {
     for (const route of [privacyRoute, termsRoute, accessibilityRoute]) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- these heads read no argument
-      const head = await route.options.head?.({} as never);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- these heads read only the matches
+      const head = await route.options.head?.({ matches: [] } as never);
       const title = head?.meta?.find((tag) => tag?.title !== undefined)?.title;
       expect(title?.split(siteConfig.name)).toHaveLength(2);
       expect(title?.endsWith(` | ${siteConfig.name}`)).toBe(true);
+    }
+  });
+
+  it("the page heads name the site's default card as their og:image", async () => {
+    for (const route of [privacyRoute, termsRoute, accessibilityRoute]) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- these heads read only the matches
+      const head = await route.options.head?.({ matches: [] } as never);
+      const image = head?.meta?.find((tag) => tag?.property === "og:image")?.content;
+      expect(image).toBe("https://matterofplace.com/og/static/default.png");
     }
   });
 
