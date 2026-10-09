@@ -147,7 +147,7 @@
     "id": "b7-g1-routes-pending-literal",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "tests/unit/admin-routes-parity.test.ts",
-    "find": "  \"team.users_list\",\n",
+    "find": "  \"settings.get\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*gives every matrix action a route"
