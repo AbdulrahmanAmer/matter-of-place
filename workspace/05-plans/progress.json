@@ -269,6 +269,14 @@
         "3a",
         "3b"
       ]
+    },
+    "H1": {
+      "accepted": [
+        "1",
+        "2",
+        "3"
+      ],
+      "note": "Steps 1 and 2 accepted in run wf_fc8dc497-ba0; step 3 accepted 2026-10-09 by a fresh Opus review outside the workflow (ruling H75; records on slice/h1 5d5253ca). Steps 4 to 10 in run wf_513cba57-d17."
     }
   },
   "lanes": [

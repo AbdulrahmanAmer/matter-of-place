@@ -1463,3 +1463,37 @@ friend end to end we are not cutting anything we are getting it all built in 48 
   by design). Operator items: Meta, X and LinkedIn apps; invoice copy sign-off; legal entity and postal address; the Workers plan.
 - Preview-load lesson for the morning: the preview job (three Lighthouse runs on six pages, observatory, reruns) is what spent the
   quota; after the plan decision, cut it to one Lighthouse run per page on previews and keep three on the dev deploy (ruling to write).
+
+## 2026-10-09 06:00 NIGHT 2 (H73 local-preview path, four merges, Lighthouse hang contained; operator asleep)
+- Merged tonight, all through `merge-gate.mjs`: PR 254 (H73, cf8a1673), PR 227 (B11 Place Notes, b8922663), PR 255 (local
+  Lighthouse two attempts, 6d3e1400), PR 256 (B7 steps 11, 11a, 12 via boundary branch slice/b7-m1, b90e7a20). Main = b90e7a20.
+- Rulings written tonight: H73 (local preview stand-in while the edge answers 429; `app/scripts/preview-local.mjs`,
+  `merge-gate.mjs --local-preview`, post-merge `app/scripts/merge-gate.mjs` accepts the `preview-local` status; on main),
+  H74 (db job `timeout-minutes: 35`, on slice/b13), H75 (H1-18 reset and reseed is the orchestrator's, on slice/h1),
+  H76 (Lighthouse per page with one retry per page, PR by the builder in E:/mop-build/lhci, branch chore/lhci-pages, NOT DONE).
+- Cloudflare: the daily limit reset at 03:01 (every Worker 200). The preview job then hung in Lighthouse on PR 256 (twice,
+  /submit and /exposure) and PR 163 (three attempts, /exposure, /california, /), each hang instant and killed at the
+  10-minute bound; the third attempt on 163 ran with no other preview on the account, so concurrency is NOT the cause
+  (P-1936 stays UNKNOWN). H76 contains it. Local Lighthouse: passes only with the Bash sandbox off (P-1950) and even then
+  4 of 7 runs failed NO_NAVSTART under load; the local path is a fallback, not the main path.
+- Open PRs and their state: 163 (B13, head 1db17fce with main b90e7a20 in; CI green but preview hung three times; waits for
+  H76), 257 (B7 step 13, slice/b7-m2 at b3b43fdc + main, all green; gate AFTER 163 so the two stop invalidating each other),
+  249 (B8b at 829261a6 with B11 in; merging B11 broke its typecheck in VariablesList.tsx and emails.test.tsx; repair builder
+  in E:/mop-build/pv249 on local branch pv/b8b since 01:12, active), 258 (the H1 lane's own PR, merges later), 250 (B7 lane
+  PR, never merged as such: B7 merges through boundary branches at group boundaries; a guard cancels its deploy.yml runs),
+  252 and 253 folded into this records branch (chore/night-records).
+- Lanes: Dell B7 noMerge run wf_62ca9d6f-7fd: 11a, 12, 13 accepted, 14 (Team, critical) in review2 after one fix round,
+  15, 15a, 16 to go; boundary heads so far 45f29362 (merged), b3b43fdc (PR 257). Here: H1 steps 1, 2 accepted (run
+  wf_fc8dc497-ba0), step 3 accepted by a fresh Opus review outside the workflow (sizer treated it as done; records
+  5d5253ca), steps 4 to 10 run wf_513cba57-d17: step 4 returned PARTIAL (H1-09 needs the claude-security scan, which the
+  skill refuses to start without the operator's own cost acknowledgment; review running on the partial).
+- BLOCKED on the operator: H1-09 security scan (one sentence: "run the security scan on the app at medium effort; I
+  understand it may take a while and use a lot of tokens"); H1-18 reset and reseed of mop-dev (orchestrator, quiet window,
+  H75); the Workers plan; legal entity and address (S59); Meta, X and LinkedIn apps.
+- Bank tonight: P-544, P-545 (on main), P-546, P-547 (this branch), hit-again lines on P-2451, P-1936, P-094, P-537 in lanes;
+  lane banks collided (B8b and B11 both used P-2504..2508; renumbered B8b to P-2519..2523 at merge, P-546).
+- Board https://claude.ai/artifact/JPdTuyF34P9yaUwo8UdH8x version 97: 214 of 259, 82.6 percent, 45 to go, 5 in work.
+- Morning: merge order 163 → 257 → 249 → 258 (H1) → B7 boundaries; write the preview-job lighter ruling (one Lighthouse
+  run per page on previews) if H76 alone does not hold; find what spent 100,000 requests on 2026-10-08 (Cloudflare
+  analytics, operator's eyes); worktrees to remove when their PRs are merged: E:/mop-build/plocal, pv227, pv249, pv250,
+  lhci, records.
