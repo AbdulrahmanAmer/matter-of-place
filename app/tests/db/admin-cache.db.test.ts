@@ -92,6 +92,24 @@ describe("admin list indexes", () => {
       "CREATE INDEX representatives_name_idx ON public.representatives USING btree (lower(name), id)",
     ]);
   });
+
+  it("the inquiries list index leads with the state and pages by received_at desc, id", async () => {
+    const definitions = await withRollback((db) =>
+      indexDefinitions(db, "inquiries", ["inquiries_list_idx"]),
+    );
+    expect(definitions).toEqual([
+      "CREATE INDEX inquiries_list_idx ON public.inquiries USING btree (state, received_at DESC, id)",
+    ]);
+  });
+
+  it("the stories list index leads with the state and pages by updated_at desc, id", async () => {
+    const definitions = await withRollback((db) =>
+      indexDefinitions(db, "stories", ["stories_list_idx"]),
+    );
+    expect(definitions).toEqual([
+      "CREATE INDEX stories_list_idx ON public.stories USING btree (editorial_state, updated_at DESC, id)",
+    ]);
+  });
 });
 
 describe("catalog_version and the property writes (F25 a)", () => {
@@ -366,6 +384,91 @@ describe("admin_dashboard() (step 9, invariant 17d)", () => {
       expect(await dashboardKey(db, "health")).toMatchObject({
         failed: true,
         failed_checks: ["dead_jobs_24h"],
+      });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 12's migration (P-328). */
+async function assertStep12(db: Db): Promise<void> {
+  const { rows } = await db.query<{ present: boolean }>(
+    "select to_regproc('public.save_story') is not null and to_regproc('public.publish_story') is not null as present",
+  );
+  expect(rows[0]?.present).toBe(true);
+}
+
+/** A draft story (no image) or, with an image, one ready to publish; returns its id and `updated_at` as stored. */
+async function storyRow(db: Db, slug: string, image: string | null) {
+  await db.query(
+    `insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x')
+     on conflict (slug) do nothing`,
+  );
+  const { rows } = await db.query<{ id: string; updated_at: string }>(
+    `insert into public.stories (slug, title, deck, category, market_slug, image)
+     values ($1, 'Fixture story', 'A deck.', 'Places', 'california', $2)
+     returning id, updated_at::text as updated_at`,
+    [slug, image],
+  );
+  const row = rows[0];
+  if (row === undefined) throw new Error("the story insert returned no row");
+  return row;
+}
+
+describe("catalog_version and the story writes (F25 a)", () => {
+  it("publish_story and unpublish_story each raise it by exactly one", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const story = await storyRow(db, "cache-story", "s/cache-0a1b2c3d.webp");
+      const beforePublish = await catalogVersion(db);
+      await db.query("select public.publish_story($1, $2::timestamptz, $3, 'human', 'req-cv')", [
+        story.id,
+        story.updated_at,
+        editor,
+      ]);
+      const published = (await catalogVersion(db)) - beforePublish;
+      await db.query("select public.unpublish_story($1, $2, 'human', 'req-cv')", [
+        story.id,
+        editor,
+      ]);
+      expect({
+        published,
+        unpublished: (await catalogVersion(db)) - beforePublish - published,
+      }).toEqual({
+        published: 1,
+        unpublished: 1,
+      });
+    });
+  });
+
+  it("save_story on a draft leaves it, and on a live story raises it by exactly one", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const writer = await createStaffUser(db, ["visual_editor"]);
+      const draft = await storyRow(db, "cache-draft", null);
+      const beforeDraft = await catalogVersion(db);
+      await db.query(
+        `select public.save_story($1, $2::timestamptz, '{"title": "Edited"}', $3, 'human', 'req-cv')`,
+        [draft.id, draft.updated_at, writer],
+      );
+      const draftBump = (await catalogVersion(db)) - beforeDraft;
+      const live = await storyRow(db, "cache-live", "s/live-0a1b2c3d.webp");
+      await db.query(
+        "update public.stories set editorial_state = 'published', published_at = now() where id = $1",
+        [live.id],
+      );
+      const current = await db.query<{ updated_at: string }>(
+        "select updated_at::text as updated_at from public.stories where id = $1",
+        [live.id],
+      );
+      const beforeLive = await catalogVersion(db);
+      await db.query(
+        `select public.save_story($1, $2::timestamptz, '{"title": "Edited"}', $3, 'human', 'req-cv')`,
+        [live.id, current.rows[0]?.updated_at, writer],
+      );
+      expect({ draft: draftBump, live: (await catalogVersion(db)) - beforeLive }).toEqual({
+        draft: 0,
+        live: 1,
       });
     });
   });

@@ -11,6 +11,7 @@ import {
   markAssetsReceived,
   previewEmail,
   startReview,
+  withdraw,
   type Decision,
 } from "./requests-api";
 
@@ -106,6 +107,23 @@ export function useAssetsReceived(id: string) {
         adminKeys.submissions.all(),
         adminKeys.submissions.timeline(id),
       ),
+  });
+}
+
+/** Withdraws this request; the invoice it voids moves the invoice list too. */
+export function useWithdraw(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reason: string) => withdraw(id, reason),
+    onSettled: () =>
+      Promise.all([
+        invalidateAfterWrite(
+          queryClient,
+          adminKeys.submissions.all(),
+          adminKeys.submissions.timeline(id),
+        ),
+        queryClient.invalidateQueries({ queryKey: adminKeys.payments.all() }),
+      ]),
   });
 }
 

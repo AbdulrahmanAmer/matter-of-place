@@ -687,3 +687,119 @@ what: Some plan lines for step 9 no longer match the tree. The step names a `bou
 evidence: grep bounce_rate_7d in the migration gives 0 matches. The test renames assets and social_posts and stubs broadcast_recipients_since inside the rolled-back transaction (P-916). email_sent_month.sql already includes broadcast_recipients_since.
 
 blocking: false
+
+## g3 · steps 11
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The second follow-up of the review (GOTCHAS.md) is banked as P-2037 and is not repeated here.
+
+### 1. workspace/05-plans/logs/B7.md
+
+what: The log's watched-fail line says `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit` gave 'replayed 19: ok 19, bad 0'. Run at the handed-in commit, the same command replays 78 and exits 1. `--changed` diffs `origin/main...HEAD`, which sees committed files only. It now selects every entry anchored on src/domain/contracts.ts, tests/db/admin.db.test.ts, tests/db/admin-cache.db.test.ts and tests/unit/admin-routes-parity.test.ts, which this group changed. The '19' was most likely measured before cbece8a9 was committed (suspected, not confirmed). The group's own 19 entries all reproduce OK, so this is a reproducibility gap and not a failing proof.
+
+evidence: From app/ at d4b58b9: `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit` printed `watchfail: replayed 78: ok 62, bad 16, stale 0`. All 16 BAD are db-project entries showing `No test files found` without the dev profile, and every b7-11-* entry is `WATCHED-FAIL OK`.
+
+blocking: false
+
+### 2. app/supabase/sql/functions/forward_inquiry.sql
+
+what: No test covers two SQL branches. (1) forward_inquiry's refusal of an anonymised inquiry (`or v_before.anonymised_at is not null`). (2) assign_inquiry keeping a `forwarded` inquiry in `forwarded`. The db cases cover only the closed refusal and the new to in_progress move. Deleting the anonymised clause would most likely leave every test green (suspected from reading; I did not run that mutation). Only the UI hides Forward for an anonymised row, so a bearer-key agent could queue a webhook for an anonymised inquiry. B15's step re-reads the row, so the impact is low.
+
+evidence: grep of tests/db/admin.db.test.ts for 'anonymised' in the step 11 block: no case. The plan does not ask for this case.
+
+blocking: false
+
+### 3. app/supabase/migrations/20261008222352_admin_inquiries.sql
+
+what: STANDARDS C11 (and R22's parity half): assign_inquiry, forward_inquiry and close_inquiry do not name their race partner or a test that runs both. They do serialise correctly on `select ... for update` of the inquiry row. Also, `openInquiryStates` in src/domain/admin-inquiries.ts is not compared mechanically with the SQL `wrong_state` guards. Other B7 functions do the same, and I could not name an input that goes wrong today.
+
+evidence: grep -i race over the four function files: no match. No test imports openInquiryStates beside the drawer.
+
+blocking: false
+
+### 4. app/src/admin/inquiries/inquiries.test.tsx
+
+what: The ?id= case mounts `/admin/inquiries/?id=<uuid>`, with a trailing slash. The inquiry.received mail link (src/server/email/variables.ts:475) and PersonDetail.tsx:151 send `/admin/inquiries?id=<uuid>`, without one. The address the mail actually sends has not been rendered in a test or a browser. I expect TanStack's index matching handles it, but that is not proven.
+
+evidence: variables.ts:475 `path: (data) => `/admin/inquiries?id=${need(data, "inquiry_id")}``; the test passes `/admin/inquiries/?id=${INQUIRY}` to mountRoutes.
+
+blocking: false
+
+### 5. workspace/05-plans/logs/B7.md
+
+what: The preview job is still UNPROVEN, as the author says. It failed again at the handed-in commit (run 37821472990, wait and observatory), and pr-250 answered 429 when I checked. Operational note for the orchestrator, not this group: by the author's own curl the production host matter-of-place.holy-meadow-4327.workers.dev also answered 429 Error 1027. So when lanes use up the shared account's daily request limit, the live site goes down too.
+
+evidence: gh run view 37821472990 --log-failed: 'the Worker did not answer ten times in a row in 180 s'; curl -w '%{http_code}' https://pr-250.holy-meadow-4327.workers.dev/ printed 429.
+
+blocking: false
+
+## g1 · steps 11a
+
+None blocks. Each entry is the reviewer's text, with its file and evidence.
+
+### 1. app/supabase/sql/functions/withdraw_submission.sql
+
+what: C11 (STANDARDS section 4) asks for a test that runs a new state-changing function together with its race partner. No test runs withdraw_submission at the same time as mark_payment_paid or waive_payment. The author marked this UNPROVEN and gave the lock-order reasoning in the log. I checked that reasoning by reading the code, not by running it: mark_payment_paid and void_payment both take the payment `for update` and re-check `status <> 'due'`. enforce_editorial_gate refuses Withdrawn while a paid payment exists. issue_invoice and record_waiver lock the submission. I found no interleaving that leaves a Withdrawn request with a paid invoice, so this is not blocking.
+
+evidence: grep -n 'for update' app/supabase/sql/functions/mark_payment_paid.sql app/supabase/sql/functions/void_payment.sql; there is no concurrent withdraw case in tests/db/*.db.test.ts
+
+blocking: false
+
+### 2. app/tests/unit/submissions.service.test.ts
+
+what: The 422 case ('a reason under 3 characters answers 422 and asks the database nothing') builds its own route with defineAdminRoute instead of importing the shipped route file `app/src/routes/api/admin/submissions.$id.withdraw.ts`. The shipped file and its `output: assetsReceivedAnswerSchema` are covered only by the parity sweeps. Today both use the same withdrawInputSchema object, so the case still catches a schema change (b7-11a-reason-min goes red). It would not catch the route file switching to a different input schema.
+
+evidence: In the test, `defineAdminRoute({ method: "POST", action: "submissions.withdraw", input: withdrawInputSchema, handler: ... }, deps)` has no import from routes/api/admin/submissions.$id.withdraw.ts
+
+blocking: false
+
+### 3. app/src/server/submissions/service.ts
+
+what: The comment on withdraw says that inside the call `write_audit refuses the void again` for a non-admin. No database test checks that: the only DB withdraw case uses an admin. The service's own payments.void check is proven (b7-11a-svc-void-gate), but the database's second check for a managing_editor withdrawing over a due invoice is not exercised by this group. It is UNPROVEN here, though it is probably covered in general by actor.db.test.ts and the payments.void action_roles row (['admin']).
+
+evidence: tests/db/gate.db.test.ts: both DL-04 cases call createStaffUser(db, ["admin"]); there is no managing_editor case that expects 42501
+
+blocking: false
+
+## g2 · steps 12
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The sixth follow-up of the review (GOTCHAS.md) is banked as a hit-again line on P-310 and is not repeated here.
+
+### 1. app/src/server/stories/service.ts
+
+what: saveStory calls sniffStaged(db, input.image_staging_path) at line 105 before anything checks that the path is under staging/story/<slug>/. Only save_story's SQL checks the prefix, and that check runs after the sniff. When an object's first bytes do not match its extension, sniffStaged (app/src/server/media/staging.ts:121-123) deletes it. So a stories writer (VE, ME, CE) can make the server read, and in that case delete, any object in the private bucket 'submissions' before the request is refused with invalid_key. The media service checks the name before the bytes (media/service.ts:96 and :190). Today every object in the bucket has an extension that matches its type (create_submission picks jpg/png/heic/webp, and reconcile already deletes mismatches), so I found no input that loses real data. That is why this is a follow-up and not blocking. Fix: refuse a path that does not start with `staging/story/<slug>/` in the service before sniffing, as attachMedia does.
+
+evidence: Confirmed by reading: service.ts:105 `if (input.image_staging_path !== undefined) await sniffStaged(db, input.image_staging_path);` against media/service.ts:96 `if (!input.staging_path.startsWith(...)) ... await sniffStaged(...)`. The domain schema imageStagingPath (admin-stories.ts:75) is only z.string().min(1).max(300).
+
+blocking: false
+
+### 2. app/src/domain/admin-stories.ts
+
+what: STANDARDS R22: the allowed story transitions are not declared in a domain file and not compared with the SQL guard. Publish is allowed from draft, review, agent_review and archived; unpublish only from published. Those rules live only in publish_story/unpublish_story and are restated by hand in StoryEditor.tsx's button conditions (`state !== "published"`). That differs from properties, where propertyEditorialTransitions in workflow.ts is compared by gate.db.test.ts. The two copies agree today, so nothing misbehaves now; the next change to either one can drift silently.
+
+evidence: Confirmed by reading: grep finds no story transition table in src/domain. publish_story.sql refuses only when editorial_state = 'published', and unpublish_story.sql only when <> 'published'. The author's log says 'these two functions are the whole state graph for stories'.
+
+blocking: false
+
+### 3. app/src/admin/stories/StoryEditor.tsx
+
+what: Plan screen 14 says the editor shows 'processing' while the render runs. After Save, `setStaged(null)` (line 114) clears the only indicator. What remains is a one-time toast, and a reload shows 'No image yet'. Suspected by reading, not run (the render leg is UNPROVEN): when B9's onResult writes the image, stories_set_updated_at moves updated_at, so an editor who still has the page open and presses Publish gets 409 stale with the banner 'Reload, someone saved'. Also, the upload is staged under the unsaved slug `values.slug` (line 87). An editor who uploads, then changes the draft's slug and saves, gets invalid_key from the SQL prefix check, shown as a raw error toast.
+
+evidence: Read: StoryEditor.tsx:83-124 and 66 (`hasImage` comes from the prop while `updatedAt` is local state); B2 trigger stories_set_updated_at in 20261001090300_catalog.sql:322; plan B7.md line 182 ('the editor shows "processing" meanwhile').
+
+blocking: false
+
+### 4. app/src/server/stories/service.ts
+
+what: STANDARDS C05 (no second copy of a helper): line 86 builds `/media/${row.image}` by hand, but `mediaUrl(key)` already exists in src/server/lib/media-store.ts (media/service.ts:143 has the same copy from an earlier group). story-values.ts adds a third copy of the market label map (PropertiesTable.tsx:18, email/variables.ts:350).
+
+evidence: grep -rn '`/media/${' src -> media-store.ts:29, media/service.ts:143, stories/service.ts:86; grep '"new-york": "New York"' -> three files
+
+blocking: false
+
+### 5. workspace/05-plans/logs/B7.md
+
+what: The g2 CI line (log line 1267) lists db/check/build/e2e success for 273f0fbb but leaves out that the deploy workflow's preview job failed at that head, and again at 23f71578. Earlier blocks of the same log did record the preview failure (P-2036). The line is incomplete, not false.
+
+evidence: gh run list --branch slice/b7 -> '273f0fbb deploy failure', '23f71578 deploy failure'; gh run view 37855598010 --log-failed -> 'the Worker did not answer ten times in a row in 180 s', 'observatory: ... status 422, error scan-failed'
+
+blocking: false

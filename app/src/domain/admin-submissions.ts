@@ -235,6 +235,11 @@ export const requestAssetsInputSchema = submissionIdInputSchema.extend({
   note: trimmed.pipe(z.string().min(3).max(2000)),
 });
 
+/** `POST /api/admin/submissions/:id/withdraw` (DL-04): why the request closes, 3 to 500 characters, kept in the audit. */
+export const withdrawInputSchema = submissionIdInputSchema.extend({
+  reason: trimmed.pipe(z.string().min(3).max(500)),
+});
+
 /** One job a decision started, as `JobWatcher` shows it. */
 const startedJobSchema = z.object({ id: uuid, type: z.string(), status: z.string() });
 
@@ -243,7 +248,7 @@ export const decisionAnswerSchema = z.object({ event_id: uuid, jobs: z.array(sta
 
 export type DecisionAnswer = z.infer<typeof decisionAnswerSchema>;
 
-/** `POST /api/admin/submissions/:id/assets-received`: where the request went back to; no event, no letter. */
+/** Where `assets-received` took the request back to, or `withdraw` closed it; no catalog event, no letter. */
 export const assetsReceivedAnswerSchema = z.object({ workflow_state: z.enum(submissionStates) });
 
 /** The three letters a decision sends, and so the three a decision dialog previews. */
