@@ -1,10 +1,30 @@
-import { siteSettingsSchema, type PublicSite, type SiteSettings } from "../../domain/settings.ts";
-import type { Database } from "../../db/index.ts";
+import { dailyLimitsSchema } from "../../domain/admin-team.ts";
+import {
+  notificationsPutInput,
+  type NotificationsInput,
+  type SettingsAnswer,
+} from "../../domain/admin-settings.ts";
+import { invoiceSettingsSchema } from "../../domain/payments.ts";
+import {
+  emptySiteSettings,
+  siteSettingsSchema,
+  type PublicSite,
+  type SiteSettings,
+} from "../../domain/settings.ts";
+import type { Database, Json } from "../../db/index.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
-import type { ActorKind } from "../lib/authz.ts";
+import type { AdminActor } from "../lib/admin-route.ts";
+import { auditContext } from "../lib/audit.ts";
+import { authorize, type ActorKind } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
 import { fromZod } from "../lib/errors.ts";
+import {
+  applyInvoiceSettings,
+  invoiceReadiness,
+  type InvoiceSettings,
+} from "../payments/invoice-settings.ts";
 import { getPublicState } from "../public/state.ts";
+import { siteReadiness } from "./readiness.ts";
 
 // `settings.site` (B16). Reads go through the public state the Worker already shares, never the table
 // (architecture 13 rule 1); the one write is `settings_put_site`, whose caller checks the matrix action
@@ -62,4 +82,80 @@ export async function applySiteSettings(db: Db, input: unknown, writer: SiteWrit
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- generated types mark no function argument nullable; settings_put_site stores a null actor and request id as the audit row's
   const { error } = await db.rpc("settings_put_site", args as PutSiteArgs);
   if (error !== null) throw fromRpcError(error);
+}
+
+// Screen 24 (B7 step 15). Every function checks its matrix action first (admin, people only, a recent sign-in);
+// the identity and invoice writes go through B16 and B6, the other two keys through `put_setting`, which audits.
+
+const SCREEN_NOTE = "admin: settings";
+const SETTINGS_KEYS = ["site", "invoice", "coming_soon_global", "notifications", "agent_daily_limits"];
+
+/** `GET settings`: the five keys in one select, and the readiness list of B16 and B6 with each name once. */
+export async function getSettings(actor: AdminActor, db: Db): Promise<SettingsAnswer> {
+  authorize(actor, "settings.get");
+  const { data, error } = await db.from("settings").select("key, value").in("key", SETTINGS_KEYS);
+  if (error !== null) throw fromRpcError(error);
+  const valueOf = (key: string): unknown => data.find((row) => row.key === key)?.value;
+  const site = siteSettingsSchema.safeParse(valueOf("site")).data ?? emptySiteSettings;
+  const invoice = invoiceSettingsSchema.safeParse(valueOf("invoice")).data ?? null;
+  const readiness = [...(await siteReadiness(db)), ...invoiceReadiness(site, invoice)];
+  return {
+    site,
+    invoice,
+    coming_soon_global: valueOf("coming_soon_global") === true,
+    notifications: notificationsPutInput.safeParse(valueOf("notifications")).data ?? {
+      recipients: [],
+    },
+    agent_daily_limits: dailyLimitsSchema.safeParse(valueOf("agent_daily_limits")).data ?? null,
+    readiness: [...new Set(readiness)],
+  };
+}
+
+/** `PUT settings/site`: B16's write, audited by `settings_put_site` as `settings.site_put`. */
+export async function putSite(actor: AdminActor, db: Db, input: SiteSettings): Promise<SiteSettings> {
+  authorize(actor, "settings.site_put");
+  await applySiteSettings(db, input, { id: actor.userId, kind: actor.kind, note: SCREEN_NOTE });
+  return input;
+}
+
+/** `PUT settings/invoice`: B6's write, one `settings_put_invoice` call that audits `settings.invoice_put` (G26). */
+export async function putInvoice(actor: AdminActor, db: Db, input: unknown): Promise<InvoiceSettings> {
+  authorize(actor, "settings.invoice_put");
+  return applyInvoiceSettings(db, input, {
+    id: actor.userId,
+    kind: actor.kind,
+    requestId: actor.requestId,
+    note: SCREEN_NOTE,
+  });
+}
+
+async function putSetting(actor: AdminActor, db: Db, key: string, value: Json): Promise<unknown> {
+  const { data, error } = await db.rpc("put_setting", {
+    p_key: key,
+    p_value: value,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return data;
+}
+
+/** `PUT settings/coming-soon`: a public key, so B2's trigger raises `catalog_version` in the same transaction. */
+export async function putComingSoon(
+  actor: AdminActor,
+  db: Db,
+  input: { coming_soon_global: boolean },
+): Promise<{ coming_soon_global: boolean }> {
+  authorize(actor, "settings.coming_soon_put");
+  const saved = await putSetting(actor, db, "coming_soon_global", input.coming_soon_global);
+  return { coming_soon_global: saved === true };
+}
+
+/** `PUT settings/notifications`: the admin alert list; an admin-only key, so the catalog stays as it is (G21). */
+export async function putNotifications(
+  actor: AdminActor,
+  db: Db,
+  input: NotificationsInput,
+): Promise<NotificationsInput> {
+  authorize(actor, "settings.notifications_put");
+  return notificationsPutInput.parse(await putSetting(actor, db, "notifications", input));
 }

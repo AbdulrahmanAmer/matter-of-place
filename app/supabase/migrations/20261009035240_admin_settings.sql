@@ -1,3 +1,12 @@
+-- down: re-run bun run db:fn put_setting from the previous commit of supabase/sql/functions/put_setting.sql, then
+--   drop index public.audit_log_list_idx, public.audit_log_request_idx;
+set lock_timeout = '5s';
+
+-- B7 step 15. Screen 25 pages the audit log newest first on (at desc, id desc) and finds one request's rows by
+-- request_id (invariant 17c); its actor and entity filters ride B2's audit_log_actor_idx and audit_log_entity_idx.
+create index audit_log_list_idx on public.audit_log (at desc, id desc);
+create index audit_log_request_idx on public.audit_log (request_id);
+
 create or replace function public.put_setting(
   p_key text,
   p_value jsonb,
