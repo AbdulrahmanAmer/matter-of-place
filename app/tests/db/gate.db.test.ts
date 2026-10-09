@@ -133,6 +133,90 @@ describe("submission gate", () => {
     });
   });
 
+  it("DL-04: withdraw_submission from Invoice Issued voids the due payment, audits once, emits only invoice.voided", async () => {
+    const result = await withRollback(async (db) => {
+      const admin = await createStaffUser(db, ["admin"]);
+      const id = await submission(db, "Invoice Issued");
+      await payment(db, id, "due");
+      await db.query(
+        "select public.withdraw_submission($1, 'The owner sold privately.', $2, 'human', 'req-wd')",
+        [id, admin],
+      );
+      const read = await db.query<{
+        state: string;
+        payments: string[];
+        audits: string[];
+        events: string[];
+      }>(
+        `select s.workflow_state::text as state,
+           array(select p.status::text from public.payments p where p.submission_id = s.id) as payments,
+           array(select a.action || ': ' || coalesce(a.note, '') from public.audit_log a
+             where a.entity_id = s.id order by a.id) as audits,
+           array(select e.type from public.events e
+             where e.entity_id = s.id
+               or e.entity_id in (select p.id from public.payments p where p.submission_id = s.id)
+             order by e.type) as events
+         from public.submissions s where s.id = $1`,
+        [id],
+      );
+      return read.rows[0];
+    });
+    expect(result).toEqual({
+      state: "Withdrawn",
+      payments: ["void"],
+      audits: ["submissions.withdraw: The owner sold privately."],
+      events: ["invoice.voided"],
+    });
+  });
+
+  it("DL-04: withdraw_submission with a paid payment raises wrong_state", async () => {
+    const code = await withRollback(async (db) => {
+      const admin = await createStaffUser(db, ["admin"]);
+      const id = await submission(db, "Invoice Issued");
+      await payment(db, id, "paid");
+      return attempt(
+        db,
+        "select public.withdraw_submission($1, 'The owner sold privately.', $2, 'human', 'req-wd')",
+        [id, admin],
+      );
+    });
+    expect(code).toBe(WRONG_STATE);
+  });
+
+  it("a terminal state, Declined, Withdrawn or Completed, is reachable from every state", async () => {
+    const edges = await withRollback(async (db) => {
+      const result = await db.query<{ from: WorkflowState; to: WorkflowState }>(
+        `select f::text as "from", t::text as "to"
+         from unnest(enum_range(null::public.submission_state)) f
+         cross join unnest(enum_range(null::public.submission_state)) t
+         where f <> t and public.submission_transition_allowed(f, t)`,
+      );
+      return result.rows;
+    });
+    const states = Object.keys(submissionTransitions).filter(
+      (state): state is WorkflowState => state in submissionTransitions,
+    );
+    const terminal = states.filter((state) => !edges.some((edge) => edge.from === state));
+    const reaches = (start: WorkflowState): boolean => {
+      const seen = new Set<WorkflowState>([start]);
+      const queue = [start];
+      for (let state = queue.shift(); state !== undefined; state = queue.shift()) {
+        if (terminal.includes(state)) return true;
+        for (const edge of edges) {
+          if (edge.from === state && !seen.has(edge.to)) {
+            seen.add(edge.to);
+            queue.push(edge.to);
+          }
+        }
+      }
+      return false;
+    };
+    expect({ terminal, stuck: states.filter((state) => !reaches(state)) }).toEqual({
+      terminal: ["Declined", "Completed", "Withdrawn"],
+      stuck: [],
+    });
+  });
+
   it("an update of notes that keeps the state passes in every state", async () => {
     const states = Object.keys(submissionTransitions).filter(
       (state): state is WorkflowState => state in submissionTransitions,

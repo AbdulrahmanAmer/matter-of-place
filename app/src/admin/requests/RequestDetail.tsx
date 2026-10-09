@@ -20,6 +20,7 @@ import {
 } from "./requests-queries";
 import { marketSlugOf, stateTone } from "./state-tone";
 import { SubmittedFields } from "./SubmittedFields";
+import { WithdrawDialog } from "./WithdrawDialog";
 
 const DAY_MS = 86_400_000;
 
@@ -119,6 +120,7 @@ export function RequestDetail({ id }: { id: string }) {
               });
             }}
           />
+          <WithdrawDialog detail={detail} />
           <NotesPanel
             notes={detail.notes}
             marketSlug={market}

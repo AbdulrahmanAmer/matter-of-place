@@ -78,6 +78,15 @@ export function markAssetsReceived(id: string) {
   );
 }
 
+/** Closes the request for good (DL-04); a due invoice is voided in the same call. */
+export function withdraw(id: string, reason: string) {
+  return adminFetch(
+    `${submissionPath(id)}/withdraw`,
+    assetsReceivedAnswerSchema,
+    postJson({ reason }),
+  );
+}
+
 /** The letter a decision would send, with what the dialog holds; nothing is saved. */
 export function previewEmail(id: string, body: Omit<z.input<typeof emailPreviewSchema>, "id">) {
   return adminFetch(
