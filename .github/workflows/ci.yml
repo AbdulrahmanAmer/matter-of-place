@@ -61,10 +61,12 @@ jobs:
       - name: migration-order
         run: bun run migrations:check
       - run: bun run check
-      # Advisory until HARDEN makes it blocking (T-12).
+      # Blocking since H1 step 4 (T-12): high and critical advisories fail; the waivers live in the audit:deps script.
       - name: audit
-        run: bun audit
-        continue-on-error: true
+        run: bun run audit:deps
+      - name: audit launch
+        working-directory: launch
+        run: bun install --frozen-lockfile && bun run audit:deps
       # CS-01: the files the job runner loads must type-check under Deno. B8 points the check at the
       # job runner. A step, not a job (T-12).
       - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
@@ -72,6 +74,10 @@ jobs:
           deno-version: v2.x
       - name: deno
         run: deno check --config supabase/functions/job-runner/deno.json scripts/deno-portable.ts
+      # A code change that renames a script a runbook names fails here (H1 step 4); a Markdown-only change is
+      # linted by audit-deps.yml.
+      - name: runbook-lint
+        run: node scripts/harden/runbook-lint.mjs docs/runbooks
 
   build:
     runs-on: ubuntu-24.04

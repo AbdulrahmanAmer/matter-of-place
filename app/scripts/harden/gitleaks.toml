@@ -1,0 +1,26 @@
+# gitleaks configuration of audit-deps.yml (H1-08): the default rules plus the fixtures and names that are not secrets.
+# Each allowlisted value was read on 2026-10-09 (H1 g4) and is a test fixture, a documented example or a variable name.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Not secrets: environment variable names, the Turnstile dummy token, unit-test fixtures"
+regexTarget = "secret"
+regexes = [
+  # A variable name quoted in a plan or a check (`VITE_TURNSTILE_SITE_KEY`, `GA4_PROPERTY_ID`), never its value.
+  '''^[A-Z][A-Z0-9]*_[A-Z0-9_]+$''',
+  # Cloudflare's documented dummy Turnstile response, accepted only by the test secret key.
+  '''^XXXX\.DUMMY\.TOKEN\.XXXX$''',
+  # Unit-test keys made of the repeated hexadecimal alphabet.
+  '''^(0123456789abcdef)+$''',
+  # Resend webhook secrets of the tests: base64 of "test-secret-for-the-...".
+  '''^whsec_dGVzdC1zZWNyZXQt[A-Za-z0-9+/]*=*$''',
+  # The example signing secret of Svix's verification documentation, used by resend-signature.test.ts.
+  '''^whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw$''',
+  # Registry entry ids of the watched-fail tool (`b11-g2-standalone-variables`).
+  '''^b[0-9]+[a-z]?-g[0-9]+-[a-z0-9-]+$''',
+]
+
+[[allowlists]]
+description = "Installed packages and build output are not the repository's own text"
+paths = ['''(^|/)node_modules/''', '''(^|/)\.output/''']

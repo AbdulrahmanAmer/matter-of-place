@@ -205,5 +205,77 @@
     "replace": "--\n--   drop function public.admin_dashboard();",
     "run": "bunx vitest run --project db tests/db/migration-headers.test.ts",
     "expect": "× .*every migration opens with -- down: or -- irreversible: in its first 30 lines[\\s\\S]*20261008150152_admin_dashboard\\.sql"
+  },
+  {
+    "id": "h1g4-hh-high-not-accepted",
+    "test": "scripts/harden/read-scan.mjs",
+    "file": "scripts/harden/fixtures/security-scan.md",
+    "find": "- closed: fixture commit 0000000, `src/server/lib/headers.ts`\n",
+    "replace": "",
+    "run": "node scripts/harden/read-scan.mjs scripts/harden/fixtures/security-scan.md --today 2026-10-09",
+    "expect": "scan fail: .*\"F1 · Fixture finding closed by a commit\" is High with no \"- closed:\" or \"- accepted:\" line"
+  },
+  {
+    "id": "h1g4-hh-critical-not-accepted",
+    "test": "scripts/harden/read-scan.mjs",
+    "file": "scripts/harden/fixtures/security-scan.md",
+    "find": "- accepted: fixture owner, 2026-10-09, the fixture's reason\n",
+    "replace": "",
+    "run": "node scripts/harden/read-scan.mjs scripts/harden/fixtures/security-scan.md --today 2026-10-09",
+    "expect": "\"F2 · Fixture finding accepted in writing\" is Critical with no"
+  },
+  {
+    "id": "h1g4-hh-eight-days-old",
+    "test": "scripts/harden/read-scan.mjs",
+    "file": "scripts/harden/fixtures/security-scan.md",
+    "find": "date: 2026-10-09\n",
+    "replace": "date: 2026-10-01\n",
+    "run": "node scripts/harden/read-scan.mjs scripts/harden/fixtures/security-scan.md --today 2026-10-09",
+    "expect": "report dated 2026-10-01 is 8 days old \\(limit 7\\)"
+  },
+  {
+    "id": "h1g4-o-heading-deleted",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "scripts/harden/fixtures/runbooks/incident.md",
+    "find": "## 5. Put the whole site in coming-soon\n\n",
+    "replace": "",
+    "run": "node scripts/harden/runbook-lint.mjs scripts/harden/fixtures/runbooks/incident.md",
+    "expect": "incident\\.md:0: no heading \"Put the whole site in coming-soon\""
+  },
+  {
+    "id": "h1g4-o-command-renamed",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "scripts/harden/fixtures/runbooks/incident.md",
+    "find": "`node scripts/harden/run-all.mjs --env dev --only H1-01`",
+    "replace": "`node scripts/harden/run-al.mjs --env dev --only H1-01`",
+    "run": "node scripts/harden/runbook-lint.mjs scripts/harden/fixtures/runbooks/incident.md",
+    "expect": "incident\\.md:\\d+: scripts/harden/run-al\\.mjs does not exist"
+  },
+  {
+    "id": "h1g4-o-bun-run-unknown",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "scripts/harden/fixtures/runbooks/incident.md",
+    "find": "`bun run check`",
+    "replace": "`bun run chek`",
+    "run": "node scripts/harden/runbook-lint.mjs scripts/harden/fixtures/runbooks/incident.md",
+    "expect": "bun run chek is not a script of package\\.json"
+  },
+  {
+    "id": "h1g4-security-file-missing",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/security.md",
+    "find": "`src/server/lib/agent-keys.ts`",
+    "replace": "`src/server/lib/agent-key.ts`",
+    "run": "node scripts/harden/runbook-lint.mjs docs/security.md",
+    "expect": "docs/security\\.md:\\d+: src/server/lib/agent-key\\.ts does not exist"
+  },
+  {
+    "id": "h1g4-security-row-unknown",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/security.md",
+    "find": "by H1-13.",
+    "replace": "by H1-99.",
+    "run": "node scripts/harden/runbook-lint.mjs docs/security.md",
+    "expect": "docs/security\\.md:\\d+: H1-99 is not a row of checklist\\.json"
   }
 ]
