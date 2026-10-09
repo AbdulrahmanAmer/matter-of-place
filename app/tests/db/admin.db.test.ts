@@ -2969,9 +2969,11 @@ describe("team (step 14)", () => {
         disable: await attempt(db, DISABLE, [first, true, first]),
       };
       const second = await createStaffUser(db, ["admin"]);
+      const third = await createStaffUser(db, ["admin"]);
+      // Each paired call takes an enabled admin row while another enabled admin exists, so both reach the guard.
       const paired = {
         revoke: await attempt(db, REVOKE_ROLE, [first, "admin", second]),
-        disable: await attempt(db, DISABLE, [first, true, second]),
+        disable: await attempt(db, DISABLE, [second, true, third]),
       };
       expect({
         alone,
@@ -2985,7 +2987,7 @@ describe("team (step 14)", () => {
         paired: { revoke: "ok", disable: "ok" },
         audit: {
           revoke: 1,
-          disable: [{ after: { id: first, disabled: true }, note: null }],
+          disable: [{ after: { id: second, disabled: true }, note: null }],
         },
       });
     });

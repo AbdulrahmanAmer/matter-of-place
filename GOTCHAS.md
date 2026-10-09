@@ -6125,3 +6125,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: type the parameter as the union `{ data: T; error: null } | { data: null; error: PostgrestError }` and narrow on `result.error !== null`, as `rpcOrThrow` in `src/server/team/service.ts` does.
 - proof: `cd app && bunx tsc -p tsconfig.json --noEmit` exits 0 on slice/b7 at B7 g4; with the parameter written as `PromiseLike<{ data: T; error: unknown }>` it prints the five errors above (2026-10-09).
 - added: 2026-10-09
+
+## P-2045 · A proof suite started while `bun run check` runs in the same tree gave one red result nobody could read again
+- symptom: 2026-10-09, B7 g4 review: the first run of `bunx vitest run --project unit tests/unit/team.service.test.ts tests/unit/admin-routes-parity.test.ts`, started while `bun run check` ran in the same tree, printed `Tests  1 failed | 24 passed`, exit 1; five later runs, one under load, were green, and the failing test was never captured, so the review spent a series of re-runs and still could not name it.
+- cause: UNPROVEN. The check's stages (type-aware lint, knip, the unit project) compete for the same CPU and files as the suite; the suspect was a case that imports 12 route modules after `vi.resetModules`, but it takes 1332 ms alone against the 30 s `testTimeout` of `vitest.config.ts`, so the timeout is not shown to be the cause.
+- rule: never start a proof suite while `bun run check` runs in the same tree; run them one after the other. Send the first run of every proof to a file (`... > <scratchpad>/run.txt 2>&1; echo exit=$?`) so a one-off red can be read without a re-run.
+- proof: `cd app && node node_modules/vitest/vitest.mjs run --project unit tests/unit/team.service.test.ts --reporter=verbose > "$TEMP/out.txt" 2>&1; grep "human_only from every" "$TEMP/out.txt"` → `an agent key gets 403 human_only from every team route 1332ms` and `Tests  10 passed (10)` on slice/b7, no check running (measured 2026-10-09, B7 g4 fix round).
+- added: 2026-10-09

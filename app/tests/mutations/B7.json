@@ -5455,6 +5455,22 @@
     "expect": "FAIL .*> team \\(step 14\\) > with one enabled admin, revoke_role of its admin row"
   },
   {
+    "id": "b7-14-db-revoke-paired",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.revoke_role(\n  p_user uuid,\n  p_role public.app_role,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.user_roles;\nbegin\n  -- One writer at a time on the admin rows, so two revokes cannot each leave the other as the last admin.\n  perform pg_advisory_xact_lock(hashtext('team.last_admin'));\n  if p_role = 'admin' and exists (select 1 from public.user_roles x where x.user_id = p_user and x.role = 'admin' and x.disabled_at is null) then\n    raise exception 'last_admin' using detail = 'The team needs at least one active administrator.';\n  end if;\n  delete from public.user_roles r\n  where r.user_id = p_user and r.role = p_role\n  returning * into v_row;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'team.role_revoke', 'user_roles', v_row.id,\n    jsonb_build_object('id', v_row.id, 'user_id', p_user, 'role', p_role), null, p_request_id\n  );\nend;\n$$;\n\nrevoke execute on function public.revoke_role(uuid, public.app_role, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.revoke_role(uuid, public.app_role, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"with one enabled admin, revoke_role of its admin row\"",
+    "expect": "FAIL .*> team \\(step 14\\) > with one enabled admin, revoke_role of its admin row"
+  },
+  {
+    "id": "b7-14-db-disable-paired",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.set_user_disabled(\n  p_user uuid,\n  p_disabled boolean,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns boolean\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before boolean;\nbegin\n  perform pg_advisory_xact_lock(hashtext('team.last_admin'));\n  select bool_and(r.disabled_at is not null) into v_before\n  from public.user_roles r\n  where r.user_id = p_user;\n  if v_before is null then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- A repeat changes nothing and writes no audit row.\n  if v_before = p_disabled then\n    return p_disabled;\n  end if;\n  if p_disabled and exists (select 1 from public.user_roles x where x.user_id = p_user and x.role = 'admin' and x.disabled_at is null) then\n    raise exception 'last_admin' using detail = 'The team needs at least one active administrator.';\n  end if;\n  update public.user_roles r\n  set disabled_at = case when p_disabled then now() end\n  where r.user_id = p_user;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'team.user_disable', 'users', p_user,\n    jsonb_build_object('id', p_user, 'disabled', v_before),\n    jsonb_build_object('id', p_user, 'disabled', p_disabled),\n    p_request_id\n  );\n  return p_disabled;\nend;\n$$;\n\nrevoke execute on function public.set_user_disabled(uuid, boolean, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_user_disabled(uuid, boolean, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"with one enabled admin, revoke_role of its admin row\"",
+    "expect": "FAIL .*> team \\(step 14\\) > with one enabled admin, revoke_role of its admin row"
+  },
+  {
     "id": "b7-14-db-agent-admin",
     "kind": "sql",
     "test": "tests/db/admin.db.test.ts",
