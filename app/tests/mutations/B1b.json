@@ -3846,15 +3846,6 @@
     "expect": "FAIL .*> is true for app/src, app/public, package.json and budget.json"
   },
   {
-    "id": "h73-lhci",
-    "test": "tests/unit/preview-local.test.ts",
-    "file": "scripts/preview-local.mjs",
-    "run": "bunx vitest run tests/unit/preview-local.test.ts",
-    "find": ".filter((line) => line !== \"\")",
-    "replace": ".filter((line) => line !== \"x\")",
-    "expect": "FAIL .*> makes one --collect.url per printed line and drops blank lines"
-  },
-  {
     "id": "h73-stamp",
     "test": "tests/unit/preview-local.test.ts",
     "file": "scripts/preview-local.mjs",
@@ -3927,76 +3918,238 @@
     "expect": "FAIL .*> refuses a log whose steps are not the nine the script writes"
   },
   {
-    "id": "h73-lh-attempts",
-    "test": "tests/unit/preview-local.test.ts",
-    "file": "scripts/preview-local.mjs",
-    "run": "bunx vitest run tests/unit/preview-local.test.ts",
-    "find": "export const LIGHTHOUSE_ATTEMPTS = 2;",
-    "replace": "export const LIGHTHOUSE_ATTEMPTS = 3;",
-    "expect": "FAIL .*> fails when both attempts fail, never makes a third"
-  },
-  {
-    "id": "h73-lh-first-pass",
-    "test": "tests/unit/preview-local.test.ts",
-    "file": "scripts/preview-local.mjs",
-    "run": "bunx vitest run tests/unit/preview-local.test.ts",
-    "find": "last !== undefined && last.code !== 0 && attempts.length < LIGHTHOUSE_ATTEMPTS",
-    "replace": "last !== undefined && attempts.length < LIGHTHOUSE_ATTEMPTS",
-    "expect": "FAIL .*> makes one attempt when the first passes"
-  },
-  {
-    "id": "h73-lh-note",
-    "test": "tests/unit/preview-local.test.ts",
-    "file": "scripts/preview-local.mjs",
-    "run": "bunx vitest run tests/unit/preview-local.test.ts",
-    "find": "? `attempt ${String(attempts.length)} of ${String(LIGHTHOUSE_ATTEMPTS)}`",
-    "replace": "? \"\"",
-    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
-  },
-  {
-    "id": "h73-lh-kept-5",
-    "test": "tests/unit/preview-local.test.ts",
-    "file": "scripts/preview-local.mjs",
-    "run": "bunx vitest run tests/unit/preview-local.test.ts",
-    "find": "done.verdict === \"pass\" ? 5 : TAIL",
-    "replace": "done.verdict === \"pass\" ? 1 : TAIL",
-    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
-  },
-  {
-    "id": "h73-lh-kept-20",
-    "test": "tests/unit/preview-local.test.ts",
-    "file": "scripts/preview-local.mjs",
-    "run": "bunx vitest run tests/unit/preview-local.test.ts",
-    "find": "done.verdict === \"pass\" ? 5 : TAIL",
-    "replace": "done.verdict === \"pass\" ? 5 : 5",
-    "expect": "FAIL .*> fails when both attempts fail, never makes a third"
-  },
-  {
-    "id": "h73-lh-last-decides",
-    "test": "tests/unit/preview-local.test.ts",
-    "file": "scripts/preview-local.mjs",
-    "run": "bunx vitest run tests/unit/preview-local.test.ts",
-    "find": "const done = judged(last, \"lighthouse\", label);",
-    "replace": "const done = judged(first, \"lighthouse\", label);",
-    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
-  },
-  {
-    "id": "h73-lh-heading",
-    "test": "tests/unit/preview-local.test.ts",
-    "file": "scripts/preview-local.mjs",
-    "run": "bunx vitest run tests/unit/preview-local.test.ts",
-    "find": "const RETRIED = \"did not finish, retried under ruling H71\";",
-    "replace": "const RETRIED = \"did not finish\";",
-    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
-  },
-  {
     "id": "h73-lh-render",
     "test": "tests/unit/preview-local.test.ts",
     "file": "scripts/preview-local.mjs",
     "run": "bunx vitest run tests/unit/preview-local.test.ts",
     "find": "    ...earlier,\n",
     "replace": "    ...[],\n",
-    "expect": "FAIL .*> passes on the second attempt, notes it, and keeps the first attempt's last 5 lines"
+    "expect": "FAIL .*> passes with the url and retry counts and keeps one line per url"
+  },
+  {
+    "id": "h73-lh-counts",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "${String(read.urls)} urls, ${String(read.retried)} retried`",
+    "replace": "${String(read.urls)} urls, ${String(read.passed)} retried`",
+    "expect": "FAIL .*> passes with the url and retry counts and keeps one line per url"
+  },
+  {
+    "id": "h73-lh-per-url",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "return { ...done, earlier: [{ heading: PER_URL, lines: read.lines }] };",
+    "replace": "return done;",
+    "expect": "FAIL .*> passes with the url and retry counts and keeps one line per url"
+  },
+  {
+    "id": "h73-lh-exit",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "const done = judged(result, \"lighthouse\", label);",
+    "replace": "const done = judged({ ...result, code: 0 }, \"lighthouse\", label);",
+    "expect": "FAIL .*> fails on the script's exit, keeps the tail and the url lines"
+  },
+  {
+    "id": "h73-lh-no-summary",
+    "test": "tests/unit/preview-local.test.ts",
+    "file": "scripts/preview-local.mjs",
+    "run": "bunx vitest run tests/unit/preview-local.test.ts",
+    "find": "? \"scripts/lhci-pages.mjs, no summary\"",
+    "replace": "? \"scripts/lhci-pages.mjs\"",
+    "expect": "FAIL .*> fails a run that printed no summary, saying so"
+  },
+  {
+    "id": "h76-defaults",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "const DEFAULT_BOUND = 180;",
+    "replace": "const DEFAULT_BOUND = 240;",
+    "expect": "FAIL .*> reads the base url and defaults to lighthouserc.json, 180 s a url"
+  },
+  {
+    "id": "h76-least-bound",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "boundSeconds < LEAST_SECONDS",
+    "replace": "boundSeconds < 1",
+    "expect": "FAIL .*> refuses no url, an unknown flag, a bound under 30 s"
+  },
+  {
+    "id": "h76-lhci-args",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "    \"--collect.settings.logLevel=info\",\n",
+    "replace": "",
+    "expect": "FAIL .*> with the default config is the lhci script of package.json"
+  },
+  {
+    "id": "h76-classify-assertion",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "if (ASSERTION.test(attempt.output)) return \"assertion\";\n",
+    "replace": "",
+    "expect": "FAIL .*> reads exit 0 as a pass, the assertion marker as an assertion failure"
+  },
+  {
+    "id": "h76-classify-signal",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "if (attempt.timedOut || attempt.signal !== null) return \"runtime\";",
+    "replace": "if (attempt.timedOut) return \"runtime\";",
+    "expect": "FAIL .*> reads exit 0 as a pass, the assertion marker as an assertion failure"
+  },
+  {
+    "id": "h76-classify-markers",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "const RUNTIME = /Run #\\d+\\.\\.\\.failed!|Runtime error encountered|NO_NAVSTART|PROTOCOL_TIMEOUT/;",
+    "replace": "const RUNTIME = /Run #\\d+\\.\\.\\.failed!/;",
+    "expect": "FAIL .*> reads exit 0 as a pass, the assertion marker as an assertion failure"
+  },
+  {
+    "id": "h76-classify-other",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "  return \"other\";\n}",
+    "replace": "  return \"runtime\";\n}",
+    "expect": "FAIL .*> reads an exit 1 without either marker as other"
+  },
+  {
+    "id": "h76-reason",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "return `ended by ${attempt.signal}`;",
+    "replace": "return \"ended\";",
+    "expect": "FAIL .*> names the bound, the signal, the Lighthouse error code"
+  },
+  {
+    "id": "h76-retry-once",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "return attempts.length === 1 && last !== undefined && classify(last) === \"runtime\";",
+    "replace": "return last !== undefined && classify(last) === \"runtime\";",
+    "expect": "FAIL .*> retries a runtime failure once and never a pass, an assertion failure"
+  },
+  {
+    "id": "h76-retry-runtime-only",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "classify(last) === \"runtime\";",
+    "replace": "classify(last) !== \"pass\";",
+    "expect": "FAIL .*> retries a runtime failure once and never a pass, an assertion failure"
+  },
+  {
+    "id": "h76-verdict-retried",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "detail = retried ? `pass (runtime, retried: ${why[0] ?? \"\"})` : \"pass\";",
+    "replace": "detail = \"pass\";",
+    "expect": "FAIL .*> passes a url on the first run or on the retry, and says so"
+  },
+  {
+    "id": "h76-verdict-assertion",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": ": \"fail (assertion)\";",
+    "replace": ": \"fail\";",
+    "expect": "FAIL .*> fails an assertion failure without a retry, and a runtime failure after one"
+  },
+  {
+    "id": "h76-verdict-no-room",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": ": `fail (runtime: ${why[0] ?? \"\"}, not retried: ${spent})`;",
+    "replace": ": `fail (runtime, retried: ${why.join(\"; \")})`;",
+    "expect": "FAIL .*> fails a url the total had no room for, or no room to retry"
+  },
+  {
+    "id": "h76-summary-empty",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "code: verdicts.length > 0 && failed === 0 ? 0 : 1,",
+    "replace": "code: failed === 0 ? 0 : 1,",
+    "expect": "FAIL .*> exits 0 only when every url passed, and counts the retried urls"
+  },
+  {
+    "id": "h76-warning-escape",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": ".replaceAll(\":\", \"%3A\")",
+    "replace": ".replaceAll(\"~\", \"%3A\")",
+    "expect": "FAIL .*> writes the retry annotation with the url escaped in its title"
+  },
+  {
+    "id": "h76-read-once",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "lines: [...new Set([...plain.matchAll(URL_LINE)].map(([line]) => line))],",
+    "replace": "lines: [...plain.matchAll(URL_LINE)].map(([line]) => line),",
+    "expect": "FAIL .*> reads its own url lines and summary back, and nothing without a summary"
+  },
+  {
+    "id": "h76-slug",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "return path === \"\" ? \"home\" : path;",
+    "replace": "return path;",
+    "expect": "FAIL .*> names a page's files by its path, the root as home"
+  },
+  {
+    "id": "h76-tail-hung",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "attempt.timedOut && lighthouseLog.trim() !== \"\" ? lighthouseLog : attempt.output",
+    "replace": "attempt.output",
+    "expect": "FAIL .*> prints the last 10 lines of Lighthouse's log for a hung run"
+  },
+  {
+    "id": "h76-tail-count",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": ".slice(-TAIL_LINES);",
+    "replace": ".slice(-20);",
+    "expect": "FAIL .*> prints the last 10 lines of Lighthouse's log for a hung run"
+  },
+  {
+    "id": "h76-stops",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "return one.retried && !one.passed;",
+    "replace": "return !one.passed;",
+    "expect": "FAIL .*> stops after a page failed both attempts, never after a pass"
+  },
+  {
+    "id": "h76-not-run",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "fail (not run: ${failed} failed both attempts)",
+    "replace": "fail (not run)",
+    "expect": "FAIL .*> stops after a page failed both attempts, never after a pass"
   },
   {
     "id": "h73-gate-standin",
