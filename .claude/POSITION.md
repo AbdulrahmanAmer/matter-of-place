@@ -1537,3 +1537,8 @@ first day of the new usage week; no step was cut from any plan.
   214 of 259, 82.6 percent, 45 to go.
 - Operator items unchanged: Workers plan; legal entity and address (S59); Meta, X and LinkedIn apps; what spent 100,000
   requests on 2026-10-08 (Cloudflare analytics).
+- Addendum 07:15: both builders paused cleanly. H76 WIP cf71cb9d (chore/lhci-pages) also adds `lhci-tee.mjs`, the ASSUMED
+  H76 row, a GOTCHAS entry it numbered P-546 (collides with the P-546 of this records branch: renumber the lane's to the
+  next free number at merge, bank-merge.mjs will refuse it) and hit-again lines; its last check was red only on a vitest
+  worker timeout at 100 percent CPU; its registry replay after the last two edits is NOT DONE; the real local Lighthouse
+  run is BLOCKED on P-1950. B8b WIP a74bd94a: see above. Board server (local) left running; every monitor stopped.
