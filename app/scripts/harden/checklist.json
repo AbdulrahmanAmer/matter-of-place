@@ -256,7 +256,8 @@
       "lane": "Automations, admin, money, growth",
       "item": "Recipes: dry-run equals the real run, switch-off honoured",
       "expectation": "pass",
-      "command": "bunx vitest run tests/unit/automation/plan.test.ts && (<load-dev> && env -u CLOUDFLARE_API_TOKEN bun run scripts/automation-smoke.ts && MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built bunx playwright test tests/e2e/automation-exit.spec.ts; status=$?; bun run build >/dev/null 2>&1; exit $status)"
+      "build": true,
+      "command": "bunx vitest run tests/unit/automation/plan.test.ts && <load-dev> && env -u CLOUDFLARE_API_TOKEN bun run scripts/automation-smoke.ts && E2E_TARGET=built bunx playwright test tests/e2e/automation-exit.spec.ts"
     },
     {
       "id": "H1-32",

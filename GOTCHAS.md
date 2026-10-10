@@ -1798,6 +1798,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-06, B7 c2b: `quiet.mjs -- bash -c "cd app && bun run check"` printed `error: Script not found "check"`; the title was in the check-gotchas list and was not opened.
 - added: 2026-10-03
 - hit again: 2026-10-10, H1 g6: `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run check"` from the tree root printed `error: Script not found "check"`; the title was in the check-gotchas list and was not opened before the call. Re-run as `cd app && node ../workspace/05-plans/quiet.mjs -- bun run check`.
+- hit again: 2026-10-10, H1 g7 review round 2: the reviewer ran the same `bash -c "cd app && bun run check"` from the root and got `error: Script not found "check"`, `quiet: exit 1`; from inside `app/`, `node ../workspace/05-plans/quiet.mjs -- bun run check` printed `quiet: ok`.
 - hit again: 2026-10-07, B7 g2 (step 5a) review: `quiet.mjs -- bash -c "cd app && bunx vitest run ..."` from the repository root ran vitest in the root: every component test failed with `ReferenceError: document is not defined` and `bunx` fetched vitest 5.0.3 on the fly (`RUN v5.0.3 D:/mop-build/admin-review`). From `app/` the same files ran under `RUN v5.0.2 D:/mop-build/admin-review/app` and printed `Tests  54 passed (54)`. Proof: `grep -c "hit again: 2026-10-07, B7 g2 (step 5a) review" GOTCHAS.md` counts the line in P-708.
 
 ## G-250 · The social templates inline only three CSS files, so a browser default such as `h1 { font-weight: bold }` is never reset: set the weight on the slot
@@ -6638,8 +6639,22 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 ## P-3015 · A manual checklist item told the signer to cancel a dead job, which no screen allows, and the leftover job fails the daily health check
 - symptom: H1 g7 review: M-08 said to make a dead job with `job-selftest.ts --fail-light` and "cancel it on screen 16". `admin_cancel_job` raises `invalid_state` unless the job is queued, failed or waiting_approval and `JobDrawer.tsx` shows no Cancel on a dead job, so the signer would leave a dead `test.selftest_light` job that `health_counts` counts in `dead_jobs_24h` for 24 hours: a `health.failed` event, an admin email and a Sentry issue, all false.
 - cause: the instruction was written from the screen's name, not from the function that serves it.
-- rule: a manual item that makes a row on the one database ends with how that row is removed, checked against the function or screen that removes it (here the cleanup rule: one transaction that sets `mop.retention`, `job_events` first); the same row also gets a second look in `run-all.mjs` order, because a row that rebuilds `.output` hands the next row a different bundle (a row that needs a build mode makes it in its own command and restores the default one at its end, as H1-31 now does).
+- rule: a manual item that makes a row on the one database ends with how that row is removed, checked against the function or screen that removes it (here the cleanup rule: one transaction that sets `mop.retention`, `job_events` first). The bundle lesson from the same review is P-3016.
 - proof: `grep -c "cancel it on screen 16" app/scripts/harden/checklist.json` → `0`, and `grep -c "dead job cannot be cancelled" app/scripts/harden/checklist.json` → `1`.
+- added: 2026-10-10
+
+## P-3016 · A row that rebuilds `.output` for itself and restores it with a different command hands every later Worker row the wrong bundle
+- symptom: H1 g7 review round 2: H1-31 ended with a plain `bun run build >/dev/null 2>&1`. `run-all.mjs` builds one bundle for its Worker rows (`BUILD`: `VITE_API_BASE_URL=/api/public`, the Turnstile test key) and memoizes it in `ensureBuilt()`, so the plain bundle (no live adapter, no Turnstile key) stayed in `.output` for H1-32, H1-34 and H1-40. Measured: files under `.output` naming `1x00000000000000000000AA` and `/api/public`, 3 and 9 or more with `BUILD`, 0 and 6 with a plain build. H1-40's hydration proof (no GET under `/api/public/`) passes trivially on a bundle that makes no API reads; the restore's output and exit code were also thrown away.
+- cause: the round-1 reading was that a row must leave `.output` as it found it, and the restore was written as the default `bun run build`, which is not the runner's build.
+- rule: a row that serves `.output` says `"build": true` and lets the runner build it; it never builds in its own command, and never restores with its own build line. A proof that passes on a bundle that cannot fail it (no API reads, no key) proves nothing: check which bundle ran.
+- proof: `cd app && node scripts/harden/run-all.mjs --env dev --only H1-31 && grep -rl 1x00000000000000000000AA .output | wc -l` → `pass 1` and `3` (a plain build prints `0`; measured 2026-10-10).
+- added: 2026-10-10
+
+## P-3017 · Merging origin/slice/h1 into the lane conflicted in four files two groups both write
+- symptom: H1 g7 round 2: `git merge origin/slice/h1` stopped in `scripts/harden/probe-db.ts`, `tests/unit/assert-not-production.test.ts`, `tests/mutations/H1.json` and `workspace/05-plans/logs/H1.md`; each had been edited by g7 and by another group of the same slice.
+- cause: one slice, several groups, and the shared harden files are extended by each (one writer per file holds per group, not across the slice).
+- rule: resolve a conflict in these files by keeping both sides' additions (`probe-db.ts` kept the polling lock and took the other side's `waitMs` and `LockBusy`), then replay the registry of every touched file (`node scripts/watchfail.mjs --registry tests/mutations --changed origin/main`) and run `bun run check`; the log and the registry are merged by hand, never taken whole from one side.
+- proof: `git grep -c "^<<<<<<<" -- app/scripts/harden app/tests/unit/assert-not-production.test.ts app/tests/mutations/H1.json workspace/05-plans/logs/H1.md` → no output (exit 1).
 - added: 2026-10-10
 
 ## P-2525 · A registry entry whose `run` is a bare `bunx vitest run` of the route-registry test replays `WATCHED-FAIL BAD: wrong reason` on main, because the unmutated test already times out at 5000 ms
@@ -7019,6 +7034,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before a build, find what listens on the lane's port (`netstat -ano | grep ":<port> " | grep LISTEN`), take that process's parent (the node process of wrangler: `workerd` is respawned from it, P-042), stop it with `taskkill /PID <parent> /T /F`, build, start, and check that the port answers from the new build (a header or a body that only the new code has). Never start a Worker without knowing the port was free.
 - proof: `cd app && (bunx wrangler dev --config .output/server/wrangler.json --port 8838 &) ; sleep 25; MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build 2>&1 | grep EBUSY` → `[Error: EBUSY: resource busy or locked, rmdir '....outputpublic']` (measured 2026-10-10); the same build after `taskkill` of the wrangler node process → `quiet: ok`.
 - added: 2026-10-10
+- hit again: 2026-10-10, H1 g7: a `wrangler dev` left on 8828 over `.output` made the runner's own `bun run build` fail for 12 rows of one `run-all.mjs` run; the run was repeated with a copy of `.output` under `app/.tmp` served instead.
 
 ## P-2960 · `eval "$(node scripts/load-env.mjs --profile dev)" 2>&1 | tail -2` loads nothing: the pipe runs the eval in a subshell, and the next command runs without the dev profile
 - symptom: H1 g5, `run-all.mjs --env dev --only H1-40` started in the background right after that line answered `fail` after three minutes with an empty database environment (`echo $SUPABASE_URL` printed an empty line, `DEV_DB_URL` was unset); the first run was wasted.
