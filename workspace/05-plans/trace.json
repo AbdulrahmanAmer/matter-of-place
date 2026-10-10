@@ -15327,7 +15327,9 @@
   "plan": "H2",
   "files": [
    "workspace/05-plans/acceptance/probe.mjs",
-   "workspace/05-plans/acceptance/charters/senior-engineer.md"
+   "workspace/05-plans/acceptance/charters/senior-engineer.md",
+   "workspace/05-plans/acceptance/charters/security-specialist.md",
+   "workspace/05-plans/acceptance/charters/user-journey.md"
   ],
   "hasProof": true
  },
@@ -15338,7 +15340,8 @@
   "plan": "H2",
   "files": [
    "workspace/05-plans/acceptance/run.mjs",
-   "workspace/05-plans/acceptance/ledger.json"
+   "workspace/05-plans/acceptance/ledger.json",
+   "tests/unit/acceptance-ledger.test.ts"
   ],
   "hasProof": true
  },

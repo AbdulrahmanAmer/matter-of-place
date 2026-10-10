@@ -1,0 +1,137 @@
+[
+  {
+    "id": "h2-ledger-one-agreeing",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "} else if (agreeing(row) < 2) {",
+    "replace": "} else if (agreeing(row) < 1) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "the severity rule > refuses a finding with one agreeing panelist"
+  },
+  {
+    "id": "h2-ledger-count-panelist-once",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "names.add(vote[\"panelist\"]);",
+    "replace": "names.add(names.size);",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "the severity rule > accepts two agreeing panelists and counts one panelist once"
+  },
+  {
+    "id": "h2-ledger-ruling-needed",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "if (text(\"ruling\") === \"\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "the severity rule > accepts a disagreement only with the orchestrator's ruling and both votes"
+  },
+  {
+    "id": "h2-ledger-proof-needed",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "if (text(\"proof\") === \"\") problems.push(\"a finding without a proof is a question\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "a row's proof and fix group > makes a finding without a proof a question that carries no severity"
+  },
+  {
+    "id": "h2-ledger-fix-group-fields",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "if (text(key) === \"\") problems.push(`${key} is empty: the fix group needs it`);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "a row's proof and fix group > needs the slice, the steps and the files of a fix group"
+  },
+  {
+    "id": "h2-ledger-closed-commit",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "if (status === \"closed\" && !/^[0-9a-f]{7,40}$/.test(text(\"commit\"))) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "a row's proof and fix group > closes a row only with a fix group and a merge commit, defers it only with a word"
+  },
+  {
+    "id": "h2-ledger-id-twice",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "if (seen.has(id)) problems.push(`${id}: id used twice`);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "a row's proof and fix group > names a row's id in the ledger's problems and refuses an id used twice"
+  },
+  {
+    "id": "h2-ledger-open-statuses",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "const OPEN_STATUSES = [\"open\", \"fixing\"];",
+    "replace": "const OPEN_STATUSES = [\"open\", \"fixing\", \"closed\"];",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "what the ledger yields > counts a row open above low only while it is open or being fixed"
+  },
+  {
+    "id": "h2-ledger-report-owner",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "${f.slice ?? \"\"} | ${f.fixGroup ?? \"unassigned\"} |",
+    "replace": "${\"\"} | ${f.fixGroup ?? \"unassigned\"} |",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "what the ledger yields > writes the report with the slice that owns each open row"
+  },
+  {
+    "id": "h2-ledger-closeout-critical",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "critical: finding.severity === \"critical\",",
+    "replace": "critical: false,",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "what the ledger yields > prints the close-out of a finding as build-slice.js takes it"
+  },
+  {
+    "id": "h2-ledger-exit-open",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "return open.length === 0 ? 0 : 1;",
+    "replace": "return 0;",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "run.mjs on the command line > exits 0 on an empty ledger and 1 while a row above low is open"
+  },
+  {
+    "id": "h2-ledger-exit-invalid",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "if (problems.length > 0) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "run.mjs on the command line > exits 2 on a ledger the schema refuses"
+  },
+  {
+    "id": "h2-ledger-fix-print",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "console.log(JSON.stringify(fixArguments(finding), null, 2));",
+    "replace": "console.log(\"{}\");",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "run.mjs on the command line > prints the close-out of --fix and refuses an unknown id or a question"
+  },
+  {
+    "id": "h2-ledger-fix-unknown",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/run.mjs",
+    "find": "if (finding === undefined || finding.status === \"question\") {",
+    "replace": "if (finding === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "run.mjs on the command line > prints the close-out of --fix and refuses an unknown id or a question"
+  },
+  {
+    "id": "h2-ledger-on-disk",
+    "test": "tests/unit/acceptance-ledger.test.ts",
+    "file": "../workspace/05-plans/acceptance/ledger.json",
+    "find": "\"findings\": []",
+    "replace": "\"findings\": [{}]",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
+    "expect": "run.mjs on the command line > holds a ledger.json on disk that the schema accepts"
+  }
+]
