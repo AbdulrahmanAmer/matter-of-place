@@ -90,6 +90,9 @@ export const errorCodes = {
   // B7 step 8: a staged file that is not the image its name says, and a photograph a creative asset still uses.
   invalid_image: 422,
   media_in_use: 409,
+  // B7 step 14: the team keeps one enabled admin; an auth account whose role could not be written is deleted again.
+  last_admin: 409,
+  team_write_failed: 500,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
