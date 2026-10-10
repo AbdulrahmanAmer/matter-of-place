@@ -7,9 +7,11 @@ import { makeContext } from "../../../../workspace/audits/tools/common.mjs";
 import {
   collect,
   describeSecurity,
+  importedUrls,
   judgeScripts,
   parseSecurityHeaders,
   probeRateLimit,
+  reachable,
   scriptUrls,
   secretsIn,
 } from "../../../../workspace/audits/tools/security.mjs";
@@ -155,6 +157,28 @@ describe("the served JavaScript", () => {
     ]);
   });
 
+  it("finds the scripts a script imports, statically or with import(), by a relative path", () => {
+    const entry = "https://example.test/assets/index-a1.js";
+    const body =
+      'import{a as b}from"./vendor-c3.js";import"./side-d4.js";const x=()=>import(`./turnstile-e5.js`).then(m=>m.t);import("https://cdn.test/x.js");import("../up-f6.js")';
+    expect(importedUrls(body, entry)).toEqual([
+      "https://example.test/assets/vendor-c3.js",
+      "https://example.test/assets/side-d4.js",
+      "https://example.test/assets/turnstile-e5.js",
+      "https://example.test/up-f6.js",
+    ]);
+    expect(importedUrls("const from = 1; import.meta.url", entry)).toEqual([]);
+  });
+
+  it("follows imports through a chain and stops on a cycle", () => {
+    const imports = new Map([
+      ["a", ["b"]],
+      ["b", ["c", "a"]],
+      ["d", ["e"]],
+    ]);
+    expect(reachable(["a"], imports)).toEqual(["a", "b", "c"]);
+  });
+
   it("finds the three secret patterns and names the pattern, never the value", () => {
     const key = `mopk_dev_${"A".repeat(43)}`;
     expect(secretsIn(`var k="${key}"`)).toEqual(["mopk_"]);
@@ -187,6 +211,15 @@ describe("the served JavaScript", () => {
         new Map([[url, 'load("https://challenges.cloudflare.com/turnstile")']]),
       )[1]?.status,
     ).toBe("ok");
+  });
+
+  it("names no build setting as the cause of a red Turnstile row", () => {
+    const url = "https://example.test/assets/form-b2.js";
+    const row = judgeScripts(
+      [{ path: "/contact", hasForm: true, scripts: [url] }],
+      new Map([[url, "console.log(1)"]]),
+    )[1];
+    expect(row?.detail).toBe("no script that /contact loads or imports names Turnstile");
   });
 });
 
@@ -230,6 +263,41 @@ describe("collect", () => {
       "ok  forms_turnstile  4 pages with a form load a script that names Turnstile",
       "ok  rate_limit_search  429 on request 1 of 61",
     ]);
+  });
+
+  it("finds Turnstile in a chunk that the entry script loads with import(), and reds the same page without it", async () => {
+    const html = '<form></form><script type="module" src="/assets/index-a1.js"></script>';
+    const run = (chunk: string) =>
+      collect(
+        makeContext({
+          env: {},
+          siteUrl: "http://127.0.0.1:8858",
+          fetchImpl: (url) => {
+            const path = new URL(url).pathname;
+            if (path === "/api/public/search")
+              return Promise.resolve(new Response("{}", { status: 429 }));
+            if (path === "/assets/index-a1.js") {
+              return Promise.resolve(new Response("const t=()=>import(`./http-b2.js`)"));
+            }
+            if (path === "/assets/http-b2.js") return Promise.resolve(new Response(chunk));
+            return Promise.resolve(
+              new Response(html, { status: 200, headers: headerSet("csp-report-only") }),
+            );
+          },
+        }),
+      );
+    const withTurnstile = describeSecurity(
+      await run('"https://challenges.cloudflare.com/turnstile"'),
+    );
+    expect(withTurnstile).toContain(
+      "ok  secrets_in_js  scripts read: 2, none holds a secret pattern",
+    );
+    expect(withTurnstile).toContain(
+      "ok  forms_turnstile  4 pages with a form load a script that names Turnstile",
+    );
+    expect(describeSecurity(await run("console.log(1)"))).toContain(
+      "red  forms_turnstile  no script that /, /contact, /submit, /privacy-request loads or imports names Turnstile",
+    );
   });
 
   it("exits 0 from the command line whatever it finds", () => {

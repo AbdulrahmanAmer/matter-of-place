@@ -1668,5 +1668,50 @@
     "replace": "resend_contacts: 0,",
     "run": "bunx vitest run --project unit tests/unit/audit/health-usage-gauges.test.ts",
     "expect": "usage_gauges > names every line that is over"
+  },
+  {
+    "id": "b14g2s5-security-imported",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "found.add(new URL(target, scriptUrl).href);",
+    "replace": "void target;",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "the served JavaScript > finds the scripts a script imports"
+  },
+  {
+    "id": "b14g2s5-security-reachable",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "seen.add(next);",
+    "replace": "void next;",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "the served JavaScript > follows imports through a chain"
+  },
+  {
+    "id": "b14g2s5-security-chunk-queue",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "queue.push(target);",
+    "replace": "void target;",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "collect > finds Turnstile in a chunk"
+  },
+  {
+    "id": "b14g2s5-security-chunk-pages",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "scripts: reachable(page.scripts, imports),",
+    "replace": "scripts: page.scripts,",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "collect > finds Turnstile in a chunk"
+  },
+  {
+    "id": "b14g2s5-security-forms-detail",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "loads or imports names Turnstile",
+    "replace": "loads names Turnstile (a build without VITE_TURNSTILE_SITE_KEY leaves it out)",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "the served JavaScript > names no build setting"
   }
 ]

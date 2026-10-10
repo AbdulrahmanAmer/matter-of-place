@@ -5,7 +5,7 @@ import { field, getText, measured, messageOf, notMeasured, recordsOf, runCli } f
 // are the report's job. Statuses: `ok`, `watch` (look at it, not a failure) and `red`.
 const TIMEOUT_MS = 30_000;
 const FORM_PAGES = ["/", "/contact", "/submit", "/privacy-request"];
-const MAX_SCRIPTS = 80;
+const MAX_SCRIPTS = 300;
 const TURNSTILE_HOST = "challenges.cloudflare.com";
 const PROBE_PATH = "/api/public/search";
 const PROBE_REQUESTS = 61;
@@ -118,6 +118,36 @@ export function scriptUrls(html, pageUrl) {
 }
 
 /**
+ * The scripts one script imports by a relative path, statically or with `import()`. Vite splits the code into chunks and
+ * the Turnstile loader sits in one that the entry script loads with a dynamic import, so a page's own tags do not
+ * name it.
+ * @param {string} text the body of the script
+ * @param {string} scriptUrl
+ * @returns {string[]} absolute URLs, once each
+ */
+export function importedUrls(text, scriptUrl) {
+  /** @type {Set<string>} */
+  const found = new Set();
+  for (const [, target = ""] of text.matchAll(
+    /\b(?:from|import)\s*\(?\s*[`"'](\.{1,2}\/[^`"']+\.js)[`"']/g,
+  )) {
+    found.add(new URL(target, scriptUrl).href);
+  }
+  return [...found];
+}
+
+/**
+ * @param {string[]} roots
+ * @param {Map<string, string[]>} imports script URL to the scripts it imports
+ * @returns {string[]} the roots and every script reachable from them, once each
+ */
+export function reachable(roots, imports) {
+  const seen = new Set(roots);
+  for (const url of seen) for (const next of imports.get(url) ?? []) seen.add(next);
+  return [...seen];
+}
+
+/**
  * @param {string} text
  * @returns {string[]} the names of the secret patterns found in `text`, never the matched text
  */
@@ -167,7 +197,7 @@ export function judgeScripts(pages, bodies) {
     forms = row(
       "forms_turnstile",
       "red",
-      `no script of ${bare.map((page) => page.path).join(", ")} names Turnstile (a build without VITE_TURNSTILE_SITE_KEY leaves it out)`,
+      `no script that ${bare.map((page) => page.path).join(", ")} loads or imports names Turnstile`,
     );
   }
   return [secrets, forms];
@@ -234,16 +264,26 @@ export async function probe(ctx) {
   }
   /** @type {Map<string, string | null>} */
   const bodies = new Map();
-  for (const url of new Set(pages.flatMap((page) => page.scripts))) {
+  /** @type {Map<string, string[]>} */
+  const imports = new Map();
+  const queue = [...new Set(pages.flatMap((page) => page.scripts))];
+  for (const url of queue) {
     if (bodies.size >= MAX_SCRIPTS) break;
     const script = await getText(ctx.fetchImpl, url, {}, TIMEOUT_MS);
     bodies.set(url, script.status === 200 ? script.text : null);
+    const next = script.status === 200 ? importedUrls(script.text, url) : [];
+    imports.set(url, next);
+    for (const target of next) if (!queue.includes(target)) queue.push(target);
   }
+  const loaded = pages.map((page) => ({
+    ...page,
+    scripts: reachable(page.scripts, imports),
+  }));
   return {
     host: new URL(base).hostname,
     checks: [
       ...parseSecurityHeaders(home.headers),
-      ...judgeScripts(pages, bodies),
+      ...judgeScripts(loaded, bodies),
       await probeRateLimit(ctx, base),
     ],
   };
