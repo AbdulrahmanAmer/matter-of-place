@@ -1,3 +1,6 @@
+-- down: re-run bun run db:fn set_asset_caption from the previous commit of supabase/sql/functions/set_asset_caption.sql
+set lock_timeout = '5s';
+
 create or replace function public.set_asset_caption(
   p_asset uuid,
   p_actor uuid,
