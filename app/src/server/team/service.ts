@@ -1,12 +1,34 @@
 import { parseCookieHeader } from "@supabase/ssr";
-import { isAuthRetryableFetchError } from "@supabase/supabase-js";
-import type { z } from "zod";
-import type { meSchema, sendLinkInput, verifyInput } from "../../domain/admin-team.ts";
+import {
+  isAuthApiError,
+  isAuthRetryableFetchError,
+  type PostgrestError,
+} from "@supabase/supabase-js";
+import { z } from "zod";
+import {
+  agentKeySchema,
+  agentKeysInputSchema,
+  dailyLimitsSchema,
+  teamUserSchema,
+  teamUsersInputSchema,
+  type AgentCreateInput,
+  type agentKeysPageSchema,
+  type DailyLimits,
+  type InviteInput,
+  type KeyCreated,
+  type KeyCreateInput,
+  type meSchema,
+  type sendLinkInput,
+  type teamUsersPageSchema,
+  type verifyInput,
+} from "../../domain/admin-team.ts";
 import { enabledRoles } from "../lib/actor.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
 import { adminJson } from "../lib/admin-response.ts";
-import { authorize, can, matrix } from "../lib/authz.ts";
+import { generateKey, hashAgentKey } from "../lib/agent-keys.ts";
+import { auditContext } from "../lib/audit.ts";
+import { authorize, can, matrix, type AppRole } from "../lib/authz.ts";
 import {
   CSRF_COOKIE,
   csrfCookie,
@@ -171,4 +193,269 @@ export async function signOut(actor: AdminActor, request: Request): Promise<Resp
   const response = new Response(null, { status: 204 });
   response.headers.append("set-cookie", expireCsrfCookie());
   return response;
+}
+
+// Screen 23 (step 14). Every function authorizes first (SEC-04); the matrix makes each one admin-only, person-only and
+// recent-sign-in-only. Each write is one RPC that audits through `write_audit`. Invite and agent creation make the auth
+// account first and delete it again when its role cannot be written, so no account is left without a role.
+
+const teamWriteFailed = () =>
+  new AppError(
+    "team_write_failed",
+    undefined,
+    "The account could not be set up. Nothing was kept.",
+  );
+
+/** The error of an auth admin call: an outage is 503, anything else a reported 500. */
+function authFailure(error: Error): AppError {
+  if (isAuthRetryableFetchError(error)) return unavailable();
+  return new AppError("server", undefined, "Something went wrong. Please try again in a moment.");
+}
+
+/** The data of a PostgREST answer, or its error translated by `fromRpcError`. */
+async function rpcOrThrow<T>(
+  answer: PromiseLike<{ data: T; error: null } | { data: null; error: PostgrestError }>,
+): Promise<T> {
+  const result = await answer;
+  if (result.error !== null) throw fromRpcError(result.error);
+  return result.data;
+}
+
+/** Runs the role writes of a new account; when one fails, the account is deleted and the answer is 500. */
+async function keepOrDelete<T>(db: Db, userId: string, write: () => Promise<T>): Promise<T> {
+  try {
+    return await write();
+  } catch (failure) {
+    const { error } = await db.auth.admin.deleteUser(userId);
+    logLine("error", "team_account_rolled_back", {
+      userId,
+      code: fromRpcError(failure).code,
+      deleted: error === null,
+    });
+    throw teamWriteFailed();
+  }
+}
+
+/** `GET team/users`: one page of people and agent accounts with their roles. */
+export async function listUsers(
+  actor: AdminActor,
+  db: Db,
+  page: z.input<typeof teamUsersInputSchema>,
+): Promise<z.output<typeof teamUsersPageSchema>> {
+  authorize(actor, "team.users_list");
+  const { limit, cursor } = teamUsersInputSchema.parse(page);
+  const answer = await rpcOrThrow(
+    db.rpc("team_users", { p_limit: limit, ...(cursor === undefined ? {} : { p_cursor: cursor }) }),
+  );
+  const rows = z.array(teamUserSchema).parse(answer);
+  const last = rows.at(-1);
+  return {
+    items: rows,
+    next_cursor: rows.length === limit && last !== undefined ? last.user_id : null,
+  };
+}
+
+/** `POST team/users`: Supabase Auth mails the invitation; `grant_role` writes each role, with note `invite`. */
+export async function inviteUser(
+  actor: AdminActor,
+  db: Db,
+  input: InviteInput,
+): Promise<{ user_id: string }> {
+  authorize(actor, "team.invite");
+  const { data, error } = await db.auth.admin.inviteUserByEmail(input.email);
+  if (error !== null) {
+    if (isAuthApiError(error) && error.code === "email_exists") {
+      throw new AppError("already_exists", undefined, "This address already has an account.");
+    }
+    throw authFailure(error);
+  }
+  const userId = data.user.id;
+  await keepOrDelete(db, userId, async () => {
+    for (const role of input.roles) {
+      await rpcOrThrow(
+        db.rpc("grant_role", {
+          p_user: userId,
+          p_role: role,
+          p_note: "invite",
+          p_display_name: input.display_name,
+          ...auditContext(actor),
+        }),
+      );
+    }
+  });
+  return { user_id: userId };
+}
+
+/** `POST team/users/:id/roles`. */
+export async function grantRole(
+  actor: AdminActor,
+  db: Db,
+  input: { id: string; role: AppRole; note?: string | undefined },
+): Promise<{ id: string }> {
+  authorize(actor, "team.role_grant");
+  const id = await rpcOrThrow(
+    db.rpc("grant_role", {
+      p_user: input.id,
+      p_role: input.role,
+      p_note: input.note ?? "",
+      ...auditContext(actor),
+    }),
+  );
+  return { id };
+}
+
+/** `DELETE team/users/:id/roles/:role`; refused with `last_admin` for the last enabled admin. */
+export async function revokeRole(
+  actor: AdminActor,
+  db: Db,
+  input: { id: string; role: AppRole },
+): Promise<{ revoked: true }> {
+  authorize(actor, "team.role_revoke");
+  await rpcOrThrow(
+    db.rpc("revoke_role", { p_user: input.id, p_role: input.role, ...auditContext(actor) }),
+  );
+  return { revoked: true };
+}
+
+/** `POST team/users/:id/disable`; refused with `last_admin` for the last enabled admin. */
+export async function setUserDisabled(
+  actor: AdminActor,
+  db: Db,
+  input: { id: string; disabled: boolean },
+): Promise<{ disabled: boolean }> {
+  authorize(actor, "team.user_disable");
+  const disabled = await rpcOrThrow(
+    db.rpc("set_user_disabled", {
+      p_user: input.id,
+      p_disabled: input.disabled,
+      ...auditContext(actor),
+    }),
+  );
+  return { disabled };
+}
+
+/** Writes the sha256 of a new key; the key itself goes back to the caller once and is kept nowhere. */
+async function issueKey(
+  actor: AdminActor,
+  db: Db,
+  userId: string,
+  input: { label: string; scopes: readonly string[] },
+  environment: string,
+): Promise<KeyCreated> {
+  const key = generateKey(environment);
+  const keyId = await rpcOrThrow(
+    db.rpc("create_agent_key", {
+      p_user: userId,
+      p_hash: await hashAgentKey(key),
+      p_label: input.label,
+      p_scopes: [...input.scopes],
+      ...auditContext(actor),
+    }),
+  );
+  return { user_id: userId, key_id: keyId, key };
+}
+
+/** `POST team/agents`: an auth account at an `.invalid` address, its one role as an agent, and its first key. */
+export async function createAgent(
+  actor: AdminActor,
+  db: Db,
+  input: AgentCreateInput,
+  environment: string,
+): Promise<KeyCreated> {
+  authorize(actor, "team.agent_create");
+  const { data, error } = await db.auth.admin.createUser({
+    email: `agent-${crypto.randomUUID()}@matterofplace.invalid`,
+    email_confirm: true,
+  });
+  if (error !== null) throw authFailure(error);
+  const userId = data.user.id;
+  return keepOrDelete(db, userId, async () => {
+    await rpcOrThrow(
+      db.rpc("grant_role", {
+        p_user: userId,
+        p_role: input.role,
+        p_note: "agent_create",
+        p_user_kind: "agent",
+        p_display_name: input.label,
+        ...auditContext(actor),
+      }),
+    );
+    return issueKey(actor, db, userId, input, environment);
+  });
+}
+
+/** `POST team/agents/:id/keys`: another key for an existing agent account. */
+export async function createAgentKey(
+  actor: AdminActor,
+  db: Db,
+  input: KeyCreateInput,
+  environment: string,
+): Promise<KeyCreated> {
+  authorize(actor, "team.agent_key_create");
+  return issueKey(actor, db, input.id, input, environment);
+}
+
+/** `DELETE team/agents/:id/keys/:keyId`. */
+export async function revokeAgentKey(
+  actor: AdminActor,
+  db: Db,
+  input: { keyId: string },
+): Promise<{ revoked: true }> {
+  authorize(actor, "team.agent_key_revoke");
+  await rpcOrThrow(db.rpc("revoke_agent_key", { p_key: input.keyId, ...auditContext(actor) }));
+  return { revoked: true };
+}
+
+/** `POST team/agents/revoke-all`: every live key at once, with one audit row that holds the count. */
+export async function revokeAllAgentKeys(actor: AdminActor, db: Db): Promise<{ revoked: number }> {
+  authorize(actor, "team.revoke_all_keys");
+  return { revoked: await rpcOrThrow(db.rpc("revoke_all_agent_keys", auditContext(actor))) };
+}
+
+/** `GET team/agents`: one page of agent keys, keyset on the key id; the hash is never read. */
+export async function listAgentKeys(
+  actor: AdminActor,
+  db: Db,
+  page: z.input<typeof agentKeysInputSchema>,
+): Promise<z.output<typeof agentKeysPageSchema>> {
+  authorize(actor, "team.users_list");
+  const { limit, cursor } = agentKeysInputSchema.parse(page);
+  const query = db
+    .from("agent_keys")
+    .select("id, user_id, label, scopes, last_used_at, revoked_at, created_at")
+    .order("id")
+    .limit(limit);
+  const answer = await rpcOrThrow(cursor === undefined ? query : query.gt("id", cursor));
+  const rows = z.array(agentKeySchema).parse(answer);
+  const last = rows.at(-1);
+  return {
+    items: rows,
+    next_cursor: rows.length === limit && last !== undefined ? last.id : null,
+  };
+}
+
+/** `GET team/limits`. */
+export async function getDailyLimits(actor: AdminActor, db: Db): Promise<DailyLimits> {
+  authorize(actor, "team.users_list");
+  const rows = await rpcOrThrow(
+    db.from("settings").select("value").eq("key", "agent_daily_limits"),
+  );
+  return dailyLimitsSchema.parse(rows[0]?.value);
+}
+
+/** `PUT team/limits`: the three caps as one value, audited as `team.limits_put`. */
+export async function putDailyLimits(
+  actor: AdminActor,
+  db: Db,
+  input: DailyLimits,
+): Promise<DailyLimits> {
+  authorize(actor, "team.limits_put");
+  const saved = await rpcOrThrow(
+    db.rpc("put_setting", {
+      p_key: "agent_daily_limits",
+      p_value: input,
+      ...auditContext(actor),
+    }),
+  );
+  return dailyLimitsSchema.parse(saved);
 }

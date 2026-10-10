@@ -1,0 +1,513 @@
+/* Screens 17 to 21: the list beside one recipe or one email template, the reasons table, the settings and the revisions. Tokens only. */
+
+.admin-recipes__intro {
+  margin-bottom: var(--admin-space-5);
+  color: var(--muted-foreground);
+}
+
+.admin-recipes {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) minmax(0, 1fr);
+  gap: var(--admin-space-6);
+  align-items: start;
+}
+
+.admin-recipes__list ul {
+  display: grid;
+  border-top: 1px solid var(--border);
+}
+
+.admin-recipes__list button {
+  display: grid;
+  gap: var(--admin-space-1);
+  width: 100%;
+  padding: var(--admin-space-3) var(--admin-space-2);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.admin-recipes__list button[aria-current="true"] {
+  border-left: 2px solid var(--foreground);
+  padding-left: var(--admin-space-3);
+  background: var(--muted);
+}
+
+.admin-recipes__name {
+  font-weight: 500;
+}
+
+.admin-recipes__list code,
+.admin-step__name code,
+.admin-recipe__event code {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.admin-recipes__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-2);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+/* One recipe */
+.admin-recipe,
+.admin-recipe form,
+.admin-recipe__fields {
+  display: grid;
+  gap: var(--admin-space-4);
+  min-width: 0;
+}
+
+.admin-recipe__fields {
+  padding: 0;
+  border: 0;
+}
+
+.admin-recipe__event {
+  margin-bottom: var(--admin-space-3);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-recipe__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--admin-space-3);
+}
+
+.admin-recipe__save {
+  align-items: center;
+}
+
+/* Steps */
+.admin-steps {
+  display: grid;
+  gap: var(--admin-space-3);
+  list-style: none;
+}
+
+.admin-step {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding: var(--admin-space-4);
+  border: 1px solid var(--border);
+}
+
+.admin-step[data-enabled="false"] .admin-step__name {
+  color: var(--muted-foreground);
+}
+
+.admin-step[data-invalid="true"] {
+  border-color: var(--status-danger);
+}
+
+.admin-step__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-3);
+}
+
+.admin-step__position {
+  min-width: 24px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-step__name {
+  display: grid;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.admin-step__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--admin-space-2);
+}
+
+.admin-step__about,
+.admin-step__none {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.admin-step summary {
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-step details[open] summary {
+  margin-bottom: var(--admin-space-3);
+}
+
+.admin-step h4,
+.admin-dryrun h4 {
+  margin-top: var(--admin-space-3);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Settings and conditions */
+.admin-params,
+.admin-conditions {
+  display: grid;
+  gap: var(--admin-space-3);
+}
+
+.admin-params__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-2) var(--admin-space-4);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-params__group legend {
+  float: left;
+  min-width: 80px;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--admin-space-2);
+  font-size: 13px;
+}
+
+/* Dry run */
+.admin-dryrun {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding-top: var(--admin-space-4);
+  border-top: 1px solid var(--border);
+}
+
+.admin-dryrun__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--admin-space-3);
+}
+
+.admin-dryrun__result ul {
+  display: grid;
+  gap: var(--admin-space-2);
+  list-style: none;
+}
+
+.admin-dryrun__result li code {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+/* Screen 18, email templates: the list is screen 17's; the editor sits beside its preview. */
+.admin-template {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--admin-space-6);
+  align-items: start;
+  min-width: 0;
+}
+
+.admin-template form,
+.admin-template__fields,
+.admin-template__side,
+.admin-blocks {
+  display: grid;
+  gap: var(--admin-space-4);
+  min-width: 0;
+}
+
+.admin-template__fields {
+  padding: 0;
+  border: 0;
+}
+
+.admin-template__key {
+  margin-bottom: var(--admin-space-3);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-template__key code,
+.admin-variables__name code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.admin-template__test {
+  display: grid;
+  gap: var(--admin-space-2);
+  justify-items: start;
+}
+
+.admin-template h3,
+.admin-variables h3,
+.admin-preview h3 {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Blocks */
+.admin-blocks__list {
+  display: grid;
+  gap: var(--admin-space-3);
+  list-style: none;
+}
+
+.admin-block {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding: var(--admin-space-4);
+  border: 1px solid var(--border);
+}
+
+.admin-block[data-invalid="true"] {
+  border-color: var(--status-danger);
+}
+
+.admin-block__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-3);
+}
+
+.admin-block__position {
+  flex: 1 1 auto;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-blocks__fields,
+.admin-blocks__row {
+  display: grid;
+  gap: var(--admin-space-3);
+}
+
+.admin-blocks__rows {
+  display: grid;
+  gap: var(--admin-space-3);
+  justify-items: start;
+}
+
+.admin-blocks__row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: end;
+  width: 100%;
+}
+
+.admin-blocks__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--admin-space-3);
+}
+
+/* Variables */
+.admin-variables,
+.admin-preview,
+.admin-variables form {
+  display: grid;
+  gap: var(--admin-space-3);
+  min-width: 0;
+}
+
+.admin-variables form {
+  justify-items: start;
+}
+
+.admin-variables__list {
+  display: grid;
+  gap: var(--admin-space-3);
+  width: 100%;
+  list-style: none;
+}
+
+.admin-variables__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-2);
+}
+
+/* Preview */
+.admin-preview__head {
+  display: grid;
+  gap: var(--admin-space-2);
+}
+
+.admin-preview__head dt {
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-preview__frame {
+  width: 100%;
+  height: 640px;
+  border: 1px solid var(--border);
+}
+
+.admin-preview__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+/* Screen 19, decline reasons */
+.admin-reasons__paragraph {
+  max-width: 48ch;
+}
+
+.admin-reasons__form {
+  margin-top: var(--admin-space-5);
+}
+
+.admin-reason-form,
+.admin-reason-form__fields {
+  display: grid;
+  gap: var(--admin-space-4);
+  max-width: 640px;
+  min-width: 0;
+}
+
+.admin-reason-form__fields {
+  padding: 0;
+  border: 0;
+}
+
+/* Screen 20, channels and schedules; the flags list of screen 24 shares the check rows */
+.admin-settings__list {
+  display: grid;
+  gap: var(--admin-space-5);
+  margin-bottom: var(--admin-space-7);
+}
+
+.admin-channel,
+.admin-clock {
+  padding-top: var(--admin-space-4);
+  border-top: 1px solid var(--border);
+}
+
+.admin-channel form,
+.admin-channel__fields,
+.admin-clock form,
+.admin-clock__fields {
+  display: grid;
+  gap: var(--admin-space-4);
+  min-width: 0;
+}
+
+.admin-channel__fields,
+.admin-clock__fields {
+  padding: 0;
+  border: 0;
+}
+
+.admin-channel__switch,
+.admin-channel__days {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-4);
+}
+
+.admin-channel__window,
+.admin-channel__approval {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--admin-space-4);
+}
+
+.admin-channel__credentials {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--admin-space-2);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-clock__times {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--admin-space-1) var(--admin-space-4);
+  font-size: 13px;
+}
+
+.admin-clock__times dt {
+  color: var(--muted-foreground);
+}
+
+.admin-clock__cadence {
+  font-size: 13px;
+}
+
+.admin-flags {
+  display: grid;
+  gap: var(--admin-space-4);
+}
+
+@media (max-width: 1100px) {
+  .admin-template {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .admin-recipes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.admin-revision {
+  display: grid;
+  gap: var(--admin-space-4);
+}
+
+.admin-revision__meta {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--admin-space-1) var(--admin-space-4);
+  font-size: 13px;
+}
+
+.admin-revision__meta dt {
+  color: var(--muted-foreground);
+}
+
+.admin-revision .admin-diff td {
+  overflow-wrap: anywhere;
+}
