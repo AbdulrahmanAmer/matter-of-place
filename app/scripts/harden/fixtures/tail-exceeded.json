@@ -1,0 +1,24 @@
+{
+  "outcome": "exceededCpu",
+  "scriptName": "matter-of-place",
+  "cpuTime": 10,
+  "wallTime": 31,
+  "eventTimestamp": 1791700000000,
+  "event": {
+    "request": {
+      "url": "https://matterofplace.com/?h1cpu=fixture",
+      "method": "GET"
+    },
+    "response": {
+      "status": 503
+    }
+  },
+  "exceptions": [
+    {
+      "name": "Error",
+      "message": "Worker exceeded CPU time limit.",
+      "timestamp": 1791700000031
+    }
+  ],
+  "logs": []
+}
