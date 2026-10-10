@@ -357,7 +357,7 @@
     "id": "h1g6-cc-production",
     "kind": "manual",
     "test": "scripts/harden/restore-rehearsal.sh",
-    "run": "a native PostgreSQL 18 database with scripts/harden/pg-shims.sql, public.settings made by hand and the row ('environment', '\"production\"'); DEV_DB_URL on it: bash scripts/harden/restore-rehearsal.sh /nonexistent.key, then bash scripts/harden/restore-supabase-drill.sh /nonexistent.key; each exits 1 and the database still holds only the settings table",
+    "run": "a native PostgreSQL 18 database with scripts/harden/restore-shims.sql, public.settings made by hand and the row ('environment', '\"production\"'); DEV_DB_URL on it: bash scripts/harden/restore-rehearsal.sh /nonexistent.key, then bash scripts/harden/restore-supabase-drill.sh /nonexistent.key; each exits 1 and the database still holds only the settings table",
     "expect": "error: refusing: production database"
   }
 ]

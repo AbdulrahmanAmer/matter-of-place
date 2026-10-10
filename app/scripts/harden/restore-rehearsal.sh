@@ -3,7 +3,7 @@
 # a fresh backup.yml dump of the one database into a throwaway native PostgreSQL 18 cluster (no Docker, S50) and proves
 # it: a marker row written just before the dump is in it, and the row counts match the source. Prints
 # `restore ok <minutes> minutes`. Exit 1: refused, no key file, a failed backup run or decrypt, a count or marker
-# mismatch. Exit 2: pg_restore stopped (`restore blocked: <object>`); the fix goes into pg-shims.sql. Any other failing
+# mismatch. Exit 2: pg_restore stopped (`restore blocked: <object>`); the fix goes into restore-shims.sql. Any other failing
 # command stops it with its own exit code (set -e). docs/runbooks/restore.md section 3.
 set -euo pipefail
 
@@ -41,7 +41,7 @@ initdb -D "$PGDATA_DIR" -U postgres --auth=trust -E UTF8 --locale=C --no-sync > 
 pg_ctl -D "$PGDATA_DIR" -o "-p $PORT -c listen_addresses=127.0.0.1" -l "$DIR/pg.log" -w start > /dev/null 2>&1 < /dev/null
 LOCAL=(-h 127.0.0.1 -p "$PORT" -U postgres)
 restore_psql "${LOCAL[@]}" -c "create database restore" > /dev/null
-restore_psql "${LOCAL[@]}" -d restore -f "$APP/scripts/harden/pg-shims.sql" > /dev/null
+restore_psql "${LOCAL[@]}" -d restore -f "$APP/scripts/harden/restore-shims.sql" > /dev/null
 
 # (6) The first pg_restore error stops the rehearsal and names the object it was creating or loading.
 if ! pg_restore --no-owner --clean --if-exists --exit-on-error --verbose "${LOCAL[@]}" -d restore "$DIR/x.dump" 2> "$DIR/restore.log"; then

@@ -167,3 +167,23 @@ The two follow-ups whose file is GOTCHAS.md are banked as hit-again lines: the `
    - Evidence: Confirmed by running: full check: Tests 1 failed | 3801 passed, check-exit=1. JSON-reporter run: total 3929, failed 4. The three files together: 1 failed | 20 passed. Inquiries alone: 7 passed (7). git diff --stat origin/main...HEAD -- app/src/admin is empty
 
 The follow-up whose file is GOTCHAS.md (item 7 of the review) is banked as a hit-again line on P-094 (a `python3 -` patch failed with `couldn't create signal pipe, Win32 error 5`) and as P-2896 (a red vitest run whose quiet tail lost the failing file names: rerun with the JSON reporter). Item 1 asks for a rule that a debug copy of a drill deletes its temp folder; it is recorded here and not banked, because it names no file of the tree.
+
+## g7 · steps 7
+
+1. `app/scripts/harden/migration-rollback-drill.sh` (not blocking)
+   - What: The drill cannot tell a complete down block from a partial one. It checks only two things: the schema differs after the down block, and re-applying the up file gives back the first dump. Up files use create or replace, so a down block that drops 1 of 9 objects still prints 'migration rollback ok'. The script already stands at the prefix chain just before the drilled file, but it never dumps there and compares that dump with the post-down dump. Runbook section 4 says the drill proves 'one down block really undoes its migration', which claims more than the method checks. Today's admin_team down block does fully undo its migration (prefix dump equals post-down dump, checked by running), so nothing in the current tree is false. This is a weakness: the plan's H1-37 text defines exactly the differs/equals check the author built.
+   - Evidence: On a scratchpad copy, the admin_team down block reduced to 'drop function public.is_last_admin(uuid);' gave 'migration rollback ok', exit 0. A copy with a prefix dump added printed PREFIX-EQUALS-DOWN for the real block.
+
+2. `app/tests/mutations/H1.json` (not blocking)
+   - What: The two watched-fails of this group, (j) 'ROLLBACK_VERSION set to a version that does not exist' and (m) part 2 'down block made a no-op', have no entry in the slice registry. Earlier H1 groups registered their harden-script watched-fails (h1g2-b-hsts, h1g2-v-checkdb-allows and others, as kind manual), and C08 asks for registry entries. R49 scopes the rule to test files and mutation-registry.test.ts passes, so this is not blocking. The (m) part 2 mutation can be replayed locally with PG_BIN; (j) needs the live account and would be a manual entry.
+   - Evidence: git show 56cca034 --stat does not touch tests/mutations/H1.json. The H1 log says 'No file of this group is in a registry entry.' Listing H1.json ids shows none for rollback-drill.sh or migration-rollback-drill.sh.
+
+3. `app/scripts/harden/rollback-drill.sh` (not blocking)
+   - What: After the rollback the script polls for status 404 or 500 and never reads the body. P-2920's rule says 'The marker v2 (body) going away is the proof', but the code checks the status alone. The 500 means the built Worker (MOP_ENV=production, no secrets) fails on an unknown path; nobody has investigated it, and what the live Worker answers there is UNPROVEN. I found no input that makes the drill pass falsely today, because v2's static asset answers 200. A body check (body not equal to v2) would match the banked rule and drop the 500 special case.
+   - Evidence: In wait_for status '^(404|500)$', only %{http_code} is compared. Re-run printed 'answer after rollback: 500'.
+
+4. `app/docs/runbooks/rollback.md` (not blocking)
+   - What: The job-runner half of H1-22 (DO-10) is BLOCKED. scripts/rollback-runner.sh (B8) is not in the tree, so the runner rollback, the {"claimed":...} curl and the minutes for section 2b and the section 6 row do not exist. The runbook says so honestly. Close it when B8 lands. Two related items stay open: the in-job rollback record (run 37119653705) predates 110 lines of deploy.yml changes, and the CEO initials in section 5 are pending.
+   - Evidence: ls app/scripts/rollback-runner.sh shows no such file. Section 2b opens with 'BLOCKED'.
+
+The one follow-up whose file is GOTCHAS.md (P-2920's cause on how fast a deleted Worker stops answering) is banked as P-2924, and the sentence in P-2920 now points to it.

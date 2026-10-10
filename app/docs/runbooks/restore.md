@@ -65,11 +65,11 @@ Without an argument it asks for the key path. In order, it:
    `gh run watch <id> --exit-status`; a red run exits 1 with `restore: backup run failed <id>`;
 3. downloads the artifact `mop-dev-dump` of that run into a temporary folder;
 4. decrypts it with the key (section 2);
-5. makes a cluster there with `initdb`, starts it with `pg_ctl` on a free port and loads `scripts/harden/pg-shims.sql`
+5. makes a cluster there with `initdb`, starts it with `pg_ctl` on a free port and loads `scripts/harden/restore-shims.sql`
    (the roles `anon`, `authenticated`, `service_role`, `supabase_auth_admin`, `supabase_admin` and stubs of
    `app.is_staff()` and `app.role_in(...)`: schema `app` is not in the dump and the policies of `public` call both);
 6. runs `pg_restore --no-owner --clean --if-exists --exit-on-error`; the first error exits 2 with
-   `restore blocked: <object>`, and the fix goes into `scripts/harden/pg-shims.sql`;
+   `restore blocked: <object>`, and the fix goes into `scripts/harden/restore-shims.sql`;
 7. compares `scripts/harden/rowcounts.sql` (`properties`, `submissions`, `subscribers`, `audit_log`, `payments`, `jobs`)
    on both sides: `properties`, `submissions`, `subscribers` and `payments` must be equal; `audit_log` and `jobs` keep growing on the one database
    while the backup runs, so there the restored count must not exceed the source count read after the restore; a
@@ -86,7 +86,7 @@ To read rows from an older dump instead, decrypt it (section 2) and follow steps
 initdb -D <folder>/pgdata -U postgres --auth=trust -E UTF8 --locale=C --no-sync
 pg_ctl -D <folder>/pgdata -o "-p 55432 -c listen_addresses=127.0.0.1" -l <folder>/pg.log -w start
 psql -h 127.0.0.1 -p 55432 -U postgres -c "create database restore"
-psql -h 127.0.0.1 -p 55432 -U postgres -d restore -f scripts/harden/pg-shims.sql
+psql -h 127.0.0.1 -p 55432 -U postgres -d restore -f scripts/harden/restore-shims.sql
 pg_restore --no-owner --clean --if-exists -h 127.0.0.1 -p 55432 -U postgres -d restore x.dump
 pg_ctl -D <folder>/pgdata -m fast stop
 ```

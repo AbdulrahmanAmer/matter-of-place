@@ -6649,3 +6649,38 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a quiet tail of a red vitest run shows a count and no file names, do not read the tail again; run the failing project once with `--reporter=json --outputFile=<tmp>/report.json` (P-1613: always an output file, in a temp folder, deleted after) and list `testResults[]` with `status !== "passed"`. Where the first run is already known to be long, give it the JSON reporter at the start.
 - proof: `cd app && T=$(mktemp -d) && bunx vitest run --project unit tests/unit/assert-not-production.test.ts --reporter=json --outputFile="$T/r.json" > /dev/null 2>&1; node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));console.log(r.numTotalTests,r.numFailedTests,r.testResults.filter(f=>f.status!=="passed").map(f=>f.name))' "$T/r.json"; rm -rf "$T"` → `9 0 []` (measured 2026-10-10, H1 g6).
 - added: 2026-10-10
+
+## P-2920 · The rollback drill's plan line expects a 404 after the rollback; version 1 of a Worker with no secrets answers 500
+- symptom: H1 g7's first `rollback-drill.sh` run printed `deployed v2 marker ok`, rolled back, then waited the full 180 s for a 404 and failed with `did not give status 404 in 180s (last: 500)`; the address answered `{"status":500,"unhandled":true,"message":"HTTPError"}`. The trap then deleted the Worker, so nothing was left on the account.
+- cause: plan step 7 and H1-22 assumed that the built Worker answers an unknown path with the application's 404. The throwaway Worker has no `SUPABASE_*` or other secret and the cause of the 500 was not investigated. A deleted Worker answers 404 from the edge, but only after a delay of about 20 s (P-2924).
+- rule: the drill accepts 404 or 500 as "the marker is gone" and prints the status it saw; do not poll for 404 alone. The marker `v2` (body) going away is the proof the rollback took effect; the status says only that the Worker still answers.
+- proof: `cd app && (set -a; . <(tr -d '\r' < ../.env | grep -E '^CLOUDFLARE_(API_TOKEN|ACCOUNT_ID)='); set +a; bash scripts/harden/rollback-drill.sh)` → `deployed v2 marker ok`, `answer after rollback: 500`, `rollback ok`, `elapsed 7s`; with `ROLLBACK_VERSION=00000000-0000-0000-0000-000000000000` it exits 1 and still deletes `mop-drill` (2026-10-10 +0300).
+- added: 2026-10-10
+
+## P-2921 · The migration drill: a down block undoes its migration only where that migration is the newest, and this laptop has no PostgreSQL until the EDB zip is unpacked
+- symptom: H1 g7's first drill design applied all 76 migrations, then ran the newest SQL down block (`20261009004133_admin_team.sql`) and its file again. The schema after the up block differed from the first dump (`put_setting` came back as the older body, `v_type` and its comment missing), and a first pick of the drilled file chose `admin_withdraw` because a down block that starts with a newline and indented `--   drop` lines failed the "starts with a SQL verb" test. Separately `command -v initdb` printed nothing (P-2300 again).
+- cause: `20261009035240_admin_settings.sql` redefines `put_setting` after admin_team, so re-running admin_team alone on the head of the chain gives its own version of the function, not the head's. The down text of many files begins on the second line and is indented after the comment marker.
+- rule: apply the chain only up to the drilled migration, run down, dump, run the file again, dump, compare, then apply the newer files (`migration-rollback-drill.sh` does). Trim leading space and blank lines before testing a down block for a SQL verb. `pg_dump` 18 writes `\restrict <random key>` and `\unrestrict <same key>`, different on every run, so strip both before `cmp`. With no native PostgreSQL: P-2300's EDB zip, unpacked without `pgAdmin 4`, `doc` and `StackBuilder`, then `PG_BIN=<unpacked>/pgsql/bin`.
+- proof: `cd app && PG_BIN=<pgsql/bin> bash scripts/harden/migration-rollback-drill.sh | tail -3` → `migration rollback ok`, `elapsed 25s` (2026-10-10 +0300); `pg_dump --schema-only --no-owner | grep -c restrict` on an empty PostgreSQL 18.0 cluster → `2`.
+- added: 2026-10-10
+
+## P-2922 · A runbook that names a script the tree does not have fails `runbook-lint`, even where the section says BLOCKED
+- symptom: `node scripts/harden/runbook-lint.mjs docs/runbooks/rollback.md` printed `scripts/rollback-runner.sh does not exist` three times for the section on the job runner, which H1 g7 had to write because B8's `scripts/rollback-runner.sh` is not in the tree.
+- cause: the lint checks every path inside backticks or a code block against `app/`, the repository root and the git-ignored paths.
+- rule: a path that does not exist yet is written in plain text with the sentence that says so, never in code quotes; whoever lands the file quotes it. Do not create a stub script to satisfy the lint.
+- proof: `cd app && node scripts/harden/runbook-lint.mjs docs/runbooks/rollback.md` → `runbooks ok`; `grep -n "rollback-runner" docs/runbooks/rollback.md` → two lines, neither inside backticks.
+- added: 2026-10-10
+
+## P-2923 · `bun run check` stops at its first stage, `layout`, for a `.sh` or `.sql` file placed under `scripts/harden/`
+- symptom: after H1 g7's three files were written, `bun run check` ended in 3 s with `layout: app/scripts/harden/rollback-drill.sh: outside the folder map` (and the same for `migration-rollback-drill.sh` and `pg-shims.sql`); the drills and the runbook had been proven for an hour before the gate said so.
+- cause: the `scripts` row of `APP_ROWS` in `scripts/check-layout.mjs` lists `.ts` and `.mjs` for `scripts/harden/**` and names the three other files by path (`checklist.json`, `rls-review.sql`, `gitleaks.toml`); a plan that names a shell script there needs its own pattern (ruling H46).
+- rule: run `node scripts/check-layout.mjs` as soon as a new file exists, before the full check; add the smallest pattern that names the new files and say so in the log.
+- proof: `cd app && node scripts/check-layout.mjs` → `layout: OK (2522 files)` with the two patterns for `rollback-drill.sh`, `migration-rollback-drill.sh` and `pg-shims.sql` in place (2026-10-10).
+- added: 2026-10-10
+
+## P-2924 · A deleted Worker keeps answering 200 for about 20 s; check a delete by polling for 404, never by one curl
+- symptom: after `wrangler delete` printed `Successfully deleted mop-drill`, `curl` on `https://mop-drill.holy-meadow-4327.workers.dev/__drill.txt` printed 200 at once; after `sleep 20` it printed `error code: 1042` with 404. P-2920's cause had read the 404 as "seen right after the delete".
+- cause: a delete takes a few seconds to reach the edge, so the old version answers until it does.
+- rule: never take one curl straight after a delete as proof that the Worker is gone or still there; poll until 404 (error code 1042) with a bounded wait of 60 s, as `rollback-drill.sh` polls after a rollback.
+- proof: `cd app && (set -a; . <(tr -d '\r' < ../.env | grep -E '^CLOUDFLARE_(API_TOKEN|ACCOUNT_ID)='); set +a; ROLLBACK_VERSION=00000000-0000-0000-0000-000000000000 bash scripts/harden/rollback-drill.sh; echo exit=$?; sleep 25; curl -s -o /dev/null -w '%{http_code}\n' https://mop-drill.holy-meadow-4327.workers.dev/__drill.txt)` → exit 1, then `404` (the reviewer saw 200 at once and 404 after 20 s on 2026-10-10 +0300; this command was not re-run in this record-only task).
+- added: 2026-10-10
