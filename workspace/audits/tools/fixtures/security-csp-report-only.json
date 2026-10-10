@@ -1,0 +1,6 @@
+{
+  "content-security-policy-report-only": "default-src 'self'; frame-ancestors 'none'",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "x-frame-options": "DENY",
+  "referrer-policy": "strict-origin-when-cross-origin"
+}
