@@ -4,7 +4,9 @@
 // `getSubmission`. Step 6: the four decision functions and the agent daily cap (migration `admin_submissions_decisions`).
 // Step 7: the property functions (migration `admin_properties`). Step 7a: unpublish, takedown and agent preview
 // (migration `admin_takedown`). Step 8: the media functions and the one render job per property (migration
-// `admin_media`).
+// `admin_media`). Step 11: assign, forward, close and the list of inquiries (migration `admin_inquiries`).
+// Step 12: save, publish and unpublish of stories and their list (migration `admin_stories`).
+// Step 13: update_market and set_market_coming_soon (migration `admin_markets`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
@@ -2037,6 +2039,872 @@ describe("media", () => {
         partial: "22023 reorder_mismatch",
         order: [second, first],
       });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 11's migration (P-328). */
+async function assertStep11(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    "select to_regproc('public.forward_inquiry') is not null and to_regproc('public.list_inquiries') is not null as present",
+  );
+  expect(present).toBe(true);
+}
+
+async function createInquiry(db: Db, received: string): Promise<string> {
+  const { id } = await one<{ id: string }>(
+    db,
+    `insert into public.inquiries (intent, name, email, message, source_path, received_at)
+     values ('showing', 'Fixture', 'inquiry@fixtures.invalid', 'Hello', '/property/fixture', $1::timestamptz)
+     returning id`,
+    [received],
+  );
+  return id;
+}
+
+const ASSIGN = "select public.assign_inquiry($1, $2, $3, 'human', 'req-inquiries') as state";
+const FORWARD = "select public.forward_inquiry($1, $2, 'human', 'req-inquiries') as job";
+const CLOSE = "select public.close_inquiry($1, $2, 'human', 'req-inquiries') as state";
+
+async function stateOf(db: Db, id: string): Promise<string> {
+  return (
+    await one<{ state: string }>(db, "select state::text from public.inquiries where id = $1", [id])
+  ).state;
+}
+
+async function auditCount(db: Db, action: string, id: string): Promise<number> {
+  return count(
+    db,
+    "select count(*)::int as n from public.audit_log where action = $1 and entity_id = $2",
+    [action, id],
+  );
+}
+
+describe("inquiries (step 11)", () => {
+  it("assign_inquiry moves a new inquiry to in_progress for the editor, close_inquiry closes it, and a closed one refuses all three", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const assignee = await createStaffUser(db, ["chief_editor"]);
+      const id = await createInquiry(db, "2026-10-01T12:00:00Z");
+      const assigned = await one<{ state: string }>(db, ASSIGN, [id, assignee, editor]);
+      const row = await one<{ assigned_to: string }>(
+        db,
+        "select assigned_to from public.inquiries where id = $1",
+        [id],
+      );
+      const closed = await one<{ state: string }>(db, CLOSE, [id, editor]);
+      expect({
+        assigned: assigned.state,
+        assignedTo: row.assigned_to,
+        closed: closed.state,
+        stored: await stateOf(db, id),
+        audits: [
+          await auditCount(db, "inquiries.assign", id),
+          await auditCount(db, "inquiries.close", id),
+        ],
+        refusals: [
+          await attempt(db, ASSIGN, [id, assignee, editor]),
+          await attempt(db, FORWARD, [id, editor]),
+          await attempt(db, CLOSE, [id, editor]),
+        ],
+      }).toEqual({
+        assigned: "in_progress",
+        assignedTo: assignee,
+        closed: "closed",
+        stored: "closed",
+        audits: [1, 1],
+        refusals: ["P0001 wrong_state", "P0001 wrong_state", "P0001 wrong_state"],
+      });
+    });
+  });
+
+  it("assign_inquiry refuses an assignee who may not act on inquiries with validation", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const commercial = await createStaffUser(db, ["commercial"]);
+      const id = await createInquiry(db, "2026-10-01T12:00:00Z");
+      expect({
+        refused: await attempt(db, ASSIGN, [id, commercial, editor]),
+        state: await stateOf(db, id),
+      }).toEqual({ refused: "22023 validation", state: "new" });
+    });
+  });
+
+  it("two forward_inquiry calls create jobs keyed :1 and :2, write two inquiries.forward rows and leave the state", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const id = await createInquiry(db, "2026-10-01T12:00:00Z");
+      const first = await one<{ job: string }>(db, FORWARD, [id, editor]);
+      const second = await one<{ job: string }>(db, FORWARD, [id, editor]);
+      const jobs = await db.query<{ idempotency_key: string; payload: unknown }>(
+        "select idempotency_key, payload from public.jobs where id = any ($1::uuid[]) order by idempotency_key",
+        [[first.job, second.job]],
+      );
+      expect({
+        jobs: jobs.rows,
+        audits: await auditCount(db, "inquiries.forward", id),
+        state: await stateOf(db, id),
+      }).toEqual({
+        jobs: [
+          { idempotency_key: `webhook_omnikom:${id}:1`, payload: { data: { inquiry_id: id } } },
+          { idempotency_key: `webhook_omnikom:${id}:2`, payload: { data: { inquiry_id: id } } },
+        ],
+        audits: 2,
+        state: "new",
+      });
+    });
+  });
+
+  it("forward_inquiry raises enqueue_failed and writes no audit row when enqueue_job_manual queues nothing (DB-09)", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const id = await createInquiry(db, "2026-10-01T12:00:00Z");
+      await db.query(
+        `create or replace function public.enqueue_job_manual(
+           p_type text, p_entity_id uuid, p_payload jsonb, p_max_attempts int default 5
+         ) returns uuid language sql as $$ select null::uuid $$`,
+      );
+      expect({
+        refused: await attempt(db, FORWARD, [id, editor]),
+        audits: await auditCount(db, "inquiries.forward", id),
+      }).toEqual({ refused: "P0001 enqueue_failed", audits: 0 });
+    });
+  });
+
+  it("list_inquiries filters by state and pages newest first after a cursor", async () => {
+    await withRollback(async (db) => {
+      await assertStep11(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const assignee = await createStaffUser(db, ["managing_editor"]);
+      const old = await createInquiry(db, "2000-01-01T00:00:00Z");
+      const older = await createInquiry(db, "1999-12-31T00:00:00Z");
+      const taken = await createInquiry(db, "1999-12-30T00:00:00Z");
+      await db.query(ASSIGN, [taken, assignee, editor]);
+      const page = await db.query<{ id: string }>(
+        `select id from public.list_inquiries(10, 'new', '2000-01-01T00:00:00Z', $1)
+         where id = any ($2::uuid[])`,
+        [old, [old, older, taken]],
+      );
+      expect(page.rows.map((found) => found.id)).toEqual([older]);
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 12's migration (P-328). */
+async function assertStep12(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.save_story') is not null and to_regproc('public.publish_story') is not null
+       and to_regproc('public.unpublish_story') is not null and to_regproc('public.list_stories') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const SAVE_STORY =
+  "select public.save_story($1::uuid, $2::timestamptz, $3::jsonb, $4, 'human', 'req-stories', $5) as answer";
+const PUBLISH_STORY =
+  "select public.publish_story($1, $2::timestamptz, $3, 'human', 'req-stories') as answer";
+const UNPUBLISH_STORY = "select public.unpublish_story($1, $2, 'human', 'req-stories') as answer";
+
+interface StoryAnswer {
+  answer: { id: string; updated_at: string };
+}
+
+interface StoryRow {
+  id: string;
+  updated_at: string;
+}
+
+/** A draft story as B2's seed or an earlier save leaves it; `updated_at` as text keeps its microseconds. */
+async function createStory(
+  db: Db,
+  slug: string,
+  over: { image?: string | null; updatedAt?: string; state?: string } = {},
+): Promise<StoryRow> {
+  await markets(db);
+  return one<StoryRow>(
+    db,
+    `insert into public.stories (slug, title, deck, category, market_slug, image, updated_at, editorial_state)
+     values ($1, 'Fixture story', 'A deck.', 'Places', 'california', $2, coalesce($3::timestamptz, now()),
+       coalesce($4::public.editorial_state, 'draft'))
+     returning id, updated_at::text as updated_at`,
+    [slug, over.image ?? null, over.updatedAt ?? null, over.state ?? null],
+  );
+}
+
+const stagedPath = (slug: string) => `staging/story/${slug}/${randomUUID()}.jpg`;
+
+async function storyJobs(db: Db, slug: string) {
+  return (
+    await db.query<{ heavy: boolean; payload: unknown; key: string }>(
+      `select heavy, payload, idempotency_key as key from public.jobs
+       where type = 'render_variants' and payload -> 'data' ->> 'slug' = $1`,
+      [slug],
+    )
+  ).rows;
+}
+
+async function storyOf(db: Db, id: string) {
+  return one<{ image: string | null; state: string; published: boolean; archived: boolean }>(
+    db,
+    `select image, editorial_state::text as state, published_at is not null as published,
+       archived_at is not null as archived from public.stories where id = $1`,
+    [id],
+  );
+}
+
+const fullPatch = (slug: string) => ({
+  title: "A quiet house",
+  slug,
+  deck: "A house kept by one family.",
+  category: "Places",
+  market_slug: "california",
+});
+
+describe("stories (step 12)", () => {
+  it("save_story with a staged image queues exactly one heavy render_variants job keyed by the story and the path, and leaves image unchanged", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const story = await createStory(db, "queued-story", { image: "old/key.webp" });
+      const path = stagedPath("queued-story");
+      const first = await one<StoryAnswer>(db, SAVE_STORY, [
+        story.id,
+        story.updated_at,
+        "{}",
+        editor,
+        path,
+      ]);
+      await db.query(SAVE_STORY, [story.id, first.answer.updated_at, "{}", editor, path]);
+      expect({
+        jobs: await storyJobs(db, "queued-story"),
+        stored: await storyOf(db, story.id),
+      }).toEqual({
+        jobs: [
+          {
+            heavy: true,
+            payload: {
+              params: {},
+              data: { target: "story", slug: "queued-story", staging_path: path },
+            },
+            key: `render_variants:story:queued-story:${path}`,
+          },
+        ],
+        stored: { image: "old/key.webp", state: "draft", published: false, archived: false },
+      });
+    });
+  });
+
+  it("save_story without a staging path queues none, and a path under another story folder raises invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const story = await createStory(db, "plain-story");
+      await db.query(SAVE_STORY, [story.id, story.updated_at, '{"title": "Edited"}', editor, null]);
+      const refused = await attempt(db, SAVE_STORY, [
+        story.id,
+        story.updated_at,
+        "{}",
+        editor,
+        stagedPath("another-story"),
+      ]);
+      expect({ jobs: await storyJobs(db, "plain-story"), refused }).toEqual({
+        jobs: [],
+        refused: "P0001 invalid_key",
+      });
+    });
+  });
+
+  it("save_story refuses a patch that carries image, image_variants or an unknown key with invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const story = await createStory(db, "guarded-story", { image: "old/key.webp" });
+      const refused = async (patch: string) =>
+        attempt(db, SAVE_STORY, [story.id, story.updated_at, patch, editor, null]);
+      expect({
+        refusals: [
+          await refused('{"image": "other/key.webp"}'),
+          await refused('{"image_variants": {}}'),
+          await refused('{"editorial_state": "published"}'),
+        ],
+        stored: (await storyOf(db, story.id)).image,
+      }).toEqual({
+        refusals: ["P0001 invalid_key", "P0001 invalid_key", "P0001 invalid_key"],
+        stored: "old/key.webp",
+      });
+    });
+  });
+
+  it("save_story with no id inserts one draft with a null image and one stories.write audit row, and refuses a missing slug or deck with invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      await markets(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const slug = "new-story";
+      const { slug: _slug, ...withoutSlug } = fullPatch(slug);
+      const { deck: _deck, ...withoutDeck } = fullPatch(slug);
+      const refusals = [
+        await attempt(db, SAVE_STORY, [null, null, JSON.stringify(withoutSlug), editor, null]),
+        await attempt(db, SAVE_STORY, [null, null, JSON.stringify(withoutDeck), editor, null]),
+      ];
+      const inserted = await one<StoryAnswer>(db, SAVE_STORY, [
+        null,
+        null,
+        JSON.stringify(fullPatch(slug)),
+        editor,
+        null,
+      ]);
+      const rows = await db.query<{
+        id: string;
+        image: string | null;
+        state: string;
+        author: string;
+      }>(
+        "select id, image, editorial_state::text as state, author_id as author from public.stories where slug = $1",
+        [slug],
+      );
+      expect({
+        refusals,
+        rows: rows.rows,
+        audits: await auditCount(db, "stories.write", inserted.answer.id),
+      }).toEqual({
+        refusals: ["P0001 invalid_key", "P0001 invalid_key"],
+        rows: [{ id: inserted.answer.id, image: null, state: "draft", author: editor }],
+        audits: 1,
+      });
+    });
+  });
+
+  it("save_story with a stale updated_at raises stale and changes nothing; a slug changes while the story is a draft and is locked once it is not", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["visual_editor"]);
+      const story = await createStory(db, "stale-story");
+      const stale = await attempt(db, SAVE_STORY, [
+        story.id,
+        "2000-01-01T00:00:00Z",
+        '{"title": "Late"}',
+        editor,
+        null,
+      ]);
+      await db.query(SAVE_STORY, [
+        story.id,
+        story.updated_at,
+        '{"slug": "renamed-story"}',
+        editor,
+        null,
+      ]);
+      const live = await createStory(db, "live-story", { image: "old/key.webp" });
+      await db.query(
+        "update public.stories set editorial_state = 'published', published_at = now() where id = $1",
+        [live.id],
+      );
+      const current = await one<StoryRow>(
+        db,
+        "select id, updated_at::text as updated_at from public.stories where id = $1",
+        [live.id],
+      );
+      const locked = await attempt(db, SAVE_STORY, [
+        live.id,
+        current.updated_at,
+        '{"slug": "moved-story"}',
+        editor,
+        null,
+      ]);
+      const names = await db.query<{ slug: string; title: string }>(
+        "select slug, title from public.stories where id = any ($1::uuid[]) order by slug",
+        [[story.id, live.id]],
+      );
+      expect({ stale, locked, names: names.rows }).toEqual({
+        stale: "P0001 stale",
+        locked: "P0001 slug_immutable",
+        names: [
+          { slug: "live-story", title: "Fixture story" },
+          { slug: "renamed-story", title: "Fixture story" },
+        ],
+      });
+    });
+  });
+
+  it("publish_story on a draft without an image raises publish_incomplete naming the image, and changes nothing", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const created = await one<StoryAnswer>(db, SAVE_STORY, [
+        null,
+        null,
+        JSON.stringify(fullPatch("no-image-story")),
+        await createStaffUser(db, ["visual_editor"]),
+        null,
+      ]);
+      const refused = await attempt(db, PUBLISH_STORY, [
+        created.answer.id,
+        created.answer.updated_at,
+        editor,
+      ]);
+      expect({ refused, stored: (await storyOf(db, created.answer.id)).state }).toEqual({
+        refused: "23514 publish_incomplete",
+        stored: "draft",
+      });
+    });
+  });
+
+  it("publish_story publishes a story with an image once with one stories.publish row, refuses a live one with wrong_state and a stale copy with stale, and publishes an archived one again", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      const story = await createStory(db, "ready-story", { image: "s/ready-0a1b2c3d.webp" });
+      const stale = await attempt(db, PUBLISH_STORY, [story.id, "2000-01-01T00:00:00Z", editor]);
+      const published = await one<StoryAnswer>(db, PUBLISH_STORY, [
+        story.id,
+        story.updated_at,
+        editor,
+      ]);
+      const live = await storyOf(db, story.id);
+      const again = await attempt(db, PUBLISH_STORY, [
+        story.id,
+        published.answer.updated_at,
+        editor,
+      ]);
+      const audits = await auditCount(db, "stories.publish", story.id);
+      const unpublished = await one<StoryAnswer>(db, UNPUBLISH_STORY, [story.id, editor]);
+      await db.query(PUBLISH_STORY, [story.id, unpublished.answer.updated_at, editor]);
+      expect({ stale, live, again, audits, republished: await storyOf(db, story.id) }).toEqual({
+        stale: "P0001 stale",
+        live: {
+          image: "s/ready-0a1b2c3d.webp",
+          state: "published",
+          published: true,
+          archived: false,
+        },
+        again: "P0001 wrong_state",
+        audits: 1,
+        republished: {
+          image: "s/ready-0a1b2c3d.webp",
+          state: "published",
+          published: true,
+          archived: false,
+        },
+      });
+    });
+  });
+
+  it("unpublish_story archives a live story with archived_at and one stories.unpublish row, and refuses a draft with wrong_state", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const story = await createStory(db, "live-one", { image: "s/live-0a1b2c3d.webp" });
+      await db.query(PUBLISH_STORY, [story.id, story.updated_at, editor]);
+      const draft = await createStory(db, "draft-one");
+      await db.query(UNPUBLISH_STORY, [story.id, editor]);
+      expect({
+        archived: await storyOf(db, story.id),
+        audits: await auditCount(db, "stories.unpublish", story.id),
+        draft: await attempt(db, UNPUBLISH_STORY, [draft.id, editor]),
+      }).toEqual({
+        archived: {
+          image: "s/live-0a1b2c3d.webp",
+          state: "archived",
+          published: false,
+          archived: true,
+        },
+        audits: 1,
+        draft: "P0001 wrong_state",
+      });
+    });
+  });
+
+  it("list_stories filters by state and pages last edited first after a cursor", async () => {
+    await withRollback(async (db) => {
+      await assertStep12(db);
+      const newest = await createStory(db, "list-newest", { updatedAt: "2000-01-03T00:00:00Z" });
+      const middle = await createStory(db, "list-middle", { updatedAt: "2000-01-02T00:00:00Z" });
+      const oldest = await createStory(db, "list-oldest", {
+        updatedAt: "2000-01-01T00:00:00Z",
+        state: "review",
+      });
+      const ids = [newest.id, middle.id, oldest.id];
+      const page = async (state: string) =>
+        (
+          await db.query<{ id: string }>(
+            `select id from public.list_stories(10, $1::public.editorial_state, '2000-01-03T00:00:00Z', $2)
+             where id = any ($3::uuid[])`,
+            [state, newest.id, ids],
+          )
+        ).rows.map((found) => found.id);
+      expect({ drafts: await page("draft"), reviews: await page("review") }).toEqual({
+        drafts: [middle.id],
+        reviews: [oldest.id],
+      });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 13's migration (P-328). */
+async function assertStep13(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.update_market') is not null
+       and to_regproc('public.set_market_coming_soon') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const TOGGLE =
+  "select public.set_market_coming_soon(p_slug => $1, p_coming_soon => $2, p_actor => $3, p_actor_kind => 'human', p_request_id => 't', p_notify => $4) as answer";
+const UPDATE_MARKET =
+  "select public.update_market($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, $6, 'human', 'req-markets', $7) as answer";
+
+/** The market as the case needs it: its fixture row, with `coming_soon` set and no job left from an earlier run. */
+async function marketIn(db: Db, comingSoon: boolean): Promise<void> {
+  await markets(db);
+  await db.query("update public.markets set coming_soon = $1 where slug = 'california'", [
+    comingSoon,
+  ]);
+  await db.query("delete from public.jobs where idempotency_key = 'market_open:california'");
+}
+
+async function openNotices(db: Db) {
+  return (
+    await db.query<{ key: string; payload: unknown }>(
+      `select idempotency_key as key, payload from public.jobs
+       where type = 'market_open_notice' and payload -> 'data' ->> 'market' = 'california'`,
+    )
+  ).rows;
+}
+
+async function marketAudits(db: Db, action: string): Promise<number> {
+  return count(
+    db,
+    "select count(*)::int as n from public.audit_log where action = $1 and entity = 'markets.california'",
+    [action],
+  );
+}
+
+async function comingSoonOf(db: Db): Promise<boolean> {
+  return (
+    await one<{ coming_soon: boolean }>(
+      db,
+      "select coming_soon from public.markets where slug = 'california'",
+    )
+  ).coming_soon;
+}
+
+async function renderJobsOf(db: Db) {
+  return (
+    await db.query<{ heavy: boolean; payload: unknown; key: string }>(
+      `select heavy, payload, idempotency_key as key from public.jobs
+       where type = 'render_variants' and payload -> 'data' ->> 'target' in ('market', 'region')
+         and payload -> 'data' ->> 'slug' in ('california', 'bay-area')
+       order by payload -> 'data' ->> 'target'`,
+    )
+  ).rows;
+}
+
+const note = (label: string) => ({ label, text: `${label} text` });
+
+describe("markets (step 13)", () => {
+  it("set_market_coming_soon with p_notify on a coming-soon market opens it and queues exactly one market_open_notice job keyed market_open:california, and closing it then opening it again queues none", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await marketIn(db, true);
+      await db.query(TOGGLE, ["california", false, editor, true]);
+      const opened = { open: !(await comingSoonOf(db)), jobs: await openNotices(db) };
+      await db.query(TOGGLE, ["california", true, editor, true]);
+      const closed = { open: !(await comingSoonOf(db)), jobs: (await openNotices(db)).length };
+      await db.query(TOGGLE, ["california", false, editor, true]);
+      expect({ opened, closed, again: (await openNotices(db)).length }).toEqual({
+        opened: {
+          open: true,
+          jobs: [
+            {
+              key: "market_open:california",
+              payload: { params: {}, data: { market: "california" } },
+            },
+          ],
+        },
+        closed: { open: false, jobs: 1 },
+        again: 1,
+      });
+    });
+  });
+
+  it("set_market_coming_soon without p_notify opens the market and queues no market_open_notice job", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      await marketIn(db, true);
+      await db.query(TOGGLE, ["california", false, editor, false]);
+      expect({ open: !(await comingSoonOf(db)), jobs: await openNotices(db) }).toEqual({
+        open: true,
+        jobs: [],
+      });
+    });
+  });
+
+  it("set_market_coming_soon writes one markets.coming_soon audit row per change, none for a repeat, and refuses a commercial user and an unknown market", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const commercial = await createStaffUser(db, ["commercial"]);
+      await marketIn(db, true);
+      await db.query(TOGGLE, ["california", false, editor, false]);
+      await db.query(TOGGLE, ["california", false, editor, false]);
+      await db.query(TOGGLE, ["california", true, editor, false]);
+      expect({
+        audits: await marketAudits(db, "markets.coming_soon"),
+        commercial: await attempt(db, TOGGLE, ["california", false, commercial, false]),
+        unknown: await attempt(db, TOGGLE, ["texas", false, editor, false]),
+        stillClosed: await comingSoonOf(db),
+      }).toEqual({
+        audits: 2,
+        commercial: "42501 forbidden",
+        unknown: "P0002 not_found",
+        stillClosed: true,
+      });
+    });
+  });
+
+  it("update_market with two notes leaves exactly those two rows with sort_order 0 and 1, with three guide entries exactly those three, and with null notes leaves the notes alone", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      const rows = (table: string) =>
+        db.query<{ label: string; sort_order: number }>(
+          `select label, sort_order from public.${table} where market_slug = 'california' order by sort_order`,
+        );
+      await db.query(UPDATE_MARKET, [
+        "california",
+        "{}",
+        null,
+        JSON.stringify([note("Light"), note("Water")]),
+        JSON.stringify([
+          { section: "need", label: "Parking", text: "t" },
+          { section: "service", region_slug: "bay-area", label: "Movers", text: "t" },
+          { section: "neighborhood", label: "Pacific Heights", text: "t" },
+        ]),
+        editor,
+        null,
+      ]);
+      const first = {
+        notes: (await rows("market_notes")).rows,
+        guide: (await rows("market_guide_entries")).rows,
+      };
+      await db.query(UPDATE_MARKET, ["california", "{}", null, null, null, editor, null]);
+      expect({ first, kept: (await rows("market_notes")).rows }).toEqual({
+        first: {
+          notes: [
+            { label: "Light", sort_order: 0 },
+            { label: "Water", sort_order: 1 },
+          ],
+          guide: [
+            { label: "Parking", sort_order: 0 },
+            { label: "Movers", sort_order: 1 },
+            { label: "Pacific Heights", sort_order: 2 },
+          ],
+        },
+        kept: [
+          { label: "Light", sort_order: 0 },
+          { label: "Water", sort_order: 1 },
+        ],
+      });
+    });
+  });
+
+  it("update_market changes the market fields, upserts a region by slug and writes one markets.edit audit row", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      const region = (slug: string, name: string) => ({
+        slug,
+        name,
+        intro: `${name} intro`,
+        places: ["One", "Two"],
+        sort_order: 3,
+      });
+      const answer = await one<{ answer: { slug: string } }>(db, UPDATE_MARKET, [
+        "california",
+        JSON.stringify({
+          name: "California Coast",
+          places: ["Malibu", "Carmel"],
+          interest_copy: null,
+        }),
+        JSON.stringify([region("bay-area", "San Francisco Bay"), region("big-sur", "Big Sur")]),
+        null,
+        null,
+        editor,
+        null,
+      ]);
+      expect({
+        answer: answer.answer.slug,
+        market: await one(
+          db,
+          "select name, places, interest_copy from public.markets where slug = 'california'",
+        ),
+        regions: (
+          await db.query(
+            `select slug, market_slug, name, places, sort_order from public.regions
+             where slug in ('bay-area', 'big-sur') order by slug`,
+          )
+        ).rows,
+        audits: await marketAudits(db, "markets.edit"),
+      }).toEqual({
+        answer: "california",
+        market: { name: "California Coast", places: ["Malibu", "Carmel"], interest_copy: null },
+        regions: [
+          {
+            slug: "bay-area",
+            market_slug: "california",
+            name: "San Francisco Bay",
+            places: ["One", "Two"],
+            sort_order: 3,
+          },
+          {
+            slug: "big-sur",
+            market_slug: "california",
+            name: "Big Sur",
+            places: ["One", "Two"],
+            sort_order: 3,
+          },
+        ],
+        audits: 1,
+      });
+    });
+  });
+
+  it("update_market with a market image path and one region image path queues exactly two heavy render_variants jobs keyed by target, slug and path, and leaves both image values unchanged", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      await db.query("update public.markets set image = 'm/old.webp' where slug = 'california'");
+      await db.query("update public.regions set image = 'r/old.webp' where slug = 'bay-area'");
+      await db.query(
+        "delete from public.jobs where type = 'render_variants' and payload -> 'data' ->> 'slug' in ('california', 'bay-area')",
+      );
+      const marketPath = `staging/market/california/${randomUUID()}.jpg`;
+      const regionPath = `staging/region/bay-area/${randomUUID()}.jpg`;
+      const regions = JSON.stringify([
+        {
+          slug: "bay-area",
+          name: "Bay Area",
+          intro: "x",
+          places: [],
+          sort_order: 0,
+          image_staging_path: regionPath,
+        },
+      ]);
+      await db.query(UPDATE_MARKET, ["california", "{}", regions, null, null, editor, marketPath]);
+      await db.query(UPDATE_MARKET, ["california", "{}", regions, null, null, editor, marketPath]);
+      const imageOf = async (table: string, slug: string) =>
+        (
+          await one<{ image: string }>(db, `select image from public.${table} where slug = $1`, [
+            slug,
+          ])
+        ).image;
+      expect({
+        jobs: await renderJobsOf(db),
+        images: [await imageOf("markets", "california"), await imageOf("regions", "bay-area")],
+      }).toEqual({
+        jobs: [
+          {
+            heavy: true,
+            payload: {
+              params: {},
+              data: { target: "market", slug: "california", staging_path: marketPath },
+            },
+            key: `render_variants:market:california:${marketPath}`,
+          },
+          {
+            heavy: true,
+            payload: {
+              params: {},
+              data: { target: "region", slug: "bay-area", staging_path: regionPath },
+            },
+            key: `render_variants:region:bay-area:${regionPath}`,
+          },
+        ],
+        images: ["m/old.webp", "r/old.webp"],
+      });
+    });
+  });
+
+  it("update_market refuses image, coming_soon and unknown keys, a path under another folder, a region of another market and a guide entry for one, with invalid_key and no change", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      await db.query(
+        `insert into public.regions (slug, market_slug, name, intro) values ('miami', 'florida', 'Miami', 'x')
+         on conflict (slug) do nothing`,
+      );
+      const refused = (patch: unknown, regions: unknown, guide: unknown, path: string | null) =>
+        attempt(db, UPDATE_MARKET, [
+          "california",
+          JSON.stringify(patch),
+          regions === null ? null : JSON.stringify(regions),
+          null,
+          guide === null ? null : JSON.stringify(guide),
+          editor,
+          path,
+        ]);
+      const miami = { slug: "miami", name: "Miami", intro: "x", places: [], sort_order: 0 };
+      const foreignImage = `staging/region/miami/${randomUUID()}.jpg`;
+      expect({
+        image: await refused({ image: "m/x.webp" }, null, null, null),
+        comingSoon: await refused({ coming_soon: false }, null, null, null),
+        unknown: await refused({ slug: "texas" }, null, null, null),
+        foreignPath: await refused({}, null, null, `staging/market/florida/${randomUUID()}.jpg`),
+        foreignRegion: await refused({}, [miami], null, null),
+        regionPath: await refused(
+          {},
+          [{ ...miami, slug: "bay-area", image_staging_path: foreignImage }],
+          null,
+          null,
+        ),
+        guideRegion: await refused(
+          {},
+          null,
+          [{ section: "need", region_slug: "miami", label: "a", text: "b" }],
+          null,
+        ),
+        section: await refused({}, null, [{ section: "other", label: "a", text: "b" }], null),
+        jobs: (await renderJobsOf(db)).length,
+      }).toEqual({
+        image: "P0001 invalid_key",
+        comingSoon: "P0001 invalid_key",
+        unknown: "P0001 invalid_key",
+        foreignPath: "P0001 invalid_key",
+        foreignRegion: "P0001 invalid_key",
+        regionPath: "P0001 invalid_key",
+        guideRegion: "P0001 invalid_key",
+        section: "P0001 invalid_key",
+        jobs: 0,
+      });
+    });
+  });
+
+  it("update_market is refused for a commercial user with forbidden and for an unknown market with not_found", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const commercial = await createStaffUser(db, ["commercial"]);
+      await markets(db);
+      const call = (slug: string, actor: string) =>
+        attempt(db, UPDATE_MARKET, [slug, "{}", null, null, null, actor, null]);
+      expect({
+        commercial: await call("california", commercial),
+        unknown: await call("texas", editor),
+      }).toEqual({ commercial: "42501 forbidden", unknown: "P0002 not_found" });
     });
   });
 });

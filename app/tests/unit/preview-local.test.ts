@@ -6,6 +6,8 @@ import {
   STEPS,
   frontEndChanged,
   lhciUrlArgs,
+  lighthouseRetry,
+  lighthouseStep,
   localPreviewProblem,
   parseArgs,
   parseLog,
@@ -172,5 +174,74 @@ describe("localPreviewProblem, the merge gate's reading of a log (H73)", () => {
         HEAD,
       ),
     ).toMatch(/^the log's steps are build, no-cron, smoke/);
+  });
+});
+
+describe("lighthouseRetry and lighthouseStep, the two attempts of ruling H71", () => {
+  const lines = (name: string, count: number) =>
+    Array.from({ length: count }, (_, i) => `${name} line ${String(i + 1)}`);
+  const attempt = (code: number, name: string) => ({
+    code,
+    timedOut: false,
+    lines: lines(name, 30),
+    seconds: 154,
+    label: "lighthouserc.json, 6 urls",
+  });
+  const withSteps = (lighthouse: Step) =>
+    log((steps) => steps.map((step) => (step.name === "lighthouse" ? lighthouse : step)));
+
+  it("makes one attempt when the first passes", () => {
+    const first = [attempt(0, "one")];
+    const step = lighthouseStep(first);
+    expect([lighthouseRetry(first), step.verdict, step.detail, step.earlier]).toEqual([
+      false,
+      "pass",
+      "lighthouserc.json, 6 urls, 154 s",
+      undefined,
+    ]);
+  });
+
+  it("passes on the second attempt, notes it, and keeps the first attempt's last 5 lines under their own heading", () => {
+    const tried = [attempt(1, "one")];
+    const both = [...tried, attempt(0, "two")];
+    const step = lighthouseStep(both);
+    expect([lighthouseRetry(tried), lighthouseRetry(both), step.verdict, step.detail]).toEqual([
+      true,
+      false,
+      "pass",
+      "lighthouserc.json, 6 urls, attempt 2 of 2, 154 s",
+    ]);
+    const text = withSteps(step);
+    expect(text).toContain("lighthouse | pass | lighthouserc.json, 6 urls, attempt 2 of 2, 154 s");
+    const kept = ["one line 26", "one line 27", "one line 28", "one line 29", "one line 30"];
+    expect(text).toContain(
+      [
+        "## lighthouse attempt 1 (did not finish, retried under ruling H71)",
+        "",
+        "```text",
+        ...kept,
+        "```",
+      ].join("\n"),
+    );
+    expect(text).not.toContain("one line 25");
+    expect(localPreviewProblem(text, "227", HEAD)).toBe("");
+  });
+
+  it("fails when both attempts fail, never makes a third, and keeps the last 20 lines of each", () => {
+    const both = [attempt(1, "one"), attempt(1, "two")];
+    const step = lighthouseStep(both);
+    expect([lighthouseRetry(both), step.verdict, step.detail]).toEqual([
+      false,
+      "fail",
+      "lighthouserc.json, 6 urls, attempt 2 of 2, exit 1 after 154 s",
+    ]);
+    expect(step.tail).toEqual(lines("two", 30).slice(-20));
+    expect(step.earlier?.[0]?.lines).toEqual(lines("one", 30).slice(-20));
+    const text = withSteps(step);
+    expect(text).toContain("## Output of lighthouse (last 20 lines)");
+    expect(text).toContain("## lighthouse attempt 1 (did not finish, retried under ruling H71)");
+    expect(localPreviewProblem(text, "227", HEAD)).toBe(
+      "lighthouse is fail in the log: lighthouserc.json, 6 urls, attempt 2 of 2, exit 1 after 154 s",
+    );
   });
 });
