@@ -891,3 +891,23 @@ what: An invited admin who has never signed in counts as the second enabled admi
 evidence: is_last_admin checks disabled_at and actor_kind only, not auth.users.last_sign_in_at or email confirmation. Read, not run.
 
 blocking: false
+
+## g1 · steps 15
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The two follow-ups that name GOTCHAS.md are banked in the bank itself (P-2047 rule rewritten with a hit-again under P-547, and a hit-again under P-066).
+
+### 1. app/src/server/settings/service.ts
+
+what: getSettings reads `site` straight from the table for invoiceReadiness, but takes identity readiness from siteReadiness(db), which reads the per-isolate public-state memo (15 s TTL). Right after an identity save, the banner can still list a field (for example legal.entity) that the identity form shows as filled, for up to 15 s on the same isolate. The author logged this as a follow-up. The plan names siteReadiness(db), so it is not a contract break.
+
+evidence: Confirmed by reading: src/server/settings/service.ts line 109 (readiness built from await siteReadiness(db) plus invoiceReadiness(site, invoice)); src/server/settings/readiness.ts calls getSiteSettings, which calls getPublicState(db).
+
+blocking: false
+
+### 2. app/tests/mutations/B7.json
+
+what: The five sql entries b7-15-db-* use an expect that only matches the test title ('x .*<title>'). On any database without the step 15 migration (mop-dev today), the test already goes red at assertStep15, so a local replay without the prelude counts as OK for the wrong reason. CI's ephemeral stack has the migration, so CI's replay is sound, and so is my own prelude-backed invoice mutation. This is a registry-wide pattern, not something new in this step.
+
+evidence: Confirmed by reading: node -e prints the b7-15-db-* entries; the expect for each is '× .*<test title>', with no reason text.
+
+blocking: false
