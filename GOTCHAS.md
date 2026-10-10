@@ -6527,7 +6527,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 
 ## P-2920 · The rollback drill's plan line expects a 404 after the rollback; version 1 of a Worker with no secrets answers 500
 - symptom: H1 g7's first `rollback-drill.sh` run printed `deployed v2 marker ok`, rolled back, then waited the full 180 s for a 404 and failed with `did not give status 404 in 180s (last: 500)`; the address answered `{"status":500,"unhandled":true,"message":"HTTPError"}`. The trap then deleted the Worker, so nothing was left on the account.
-- cause: plan step 7 and H1-22 assumed that the built Worker answers an unknown path with the application's 404. The throwaway Worker has no `SUPABASE_*` or other secret and the cause of the 500 was not investigated. A deleted Worker answers 404 from the edge (seen right after the delete).
+- cause: plan step 7 and H1-22 assumed that the built Worker answers an unknown path with the application's 404. The throwaway Worker has no `SUPABASE_*` or other secret and the cause of the 500 was not investigated. A deleted Worker answers 404 from the edge, but only after a delay of about 20 s (P-2924).
 - rule: the drill accepts 404 or 500 as "the marker is gone" and prints the status it saw; do not poll for 404 alone. The marker `v2` (body) going away is the proof the rollback took effect; the status says only that the Worker still answers.
 - proof: `cd app && (set -a; . <(tr -d '\r' < ../.env | grep -E '^CLOUDFLARE_(API_TOKEN|ACCOUNT_ID)='); set +a; bash scripts/harden/rollback-drill.sh)` → `deployed v2 marker ok`, `answer after rollback: 500`, `rollback ok`, `elapsed 7s`; with `ROLLBACK_VERSION=00000000-0000-0000-0000-000000000000` it exits 1 and still deletes `mop-drill` (2026-10-10 +0300).
 - added: 2026-10-10
@@ -6551,4 +6551,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the `scripts` row of `APP_ROWS` in `scripts/check-layout.mjs` lists `.ts` and `.mjs` for `scripts/harden/**` and names the three other files by path (`checklist.json`, `rls-review.sql`, `gitleaks.toml`); a plan that names a shell script there needs its own pattern (ruling H46).
 - rule: run `node scripts/check-layout.mjs` as soon as a new file exists, before the full check; add the smallest pattern that names the new files and say so in the log.
 - proof: `cd app && node scripts/check-layout.mjs` → `layout: OK (2522 files)` with the two patterns for `rollback-drill.sh`, `migration-rollback-drill.sh` and `pg-shims.sql` in place (2026-10-10).
+- added: 2026-10-10
+
+## P-2924 · A deleted Worker keeps answering 200 for about 20 s; check a delete by polling for 404, never by one curl
+- symptom: after `wrangler delete` printed `Successfully deleted mop-drill`, `curl` on `https://mop-drill.holy-meadow-4327.workers.dev/__drill.txt` printed 200 at once; after `sleep 20` it printed `error code: 1042` with 404. P-2920's cause had read the 404 as "seen right after the delete".
+- cause: a delete takes a few seconds to reach the edge, so the old version answers until it does.
+- rule: never take one curl straight after a delete as proof that the Worker is gone or still there; poll until 404 (error code 1042) with a bounded wait of 60 s, as `rollback-drill.sh` polls after a rollback.
+- proof: `cd app && (set -a; . <(tr -d '\r' < ../.env | grep -E '^CLOUDFLARE_(API_TOKEN|ACCOUNT_ID)='); set +a; ROLLBACK_VERSION=00000000-0000-0000-0000-000000000000 bash scripts/harden/rollback-drill.sh; echo exit=$?; sleep 25; curl -s -o /dev/null -w '%{http_code}\n' https://mop-drill.holy-meadow-4327.workers.dev/__drill.txt)` → exit 1, then `404` (the reviewer saw 200 at once and 404 after 20 s on 2026-10-10 +0300; this command was not re-run in this record-only task).
 - added: 2026-10-10
