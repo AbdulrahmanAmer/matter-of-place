@@ -251,3 +251,29 @@ Review verdict ACCEPT: no blocking defect, eight follow-ups. The one whose file 
 1. `workspace/05-plans/H1.md` and `workspace/05-plans/trace.json` (not blocking)
    - What: the plan's Files line and three trace items name one `scripts/harden/pg-shims.sql` for "the restore and migration drills"; after the merge there are two files, `pg-shims.sql` (migration drill) and `restore-shims.sql` (restore rehearsal), and the second is named by neither.
    - Evidence: `grep -n "pg-shims" workspace/05-plans/H1.md workspace/05-plans/trace.json`; P-2838.
+
+## g7 · steps 4, 10
+
+1. `app/scripts/harden/fail-drill.ts` (not blocking)
+   - What: Part 4 does not clean up after itself. bouncedEmail() runs scripts/email-test.ts, which enqueues a send_email job and writes an email_messages row to bounced@resend.dev. cleanup() removes only the dead selftest job, its job_events and the rate_limits rows. So once JOB_RUNNER_SECRET exists, every H1-32 run leaves a send_email job and an email_messages row on mop-dev (both on the dry-run BLOCKED_EMAIL path and on the bounced path). That breaks the cleanup rule on run-all.mjs that a drill's committed rows are removed. Round 2 fixed the same gap in health-drill but not here. The path never runs today because the secret is missing, which is why this is a follow-up and not blocking.
+   - Evidence: Read, not run: fail-drill.ts lines 81 and 184-207 (the cleanup lists job_events, jobs and rate_limits only); scripts/email-test.ts lines 72-76 enqueue_job send_email. The secret is absent: `grep -oE '^JOB_RUNNER_SECRET=' .env` prints nothing.
+
+2. `app/scripts/harden/fail-drill.ts` (not blocking)
+   - What: The drill revokes its agent key but never deletes it, and it leaves an enabled media_ops agent role for fail-drill-agent@mop.invalid. Each run adds one revoked agent_keys row to the database that becomes production at the launch switch. The g9 drills delete their throwaway keys (commit 6f91af08). There is no security exposure: secret-ages ignores revoked keys, and no active key remains. It is a consistency and leftover-data follow-up.
+   - Evidence: Read, not run: fail-drill.ts line 191 `update public.agent_keys set revoked_at = now()`; lines 114-118 upsert user_roles with disabled_at = null and never disable it; secret-ages.ts line 88 filters `revoked_at is null`.
+
+3. `app/scripts/harden/health-drill.ts` (not blocking)
+   - What: The drill finds its event as the newest health.failed event written after the start, not the event that belongs to its own job. If the daily health job really fails during the drill's window of 90 seconds or more, the drill can claim that real event. Its cleanup would then delete a real alert, plus its notify_admin job and email row. The chance is low (the job runs once a day), but tying the event to the drill's job id would close it.
+   - Evidence: Read, not run: health-drill.ts lines 142-146 `select id from events where type = 'health.failed' and at > $1 order by at desc limit 1`; lines 96-115 delete that event and every job whose event_id is that event.
+
+4. `workspace/05-plans/logs/H1.md` (not blocking)
+   - What: Two of the plan's watched-fails for this group's step 10 rows are not recorded anywhere in the slice log: (pp) for H1-42 (trace.json renamed, so --require-trace fails) and (gg) for H1-43 ([[queues.producers]] in a scratch wrangler.toml). The author's 'unproven' list does not name them either. I ran (gg) offline and it goes red. I read the code for (pp): check-plans.mjs line 59 pushes 'trace.json is missing (S53)' and exits 1, but I did not run it.
+   - Evidence: `grep -n "trace.json is missing\|queues.producers" workspace/05-plans/logs/H1.md` prints nothing. The offline (gg) grep on the scratch copy exited 1 printing `21:[[queues.producers]]`.
+
+5. `app/scripts/harden/checklist.json` (not blocking)
+   - What: H1-26 still builds in its own command (`MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x...AA bun run build && ...`). P-3016's new rule says a row that serves .output sets "build": true and never builds in its own command. Today the string is the same as BUILD in run-all.mjs, so the bundle does not drift. The cost is an extra build, and a second copy of the BUILD string that will drift if BUILD changes. g5 wrote this row.
+   - Evidence: Read, not run: the checklist filter prints `H1-26 build= undefined | <load-dev> && MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built ...`
+
+6. `app/scripts/harden/checklist.json` (not blocking)
+   - What: The failure evidence for H1-08 and H1-10 in the report is misleading. The gh comparison `[ "$(gh run list ... --branch main ...)" = success ]` prints nothing when it fails, and evidenceOf takes the last line of output. So H1-10 reports 'exit 1: No vulnerabilities found' and H1-08 reports 'exit 1: no output'. A signer reading the table cannot tell that the cause is the missing audit-deps run on main.
+   - Evidence: My re-run of `run-all.mjs --env dev --only H1-06,...,H1-10` printed `| H1-10 | Dependency audit | fail | exit 1: No vulnerabilities found |` and `| H1-08 | ... | fail | exit 1: no output |`.
