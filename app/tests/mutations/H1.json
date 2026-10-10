@@ -307,6 +307,16 @@
     "expect": "health drill: no health.failed event was written"
   },
   {
+    "id": "h1g7-health-email-cleanup",
+    "kind": "manual",
+    "test": "scripts/harden/health-drill.ts",
+    "file": "scripts/harden/health-drill.ts",
+    "find": "from email_messages where job_id::text",
+    "replace": "from email_messages where false and job_id::text",
+    "run": "with the dev profile loaded, count the rows of email_messages with subject 'Health check failed', run bun run scripts/harden/health-drill.ts, count again (a stand-in check of the cleanup: the dry-run email of the notify_admin job)",
+    "expect": "the second count is one higher than the first; unmutated both counts are equal"
+  },
+  {
     "id": "h1g7-ff-retry-no-requeue",
     "kind": "manual",
     "test": "scripts/harden/fail-drill.ts",
