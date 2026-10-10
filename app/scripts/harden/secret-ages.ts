@@ -1,9 +1,9 @@
 // `bun run scripts/harden/secret-ages.ts --env dev|prod-config|prod` (H1-38, GS-01), with the dev profile loaded. It reads
-// the one database through DEV_DB_URL and prints one line per secret, red lines first, then a summary. A line is red
+// the one database through DEV_DB_URL and prints one line per inventory secret, red lines first, then a summary. A line is red
 // when an agent key without `revoked_at` is older than 90 days, when `settings.meta`, `settings.x` or `settings.linkedin`
 // holds a `token_expires_at` within 7 days (or past), or when the newest `secret.rotated` audit row of a secret named in
 // the inventory of `docs/runbooks/rotation.md` is older than that row's cadence. A secret with no `secret.rotated` row
-// is printed as `unrecorded` and is not red. It writes nothing, so it takes no writer lock. Exits 1 when a line is red.
+// is printed as `unrecorded` and is not red; one whose cadence has no days of its own or its parent's is printed as not aged. It writes nothing, so it takes no writer lock. Exits 1 when a line is red.
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import pg from "pg";
@@ -22,9 +22,13 @@ interface Line {
 
 const days = (from: number, to: number) => Math.floor((to - from) / DAY_MS);
 
-/** Name and cadence in days of each row of the inventory table; a cadence without a number of days or months is skipped. */
-function cadences(): Map<string, number> {
-  const found = new Map<string, number>();
+/**
+ * Name and cadence in days of each row of the inventory table. A cadence "with `PARENT`" takes the parent's days; a
+ * cadence with no number of days or months and no parent (refreshed by a job, on a suspected leak) is null.
+ */
+function cadences(): Map<string, number | null> {
+  const own = new Map<string, number | null>();
+  const parents = new Map<string, string>();
   const lines = readFileSync(INVENTORY, "utf8").split(/\r?\n/);
   const start = lines.findIndex((line) =>
     /^#+\s+(?:\d+\.\s+)?Cadence and inventory\s*$/.test(line),
@@ -33,12 +37,20 @@ function cadences(): Map<string, number> {
     if (/^#+\s/.test(line)) break;
     const [, name, , cadence] = line.split("|").map((cell) => cell.trim());
     const key = /^`([A-Z][A-Z0-9_]*)`$/.exec(name ?? "")?.[1];
+    if (key === undefined) continue;
     const amount = /(\d+)\s*(day|month)/.exec(cadence ?? "");
-    if (key !== undefined && amount?.[1] !== undefined) {
-      found.set(key, Math.round(Number(amount[1]) * (amount[2] === "month" ? MONTH_DAYS : 1)));
-    }
+    own.set(
+      key,
+      amount?.[1] === undefined
+        ? null
+        : Math.round(Number(amount[1]) * (amount[2] === "month" ? MONTH_DAYS : 1)),
+    );
+    const parent = /^with\s+`([A-Z][A-Z0-9_]*)`/.exec(cadence ?? "")?.[1];
+    if (parent !== undefined) parents.set(key, parent);
   }
-  return found;
+  return new Map(
+    [...own].map(([name, days]) => [name, days ?? own.get(parents.get(name) ?? "") ?? null]),
+  );
 }
 
 async function main(): Promise<number> {
@@ -90,6 +102,10 @@ async function main(): Promise<number> {
     const inventory = cadences();
     for (const [name, cadence] of inventory) {
       const at = last.get(name);
+      if (cadence === null) {
+        lines.push({ red: false, text: `ok   ${name}: no cadence in days, not aged` });
+        continue;
+      }
       if (at === undefined) {
         lines.push({ red: false, text: `unrecorded ${name}: no secret.rotated row` });
         continue;

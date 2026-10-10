@@ -20,6 +20,7 @@ const profiles = new Map([
         "PREVIEW_RATE_LIMIT_SALT",
         "OPS_HEALTH_TOKEN",
         "OMNIKOM_MOCK_SECRET",
+        "JOB_RUNNER_SECRET",
       ],
     },
   ],

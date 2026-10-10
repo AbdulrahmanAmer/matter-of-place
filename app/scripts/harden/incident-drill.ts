@@ -4,7 +4,7 @@
 // `docs/runbooks/incident.md` and back: (1) `coming_soon_global`, to the opposite of the value it reads, until `<base>/api/public/markets`
 // shows or drops `comingSoon` on every market, then restored and polled again; (2) the `instagram` row of `channel_settings` off,
 // with one approved carousel asset and one `post_meta` job, which must end `done` as `skipped_disabled` with no `social_posts`
-// row; (3) a throwaway agent key that answers `200` and, once `revoked_at` is set, `401`. Each switch must take under 60
+// row; (3) a throwaway agent key that answers `200` and, once `revoked_at` is set, `401`, and is then deleted. Each switch must take under 60
 // seconds and every restored row is read again. It commits rows to the one database, so it refuses production first
 // (ruling H35 (5)), holds the writer lock (G34) and removes its asset and jobs by H1's cleanup rule.
 // Prints `incident drill ok` with the elapsed seconds, or the failing check and exit 1.
@@ -12,6 +12,7 @@ import { z } from "zod";
 import { assertNotProduction } from "../lib/assert-not-production.mjs";
 import {
   askRunner,
+  deleteAgentKey,
   drillBase,
   enqueue,
   idsOf,
@@ -70,6 +71,16 @@ const setInstagram = (db: ProbeDb, enabled: string) =>
     enabled,
   ]);
 
+/** Whether every market of `GET <base>/api/public/markets` is `comingSoon`; an empty list throws, it shows nothing. */
+async function allComingSoon(base: string): Promise<boolean> {
+  const response = await fetch(`${base}/api/public/markets`, {
+    signal: AbortSignal.timeout(20_000),
+  });
+  const markets = marketsBody.parse(await response.json());
+  if (markets.length === 0) throw new Error("incident drill: /api/public/markets lists no market");
+  return markets.every((market) => market.comingSoon);
+}
+
 /**
  * Seconds until `GET <base>/api/public/markets` shows the global switch (every market `comingSoon`) or its absence, or
  * throws after 30 seconds. The page HTML is not the observable: a preview Worker still renders a property card with the
@@ -78,20 +89,21 @@ const setInstagram = (db: ProbeDb, enabled: string) =>
 async function switchShows(base: string, on: boolean): Promise<number> {
   const since = Date.now();
   while (Date.now() - since < PAGE_WAIT_MS) {
-    const response = await fetch(`${base}/api/public/markets`, {
-      signal: AbortSignal.timeout(20_000),
-    });
-    const markets = marketsBody.parse(await response.json());
-    if (markets.every((market) => market.comingSoon) === on) return seconds(since);
+    if ((await allComingSoon(base)) === on) return seconds(since);
     await new Promise((resolve) => setTimeout(resolve, POLL_MS));
   }
   throw new Error(
-    `incident drill: /api/public/markets does not show the global switch ${on ? "on" : "off"} after 30 seconds`,
+    `incident drill: /api/public/markets does not show the global switch ${on ? "on" : "off"} after 30 seconds (a market with its own coming-soon switch on hides the switch off)`,
   );
 }
 
 async function comingSoon(db: ProbeDb, base: string, original: string): Promise<Timed> {
   const flipped = original === "true" ? "false" : "true";
+  if (flipped === "true" && (await allComingSoon(base))) {
+    throw new Error(
+      "incident drill: every market already shows comingSoon with the global switch off, so turning it on cannot be observed",
+    );
+  }
   await setComingSoon(db, flipped);
   const on = await switchShows(base, flipped === "true");
   await setComingSoon(db, original);
@@ -165,12 +177,13 @@ async function revokedKey(db: ProbeDb, base: string, run: string): Promise<Timed
     const live = await meStatus(base, key.key);
     if (live !== 200)
       throw new Error(`incident drill: the new key answered ${String(live)}, expected 200`);
-  } finally {
     await revokeAgentKey(db, key.id);
+    const revoked = await meStatus(base, key.key);
+    if (revoked !== 401)
+      throw new Error(`incident drill: the revoked key answered ${String(revoked)}, expected 401`);
+  } finally {
+    await deleteAgentKey(db, key.id);
   }
-  const revoked = await meStatus(base, key.key);
-  if (revoked !== 401)
-    throw new Error(`incident drill: the revoked key answered ${String(revoked)}, expected 401`);
   const elapsed = seconds(since);
   return { shown: `${elapsed.toFixed(1)} s`, longest: elapsed };
 }

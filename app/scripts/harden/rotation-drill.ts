@@ -1,12 +1,19 @@
 // `bun run scripts/harden/rotation-drill.ts --env dev --base <dev>` (H1-38), with the dev profile loaded, against a Worker
 // that serves the one database. It rehearses an agent key rotation (GS-01): it inserts two keys A and B for the dev agent,
-// expects `200` from `GET <base>/api/admin/me` for each, revokes A and expects `401` for A and `200` for B, revokes B,
-// then records the rotation with `scripts/audit-note.ts --secret AGENT_KEY` and expects its `secret.rotated` row. It
+// expects `200` from `GET <base>/api/admin/me` for each, revokes A and expects `401` for A and `200` for B,
+// then deletes both rows and records the rotation with `scripts/audit-note.ts --secret AGENT_KEY` and expects its `secret.rotated` row. It
 // commits rows to the one database, so it refuses production first (ruling H35 (5)) and holds the writer lock (G34).
 // Prints `rotation ok`, or the failing check and exit 1.
 import { execFileSync } from "node:child_process";
 import { assertNotProduction } from "../lib/assert-not-production.mjs";
-import { drillBase, insertAgentKey, meStatus, revokeAgentKey, type DrillKey } from "./drill-lib.ts";
+import {
+  deleteAgentKey,
+  drillBase,
+  insertAgentKey,
+  meStatus,
+  revokeAgentKey,
+  type DrillKey,
+} from "./drill-lib.ts";
 import { openProbeDb, type ProbeDb } from "./probe-db.ts";
 
 const SECRET = "AGENT_KEY";
@@ -31,7 +38,7 @@ async function rotate(db: ProbeDb, base: string): Promise<void> {
     expectStatus("revoked key A", await meStatus(base, a.key), 401);
     expectStatus("key B after A was revoked", await meStatus(base, b.key), 200);
   } finally {
-    for (const key of keys) await revokeAgentKey(db, key.id);
+    for (const key of keys) await deleteAgentKey(db, key.id);
   }
 }
 

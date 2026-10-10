@@ -413,5 +413,19 @@
     "replace": "",
     "run": "with a local Worker on mop-dev, replacing those two lines by const back = 0, then restoring settings.coming_soon_global by hand: bun run scripts/harden/incident-drill.ts --env dev --base http://127.0.0.1:8848",
     "expect": "incident drill: not restored: coming_soon_global false -> true"
+  },
+  {
+    "id": "h1g9-n-runner-secret-unset",
+    "kind": "manual",
+    "test": "scripts/harden/drill-lib.ts",
+    "run": "with a local Worker on mop-dev and the dev profile loaded, JOB_RUNNER_SECRET unset (env -u JOB_RUNNER_SECRET): bun run scripts/harden/incident-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "job runner: JOB_RUNNER_SECRET is not set, load the dev profile first"
+  },
+  {
+    "id": "h1g9-n-dependent-secret-listed",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev with the dev profile loaded: bun run scripts/harden/secret-ages.ts --env prod-config",
+    "expect": "unrecorded PROD_TURNSTILE_SECRET: no secret.rotated row"
   }
 ]

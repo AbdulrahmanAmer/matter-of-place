@@ -26,10 +26,12 @@ export interface DrillKey {
   key: string;
 }
 
-/** Asks the job runner of the project to take its due jobs now, when `JOB_RUNNER_SECRET` is set (else its minute tick does). */
+/** Asks the job runner of the project to take its due jobs now; throws when `JOB_RUNNER_SECRET` is unset (the dev profile exports it) or the runner does not answer 2xx. */
 export async function askRunner(): Promise<void> {
   const secret = process.env["JOB_RUNNER_SECRET"];
-  if (secret === undefined || secret === "") return;
+  if (secret === undefined || secret === "") {
+    throw new Error("job runner: JOB_RUNNER_SECRET is not set, load the dev profile first");
+  }
   const runner = new URL("/functions/v1/job-runner", devProject().url);
   const headers = new Headers({ "content-type": "application/json" });
   headers.set("authorization", `Bearer ${secret}`);
@@ -40,6 +42,8 @@ export async function askRunner(): Promise<void> {
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   await answer.body?.cancel();
+  if (!answer.ok)
+    throw new Error(`job runner: POST /functions/v1/job-runner answered ${String(answer.status)}`);
 }
 
 /** Enqueues a job through `enqueue_job` and returns its id; a key that already exists answers no id and throws. */
@@ -114,6 +118,11 @@ export async function insertAgentKey(db: ProbeDb, label: string): Promise<DrillK
 /** Sets `revoked_at`, the column B7's revoke action writes. */
 export async function revokeAgentKey(db: ProbeDb, id: string): Promise<void> {
   await db.rows("update public.agent_keys set revoked_at = now() where id = $1", [id]);
+}
+
+/** Deletes the throwaway key row, so a drill leaves no `agent_keys` row behind. */
+export async function deleteAgentKey(db: ProbeDb, id: string): Promise<void> {
+  await db.rows("delete from public.agent_keys where id = $1", [id]);
 }
 
 /** The status `GET <base>/api/admin/me` answers for a bearer key. */

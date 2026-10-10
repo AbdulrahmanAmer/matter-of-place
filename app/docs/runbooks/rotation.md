@@ -165,8 +165,8 @@ secret, and record `META_PAGE_TOKEN`.
 
 Keys older than 90 days appear in `bun run scripts/harden/secret-ages.ts --env prod-config` and in the weekly audit
 report. `bun run scripts/harden/rotation-drill.ts --env dev --base <dev>` rehearses the sequence for the dev agent: two new
-keys both answer `200`, the first is revoked, it then answers `401` while the second answers `200`, the second is
-revoked, and the rehearsal is recorded as `secret.rotated` with `entity` `AGENT_KEY`.
+keys both answer `200`, the first is revoked, it then answers `401` while the second answers `200`, both rows are
+deleted, and the rehearsal is recorded as `secret.rotated` with `entity` `AGENT_KEY`.
 
 ## 5. If a secret leaks
 
@@ -185,8 +185,10 @@ revoked, and the rehearsal is recorded as `secret.rotated` with `entity` `AGENT_
 
 - Record: `bun run scripts/audit-note.ts --secret <NAME> --note "<text>" --i-mean-it`, with `<NAME>` as in the
   inventory. The refresh jobs of the Meta, X and LinkedIn tokens write their own `secret.rotated` rows.
-- Check: `bun run scripts/harden/secret-ages.ts --env prod-config` prints one line per secret and agent key, red lines
-  first, and exits 1 when any line is red.
+- Check: `bun run scripts/harden/secret-ages.ts --env prod-config` prints one line per inventory name, per live agent key
+  and per channel token, red lines first, and exits 1 when any line is red. A name whose cadence is "with `PARENT`" is
+  aged by its parent's cadence when that has days. A name with no days in its cadence (a token the job refreshes, a salt rotated on a suspected
+  leak, `PREVIEW_WORKER_SECRETS_JSON`) prints `no cadence in days, not aged` and cannot go red.
 - A red line means one of three things. An agent key is older than 90 days: rotate it (section 4). A Meta, X or
   LinkedIn token expires within 7 days or is past: refresh it (section 3) and read the channel check on screen 20. A
   secret's newest `secret.rotated` row is older than its cadence in section 2: rotate it.
