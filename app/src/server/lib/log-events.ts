@@ -25,7 +25,6 @@ export const LogEvent = [
   "schedule_rollback_missed",
   "keepwarm_disabled",
   "keepwarm_last_run_update_failed",
-  "keepwarm_state_rpc_failed",
   "keepwarm_beat_failed",
   "keepwarm_liveness_rpc_failed",
   "keepwarm_tick",

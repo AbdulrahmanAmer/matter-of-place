@@ -19,8 +19,14 @@ const TRIGGER = "submission.received";
 const STEP = "notify_admin_received";
 const WAIT_MS = 120_000;
 const POLL_MS = 5_000;
-// No person: the revision and audit rows carry this id with the note `smoke`.
-const NO_ACTOR = "00000000-0000-0000-0000-000000000000";
+type PutRecipeArgs = Database["public"]["Functions"]["automation_put_recipe"]["Args"];
+// No person: a null actor is the system, so the revision and audit rows carry no user and the note `smoke`.
+// `write_audit` refuses any other actor without a role (DB-04, H1-31).
+// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the generated Args type lists both actor arguments as non-null; null is the system actor
+const SYSTEM_ACTOR = { p_actor: null, p_actor_kind: null } as unknown as Pick<
+  PutRecipeArgs,
+  "p_actor" | "p_actor_kind"
+>;
 const CANCELLABLE = new Set(["queued", "waiting_approval"]);
 
 function requiredEnv(name: string): string {
@@ -58,8 +64,7 @@ async function putSteps(db: DevDb, steps: Json, note: string): Promise<void> {
   const { error } = await db.rpc("automation_put_recipe", {
     p_trigger: TRIGGER,
     p_patch: { steps },
-    p_actor: NO_ACTOR,
-    p_actor_kind: "human",
+    ...SYSTEM_ACTOR,
     p_request_id: `smoke:${note}:${new Date().toISOString()}`,
     p_note: note,
   });

@@ -20,6 +20,7 @@ const profiles = new Map([
         "PREVIEW_RATE_LIMIT_SALT",
         "OPS_HEALTH_TOKEN",
         "OMNIKOM_MOCK_SECRET",
+        "JOB_RUNNER_SECRET",
         // B14 step 4 (SEC-08): the audit collectors' read-only names; none can deploy or write.
         "CF_ANALYTICS_TOKEN",
         "CLOUDFLARE_ACCOUNT_ID",

@@ -1,0 +1,706 @@
+[
+  {
+    "id": "h1g2-a-turnstile-off",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    turnstile: true,\n    form: true,\n    status: 201,\n    service: inquiries.create,",
+    "replace": "    turnstile: false,\n    form: true,\n    status: 201,\n    service: inquiries.create,",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts",
+    "expect": "× .*every POST row checks Turnstile or is exempt with a reason[\\s\\S]*\"/api/public/inquiries\""
+  },
+  {
+    "id": "h1g2-s-turnstile-after-db",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n",
+    "replace": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n  await checkTurnstile(route, name, request, ctx);\n",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts",
+    "expect": "× .*refuses /api/public/inquiries with a token the always-fail secret fails"
+  },
+  {
+    "id": "h1g2-q-nonce",
+    "test": "tests/unit/security/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"script-src\": hashSources(hashes.scripts ?? []),",
+    "replace": "    \"script-src\": [...hashSources(hashes.scripts ?? []), \"'nonce-h1'\"],",
+    "run": "bunx vitest run --project unit tests/unit/security/headers.test.ts",
+    "expect": "× .*is the enforcing header stored with the entry, with hashes and no nonce or unsafe-inline"
+  },
+  {
+    "id": "h1g2-z-unsafe-inline",
+    "test": "tests/unit/security/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "  \"script-src\": [\n    \"'self'\",\n",
+    "replace": "  \"script-src\": [\n    \"'self'\",\n    \"'unsafe-inline'\",\n",
+    "run": "bunx vitest run --project unit tests/unit/security/headers.test.ts",
+    "expect": "× .*is the report-only header stored with the entry, with hashes and no nonce or unsafe-inline"
+  },
+  {
+    "id": "h1g2-404-unhashed",
+    "test": "tests/unit/security/headers.test.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "      response.body === null ||\n",
+    "replace": "      response.status !== 200 ||\n      response.body === null ||\n",
+    "run": "bunx vitest run --project unit tests/unit/security/headers.test.ts",
+    "expect": "× .*hashes the inline scripts of a not-found page too"
+  },
+  {
+    "id": "h1g2-rule6-admin",
+    "test": "tests/unit/security/headers.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const NEVER_CACHED_PREFIXES = [\"/api/admin/\", \"/api/hooks/\"];",
+    "replace": "const NEVER_CACHED_PREFIXES = [\"/api/hooks/\"];",
+    "run": "bunx vitest run --project unit tests/unit/security/headers.test.ts",
+    "expect": "× .*answers an admin API read with exactly no-store"
+  },
+  {
+    "id": "h1g2-guard-rate-probe",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/rate-probe.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/rate-probe.ts"
+  },
+  {
+    "id": "h1g2-k-ratelimit-fixture",
+    "test": "scripts/harden/waf-check.ts",
+    "file": "scripts/harden/fixtures/zone-rules.json",
+    "find": "\"expression\": \"(starts_with(http.request.uri.path, \\\"/api/public/\\\") or starts_with(http.request.uri.path, \\\"/api/admin/auth/\\\"))\"",
+    "replace": "\"expression\": \"(starts_with(http.request.uri.path, \\\"/api/admin/auth/\\\"))\"",
+    "run": "bun run scripts/harden/waf-check.ts --fixture scripts/harden/fixtures/zone-rules.json",
+    "expect": "rate limit: 0 enabled rules name both /api/public/ and /api/admin/auth/, expected 1"
+  },
+  {
+    "id": "h1g2-k-country-fixture",
+    "test": "scripts/harden/waf-check.ts",
+    "file": "scripts/harden/fixtures/zone-rules.json",
+    "find": "      \"phase\": \"http_request_firewall_custom\",\n      \"rules\": []",
+    "replace": "      \"phase\": \"http_request_firewall_custom\",\n      \"rules\": [{ \"action\": \"block\", \"description\": \"admin outside the United States\", \"expression\": \"(starts_with(http.request.uri.path, \\\"/admin\\\") and ip.src.country ne \\\"US\\\")\", \"enabled\": true }]",
+    "run": "bun run scripts/harden/waf-check.ts --fixture scripts/harden/fixtures/zone-rules.json",
+    "expect": "custom rule decides by country: admin outside the United States"
+  },
+  {
+    "id": "h1g2-ss-preview-db-password",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "find": "    # False once L1's launch switch removes the database pair from the bundle (invariant 13a).\n    env:\n",
+    "replace": "    # False once L1's launch switch removes the database pair from the bundle (invariant 13a).\n    env:\n      H1_PROBE: ${{ secrets.DEV_SUPABASE_DB_PASSWORD }}\n",
+    "run": "bunx vitest run --project unit tests/unit/hygiene.test.ts",
+    "expect": "×[\\s\\S]*preview"
+  },
+  {
+    "id": "h1g2-b-hsts",
+    "kind": "manual",
+    "test": "scripts/harden/check-headers.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"Strict-Transport-Security\": \"max-age=31536000; includeSubDomains\",\n",
+    "replace": "",
+    "run": "rebuild, cp .dev.vars .output/server/.dev.vars, bunx wrangler dev --config .output/server/wrangler.json --port 8878, then bun run scripts/harden/check-headers.ts http://127.0.0.1:8878",
+    "expect": "strict-transport-security: expected \"max-age=31536000; includeSubDomains\", found null"
+  },
+  {
+    "id": "h1g2-uu-gtag-wildcard",
+    "kind": "manual",
+    "test": "scripts/harden/check-headers.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"https://www.googletagmanager.com/gtag/js\",\n  ],",
+    "replace": "    \"https://*.googletagmanager.com\",\n  ],",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then bun run scripts/harden/check-headers.ts http://127.0.0.1:8878",
+    "expect": "csp script-src: unexpected https://\\*\\.googletagmanager\\.com"
+  },
+  {
+    "id": "h1g2-v-checkdb-allows",
+    "kind": "manual",
+    "test": "scripts/harden/rate-probe.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "  return row.allowed ? { ok: true } : { ok: false, retryAfter: row.retry_after };",
+    "replace": "  return { ok: true };",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then with the dev profile bun run scripts/harden/rate-probe.ts http://127.0.0.1:8878/api/public/subscribers 12",
+    "expect": "expected 3 then 2 x 201 before each 429, got no 429 then no 429"
+  },
+  {
+    "id": "h1g2-rr-csrf-skipped",
+    "kind": "manual",
+    "test": "tests/e2e/admin-csrf.spec.ts",
+    "file": "src/server/lib/admin-route.ts",
+    "find": "        if (WRITES.includes(request.method)) await deps.verifyCsrf(request, actor);\n",
+    "replace": "",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then with the dev profile E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8878 bunx playwright test --project=harden tests/e2e/admin-csrf.spec.ts",
+    "expect": "POST /api/admin/assets/\\$id/approve 404 not_found"
+  },
+  {
+    "id": "h1g2-y-commercial-write",
+    "kind": "manual",
+    "test": "tests/e2e/admin-authz.spec.ts",
+    "file": "src/server/lib/permissions/payments.ts",
+    "find": "  { action: \"payments.mark_paid\", group: \"payments\", roles: issuers, humanOnly: true },",
+    "replace": "  { action: \"payments.mark_paid\", group: \"payments\", roles: [...issuers, \"commercial\"], humanOnly: true },",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then with the dev profile E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8878 bunx playwright test --project=harden tests/e2e/admin-authz.spec.ts --grep commercial",
+    "expect": "POST /api/admin/payments/\\$id/mark-paid \\(payments.mark_paid, refused\\): 422 validation"
+  },
+  {
+    "id": "h1g2-z-hash-dropped",
+    "kind": "manual",
+    "test": "tests/e2e/csp.spec.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    scripts: [...new Set(hashed.slice(0, scripts.length))],",
+    "replace": "    scripts: [...new Set(hashed.slice(1, scripts.length))],",
+    "run": "rebuild and serve on 8878 as h1g2-b-hsts, then E2E_TARGET=url E2E_MODE=local E2E_BASE_URL=http://127.0.0.1:8878 bunx playwright test --project=harden tests/e2e/csp.spec.ts",
+    "expect": "\"directive\": \"script-src-elem\""
+  },
+  {
+    "id": "h1g3-c-table-without-rls",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "create table public.h1_scratch_no_rls (id int)",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(a\\) RLS off: h1_scratch_no_rls"
+  },
+  {
+    "id": "h1g3-d-anon-select-jobs",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "grant select on public.jobs to anon",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(b\\) anon holds select on jobs"
+  },
+  {
+    "id": "h1g3-e-audit-log-update-policy",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "create policy h1_scratch_update on public.audit_log for update to authenticated using (true)",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(d\\) insert-only audit_log: policy h1_scratch_update allows UPDATE"
+  },
+  {
+    "id": "h1g3-review-c-dropped-policy",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "drop policy payments_update_finance on public.payments",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(c\\) payments update: no policy for managing_editor, admin"
+  },
+  {
+    "id": "h1g3-review-e-no-search-path",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "create function public.h1_scratch() returns int language sql security definer as $$ select 1 $$; revoke all on function public.h1_scratch() from public, anon, authenticated",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(e\\) security definer without a fixed search_path: public\\.h1_scratch\\(\\)"
+  },
+  {
+    "id": "h1g3-review-e-anon-executes",
+    "kind": "sql",
+    "test": "scripts/harden/rls-review.ts",
+    "sql": "create function public.h1_scratch() returns int language sql security definer set search_path = '' as $$ select 1 $$; grant execute on function public.h1_scratch() to anon",
+    "run": "bun run scripts/harden/rls-review.ts --env dev",
+    "expect": "\\(e\\) security definer executable by anon: public\\.h1_scratch\\(\\)"
+  },
+  {
+    "id": "h1g3-m-migration-without-down",
+    "test": "tests/db/migration-headers.test.ts",
+    "file": "supabase/migrations/20261008150152_admin_dashboard.sql",
+    "find": "-- down:\n--   drop function public.admin_dashboard();",
+    "replace": "--\n--   drop function public.admin_dashboard();",
+    "run": "bunx vitest run --project db tests/db/migration-headers.test.ts",
+    "expect": "× .*every migration opens with -- down: or -- irreversible: in its first 30 lines[\\s\\S]*20261008150152_admin_dashboard\\.sql"
+  },
+  {
+    "id": "h1g4-hh-high-not-accepted",
+    "test": "scripts/harden/read-scan.mjs",
+    "file": "scripts/harden/fixtures/security-scan.md",
+    "find": "- closed: fixture commit 0000000, `src/server/lib/headers.ts`\n",
+    "replace": "",
+    "run": "node scripts/harden/read-scan.mjs scripts/harden/fixtures/security-scan.md --today 2026-10-09",
+    "expect": "scan fail: .*\"F1 · Fixture finding closed by a commit\" is High with no \"- closed:\" or \"- accepted:\" line"
+  },
+  {
+    "id": "h1g4-hh-critical-not-accepted",
+    "test": "scripts/harden/read-scan.mjs",
+    "file": "scripts/harden/fixtures/security-scan.md",
+    "find": "- accepted: fixture owner, 2026-10-09, the fixture's reason\n",
+    "replace": "",
+    "run": "node scripts/harden/read-scan.mjs scripts/harden/fixtures/security-scan.md --today 2026-10-09",
+    "expect": "\"F2 · Fixture finding accepted in writing\" is Critical with no"
+  },
+  {
+    "id": "h1g4-hh-eight-days-old",
+    "test": "scripts/harden/read-scan.mjs",
+    "file": "scripts/harden/fixtures/security-scan.md",
+    "find": "date: 2026-10-09\n",
+    "replace": "date: 2026-10-01\n",
+    "run": "node scripts/harden/read-scan.mjs scripts/harden/fixtures/security-scan.md --today 2026-10-09",
+    "expect": "report dated 2026-10-01 is 8 days old \\(limit 7\\)"
+  },
+  {
+    "id": "h1g4-o-heading-deleted",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "scripts/harden/fixtures/runbooks/incident.md",
+    "find": "## 5. Put the whole site in coming-soon\n\n",
+    "replace": "",
+    "run": "node scripts/harden/runbook-lint.mjs scripts/harden/fixtures/runbooks/incident.md",
+    "expect": "incident\\.md:0: no heading \"Put the whole site in coming-soon\""
+  },
+  {
+    "id": "h1g4-o-command-renamed",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "scripts/harden/fixtures/runbooks/incident.md",
+    "find": "`node scripts/harden/run-all.mjs --env dev --only H1-01`",
+    "replace": "`node scripts/harden/run-al.mjs --env dev --only H1-01`",
+    "run": "node scripts/harden/runbook-lint.mjs scripts/harden/fixtures/runbooks/incident.md",
+    "expect": "incident\\.md:\\d+: scripts/harden/run-al\\.mjs does not exist"
+  },
+  {
+    "id": "h1g4-o-bun-run-unknown",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "scripts/harden/fixtures/runbooks/incident.md",
+    "find": "`bun run check`",
+    "replace": "`bun run chek`",
+    "run": "node scripts/harden/runbook-lint.mjs scripts/harden/fixtures/runbooks/incident.md",
+    "expect": "bun run chek is not a script of package\\.json"
+  },
+  {
+    "id": "h1g4-security-file-missing",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/security.md",
+    "find": "`src/server/lib/agent-keys.ts`",
+    "replace": "`src/server/lib/agent-key.ts`",
+    "run": "node scripts/harden/runbook-lint.mjs docs/security.md",
+    "expect": "docs/security\\.md:\\d+: src/server/lib/agent-key\\.ts does not exist"
+  },
+  {
+    "id": "h1g4-security-row-unknown",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/security.md",
+    "find": "by H1-13.",
+    "replace": "by H1-99.",
+    "run": "node scripts/harden/runbook-lint.mjs docs/security.md",
+    "expect": "docs/security\\.md:\\d+: H1-99 is not a row of checklist\\.json"
+  },
+  {
+    "id": "h1g7-guard-fail-drill",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/fail-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/fail-drill.ts"
+  },
+  {
+    "id": "h1g7-guard-health-drill",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/health-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/health-drill.ts"
+  },
+  {
+    "id": "h1g7-ee-no-health-event",
+    "kind": "manual",
+    "test": "scripts/harden/health-drill.ts",
+    "file": "scripts/harden/health-drill.ts",
+    "find": "where type = 'health.failed' and at",
+    "replace": "where type = 'health.failedx' and at",
+    "run": "with the dev profile loaded, bun run scripts/harden/health-drill.ts (a stand-in for watched-fail (ee): the deployed job runner is not mutated, so the drill reads an event type nobody emits)",
+    "expect": "health drill: no health.failed event was written"
+  },
+  {
+    "id": "h1g7-health-email-cleanup",
+    "kind": "manual",
+    "test": "scripts/harden/health-drill.ts",
+    "file": "scripts/harden/health-drill.ts",
+    "find": "from email_messages where job_id::text",
+    "replace": "from email_messages where false and job_id::text",
+    "run": "with the dev profile loaded, count the rows of email_messages with subject 'Health check failed', run bun run scripts/harden/health-drill.ts, count again (a stand-in check of the cleanup: the dry-run email of the notify_admin job)",
+    "expect": "the second count is one higher than the first; unmutated both counts are equal"
+  },
+  {
+    "id": "h1g7-ff-retry-no-requeue",
+    "kind": "manual",
+    "test": "scripts/harden/fail-drill.ts",
+    "file": "src/server/jobs/service.ts",
+    "find": "  return act(actor, db, \"admin_retry_job\", input.id, \"queued\");",
+    "replace": "  return { id: input.id, status: \"queued\" };",
+    "run": "rebuild and serve on 8828, then with the dev profile bun run scripts/harden/fail-drill.ts --base http://127.0.0.1:8828",
+    "expect": "has 0 manual_retry events, not 1"
+  },
+  {
+    "id": "h1g7-lock-poll",
+    "kind": "manual",
+    "test": "scripts/harden/rate-probe.ts",
+    "file": "scripts/harden/probe-db.ts",
+    "find": "select pg_try_advisory_lock(${LOCK}) as got",
+    "replace": "select pg_advisory_lock(${LOCK}), true as got",
+    "run": "with the dev profile loaded and a rebuilt Worker on 8828, hold the lock for 200 s with bun run db:psql -- -Atc \"select pg_advisory_lock(hashtext('mop-dev-tests'))\" -c \"select pg_sleep(100)\" -c \"select pg_sleep(100)\", and meanwhile run bun run scripts/harden/rate-probe.ts http://127.0.0.1:8828/api/public/subscribers 30",
+    "expect": "canceling statement due to statement timeout"
+  },
+  {
+    "id": "h1g5-g-unknown-route-200",
+    "kind": "manual",
+    "test": "tests/e2e/states.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  response = apiShellGuard(underApi, response, requestId);\n",
+    "replace": "  response = apiShellGuard(underApi, response.status === 404 ? new Response(response.body, { status: 200, headers: response.headers }) : response, requestId);\n",
+    "run": "vite dev on a free port with the dev profile loaded and VITE_API_BASE_URL=/api/public, then E2E_TARGET=url E2E_BASE_URL=<that server> E2E_MODE=live bunx playwright test --project=harden tests/e2e/states.spec.ts --grep unknown",
+    "expect": "Expected: 404\\s+Received: 200"
+  },
+  {
+    "id": "h1g5-jj-pending-ms-5000",
+    "kind": "manual",
+    "test": "tests/e2e/states.spec.ts",
+    "file": "src/router.tsx",
+    "find": "defaultPendingMs: 300,",
+    "replace": "defaultPendingMs: 5000,",
+    "run": "serve and run as h1g5-g-unknown-route-200 with --grep \"two seconds\"",
+    "expect": "Locator: locator\\('\\[data-pending\\]'\\)\\s+Expected: visible"
+  },
+  {
+    "id": "h1g5-jj-request-id-header-dropped",
+    "kind": "manual",
+    "test": "tests/e2e/states.spec.ts",
+    "file": "src/services/http/client.ts",
+    "find": "  if (header !== null) return header;\n",
+    "replace": "",
+    "run": "serve and run as h1g5-g-unknown-route-200 with --grep \"response header\"",
+    "expect": "Locator:\\s+getByText\\('h1-states-body'\\)\\s+Expected: 0\\s+Received: 1"
+  },
+  {
+    "id": "h1g6-guard-restore-rehearsal",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/restore-rehearsal.sh",
+    "find": "bun -e \"await (await import('./scripts/lib/assert-not-production.mjs')).assertNotProduction({ dbUrl: process.env.DEV_DB_URL })\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/restore-rehearsal.sh"
+  },
+  {
+    "id": "h1g6-guard-restore-drill",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/restore-supabase-drill.sh",
+    "find": "bun -e \"await (await import('./scripts/lib/assert-not-production.mjs')).assertNotProduction({ dbUrl: process.env.DEV_DB_URL })\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/restore-supabase-drill.sh"
+  },
+  {
+    "id": "h1g6-i-corrupt-byte",
+    "kind": "manual",
+    "test": "scripts/harden/restore-rehearsal.sh",
+    "run": "with the dev profile, PATH led by a stand-in gh (workflow run = laptop pg_dump of DEV_DB_URL encrypted to a stand-in certificate) and its key: bash scripts/harden/restore-rehearsal.sh <stand-in key>, with the stand-in flipping the middle byte of the plain dump before encryption (FAKE_GH_CORRUPT=1)",
+    "expect": "restore blocked: processing data for table \"public\\.job_events\""
+  },
+  {
+    "id": "h1g6-mm-no-marker",
+    "kind": "manual",
+    "test": "scripts/harden/restore-rehearsal.sh",
+    "file": "scripts/harden/restore-rehearsal.sh",
+    "find": "restore_dev_psql -c \"insert into audit_log (action, entity, note) values ('restore.marker', 'restore', '$MARK') returning id\" > /dev/null\n",
+    "replace": "",
+    "run": "with the dev profile, PATH led by a stand-in gh (workflow run = laptop pg_dump of DEV_DB_URL encrypted to a stand-in certificate) and its key: bash scripts/harden/restore-rehearsal.sh <stand-in key>",
+    "expect": "restore: marker h1-restore-\\d{8}T\\d{6}Z found 0 times"
+  },
+  {
+    "id": "h1g6-tt-vault-skipped",
+    "kind": "manual",
+    "test": "scripts/harden/restore-supabase-drill.sh",
+    "file": "scripts/harden/restore-supabase-drill.sh",
+    "find": "restore_dev_psql > /dev/null << SQL || blocked \"the Vault rows job_runner_url and job_runner_secret\"\n",
+    "replace": "cat > /dev/null << SQL\n",
+    "run": "on a native PostgreSQL 18 copy of the dump with a stub vault schema, PATH led by a stand-in gh and a stand-in bun (db:reset rebuilds public from the dump, job-selftest.ts passes only when both runner Vault rows hold the stand-in values), DEV_DB_URL on that copy: bash scripts/harden/restore-supabase-drill.sh <stand-in key>",
+    "expect": "restore into project blocked: job-selftest\\.ts --light-only"
+  },
+  {
+    "id": "h1g6-cc-production",
+    "kind": "manual",
+    "test": "scripts/harden/restore-rehearsal.sh",
+    "run": "a native PostgreSQL 18 database with scripts/harden/restore-shims.sql, public.settings made by hand and the row ('environment', '\"production\"'); DEV_DB_URL on it: bash scripts/harden/restore-rehearsal.sh /nonexistent.key, then bash scripts/harden/restore-supabase-drill.sh /nonexistent.key; each exits 1 and the database still holds only the settings table",
+    "expect": "error: refusing: production database"
+  },
+  {
+    "id": "h1g8-t-edge-80-percent",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "scripts/harden/cache-probe.ts",
+    "find": "const HIT_RATIO = 0.95;",
+    "replace": "const HIT_RATIO = 0.75;",
+    "run": "node -e \"const r=require('node:child_process').spawnSync('bun',['run','scripts/harden/cache-probe.ts','--mode','edge','--fixture','scripts/harden/fixtures/cache-edge-80-percent.json'],{encoding:'utf8',shell:true});process.stdout.write(r.stdout+r.stderr);process.exit(r.status===0?1:0)\"",
+    "expect": "cache edge ok \\(edge hit ratio 80% ok"
+  },
+  {
+    "id": "h1g8-w-exceeded-cpu-ignored",
+    "test": "scripts/harden/cpu-probe.ts",
+    "file": "scripts/harden/cpu-probe.ts",
+    "find": "    if (outcome !== \"ok\") {",
+    "replace": "    if (outcome !== \"ok\" && outcome !== \"exceededCpu\") {",
+    "run": "node -e \"const r=require('node:child_process').spawnSync('bun',['run','scripts/harden/cpu-probe.ts','--fixture','scripts/harden/fixtures/tail-exceeded.json'],{encoding:'utf8',shell:true});process.stdout.write(r.stdout+r.stderr);process.exit(r.status===0?1:0)\"",
+    "expect": "cpu ok \\(1 invocations"
+  },
+  {
+    "id": "h1g8-p-memo-off",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "run": "append CATALOG_VERSION_TTL_MS=0 to .output/server/.dev.vars of a built Worker (the memo off), start it as in h1g8-p-loader-table-read, then bun run scripts/harden/cache-probe.ts --mode memory http://127.0.0.1:8839",
+    "expect": "public_state ran \\d+ times in \\d+ s, at most \\d+"
+  },
+  {
+    "id": "h1g8-p-loader-table-read",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "export async function listMarkets(db: Db): Promise<Market[]> {\n  return (await getCatalog(db)).markets;\n}",
+    "replace": "export async function listMarkets(db: Db): Promise<Market[]> {\n  await db.from(\"markets\").select(\"slug\").limit(1);\n  return (await getCatalog(db)).markets;\n}",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode memory http://127.0.0.1:8839",
+    "expect": "the Worker ran table markets x\\d+"
+  },
+  {
+    "id": "h1g8-q-nonce",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"script-src\": hashSources(hashes.scripts ?? []),",
+    "replace": "    \"script-src\": [...hashSources(hashes.scripts ?? []), \"'nonce-h1'\"],",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode identical http://127.0.0.1:8839",
+    "expect": "a nonce- token in the policy or the body"
+  },
+  {
+    "id": "h1g8-q-random-html",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { name: \"theme-color\", content: \"#F5F2EB\" },",
+    "replace": "      { name: \"theme-color\", content: \"#F5F2EB\" },\n      { name: \"h1-probe\", content: String(Math.random()) },",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode identical http://127.0.0.1:8839",
+    "expect": "two renders differ beyond clock values"
+  },
+  {
+    "id": "h1g8-r-admin-cacheable",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const NEVER_CACHED_PREFIXES = [\"/api/admin/\", \"/api/hooks/\"];",
+    "replace": "const NEVER_CACHED_PREFIXES = [\"/api/hooks/\"];",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode never http://127.0.0.1:8839",
+    "expect": "admin api /api/admin/me answered 401 with cache-control \"private, no-store\""
+  },
+  {
+    "id": "h1g8-s-turnstile-after-db",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n",
+    "replace": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n  await checkTurnstile(route, name, request, ctx);\n",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode writes http://127.0.0.1:8839",
+    "expect": "60 refused writes ran rpc rate_limit_check x\\d+"
+  },
+  {
+    "id": "h1g8-t-store-disabled",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  return parsed.success ? parsed.data.default : undefined;",
+    "replace": "  return parsed.success ? undefined : undefined;",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode edge http://127.0.0.1:8839 400",
+    "expect": "a new key answered miss then miss, expected miss then hit"
+  },
+  {
+    "id": "h1g8-r-404-cacheable",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    { status, headers: { \"cache-control\": \"no-store\" } },\n  );\n}\n\n/** The calm failure page",
+    "replace": "    { status, headers: { \"cache-control\": status === 404 ? \"public, s-maxage=60\" : \"no-store\" } },\n  );\n}\n\n/** The calm failure page",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode never http://127.0.0.1:8839",
+    "expect": "unknown api route /api/public/nothing-here-S+ answered 404 with cache-control \"public, s-maxage=60\""
+  },
+  {
+    "id": "h1g8-r-hit-checked",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "scripts/harden/cache-probe.ts",
+    "find": "{ name: \"admin api\", path: \"/api/admin/me\" }",
+    "replace": "{ name: \"admin api\", path: \"/api/public/markets\" }",
+    "run": "against a Worker built from the unmutated tree and started as in h1g8-r-404-cacheable, bun run scripts/harden/cache-probe.ts --mode never http://127.0.0.1:8839 (a route that is stored stands in for a never-cached route that leaked into the store)",
+    "expect": "admin api /api/public/markets was served from the store (x-mop-cache hit)"
+  },
+  {
+    "id": "h1g8-p-bump-noop",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "scripts/harden/cache-probe.ts",
+    "find": "select public.bump_catalog_version()::text as version",
+    "replace": "select 0::text as version",
+    "run": "against a Worker built from the unmutated tree and started as in h1g8-r-404-cacheable, bun run scripts/harden/cache-probe.ts --mode memory http://127.0.0.1:8839",
+    "expect": "public_catalog_snapshot never ran: nothing was rebuilt after the version bump"
+  },
+  {
+    "id": "h1g8-u-tick-skipped",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/nitro/keepwarm.ts",
+    "find": "      const db = await tickDb();\n      if (db === undefined) return undefined;",
+    "replace": "      const db = await tickDb();\n      if (db === undefined || db !== undefined) return undefined;",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode keepwarm http://127.0.0.1:8839",
+    "expect": "the tick ran public_state 0 times, expected exactly 1"
+  },
+  {
+    "id": "h1g8-u-no-request",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "  const { status, cache } = await pageStatus(input);",
+    "replace": "  const { status, cache } = { status: 200, cache: \"hit\" };",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode keepwarm http://127.0.0.1:8839",
+    "expect": "the tick ran public_state 0 times, expected exactly 1"
+  },
+  {
+    "id": "h1g9-oo-inventory-renamed",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/runbooks/rotation.md",
+    "find": "| `CONFIRM_TOKEN_SECRET`",
+    "replace": "| `CONFIRM_TOKEN_SECRETS`",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "CONFIRM_TOKEN_SECRET \\(tech-stack\\.md:\\d+\\) is in neither the inventory nor a constant"
+  },
+  {
+    "id": "h1g9-oo-tech-stack-name",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "../workspace/02-tech-stack/tech-stack.md",
+    "find": "Worker secrets (`wrangler secret`, never in the repo): `SUPABASE_URL`,",
+    "replace": "Worker secrets (`wrangler secret`, never in the repo): `NEW_FAKE_SECRET`, `SUPABASE_URL`,",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "NEW_FAKE_SECRET \\(tech-stack\\.md:\\d+\\) is in neither the inventory nor a constant"
+  },
+  {
+    "id": "h1g9-oo-env-example-name",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": ".env.example",
+    "find": "CATALOG_VERSION_TTL_MS=",
+    "replace": "CATALOG_VERSION_TTL_MSX=",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "CATALOG_VERSION_TTL_MSX \\(\\.env\\.example:\\d+\\) is in neither the inventory nor a constant"
+  },
+  {
+    "id": "h1g9-oo-h107-list",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "scripts/harden/checklist.json",
+    "find": "|INDEXNOW_KEY|",
+    "replace": "|",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "INDEXNOW_KEY is not in the H1-07 name list"
+  },
+  {
+    "id": "h1g9-cc-guard-retention",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/retention-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/retention-drill\\.ts"
+  },
+  {
+    "id": "h1g9-cc-guard-rotation",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/rotation-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/rotation-drill\\.ts"
+  },
+  {
+    "id": "h1g9-cc-guard-incident",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/incident-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/incident-drill\\.ts"
+  },
+  {
+    "id": "h1g9-o-heading-deleted",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/runbooks/incident.md",
+    "find": "## 5. Put the whole site in coming-soon",
+    "replace": "## 5. Put the whole site elsewhere",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/incident.md",
+    "expect": "incident\\.md:0: no heading \"Put the whole site in coming-soon\""
+  },
+  {
+    "id": "h1g9-o-command-renamed",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/runbooks/incident.md",
+    "find": "`bun run scripts/harden/incident-drill.ts --env dev --base <dev>`",
+    "replace": "`bun run scripts/harden/incident-drils.ts --env dev --base <dev>`",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/incident.md",
+    "expect": "incident\\.md:\\d+: scripts/harden/incident-drils\\.ts does not exist"
+  },
+  {
+    "id": "h1g9-l-cutoff-120",
+    "kind": "manual",
+    "test": "scripts/harden/retention-drill.ts",
+    "run": "on mop-dev: update retention_policies set keep_for = interval '120 days' where key = 'declined_submission_media' (restored to 90 days afterwards), then bun run scripts/harden/retention-drill.ts --env dev",
+    "expect": "retention drill: not purged: the 91 day declined submission's media rows and objects"
+  },
+  {
+    "id": "h1g9-l-cutoff-80",
+    "kind": "manual",
+    "test": "scripts/harden/retention-drill.ts",
+    "run": "on mop-dev: update retention_policies set keep_for = interval '80 days' where key = 'declined_submission_media' (restored to 90 days afterwards), then bun run scripts/harden/retention-drill.ts --env dev",
+    "expect": "retention drill: not kept: the 89 day declined submission's media row and object"
+  },
+  {
+    "id": "h1g9-n-first-key-not-revoked",
+    "kind": "manual",
+    "test": "scripts/harden/rotation-drill.ts",
+    "file": "scripts/harden/rotation-drill.ts",
+    "find": "    await revokeAgentKey(db, a.id);\n",
+    "replace": "",
+    "run": "with a local Worker on mop-dev: bun run scripts/harden/rotation-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "rotation drill: revoked key A answered 200, expected 401"
+  },
+  {
+    "id": "h1g9-n-audit-note-skipped",
+    "kind": "manual",
+    "test": "scripts/harden/rotation-drill.ts",
+    "run": "with a local Worker on mop-dev: bun run scripts/harden/rotation-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "rotation drill: no secret\\.rotated row for AGENT_KEY"
+  },
+  {
+    "id": "h1g9-x-agent-key-91-days",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev, holding the writer lock: insert an agent_keys row for the seed agent with created_at 91 days back, bun run scripts/harden/secret-ages.ts --env prod-config, delete the row",
+    "expect": "RED  agent key h1 wf-x 91 days \\(\\w+\\): 91 days old"
+  },
+  {
+    "id": "h1g9-ll-token-in-3-days",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev, holding the writer lock: set settings.x.token_expires_at to now plus 3 days (the value read first is restored), bun run scripts/harden/secret-ages.ts --env prod-config",
+    "expect": "RED  channel x: token expires in 2 days"
+  },
+  {
+    "id": "h1g9-o-switch-left-on",
+    "kind": "manual",
+    "test": "scripts/harden/incident-drill.ts",
+    "file": "scripts/harden/incident-drill.ts",
+    "find": "  await setComingSoon(db, original);\n  const back = await switchShows(base, original === \"true\");\n",
+    "replace": "",
+    "run": "with a local Worker on mop-dev, replacing those two lines by const back = 0, then restoring settings.coming_soon_global by hand: bun run scripts/harden/incident-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "incident drill: not restored: coming_soon_global false -> true"
+  },
+  {
+    "id": "h1g9-n-runner-secret-unset",
+    "kind": "manual",
+    "test": "scripts/harden/drill-lib.ts",
+    "run": "with a local Worker on mop-dev and the dev profile loaded, JOB_RUNNER_SECRET unset (env -u JOB_RUNNER_SECRET): bun run scripts/harden/incident-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "job runner: JOB_RUNNER_SECRET is not set, load the dev profile first"
+  },
+  {
+    "id": "h1g9-n-dependent-secret-listed",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev with the dev profile loaded: bun run scripts/harden/secret-ages.ts --env prod-config",
+    "expect": "unrecorded PROD_TURNSTILE_SECRET: no secret.rotated row"
+  }
+]
