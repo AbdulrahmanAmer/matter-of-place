@@ -158,6 +158,17 @@ describe("revisions (invariant 7)", () => {
     });
     expect(outcomes).toEqual(["P0001 append_only", "P0001 append_only"]);
   });
+
+  it("pg_indexes lists the (at desc) index that the paginated revisions list orders by", async () => {
+    const definitions = await withRollback(async (db) =>
+      (
+        await db.query<{ indexdef: string }>(
+          "select indexdef from pg_indexes where schemaname = 'public' and tablename = 'automation_revisions' order by indexname",
+        )
+      ).rows.map((row) => row.indexdef.replace(/^.* USING /, "")),
+    );
+    expect(definitions).toContain("btree (at DESC)");
+  });
 });
 
 describe("recipes (invariant 8)", () => {

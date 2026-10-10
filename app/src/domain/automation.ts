@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { assetKinds, marketSlugs, type Tier, tiers } from "./events.ts";
 
+export { emailTemplateSchema } from "./email.ts";
+
 // The shapes of the automation console (screens 17 to 21). Field names equal the API JSON and the columns of
 // `automation_recipes`, `channel_settings`, `schedule_settings` and `decline_reasons` (G-004).
 
@@ -73,6 +75,19 @@ export const channels = [
   "newsletter",
 ] as const;
 export type Channel = (typeof channels)[number];
+
+/**
+ * The catalog step that posts to each channel, `null` where none does. The browser reads it to keep a channel's switch
+ * off (screen 20); `stepForChannel` in `server/automation/catalog.ts` answers the planner from the same table.
+ */
+export const channelSteps = {
+  instagram: "post_meta",
+  facebook: "post_meta",
+  x: "post_x",
+  linkedin: "post_linkedin",
+  newsletter: "queue_digest",
+  youtube: null,
+} as const satisfies Record<Channel, string | null>;
 
 const wallTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use 24 hour time, HH:MM");
 
