@@ -9,9 +9,10 @@
 //   identical  a cached page is byte-identical whatever the cookie, language, agent or query; two fresh renders
 //              (a preview request is never stored) differ in nothing but clock values and the hashes of the scripts that
 //              carry them; no `nonce-` anywhere; a render that was just stored and its hit have one policy.
-//   never      rule 6: writes, `/api/admin/*`, `/api/hooks/*`, `/admin`, the 405 and 404 of the pipeline and a preview
-//              page answer `no-store` and never `x-mop-cache: hit`, twice in a row; so does any response in the run that
-//              sets a cookie or is a 5xx.
+//   never      rule 6: a write, `/api/admin/*`, `/api/hooks/*`, `/admin`, the 405 and 404 the pipeline writes and a preview
+//              page answer `no-store` and never `x-mop-cache: hit`, twice in a row. Three cacheable reads are also
+//              checked for a cookie or a 5xx, which must be `no-store` too; no request here makes the Worker set a
+//              cookie or fail, so those two classes are proved by `tests/unit/cache.test.ts` only (UNPROVEN here).
 //   writes     30 POSTs without a Turnstile token and 30 more over the memory limit add 0 database statements.
 //   edge       the stored copy is served: a new key is a miss then a hit, a random query string still hits, and
 //              `n` (default 400) GETs after one warm-up pass hit 95 percent of the time. `--fixture <file>` reads a
@@ -19,16 +20,17 @@
 //   keepwarm   the `scheduled()` tick (the Worker runs under `--test-scheduled`) makes exactly one `public_state`
 //              statement once the memo has expired, and `/` is still a hit afterwards.
 // Statements are counted in `pg_stat_statements` of the one database through `$DEV_DB_URL` (E15), for the role the Worker
-// uses, so no endpoint exposes counts. The database is shared: the job runner's own statements are not the Worker's and
-// are ignored, any other client's calls can still add to a count, so a mode that counts statements runs a second time
-// when it misses and passes only if the second run is clean. The modes that count refuse a production database
-// (ruling H35 (5)) and hold the writer lock (G34).
+// uses (the job runner and every lane use it too), so no endpoint exposes counts. The modes that count refuse a
+// production database (ruling H35 (5)), take the writer lock (G34) for at most 3 minutes, wait until nobody else has
+// used the database for 3 seconds in a row, ignore the job runner's own statements by name, and run a second time when
+// they miss, passing only if the second run is clean. When the lock or an idle database never comes they print
+// `BLOCKED cache <mode> ...` (UNPROVEN, not a miss) and the exit code stays 0 unless another mode missed.
 import { readFileSync } from "node:fs";
 import { setTimeout as pause } from "node:timers/promises";
 import { parseArgs } from "node:util";
 import { z } from "zod";
 import { assertNotProduction } from "../lib/assert-not-production.mjs";
-import { openProbeDb, type ProbeDb } from "./probe-db.ts";
+import { LockBusy, openProbeDb, type ProbeDb } from "./probe-db.ts";
 
 const MODES = ["memory", "identical", "never", "writes", "edge", "keepwarm"] as const;
 type Mode = (typeof MODES)[number];
@@ -39,13 +41,14 @@ const CONCURRENCY = 8;
 const MEMO_MS = 15_000;
 const QUIET_SECONDS = 3;
 const QUIET_LIMIT_MS = 90_000;
+const LOCK_WAIT_MS = 180_000;
 const MEMORY_REQUESTS = 1000;
 const SEARCH_EVERY = 20;
 const WRITE_POSTS = 30;
 const EDGE_REQUESTS = 400;
 const HIT_RATIO = 0.95;
 const SCHEDULED = "/cdn-cgi/handler/scheduled?cron=*%2F10+*+*+*+*";
-// A Worker built from the same sources gives a render the same bytes, except where the router writes the clock.
+// Two renders of one page differ in the clock values the router writes into the page: 13-digit epoch milliseconds.
 const EPOCH_MS = /\b1\d{12}\b/g;
 const STATE = "rpc public_state";
 const SNAPSHOT = "rpc public_catalog_snapshot";
@@ -88,7 +91,9 @@ interface Targets {
 interface Context {
   base: string;
   requests: number;
+  /** The writer's connection, or undefined with `unavailable` saying why the lock could not be had. */
   db: ProbeDb | undefined;
+  unavailable: string;
 }
 
 type Snapshot = Map<string, { label: string; calls: number }>;
@@ -229,8 +234,7 @@ class Busy extends Error {}
 /** The writer's connection once nobody else has used the database for QUIET_SECONDS in a row, or `Busy` after QUIET_LIMIT_MS. */
 async function quietDb(context: Context): Promise<ProbeDb> {
   const { db } = context;
-  if (db === undefined)
-    throw new Error("cache-probe: this mode counts statements and needs $DEV_DB_URL");
+  if (db === undefined) throw new Busy(context.unavailable);
   const deadline = Date.now() + QUIET_LIMIT_MS;
   let last = await statements(db);
   let quiet = 0;
@@ -397,7 +401,7 @@ async function never(context: Context): Promise<ModeResult> {
     },
     {
       name: "405 on a read route",
-      // No body: a 405 is answered before the body is read, and `wrangler dev` fails a kept-alive connection with an unread body.
+      // No body: three runs in a row got a 500 ("Network connection lost") from wrangler dev's proxy for a POST with a body to this route.
       path: "/api/public/properties",
       init: { method: "POST" },
     },
@@ -415,11 +419,9 @@ async function never(context: Context): Promise<ModeResult> {
       : [{ name: "preview page", path: `${property}?preview=h1-probe` }]),
   ];
   const problems = tally();
-  let responses = 0;
   for (const row of rows) {
     for (let round = 1; round <= 2; round += 1) {
       const reply = await send(base, row.path, row.init);
-      responses += 1;
       if (!isNoStore(reply))
         problems.add(
           `${row.name} ${row.path} answered ${String(reply.status)} with cache-control ${JSON.stringify(reply.headers.get("cache-control"))}`,
@@ -433,14 +435,13 @@ async function never(context: Context): Promise<ModeResult> {
   const guarded = [...targets.pages, ...targets.json];
   for (const path of guarded.slice(0, 3)) {
     const reply = await send(base, path, { headers: { cookie: "h1=probe" } });
-    responses += 1;
     if (reply.headers.has("set-cookie") && !isNoStore(reply))
       problems.add(`${path} sets a cookie and is not no-store`);
     if (reply.status >= 500 && !isNoStore(reply))
       problems.add(`${path} answered ${String(reply.status)} and is not no-store`);
   }
   return {
-    detail: `${String(rows.length)} routes asked twice, none stored or served from the store; ${String(responses)} responses, none that sets a cookie or fails with a 5xx is cacheable`,
+    detail: `${String(rows.length)} routes asked twice, none stored or served from the store; ${String(guarded.slice(0, 3).length)} cacheable reads checked for a cookie or a 5xx`,
     problems: problems.list(),
   };
 }
@@ -641,12 +642,25 @@ async function main(): Promise<number> {
   const counting = modes.some((mode) => COUNTING.has(mode));
   const dbUrl = process.env["DEV_DB_URL"];
   if (counting) await assertNotProduction({ dbUrl });
-  const db = counting ? await openProbeDb(dbUrl ?? "") : undefined;
+  let db: ProbeDb | undefined;
+  let unavailable = "";
+  if (counting) {
+    try {
+      db = await openProbeDb(dbUrl ?? "", LOCK_WAIT_MS);
+    } catch (error) {
+      if (!(error instanceof LockBusy)) throw error;
+      unavailable = error.message;
+    }
+  }
   let failed = false;
   try {
     for (const mode of modes) {
       try {
-        const result = await runMode(mode, { base: base ?? "", requests, db }, values.fixture);
+        const result = await runMode(
+          mode,
+          { base: base ?? "", requests, db, unavailable },
+          values.fixture,
+        );
         for (const problem of result.problems) console.error(`cache ${mode}: ${problem}`);
         if (result.problems.length === 0) console.log(`cache ${mode} ok (${result.detail})`);
         failed ||= result.problems.length > 0;

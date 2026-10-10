@@ -30,11 +30,32 @@ export interface ProbeDb {
   close: () => Promise<void>;
 }
 
-/** Connects, waits for the writer lock and returns the connection; `close` releases the lock. */
-export async function openProbeDb(dbUrl: string): Promise<ProbeDb> {
+/** The writer lock stayed with another client for the whole wait. */
+export class LockBusy extends Error {}
+
+/**
+ * Connects, waits for the writer lock and returns the connection; `close` releases the lock. With `waitMs` the wait
+ * ends after that long with `LockBusy`, and without it the call waits for as long as another client holds the lock.
+ */
+export async function openProbeDb(dbUrl: string, waitMs?: number): Promise<ProbeDb> {
   const client = new pg.Client({ connectionString: dbUrl });
   await client.connect();
-  await client.query(`select pg_advisory_lock(${LOCK})`);
+  if (waitMs === undefined) {
+    await client.query(`select pg_advisory_lock(${LOCK})`);
+  } else {
+    const deadline = Date.now() + waitMs;
+    for (;;) {
+      const got = await client.query<{ got: boolean }>(
+        `select pg_try_advisory_lock(${LOCK}) as got`,
+      );
+      if (got.rows[0]?.got === true) break;
+      if (Date.now() > deadline) {
+        await client.end();
+        throw new LockBusy(`another client held the writer lock for ${String(waitMs / 1000)} s`);
+      }
+      await new Promise((done) => setTimeout(done, 1000));
+    }
+  }
   const rows = async (text: string, params: unknown[] = []) => {
     const result = await client.query<Record<string, string | null>>(text, params);
     return result.rows;
