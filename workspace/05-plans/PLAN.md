@@ -139,6 +139,6 @@ B13.md · B14.md · B15.md · B16.md · B17.md · H1.md · L1.md · ASSUMED.md �
 | B15 | closed | 2026-10-05 | lane `E:/mop-build/handoff`; 7 steps accepted, merged in PRs #127, #132, #135 (0f5d678). Step 6 admin half waits on B7 steps 2 and 11 (recorded in B15-followups.md); the real Omnikom endpoint and the contract note are the operator's (S59). |
 | B16 | in progress | | started 2026-10-04 in the lane `E:/mop-build/legal` (branch `slice/b16`, port 8848, bank numbers from P-1000 and G-400); steps 1 and 2 (part) on `main` (PR #98). |
 | B17 | in progress | | started 2026-10-05 00:30 in the lane `E:/mop-build/site` (branch `slice/b17`, port 8938, bank numbers from P-1900 and G-850). |
-| H1 | not started | | |
+| H1 | in progress | | started 2026-10-08 in the lane `E:/mop-build/harden` (branch `slice/h1`, port 8878, bank numbers from P-2800 and G-1300); steps 1 to 3 accepted, step 4 in review (2026-10-10); H1-09 (security scan) and H1-18 (reset and reseed) are the orchestrator's, rulings H75 and the PAUSED block of `.claude/POSITION.md`. |
 | H2 | not started | | added 2026-10-04 (S66): the acceptance panel, after every B slice and H1 steps 1 to 5, before L1. |
 | L1 | not started | | |
