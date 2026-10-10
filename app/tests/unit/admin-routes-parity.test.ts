@@ -19,13 +19,6 @@ import { fakeDb } from "../fixtures/fake-db";
 // B8b step 8 adds; each step removes its entries, and the B7 part is empty after step 15a.
 // A literal list, so an action a later slice adds to the matrix without its route turns this test red.
 const routesPending: readonly ActionId[] = [
-  "settings.redirects_get",
-  "settings.redirects_put",
-  "audit.subject_requests",
-  "audit.subject_export",
-  "audit.subject_delete",
-  "audit.subject_opt_out",
-  "audit.subject_status",
   "automation.templates_send_test",
   // B10: reports.export is the browser's print and never gets a route (G22).
   "reports.export",

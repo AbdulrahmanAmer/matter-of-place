@@ -5818,5 +5818,275 @@
     "sql": "drop index public.audit_log_request_idx;\n",
     "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"screen 25 pages audit_log\"",
     "expect": "× .*screen 25 pages audit_log"
+  },
+  {
+    "id": "b7-15a-redirect-admin-source",
+    "test": "tests/unit/admin-redirects.test.ts",
+    "file": "src/domain/admin-settings.ts",
+    "find": "from.startsWith(\"/admin\") || from === \"/api\" || from.startsWith(\"/api/\")",
+    "replace": "false",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-redirects.test.ts -t \"refuses an /admin and an /api source\"",
+    "expect": "× .*refuses an /admin and an /api source"
+  },
+  {
+    "id": "b7-15a-redirect-outside-target",
+    "test": "tests/unit/admin-redirects.test.ts",
+    "file": "src/domain/admin-settings.ts",
+    "find": "else if (!sitePath(row.to_path)) refuse(",
+    "replace": "else if (false) refuse(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-redirects.test.ts -t \"refuses a to_path of https://example.com/x\"",
+    "expect": "× .*refuses a to_path of https://example.com/x"
+  },
+  {
+    "id": "b7-15a-redirect-loop",
+    "test": "tests/unit/admin-redirects.test.ts",
+    "file": "src/domain/admin-settings.ts",
+    "find": "} else if (closesLoop(row, active)) refuse(",
+    "replace": "} else if (false) refuse(",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-redirects.test.ts -t \"refuses a pair that loops through the active rows\"",
+    "expect": "× .*refuses a pair that loops through the active rows"
+  },
+  {
+    "id": "b7-15a-redirect-duplicate",
+    "test": "tests/unit/admin-redirects.test.ts",
+    "file": "src/domain/admin-settings.ts",
+    "find": "active.some((other) => other.from_path === from && other.id !== row.id)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-redirects.test.ts -t \"refuses a duplicate active source\"",
+    "expect": "× .*refuses a duplicate active source"
+  },
+  {
+    "id": "b7-15a-redirect-archive",
+    "test": "tests/unit/admin-redirects.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "await db.rpc(\"archive_redirect\", {",
+    "replace": "await db.rpc(\"put_redirect\", {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-redirects.test.ts -t \"removes through archive_redirect\"",
+    "expect": "× .*removes through archive_redirect"
+  },
+  {
+    "id": "b7-15a-redirect-route-human",
+    "test": "tests/unit/admin-redirects.test.ts",
+    "file": "src/server/lib/permissions/settings.ts",
+    "find": "const guarded = { roles: [\"admin\"], humanOnly: true, recentAuth: true } as const;",
+    "replace": "const guarded = { roles: [\"admin\"], recentAuth: true } as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-redirects.test.ts -t \"answers an agent key 403 human_only on GET, PUT and DELETE\"",
+    "expect": "× .*answers an agent key 403 human_only on GET, PUT and DELETE"
+  },
+  {
+    "id": "b7-15a-subject-days-left",
+    "test": "tests/unit/subject-requests.test.ts",
+    "file": "src/server/audit/subject-requests.ts",
+    "find": "now.getTime()) / DAY_MS)",
+    "replace": "now.getTime()) / DAY_MS) - 1",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/subject-requests.test.ts -t \"shows a request 40 days old with 5 days left\"",
+    "expect": "× .*shows a request 40 days old with 5 days left"
+  },
+  {
+    "id": "b7-15a-subject-cursor",
+    "test": "tests/unit/subject-requests.test.ts",
+    "file": "src/server/audit/subject-requests.ts",
+    "find": "`${last.received_at}~${last.id}`",
+    "replace": "`${last.id}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/subject-requests.test.ts -t \"names the last row of a full page as the next cursor\"",
+    "expect": "× .*names the last row of a full page as the next cursor"
+  },
+  {
+    "id": "b7-15a-subject-note",
+    "test": "tests/unit/subject-requests.test.ts",
+    "file": "src/server/audit/subject-requests.ts",
+    "find": "{ p_note: input.note }",
+    "replace": "{}",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/subject-requests.test.ts -t \"setSubjectRequestStatus sends the note only when there is one\"",
+    "expect": "× .*setSubjectRequestStatus sends the note only when there is one"
+  },
+  {
+    "id": "b7-15a-subject-409",
+    "test": "tests/unit/subject-requests.test.ts",
+    "file": "src/server/lib/error-codes.ts",
+    "find": "  not_verified: 409,\n",
+    "replace": "  not_verified: 422,\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/subject-requests.test.ts -t \"answers the SQL refusals not_verified, wrong_kind and wrong_state as 409\"",
+    "expect": "× .*answers the SQL refusals not_verified, wrong_kind and wrong_state as 409"
+  },
+  {
+    "id": "b7-15a-subject-human-only",
+    "test": "tests/unit/subject-requests.test.ts",
+    "file": "src/server/lib/permissions/audit.ts",
+    "find": "const guarded = { roles: [\"admin\"], humanOnly: true, recentAuth: true } as const;",
+    "replace": "const guarded = { roles: [\"admin\"], recentAuth: true } as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/subject-requests.test.ts -t \"answer an agent key 403 human_only on every write\"",
+    "expect": "× .*answer an agent key 403 human_only on every write"
+  },
+  {
+    "id": "b7-15a-subject-reauth",
+    "test": "tests/unit/subject-requests.test.ts",
+    "file": "src/server/lib/permissions/audit.ts",
+    "find": "const guarded = { roles: [\"admin\"], humanOnly: true, recentAuth: true } as const;",
+    "replace": "const guarded = { roles: [\"admin\"], humanOnly: true } as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/subject-requests.test.ts -t \"gets 401 reauth_required on every write 20 minutes after sign-in\"",
+    "expect": "× .*gets 401 reauth_required on every write 20 minutes after sign-in"
+  },
+  {
+    "id": "b7-15a-tab-kind-verified",
+    "test": "src/admin/audit/subject-requests.test.tsx",
+    "file": "src/admin/audit/SubjectRequestsTab.tsx",
+    "find": "{verified && row.kind === \"access\" ? (",
+    "replace": "{row.kind === \"access\" ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/audit/subject-requests.test.tsx -t \"offers Export only for access\"",
+    "expect": "× .*offers Export only for access"
+  },
+  {
+    "id": "b7-15a-tab-closed",
+    "test": "src/admin/audit/subject-requests.test.tsx",
+    "file": "src/admin/audit/SubjectRequestsTab.tsx",
+    "find": "    if (row.status === \"fulfilled\" || row.status === \"rejected\") return null;\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/audit/subject-requests.test.tsx -t \"starts verification on a received request, offers nothing on a closed one\"",
+    "expect": "× .*starts verification on a received request, offers nothing on a closed one"
+  },
+  {
+    "id": "b7-15a-tab-red",
+    "test": "src/admin/audit/subject-requests.test.tsx",
+    "file": "src/admin/audit/SubjectRequestsTab.tsx",
+    "find": "const URGENT_DAYS = 10;",
+    "replace": "const URGENT_DAYS = 4;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/audit/subject-requests.test.tsx -t \"shows a request with 5 days left in red\"",
+    "expect": "× .*shows a request with 5 days left in red"
+  },
+  {
+    "id": "b7-15a-tab-export",
+    "test": "src/admin/audit/subject-requests.test.tsx",
+    "file": "src/admin/audit/SubjectRequestsTab.tsx",
+    "find": "download(row.id, bundle);",
+    "replace": "void bundle;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/audit/subject-requests.test.tsx -t \"Export posts once and saves the bundle as a JSON file\"",
+    "expect": "× .*Export posts once and saves the bundle as a JSON file"
+  },
+  {
+    "id": "b7-15a-tab-reject-note",
+    "test": "src/admin/audit/subject-requests.test.tsx",
+    "file": "src/admin/audit/SubjectRequestsTab.tsx",
+    "find": "if (noteRequired.includes(action) && trimmed === \"\") {",
+    "replace": "if (trimmed === \"never\") {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/audit/subject-requests.test.tsx -t \"Reject asks for a note and sends nothing without one\"",
+    "expect": "× .*Reject asks for a note and sends nothing without one"
+  },
+  {
+    "id": "b7-15a-tab-mounted",
+    "test": "src/admin/audit/subject-requests.test.tsx",
+    "file": "src/admin/audit/AuditPage.tsx",
+    "find": "  { id: \"requests\", label: \"Data requests\" },\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/audit/subject-requests.test.tsx -t \"is the second tab of screen 25\"",
+    "expect": "× .*is the second tab of screen 25"
+  },
+  {
+    "id": "b7-15a-ui-redirect-inline",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "redirectSchema(active).safeParse(",
+    "replace": "redirectSchema([]).safeParse(",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx -t \"refuses an /admin source, an outside target and a loop inline\"",
+    "expect": "× .*refuses an /admin source, an outside target and a loop inline"
+  },
+  {
+    "id": "b7-15a-ui-redirect-server",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "refused(failure(error));",
+    "replace": "void error;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx -t \"adds a valid row through PUT, and shows the server\"",
+    "expect": "× .*adds a valid row through PUT, and shows the server"
+  },
+  {
+    "id": "b7-15a-ui-redirect-edit",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "...(row === null ? {} : { id: row.id }),",
+    "replace": "...{},",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx -t \"edits a row by its id\"",
+    "expect": "× .*edits a row by its id"
+  },
+  {
+    "id": "b7-15a-ui-redirect-pager",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/ui/use-cursor-pages.ts",
+    "find": "setCursor(nextCursor);",
+    "replace": "setCursor(cursor);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx -t \"pages on with the cursor of the last row\"",
+    "expect": "× .*pages on with the cursor of the last row"
+  },
+  {
+    "id": "b7-15a-db-redirect-loop",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.put_redirect(\n  p_from_path text,\n  p_to_path text,\n  p_status int,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_id uuid default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before public.redirects;\n  v_after public.redirects;\n  v_loops boolean;\nbegin\n  -- Invariant 16 (GG-01), the rules of redirectSchema in src/domain/admin-settings.ts. A refused row answers\n  -- invalid_redirect, with the reason as the detail the screen shows beside the row.\n  if p_from_path is null or not starts_with(p_from_path, '/') or starts_with(p_from_path, '//') then\n    raise exception 'invalid_redirect' using detail = 'The old address must be a path on this site.';\n  end if;\n  if starts_with(p_from_path, '/admin') or p_from_path = '/api' or starts_with(p_from_path, '/api/') then\n    raise exception 'invalid_redirect' using detail = 'Admin and API addresses cannot be redirected.';\n  end if;\n  if position('?' in p_from_path) > 0 then\n    raise exception 'invalid_redirect' using detail = 'The old address cannot carry a query string.';\n  end if;\n  if p_to_path is null or not starts_with(p_to_path, '/') or starts_with(p_to_path, '//') then\n    raise exception 'invalid_redirect' using detail = 'The new address must be a path on this site.';\n  end if;\n  if p_to_path = p_from_path then\n    raise exception 'invalid_redirect' using detail = 'A redirect cannot point to itself.';\n  end if;\n  if p_status is null or p_status not in (301, 302) then\n    raise exception 'invalid_redirect' using detail = 'The status must be 301 or 302.';\n  end if;\n\n  -- One writer at a time, so two rows written at once cannot close a loop between them.\n  lock table public.redirects in share row exclusive mode;\n\n  if p_id is not null then\n    select * into v_before from public.redirects r where r.id = p_id and r.archived_at is null for update;\n    if not found then\n      raise exception 'not_found' using errcode = 'P0002';\n    end if;\n  end if;\n  if exists (\n    select 1 from public.redirects r\n    where r.from_path = p_from_path and r.archived_at is null and r.id is distinct from p_id\n  ) then\n    raise exception 'invalid_redirect' using detail = 'That old address is already redirected.';\n  end if;\n  -- Follow the new address through the other active rows; reaching the old address again is a loop.\n  with recursive chain (path, depth) as (\n    select p_to_path, 0\n    union all\n    select r.to_path, c.depth + 1\n    from chain c\n    join public.redirects r on r.from_path = c.path and r.archived_at is null and r.id is distinct from p_id\n    where c.depth < 1000\n  )\n  select exists (select 1 from chain where path = p_from_path) into v_loops;\n  if false then\n    raise exception 'invalid_redirect' using detail = 'These addresses would redirect in a loop.';\n  end if;\n\n  -- B2's statement trigger on redirects raises catalog_version in this transaction (F25 a).\n  if p_id is null then\n    insert into public.redirects (from_path, to_path, status, created_by)\n    values (p_from_path, p_to_path, p_status::smallint, p_actor)\n    returning * into v_after;\n  else\n    update public.redirects r\n    set from_path = p_from_path, to_path = p_to_path, status = p_status::smallint\n    where r.id = p_id\n    returning * into v_after;\n  end if;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'settings.redirects_put', 'redirect', v_after.id,\n    case when p_id is null then null else jsonb_build_object(\n      'id', v_before.id, 'from_path', v_before.from_path, 'to_path', v_before.to_path, 'status', v_before.status\n    ) end,\n    jsonb_build_object(\n      'id', v_after.id, 'from_path', v_after.from_path, 'to_path', v_after.to_path, 'status', v_after.status\n    ),\n    p_request_id\n  );\n  return jsonb_build_object(\n    'id', v_after.id, 'from_path', v_after.from_path, 'to_path', v_after.to_path, 'status', v_after.status\n  );\nend;\n$$;\n\nrevoke execute on function public.put_redirect(text, text, int, uuid, public.actor_kind, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.put_redirect(text, text, int, uuid, public.actor_kind, text, uuid) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"put_redirect refuses an /admin or /api source\"",
+    "expect": "× .*put_redirect refuses an /admin or /api source"
+  },
+  {
+    "id": "b7-15a-db-archive-twice",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.archive_redirect(\n  p_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.redirects;\nbegin\n  -- Invariant 16, GD-04: removing a redirect archives it and keeps the row. B2's check pairs archived_at with\n  -- enabled = false, and its statement trigger raises catalog_version in this transaction (F25 a).\n  select * into v_row from public.redirects r where r.id = p_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if false then\n    raise exception 'wrong_state';\n  end if;\n  update public.redirects r set archived_at = now(), enabled = false where r.id = p_id returning * into v_row;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'settings.redirects_put', 'redirect', p_id,\n    jsonb_build_object('id', p_id, 'archived', false), jsonb_build_object('id', p_id, 'archived', true),\n    p_request_id\n  );\n  return jsonb_build_object(\n    'id', v_row.id, 'from_path', v_row.from_path, 'to_path', v_row.to_path, 'status', v_row.status,\n    'archived_at', v_row.archived_at\n  );\nend;\n$$;\n\nrevoke execute on function public.archive_redirect(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.archive_redirect(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"archive_redirect sets archived_at and enabled false\"",
+    "expect": "× .*archive_redirect sets archived_at and enabled false"
+  },
+  {
+    "id": "b7-15a-db-export-verified",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.export_subject(\n  p_subject_request_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.subject_requests;\n  v_email text;\n  v_contacts uuid[];\n  v_bundle jsonb;\nbegin\n  -- Invariant 15 (GP-01): an access request, once identity is confirmed, gets one bundle of every row the address\n  -- appears in, and the request is fulfilled.\n  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_row.kind <> 'access' then\n    raise exception 'wrong_kind';\n  end if;\n  if v_row.status in ('fulfilled', 'rejected') then\n    raise exception 'wrong_state';\n  end if;\n  if false then\n    raise exception 'not_verified';\n  end if;\n  v_email := lower(v_row.email);\n\n  -- S55: the person's contacts row with its notes, and every submission made under the address or linked to it.\n  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;\n  select jsonb_build_object(\n    'request', jsonb_build_object('id', v_row.id, 'kind', v_row.kind, 'received_at', v_row.received_at),\n    'email', v_email,\n    'subscribers', coalesce((\n      select jsonb_agg(to_jsonb(s) - 'confirm_token_hash' order by s.created_at)\n      from public.subscribers s where lower(s.email) = v_email\n    ), '[]'),\n    'inquiries', coalesce((\n      select jsonb_agg(to_jsonb(i) order by i.received_at)\n      from public.inquiries i where lower(i.email) = v_email\n    ), '[]'),\n    'contacts', coalesce((\n      select jsonb_agg(to_jsonb(c) order by c.created_at)\n      from public.contacts c where c.id = any (v_contacts)\n    ), '[]'),\n    'submissions', coalesce((\n      select jsonb_agg(to_jsonb(s) order by s.received_at)\n      from public.submissions s\n      where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts)\n    ), '[]')\n  ) into v_bundle;\n\n  update public.subject_requests r\n  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor\n  where r.id = p_subject_request_id;\n  -- Ids and counts only (invariant 18).\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.subject_export', 'subject_request', p_subject_request_id,\n    jsonb_build_object('id', v_row.id, 'status', v_row.status),\n    jsonb_build_object(\n      'id', v_row.id, 'status', 'fulfilled',\n      'counts', jsonb_build_object(\n        'subscribers', jsonb_array_length(v_bundle -> 'subscribers'),\n        'inquiries', jsonb_array_length(v_bundle -> 'inquiries'),\n        'contacts', jsonb_array_length(v_bundle -> 'contacts'),\n        'submissions', jsonb_array_length(v_bundle -> 'submissions')\n      )\n    ),\n    p_request_id\n  );\n  return v_bundle;\nend;\n$$;\n\nrevoke execute on function public.export_subject(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.export_subject(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"export_subject refuses an unverified access request\"",
+    "expect": "× .*export_subject refuses an unverified access request"
+  },
+  {
+    "id": "b7-15a-db-export-handled",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.export_subject(\n  p_subject_request_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.subject_requests;\n  v_email text;\n  v_contacts uuid[];\n  v_bundle jsonb;\nbegin\n  -- Invariant 15 (GP-01): an access request, once identity is confirmed, gets one bundle of every row the address\n  -- appears in, and the request is fulfilled.\n  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_row.kind <> 'access' then\n    raise exception 'wrong_kind';\n  end if;\n  if v_row.status in ('fulfilled', 'rejected') then\n    raise exception 'wrong_state';\n  end if;\n  if v_row.verified_at is null then\n    raise exception 'not_verified';\n  end if;\n  v_email := lower(v_row.email);\n\n  -- S55: the person's contacts row with its notes, and every submission made under the address or linked to it.\n  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;\n  select jsonb_build_object(\n    'request', jsonb_build_object('id', v_row.id, 'kind', v_row.kind, 'received_at', v_row.received_at),\n    'email', v_email,\n    'subscribers', coalesce((\n      select jsonb_agg(to_jsonb(s) - 'confirm_token_hash' order by s.created_at)\n      from public.subscribers s where lower(s.email) = v_email\n    ), '[]'),\n    'inquiries', coalesce((\n      select jsonb_agg(to_jsonb(i) order by i.received_at)\n      from public.inquiries i where lower(i.email) = v_email\n    ), '[]'),\n    'contacts', coalesce((\n      select jsonb_agg(to_jsonb(c) order by c.created_at)\n      from public.contacts c where c.id = any (v_contacts)\n    ), '[]'),\n    'submissions', coalesce((\n      select jsonb_agg(to_jsonb(s) order by s.received_at)\n      from public.submissions s\n      where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts)\n    ), '[]')\n  ) into v_bundle;\n\n  update public.subject_requests r\n  set status = 'fulfilled', fulfilled_at = now()\n  where r.id = p_subject_request_id;\n  -- Ids and counts only (invariant 18).\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.subject_export', 'subject_request', p_subject_request_id,\n    jsonb_build_object('id', v_row.id, 'status', v_row.status),\n    jsonb_build_object(\n      'id', v_row.id, 'status', 'fulfilled',\n      'counts', jsonb_build_object(\n        'subscribers', jsonb_array_length(v_bundle -> 'subscribers'),\n        'inquiries', jsonb_array_length(v_bundle -> 'inquiries'),\n        'contacts', jsonb_array_length(v_bundle -> 'contacts'),\n        'submissions', jsonb_array_length(v_bundle -> 'submissions')\n      )\n    ),\n    p_request_id\n  );\n  return v_bundle;\nend;\n$$;\n\nrevoke execute on function public.export_subject(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.export_subject(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"after confirm_identity, export_subject returns\"",
+    "expect": "× .*after confirm_identity, export_subject returns"
+  },
+  {
+    "id": "b7-15a-db-delete-audit-email",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.delete_subject(\n  p_subject_request_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.subject_requests;\n  v_email text;\n  v_contacts uuid[];\n  v_inquiries uuid[];\n  v_subscribers int;\n  v_submissions int;\n  v_counts jsonb;\nbegin\n  -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears\n  -- in. Nothing is hard deleted (GD-04): the rows stay for the counts and lose what names the person.\n  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_row.kind <> 'deletion' then\n    raise exception 'wrong_kind';\n  end if;\n  if v_row.status in ('fulfilled', 'rejected') then\n    raise exception 'wrong_state';\n  end if;\n  if v_row.verified_at is null then\n    raise exception 'not_verified';\n  end if;\n  v_email := lower(v_row.email);\n  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;\n  select coalesce(array_agg(i.id), '{}') into v_inquiries from public.inquiries i where lower(i.email) = v_email;\n\n  -- The same columns as B8's retention_anonymise_contacts (S55); the address becomes a hash no one can write to.\n  update public.submissions s\n  set submitter_name = '',\n    submitter_email = encode(sha256(convert_to(s.submitter_email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    submitter_phone = null,\n    listing_agent_name = null\n  where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts);\n  get diagnostics v_submissions = row_count;\n  update public.contacts c\n  set name = '',\n    email = encode(sha256(convert_to(c.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    phone = null,\n    brokerage = null,\n    notes = null,\n    archived_at = now()\n  where c.id = any (v_contacts);\n  -- The same columns as B8's retention_anonymise_inquiries, so screen 11 shows both paths the same way.\n  update public.inquiries i\n  set name = '',\n    message = '',\n    phone = null,\n    location = null,\n    details = '{}'::jsonb,\n    attribution = '{}'::jsonb,\n    forwarded_payload = null,\n    email = encode(sha256(convert_to(i.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    anonymised_at = now()\n  where i.id = any (v_inquiries);\n  -- G16: a webhook job of those inquiries keeps no copy of the old email or message.\n  update public.jobs\n  set result = result - 'body'\n  where type = 'webhook_omnikom'\n    and payload -> 'data' ->> 'inquiry_id' = any (v_inquiries::text[])\n    and result ? 'body';\n  update public.subscribers s\n  set email = encode(sha256(convert_to(s.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    confirm_token_hash = null,\n    unsubscribed_at = coalesce(s.unsubscribed_at, now())\n  where lower(s.email) = v_email;\n  get diagnostics v_subscribers = row_count;\n\n  update public.subject_requests r\n  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor\n  where r.id = p_subject_request_id;\n  v_counts := jsonb_build_object(\n    'subscribers', v_subscribers,\n    'inquiries', cardinality(v_inquiries),\n    'contacts', cardinality(v_contacts),\n    'submissions', v_submissions\n  );\n  -- Ids and counts only (invariant 18): the audit trail keeps no copy of the address.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.subject_delete', 'subject_request', p_subject_request_id,\n    jsonb_build_object('id', v_row.id, 'status', v_row.status),\n    jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts, 'email', v_email),\n    p_request_id\n  );\n  return jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts);\nend;\n$$;\n\nrevoke execute on function public.delete_subject(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.delete_subject(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"delete_subject leaves no plaintext address\"",
+    "expect": "× .*delete_subject leaves no plaintext address"
+  },
+  {
+    "id": "b7-15a-db-delete-job-body",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.delete_subject(\n  p_subject_request_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.subject_requests;\n  v_email text;\n  v_contacts uuid[];\n  v_inquiries uuid[];\n  v_subscribers int;\n  v_submissions int;\n  v_counts jsonb;\nbegin\n  -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears\n  -- in. Nothing is hard deleted (GD-04): the rows stay for the counts and lose what names the person.\n  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_row.kind <> 'deletion' then\n    raise exception 'wrong_kind';\n  end if;\n  if v_row.status in ('fulfilled', 'rejected') then\n    raise exception 'wrong_state';\n  end if;\n  if v_row.verified_at is null then\n    raise exception 'not_verified';\n  end if;\n  v_email := lower(v_row.email);\n  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;\n  select coalesce(array_agg(i.id), '{}') into v_inquiries from public.inquiries i where lower(i.email) = v_email;\n\n  -- The same columns as B8's retention_anonymise_contacts (S55); the address becomes a hash no one can write to.\n  update public.submissions s\n  set submitter_name = '',\n    submitter_email = encode(sha256(convert_to(s.submitter_email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    submitter_phone = null,\n    listing_agent_name = null\n  where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts);\n  get diagnostics v_submissions = row_count;\n  update public.contacts c\n  set name = '',\n    email = encode(sha256(convert_to(c.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    phone = null,\n    brokerage = null,\n    notes = null,\n    archived_at = now()\n  where c.id = any (v_contacts);\n  -- The same columns as B8's retention_anonymise_inquiries, so screen 11 shows both paths the same way.\n  update public.inquiries i\n  set name = '',\n    message = '',\n    phone = null,\n    location = null,\n    details = '{}'::jsonb,\n    attribution = '{}'::jsonb,\n    forwarded_payload = null,\n    email = encode(sha256(convert_to(i.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    anonymised_at = now()\n  where i.id = any (v_inquiries);\n  -- G16: a webhook job of those inquiries keeps no copy of the old email or message.\n  update public.jobs\n  set result = result - 'body'\n  where type = 'webhook_omnikom'\n    and payload -> 'data' ->> 'inquiry_id' = any (v_inquiries::text[])\n    and false;\n  update public.subscribers s\n  set email = encode(sha256(convert_to(s.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    confirm_token_hash = null,\n    unsubscribed_at = coalesce(s.unsubscribed_at, now())\n  where lower(s.email) = v_email;\n  get diagnostics v_subscribers = row_count;\n\n  update public.subject_requests r\n  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor\n  where r.id = p_subject_request_id;\n  v_counts := jsonb_build_object(\n    'subscribers', v_subscribers,\n    'inquiries', cardinality(v_inquiries),\n    'contacts', cardinality(v_contacts),\n    'submissions', v_submissions\n  );\n  -- Ids and counts only (invariant 18): the audit trail keeps no copy of the address.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.subject_delete', 'subject_request', p_subject_request_id,\n    jsonb_build_object('id', v_row.id, 'status', v_row.status),\n    jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts),\n    p_request_id\n  );\n  return jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts);\nend;\n$$;\n\nrevoke execute on function public.delete_subject(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.delete_subject(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"delete_subject leaves no plaintext address\"",
+    "expect": "× .*delete_subject leaves no plaintext address"
+  },
+  {
+    "id": "b7-15a-db-opt-out-twice",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.opt_out_subject(\n  p_subject_request_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.subject_requests;\n  v_email text;\n  v_unsubscribed int;\n  v_suppressed int;\n  v_counts jsonb;\nbegin\n  -- Invariant 15 (GP-01): an opt-out request, once identity is confirmed, unsubscribes the address and suppresses it,\n  -- so no recipe, digest or broadcast mails it again; B11's syncAudience then removes it from Resend (G14).\n  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_row.kind <> 'opt_out' then\n    raise exception 'wrong_kind';\n  end if;\n  if false then\n    raise exception 'wrong_state';\n  end if;\n  if v_row.verified_at is null then\n    raise exception 'not_verified';\n  end if;\n  v_email := lower(v_row.email);\n\n  update public.subscribers s\n  set unsubscribed_at = now()\n  where lower(s.email) = v_email and s.unsubscribed_at is null;\n  get diagnostics v_unsubscribed = row_count;\n  insert into public.email_suppressions (email, reason) values (v_email, 'manual') on conflict do nothing;\n  get diagnostics v_suppressed = row_count;\n\n  update public.subject_requests r\n  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor\n  where r.id = p_subject_request_id;\n  v_counts := jsonb_build_object('subscribers', v_unsubscribed, 'suppressions', v_suppressed);\n  -- Ids and counts only (invariant 18).\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.subject_opt_out', 'subject_request', p_subject_request_id,\n    jsonb_build_object('id', v_row.id, 'status', v_row.status),\n    jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts),\n    p_request_id\n  );\n  return jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts);\nend;\n$$;\n\nrevoke execute on function public.opt_out_subject(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.opt_out_subject(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"opt_out_subject unsubscribes the subscriber\"",
+    "expect": "× .*opt_out_subject unsubscribes the subscriber"
+  },
+  {
+    "id": "b7-15a-db-correction-note",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.set_subject_request_status(\n  p_subject_request_id uuid,\n  p_action text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.subject_requests;\n  v_after public.subject_requests;\n  v_note text := nullif(btrim(p_note), '');\nbegin\n  -- Invariant 15 (GP-01, B3 invariant 13): identity first. start_verification moves received to verifying,\n  -- confirm_identity stamps verified_at, reject closes the request with a note, and fulfil_correction closes a\n  -- correction once the row was corrected by hand on the screen that owns it.\n  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if p_action not in ('start_verification', 'confirm_identity', 'reject', 'fulfil_correction') then\n    raise exception 'invalid_key';\n  end if;\n  if p_action = 'fulfil_correction' and v_row.kind <> 'correction' then\n    raise exception 'wrong_kind';\n  end if;\n  if v_row.status in ('fulfilled', 'rejected')\n    or (p_action = 'start_verification' and v_row.status <> 'received')\n    or (p_action = 'confirm_identity' and (v_row.status <> 'verifying' or v_row.verified_at is not null)) then\n    raise exception 'wrong_state';\n  end if;\n  if p_action = 'fulfil_correction' and v_row.verified_at is null then\n    raise exception 'not_verified';\n  end if;\n  if false then\n    raise exception 'note_required';\n  end if;\n\n  update public.subject_requests r\n  set status = case p_action\n      when 'start_verification' then 'verifying'\n      when 'reject' then 'rejected'\n      when 'fulfil_correction' then 'fulfilled'\n      else r.status\n    end,\n    verified_at = case when p_action = 'confirm_identity' then now() else r.verified_at end,\n    fulfilled_at = case when p_action = 'fulfil_correction' then now() else r.fulfilled_at end,\n    handled_by = p_actor\n  where r.id = p_subject_request_id\n  returning * into v_after;\n  -- Ids and states only: the address stays in its own table (invariant 18).\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.subject_status', 'subject_request', p_subject_request_id,\n    jsonb_build_object('id', v_row.id, 'status', v_row.status, 'verified', v_row.verified_at is not null),\n    jsonb_build_object('id', v_after.id, 'status', v_after.status, 'verified', v_after.verified_at is not null),\n    p_request_id, v_note\n  );\n  return jsonb_build_object(\n    'id', v_after.id, 'status', v_after.status, 'verified_at', v_after.verified_at,\n    'fulfilled_at', v_after.fulfilled_at, 'handled_by', v_after.handled_by\n  );\nend;\n$$;\n\nrevoke execute on function public.set_subject_request_status(uuid, text, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_subject_request_status(uuid, text, uuid, public.actor_kind, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"fulfil_correction without a note raises note_required\"",
+    "expect": "× .*fulfil_correction without a note raises note_required"
+  },
+  {
+    "id": "b7-15a-db-redirect-bump",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "alter table public.redirects disable trigger redirects_bump_catalog_version;\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"put_redirect of a new row, put_redirect of a change and archive_redirect\"",
+    "expect": "× .*put_redirect of a new row, put_redirect of a change and archive_redirect"
   }
 ]

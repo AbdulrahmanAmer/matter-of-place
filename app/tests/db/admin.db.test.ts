@@ -8,7 +8,8 @@
 // Step 12: save, publish and unpublish of stories and their list (migration `admin_stories`).
 // Step 13: update_market and set_market_coming_soon (migration `admin_markets`). Step 14: roles, the last admin,
 // agent keys, `team_users` and the agent daily caps through `put_setting` (migration `admin_team`).
-// Step 15: `put_setting` for its three keys and the audit list read (migration `admin_settings`).
+// Step 15: `put_setting` for its three keys and the audit list read (migration `admin_settings`). Step 15a: the
+// redirect writes and the four data-request functions (migrations `admin_redirects` and `admin_privacy`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
@@ -3275,6 +3276,337 @@ describe("settings (step 15)", () => {
         ]),
         audit: await settingsAudit(db),
       }).toEqual({ coming: "22023 validation", notifications: "22023 validation", audit: [] });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 15a's two migrations (P-328). */
+async function assertStep15a(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.put_redirect') is not null and to_regproc('public.archive_redirect') is not null
+       and to_regproc('public.export_subject') is not null and to_regproc('public.delete_subject') is not null
+       and to_regproc('public.opt_out_subject') is not null
+       and to_regproc('public.set_subject_request_status') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const PUT_REDIRECT =
+  "select public.put_redirect($1, $2, $3, $4, 'human', 'r-redirects', $5) ->> 'id' as id";
+
+describe("redirects (step 15a)", () => {
+  it("put_redirect refuses an /admin or /api source, an outside target, a query string, a 307, a duplicate active source and a loop with invalid_redirect, and writes no row", async () => {
+    await withRollback(async (db) => {
+      await assertStep15a(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const tag = randomUUID().slice(0, 8);
+      const a = `/r-${tag}-a`;
+      const b = `/r-${tag}-b`;
+      const c = `/r-${tag}-c`;
+      const put = (from: string, to: string, status = 301) =>
+        attempt(db, PUT_REDIRECT, [from, to, status, admin, null]);
+      const setup = [await put(a, b), await put(b, c)];
+      const refused = {
+        admin: await put("/admin/team", b),
+        api: await put("/api/public/site", b),
+        outside: await put(`/r-${tag}-x`, "https://example.com/x"),
+        query: await put(`${a}?x=1`, c),
+        status: await put(`/r-${tag}-y`, b, 307),
+        duplicate: await put(a, c),
+        loop: await put(c, a),
+      };
+      const { rows } = await one<{ rows: number }>(
+        db,
+        "select count(*)::int as rows from public.redirects where from_path like $1",
+        [`/r-${tag}-%`],
+      );
+      const audit = await one<{ n: number }>(
+        db,
+        "select count(*)::int as n from public.audit_log where request_id = 'r-redirects' and action = 'settings.redirects_put'",
+      );
+      expect({ setup, refused, rows, audit: audit.n }).toEqual({
+        setup: ["ok", "ok"],
+        refused: {
+          admin: "P0001 invalid_redirect",
+          api: "P0001 invalid_redirect",
+          outside: "P0001 invalid_redirect",
+          query: "P0001 invalid_redirect",
+          status: "P0001 invalid_redirect",
+          duplicate: "P0001 invalid_redirect",
+          loop: "P0001 invalid_redirect",
+        },
+        rows: 2,
+        audit: 2,
+      });
+    });
+  });
+
+  it("archive_redirect sets archived_at and enabled false, keeps the row, refuses a second archive, and the source can be added again", async () => {
+    await withRollback(async (db) => {
+      await assertStep15a(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const from = `/r-${randomUUID().slice(0, 8)}`;
+      const { id } = await one<{ id: string }>(db, PUT_REDIRECT, [
+        from,
+        "/markets",
+        302,
+        admin,
+        null,
+      ]);
+      await db.query("select public.archive_redirect($1, $2, 'human', 'r-redirects')", [id, admin]);
+      const row = await one<{ archived: boolean; enabled: boolean }>(
+        db,
+        "select archived_at is not null as archived, enabled from public.redirects where id = $1",
+        [id],
+      );
+      const again = await attempt(
+        db,
+        "select public.archive_redirect($1, $2, 'human', 'r-redirects')",
+        [id, admin],
+      );
+      const readded = await attempt(db, PUT_REDIRECT, [from, "/stories", 301, admin, null]);
+      expect({ row, again, readded }).toEqual({
+        row: { archived: true, enabled: false },
+        again: "P0001 wrong_state",
+        readded: "ok",
+      });
+    });
+  });
+});
+
+const EXPORT = "select public.export_subject($1, $2, 'human', 'r-subject') as bundle";
+const DELETE = "select public.delete_subject($1, $2, 'human', 'r-subject')";
+const OPT_OUT = "select public.opt_out_subject($1, $2, 'human', 'r-subject')";
+const STATUS = "select public.set_subject_request_status($1, $2, $3, 'human', 'r-subject', $4)";
+
+async function subjectRequest(db: Db, email: string, kind: string): Promise<string> {
+  return (
+    await one<{ id: string }>(
+      db,
+      "insert into public.subject_requests (email, kind) values ($1, $2) returning id",
+      [email, kind],
+    )
+  ).id;
+}
+
+/** Start verification, then confirm identity: what every fulfilling action waits for. */
+async function confirmIdentity(db: Db, request: string, admin: string): Promise<void> {
+  await db.query(STATUS, [request, "start_verification", admin, null]);
+  await db.query(STATUS, [request, "confirm_identity", admin, "Replied from the address."]);
+}
+
+/** One subscriber, one inquiry and two submissions under one contact for `email` (S55). */
+async function personRows(db: Db, email: string) {
+  await db.query("insert into public.subscribers (email, source) values ($1, 'home')", [email]);
+  const { id: inquiry } = await one<{ id: string }>(
+    db,
+    `insert into public.inquiries (intent, name, email, phone, location, message, details, source_path,
+       forwarded_payload)
+     values ('ask', 'Test Person', $1, '555', 'Berkeley', 'hello', '{"a": 1}', '/contact',
+       jsonb_build_object('email', $1::text))
+     returning id`,
+    [email],
+  );
+  const base = await dbNow(db);
+  const submissions = [
+    await createSubmission(db, { state: "Submitted", n: 9_710, base, submitter_email: email }),
+    await createSubmission(db, { state: "Under Review", n: 9_711, base, submitter_email: email }),
+  ];
+  return { inquiry, submissions };
+}
+
+async function subjectAudit(db: Db, request: string): Promise<{ action: string }[]> {
+  return (
+    await db.query<{ action: string }>(
+      "select action from public.audit_log where entity_id = $1 order by id",
+      [request],
+    )
+  ).rows;
+}
+
+const auditTrail = (fulfilling: string) => [
+  { action: "audit.subject_status" },
+  { action: "audit.subject_status" },
+  { action: fulfilling },
+];
+
+describe("data requests (step 15a)", () => {
+  it("export_subject refuses an unverified access request with not_verified and a deletion request with wrong_kind", async () => {
+    await withRollback(async (db) => {
+      await assertStep15a(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const access = await subjectRequest(db, `subject+${randomUUID()}@example.invalid`, "access");
+      await db.query(STATUS, [access, "start_verification", admin, null]);
+      const deletion = await subjectRequest(
+        db,
+        `subject+${randomUUID()}@example.invalid`,
+        "deletion",
+      );
+      expect({
+        unverified: await attempt(db, EXPORT, [access, admin]),
+        deletion: await attempt(db, EXPORT, [deletion, admin]),
+      }).toEqual({ unverified: "P0001 not_verified", deletion: "P0001 wrong_kind" });
+    });
+  });
+
+  it("after confirm_identity, export_subject returns the subscriber, the inquiry, the contact and both submissions, and fulfils the request", async () => {
+    await withRollback(async (db) => {
+      await assertStep15a(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const email = `subject+${randomUUID()}@example.invalid`;
+      const { inquiry, submissions } = await personRows(db, email);
+      const request = await subjectRequest(db, email.toUpperCase(), "access");
+      await confirmIdentity(db, request, admin);
+      const { bundle } = await one<{
+        bundle: {
+          subscribers: { email: string }[];
+          inquiries: { id: string }[];
+          contacts: { email: string }[];
+          submissions: { id: string }[];
+        };
+      }>(db, EXPORT, [request, admin]);
+      const after = await one<{ status: string; handled_by: string; fulfilled: boolean }>(
+        db,
+        "select status, handled_by, fulfilled_at is not null as fulfilled from public.subject_requests where id = $1",
+        [request],
+      );
+      expect({
+        subscribers: bundle.subscribers.map((row) => row.email),
+        inquiries: bundle.inquiries.map((row) => row.id),
+        contacts: bundle.contacts.map((row) => row.email),
+        submissions: bundle.submissions.map((row) => row.id).sort(),
+        after,
+        audit: await subjectAudit(db, request),
+      }).toEqual({
+        subscribers: [email],
+        inquiries: [inquiry],
+        contacts: [email],
+        submissions: [...submissions].sort(),
+        after: { status: "fulfilled", handled_by: admin, fulfilled: true },
+        audit: auditTrail("audit.subject_export"),
+      });
+    });
+  });
+
+  it("delete_subject leaves no plaintext address, archives the contact, anonymises the inquiry and drops the dead webhook job's body", async () => {
+    await withRollback(async (db) => {
+      await assertStep15a(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const email = `subject+${randomUUID()}@example.invalid`;
+      const { inquiry } = await personRows(db, email);
+      const { id: job } = await one<{ id: string }>(
+        db,
+        `insert into public.jobs (type, idempotency_key, status, payload, result)
+         values ('webhook_omnikom', $1, 'dead', jsonb_build_object('data', jsonb_build_object('inquiry_id', $2::text)),
+           jsonb_build_object('body', $3::text, 'status', 500)) returning id`,
+        [`webhook_omnikom:${inquiry}:test`, inquiry, JSON.stringify({ email })],
+      );
+      const request = await subjectRequest(db, email, "deletion");
+      await confirmIdentity(db, request, admin);
+      await db.query(DELETE, [request, admin]);
+      const left = await one<Record<string, number>>(
+        db,
+        `select
+           (select count(*)::int from public.subscribers where lower(email) = $1) as subscribers,
+           (select count(*)::int from public.inquiries where lower(email) = $1) as inquiries,
+           (select count(*)::int from public.contacts where lower(email) = $1) as contacts,
+           (select count(*)::int from public.submissions where lower(submitter_email) = $1) as submissions,
+           (select count(*)::int from public.audit_log
+             where entity_id = $2::uuid
+               and position($1 in coalesce(before::text, '') || coalesce(after::text, '') || coalesce(note, '')) > 0
+           ) as audit`,
+        [email, request],
+      );
+      const contact = await one<{ name: string; archived: boolean }>(
+        db,
+        `select name, archived_at is not null as archived from public.contacts
+         where email = encode(sha256(convert_to($1, 'UTF8')), 'hex') || '@anonymised.invalid'`,
+        [email],
+      );
+      const anonymised = await one<Record<string, unknown>>(
+        db,
+        `select anonymised_at is not null as anonymised, location, forwarded_payload, attribution, name, message
+         from public.inquiries where id = $1`,
+        [inquiry],
+      );
+      const { has_body } = await one<{ has_body: boolean }>(
+        db,
+        "select result ? 'body' as has_body from public.jobs where id = $1",
+        [job],
+      );
+      expect({
+        left,
+        contact,
+        anonymised,
+        has_body,
+        audit: await subjectAudit(db, request),
+      }).toEqual({
+        left: { subscribers: 0, inquiries: 0, contacts: 0, submissions: 0, audit: 0 },
+        contact: { name: "", archived: true },
+        anonymised: {
+          anonymised: true,
+          location: null,
+          forwarded_payload: null,
+          attribution: {},
+          name: "",
+          message: "",
+        },
+        has_body: false,
+        audit: auditTrail("audit.subject_delete"),
+      });
+    });
+  });
+
+  it("opt_out_subject unsubscribes the subscriber, adds one manual suppression, and a second call raises wrong_state", async () => {
+    await withRollback(async (db) => {
+      await assertStep15a(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const email = `subject+${randomUUID()}@example.invalid`;
+      await db.query("insert into public.subscribers (email, source) values ($1, 'home')", [email]);
+      const request = await subjectRequest(db, email, "opt_out");
+      await confirmIdentity(db, request, admin);
+      await db.query(OPT_OUT, [request, admin]);
+      const state = await one<{ unsubscribed: boolean; suppressions: string[] }>(
+        db,
+        `select (select unsubscribed_at is not null from public.subscribers where email = $1) as unsubscribed,
+           (select array_agg(reason) from public.email_suppressions where email = $1) as suppressions`,
+        [email],
+      );
+      expect({
+        state,
+        again: await attempt(db, OPT_OUT, [request, admin]),
+        audit: await subjectAudit(db, request),
+      }).toEqual({
+        state: { unsubscribed: true, suppressions: ["manual"] },
+        again: "P0001 wrong_state",
+        audit: auditTrail("audit.subject_opt_out"),
+      });
+    });
+  });
+
+  it("fulfil_correction without a note raises note_required, and with a note fulfils the correction with one audit.subject_status row", async () => {
+    await withRollback(async (db) => {
+      await assertStep15a(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const request = await subjectRequest(
+        db,
+        `subject+${randomUUID()}@example.invalid`,
+        "correction",
+      );
+      await confirmIdentity(db, request, admin);
+      const without = await attempt(db, STATUS, [request, "fulfil_correction", admin, null]);
+      await db.query(STATUS, [request, "fulfil_correction", admin, "Phone corrected by hand."]);
+      const after = await one<{ status: string; handled_by: string; fulfilled: boolean }>(
+        db,
+        "select status, handled_by, fulfilled_at is not null as fulfilled from public.subject_requests where id = $1",
+        [request],
+      );
+      expect({ without, after, audit: await subjectAudit(db, request) }).toEqual({
+        without: "P0001 note_required",
+        after: { status: "fulfilled", handled_by: admin, fulfilled: true },
+        audit: auditTrail("audit.subject_status"),
+      });
     });
   });
 });
