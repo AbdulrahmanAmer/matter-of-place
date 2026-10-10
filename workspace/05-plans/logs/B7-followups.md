@@ -911,3 +911,39 @@ what: The five sql entries b7-15-db-* use an expect that only matches the test t
 evidence: Confirmed by reading: node -e prints the b7-15-db-* entries; the expect for each is '× .*<test title>', with no reason text.
 
 blocking: false
+
+## g2 · steps 15a
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The fifth follow-up of the review names GOTCHAS.md and is banked in the bank itself (a hit-again line under P-066).
+
+### 1. app/src/admin/audit/SubjectRequestsTab.tsx
+
+what: Suspected by reading, not run. The 'Identity confirmed' dialog hints 'Optional. How identity was confirmed.' The note is passed as p_note and stored word for word in audit_log.note. write_audit does not redact notes, audit_log is immutable and delete_subject cannot scrub it. An admin who writes 'confirmed by reply from jane@x.com' leaves a plaintext address in the audit trail that a later deletion cannot remove (invariant 18, C16). The plan itself asks for the note, so this is a follow-up: change the hint so it asks for no address, or redact notes for the subject_request entity.
+
+evidence: set_subject_request_status.sql passes v_note to write_audit. write_audit.sql lines 78-79 insert p_note as is. The delete case in tests/db/admin.db.test.ts passes only because its seeded note 'Replied from the address.' holds no address.
+
+blocking: false
+
+### 2. app/src/domain/admin-audit.ts
+
+what: R22 asks that a state column's allowed transitions be declared once in a domain file and compared with the SQL guard. The subject_requests transitions (received to verifying to fulfilled or rejected, plus the verified_at gate) exist only in set_subject_request_status.sql and in the button logic of SubjectRequestsTab.tsx. No domain table and no parity test exist, so the UI and SQL can drift apart without any test failing. No product input breaks today, and the step did not ask for a table.
+
+evidence: grep -rn subject src/domain/workflow.ts finds nothing. The only list is subjectRequestStatuses in admin-audit.ts, which holds statuses but no transitions.
+
+blocking: false
+
+### 3. app/tests/mutations/B7.json
+
+what: b7-15a-db-correction-note goes red on 'error: wrong_state' from the case's second call, not on the note_required assertion. Its expect is a title-only regex, so any red counts as a pass. It still catches the mutation today, but the red comes from a later call rather than the check it targets.
+
+evidence: From the author's log, and consistent with the entry's expect '× .*fulfil_correction without a note raises note_required'.
+
+blocking: false
+
+### 4. app/src/server/settings/service.ts
+
+what: putRedirect reads every active redirect for redirectSchema with no limit. Past PostgREST's max-rows cap (1000 on Supabase by default) the TypeScript loop and duplicate checks see only part of the table. put_redirect's SQL check still refuses the row, so this costs only the early refusal before any RPC. RedirectsSection's inline check likewise sees only the current page of 50 rows.
+
+evidence: service.ts putRedirect: db.from("redirects").select(REDIRECT_COLUMNS).is("archived_at", null) with no .limit.
+
+blocking: false
