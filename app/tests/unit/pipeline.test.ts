@@ -41,6 +41,7 @@ function setup(options: {
   redirect?: PipelineDeps["redirect"];
   getFlags?: PipelineDeps["getFlags"];
   apiRoutes?: string[];
+  notFound?: PipelineDeps["notFound"];
 }) {
   const waitUntil = vi.fn<PipelineContext["waitUntil"]>();
   const report = vi.fn<PipelineDeps["report"]>(() => Promise.resolve());
@@ -58,6 +59,7 @@ function setup(options: {
     getFlags: options.getFlags ?? (() => Promise.resolve({})),
     report,
     isApiRoute: (pathname) => (options.apiRoutes ?? []).includes(pathname),
+    ...(options.notFound ? { notFound: options.notFound } : {}),
   };
   return {
     rendered,
@@ -605,5 +607,36 @@ describe("the response object", () => {
     const rendered = new Response(null, { status: 307, headers: { location: "/exposure" } });
     const { run } = setup({ render: () => rendered });
     expect(await run(get("/pricing"))).toBe(rendered);
+  });
+});
+
+describe("the 404 hook (B14 GG-02)", () => {
+  const notFoundPage = () => new Response("<html>not here</html>", { status: 404 });
+
+  it("tells the hook once of a rendered 404 and once of the same 404 served from the cache", async () => {
+    const cache = memoryCache();
+    const notFound = vi.fn<NonNullable<PipelineDeps["notFound"]>>();
+    const { run, rendered } = setup({ cache: cache.hook, render: notFoundPage, notFound });
+    expect((await run(get("/no-such-page"))).status).toBe(404);
+    expect(notFound).toHaveBeenCalledTimes(1);
+    expect((await run(get("/no-such-page"))).status).toBe(404);
+    expect(rendered).toEqual(["GET /no-such-page"]);
+    expect(notFound).toHaveBeenCalledTimes(2);
+  });
+
+  it("never tells the hook of a 200, a 301 redirect or a POST that answers 404", async () => {
+    const notFound = vi.fn<NonNullable<PipelineDeps["notFound"]>>();
+    const ok = setup({ notFound });
+    expect((await ok.run(get("/california"))).status).toBe(200);
+    const moved = setup({
+      notFound,
+      render: notFoundPage,
+      redirect: () =>
+        Promise.resolve(new Response(null, { status: 301, headers: { location: "/new" } })),
+    });
+    expect((await moved.run(get("/old-slug"))).status).toBe(301);
+    const posted = setup({ notFound, render: notFoundPage });
+    expect((await posted.run(get("/no-such-page", { method: "POST" }))).status).toBe(404);
+    expect(notFound).not.toHaveBeenCalled();
   });
 });

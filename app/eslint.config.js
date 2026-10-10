@@ -15,7 +15,12 @@ import { readFileSync } from "node:fs";
 // config, where the path below is relative to that root.
 const MERGE_GATE = "workspace/05-plans/merge-gate.mjs";
 // B14 keeps its tools beside the reports (workspace/audits) and its lint at the repository root; they share that second run.
-const ROOT_SCRIPTS = [MERGE_GATE, "workspace/audits/tools/*.mjs", "scripts/audit/*.mjs"];
+const ROOT_SCRIPTS = [
+  MERGE_GATE,
+  "workspace/audits/tools/*.mjs",
+  "workspace/audits/tools/collectors/*.mjs",
+  "scripts/audit/*.mjs",
+];
 const prettierOptions = JSON.parse(readFileSync(new URL(".prettierrc", import.meta.url), "utf8"));
 
 // Deno-loaded files (CS-01): the job runner imports them, so every relative, `@/server/` and

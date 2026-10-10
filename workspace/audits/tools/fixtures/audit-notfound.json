@@ -1,0 +1,11 @@
+{
+  "items": [
+    {
+      "path": "/property/old-slug",
+      "count": 12,
+      "top_referrer_host": "news.example.com",
+      "redirected": true
+    },
+    { "path": "/no-such-page", "count": 3, "top_referrer_host": null, "redirected": false }
+  ]
+}

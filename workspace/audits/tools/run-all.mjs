@@ -16,8 +16,11 @@ import {
 import * as crawl from "./crawl.mjs";
 import * as ga4 from "./ga4.mjs";
 import * as gsc from "./gsc.mjs";
+import * as kpis from "./kpis.mjs";
+import * as notfound from "./notfound.mjs";
 import * as psi from "./psi.mjs";
 import * as uptime from "./uptime.mjs";
+import * as usage from "./usage.mjs";
 
 export const REQUIRED = [
   "AUDIT_AGENT_KEY",
@@ -48,7 +51,7 @@ export const SECRET_NAMES = [
 /**
  * A collector module reduced to what the runner needs. `vendor` collectors read outside hosts with
  * tokens that exist only in the routine or on the laptop; `--from-data` takes their numbers from a
- * data branch instead. Slice B14 steps 4 and 5 add `usage`, `notfound`, `kpis` and `security` here.
+ * data branch instead. Slice B14 step 5 adds `security` here.
  * @typedef {{
  *   name: string,
  *   keys: string[],
@@ -59,11 +62,40 @@ export const SECRET_NAMES = [
  */
 export const COLLECTORS = [
   { name: "psi", keys: ["psi"], vendor: true, collect: psi.collect },
-  { name: "gsc", keys: ["gsc", "keywords"], vendor: true, collect: gsc.collect },
+  {
+    name: "gsc",
+    keys: ["gsc", "keywords"],
+    vendor: true,
+    collect: gsc.collect,
+  },
   { name: "ga4", keys: ["ga4"], vendor: true, collect: ga4.collect },
   { name: "bing", keys: ["bing"], vendor: true, collect: bing.collect },
   { name: "uptime", keys: ["uptime"], vendor: true, collect: uptime.collect },
-  { name: "crawl", keys: ["seo", "aeo"], vendor: false, collect: crawl.collect },
+  { name: "usage", keys: ["usage"], vendor: true, collect: usage.collect },
+  {
+    name: "ours",
+    keys: ["usage_ours"],
+    vendor: false,
+    collect: usage.collectOurs,
+  },
+  {
+    name: "notfound",
+    keys: ["not_found"],
+    vendor: false,
+    collect: (ctx) => notfound.collect(ctx),
+  },
+  {
+    name: "kpis",
+    keys: ["kpis"],
+    vendor: false,
+    collect: (ctx) => kpis.collect(ctx),
+  },
+  {
+    name: "crawl",
+    keys: ["seo", "aeo"],
+    vendor: false,
+    collect: crawl.collect,
+  },
   { name: "cache", keys: ["cache"], vendor: false, collect: cache.collect },
 ];
 
@@ -255,7 +287,9 @@ export async function runAll(options) {
       collected = Object.fromEntries(
         entry.keys.map((key) => [
           key,
-          { notMeasured: `collector ${entry.name} failed: ${messageOf(error)}` },
+          {
+            notMeasured: `collector ${entry.name} failed: ${messageOf(error)}`,
+          },
         ]),
       );
     }
@@ -296,5 +330,8 @@ export async function runAll(options) {
 }
 
 if (isMain(import.meta.url)) {
-  process.exitCode = await runAll({ argv: process.argv.slice(2), ctx: makeContext() });
+  process.exitCode = await runAll({
+    argv: process.argv.slice(2),
+    ctx: makeContext(),
+  });
 }

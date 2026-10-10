@@ -835,5 +835,478 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/audit/crawl.test.ts",
     "expect": "the default run > throws when the program cannot start"
+  },
+  {
+    "id": "b14g2-svc-read",
+    "test": "tests/unit/audit/service.test.ts",
+    "file": "src/server/audit/service.ts",
+    "find": "authorize(actor, \"audit.usage\");",
+    "replace": "authorize(actor, \"audit.list\");",
+    "run": "bunx vitest run --project unit tests/unit/audit/service.test.ts",
+    "expect": "the auditor's endpoints > lets the auditor read usage"
+  },
+  {
+    "id": "b14g2-svc-put-role",
+    "test": "tests/unit/audit/service.test.ts",
+    "file": "src/server/lib/permissions/automation.ts",
+    "find": "const writers = [\"chief_editor\", \"media_ops\", \"admin\"] as const;",
+    "replace": "const writers = [\"chief_editor\", \"media_ops\", \"admin\", \"commercial\"] as const;",
+    "run": "bunx vitest run --project unit tests/unit/audit/service.test.ts",
+    "expect": "the auditor's endpoints > refuses the auditor the schedule put"
+  },
+  {
+    "id": "b14g2-svc-record",
+    "test": "tests/unit/audit/service.test.ts",
+    "file": "src/server/audit/service.ts",
+    "find": "db.rpc(\"audit_record_run\", auditContext(actor))",
+    "replace": "db.rpc(\"audit_record_run\", { ...auditContext(actor), p_request_id: \"\" })",
+    "run": "bunx vitest run --project unit tests/unit/audit/service.test.ts",
+    "expect": "the auditor's endpoints > records a run as the auditor"
+  },
+  {
+    "id": "b14g2-svc-editor",
+    "test": "tests/unit/audit/service.test.ts",
+    "file": "src/server/lib/permissions/audit.ts",
+    "find": "{ action: \"audit.record_run\", group: \"audit\", roles: [\"commercial\", \"admin\"] }",
+    "replace": "{ action: \"audit.record_run\", group: \"audit\", roles: [\"commercial\", \"admin\", \"managing_editor\"] }",
+    "run": "bunx vitest run --project unit tests/unit/audit/service.test.ts",
+    "expect": "the auditor's endpoints > refuses a managing_editor"
+  },
+  {
+    "id": "b14-j",
+    "test": "tests/unit/audit/service.test.ts",
+    "file": "src/server/audit/service.ts",
+    "find": "return collectWeeklyKpis(db, weekStart ?? lastFullWeekStart(now));",
+    "replace": "return { ...(await collectWeeklyKpis(db, weekStart ?? lastFullWeekStart(now))), acceptance_rate: 0.5 };",
+    "run": "bunx vitest run --project unit tests/unit/audit/service.test.ts",
+    "expect": "the auditor's endpoints > returns collectWeeklyKpis output unchanged"
+  },
+  {
+    "id": "b14g2-svc-stalled",
+    "test": "tests/unit/audit/service.test.ts",
+    "file": "src/server/audit/service.ts",
+    "find": "(row.overdue ?? 0) > 0 ||",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/service.test.ts",
+    "expect": "the auditor's endpoints > turns an overdue retention count"
+  },
+  {
+    "id": "b14-v",
+    "test": "tests/unit/audit/service.test.ts",
+    "file": "src/server/lib/permissions/audit.ts",
+    "find": "  { action: \"audit.kpis\", group: \"audit\", roles: auditReaders },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/service.test.ts",
+    "expect": "the auditor's endpoints > lets the auditor read usage"
+  },
+  {
+    "id": "b14-v-matrix",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/audit.ts",
+    "find": "  { action: \"audit.kpis\", group: \"audit\", roles: auditReaders },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/authz.matrix.test.ts",
+    "expect": "the authorization matrix > equals the hand-typed fixture"
+  },
+  {
+    "id": "b14g2-route-usage",
+    "test": "tests/unit/audit/routes.test.ts",
+    "file": "src/routes/api/admin/audit.usage.ts",
+    "find": "handler: (ctx) => getUsage(ctx.actor, ctx.db),",
+    "replace": "handler: () => Promise.resolve(new Response(\"{}\")),",
+    "run": "bunx vitest run --project unit tests/unit/audit/routes.test.ts",
+    "expect": "the audit routes > usage answers"
+  },
+  {
+    "id": "b14g2-route-health",
+    "test": "tests/unit/audit/routes.test.ts",
+    "file": "src/routes/api/admin/audit.health.ts",
+    "find": "handler: (ctx) => getHealth(ctx.actor, ctx.db),",
+    "replace": "handler: () => Promise.resolve(new Response(\"{}\")),",
+    "run": "bunx vitest run --project unit tests/unit/audit/routes.test.ts",
+    "expect": "the audit routes > health answers"
+  },
+  {
+    "id": "b14g2-route-notfound",
+    "test": "tests/unit/audit/routes.test.ts",
+    "file": "src/routes/api/admin/audit.notfound.ts",
+    "find": "handler: (ctx, input) => listNotFound(ctx.actor, ctx.db, input.days),",
+    "replace": "handler: () => Promise.resolve(new Response(\"{}\")),",
+    "run": "bunx vitest run --project unit tests/unit/audit/routes.test.ts",
+    "expect": "the audit routes > notfound answers"
+  },
+  {
+    "id": "b14g2-route-kpis",
+    "test": "tests/unit/audit/routes.test.ts",
+    "file": "src/routes/api/admin/audit.kpis.ts",
+    "find": "handler: (ctx, input) => getKpis(ctx.actor, ctx.db, input.week_start),",
+    "replace": "handler: () => Promise.resolve(new Response(\"{}\")),",
+    "run": "bunx vitest run --project unit tests/unit/audit/routes.test.ts",
+    "expect": "the audit routes > kpis answers"
+  },
+  {
+    "id": "b14-ab",
+    "test": "tests/unit/audit/routes.test.ts",
+    "file": "src/routes/api/admin/audit.record-run.ts",
+    "find": "      POST: defineAdminRoute({",
+    "replace": "      POST: (() => Promise.resolve(Response.json({ last_run_at: \"2026-10-10T12:00:00Z\" }))) ?? defineAdminRoute({",
+    "run": "bunx vitest run --project unit tests/unit/audit/routes.test.ts",
+    "expect": "the audit routes > record-run answers"
+  },
+  {
+    "id": "b14-ah",
+    "test": "tests/unit/admin-routes-parity.test.ts",
+    "file": "src/routes/api/admin/audit.record-run.ts",
+    "find": "      POST: defineAdminRoute({",
+    "replace": "      POST: (() => Promise.resolve(Response.json({ last_run_at: \"2026-10-10T12:00:00Z\" }))) ?? defineAdminRoute({",
+    "run": "bunx vitest run --project unit tests/unit/admin-routes-parity.test.ts",
+    "expect": "audit\\.record-run\\.ts"
+  },
+  {
+    "id": "b14-h",
+    "test": "tests/unit/audit/not-found-log.test.ts",
+    "file": "src/server/lib/not-found-log.ts",
+    "find": "path: maskEmails(pathname),",
+    "replace": "path: maskEmails(pathname + new URL(request.url).search),",
+    "run": "bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts",
+    "expect": "logNotFound > drops the query string"
+  },
+  {
+    "id": "b14-p",
+    "test": "tests/unit/audit/not-found-log.test.ts",
+    "file": "src/server/lib/not-found-log.ts",
+    "find": "prefixes: [\"/assets/\", \"/wp-\"],",
+    "replace": "prefixes: [\"/assets/\"],",
+    "run": "bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts",
+    "expect": "logNotFound > skips probe noise"
+  },
+  {
+    "id": "b14g2-nf-cap",
+    "test": "tests/unit/audit/not-found-log.test.ts",
+    "file": "src/server/lib/not-found-log.ts",
+    "find": "  if (loggedToday >= DAILY_CAP) return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts",
+    "expect": "logNotFound > stops at 1,000 rows"
+  },
+  {
+    "id": "b14-m",
+    "test": "tests/unit/audit/not-found-log.test.ts",
+    "file": "src/server/lib/not-found-log.ts",
+    "find": "  if (buffer.length >= FLUSH_ROWS) ctx.waitUntil(flush(db));\n  else if",
+    "replace": "  ctx.waitUntil(flush(db));\n  if",
+    "run": "bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts",
+    "expect": "logNotFound > writes ten rows of one window"
+  },
+  {
+    "id": "b14-r",
+    "test": "tests/unit/audit/not-found-log.test.ts",
+    "file": "src/server/lib/not-found-log.ts",
+    "find": "else if (buffer.length === 1) ctx.waitUntil(delay(FLUSH_DELAY_MS).then(() => flush(db)));",
+    "replace": "else if (buffer.length === 1) void delay(FLUSH_DELAY_MS).then(() => flush(db));",
+    "run": "bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts",
+    "expect": "logNotFound > flushes one row after 10 seconds"
+  },
+  {
+    "id": "b14-q",
+    "test": "tests/unit/audit/not-found-log.test.ts",
+    "file": "src/server/lib/not-found-log.ts",
+    "find": "  } catch {\n    failed();\n  }",
+    "replace": "  } catch (error) {\n    failed();\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts",
+    "expect": "logNotFound > resolves a rejected insert"
+  },
+  {
+    "id": "b14-s",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    const render = () => withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n    // Only a public page is looked up for a redirect or stored; `/media/`, documents, the API and the admin never are.\n    const page = !neverCached(request, pathname) && isPageRequest(pathname);\n    const closed = await maintenanceGate(request, flags, mopEnv);\n    const redirect = closed === null && page ? await deps.redirect(request) : null;\n    redirected = redirect !== null;\n    response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());\n    if (request.method === \"GET\" && response.status === 404) deps.notFound?.(request, ctx);\n",
+    "replace": "    const render = async () => {\n      const rendered = await withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n      if (request.method === \"GET\" && rendered.status === 404) deps.notFound?.(request, ctx);\n      return rendered;\n    };\n    // Only a public page is looked up for a redirect or stored; `/media/`, documents, the API and the admin never are.\n    const page = !neverCached(request, pathname) && isPageRequest(pathname);\n    const closed = await maintenanceGate(request, flags, mopEnv);\n    const redirect = closed === null && page ? await deps.redirect(request) : null;\n    redirected = redirect !== null;\n    response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());\n",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "the 404 hook \\(B14 GG-02\\) > tells the hook once of a rendered 404"
+  },
+  {
+    "id": "b14-t",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    if (request.method === \"GET\" && response.status === 404) deps.notFound?.(request, ctx);\n",
+    "replace": "    if (request.method === \"GET\" && [404, 301].includes(response.status)) deps.notFound?.(request, ctx);\n",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "the 404 hook \\(B14 GG-02\\) > never tells the hook"
+  },
+  {
+    "id": "b14g2-pipe-post",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    if (request.method === \"GET\" && response.status === 404) deps.notFound?.(request, ctx);\n",
+    "replace": "    if (response.status === 404) deps.notFound?.(request, ctx);\n",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "the 404 hook \\(B14 GG-02\\) > never tells the hook"
+  },
+  {
+    "id": "b14g2-pipe-200",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    if (request.method === \"GET\" && response.status === 404) deps.notFound?.(request, ctx);\n",
+    "replace": "    if (request.method === \"GET\" && response.status !== 301) deps.notFound?.(request, ctx);\n",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "the 404 hook \\(B14 GG-02\\) > never tells the hook"
+  },
+  {
+    "id": "b14g2-cf-account",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/cloudflare.mjs",
+    "find": "ctx.env[\"CF_ACCOUNT_ID\"] ?? ctx.env[\"CLOUDFLARE_ACCOUNT_ID\"] ?? \"\"",
+    "replace": "ctx.env[\"CF_ACCOUNT_ID\"] ?? \"\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "cloudflare\\.mjs > uses CLOUDFLARE_ACCOUNT_ID"
+  },
+  {
+    "id": "b14g2-cf-token",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/cloudflare.mjs",
+    "find": "token === \"\" ? \"CF_ANALYTICS_TOKEN\" : accountId",
+    "replace": "accountId",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "cloudflare\\.mjs > makes no call without CF_ANALYTICS_TOKEN"
+  },
+  {
+    "id": "b14-ad",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/github.mjs",
+    "find": "  else if (ctx.run(\"gh\", [\"auth\", \"status\"], APP_DIR).status === 0) runs = runsByGh(ctx, since);\n  else {",
+    "replace": "  else if (ctx.run(\"gh\", [\"auth\", \"status\"], APP_DIR).status >= 0) runs = runsByGh(ctx, since);\n  else {",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "github\\.mjs > makes no call with GITHUB_ACTIONS unset"
+  },
+  {
+    "id": "b14g2-gh-slash",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/github.mjs",
+    "find": "      `${RUNS}?created=>=${since}&per_page=${String(PER_PAGE)}`,",
+    "replace": "      `/${RUNS}?created=>=${since}&per_page=${String(PER_PAGE)}`,",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "github\\.mjs > reads the recorded runs through a signed-in gh"
+  },
+  {
+    "id": "b14g2-gh-token",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/github.mjs",
+    "find": "authorization: `Bearer ${ctx.env[\"GITHUB_TOKEN\"] ?? \"\"}`,",
+    "replace": "authorization: \"Bearer \",",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "github\\.mjs > sums the recorded runs to actions_minutes"
+  },
+  {
+    "id": "b14g2-gh-ceil",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/github.mjs",
+    "find": "sum + Math.ceil(ms / MINUTE_MS)",
+    "replace": "sum + Math.round(ms / MINUTE_MS)",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "github\\.mjs > rounds each completed run up"
+  },
+  {
+    "id": "b14g2-gh-completed",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/github.mjs",
+    "find": "    .filter((run) => run.status === \"completed\")\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "github\\.mjs > rounds each completed run up"
+  },
+  {
+    "id": "b14g2-sentry-unset",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/sentry.mjs",
+    "find": "  if (token === \"\")\n    return [{ line: \"sentry_errors\", error: \"not_measured: SENTRY_AUTH_TOKEN unset\" }];\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "sentry\\.mjs > makes no call with SENTRY_AUTH_TOKEN unset"
+  },
+  {
+    "id": "b14g2-sentry-sum",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/sentry.mjs",
+    "find": "count(field(group[\"totals\"], \"sum(quantity)\"))",
+    "replace": "count(field(group[\"totals\"], \"quantity\"))",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "sentry\\.mjs > sums the recorded stats_v2 totals"
+  },
+  {
+    "id": "b14g2-ours-caption",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/ours.mjs",
+    "find": "sum + row.input_tokens + row.output_tokens",
+    "replace": "sum + row.input_tokens",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "ours\\.mjs through usage\\.mjs > writes caption_tokens"
+  },
+  {
+    "id": "b14g2-usage-decision",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/usage.mjs",
+    "find": "  if (percent >= thresholds.decision) return { percent, status: \"DECISION\" };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "ours\\.mjs through usage\\.mjs > gives storage_bytes of 800,000,000"
+  },
+  {
+    "id": "b14g2-ours-unset",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/ours.mjs",
+    "find": "  if (target.key === \"\") return { reason: `${target.keyName} unset` };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "ours\\.mjs through usage\\.mjs > prints Not measured with the reason"
+  },
+  {
+    "id": "b14g2-usage-report",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/usage.mjs",
+    "find": "line.source === REPORT_ONLY ? \"Supabase usage report needs the account token\" : \"no source\"",
+    "replace": "\"no source\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "usage\\.mjs vendor rows > never calls a line without a source ok"
+  },
+  {
+    "id": "b14g2-usage-throw",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/usage.mjs",
+    "find": "      readings.push(...source.lines.map((line) => ({ line, error: reason })));\n",
+    "replace": "      void reason;\n",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "usage\\.mjs vendor rows > never calls a line without a source ok"
+  },
+  {
+    "id": "b14g2-notfound-days",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/notfound.mjs",
+    "find": "\"/api/admin/audit/notfound?days=7\"",
+    "replace": "\"/api/admin/audit/notfound?days=30\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "notfound\\.mjs and kpis\\.mjs > store the recorded answers"
+  },
+  {
+    "id": "b14g2-agent-non200",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/ours.mjs",
+    "find": "return answer.status === 200 ? { json: answer.json } : { reason: answer.reason };",
+    "replace": "return { json: answer.json };",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "notfound\\.mjs and kpis\\.mjs > record a non-200 answer"
+  },
+  {
+    "id": "b14g2-db-redirect",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_not_found(p_days int default 7, p_limit int default 20)\nreturns table (path text, count int, top_referrer_host text, redirected boolean)\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B14 GG-02: the paths that answered 404, most asked first, read through analytics_events_event_occurred_idx.\n  -- At most 90 days (the table's retention) and 50 paths (rule 9).\n  with hits as (\n    select e.path, e.data ->> 'referrer_host' as host\n    from public.analytics_events e\n    where e.event = 'not_found'\n      and e.occurred_at >= now() - make_interval(days => least(greatest(coalesce(p_days, 7), 1), 90))\n  ),\n  top as (\n    select h.path, count(*)::int as hits\n    from hits h\n    group by h.path\n    order by count(*) desc, h.path\n    limit least(greatest(coalesce(p_limit, 20), 1), 50)\n  )\n  select\n    t.path,\n    t.hits,\n    (\n      select h.host\n      from hits h\n      where h.path = t.path and h.host is not null\n      group by h.host\n      order by count(*) desc, h.host\n      limit 1\n    ),\n    false and exists (select 1 from public.redirects r where r.from_path = t.path and r.archived_at is null)\n      or exists (\n        select 1 from public.slug_history s where s.slug = substring(t.path from '^/property/([^/]+)/?$')\n      )\n  from top t\n  order by t.hits desc, t.path;\n$$;\n\nrevoke execute on function public.audit_not_found(int, int) from public, anon, authenticated;\ngrant execute on function public.audit_not_found(int, int) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"lists a seeded not_found path\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_not_found > lists a seeded not_found path"
+  },
+  {
+    "id": "b14g2-db-index",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "alter index public.analytics_events_event_occurred_idx rename to analytics_events_b14_probe_idx;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"reads analytics_events through\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_not_found > reads analytics_events through"
+  },
+  {
+    "id": "b14-z2",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_health()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month constant date := date_trunc('month', now() at time zone 'utc')::date;\n  v_sources jsonb;\nbegin\n  -- B14 invariant 4 and G11: the inquiry sources once B15's attribution column exists, null before.\n  if exists (\n    select 1 from information_schema.columns c\n    where c.table_schema = 'public' and c.table_name = 'inquiries' and c.column_name = 'attribution'\n  ) then\n    execute $q$\n      select coalesce(jsonb_agg(to_jsonb(s) order by s.source), '[]'::jsonb)\n      from (\n        select\n          coalesce(nullif(i.attribution -> 'first_touch' ->> 'utm_source', ''), '(none)') as source,\n          count(*) filter (where i.received_at >= now() - interval '7 days') as count_7d,\n          count(*) filter (where i.received_at < now() - interval '7 days') as count_prev_7d\n        from public.inquiries i\n        where i.received_at >= now() - interval '14 days'\n        group by 1\n      ) s\n    $q$ into v_sources;\n  end if;\n\n  return jsonb_build_object(\n    'assets_pending', (select count(*) from public.assets a where a.status = 'pending'),\n    'channels', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'channel', c.channel,\n        'enabled', c.enabled,\n        'last_posted_at', (select max(p.posted_at) from public.social_posts p where p.channel = c.channel),\n        'failed_7d', (\n          select count(*) from public.social_posts p\n          where p.channel = c.channel and p.status = 'failed' and p.updated_at >= now() - interval '7 days'\n        )\n      ) order by c.channel), '[]'::jsonb)\n      from public.channel_settings c\n    ),\n    'posts_7d', (\n      select count(*) from public.social_posts p where p.posted_at >= now() - interval '7 days'\n    ),\n    'newsletter', (\n      select jsonb_build_object(\n        'sent_30d', (\n          select count(*) from public.newsletter_issues i\n          where i.status = 'sent' and i.sent_at >= now() - interval '30 days'\n        ),\n        'last', (\n          select jsonb_build_object(\n            'number', i.number,\n            'sent_at', i.sent_at,\n            'recipients', (i.metrics ->> 'recipients')::int,\n            'opened', (i.metrics ->> 'opened')::int\n          )\n          from public.newsletter_issues i\n          where i.status = 'sent'\n          order by i.sent_at desc nulls last\n          limit 1\n        )\n      )\n    ),\n    -- B8 GD-03: a non-zero overdue means 30 days of runs removed nothing while rows of that age exist. A key with no\n    -- age column here is judged by last_run_at alone (overdue null).\n    'retention', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'key', r.key,\n        'last_run_at', r.last_run_at,\n        'last_count', r.last_count,\n        'overdue', case r.key\n          when 'rate_limits' then (select count(*) from public.rate_limits x where x.at < r.cutoff)\n          when 'webhook_receipts' then (\n            select count(*) from public.webhook_receipts x where x.received_at < r.cutoff\n          )\n          when 'subject_requests' then (\n            select count(*) from public.subject_requests x\n            where x.received_at < r.cutoff and x.status in ('fulfilled', 'rejected')\n          )\n          when 'jobs_done' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status in ('done', 'cancelled')\n          )\n          when 'jobs_dead' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status = 'dead'\n          )\n          when 'events_processed' then (\n            select count(*) from public.events x where x.processed_at < r.cutoff\n          )\n          when 'inquiries_anonymise' then (\n            select count(*) from public.inquiries x where x.received_at < r.cutoff and x.anonymised_at is null\n          )\n          when 'declined_submission_media' then (\n            select count(*)\n            from public.submission_media m\n            join public.submissions s on s.id = m.submission_id\n            where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff\n          )\n          when 'analytics_daily' then (\n            select count(*) from public.analytics_daily x where x.day < r.cutoff::date\n          )\n        end\n      ) order by r.key), '[]'::jsonb)\n      from (\n        select p.*, now() - (p.keep_for + interval '30 days') as cutoff\n        from public.retention_policies p\n        where p.enabled and p.action <> 'keep' and p.keep_for is not null and p.key <> 'analytics_events'\n      ) r\n    ),\n    -- G11: p75 per path and metric over 7 days.\n    'web_vitals', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'path', v.path, 'name', v.name, 'p75', v.p75, 'samples', v.samples\n      ) order by v.path, v.name), '[]'::jsonb)\n      from (\n        select\n          e.path,\n          e.data ->> 'name' as name,\n          percentile_cont(0.75) within group (order by (e.data ->> 'value')::float8) as p75,\n          count(*) as samples\n        from public.analytics_events e\n        where e.event = 'web_vitals' and e.occurred_at >= now() - interval '7 days'\n          and e.data ->> 'name' in ('LCP', 'CLS', 'INP')\n          and jsonb_typeof(e.data -> 'value') = 'number'\n        group by 1, 2\n      ) v\n    ),\n    -- Ruling H16: 13 whole months from the daily aggregates, served by analytics_daily_event_day_idx.\n    'analytics_trend', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'month', t.month, 'event', t.event, 'events', t.events\n      ) order by t.month, t.event), '[]'::jsonb)\n      from (\n        select to_char(date_trunc('month', d.day), 'YYYY-MM') as month, d.event, sum(d.events)::int as events\n        from (select occurred_at::date as day, event, 1 as events from public.analytics_events) d\n        where d.day >= (v_month - interval '13 months')::date and d.day < v_month\n        group by 1, 2\n      ) t\n    ),\n    'inquiries_by_source', v_sources\n  );\nend;\n$$;\n\nrevoke execute on function public.audit_health() from public, anon, authenticated;\ngrant execute on function public.audit_health() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"analytics_trend sums\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_health > analytics_trend sums"
+  },
+  {
+    "id": "b14g2-db-overdue",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_health()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month constant date := date_trunc('month', now() at time zone 'utc')::date;\n  v_sources jsonb;\nbegin\n  -- B14 invariant 4 and G11: the inquiry sources once B15's attribution column exists, null before.\n  if exists (\n    select 1 from information_schema.columns c\n    where c.table_schema = 'public' and c.table_name = 'inquiries' and c.column_name = 'attribution'\n  ) then\n    execute $q$\n      select coalesce(jsonb_agg(to_jsonb(s) order by s.source), '[]'::jsonb)\n      from (\n        select\n          coalesce(nullif(i.attribution -> 'first_touch' ->> 'utm_source', ''), '(none)') as source,\n          count(*) filter (where i.received_at >= now() - interval '7 days') as count_7d,\n          count(*) filter (where i.received_at < now() - interval '7 days') as count_prev_7d\n        from public.inquiries i\n        where i.received_at >= now() - interval '14 days'\n        group by 1\n      ) s\n    $q$ into v_sources;\n  end if;\n\n  return jsonb_build_object(\n    'assets_pending', (select count(*) from public.assets a where a.status = 'pending'),\n    'channels', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'channel', c.channel,\n        'enabled', c.enabled,\n        'last_posted_at', (select max(p.posted_at) from public.social_posts p where p.channel = c.channel),\n        'failed_7d', (\n          select count(*) from public.social_posts p\n          where p.channel = c.channel and p.status = 'failed' and p.updated_at >= now() - interval '7 days'\n        )\n      ) order by c.channel), '[]'::jsonb)\n      from public.channel_settings c\n    ),\n    'posts_7d', (\n      select count(*) from public.social_posts p where p.posted_at >= now() - interval '7 days'\n    ),\n    'newsletter', (\n      select jsonb_build_object(\n        'sent_30d', (\n          select count(*) from public.newsletter_issues i\n          where i.status = 'sent' and i.sent_at >= now() - interval '30 days'\n        ),\n        'last', (\n          select jsonb_build_object(\n            'number', i.number,\n            'sent_at', i.sent_at,\n            'recipients', (i.metrics ->> 'recipients')::int,\n            'opened', (i.metrics ->> 'opened')::int\n          )\n          from public.newsletter_issues i\n          where i.status = 'sent'\n          order by i.sent_at desc nulls last\n          limit 1\n        )\n      )\n    ),\n    -- B8 GD-03: a non-zero overdue means 30 days of runs removed nothing while rows of that age exist. A key with no\n    -- age column here is judged by last_run_at alone (overdue null).\n    'retention', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'key', r.key,\n        'last_run_at', r.last_run_at,\n        'last_count', r.last_count,\n        'overdue', case r.key\n          when 'rate_limits' then (select count(*) from public.rate_limits x where x.at < r.cutoff)\n          when 'webhook_receipts' then (\n            select count(*) from public.webhook_receipts x where x.received_at < r.cutoff\n          )\n          when 'subject_requests' then (\n            select count(*) from public.subject_requests x\n            where x.received_at < r.cutoff and x.status in ('fulfilled', 'rejected')\n          )\n          when 'jobs_done' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff - interval '1 year' and x.status in ('done', 'cancelled')\n          )\n          when 'jobs_dead' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status = 'dead'\n          )\n          when 'events_processed' then (\n            select count(*) from public.events x where x.processed_at < r.cutoff\n          )\n          when 'inquiries_anonymise' then (\n            select count(*) from public.inquiries x where x.received_at < r.cutoff and x.anonymised_at is null\n          )\n          when 'declined_submission_media' then (\n            select count(*)\n            from public.submission_media m\n            join public.submissions s on s.id = m.submission_id\n            where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff\n          )\n          when 'analytics_daily' then (\n            select count(*) from public.analytics_daily x where x.day < r.cutoff::date\n          )\n        end\n      ) order by r.key), '[]'::jsonb)\n      from (\n        select p.*, now() - (p.keep_for + interval '30 days') as cutoff\n        from public.retention_policies p\n        where p.enabled and p.action <> 'keep' and p.keep_for is not null and p.key <> 'analytics_events'\n      ) r\n    ),\n    -- G11: p75 per path and metric over 7 days.\n    'web_vitals', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'path', v.path, 'name', v.name, 'p75', v.p75, 'samples', v.samples\n      ) order by v.path, v.name), '[]'::jsonb)\n      from (\n        select\n          e.path,\n          e.data ->> 'name' as name,\n          percentile_cont(0.75) within group (order by (e.data ->> 'value')::float8) as p75,\n          count(*) as samples\n        from public.analytics_events e\n        where e.event = 'web_vitals' and e.occurred_at >= now() - interval '7 days'\n          and e.data ->> 'name' in ('LCP', 'CLS', 'INP')\n          and jsonb_typeof(e.data -> 'value') = 'number'\n        group by 1, 2\n      ) v\n    ),\n    -- Ruling H16: 13 whole months from the daily aggregates, served by analytics_daily_event_day_idx.\n    'analytics_trend', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'month', t.month, 'event', t.event, 'events', t.events\n      ) order by t.month, t.event), '[]'::jsonb)\n      from (\n        select to_char(date_trunc('month', d.day), 'YYYY-MM') as month, d.event, sum(d.events)::int as events\n        from public.analytics_daily d\n        where d.day >= (v_month - interval '13 months')::date and d.day < v_month\n        group by 1, 2\n      ) t\n    ),\n    'inquiries_by_source', v_sources\n  );\nend;\n$$;\n\nrevoke execute on function public.audit_health() from public, anon, authenticated;\ngrant execute on function public.audit_health() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"counts a jobs_done row\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_health > counts a jobs_done row"
+  },
+  {
+    "id": "b14g2-db-source",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_health()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month constant date := date_trunc('month', now() at time zone 'utc')::date;\n  v_sources jsonb;\nbegin\n  -- B14 invariant 4 and G11: the inquiry sources once B15's attribution column exists, null before.\n  if exists (\n    select 1 from information_schema.columns c\n    where c.table_schema = 'public' and c.table_name = 'inquiries' and c.column_name = 'attribution'\n  ) then\n    execute $q$\n      select coalesce(jsonb_agg(to_jsonb(s) order by s.source), '[]'::jsonb)\n      from (\n        select\n          coalesce(nullif(i.attribution -> 'first_touch' ->> 'source', ''), '(none)') as source,\n          count(*) filter (where i.received_at >= now() - interval '7 days') as count_7d,\n          count(*) filter (where i.received_at < now() - interval '7 days') as count_prev_7d\n        from public.inquiries i\n        where i.received_at >= now() - interval '14 days'\n        group by 1\n      ) s\n    $q$ into v_sources;\n  end if;\n\n  return jsonb_build_object(\n    'assets_pending', (select count(*) from public.assets a where a.status = 'pending'),\n    'channels', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'channel', c.channel,\n        'enabled', c.enabled,\n        'last_posted_at', (select max(p.posted_at) from public.social_posts p where p.channel = c.channel),\n        'failed_7d', (\n          select count(*) from public.social_posts p\n          where p.channel = c.channel and p.status = 'failed' and p.updated_at >= now() - interval '7 days'\n        )\n      ) order by c.channel), '[]'::jsonb)\n      from public.channel_settings c\n    ),\n    'posts_7d', (\n      select count(*) from public.social_posts p where p.posted_at >= now() - interval '7 days'\n    ),\n    'newsletter', (\n      select jsonb_build_object(\n        'sent_30d', (\n          select count(*) from public.newsletter_issues i\n          where i.status = 'sent' and i.sent_at >= now() - interval '30 days'\n        ),\n        'last', (\n          select jsonb_build_object(\n            'number', i.number,\n            'sent_at', i.sent_at,\n            'recipients', (i.metrics ->> 'recipients')::int,\n            'opened', (i.metrics ->> 'opened')::int\n          )\n          from public.newsletter_issues i\n          where i.status = 'sent'\n          order by i.sent_at desc nulls last\n          limit 1\n        )\n      )\n    ),\n    -- B8 GD-03: a non-zero overdue means 30 days of runs removed nothing while rows of that age exist. A key with no\n    -- age column here is judged by last_run_at alone (overdue null).\n    'retention', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'key', r.key,\n        'last_run_at', r.last_run_at,\n        'last_count', r.last_count,\n        'overdue', case r.key\n          when 'rate_limits' then (select count(*) from public.rate_limits x where x.at < r.cutoff)\n          when 'webhook_receipts' then (\n            select count(*) from public.webhook_receipts x where x.received_at < r.cutoff\n          )\n          when 'subject_requests' then (\n            select count(*) from public.subject_requests x\n            where x.received_at < r.cutoff and x.status in ('fulfilled', 'rejected')\n          )\n          when 'jobs_done' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status in ('done', 'cancelled')\n          )\n          when 'jobs_dead' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status = 'dead'\n          )\n          when 'events_processed' then (\n            select count(*) from public.events x where x.processed_at < r.cutoff\n          )\n          when 'inquiries_anonymise' then (\n            select count(*) from public.inquiries x where x.received_at < r.cutoff and x.anonymised_at is null\n          )\n          when 'declined_submission_media' then (\n            select count(*)\n            from public.submission_media m\n            join public.submissions s on s.id = m.submission_id\n            where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff\n          )\n          when 'analytics_daily' then (\n            select count(*) from public.analytics_daily x where x.day < r.cutoff::date\n          )\n        end\n      ) order by r.key), '[]'::jsonb)\n      from (\n        select p.*, now() - (p.keep_for + interval '30 days') as cutoff\n        from public.retention_policies p\n        where p.enabled and p.action <> 'keep' and p.keep_for is not null and p.key <> 'analytics_events'\n      ) r\n    ),\n    -- G11: p75 per path and metric over 7 days.\n    'web_vitals', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'path', v.path, 'name', v.name, 'p75', v.p75, 'samples', v.samples\n      ) order by v.path, v.name), '[]'::jsonb)\n      from (\n        select\n          e.path,\n          e.data ->> 'name' as name,\n          percentile_cont(0.75) within group (order by (e.data ->> 'value')::float8) as p75,\n          count(*) as samples\n        from public.analytics_events e\n        where e.event = 'web_vitals' and e.occurred_at >= now() - interval '7 days'\n          and e.data ->> 'name' in ('LCP', 'CLS', 'INP')\n          and jsonb_typeof(e.data -> 'value') = 'number'\n        group by 1, 2\n      ) v\n    ),\n    -- Ruling H16: 13 whole months from the daily aggregates, served by analytics_daily_event_day_idx.\n    'analytics_trend', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'month', t.month, 'event', t.event, 'events', t.events\n      ) order by t.month, t.event), '[]'::jsonb)\n      from (\n        select to_char(date_trunc('month', d.day), 'YYYY-MM') as month, d.event, sum(d.events)::int as events\n        from public.analytics_daily d\n        where d.day >= (v_month - interval '13 months')::date and d.day < v_month\n        group by 1, 2\n      ) t\n    ),\n    'inquiries_by_source', v_sources\n  );\nend;\n$$;\n\nrevoke execute on function public.audit_health() from public, anon, authenticated;\ngrant execute on function public.audit_health() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"groups inquiries by utm_source\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_health > groups inquiries by utm_source"
+  },
+  {
+    "id": "b14g2-db-source-null",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_health()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month constant date := date_trunc('month', now() at time zone 'utc')::date;\n  v_sources jsonb;\nbegin\n  -- B14 invariant 4 and G11: the inquiry sources once B15's attribution column exists, null before.\n  if true or exists (\n    select 1 from information_schema.columns c\n    where c.table_schema = 'public' and c.table_name = 'inquiries' and c.column_name = 'attribution'\n  ) then\n    execute $q$\n      select coalesce(jsonb_agg(to_jsonb(s) order by s.source), '[]'::jsonb)\n      from (\n        select\n          coalesce(nullif(i.attribution -> 'first_touch' ->> 'utm_source', ''), '(none)') as source,\n          count(*) filter (where i.received_at >= now() - interval '7 days') as count_7d,\n          count(*) filter (where i.received_at < now() - interval '7 days') as count_prev_7d\n        from public.inquiries i\n        where i.received_at >= now() - interval '14 days'\n        group by 1\n      ) s\n    $q$ into v_sources;\n  end if;\n\n  return jsonb_build_object(\n    'assets_pending', (select count(*) from public.assets a where a.status = 'pending'),\n    'channels', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'channel', c.channel,\n        'enabled', c.enabled,\n        'last_posted_at', (select max(p.posted_at) from public.social_posts p where p.channel = c.channel),\n        'failed_7d', (\n          select count(*) from public.social_posts p\n          where p.channel = c.channel and p.status = 'failed' and p.updated_at >= now() - interval '7 days'\n        )\n      ) order by c.channel), '[]'::jsonb)\n      from public.channel_settings c\n    ),\n    'posts_7d', (\n      select count(*) from public.social_posts p where p.posted_at >= now() - interval '7 days'\n    ),\n    'newsletter', (\n      select jsonb_build_object(\n        'sent_30d', (\n          select count(*) from public.newsletter_issues i\n          where i.status = 'sent' and i.sent_at >= now() - interval '30 days'\n        ),\n        'last', (\n          select jsonb_build_object(\n            'number', i.number,\n            'sent_at', i.sent_at,\n            'recipients', (i.metrics ->> 'recipients')::int,\n            'opened', (i.metrics ->> 'opened')::int\n          )\n          from public.newsletter_issues i\n          where i.status = 'sent'\n          order by i.sent_at desc nulls last\n          limit 1\n        )\n      )\n    ),\n    -- B8 GD-03: a non-zero overdue means 30 days of runs removed nothing while rows of that age exist. A key with no\n    -- age column here is judged by last_run_at alone (overdue null).\n    'retention', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'key', r.key,\n        'last_run_at', r.last_run_at,\n        'last_count', r.last_count,\n        'overdue', case r.key\n          when 'rate_limits' then (select count(*) from public.rate_limits x where x.at < r.cutoff)\n          when 'webhook_receipts' then (\n            select count(*) from public.webhook_receipts x where x.received_at < r.cutoff\n          )\n          when 'subject_requests' then (\n            select count(*) from public.subject_requests x\n            where x.received_at < r.cutoff and x.status in ('fulfilled', 'rejected')\n          )\n          when 'jobs_done' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status in ('done', 'cancelled')\n          )\n          when 'jobs_dead' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status = 'dead'\n          )\n          when 'events_processed' then (\n            select count(*) from public.events x where x.processed_at < r.cutoff\n          )\n          when 'inquiries_anonymise' then (\n            select count(*) from public.inquiries x where x.received_at < r.cutoff and x.anonymised_at is null\n          )\n          when 'declined_submission_media' then (\n            select count(*)\n            from public.submission_media m\n            join public.submissions s on s.id = m.submission_id\n            where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff\n          )\n          when 'analytics_daily' then (\n            select count(*) from public.analytics_daily x where x.day < r.cutoff::date\n          )\n        end\n      ) order by r.key), '[]'::jsonb)\n      from (\n        select p.*, now() - (p.keep_for + interval '30 days') as cutoff\n        from public.retention_policies p\n        where p.enabled and p.action <> 'keep' and p.keep_for is not null and p.key <> 'analytics_events'\n      ) r\n    ),\n    -- G11: p75 per path and metric over 7 days.\n    'web_vitals', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'path', v.path, 'name', v.name, 'p75', v.p75, 'samples', v.samples\n      ) order by v.path, v.name), '[]'::jsonb)\n      from (\n        select\n          e.path,\n          e.data ->> 'name' as name,\n          percentile_cont(0.75) within group (order by (e.data ->> 'value')::float8) as p75,\n          count(*) as samples\n        from public.analytics_events e\n        where e.event = 'web_vitals' and e.occurred_at >= now() - interval '7 days'\n          and e.data ->> 'name' in ('LCP', 'CLS', 'INP')\n          and jsonb_typeof(e.data -> 'value') = 'number'\n        group by 1, 2\n      ) v\n    ),\n    -- Ruling H16: 13 whole months from the daily aggregates, served by analytics_daily_event_day_idx.\n    'analytics_trend', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'month', t.month, 'event', t.event, 'events', t.events\n      ) order by t.month, t.event), '[]'::jsonb)\n      from (\n        select to_char(date_trunc('month', d.day), 'YYYY-MM') as month, d.event, sum(d.events)::int as events\n        from public.analytics_daily d\n        where d.day >= (v_month - interval '13 months')::date and d.day < v_month\n        group by 1, 2\n      ) t\n    ),\n    'inquiries_by_source', v_sources\n  );\nend;\n$$;\n\nrevoke execute on function public.audit_health() from public, anon, authenticated;\ngrant execute on function public.audit_health() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"answers inquiries_by_source null\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_health > answers inquiries_by_source null"
+  },
+  {
+    "id": "b14-ac",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_usage()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B14 invariant 4: the numbers of the free-tier gauge table our own database can measure, one call per run.\n  select jsonb_build_object(\n    'db_bytes', pg_catalog.pg_database_size(pg_catalog.current_database()),\n    -- Ruling H33 (8): the three buckets share the 1 GB of the free plan.\n    'storage_bytes', (\n      select coalesce(sum((o.metadata ->> 'size')::bigint), 0)\n      from storage.objects o\n      where o.bucket_id in ('submissions', 'media', 'documents')\n    ),\n    'queues', (\n      select coalesce(jsonb_object_agg(m.queue_name, m.queue_length), '{}'::jsonb)\n      from pgmq.metrics_all() m\n    ),\n    'cron_failed_7d', public.health_cron_failures(now() - interval '7 days'),\n    'jobs_failed_7d', (\n      select count(*)\n      from public.jobs j\n      where j.status in ('failed', 'dead') and j.updated_at >= now() - interval '7 days'\n    ),\n    'email_sent_today', public.email_sent_today(),\n    -- The sum B11's quota check compares with 2,700: rows Resend accepted plus broadcast recipients, dry runs skipped.\n    'email_sent_month', (select count(*)::int from public.email_messages m where m.sent_at >= date_trunc('month', now()) or m.status = 'skipped') + public.broadcast_recipients_since(date_trunc('month', now())),\n    'subscribers_confirmed', (\n      select count(*)\n      from public.subscribers s\n      where s.confirmed_at is not null and s.unsubscribed_at is null and s.archived_at is null\n    ),\n    -- G2, ruling H34: tokens only, the captions run through the operator's own account and carry no price.\n    'model_usage_month', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'model', u.model,\n        'input_tokens', u.input_tokens,\n        'output_tokens', u.output_tokens,\n        'jobs', u.jobs\n      ) order by u.model), '[]'::jsonb)\n      from (\n        select\n          j.result -> 'usage' ->> 'model' as model,\n          coalesce(sum((j.result -> 'usage' ->> 'input_tokens')::bigint), 0) as input_tokens,\n          coalesce(sum((j.result -> 'usage' ->> 'output_tokens')::bigint), 0) as output_tokens,\n          count(*) as jobs\n        from public.jobs j\n        where j.type = 'write_captions' and j.status = 'done'\n          and j.finished_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'\n          and j.result -> 'usage' ->> 'model' is not null\n        group by 1\n      ) u\n    ),\n    -- G30: a guideline, never a cap.\n    'reels_month', (\n      select count(*)\n      from public.jobs j\n      where j.type = 'render_reel' and j.status = 'done'\n        and j.finished_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'\n    )\n  );\n$$;\n\nrevoke execute on function public.audit_usage() from public, anon, authenticated;\ngrant execute on function public.audit_usage() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"email_sent_month counts a sent row\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_usage > email_sent_month counts a sent row"
+  },
+  {
+    "id": "b14g2-db-broadcast",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_usage()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B14 invariant 4: the numbers of the free-tier gauge table our own database can measure, one call per run.\n  select jsonb_build_object(\n    'db_bytes', pg_catalog.pg_database_size(pg_catalog.current_database()),\n    -- Ruling H33 (8): the three buckets share the 1 GB of the free plan.\n    'storage_bytes', (\n      select coalesce(sum((o.metadata ->> 'size')::bigint), 0)\n      from storage.objects o\n      where o.bucket_id in ('submissions', 'media', 'documents')\n    ),\n    'queues', (\n      select coalesce(jsonb_object_agg(m.queue_name, m.queue_length), '{}'::jsonb)\n      from pgmq.metrics_all() m\n    ),\n    'cron_failed_7d', public.health_cron_failures(now() - interval '7 days'),\n    'jobs_failed_7d', (\n      select count(*)\n      from public.jobs j\n      where j.status in ('failed', 'dead') and j.updated_at >= now() - interval '7 days'\n    ),\n    'email_sent_today', public.email_sent_today(),\n    -- The sum B11's quota check compares with 2,700: rows Resend accepted plus broadcast recipients, dry runs skipped.\n    'email_sent_month', (select count(*)::int from public.email_messages m where m.sent_at >= date_trunc('month', now())),\n    'subscribers_confirmed', (\n      select count(*)\n      from public.subscribers s\n      where s.confirmed_at is not null and s.unsubscribed_at is null and s.archived_at is null\n    ),\n    -- G2, ruling H34: tokens only, the captions run through the operator's own account and carry no price.\n    'model_usage_month', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'model', u.model,\n        'input_tokens', u.input_tokens,\n        'output_tokens', u.output_tokens,\n        'jobs', u.jobs\n      ) order by u.model), '[]'::jsonb)\n      from (\n        select\n          j.result -> 'usage' ->> 'model' as model,\n          coalesce(sum((j.result -> 'usage' ->> 'input_tokens')::bigint), 0) as input_tokens,\n          coalesce(sum((j.result -> 'usage' ->> 'output_tokens')::bigint), 0) as output_tokens,\n          count(*) as jobs\n        from public.jobs j\n        where j.type = 'write_captions' and j.status = 'done'\n          and j.finished_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'\n          and j.result -> 'usage' ->> 'model' is not null\n        group by 1\n      ) u\n    ),\n    -- G30: a guideline, never a cap.\n    'reels_month', (\n      select count(*)\n      from public.jobs j\n      where j.type = 'render_reel' and j.status = 'done'\n        and j.finished_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'\n    )\n  );\n$$;\n\nrevoke execute on function public.audit_usage() from public, anon, authenticated;\ngrant execute on function public.audit_usage() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"email_sent_month adds a sent broadcast\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_usage > email_sent_month adds a sent broadcast"
+  },
+  {
+    "id": "b14g2-db-tokens",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_usage()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B14 invariant 4: the numbers of the free-tier gauge table our own database can measure, one call per run.\n  select jsonb_build_object(\n    'db_bytes', pg_catalog.pg_database_size(pg_catalog.current_database()),\n    -- Ruling H33 (8): the three buckets share the 1 GB of the free plan.\n    'storage_bytes', (\n      select coalesce(sum((o.metadata ->> 'size')::bigint), 0)\n      from storage.objects o\n      where o.bucket_id in ('submissions', 'media', 'documents')\n    ),\n    'queues', (\n      select coalesce(jsonb_object_agg(m.queue_name, m.queue_length), '{}'::jsonb)\n      from pgmq.metrics_all() m\n    ),\n    'cron_failed_7d', public.health_cron_failures(now() - interval '7 days'),\n    'jobs_failed_7d', (\n      select count(*)\n      from public.jobs j\n      where j.status in ('failed', 'dead') and j.updated_at >= now() - interval '7 days'\n    ),\n    'email_sent_today', public.email_sent_today(),\n    -- The sum B11's quota check compares with 2,700: rows Resend accepted plus broadcast recipients, dry runs skipped.\n    'email_sent_month', public.email_sent_month(),\n    'subscribers_confirmed', (\n      select count(*)\n      from public.subscribers s\n      where s.confirmed_at is not null and s.unsubscribed_at is null and s.archived_at is null\n    ),\n    -- G2, ruling H34: tokens only, the captions run through the operator's own account and carry no price.\n    'model_usage_month', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'model', u.model,\n        'input_tokens', u.output_tokens,\n        'output_tokens', u.output_tokens,\n        'jobs', u.jobs\n      ) order by u.model), '[]'::jsonb)\n      from (\n        select\n          j.result -> 'usage' ->> 'model' as model,\n          coalesce(sum((j.result -> 'usage' ->> 'input_tokens')::bigint), 0) as input_tokens,\n          coalesce(sum((j.result -> 'usage' ->> 'output_tokens')::bigint), 0) as output_tokens,\n          count(*) as jobs\n        from public.jobs j\n        where j.type = 'write_captions' and j.status = 'done'\n          and j.finished_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'\n          and j.result -> 'usage' ->> 'model' is not null\n        group by 1\n      ) u\n    ),\n    -- G30: a guideline, never a cap.\n    'reels_month', (\n      select count(*)\n      from public.jobs j\n      where j.type = 'render_reel' and j.status = 'done'\n        and j.finished_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'\n    )\n  );\n$$;\n\nrevoke execute on function public.audit_usage() from public, anon, authenticated;\ngrant execute on function public.audit_usage() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"model_usage_month sums\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_usage > model_usage_month sums"
+  },
+  {
+    "id": "b14g2-db-reels",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_usage()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- B14 invariant 4: the numbers of the free-tier gauge table our own database can measure, one call per run.\n  select jsonb_build_object(\n    'db_bytes', pg_catalog.pg_database_size(pg_catalog.current_database()),\n    -- Ruling H33 (8): the three buckets share the 1 GB of the free plan.\n    'storage_bytes', (\n      select coalesce(sum((o.metadata ->> 'size')::bigint), 0)\n      from storage.objects o\n      where o.bucket_id in ('submissions', 'media', 'documents')\n    ),\n    'queues', (\n      select coalesce(jsonb_object_agg(m.queue_name, m.queue_length), '{}'::jsonb)\n      from pgmq.metrics_all() m\n    ),\n    'cron_failed_7d', public.health_cron_failures(now() - interval '7 days'),\n    'jobs_failed_7d', (\n      select count(*)\n      from public.jobs j\n      where j.status in ('failed', 'dead') and j.updated_at >= now() - interval '7 days'\n    ),\n    'email_sent_today', public.email_sent_today(),\n    -- The sum B11's quota check compares with 2,700: rows Resend accepted plus broadcast recipients, dry runs skipped.\n    'email_sent_month', public.email_sent_month(),\n    'subscribers_confirmed', (\n      select count(*)\n      from public.subscribers s\n      where s.confirmed_at is not null and s.unsubscribed_at is null and s.archived_at is null\n    ),\n    -- G2, ruling H34: tokens only, the captions run through the operator's own account and carry no price.\n    'model_usage_month', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'model', u.model,\n        'input_tokens', u.input_tokens,\n        'output_tokens', u.output_tokens,\n        'jobs', u.jobs\n      ) order by u.model), '[]'::jsonb)\n      from (\n        select\n          j.result -> 'usage' ->> 'model' as model,\n          coalesce(sum((j.result -> 'usage' ->> 'input_tokens')::bigint), 0) as input_tokens,\n          coalesce(sum((j.result -> 'usage' ->> 'output_tokens')::bigint), 0) as output_tokens,\n          count(*) as jobs\n        from public.jobs j\n        where j.type = 'write_captions' and j.status = 'done'\n          and j.finished_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'\n          and j.result -> 'usage' ->> 'model' is not null\n        group by 1\n      ) u\n    ),\n    -- G30: a guideline, never a cap.\n    'reels_month', (\n      select count(*)\n      from public.jobs j\n      where j.type = 'render_reels' and j.status = 'done'\n        and j.finished_at >= date_trunc('month', now() at time zone 'utc') at time zone 'utc'\n    )\n  );\n$$;\n\nrevoke execute on function public.audit_usage() from public, anon, authenticated;\ngrant execute on function public.audit_usage() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"model_usage_month sums\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_usage > model_usage_month sums"
+  },
+  {
+    "id": "b14-y",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_record_run(p_actor uuid, p_actor_kind public.actor_kind, p_request_id text)\nreturns timestamptz\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old timestamptz;\n  v_new timestamptz;\nbegin\n  -- B14 G9, invariant 3: the auditor's one write. It moves only last_run_at of the audit row and sets no mop.actor_id,\n  -- so B8b's revision trigger treats it as a clock tick; audit_log keeps the record.\n  select s.last_run_at into v_old from public.schedule_settings s where s.key = 'audit' for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  update public.schedule_settings set last_run_at = now(), enabled = true where key = 'audit' returning last_run_at into v_new;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.record_run', 'schedule_settings.audit', null,\n    jsonb_build_object('last_run_at', v_old), jsonb_build_object('last_run_at', v_new), p_request_id\n  );\n  return v_new;\nend;\n$$;\n\nrevoke execute on function public.audit_record_run(uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.audit_record_run(uuid, public.actor_kind, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"sets last_run_at of audit only\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_record_run > sets last_run_at of audit only"
+  },
+  {
+    "id": "b14g2-db-record-audit",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "create or replace function public.audit_record_run(p_actor uuid, p_actor_kind public.actor_kind, p_request_id text)\nreturns timestamptz\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old timestamptz;\n  v_new timestamptz;\nbegin\n  -- B14 G9, invariant 3: the auditor's one write. It moves only last_run_at of the audit row and sets no mop.actor_id,\n  -- so B8b's revision trigger treats it as a clock tick; audit_log keeps the record.\n  select s.last_run_at into v_old from public.schedule_settings s where s.key = 'audit' for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  update public.schedule_settings set last_run_at = now() where key = 'audit' returning last_run_at into v_new;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.record_run', 'schedule_settings', null,\n    jsonb_build_object('last_run_at', v_old), jsonb_build_object('last_run_at', v_new), p_request_id\n  );\n  return v_new;\nend;\n$$;\n\nrevoke execute on function public.audit_record_run(uuid, public.actor_kind, text) from public, anon, authenticated;\ngrant execute on function public.audit_record_run(uuid, public.actor_kind, text) to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"sets last_run_at of audit only\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_record_run > sets last_run_at of audit only"
+  },
+  {
+    "id": "b14-x",
+    "kind": "sql",
+    "test": "tests/db/audit-reads.db.test.ts",
+    "sql": "grant execute on function public.audit_usage() to authenticated;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-reads.db.test.ts -t \"refuses audit_usage and audit_record_run\"",
+    "expect": "FAIL .*audit-reads\\.db\\.test\\.ts > audit_record_run > refuses audit_usage and audit_record_run"
+  },
+  {
+    "id": "b14-ak",
+    "test": "tests/unit/audit/not-found-log.test.ts",
+    "file": "src/server/lib/not-found-log.ts",
+    "find": "logLine(\"warn\", \"not_found_flush_failed\", { dropped: rows.length });",
+    "replace": "logLine(\"warn\", \"not_found_flush_dropped\", { dropped: rows.length });",
+    "run": "bun run typecheck",
+    "expect": "not-found-log\\.ts\\(\\d+,\\d+\\): error TS2345"
   }
 ]

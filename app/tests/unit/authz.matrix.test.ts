@@ -83,6 +83,11 @@ audit.subject_export               AD | H R
 audit.subject_delete               AD | H R
 audit.subject_opt_out              AD | H R
 audit.subject_status               AD | H R
+audit.usage                        CE ME CO AD
+audit.health                       CE ME CO AD
+audit.notfound                     CE ME CO AD
+audit.kpis                         CE ME CO AD
+audit.record_run                   CO AD
 automation.get                     CE ME VE MO CO AD
 automation.recipes_put             CE MO AD
 automation.templates_put           CE MO AD

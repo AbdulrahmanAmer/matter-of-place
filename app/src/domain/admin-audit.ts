@@ -134,3 +134,32 @@ export const subjectFulfilledSchema = z.object({
   status: z.literal("fulfilled"),
   counts: z.record(z.string(), z.number().int()),
 });
+
+// B14 step 4: the audit routine's own endpoints (GG-02, GG-03, G9).
+
+/** `GET audit/usage`, `GET audit/health` and `POST audit/record-run` read no field; any body is ignored. */
+export const auditNoInput = z.object({});
+
+/** `GET audit/notfound`: the window in days, at most the 90 days `analytics_events` keeps. */
+export const auditNotFoundQuery = z.object({
+  days: z.coerce.number().int().min(1).max(90).default(7),
+});
+
+const isMonday = (date: string): boolean => new Date(`${date}T00:00:00Z`).getUTCDay() === 1;
+
+/** `GET audit/kpis`: the Monday a week starts on; the last full week when absent. */
+export const auditKpisQuery = z.object({
+  week_start: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine(isMonday, { message: "Choose a Monday." })
+    .optional(),
+});
+
+/** One retention row of `audit_health()`; `overdue` is null for a key judged by its last run alone (B8 GD-03). */
+export const auditRetentionRowSchema = z.object({
+  key: z.string(),
+  last_run_at: z.string().nullable(),
+  last_count: z.number().int().nullable(),
+  overdue: z.number().int().nullable(),
+});
