@@ -1,5 +1,6 @@
 import { verifyKey } from "./agent-keys.ts";
-import type { AppRole, Principal } from "./authz.ts";
+import type { Actor } from "./actor-types.ts";
+import type { AppRole } from "./authz.ts";
 import type { Db } from "./db.ts";
 import { AppError } from "./errors.ts";
 import { clientIp } from "./ids.ts";
@@ -9,11 +10,7 @@ import { getSessionUser } from "./session.ts";
 // every request, never carried in the token, so a revoked role or a disabled account bites on the next
 // call (invariant 17 (e)).
 
-export interface Actor extends Principal {
-  readonly userId: string;
-  /** A cookie session's `session_id` claim and sign-in instant; absent for an agent key. */
-  readonly session?: { readonly id: string; readonly signedInAt: number };
-}
+export type { Actor };
 
 const BEARER = /^Bearer\s+(\S+)$/i;
 
