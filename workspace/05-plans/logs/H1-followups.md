@@ -97,3 +97,25 @@ Review verdict ACCEPT (fresh Opus review of 100d31cc, plan amended by 50fef3b7, 
     - Evidence: the g3 block of the log marks it UNPROVEN. Owner: the group that writes the rollback drill (H1-35 to H1-39).
 
 The three follow-ups whose file is GOTCHAS.md are banked as P-2813 (the empty `--commit` filter), P-2814 (`has_table_privilege` blind to column grants and sequences) and P-2815 (a review snapshot lacks `.env.ops` and `supabase/.temp`). The suggestions-only items (7 to 10) are not banked.
+
+## g4 · steps 4
+
+1. `app/scripts/harden/gitleaks.toml` (not blocking)
+   - What: The first [[allowlists]] regex, '^[A-Z][A-Z0-9]*_[A-Z0-9_]+$' (regexTarget secret, no path limit), hides any flagged secret made of uppercase letters, digits and underscores, anywhere in the repository, app/src included. A generated password or token of that shape committed under src would leave H1-08 green. This is the same class of gap the last round fixed for the id rule; the variable-name rule was not narrowed. Suggested fix: limit it by path (Markdown, workflows, plans) with condition AND, as was done for the id rule.
+   - Evidence: Confirmed by running. In a scratch dir, app/src/x.ts holds 'const apiKey = "AKQ7_ZX9P2LM4NB8VC3XR6TY1WE5";'. 'gitleaks detect --source . --no-git --redact --config app/scripts/harden/gitleaks.toml' prints 'no leaks found', exit 0. The same command without --config prints 'leaks found: 1', exit 1.
+
+2. `app/scripts/harden/read-scan.mjs` (not blocking)
+   - What: The reader fails open on a report that is not in its exact format. If a report holds no '### ' headings, it counts 0 findings and prints 'scan ok', whatever the text says. A /claude-security report saved in the skill's own format, with an open High, would therefore turn H1-09 green. P-2830 tells the orchestrator to save the report in the reader's format, which mitigates this but does not enforce it. Suggested hardening: fail on any line that names Critical or High as a severity and is not parsed as a finding.
+   - Evidence: Confirmed by running. A file with 'date: 2026-10-10', '## Finding 1: SQL injection in search' and '**Severity:** High', checked with 'node scripts/harden/read-scan.mjs <file> --today 2026-10-10', prints 'scan ok 2026-10-10: 0 findings, 0 critical or high, each closed or accepted', exit 0.
+
+3. `app/scripts/harden/runbook-lint.mjs` (not blocking)
+   - What: In folder mode the lint checks only the four OUTLINES runbooks. The ten runbooks already in app/docs/runbooks (admin, api, database, delivery, email, essentials, jobs, meta, newsletter, social) are never checked for missing paths or scripts, and some of them already name things that do not exist. Because of this, the ci.yml comment 'A code change that renames a script a runbook names fails here' claims more than the step does. The stale lines are in other slices' files. The plan's wording ('a runbook') can be read either way, so this is a follow-up and goes with the author's existing note about slash-less paths and bunx/npx/gh commands.
+   - Evidence: Confirmed by running. Each runbook was copied to a scratch 'security.md' and linted. delivery.md reports ':100: scripts/protect-main.sh does not exist', ':200: bun run smoke is not a script of package.json' and ':476: docs/runbooks/restore.md does not exist'. essentials.md reports ':59: src/lib/ga4.ts does not exist'. api.md reports ':234: ../.tmp/tail.json does not exist'. 'node scripts/harden/runbook-lint.mjs docs/runbooks' names only the four missing OUTLINES files.
+
+4. `app/scripts/harden/checklist.json` (not blocking)
+   - What: H1-08 and H1-10 fail without saying why. H1-08 prints 'exit 1: no output'. H1-10 prints 'exit 1: No vulnerabilities found', the last line of a passing audit, while the real cause is an empty main-run conclusion. Someone reading the harden report cannot tell what failed. An echo of the conclusion or 'no audit-deps run on main' would fix it.
+   - Evidence: Confirmed by running. In the run-all output above, the H1-08 row reads '| fail | exit 1: no output |' and the H1-10 row reads '| fail | exit 1: No vulnerabilities found |'.
+
+5. `workspace/05-plans/H1.md` (step 4 proofs) (not blocking)
+   - What: NOT DONE, owned outside this group and declared by the author. First, the claude-security scan report and H1-09 wait on the orchestrator (P-2830). Second, 'gh run list --workflow audit-deps.yml --branch slice/h1' prints failure only because of the runbooks half (g6, g7, g9; P-2832). Third, H1-08 and H1-10, and 'gh workflow run audit-deps.yml && gh run watch', are UNPROVEN until main has a run. One sequencing note for the orchestrator: merging slice/h1 before the four runbooks exist turns job check red on main and on every lane's PR (P-2832).
+   - Evidence: Confirmed by running: the gh run list, gh run view and run-all outputs above. I did not verify the claim that the skill can only be started through the Workflow tool.
