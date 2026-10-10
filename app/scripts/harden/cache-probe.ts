@@ -1,11 +1,11 @@
-// `bun run scripts/harden/cache-probe.ts --mode memory,identical,never,writes,edge,keepwarm <baseUrl> [n]` (H1-40, H1-41,
-// H1-34): the proof of the caching contract (S52, architecture 13) against a running Worker, `bunx wrangler dev` locally
+// `bun run scripts/harden/cache-probe.ts --mode memory,identical,never,writes,edge,keepwarm <baseUrl> [n]` (H1-40 and H1-41): the proof of the caching contract (S52, architecture 13) against a running Worker, `bunx wrangler dev` locally
 // and the custom domain at L1. Several modes may be given, comma separated; each prints `cache <mode> ok (...)` or one
 // `cache <mode>: <problem>` line per miss of the contract, and the exit code is 1 when any mode missed.
 //   memory     a catalog version bump, then 1,000 requests over the public pages, the catalog endpoints and search, so
 //              every stored answer is rebuilt once inside the window; the database sees `public_state`
-//              at most once per 15 seconds of elapsed time plus one, `public_catalog_snapshot` at most once per version
-//              seen, and no other statement of the Worker's own kind.
+//              at most once per 15 seconds of elapsed time plus one, `public_catalog_snapshot` at least once (the
+//              bump was seen and the catalog rebuilt) and at most once per version seen, and no other statement of
+//              the Worker's own kind.
 //   identical  a cached page is byte-identical whatever the cookie, language, agent or query; two fresh renders
 //              (a preview request is never stored) differ in nothing but clock values and the hashes of the scripts that
 //              carry them; no `nonce-` anywhere; a render that was just stored and its hit have one policy.
@@ -13,7 +13,9 @@
 //              page answer `no-store` and never `x-mop-cache: hit`, twice in a row. Three cacheable reads are also
 //              checked for a cookie or a 5xx, which must be `no-store` too; no request here makes the Worker set a
 //              cookie or fail, so those two classes are proved by `tests/unit/cache.test.ts` only (UNPROVEN here).
-//   writes     30 POSTs without a Turnstile token and 30 more over the memory limit add 0 database statements.
+//   writes     30 POSTs without a Turnstile token and 30 more over the memory limit add no database statement but
+//              `public_state`, which the Worker reads once per 15 seconds of memo; the memo is warmed first, so the
+//              figure is 0 inside the first 15 seconds.
 //   edge       the stored copy is served: a new key is a miss then a hit, a random query string still hits, and
 //              `n` (default 400) GETs after one warm-up pass hit 95 percent of the time. `--fixture <file>` reads a
 //              recorded JSON list of `x-mop-cache` values instead of sending requests (the offline input of the ratio).
@@ -23,8 +25,9 @@
 // uses (the job runner and every lane use it too), so no endpoint exposes counts. The modes that count refuse a
 // production database (ruling H35 (5)), take the writer lock (G34) for at most 3 minutes, wait until nobody else has
 // used the database for 3 seconds in a row, ignore the job runner's own statements by name, and run a second time when
-// they miss, passing only if the second run is clean. When the lock or an idle database never comes they print
-// `BLOCKED cache <mode> ...` (UNPROVEN, not a miss) and the exit code stays 0 unless another mode missed.
+// they miss, passing only if the second run is clean; a second run that cannot count leaves the first run's miss as the
+// result. When the lock or an idle database never comes before a first run they print `BLOCKED cache <mode> ...`
+// (UNPROVEN, not a miss) and the exit code stays 0 unless another mode missed.
 import { readFileSync } from "node:fs";
 import { setTimeout as pause } from "node:timers/promises";
 import { parseArgs } from "node:util";
@@ -257,16 +260,17 @@ async function quietDb(context: Context): Promise<ProbeDb> {
 async function memory(context: Context): Promise<ModeResult> {
   const db = await quietDb(context);
   const targets = await discover(context.base);
+  const before = await statements(db);
   // A new catalog version makes every stored page and answer a miss once, so the loaders run inside the window.
-  await db.rows("select public.bump_catalog_version()::text as version");
+  const bumped = (await db.rows("select public.bump_catalog_version()::text as version"))[0]?.[
+    "version"
+  ];
   await pause(MEMO_MS + 1000);
-  await quietDb(context);
   const paths = [...targets.pages, ...targets.json];
   const searches = [targets.term, `${targets.term}s`, targets.term.slice(0, 3)];
   const ip = freshIp();
   const seen = new Set<string>();
   const problems = tally();
-  const before = await statements(db);
   const started = Date.now();
   await pool(MEMORY_REQUESTS, CONCURRENCY, async (index) => {
     const search = index % SEARCH_EVERY === SEARCH_EVERY - 1;
@@ -304,6 +308,10 @@ async function memory(context: Context): Promise<ModeResult> {
     problems.add(
       `public_catalog_snapshot ran ${String(snapshot)} times for ${String(seen.size)} catalog versions`,
     );
+  if (bumped === undefined || bumped === null || !seen.has(bumped))
+    problems.add(`the catalog version bumped to ${String(bumped)} was never served`);
+  if (snapshot < 1)
+    problems.add("public_catalog_snapshot never ran: nothing was rebuilt after the version bump");
   for (const stray of strays(counts, new Set([STATE, SNAPSHOT])))
     problems.add(`the Worker ran ${stray}`);
   return {
@@ -451,6 +459,12 @@ async function writes(context: Context): Promise<ModeResult> {
   const problems = tally();
   const headers = { "content-type": "application/json", "cf-connecting-ip": freshIp() };
   const start = await db.now();
+  // The Worker reads the public state once per memo interval for any request; warm it, so the refused writes below are
+  // measured against a warm memo and a read after the memo expires is the only one allowed.
+  const warm = await send(context.base, "/api/public/site");
+  if (warm.status !== 200)
+    problems.add(`/api/public/site answered ${String(warm.status)} before the writes`);
+  const warmAt = Date.now();
   const before = await statements(db);
   const answers: number[] = [];
   for (let sent = 0; sent < 2 * WRITE_POSTS; sent += 1) {
@@ -462,6 +476,7 @@ async function writes(context: Context): Promise<ModeResult> {
     answers.push(reply.status);
   }
   const counts = between(before, await statements(db));
+  const stateBound = Math.floor((Date.now() - warmAt) / MEMO_MS);
   const refused = answers.slice(0, WRITE_POSTS).filter((status) => status !== 403).length;
   const limited = answers.slice(WRITE_POSTS).filter((status) => status !== 429).length;
   if (refused > 0)
@@ -472,8 +487,15 @@ async function writes(context: Context): Promise<ModeResult> {
     problems.add(
       `${String(limited)} of the next ${String(WRITE_POSTS)} POSTs over the memory limit were not answered 429`,
     );
-  for (const stray of strays(counts, new Set()))
+  const state = counts.get(STATE) ?? 0;
+  if (state > stateBound)
+    problems.add(
+      `${String(2 * WRITE_POSTS)} refused writes ran public_state ${String(state)} times, at most ${String(stateBound)}`,
+    );
+  for (const stray of strays(counts, new Set([STATE])))
     problems.add(`${String(2 * WRITE_POSTS)} refused writes ran ${stray}`);
+  // The key of a hit is salted, so the rows cannot be told apart by address: the writer lock (G34) is what keeps another
+  // probe from committing rows to this bucket meanwhile.
   const hits = await db.rows(
     "select id::text as id from rate_limits where bucket like 'inquiries:%' and at >= $1",
     [start],
@@ -484,7 +506,7 @@ async function writes(context: Context): Promise<ModeResult> {
     ),
   });
   return {
-    detail: `${String(WRITE_POSTS)} POSTs without a token (403) and ${String(WRITE_POSTS)} over the memory limit (429) added 0 database statements`,
+    detail: `${String(WRITE_POSTS)} POSTs without a token (403) and ${String(WRITE_POSTS)} over the memory limit (429) added no database statement but public_state ${String(state)} (at most ${String(stateBound)})`,
     problems: problems.list(),
   };
 }
@@ -586,9 +608,17 @@ async function twice(run: () => Promise<ModeResult>): Promise<ModeResult> {
   const first = await run();
   if (first.problems.length === 0) return first;
   console.error(
-    `cache: ran again because the database is shared, the first run found ${first.problems.join("; ")}`,
+    `cache: running again, other clients of the same role may have used the database; the first run found ${first.problems.join("; ")}`,
   );
-  return run();
+  try {
+    return await run();
+  } catch (error) {
+    if (!(error instanceof Busy)) throw error;
+    console.error(
+      `cache: the second run could not count (${error.message}), the first run's result stands`,
+    );
+    return first;
+  }
 }
 
 async function runMode(

@@ -125,12 +125,16 @@ async function live(base: URL, requests: number): Promise<Verdict> {
   const child = spawn("bunx", ["wrangler", "tail", workerOf(base), "--format", "json"], {
     windowsHide: true,
   });
+  // The events come on stdout: a warning on stderr between two of them must not end up inside a chunk.
   let output = "";
-  const keep = (chunk: Buffer): void => {
+  let tailed = "";
+  child.stdout.on("data", (chunk: Buffer) => {
     output += chunk.toString("utf8");
-  };
-  child.stdout.on("data", keep);
-  child.stderr.on("data", keep);
+    tailed += chunk.toString("utf8");
+  });
+  child.stderr.on("data", (chunk: Buffer) => {
+    output += chunk.toString("utf8");
+  });
   try {
     const deadline = Date.now() + CONNECT_LIMIT_MS;
     while (!output.includes("Connected")) {
@@ -146,7 +150,7 @@ async function live(base: URL, requests: number): Promise<Verdict> {
       await pause(PACE_MS);
     }
     await pause(SETTLE_MS);
-    const events = eventsOf(output).filter((event) =>
+    const events = eventsOf(tailed).filter((event) =>
       event.event?.request.url.includes(`h1cpu=${run}`),
     );
     return judge(
