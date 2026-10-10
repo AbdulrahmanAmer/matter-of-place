@@ -1,8 +1,15 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
-import { compareSidecars, describeDeltas } from "../../../../workspace/audits/tools/compare.mjs";
+import { afterAll, describe, expect, it } from "vitest";
+import {
+  chooseSidecars,
+  compareSidecars,
+  describeDeltas,
+  newestSidecars,
+} from "../../../../workspace/audits/tools/compare.mjs";
 
 // B14 step 5: the deltas of one sidecar against the one before it, on two recorded sidecars.
 const toolsUrl = (name: string) =>
@@ -47,5 +54,55 @@ describe("compareSidecars", () => {
     );
     expect(run.status).toBe(0);
     expect(run.stdout.trim().split("\n")).toEqual(lines);
+  });
+});
+
+describe("choosing the two sidecars", () => {
+  const dirs: string[] = [];
+  afterAll(() => {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  });
+  const folder = (names: string[]) => {
+    const dir = mkdtempSync(join(tmpdir(), "compare-"));
+    dirs.push(dir);
+    for (const name of names) writeFileSync(join(dir, name), "{}");
+    return dir;
+  };
+
+  it("takes the two newest dated files, newest first, and no other file", () => {
+    const dir = folder(["2026-10-03.json", "2026-10-10.json", "2026-09-26.json", "notes.json"]);
+    expect(chooseSidecars([], dir)).toEqual({
+      current: join(dir, "2026-10-10.json"),
+      previous: join(dir, "2026-10-03.json"),
+    });
+  });
+
+  it("answers none for a missing folder and for a folder with one sidecar", () => {
+    expect(chooseSidecars([], join(tmpdir(), "compare-no-such-folder-b14"))).toBeNull();
+    expect(chooseSidecars([], folder(["2026-10-03.json"]))).toBeNull();
+  });
+
+  it("throws, and does not answer none, when the folder cannot be read", () => {
+    const dir = folder(["2026-10-03.json"]);
+    expect(() => newestSidecars(join(dir, "2026-10-03.json"))).toThrow(/ENOTDIR/);
+  });
+
+  it("refuses one path or three paths as a usage error", () => {
+    expect(() => chooseSidecars(["a.json"])).toThrow(/got 1/);
+    expect(() => chooseSidecars(["a.json", "b.json", "c.json"])).toThrow(/got 3/);
+  });
+
+  it("exits 2 with the usage line on stderr for a single path", () => {
+    const run = spawnSync(
+      process.execPath,
+      [
+        fileURLToPath(toolsUrl("compare.mjs")),
+        fileURLToPath(toolsUrl("fixtures/sidecar-current.json")),
+      ],
+      { encoding: "utf8" },
+    );
+    expect(run.status).toBe(2);
+    expect(run.stdout).toBe("");
+    expect(run.stderr).toMatch(/^compare: pass <current> <previous>/);
   });
 });

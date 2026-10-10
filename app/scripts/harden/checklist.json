@@ -59,7 +59,7 @@
       "lane": "Security",
       "item": "Secret scan of files and history (CI job audit-deps.yml is the proof of record)",
       "expectation": "the last audit-deps.yml run on main concluded success (its log says: no leaks found)",
-      "command": "[ \"$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ]"
+      "command": "run=$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion'); echo \"last audit-deps.yml run on main: ${run:-none}\"; [ \"$run\" = success ]"
     },
     {
       "id": "H1-09",
@@ -74,7 +74,7 @@
       "lane": "Security",
       "item": "Dependency audit",
       "expectation": "no high or critical advisory in the app and in launch/, or a waiver recorded in the audit:deps script and docs/security.md; the last audit-deps.yml run on main succeeded",
-      "command": "bun run audit:deps && (cd ../launch && bun run audit:deps) && [ \"$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ]"
+      "command": "bun run audit:deps && (cd ../launch && bun run audit:deps) && { run=$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion'); echo \"last audit-deps.yml run on main: ${run:-none}\"; [ \"$run\" = success ]; }"
     },
     {
       "id": "H1-11",
@@ -204,7 +204,8 @@
       "lane": "Website and honesty",
       "item": "Coming-soon empty states and signup per market",
       "expectation": "pass; a signup creates a subscribers row with markets set",
-      "command": "<load-dev> && MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon"
+      "build": true,
+      "command": "<load-dev> && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon"
     },
     {
       "id": "H1-27",

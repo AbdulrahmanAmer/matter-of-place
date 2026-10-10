@@ -2,10 +2,10 @@
 // retryable. Part 4 runs first, because its verdict decides the first output line: a bounced test email needs
 // `EMAIL_LIVE=1` on the runner, and while the send is a dry run (or no runner secret is at hand) the drill prints
 // `BLOCKED ...` before anything else and goes on. Part 1 makes a dead job (B8's selftest), retries it through the admin
-// route with an agent key the drill makes for itself (role media_ops, scope jobs, revoked at the end) and asserts the
+// route with an agent key the drill makes for itself (role media_ops, scope jobs, deleted at the end, its role disabled) and asserts the
 // `manual_retry` job event. Parts 2 and 3 rerun the Playwright specs of screens 12 and 16. It commits rows to the one
 // database, so it refuses production first (ruling H35 (5)), holds the writer lock for the whole run (children are told
-// so by MOP_DEV_LOCK_HELD, G34) and removes its job by H1's cleanup rule. A failing part exits 1, a blocked part 4 does
+// so by MOP_DEV_LOCK_HELD, G34) and removes its dead job, the test email's message and send_email job, and the agent's key by H1's cleanup rule. A failing part exits 1, a blocked part 4 does
 // not. Prints `fail drill ok` for parts 1 to 3.
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
@@ -14,6 +14,7 @@ import { generateKey, hashAgentKey } from "../../src/server/lib/agent-keys.ts";
 import { assertNotProduction } from "../lib/assert-not-production.mjs";
 import { devProject } from "../lib/storage-env.ts";
 import { readSecret } from "../lib/social-script.ts";
+import { removeFailDrillRows } from "./drill-rows.ts";
 import { ids, openProbeDb, type ProbeDb } from "./probe-db.ts";
 
 const AGENT_EMAIL = "fail-drill-agent@mop.invalid";
@@ -181,29 +182,20 @@ async function retryAsAgent(
   console.log(`part 1: retry answered 200 and job ${jobId} has a manual_retry event`);
 }
 
+/** Removes what the run committed (`removeFailDrillRows`) and releases the writer lock. */
 async function cleanup(
   db: ProbeDb,
+  start: string,
   jobId: string | undefined,
   agent: DrillAgent | undefined,
 ): Promise<void> {
   try {
-    if (agent !== undefined) {
-      await db.rows("update public.agent_keys set revoked_at = now() where id = $1", [agent.keyId]);
-    }
-    const jobs = jobId === undefined ? [] : [jobId];
-    await db.cleanup({
-      job_events: await ids(
-        db,
-        "select id::text as id from job_events where job_id::text = any($1::text[])",
-        [jobs],
-      ),
-      jobs,
-      rate_limits:
-        agent === undefined
-          ? []
-          : await ids(db, "select id::text as id from rate_limits where bucket = $1", [
-              `agent:${agent.keyId}`,
-            ]),
+    await removeFailDrillRows(db, {
+      start,
+      address: BOUNCE_ADDRESS,
+      agentEmail: AGENT_EMAIL,
+      jobId,
+      keyId: agent?.keyId,
     });
   } finally {
     await db.close();
@@ -240,7 +232,7 @@ async function main(): Promise<number> {
     console.log("fail drill ok (parts 1 to 3)");
     return 0;
   } finally {
-    await cleanup(db, jobId, agent);
+    await cleanup(db, start, jobId, agent);
   }
 }
 

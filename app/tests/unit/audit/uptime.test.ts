@@ -106,6 +106,14 @@ describe("monitorRows against monitoring/uptime.json", () => {
     expect(red(monitorRows(missing, expected))).toEqual(["Ops health"]);
     expect(red(monitorRows(plain, expected))).toEqual(["Ops health"]);
   });
+
+  it("gives a red row for a monitor that alerts when the keyword exists", () => {
+    const monitors = parseUptime(recorded());
+    const inverted = monitors.map((monitor) =>
+      monitor.url.includes("/ops-health/") ? { ...monitor, keyword_type: 1 } : monitor,
+    );
+    expect(red(monitorRows(inverted, expected))).toEqual(["Ops health"]);
+  });
 });
 
 describe("uptime collect", () => {

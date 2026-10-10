@@ -12,7 +12,7 @@ const FIELDS = "sum { requests }";
  * @param {unknown[]} rows
  * @returns {number}
  */
-export const sumRequests = (rows) =>
+const sumRequests = (rows) =>
   rows.map((row) => count(field(field(row, "sum"), "requests"))).reduce((a, b) => a + b, 0);
 
 /**

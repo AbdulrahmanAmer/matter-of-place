@@ -1,9 +1,16 @@
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { lintReport } from "../../../../scripts/audit/lint-report.mjs";
 import { makeContext } from "../../../../workspace/audits/tools/common.mjs";
-import { collect, describeProbe, probe } from "../../../../workspace/audits/tools/cache.mjs";
+import {
+  collect,
+  commandLines,
+  describeProbe,
+  probe,
+} from "../../../../workspace/audits/tools/cache.mjs";
 
 const fixtureSchema = z.object({
   base: z.string(),
@@ -160,5 +167,34 @@ describe("the probe's requests", () => {
     const withQuery = requests.filter((request) => request.url.includes("?"));
     expect(withQuery).toHaveLength(9);
     expect(withQuery.every((request) => /\?probe=[0-9a-f]{8}$/.test(request.url))).toBe(true);
+  });
+});
+
+describe("the command line without a base URL", () => {
+  it("prints Not measured and sends no request without --url or SITE_URL", async () => {
+    const requests: string[] = [];
+    const ctx = makeContext({
+      env: {},
+      siteUrl: "",
+      fetchImpl: (url) => {
+        requests.push(url);
+        return Promise.reject(new Error("no request expected"));
+      },
+    });
+    expect(await commandLines(ctx)).toEqual(["Not measured: cache (SITE_URL unset, pass --url)"]);
+    expect(requests).toEqual([]);
+  });
+
+  it("exits 0 with that line and no stderr when run alone", () => {
+    const run = spawnSync(
+      process.execPath,
+      [fileURLToPath(new URL("../../../../workspace/audits/tools/cache.mjs", import.meta.url))],
+      { encoding: "utf8", env: { PATH: process.env["PATH"] ?? "" } },
+    );
+    expect({ status: run.status, stdout: run.stdout.trim(), stderr: run.stderr }).toEqual({
+      status: 0,
+      stdout: "Not measured: cache (SITE_URL unset, pass --url)",
+      stderr: "",
+    });
   });
 });
