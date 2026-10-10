@@ -1,0 +1,448 @@
+{
+  "rows": [
+    {
+      "id": "H1-01",
+      "lane": "Security",
+      "item": "Turnstile on every public write",
+      "expectation": "coverage test passes; the token-less POST /inquiries answers 403 (zero database statements: H1-40 mode writes)",
+      "command": "bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/security/turnstile-coverage.test.ts && [ \"$(curl -s -o /dev/null -w '%{http_code}' -X POST <dev>/api/public/inquiries -H 'content-type: application/json' -d @tests/fixtures/inquiry.json)\" = 403 ]"
+    },
+    {
+      "id": "H1-02",
+      "lane": "Security",
+      "item": "Per-IP and per-email rate limits in the API",
+      "expectation": "phase 1: 3 x 201 then 429; phase 2: 2 x 201 then 429; both B7 tests pass; Supabase auth email_sent reads 10",
+      "command": "(<load-dev> && bun run scripts/harden/rate-probe.ts <dev>/api/public/subscribers 30) && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/auth-send-link.test.ts tests/unit/agent-keys.test.ts && [ \"$(<load-ops>; curl -s -H \"Authorization: Bearer $SUPABASE_ACCESS_TOKEN\" https://api.supabase.com/v1/projects/hbokkmpgpqhrnemgsqra/config/auth | jq .rate_limit_email_sent)\" = 10 ]"
+    },
+    {
+      "id": "H1-03",
+      "lane": "Security",
+      "item": "Cloudflare rate-limit rule scoped to /api/public/* and /api/admin/auth/*",
+      "expectation": "offline: the zone fixture passes the expression check; live: exactly 1 rule names both prefixes (blocked-on-L1)",
+      "blockedOn": "L1",
+      "blockedText": "BLOCKED until scripts/cf-edge.mjs has run on the zone (B1b step 11, after L1 routes the domain)",
+      "command": "bun run scripts/harden/waf-check.ts --fixture scripts/harden/fixtures/zone-rules.json",
+      "prodCommand": "<load-ops>; CF_ZONE_ID=${CF_ZONE_ID:-$(curl -s -H \"Authorization: Bearer ${CF_EDGE_TOKEN:-$CLOUDFLARE_API_TOKEN}\" 'https://api.cloudflare.com/client/v4/zones?name=matterofplace.com' | jq -r '.result[0].id')}; [ \"$(curl -s -H \"Authorization: Bearer ${CF_EDGE_TOKEN:-$CLOUDFLARE_API_TOKEN}\" \"https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/rulesets/phase/http_ratelimit/entrypoint\" | jq '[.result.rules[] | select(.expression | contains(\"/api/public/\") and contains(\"/api/admin/auth/\"))] | length')\" = 1 ]"
+    },
+    {
+      "id": "H1-04",
+      "lane": "Security",
+      "item": "Security headers, CSP enforced with script hashes",
+      "expectation": "each header present with the expected value; no nonce, no unsafe-inline; CSP host sources are the exact set of B17 invariant 1; HSTS max-age=31536000; includeSubDomains",
+      "command": "bun run scripts/harden/check-headers.ts <prod-config> && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/security/headers.test.ts tests/unit/csp-inline.test.ts"
+    },
+    {
+      "id": "H1-05",
+      "lane": "Security",
+      "item": "CSP does not break the site",
+      "expectation": "zero securitypolicyviolation events on every route",
+      "command": "E2E_TARGET=url E2E_BASE_URL=<prod-config> E2E_MODE=live bunx playwright test --project=harden tests/e2e/csp.spec.ts"
+    },
+    {
+      "id": "H1-06",
+      "lane": "Security",
+      "item": "Service role only in the Worker and Edge Functions",
+      "expectation": "no hit outside src/server and src/start.ts (the Worker request middleware); no file of the public bundle names service_role",
+      "build": true,
+      "command": "! grep -rnE \"service_role|SUPABASE_SERVICE_ROLE_KEY\" src --include=*.ts --include=*.tsx | grep -vE \"^src/(server/|start.ts:)\" && [ -d .output/public ] && ! grep -rl \"service_role\" .output/public"
+    },
+    {
+      "id": "H1-07",
+      "lane": "Security",
+      "item": "No secrets in VITE_* or the bundle",
+      "expectation": "only VITE_SITE_URL, VITE_API_BASE_URL, VITE_TURNSTILE_SITE_KEY, VITE_GA4_MEASUREMENT_ID in .env.example; no secret name in .output/public",
+      "build": true,
+      "command": "! grep -ohE 'VITE_[A-Z0-9_]+' .env.example | grep -vxE 'VITE_SITE_URL|VITE_API_BASE_URL|VITE_TURNSTILE_SITE_KEY|VITE_GA4_MEASUREMENT_ID' && [ -d .output/public ] && ! grep -rnE \"sk_live|whsec_|sb_secret_|mopk_|SUPABASE_SERVICE_ROLE_KEY|DEV_SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ACCESS_TOKEN|DEV_SUPABASE_DB_PASSWORD|DEV_DB_URL|PREVIEW_WORKER_SECRETS_JSON|CLOUDFLARE_API_TOKEN|CF_EDGE_TOKEN|CF_PURGE_TOKEN|CF_ANALYTICS_TOKEN|TURNSTILE_SECRET|RATE_LIMIT_SALT|CONFIRM_TOKEN_SECRET|PREVIEW_TOKEN_SECRET|CSRF_SECRET|RENDER_CALLBACK_SECRET|JOB_RUNNER_SECRET|RESEND_API_KEY|RESEND_WEBHOOK_SECRET|SENTRY_TEST_TOKEN|SENTRY_AUTH_TOKEN|GITHUB_DISPATCH_TOKEN|OMNIKOM_WEBHOOK_SECRET|INDEXNOW_KEY|META_APP_SECRET|META_PAGE_TOKEN|X_CLIENT_SECRET|X_ACCESS_TOKEN|X_REFRESH_TOKEN|LINKEDIN_CLIENT_SECRET|LINKEDIN_ACCESS_TOKEN|LINKEDIN_REFRESH_TOKEN|AUDIT_AGENT_KEY|AUDIT_AGENT_KEY_DEV|REHEARSAL_AGENT_KEY|PSI_API_KEY|GOOGLE_SA_JSON_B64|UPTIME_API_KEY|BING_WEBMASTER_API_KEY|OPS_HEALTH_TOKEN|PROD_OPS_HEALTH_TOKEN|PROD_RESEND_API_KEY|PREVIEW_RATE_LIMIT_SALT|PREVIEW_SENTRY_TEST_TOKEN|PROD_RATE_LIMIT_SALT|PROD_CONFIRM_TOKEN_SECRET|PROD_PREVIEW_TOKEN_SECRET|PROD_CSRF_SECRET|PROD_JOB_RUNNER_SECRET|PROD_RESEND_WEBHOOK_SECRET|PROD_TURNSTILE_SECRET\" .output/public"
+    },
+    {
+      "id": "H1-08",
+      "lane": "Security",
+      "item": "Secret scan of files and history (CI job audit-deps.yml is the proof of record)",
+      "expectation": "the last audit-deps.yml run on main concluded success (its log says: no leaks found)",
+      "command": "[ \"$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ]"
+    },
+    {
+      "id": "H1-09",
+      "lane": "Security",
+      "item": "claude-security scan clean of highs",
+      "expectation": "the reader prints scan ok <date>: report present, at most 7 days old, no High or Critical without an accepted: line",
+      "command": "node scripts/harden/read-scan.mjs \"$(ls -t ../workspace/audits/security-scan-*.md 2>/dev/null | head -1)\"",
+      "expectOutput": ["scan ok"]
+    },
+    {
+      "id": "H1-10",
+      "lane": "Security",
+      "item": "Dependency audit",
+      "expectation": "no high or critical advisory in the app and in launch/, or a waiver recorded in the audit:deps script and docs/security.md; the last audit-deps.yml run on main succeeded",
+      "command": "bun run audit:deps && (cd ../launch && bun run audit:deps) && [ \"$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ]"
+    },
+    {
+      "id": "H1-11",
+      "lane": "Security",
+      "item": "Signed upload URLs, MIME sniffing, size cap",
+      "expectation": "B3 and B2 tests pass; the probe prints upload ok (oversize and svg refused, the .exe object removed by reconcile)",
+      "command": "(<load-dev> && bunx vitest run --project db tests/api/submissions.api.test.ts tests/db/uploads.db.test.ts && bun run scripts/harden/upload-probe.ts <dev>) && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/reconcile.test.ts",
+      "expectOutput": ["upload ok"]
+    },
+    {
+      "id": "H1-12",
+      "lane": "Security",
+      "item": "HMAC hooks refuse bad, old and replayed calls",
+      "expectation": "tests pass; a stale timestamp gets 401",
+      "command": "bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/jobs/hmac.test.ts tests/unit/jobs/render-hook.test.ts tests/unit/resend-signature.test.ts && (<load-dev> && bunx vitest run --project db tests/api/resend.api.test.ts)"
+    },
+    {
+      "id": "H1-13",
+      "lane": "Security",
+      "item": "Agent keys hashed, scoped, revocable",
+      "expectation": "0 rows with a key_hash that is not 64 hex characters; the B7 tests pass",
+      "command": "(<load-dev> && [ \"$(bun run db:psql -- -Atc \"select count(*) from agent_keys where key_hash !~ '^[0-9a-f]{64}$'\")\" = 0 ]) && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/agent-keys.test.ts tests/unit/team.service.test.ts tests/unit/authz.matrix.test.ts"
+    },
+    {
+      "id": "H1-14",
+      "lane": "Security",
+      "item": "Request id on every error body",
+      "expectation": "error.requestId is a uuid equal to the x-request-id header, and two calls give two different ids (the wrangler tail half runs in the owner's shell)",
+      "command": "h=$(mktemp); b=$(mktemp); curl -s -D \"$h\" -o \"$b\" -X POST <dev>/api/public/inquiries -H 'content-type: application/json' -d '{'; id=$(jq -r .error.requestId \"$b\"); hid=$(grep -i '^x-request-id:' \"$h\" | tr -d '\\r' | awk '{print $2}'); id2=$(curl -s -X POST <dev>/api/public/inquiries -H 'content-type: application/json' -d '{' | jq -r .error.requestId); rm -f \"$h\" \"$b\"; echo \"$id $hid $id2\"; echo \"$id\" | grep -Eq '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' && [ \"$id\" = \"$hid\" ] && [ \"$id\" != \"$id2\" ]"
+    },
+    {
+      "id": "H1-15",
+      "lane": "Security",
+      "item": "Admin authorization matrix",
+      "expectation": "pass: one session per role over every route of loadAdminRoutes(); the B7 parity, sweep and local-session tests pass",
+      "command": "(<load-dev> && E2E_TARGET=url E2E_BASE_URL=<prod-config> bunx playwright test --project=harden tests/e2e/admin-authz.spec.ts) && bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/admin-routes-parity.test.ts tests/unit/admin-authz-sweep.test.ts tests/unit/session-local.test.ts"
+    },
+    {
+      "id": "H1-16",
+      "lane": "Backend and data",
+      "item": "RLS enabled and reviewed per table",
+      "expectation": "one line per table with each operation, the roles its policies admit and the policy names, then rls ok; exit 0",
+      "command": "<load-dev> && bun run scripts/harden/rls-review.ts --env dev"
+    },
+    {
+      "id": "H1-17",
+      "lane": "Backend and data",
+      "item": "Supabase security advisors",
+      "expectation": "no ERROR level lint (an unavailable endpoint turns the row into a signed manual check with the connector's get_advisors output)",
+      "command": "<load-ops>; curl -s -H \"Authorization: Bearer $SUPABASE_ACCESS_TOKEN\" https://api.supabase.com/v1/projects/hbokkmpgpqhrnemgsqra/advisors/security | jq -e '[.lints[] | select(.level == \"ERROR\")] | length == 0'"
+    },
+    {
+      "id": "H1-18",
+      "lane": "Backend and data",
+      "item": "Migrations are the only path and apply clean (resets mop-dev; before the launch switch only)",
+      "expectation": "db:reset, db:lint and the dev seed exit 0; the ci.yml run of the pull request main's head came from succeeded; check-migrations.mjs exits 0. Ruling H57: a lane never resets or seeds mop-dev, so without H1_DB_RESET=1 (set by the orchestrator from main under the G34 lock) the row lints the current schema, runs the two checks and prints BLOCKED",
+      "command": "(<load-dev> && export SUPABASE_DB_PASSWORD=\"$DEV_SUPABASE_DB_PASSWORD\" && if [ \"${H1_DB_RESET:-}\" = 1 ]; then bun run db:reset && bun run db:lint && bun run seed --target dev; else bun run db:lint; fi) && sha=$(gh api 'repos/{owner}/{repo}/commits/main/pulls' --jq '.[0].head.sha') && [ -n \"$sha\" ] && [ \"$(gh run list --workflow ci.yml --commit \"$sha\" --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ] && node scripts/check-migrations.mjs && if [ \"${H1_DB_RESET:-}\" != 1 ]; then echo 'BLOCKED until the orchestrator runs this row from main with H1_DB_RESET=1 under the G34 lock (ruling H57: no lane resets or seeds mop-dev)'; fi"
+    },
+    {
+      "id": "H1-19",
+      "lane": "Backend and data",
+      "item": "Editorial and money gates enforced in the database",
+      "expectation": "pass",
+      "command": "<load-dev> && bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/gate.db.test.ts tests/db/payments.db.test.ts"
+    },
+    {
+      "id": "H1-20",
+      "lane": "Backend and data",
+      "item": "Backups exist and are encrypted",
+      "expectation": "the last 3 backup.yml runs succeeded; the artifact holds a .dump.p7m; no BACKUP_ secret exists in GitHub",
+      "command": "[ \"$(gh run list --workflow backup.yml --limit 3 --json conclusion --jq '[.[].conclusion] | all(. == \"success\")')\" = true ] && d=$(mktemp -d) && trap 'rm -rf \"$d\"' EXIT && gh run download \"$(gh run list --workflow backup.yml --limit 1 --json databaseId --jq '.[0].databaseId')\" -n mop-dev-dump -D \"$d\" && ls \"$d\" | grep -q '\\.dump\\.p7m$' && [ \"$(gh secret list | grep -c BACKUP_)\" = 0 ]"
+    },
+    {
+      "id": "H1-21",
+      "lane": "Backend and data",
+      "item": "Restore rehearsal on a throwaway native cluster",
+      "expectation": "prints restore ok; row counts match; the marker audit_log row is present; elapsed time recorded in docs/runbooks/restore.md",
+      "needsEnv": "HARDEN_RESTORE_KEY",
+      "blockedText": "BLOCKED until the operator gives the path of the escrowed backup key in HARDEN_RESTORE_KEY",
+      "command": "<load-dev> && env -u CLOUDFLARE_API_TOKEN bash scripts/harden/restore-rehearsal.sh \"$HARDEN_RESTORE_KEY\"",
+      "expectOutput": ["restore ok"]
+    },
+    {
+      "id": "H1-21b",
+      "lane": "Backend and data",
+      "item": "Restore into a Supabase project rehearsed on real Supabase (before the launch switch only)",
+      "expectation": "prints restore into project ok <minutes>; the minutes go into docs/runbooks/restore.md against the RTO",
+      "needsEnv": "HARDEN_RESTORE_KEY",
+      "blockedText": "BLOCKED until the operator gives the path of the escrowed backup key in HARDEN_RESTORE_KEY",
+      "command": "<load-dev> && env -u CLOUDFLARE_API_TOKEN bash scripts/harden/restore-supabase-drill.sh \"$HARDEN_RESTORE_KEY\"",
+      "expectOutput": ["restore into project ok"]
+    },
+    {
+      "id": "H1-22",
+      "lane": "Backend and data",
+      "item": "Rollback drill on a throwaway Worker",
+      "expectation": "prints deployed v2 marker ok and rollback ok; elapsed seconds recorded in docs/runbooks/rollback.md",
+      "command": "bash scripts/harden/rollback-drill.sh",
+      "expectOutput": ["deployed v2 marker ok", "rollback ok"]
+    },
+    {
+      "id": "H1-23",
+      "lane": "Website and honesty",
+      "item": "Empty, loading, 404 and 500 states",
+      "expectation": "pass",
+      "command": "E2E_TARGET=url E2E_BASE_URL=<prod-config> E2E_MODE=live bunx playwright test --project=harden tests/e2e/states.spec.ts"
+    },
+    {
+      "id": "H1-24",
+      "lane": "Website and honesty",
+      "item": "Real legal pages with the Omnikom entity",
+      "expectation": "the page-structure test passes; /terms and /privacy name the entity at least once",
+      "command": "[ -n \"${LEGAL_ENTITY_NAME:-}\" ] || echo 'BLOCKED until the owner supplies the legal entity and address (decision S59, setup A4 and A9)'; bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/legal-pages.test.tsx && { [ -z \"${LEGAL_ENTITY_NAME:-}\" ] || for p in terms privacy; do [ \"$(curl -s <prod-config>/$p | grep -c \"$LEGAL_ENTITY_NAME\")\" -ge 1 ] || exit 1; done; }"
+    },
+    {
+      "id": "H1-25",
+      "lane": "Website and honesty",
+      "item": "Illustrative content never on production",
+      "expectation": "no 'illustrative' on /properties; no /property/ in sitemap.xml; after the launch switch: production|0",
+      "blockedOn": "L1",
+      "blockedText": "BLOCKED until L1's launch switch makes the one database production (ruling H35 (4))",
+      "command": "p=$(curl -sf '<prod-config>/properties') && ! printf '%s' \"$p\" | sed 's/illustrativeContent:!1//g' | grep -qi illustrative && s=$(curl -sf '<prod-config>/sitemap.xml') && ! printf '%s' \"$s\" | grep -q '/property/'",
+      "prodCommand": "p=$(curl -sf '<prod-config>/properties') && ! printf '%s' \"$p\" | sed 's/illustrativeContent:!1//g' | grep -qi illustrative && s=$(curl -sf '<prod-config>/sitemap.xml') && ! printf '%s' \"$s\" | grep -q '/property/' && (<load-dev> && [ \"$(bun run db:psql -- -Atc \"select (select value #>> '{}' from settings where key = 'environment'), (select count(*) from properties where status = 'Illustrative')\")\" = 'production|0' ])"
+    },
+    {
+      "id": "H1-26",
+      "lane": "Website and honesty",
+      "item": "Coming-soon empty states and signup per market",
+      "expectation": "pass; a signup creates a subscribers row with markets set",
+      "command": "<load-dev> && MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon"
+    },
+    {
+      "id": "H1-27",
+      "lane": "Website and honesty",
+      "item": "Lighthouse at least 95 mobile on six pages (local build, production rules)",
+      "expectation": "both lhci:local runs exit 0 (performance 95 or more; accessibility, best practices and SEO 100 on five pages); perf-targets.mjs exits 0",
+      "phases": [
+        {
+          "worker": {
+            "port": 8788,
+            "mopEnv": "production"
+          },
+          "command": "CHROME_PATH=\"${CHROME_PATH:-$(node -e \"process.stdout.write(require('@playwright/test').chromium.executablePath())\")}\" bun run lhci:local -- --collect.url=<worker>/ --collect.url=<worker>/properties --collect.url=<worker>/california --collect.url=<worker>/exposure --collect.url=<worker>/submit"
+        },
+        {
+          "worker": {
+            "port": 8788,
+            "mopEnv": "preview"
+          },
+          "command": "url=$(node scripts/lhci-urls.mjs <worker> | grep /property/) && CHROME_PATH=\"${CHROME_PATH:-$(node -e \"process.stdout.write(require('@playwright/test').chromium.executablePath())\")}\" bun run lhci:local -- --collect.url=$url --assert.assertions.categories:seo=off && node scripts/perf-targets.mjs .lighthouseci"
+        }
+      ]
+    },
+    {
+      "id": "H1-28",
+      "lane": "Website and honesty",
+      "item": "Accessibility sweep",
+      "expectation": "pass with tests/e2e/axe-baseline.json empty",
+      "command": "bunx playwright test --project=desktop --project=phone tests/e2e/sweep.spec.ts && [ \"$(tr -d '[:space:]' < tests/e2e/axe-baseline.json)\" = '[]' ]"
+    },
+    {
+      "id": "H1-29",
+      "lane": "Website and honesty",
+      "item": "SEO checker in production mode",
+      "expectation": "exit 0; noindex on empty market pages",
+      "command": "bun run scripts/check-seo.ts <prod-config> --production"
+    },
+    {
+      "id": "H1-30",
+      "lane": "Website and honesty",
+      "item": "Worker CPU budget on the free plan",
+      "expectation": "zero exceededCpu, no error 1102, p95 CPU under 8 ms on cache hits of the custom domain; the workers.dev baseline is recorded from the owner's shell",
+      "blockedOn": "L1",
+      "blockedText": "BLOCKED until L1 routes matterofplace.com to the Worker (the verdict is the cache-hit run; the workers.dev baseline needs wrangler tail in the owner's shell)",
+      "prodCommand": "bun run scripts/harden/cpu-probe.ts <prod-config> 200"
+    },
+    {
+      "id": "H1-31",
+      "lane": "Automations, admin, money, growth",
+      "item": "Recipes: dry-run equals the real run, switch-off honoured",
+      "expectation": "pass",
+      "build": true,
+      "command": "bunx vitest run tests/unit/automation/plan.test.ts && <load-dev> && env -u CLOUDFLARE_API_TOKEN bun run scripts/automation-smoke.ts && E2E_TARGET=built bunx playwright test tests/e2e/automation-exit.spec.ts"
+    },
+    {
+      "id": "H1-32",
+      "lane": "Automations, admin, money, growth",
+      "item": "Every failure visible and retryable",
+      "expectation": "prints fail drill ok for parts 1 to 3; part 4 (bounced email) is blocked until EMAIL_LIVE=1 on mop-dev",
+      "build": true,
+      "command": "<load-dev> && env -u CLOUDFLARE_API_TOKEN bun run scripts/harden/fail-drill.ts --base <dev>",
+      "expectOutput": ["fail drill ok"]
+    },
+    {
+      "id": "H1-33",
+      "lane": "Automations, admin, money, growth",
+      "item": "Free-tier gauges below 70 percent or decided",
+      "expectation": "no DECISION or LIMIT line without a row in PROJECT-STATE; an ours line reading Not measured fails the row",
+      "needsEnv": "AUDIT_AGENT_KEY_DEV",
+      "blockedText": "BLOCKED until the operator mints AUDIT_AGENT_KEY_DEV (B14)",
+      "worker": {
+        "port": 8788
+      },
+      "command": "<load-dev> && node ../workspace/audits/tools/usage.mjs --env dev"
+    },
+    {
+      "id": "H1-34",
+      "lane": "Automations, admin, money, growth",
+      "item": "Observability: Sentry probe, health drill, keep-warm tick",
+      "expectation": "sentry ok <requestId> within 2 minutes; health drill ok; the keep-warm query prints t; cache keepwarm ok",
+      "worker": {
+        "port": 8787,
+        "testScheduled": true
+      },
+      "command": "<load-dev> && bun run scripts/harden/sentry-probe.ts --env dev --base <dev> && bun run scripts/harden/health-drill.ts && [ \"$(bun run db:psql -- -Atc \"select last_run_at > now() - interval '24 hours' from schedule_settings where key = 'keepwarm'\")\" = t ] && bun run scripts/harden/cache-probe.ts --mode keepwarm <worker>",
+      "expectOutput": ["sentry ok", "health drill ok", "cache keepwarm ok"]
+    },
+    {
+      "id": "H1-35",
+      "lane": "Security",
+      "item": "WAF and edge rules: managed ruleset, Bot Fight Mode, no country block on /admin",
+      "expectation": "waf ok and exit 0 (offline from the zone fixtures; live after L1: the XSS probe string answers 403)",
+      "blockedOn": "L1",
+      "blockedText": "BLOCKED until scripts/cf-edge.mjs has run on the zone (B1b step 11, after L1 routes the domain)",
+      "command": "bun run scripts/harden/waf-check.ts --fixture scripts/harden/fixtures/zone-rules.json",
+      "expectOutput": ["waf ok"],
+      "prodCommand": "<load-ops>; CF_ZONE_ID=${CF_ZONE_ID:-$(curl -s -H \"Authorization: Bearer ${CF_EDGE_TOKEN:-$CLOUDFLARE_API_TOKEN}\" 'https://api.cloudflare.com/client/v4/zones?name=matterofplace.com' | jq -r '.result[0].id')}; bun run scripts/harden/waf-check.ts --zone \"$CF_ZONE_ID\" && [ \"$(curl -s -o /dev/null -w '%{http_code}' 'https://matterofplace.com/?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E')\" = 403 ]"
+    },
+    {
+      "id": "H1-36",
+      "lane": "Recovery, retention and operations",
+      "item": "Retention: the retention job deletes what policy says and nothing else",
+      "expectation": "prints retention ok: purged 6, kept 7; the policy table equals expectedPolicies key by key",
+      "command": "<load-dev> && bun run scripts/harden/retention-drill.ts --env dev && bun run db:psql -- -Atc \"select key, keep_for, action, last_run_at, last_count from retention_policies order by key\"",
+      "expectOutput": ["retention ok: purged 6, kept 7"]
+    },
+    {
+      "id": "H1-37",
+      "lane": "Recovery, retention and operations",
+      "item": "Migration rollback drill",
+      "expectation": "migration-headers test passes; the drill prints migration rollback ok and elapsed <n>s",
+      "command": "bunx vitest run tests/db/migration-headers.test.ts && bash scripts/harden/migration-rollback-drill.sh",
+      "expectOutput": ["migration rollback ok", "elapsed \\d+s"]
+    },
+    {
+      "id": "H1-38",
+      "lane": "Recovery, retention and operations",
+      "item": "Secret rotation rehearsed and ages tracked",
+      "expectation": "rotation ok and the secret.rotated audit row exists; secret-ages.ts exits 0 (no agent key older than 90 days, no channel token within 7 days of expiry)",
+      "command": "<load-dev> && bun run scripts/harden/rotation-drill.ts --env dev --base <dev> && bun run scripts/harden/secret-ages.ts --env prod-config",
+      "expectOutput": ["rotation ok"]
+    },
+    {
+      "id": "H1-39",
+      "lane": "Recovery, retention and operations",
+      "item": "Incident runbook walked: the commands work and the three switches flip and back",
+      "expectation": "runbooks ok for four files; incident drill ok with three elapsed times under 60 s and every switch restored",
+      "command": "node scripts/harden/runbook-lint.mjs docs/runbooks && <load-dev> && bun run scripts/harden/incident-drill.ts --env dev --base <dev>",
+      "expectOutput": ["runbooks ok", "incident drill ok"]
+    },
+    {
+      "id": "H1-40",
+      "lane": "Caching contract",
+      "item": "Caching contract: memory layer, edge layer and database call count (local Worker)",
+      "expectation": "tests pass; the probe prints cache memory, identical, never, writes, edge and keepwarm ok; every public response has x-mop-cache and x-catalog-version; the cache-control table holds",
+      "worker": {
+        "port": 8787,
+        "testScheduled": true
+      },
+      "command": "bunx vitest run tests/unit/state.test.ts tests/unit/cache.test.ts && (<load-dev> && bunx vitest run --project db tests/api/cache-calls.api.test.ts && E2E_TARGET=url E2E_BASE_URL=<worker> E2E_MODE=live bunx playwright test --project=live-desktop tests/e2e/hydration.spec.ts && bun run scripts/harden/cache-probe.ts --mode memory,identical,never,writes,edge,keepwarm <worker> 400 && bun run scripts/harden/check-headers.ts <worker> --cache)",
+      "expectOutput": [
+        "cache memory ok",
+        "cache identical ok",
+        "cache never ok",
+        "cache writes ok",
+        "cache edge ok",
+        "cache keepwarm ok"
+      ]
+    },
+    {
+      "id": "H1-41",
+      "lane": "Caching contract",
+      "item": "Edge layer confirmed on the custom domain: hit ratio and headers",
+      "expectation": "edge hit ratio <n>% ok at 95 percent or better after warm-up; no no-store route is ever a hit; the cache-control table holds",
+      "blockedOn": "L1",
+      "blockedText": "BLOCKED until L1 routes matterofplace.com to the Worker (the Cache API does nothing on workers.dev hosts, F25 j)",
+      "prodCommand": "bun run scripts/harden/cache-probe.ts --mode edge <prod-config> 400 && bun run scripts/harden/check-headers.ts <prod-config> --cache",
+      "expectOutput": ["edge hit ratio \\d+(\\.\\d+)?% ok"]
+    },
+    {
+      "id": "H1-42",
+      "lane": "Plans and platform",
+      "item": "Plans consistent with the catalogs",
+      "expectation": "the last line starts check-plans: OK (with --require-trace the row fails while trace.json is missing)",
+      "command": "node ../workspace/05-plans/check-plans.mjs --require-trace",
+      "expectOutput": ["^check-plans: OK"]
+    },
+    {
+      "id": "H1-43",
+      "lane": "Plans and platform",
+      "item": "No paid binding",
+      "expectation": "no grep hit in wrangler.toml; the built wrangler.json lists none of queues, browser, images, durable_objects, kv_namespaces",
+      "build": true,
+      "command": "! grep -nE \"^\\s*\\[\\[?(queues|browser|images|durable_objects|kv_namespaces)\" wrangler.toml && [ -f .output/server/wrangler.json ] && node -e \"const w=require('./.output/server/wrangler.json');console.log(['queues','browser','images','durable_objects','kv_namespaces'].filter(k=>k in w).join(',')||'none')\"",
+      "expectOutput": ["^none$"]
+    },
+    {
+      "id": "H1-44",
+      "lane": "Liveness, admin routes and CI exposure",
+      "item": "Dead-man's switch: a stopped runner, keep-warm or backup alerts without the runner or Resend",
+      "expectation": "uptime config ok; the db test passes; the runner beat is under 3 minutes old; the ops-health hook answers 200 ok",
+      "command": "<load-dev>; [ -n \"${OPS_HEALTH_TOKEN:-}\" ] || { echo 'BLOCKED OPS_HEALTH_TOKEN'; exit 0; }; node ../workspace/audits/tools/uptime.mjs --check-config && bunx vitest run --project db tests/db/ops-health.db.test.ts && [ \"$(bun run db:psql -- -Atc \"select now() - at < interval '3 minutes' from ops_heartbeats where name = 'runner'\")\" = t ] && [ \"$(curl -s -w '\\n%{http_code}' <dev>/api/hooks/ops-health/$OPS_HEALTH_TOKEN)\" = \"$(printf 'ok\\n200')\" ]"
+    },
+    {
+      "id": "H1-45",
+      "lane": "Liveness, admin routes and CI exposure",
+      "item": "Every admin write verifies CSRF",
+      "expectation": "every non-GET admin route without X-MOP-CSRF answers 403 csrf; the spec prints the number of routes probed",
+      "command": "<load-dev> && E2E_TARGET=url E2E_BASE_URL=<prod-config> bunx playwright test --project=harden tests/e2e/admin-csrf.spec.ts"
+    },
+    {
+      "id": "H1-46",
+      "lane": "Liveness, admin routes and CI exposure",
+      "item": "Pull request jobs hold no production, backup or account-wide credential",
+      "expectation": "pass",
+      "command": "bunx vitest run --testTimeout=60000 --hookTimeout=60000 tests/unit/hygiene.test.ts"
+    }
+  ],
+  "manualItems": [
+    {
+      "id": "M-01",
+      "owner": "orchestrator and CEO",
+      "item": "Email deliverability: three Resend domains verified, SPF, DKIM and DMARC pass on a test message from notify. and notes. (DMARC p=none until 30 days after launch)"
+    },
+    {
+      "id": "M-02",
+      "owner": "orchestrator",
+      "item": "main protection recorded as a CI rule (the free private plan answers 403; deploy.yml starts only after ci.yml passed on the same SHA)"
+    },
+    {
+      "id": "M-03",
+      "owner": "orchestrator",
+      "item": "Turnstile widget visible on each form"
+    },
+    {
+      "id": "M-04",
+      "owner": "CEO",
+      "item": "The owner's three-tests read of every public page"
+    },
+    {
+      "id": "M-05",
+      "owner": "a person other than the author",
+      "item": "Game day: incident.md read cold; mop-dev put in coming-soon and back, a channel disabled, the Worker rolled back, each timed"
+    },
+    {
+      "id": "M-06",
+      "owner": "CEO",
+      "item": "Alert recipients confirmed (three uptime monitors, Sentry, health), admin mailbox read, Sentry new-issue rule and per-key rate limits on"
+    },
+    {
+      "id": "M-07",
+      "owner": "operator",
+      "item": "Backup private key escrowed in the password manager and on sealed paper, no longer on the laptop, holder named in restore.md"
+    },
+    {
+      "id": "M-08",
+      "owner": "orchestrator",
+      "item": "Screen 2 shows the dead-job tile red while a dead job exists. Make one with bun run scripts/job-selftest.ts --fail-light (dev profile loaded, env -u CLOUDFLARE_API_TOKEN), look at the tile, then remove the job and its job_events rows by H1's cleanup rule (one transaction that sets mop.retention) before the day's health job runs: a dead job cannot be cancelled on screen 16 and counts in dead_jobs_24h for 24 hours"
+    }
+  ]
+}

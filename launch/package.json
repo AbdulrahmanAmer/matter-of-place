@@ -2,6 +2,12 @@
   "name": "mop-launch",
   "private": true,
   "type": "module",
+  "scripts": {
+    "audit:deps": "bun audit --audit-level=high"
+  },
+  "overrides": {
+    "image-size": "2.0.4"
+  },
   "dependencies": {
     "fontkit": "^2.0.4",
     "gsap": "^3.15.0",

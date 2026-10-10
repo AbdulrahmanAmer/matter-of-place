@@ -201,15 +201,16 @@ function pageLinks(html: string): string {
 }
 
 /**
- * Wraps the router's render so a 200 HTML page leaves with its finished policy and `Link` header, built from the
- * page's own inline hashes (F26 d). The cache module stores both with the page, so a hit does no hashing. If
- * hashing fails the page goes out without them and the pipeline's default policy applies; the error goes to Sentry.
+ * Wraps the router's render so an HTML page of any status leaves with its finished policy and `Link` header, built
+ * from the page's own inline hashes (F26 d): a not-found page carries the router's inline scripts too (H1). The cache
+ * module stores both with the page, so a hit does no hashing. If hashing fails the page goes out without them and the
+ * pipeline's default policy applies; the error goes to Sentry.
  */
 export function withPageCsp(render: Render, env: string, flags: Flags, framing: Framing): Render {
   return async (request, requestId) => {
     const response = await render(request, requestId);
     if (
-      response.status !== 200 ||
+      response.body === null ||
       !(response.headers.get("content-type") ?? "").toLowerCase().startsWith("text/html")
     ) {
       return response;

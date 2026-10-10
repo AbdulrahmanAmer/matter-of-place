@@ -8,6 +8,9 @@ import { describe, expect, it } from "vitest";
 const APP = resolve(import.meta.dirname, "../..");
 const E2E = join(APP, "tests/e2e");
 const STAFF = /staff\+[a-z]+@matterofplace\.com/g;
+// The specs of the `harden` project (playwright.config.ts) run by hand with `--project=harden` (H1), never in a run
+// beside the newsletter spec, so the void-token race above cannot happen between them.
+const HARDEN_ONLY = ["admin-authz.spec.ts", "admin-csrf.spec.ts", "csp.spec.ts", "states.spec.ts"];
 
 const text = (file: string) => readFileSync(file, "utf8");
 
@@ -23,6 +26,7 @@ describe("the newsletter e2e spec signs in as a staff address of its own", () =>
       .filter(
         (name) => /\.ts$/.test(name) && name.replaceAll("\\", "/") !== "admin-newsletter.spec.ts",
       )
+      .filter((name) => !HARDEN_ONLY.includes(name))
       .filter((name) => own.some((address) => text(join(E2E, name)).includes(address)));
     expect(others).toEqual([]);
   });

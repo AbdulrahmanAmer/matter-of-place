@@ -3,11 +3,11 @@ import { nextRun } from "./automation/cron.ts";
 import type { Db } from "./lib/db.ts";
 import { logLine } from "./lib/log.ts";
 import type { LogEvent } from "./lib/log-events.ts";
-import { getPublicState } from "./public/state.ts";
 
-// The keep-warm tick of the Worker's `scheduled()` (B8b invariant 15 c): it touches the database even when the page is
-// a cache hit (F26 b), and it reports a stalled job runner (JOB-04). The clock row changes only
-// through `claim_schedule` (G43). The tick never throws.
+// The keep-warm tick of the Worker's `scheduled()` (B8b invariant 15 c): its page request keeps the serving bundle's state
+// memo warm even when the page is a cache hit (F26 b, H78), and it reports a stalled job runner (JOB-04). `scheduled()` runs
+// in the Nitro plugin bundle, whose copy of `state.ts` has a memo no request reads, so the tick reads no state itself.
+// The clock row changes only through `claim_schedule` (G43). The tick never throws.
 
 const STALE_BEAT_MS = 300_000;
 const STALE_DUE_AGE_S = 900;
@@ -63,7 +63,7 @@ async function pageStatus(input: KeepWarmInput): Promise<{ status: number; cache
   }
 }
 
-/** Runs one keep-warm tick: the clock, the state read, the heartbeat, the runner check, one page. */
+/** Runs one keep-warm tick: the clock, the heartbeat, the runner check, one page. */
 export async function runKeepWarm(input: KeepWarmInput): Promise<void> {
   const { db, cron, now } = input;
   const claimed = await attempt("keepwarm_last_run_update_failed", () =>
@@ -78,10 +78,6 @@ export async function runKeepWarm(input: KeepWarmInput): Promise<void> {
     logLine("info", "keepwarm_disabled");
     return;
   }
-  await attempt("keepwarm_state_rpc_failed", async () => ({
-    data: await getPublicState(db),
-    error: null,
-  }));
   await attempt("keepwarm_beat_failed", () =>
     db.rpc("beat", { p_name: "keepwarm", p_detail: { cron } }),
   );
@@ -97,5 +93,5 @@ export async function runKeepWarm(input: KeepWarmInput): Promise<void> {
     });
   }
   const { status, cache } = await pageStatus(input);
-  logLine("info", "keepwarm_tick", { status, cache, stateRpc: 1 });
+  logLine("info", "keepwarm_tick", { status, cache });
 }
