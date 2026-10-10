@@ -228,7 +228,8 @@ async function main(): Promise<number> {
       assets,
     });
   } catch (error) {
-    failure = error instanceof Error ? error.message : String(error);
+    const message = error instanceof Error ? error.message : String(error);
+    failure = failure === null ? message : `${failure}; ${message}`;
   } finally {
     await db.close();
   }
@@ -240,9 +241,13 @@ async function main(): Promise<number> {
   return 0;
 }
 
+let code: number;
 try {
-  process.exitCode = await main();
+  code = await main();
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
+  code = 1;
 }
+// An exit, not exitCode: a writer-lock wait that the database cancels leaves its pg client open, and an open client keeps
+// the process alive forever (H1-36, H1-38 and H1-39 would never finish under run-all).
+process.exit(code);

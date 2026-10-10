@@ -71,12 +71,13 @@ A rollback does not undo migrations, Supabase secrets or Storage objects.
    `PUT /api/admin/settings/coming-soon`, which needs a person signed in as admin within the last 15 minutes; an agent
    key cannot use it.
 2. The public catalog changes within about 15 seconds: the public state is checked at most every 15 seconds per isolate, and
-   the new version changes every cache key. No purge is needed. The incident drill measured 1.1 to 14.9 seconds to see a
-   flip, in two runs against a local Worker on `mop-dev`.
+   the new version changes every cache key. No purge is needed. The incident drill logged 0.7 and 5.4 seconds to see the
+   switch turn on and 14.9 seconds to see it turn off, in two runs against a local Worker on `mop-dev`.
 3. Verify with the catalog JSON: `curl -s https://matterofplace.com/api/public/markets` shows `"comingSoon":true` for all
    three markets. The page text is a second check, `curl -s https://matterofplace.com/properties | grep -c "No property is listed"`
-   (the sentence is in `src/lib/strings.ts`), but trust the JSON first: on the local preview of 2026-10-10 the page
-   HTML still showed a property card with the switch on while the JSON followed it, and why is UNPROVEN.
+   (the sentence is in `src/lib/strings.ts`), but trust the JSON first: on a local build made without `VITE_API_BASE_URL` the page
+   HTML still showed a property card with the switch on while the JSON followed it. `src/services/index.ts` picks the bundled
+   illustrative adapters when that variable is empty; that is read in the code, not re-run with the variable set (UNPROVEN).
 4. To turn it off again, set the same switch off and run the same check; the markets show `"comingSoon":false` unless a
    market has its own switch on.
 
