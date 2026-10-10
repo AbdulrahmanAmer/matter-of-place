@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { pgClientConfig } from "./lib/pg-connect.mjs";
 import {
   findBranchMigrations,
   findChecksumDrift,
@@ -139,7 +140,7 @@ export function mainMigrationFiles() {
  * @returns {Promise<PushDatabase>}
  */
 async function connect(dbUrl) {
-  const client = new pg.Client({ connectionString: dbUrl });
+  const client = new pg.Client(pgClientConfig(dbUrl));
   await client.connect();
   /** @param {string} name */
   const exists = async (name) => {

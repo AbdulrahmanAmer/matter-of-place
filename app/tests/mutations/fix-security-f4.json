@@ -1,0 +1,101 @@
+[
+  {
+    "id": "f4-a-no-verify",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "scripts/lib/pg-connect.mjs",
+    "find": "ssl: { rejectUnauthorized: true, ca: SUPABASE_ROOT_CA_2021 }",
+    "replace": "ssl: { rejectUnauthorized: false, ca: SUPABASE_ROOT_CA_2021 }",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*verifies the certificate of a remote host"
+  },
+  {
+    "id": "f4-b-sslmode-kept",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "scripts/lib/pg-connect.mjs",
+    "find": "const TLS_PARAMS = [\"sslmode\", \"ssl\", \"sslcert\", \"sslkey\", \"sslrootcert\", \"uselibpqcompat\"];",
+    "replace": "const TLS_PARAMS = [];",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*removes a TLS parameter of the URL"
+  },
+  {
+    "id": "f4-c-loopback-tls",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "scripts/lib/pg-connect.mjs",
+    "find": "if (LOOPBACK.has(url.hostname)) return { connectionString };",
+    "replace": "if (!LOOPBACK.has(url.hostname)) void 0;",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*leaves a loopback URL without TLS"
+  },
+  {
+    "id": "f4-d-empty-url",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "scripts/lib/pg-connect.mjs",
+    "find": "if (connectionString === undefined || connectionString === \"\")",
+    "replace": "if (connectionString === undefined && connectionString === \"\")",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*refuses a missing URL"
+  },
+  {
+    "id": "f4-e-ca-swapped",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "scripts/lib/supabase-ca.mjs",
+    "find": "bLxMod62P2ktCiAk",
+    "replace": "bLxMod62P2kuCiAk",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*verifies the certificate of a remote host"
+  },
+  {
+    "id": "f4-f-bare-client",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "scripts/db-push.mjs",
+    "find": "new pg.Client(pgClientConfig(dbUrl))",
+    "replace": "new pg.Client({ connectionString: dbUrl })",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*builds every client from pgClientConfig"
+  },
+  {
+    "id": "f4-g-no-import",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "scripts/with-maintenance.ts",
+    "find": "import { pgClientConfig } from \"./lib/pg-connect.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*imports the helper in each of them"
+  },
+  {
+    "id": "f4-h-render-dev-ref",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "../.github/workflows/render.yml",
+    "find": "      DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*gives the one-database guard the DEV_ pair"
+  },
+  {
+    "id": "f4-i-render-dev-key",
+    "test": "tests/unit/jobs/render-job.test.ts",
+    "file": "../.github/workflows/render.yml",
+    "find": "DEV_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}",
+    "replace": "DEV_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.OTHER_KEY }}",
+    "run": "bunx vitest run --project unit tests/unit/jobs/render-job.test.ts",
+    "expect": "× .*gives the one-database guard the DEV_ pair"
+  },
+  {
+    "id": "f4-j-ci-no-frozen",
+    "test": "tests/unit/ci-deno-gate.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts",
+    "replace": "deno check --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts",
+    "run": "bunx vitest run --project unit tests/unit/ci-deno-gate.test.ts",
+    "expect": "× .*checks the portable entry and the job runner entry"
+  },
+  {
+    "id": "f4-k-ci-split-step",
+    "test": "tests/unit/ci-deno-gate.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "      - name: deno\n        run: |\n",
+    "replace": "      - name: deno\n        run: >\n",
+    "run": "bunx vitest run --project unit tests/unit/ci-deno-gate.test.ts",
+    "expect": "× .*runs both commands in the one step named deno"
+  }
+]

@@ -14,6 +14,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 import { parseArgs } from "node:util";
 import pg from "pg";
+import { pgClientConfig } from "./lib/pg-connect.mjs";
 import { clipWords, newsletterBlocksSchema } from "../src/domain/newsletter.ts";
 import type { SiteContext } from "../src/server/email/context.ts";
 import { buildPreheader, buildSubject } from "../src/server/newsletter/assemble.ts";
@@ -233,7 +234,7 @@ export async function newsletterTestSendMain(argv: readonly string[]): Promise<n
   const dbUrl = process.env["DEV_DB_URL"];
   await assertNotProduction({ dbUrl });
   const release = await holdDevLock();
-  const db = new pg.Client({ connectionString: dbUrl });
+  const db = new pg.Client(pgClientConfig(dbUrl));
   try {
     await db.connect();
     return makingDraft || actor === undefined ? await makeDraft(db) : await send(db, emails, actor);

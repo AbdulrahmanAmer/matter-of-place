@@ -5,6 +5,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { parseArgs } from "node:util";
 import pg from "pg";
+import { pgClientConfig } from "./lib/pg-connect.mjs";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
 
 const READ_FLAG =
@@ -98,7 +99,7 @@ async function main(): Promise<number> {
   const dbUrl = process.env["DEV_DB_URL"] ?? "";
   await assertNotProduction({ dbUrl });
   assertDevUser(dbUrl);
-  const client = new pg.Client({ connectionString: dbUrl });
+  const client = new pg.Client(pgClientConfig(dbUrl));
   await client.connect();
   try {
     await client.query("select pg_advisory_lock(hashtext('mop-dev-tests'))");
