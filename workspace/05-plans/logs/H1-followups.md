@@ -213,3 +213,35 @@ The one follow-up whose file is GOTCHAS.md (P-2920's cause on how fast a deleted
 6. `workspace/05-plans/logs/H1.md:748` (not blocking)
    - What: The author ran watched-fails p, q, r, s and u from one build carrying seven mutations at once. One mutation could mask or cause another's red (for example, the Turnstile reorder changes the statement counts the memory and keepwarm modes see). Each red reason matched its own mutation, and I reproduced (u) alone. p, q, r and s have not been re-proven one mutation per build.
    - Evidence: log H1.md g5: 'Build A carried seven source mutations at once'
+
+## g9 · steps 9
+
+Review verdict ACCEPT: no blocking defect, eight follow-ups. The one whose file is GOTCHAS.md is banked as P-2987 (the cost behind item 1); items 1 to 7 below are the others, word for word.
+
+1. `app/scripts/harden/runbook-lint.mjs` (not blocking)
+   - What: The lint reads only positionals[0] and silently ignores every later argument. The author's proof 'runbook-lint.mjs docs/runbooks/incident.md docs/runbooks/rotation.md -> runbooks ok' never linted rotation.md. The real rotation.md does pass when linted alone, so the end state holds, but the proof as written cannot fail on the second file. Fix: refuse more than one positional with exit 64, and bank it.
+   - Evidence: Confirmed by running. A scratch rotation.md with `CONFIRM_TOKEN_SECRETX` passed as the second argument gave 'runbooks ok' exit=0. The same file alone gave exit=1 with 'CONFIRM_TOKEN_SECRET (tech-stack.md:144) is in neither the inventory nor a constant' and 4 more problems.
+
+2. `app/docs/runbooks/incident.md` (not blocking)
+   - What: Section 4 names the sibling runbook as bare `rollback.md` ('in `rollback.md` of this folder'), and rotation.md line 123 names bare `restore.md`. That hides both from the single-file lint and contradicts the author's own P-2982 rule ('a sibling runbook (`rollback.md`) is named with its directory and the lint stays red until it lands'). The folder lint still requires both files through OUTLINES, so nothing is truly hidden. But the plan outline says 'link to `docs/runbooks/rollback.md`', and the P-2982 sentence is inaccurate about the shipped file.
+   - Evidence: Read: incident.md line 64, rotation.md line 123, GOTCHAS.md P-2982 rule.
+
+3. `workspace/05-plans/H1.md` (not blocking)
+   - What: UNPROVEN: the step 9 plan proof does not pass from this branch. 'runbook-lint.mjs docs/runbooks' is red on rollback.md and restore.md (steps 6 and 7). run-all H1-39 fails on the same files. H1-36 fails at 'bun run db:psql' because psql is not installed on this laptop. The checklist row (g1) needs psql or a pg replacement. The drills themselves pass when run directly. Also, the check job of ci.yml (added by g4) runs the folder lint, so CI on any PR of this slice stays red until steps 6 and 7 merge. The orchestrator should order those merges first.
+   - Evidence: run-all --only H1-36,H1-38,H1-39: 'fail 2, pass 1', exit 1. ci.yml line 79-80 'node scripts/harden/runbook-lint.mjs docs/runbooks'.
+
+4. `app/scripts/harden/incident-drill.ts` (not blocking)
+   - What: Watched-fail (cc) is NOT DONE at run time: nothing shows a drill refusing a production-config database. Only the static guard test covers it, because initdb and psql are absent (ASSUMED E7 is stale, confirmed). The 30 s timeout hint and the switch 1 'already comingSoon' guard were never exercised. A related gap: on mop-dev, channel_settings.instagram was already enabled=false when I ran the drill. That makes switch 2's flip and restore trivially true, and the drill does not refuse that unobservable state the way switch 1 now does.
+   - Evidence: which psql initdb: not found. A pg query after my runs: instagram enabled = false, and the drill reported it as restored (it was the original value).
+
+5. `app/tests/mutations/H1.json` (not blocking)
+   - What: The manual entry h1g9-n-dependent-secret-listed names no break (no find/replace). It records today's output, so no mutation can turn it red, and it goes stale the first time someone records a PROD_TURNSTILE_SECRET rotation. The secret-ages cadence red path also has no watched-fail: a secret.rotated row older than its cadence, including inheritance through 'with PARENT'. I checked the parser by copying it into a scratch script: 39 names at 365 days, 1 at 60, 3 at 90, 8 null, matching rotation.md. The red branch itself has never been seen red.
+   - Evidence: Registry dump of h1g9-* entries. Scratch copy of cadences() run against docs/runbooks/rotation.md.
+
+6. `app/scripts/harden/drill-lib.ts` (not blocking)
+   - What: askRunner duplicates upload-probe.ts's runner nudge (STANDARDS C05). It was reworded to get past jscpd, and the two copies now behave differently (upload-probe's is still silent when the secret is unset, which is the P-2985 failure mode). drill-lib.ts is also a new file outside the group's named file list, and app/scripts/load-env.mjs (B2's file) gained JOB_RUNNER_SECRET in the dev profile. That file's header says 'later slices extend profiles', so the change looks sanctioned, but the orchestrator should confirm and have g2's upload-probe.ts import askRunner.
+   - Evidence: Read: drill-lib.ts:30-47 against upload-probe.ts:122. A git log of load-env.mjs shows 6f91af08.
+
+7. `app/docs/runbooks/incident.md` (not blocking)
+   - What: The game day (manual item M-05) by a second person is NOT DONE. Section 11 says so. An agent cannot close it.
+   - Evidence: incident.md lines 141-145, every cell NOT DONE.

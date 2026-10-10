@@ -494,5 +494,155 @@
     "replace": "  const { status, cache } = { status: 200, cache: \"hit\" };",
     "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode keepwarm http://127.0.0.1:8839",
     "expect": "the tick ran public_state 0 times, expected exactly 1"
+  },
+  {
+    "id": "h1g9-oo-inventory-renamed",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/runbooks/rotation.md",
+    "find": "| `CONFIRM_TOKEN_SECRET`",
+    "replace": "| `CONFIRM_TOKEN_SECRETS`",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "CONFIRM_TOKEN_SECRET \\(tech-stack\\.md:\\d+\\) is in neither the inventory nor a constant"
+  },
+  {
+    "id": "h1g9-oo-tech-stack-name",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "../workspace/02-tech-stack/tech-stack.md",
+    "find": "Worker secrets (`wrangler secret`, never in the repo): `SUPABASE_URL`,",
+    "replace": "Worker secrets (`wrangler secret`, never in the repo): `NEW_FAKE_SECRET`, `SUPABASE_URL`,",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "NEW_FAKE_SECRET \\(tech-stack\\.md:\\d+\\) is in neither the inventory nor a constant"
+  },
+  {
+    "id": "h1g9-oo-env-example-name",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": ".env.example",
+    "find": "CATALOG_VERSION_TTL_MS=",
+    "replace": "CATALOG_VERSION_TTL_MSX=",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "CATALOG_VERSION_TTL_MSX \\(\\.env\\.example:\\d+\\) is in neither the inventory nor a constant"
+  },
+  {
+    "id": "h1g9-oo-h107-list",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "scripts/harden/checklist.json",
+    "find": "|INDEXNOW_KEY|",
+    "replace": "|",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "INDEXNOW_KEY is not in the H1-07 name list"
+  },
+  {
+    "id": "h1g9-cc-guard-retention",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/retention-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/retention-drill\\.ts"
+  },
+  {
+    "id": "h1g9-cc-guard-rotation",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/rotation-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/rotation-drill\\.ts"
+  },
+  {
+    "id": "h1g9-cc-guard-incident",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/incident-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/incident-drill\\.ts"
+  },
+  {
+    "id": "h1g9-o-heading-deleted",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/runbooks/incident.md",
+    "find": "## 5. Put the whole site in coming-soon",
+    "replace": "## 5. Put the whole site elsewhere",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/incident.md",
+    "expect": "incident\\.md:0: no heading \"Put the whole site in coming-soon\""
+  },
+  {
+    "id": "h1g9-o-command-renamed",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/runbooks/incident.md",
+    "find": "`bun run scripts/harden/incident-drill.ts --env dev --base <dev>`",
+    "replace": "`bun run scripts/harden/incident-drils.ts --env dev --base <dev>`",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/incident.md",
+    "expect": "incident\\.md:\\d+: scripts/harden/incident-drils\\.ts does not exist"
+  },
+  {
+    "id": "h1g9-l-cutoff-120",
+    "kind": "manual",
+    "test": "scripts/harden/retention-drill.ts",
+    "run": "on mop-dev: update retention_policies set keep_for = interval '120 days' where key = 'declined_submission_media' (restored to 90 days afterwards), then bun run scripts/harden/retention-drill.ts --env dev",
+    "expect": "retention drill: not purged: the 91 day declined submission's media rows and objects"
+  },
+  {
+    "id": "h1g9-l-cutoff-80",
+    "kind": "manual",
+    "test": "scripts/harden/retention-drill.ts",
+    "run": "on mop-dev: update retention_policies set keep_for = interval '80 days' where key = 'declined_submission_media' (restored to 90 days afterwards), then bun run scripts/harden/retention-drill.ts --env dev",
+    "expect": "retention drill: not kept: the 89 day declined submission's media row and object"
+  },
+  {
+    "id": "h1g9-n-first-key-not-revoked",
+    "kind": "manual",
+    "test": "scripts/harden/rotation-drill.ts",
+    "file": "scripts/harden/rotation-drill.ts",
+    "find": "    await revokeAgentKey(db, a.id);\n",
+    "replace": "",
+    "run": "with a local Worker on mop-dev: bun run scripts/harden/rotation-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "rotation drill: revoked key A answered 200, expected 401"
+  },
+  {
+    "id": "h1g9-n-audit-note-skipped",
+    "kind": "manual",
+    "test": "scripts/harden/rotation-drill.ts",
+    "run": "with a local Worker on mop-dev: bun run scripts/harden/rotation-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "rotation drill: no secret\\.rotated row for AGENT_KEY"
+  },
+  {
+    "id": "h1g9-x-agent-key-91-days",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev, holding the writer lock: insert an agent_keys row for the seed agent with created_at 91 days back, bun run scripts/harden/secret-ages.ts --env prod-config, delete the row",
+    "expect": "RED  agent key h1 wf-x 91 days \\(\\w+\\): 91 days old"
+  },
+  {
+    "id": "h1g9-ll-token-in-3-days",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev, holding the writer lock: set settings.x.token_expires_at to now plus 3 days (the value read first is restored), bun run scripts/harden/secret-ages.ts --env prod-config",
+    "expect": "RED  channel x: token expires in 2 days"
+  },
+  {
+    "id": "h1g9-o-switch-left-on",
+    "kind": "manual",
+    "test": "scripts/harden/incident-drill.ts",
+    "file": "scripts/harden/incident-drill.ts",
+    "find": "  await setComingSoon(db, original);\n  const back = await switchShows(base, original === \"true\");\n",
+    "replace": "",
+    "run": "with a local Worker on mop-dev, replacing those two lines by const back = 0, then restoring settings.coming_soon_global by hand: bun run scripts/harden/incident-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "incident drill: not restored: coming_soon_global false -> true"
+  },
+  {
+    "id": "h1g9-n-runner-secret-unset",
+    "kind": "manual",
+    "test": "scripts/harden/drill-lib.ts",
+    "run": "with a local Worker on mop-dev and the dev profile loaded, JOB_RUNNER_SECRET unset (env -u JOB_RUNNER_SECRET): bun run scripts/harden/incident-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "job runner: JOB_RUNNER_SECRET is not set, load the dev profile first"
+  },
+  {
+    "id": "h1g9-n-dependent-secret-listed",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev with the dev profile loaded: bun run scripts/harden/secret-ages.ts --env prod-config",
+    "expect": "unrecorded PROD_TURNSTILE_SECRET: no secret.rotated row"
   }
 ]
