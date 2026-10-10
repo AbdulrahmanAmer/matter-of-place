@@ -32,10 +32,11 @@ const synonyms: Record<string, RegExp> = {
   Waterfront: /water|ocean|beach|bay|sea|coast/i,
 };
 
+// The words before an amount ("under", "up to", "budget of") and a "$" change nothing the amount is read
+// from, so the pattern starts at the digits: two adjacent `\s*` in front of them backtracked on a long
+// run of spaces (security scan F2, P-3101).
 const budgetFrom = (text: string): number | null => {
-  const match = text.match(
-    /(?:under|below|up to|max(?:imum)?|budget(?: of)?|less than)?\s*\$?\s*(\d+(?:\.\d+)?)\s*(m|million|k)\b/i,
-  );
+  const match = text.match(/(\d+(?:\.\d+)?)\s*(m|million|k)\b/i);
   if (!match) return null;
   const amount = parseFloat(match[1] ?? "0");
   return /k/i.test(match[2] ?? "") ? amount * 1e3 : amount * 1e6;
@@ -44,8 +45,23 @@ const budgetFrom = (text: string): number | null => {
 const bedroomsFrom = (text: string) =>
   Number(text.match(/(\d)\s*(?:\+\s*)?(?:bed|bedroom|br)/i)?.[1] ?? 0);
 
-const scoreProperty = <T extends PropertyCard>(property: T, text: string): Scored<T> => {
-  const lower = text.toLowerCase();
+/** What the visitor's words say, read once per request and shared by every card. */
+interface Reading {
+  text: string;
+  lower: string;
+  budget: number | null;
+  beds: number;
+}
+
+const readQuery = (query: string): Reading => {
+  const text = query.replace(/\s+/g, " ").trim();
+  return { text, lower: text.toLowerCase(), budget: budgetFrom(text), beds: bedroomsFrom(text) };
+};
+
+const scoreProperty = <T extends PropertyCard>(
+  property: T,
+  { text, lower, budget, beds }: Reading,
+): Scored<T> => {
   const reasons: string[] = [];
   let score = 0;
 
@@ -78,7 +94,6 @@ const scoreProperty = <T extends PropertyCard>(property: T, text: string): Score
     reasons.push(place);
   }
 
-  const budget = budgetFrom(text);
   if (budget !== null) {
     if (property.price <= budget) {
       score += 1;
@@ -88,7 +103,6 @@ const scoreProperty = <T extends PropertyCard>(property: T, text: string): Score
     }
   }
 
-  const beds = bedroomsFrom(text);
   if (beds > 0) {
     if (property.beds >= beds) {
       score += 1;
@@ -105,9 +119,11 @@ export const matchProperties = <T extends PropertyCard>(
   list: T[],
   text: string,
   limit: number,
-): Scored<T>[] =>
-  list
-    .map((property) => scoreProperty(property, text))
+): Scored<T>[] => {
+  const reading = readQuery(text);
+  return list
+    .map((property) => scoreProperty(property, reading))
     .filter((match) => match.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
+};
