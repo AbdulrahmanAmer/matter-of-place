@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminKeys, invalidateAfterWrite } from "../query";
 import {
+  archiveRedirect,
+  fetchRedirects,
   fetchSettings,
   putComingSoon,
   putInvoice,
   putNotifications,
+  putRedirect,
   putSite,
 } from "./settings-api";
 
@@ -25,3 +28,14 @@ export const useSaveSite = () => useSettingsWrite(putSite);
 export const useSaveInvoice = () => useSettingsWrite(putInvoice);
 export const useSaveComingSoon = () => useSettingsWrite(putComingSoon);
 export const useSaveNotifications = () => useSettingsWrite(putNotifications);
+
+/** One page of the redirects of screen 24, under the settings key so every settings write reads it again. */
+export function useRedirects(cursor: string | null) {
+  return useQuery({
+    queryKey: adminKeys.settings.list({ redirects: cursor }),
+    queryFn: () => fetchRedirects(cursor),
+  });
+}
+
+export const useSaveRedirect = () => useSettingsWrite(putRedirect);
+export const useArchiveRedirect = () => useSettingsWrite(archiveRedirect);

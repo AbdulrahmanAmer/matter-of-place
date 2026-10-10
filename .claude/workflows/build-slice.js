@@ -194,6 +194,9 @@ if (a.startAt) groups = groups.slice(Math.max(0, groups.findIndex((g) => g.id ==
 groups = [...closing, ...groups]
 const MAX_FIX = Number.isInteger(a.maxFixRounds) ? a.maxFixRounds : 3
 if (a.only) groups = groups.filter((g) => a.only.includes(g.id))
+// Sizer ids are not stable across runs (two sizings of H1 numbered the same seven groups g1..g7 and g4..g10), so a
+// parallel group lane selects by plan step: onlySteps: ["7"] keeps the groups whose steps field names one of them.
+if (a.onlySteps) groups = groups.filter((g) => String(g.steps).split(/,\s*/).some((s) => a.onlySteps.includes(s)))
 
 const buildPrompt = (g, defects) => `${RULES}
 
@@ -296,7 +299,7 @@ const settle = async () => {
     pending.splice(pending.indexOf(item), 1)
     if (blocks(review)) { finish(item, false); continue }
     if (followUps(review).length) {
-      item.bankClosed = await callAgent(bankPrompt(item.g, followUps(review)), { label: `bank:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
+      item.bankClosed = await callAgent(bankPrompt(item.g, followUps(review)), { label: `bank:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: 'claude-haiku-5-5', effort: 'high', agentType: 'mop-builder', schema: BUILD })
       finish(item, Boolean(item.bankClosed && item.bankClosed.status === 'done'))
     } else finish(item, true)
   }

@@ -95,6 +95,11 @@ export const errorCodes = {
   // B7 step 14: the team keeps one enabled admin; an auth account whose role could not be written is deleted again.
   last_admin: 409,
   team_write_failed: 500,
+  // B7 step 15a: a redirect row that breaks invariant 16, and a data request out of order (invariant 15).
+  invalid_redirect: 422,
+  not_verified: 409,
+  wrong_kind: 409,
+  note_required: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
