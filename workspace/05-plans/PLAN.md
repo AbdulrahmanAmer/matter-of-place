@@ -94,7 +94,7 @@ names what they wait on; every other step runs. The plans were audited in both d
 | B17 | 4 of 12 | custom domain (L1), Resend live step (deployed endpoint or the production key at L1; the account exists, E17) |
 | H1 | 3 of 11 | see the plan |
 | L1 | 2 of 11 | Google accounts |
-| H2 | none of 6 | none (the panelists run on Fable by decision S66) |
+| H2 | none of 6 | none (the panelists run on Opus 5.5 at high effort: S66 amended by S67, operator 2026-10-10 13:35) |
 
 What the operator can do at any time to shorten that list: sign up for the uptime monitor, supply the legal entity and
 payment facts, and at the end create the X and LinkedIn apps and ask the partner for Meta access (S59). The custom
