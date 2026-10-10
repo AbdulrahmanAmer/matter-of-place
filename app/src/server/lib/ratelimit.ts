@@ -1,4 +1,4 @@
-import type { Db } from "./db";
+import type { Db } from "./db.ts";
 import { AppError } from "./errors.ts";
 
 export type LimitResult = { ok: true } | { ok: false; retryAfter: number };

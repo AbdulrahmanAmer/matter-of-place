@@ -28,6 +28,14 @@ const prettierOptions = JSON.parse(readFileSync(new URL(".prettierrc", import.me
 // regex breaks its parser, so `[.]` and `@.` stand in for the literal `.` and `@/`.
 const DENO_FILES = [
   "src/server/lib/{errors,log,log-events,runtime-env,sentry,media-store,events,jobs,crypto}.ts",
+  // The rest of the runner's graph (`deno info` of its entry, P-3140): without these a new extensionless import
+  // passed lint here and failed only in the deno step of CI.
+  "src/server/lib/{actor-types,admin-errors,audit,authz,db,env,error-codes,hmac,ids,ratelimit}.ts",
+  "src/server/lib/permissions/**",
+  "src/server/{audit,payments}/**",
+  "src/server/assets/render-run.ts",
+  "src/db/{index,types}.ts",
+  "src/lib/property-card.ts",
   "src/server/public/{state,mappers}.ts",
   "src/server/catalog/visibility.ts",
   "src/server/submissions/reconcile.ts",
