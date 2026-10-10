@@ -39,7 +39,11 @@ export interface ProbeDb {
 }
 
 /** The `id` column of every row a query returns. */
-export async function ids(db: ProbeDb, text: string, params: unknown[]): Promise<string[]> {
+export async function ids(
+  db: Pick<ProbeDb, "rows">,
+  text: string,
+  params: unknown[],
+): Promise<string[]> {
   return (await db.rows(text, params)).flatMap((row) =>
     row["id"] === null || row["id"] === undefined ? [] : [row["id"]],
   );

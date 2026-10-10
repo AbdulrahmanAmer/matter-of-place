@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { REPO_ROOT, field, isMain } from "./common.mjs";
@@ -118,30 +118,54 @@ export function describeDeltas({ deltas, unchanged }) {
  */
 const readSidecar = (file) => JSON.parse(readFileSync(file, "utf8"));
 
-/** @returns {string[]} the sidecars of the data folder, newest first; none when the folder does not exist yet */
-function newestSidecars() {
-  let names;
-  try {
-    names = readdirSync(DATA_DIR);
-  } catch {
-    return [];
-  }
-  return names
+/**
+ * Only a folder that does not exist yet means "none"; a permission error or a file in its place is thrown, so it
+ * cannot pass for "keep two sidecars" (R10).
+ * @param {string} [dir]
+ * @returns {string[]} the sidecars of the data folder, newest first
+ */
+export function newestSidecars(dir = DATA_DIR) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
     .filter((name) => /^\d{4}-\d{2}-\d{2}\.json$/.test(name))
     .sort()
     .reverse()
-    .map((name) => resolve(DATA_DIR, name));
+    .map((name) => resolve(dir, name));
+}
+
+/**
+ * Two paths name the pair; none takes the two newest sidecars of the data folder. One path (or more than two) is a
+ * usage error and is never read as "none".
+ * @param {string[]} positionals
+ * @param {string} [dir]
+ * @returns {{ current: string, previous: string } | null} null when the folder holds fewer than two sidecars
+ */
+export function chooseSidecars(positionals, dir = DATA_DIR) {
+  if (positionals.length !== 0 && positionals.length !== 2) {
+    throw new Error(
+      `pass <current> <previous>, or no path to take the two newest sidecars; got ${String(positionals.length)}`,
+    );
+  }
+  const [current, previous] = positionals.length === 2 ? positionals : newestSidecars(dir);
+  return current === undefined || previous === undefined ? null : { current, previous };
 }
 
 if (isMain(import.meta.url)) {
-  const { positionals } = parseArgs({ allowPositionals: true });
-  const [current, previous] = positionals.length >= 2 ? positionals : newestSidecars();
-  if (current === undefined || previous === undefined) {
-    process.stdout.write(
-      "Two sidecars are needed: pass <current> <previous> or keep two in workspace/audits/data.\n",
-    );
-  } else {
-    const lines = describeDeltas(compareSidecars(readSidecar(current), readSidecar(previous)));
-    process.stdout.write(`${lines.join("\n")}\n`);
+  try {
+    const { positionals } = parseArgs({ allowPositionals: true });
+    const pair = chooseSidecars(positionals);
+    if (pair === null) {
+      process.stdout.write(
+        "Two sidecars are needed: pass <current> <previous> or keep two in workspace/audits/data.\n",
+      );
+    } else {
+      const lines = describeDeltas(
+        compareSidecars(readSidecar(pair.current), readSidecar(pair.previous)),
+      );
+      process.stdout.write(`${lines.join("\n")}\n`);
+    }
+  } catch (error) {
+    process.stderr.write(`compare: ${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 2;
   }
 }

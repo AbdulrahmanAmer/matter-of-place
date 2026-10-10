@@ -741,8 +741,8 @@
     "id": "b14-scope-api-dir",
     "test": "tests/unit/audit/scope-check.test.ts",
     "file": "../scripts/audit/scope-check.mjs",
-    "find": "path === API_FOLDER || path.startsWith(`${API_FOLDER}/`)",
-    "replace": "path === API_FOLDER",
+    "find": "const API_SEGMENT = /^api(?:$|[._[])/;",
+    "replace": "const API_SEGMENT = /^api(?:[._[])/;",
     "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
     "expect": "scope-check paths > refuses server code"
   },
@@ -750,8 +750,8 @@
     "id": "b14-scope-api-flat",
     "test": "tests/unit/audit/scope-check.test.ts",
     "file": "../scripts/audit/scope-check.mjs",
-    "find": "path.startsWith(API_FLAT_PREFIX)",
-    "replace": "false",
+    "find": "const API_SEGMENT = /^api(?:$|[._[])/;",
+    "replace": "const API_SEGMENT = /^api(?:$|[_[])/;",
     "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
     "expect": "scope-check paths > refuses server code"
   },

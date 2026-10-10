@@ -1,7 +1,11 @@
+import "../../fixtures/worker-env";
 import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { Tables } from "../../../src/db";
+import { getScheduleSetting } from "../../../src/server/automation/service";
+import type { AdminActor } from "../../../src/server/lib/admin-route";
 import { makeContext } from "../../../../workspace/audits/tools/common.mjs";
 import {
   COLLECTORS,
@@ -10,6 +14,7 @@ import {
   SECRET_NAMES,
   runAll,
 } from "../../../../workspace/audits/tools/run-all.mjs";
+import { fakeDb } from "../../fixtures/fake-db";
 
 const NOW = new Date("2026-10-03T08:00:00Z");
 const SIDECAR = "workspace/audits/data/2026-10-03.json";
@@ -72,6 +77,51 @@ const collector = (name: string, vendor: boolean, outcome: "value" | "missing" |
     },
   };
 };
+
+describe("the schedule answer of the automation service (contract)", () => {
+  const AUDITOR: AdminActor = {
+    userId: "00000000-0000-4000-8000-0000000000a1",
+    kind: "agent",
+    roles: ["commercial"],
+    scopes: ["audit", "automation"],
+    requestId: "req-run-all-1",
+  };
+  const row = (enabled: boolean): Tables<"schedule_settings"> => ({
+    id: "00000000-0000-4000-8000-0000000000s1",
+    key: "audit",
+    cron: "0 12 * * 6",
+    interval_days: null,
+    enabled,
+    last_run_at: null,
+    next_run_at: null,
+    created_at: "2026-10-01T00:00:00Z",
+    updated_at: "2026-10-01T00:00:00Z",
+  });
+  /** What `GET /api/admin/automation/schedule-settings/audit` sends: the service result through `Response.json`. */
+  const served = async (enabled: boolean) =>
+    Response.json(
+      await getScheduleSetting(
+        AUDITOR,
+        fakeDb({ tables: { schedule_settings: [row(enabled)] } }),
+        { key: "audit" },
+        NOW,
+      ),
+    );
+
+  it("reads a disabled row of the service as disabled and skips the run", async () => {
+    const world = setup({ schedule: await served(false) });
+    expect(await world.run([])).toBe(0);
+    expect(world.lines).toEqual(["skipped, disabled"]);
+    expect(world.requests.map((request) => request.url)).toEqual([SCHEDULE]);
+  });
+
+  it("reads an enabled row of the service as enabled and records scheduled", async () => {
+    const world = setup({ schedule: await served(true) });
+    await world.run([]);
+    expect(world.sidecar()).toMatchObject({ front: { schedule: "scheduled" } });
+    expect(world.sidecar()).not.toHaveProperty("not_measured.schedule");
+  });
+});
 
 describe("the schedule switch", () => {
   it("prints skipped, disabled, writes no file, calls no record-run and exits 0", async () => {

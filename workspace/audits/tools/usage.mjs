@@ -115,7 +115,7 @@ const notMeasuredRow = (line, reason) => ({
  * @param {import("./collectors/ours.mjs").Reading[]} readings
  * @returns {GaugeRow[]}
  */
-export function gaugeRows(lines, readings) {
+function gaugeRows(lines, readings) {
   return lines.map((line) => {
     const reading = readings.find((candidate) => candidate.line === line.line);
     if (reading === undefined) {
@@ -205,7 +205,7 @@ export const collectOurs = async (ctx) => ({
  * @param {GaugeRow[]} rows
  * @returns {string[]}
  */
-export function describeRows(rows) {
+function describeRows(rows) {
   const order = LIMITS.lines.map((line) => line.line);
   return [...rows]
     .sort((a, b) => order.indexOf(a.line) - order.indexOf(b.line))
