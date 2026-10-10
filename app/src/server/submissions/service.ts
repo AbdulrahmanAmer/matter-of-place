@@ -24,6 +24,7 @@ import {
   type requestAssetsInputSchema,
   type startReviewInputSchema,
   type submissionIdInputSchema,
+  type withdrawInputSchema,
 } from "../../domain/admin-submissions";
 import { submissionStates } from "../../domain/contracts";
 import type { WorkflowState } from "../../domain/workflow";
@@ -487,6 +488,33 @@ export async function assetsReceived(
   authorize(actor, "submissions.assets_received");
   const { data, error } = await db.rpc("assets_received", {
     p_submission_id: input.id,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return { workflow_state: data };
+}
+
+/**
+ * `POST /api/admin/submissions/:id/withdraw` (DL-04): to Withdrawn, with no letter. A due invoice is voided in the same
+ * call, so the actor also needs `payments.void`; `write_audit` refuses the void again inside the call.
+ */
+export async function withdraw(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof withdrawInputSchema>,
+): Promise<{ workflow_state: WorkflowState }> {
+  authorize(actor, "submissions.withdraw");
+  const due = await db
+    .from("payments")
+    .select("id")
+    .eq("submission_id", input.id)
+    .eq("status", "due")
+    .limit(1);
+  if (due.error !== null) throw fromRpcError(due.error);
+  if (due.data.length > 0) authorize(actor, "payments.void");
+  const { data, error } = await db.rpc("withdraw_submission", {
+    p_submission_id: input.id,
+    p_reason: input.reason,
     ...auditContext(actor),
   });
   if (error !== null) throw fromRpcError(error);
