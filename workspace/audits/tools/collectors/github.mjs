@@ -3,11 +3,12 @@ import { APP_DIR, field, getJson, parseJsonOrNull, recordsOf } from "../common.m
 // The `actions_minutes` line (DO-08, ruling H6) from the repository API, never the billing API (it needs a `user` scope
 // this login lacks, P-048). Each run counts its wall time from `run_started_at` to `updated_at`, rounded up to whole
 // minutes; billed minutes round per job, so the figure is approximate. The run list carries both times, so a month of
-// runs costs one request per hundred runs, not one per run (GOTCHAS P-2700).
+// runs costs one request per hundred runs, not one per run (GOTCHAS P-2700). A `created` filter returns at most 1,000
+// runs however many match, so the month is read one UTC day at a time, and a day at the cap is not measured (P-2702).
 
 const RUNS = "repos/AbdulrahmanAmer/matter-of-place/actions/runs";
 const PER_PAGE = 100;
-const MAX_PAGES = 50;
+const SEARCH_CAP = 1000;
 const MINUTE_MS = 60_000;
 
 /**
@@ -40,24 +41,29 @@ const runsOf = (value) =>
   }));
 
 /**
- * The first day of the current UTC month, `YYYY-MM-01`.
+ * Every UTC day of the current month up to today, `YYYY-MM-DD`.
  * @param {Date} now
+ * @returns {string[]}
  */
-const monthStart = (now) => `${now.toISOString().slice(0, 7)}-01`;
+const daysThisMonth = (now) =>
+  Array.from(
+    { length: now.getUTCDate() },
+    (_, index) => `${now.toISOString().slice(0, 7)}-${String(index + 1).padStart(2, "0")}`,
+  );
 
 /**
  * Inside Actions: the workflow's own `GITHUB_TOKEN` (`actions: read`, the step 9 fallback).
  * @param {import("../common.mjs").Context} ctx
- * @param {string} since
+ * @param {string} day
  * @returns {Promise<Run[] | { reason: string }>}
  */
-async function runsByToken(ctx, since) {
+async function runsByToken(ctx, day) {
   /** @type {Run[]} */
   const runs = [];
-  for (let page = 1; page <= MAX_PAGES; page += 1) {
+  for (let page = 1; page <= SEARCH_CAP / PER_PAGE; page += 1) {
     const answer = await getJson(
       ctx.fetchImpl,
-      `https://api.github.com/${RUNS}?created=${encodeURIComponent(`>=${since}`)}&per_page=${String(PER_PAGE)}&page=${String(page)}`,
+      `https://api.github.com/${RUNS}?created=${day}&per_page=${String(PER_PAGE)}&page=${String(page)}`,
       {
         headers: {
           authorization: `Bearer ${ctx.env["GITHUB_TOKEN"] ?? ""}`,
@@ -76,15 +82,15 @@ async function runsByToken(ctx, since) {
 /**
  * On the operator's laptop: the signed-in `gh`, path without a leading slash (P-048), one JSON line per run.
  * @param {import("../common.mjs").Context} ctx
- * @param {string} since
+ * @param {string} day
  * @returns {Run[] | { reason: string }}
  */
-function runsByGh(ctx, since) {
+function runsByGh(ctx, day) {
   const ran = ctx.run(
     "gh",
     [
       "api",
-      `${RUNS}?created=>=${since}&per_page=${String(PER_PAGE)}`,
+      `${RUNS}?created=${day}&per_page=${String(PER_PAGE)}`,
       "--paginate",
       "--jq",
       ".workflow_runs[] | {run_started_at, updated_at, status} | @json",
@@ -105,10 +111,11 @@ function runsByGh(ctx, since) {
  * @returns {Promise<import("./ours.mjs").Reading[]>}
  */
 export async function collect(ctx) {
-  const since = monthStart(ctx.now());
-  let runs;
-  if (ctx.env["GITHUB_ACTIONS"] === "true") runs = await runsByToken(ctx, since);
-  else if (ctx.run("gh", ["auth", "status"], APP_DIR).status === 0) runs = runsByGh(ctx, since);
+  /** @type {(day: string) => Promise<Run[] | { reason: string }>} */
+  let runsOn;
+  if (ctx.env["GITHUB_ACTIONS"] === "true") runsOn = (day) => runsByToken(ctx, day);
+  else if (ctx.run("gh", ["auth", "status"], APP_DIR).status === 0)
+    runsOn = (day) => Promise.resolve(runsByGh(ctx, day));
   else {
     return [
       {
@@ -117,7 +124,20 @@ export async function collect(ctx) {
       },
     ];
   }
-  if ("reason" in runs) return [{ line: "actions_minutes", error: `not_measured: ${runs.reason}` }];
+  /** @type {Run[]} */
+  const runs = [];
+  for (const day of daysThisMonth(ctx.now())) {
+    const found = await runsOn(day);
+    if ("reason" in found) {
+      return [{ line: "actions_minutes", error: `not_measured: ${found.reason}` }];
+    }
+    if (found.length >= SEARCH_CAP) {
+      return [
+        { line: "actions_minutes", error: `not_measured: ${day} reached the 1,000 run list cap` },
+      ];
+    }
+    runs.push(...found);
+  }
   return [
     {
       line: "actions_minutes",

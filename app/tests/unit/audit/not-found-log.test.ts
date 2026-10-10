@@ -101,6 +101,23 @@ describe("logNotFound", () => {
     expect(db.counts.total).toBe(0);
   });
 
+  it("skips every API path in each form the router matches, so a hook token is never stored", async () => {
+    const { logNotFound } = await fresh();
+    const { db, pending, ctx } = world();
+    for (const path of [
+      "/api/hooks/ops-health/probe",
+      "/API/hooks/ops-health/a-real-token",
+      "//api/hooks/ops-health/a-real-token",
+      "/%61pi/hooks/ops-health/a-real-token",
+      "/api/admin/no-such-route",
+    ]) {
+      logNotFound(db, get(path), ctx);
+    }
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(pending).toEqual([]);
+    expect(db.counts.total).toBe(0);
+  });
+
   it("stops at 1,000 rows a UTC day and starts again the next day", async () => {
     const { logNotFound } = await fresh();
     const { db, batches, pending, ctx } = world();

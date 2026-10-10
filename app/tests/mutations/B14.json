@@ -975,10 +975,28 @@
     "id": "b14-p",
     "test": "tests/unit/audit/not-found-log.test.ts",
     "file": "src/server/lib/not-found-log.ts",
-    "find": "prefixes: [\"/assets/\", \"/wp-\"],",
-    "replace": "prefixes: [\"/assets/\"],",
+    "find": "prefixes: [\"/api/\", \"/assets/\", \"/wp-\"],",
+    "replace": "prefixes: [\"/api/\", \"/assets/\"],",
     "run": "bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts",
     "expect": "logNotFound > skips probe noise"
+  },
+  {
+    "id": "b14g2-nf-api",
+    "test": "tests/unit/audit/not-found-log.test.ts",
+    "file": "src/server/lib/not-found-log.ts",
+    "find": "prefixes: [\"/api/\", \"/assets/\", \"/wp-\"],",
+    "replace": "prefixes: [\"/assets/\", \"/wp-\"],",
+    "run": "bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts",
+    "expect": "logNotFound > skips every API path"
+  },
+  {
+    "id": "b14g2-nf-routepath",
+    "test": "tests/unit/audit/not-found-log.test.ts",
+    "file": "src/server/lib/not-found-log.ts",
+    "find": "  if (skipped(routePath(pathname))) return;",
+    "replace": "  if (skipped(pathname.toLowerCase())) return;",
+    "run": "bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts",
+    "expect": "logNotFound > skips every API path"
   },
   {
     "id": "b14g2-nf-cap",
@@ -1074,8 +1092,8 @@
     "id": "b14-ad",
     "test": "tests/unit/audit/usage.test.ts",
     "file": "../workspace/audits/tools/collectors/github.mjs",
-    "find": "  else if (ctx.run(\"gh\", [\"auth\", \"status\"], APP_DIR).status === 0) runs = runsByGh(ctx, since);\n  else {",
-    "replace": "  else if (ctx.run(\"gh\", [\"auth\", \"status\"], APP_DIR).status >= 0) runs = runsByGh(ctx, since);\n  else {",
+    "find": "  else if (ctx.run(\"gh\", [\"auth\", \"status\"], APP_DIR).status === 0)\n",
+    "replace": "  else if (ctx.run(\"gh\", [\"auth\", \"status\"], APP_DIR).status >= 0)\n",
     "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
     "expect": "github\\.mjs > makes no call with GITHUB_ACTIONS unset"
   },
@@ -1083,10 +1101,28 @@
     "id": "b14g2-gh-slash",
     "test": "tests/unit/audit/usage.test.ts",
     "file": "../workspace/audits/tools/collectors/github.mjs",
-    "find": "      `${RUNS}?created=>=${since}&per_page=${String(PER_PAGE)}`,",
-    "replace": "      `/${RUNS}?created=>=${since}&per_page=${String(PER_PAGE)}`,",
+    "find": "      `${RUNS}?created=${day}&per_page=${String(PER_PAGE)}`,",
+    "replace": "      `/${RUNS}?created=${day}&per_page=${String(PER_PAGE)}`,",
     "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
-    "expect": "github\\.mjs > reads the recorded runs through a signed-in gh"
+    "expect": "github.mjs > reads the recorded runs through a signed-in gh"
+  },
+  {
+    "id": "b14g2-gh-day",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/github.mjs",
+    "find": "      `${RUNS}?created=${day}&per_page=${String(PER_PAGE)}`,",
+    "replace": "      `${RUNS}?created=>=${day.slice(0, 8)}01&per_page=${String(PER_PAGE)}`,",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "github.mjs > reads the recorded runs through a signed-in gh one UTC day"
+  },
+  {
+    "id": "b14g2-gh-cap",
+    "test": "tests/unit/audit/usage.test.ts",
+    "file": "../workspace/audits/tools/collectors/github.mjs",
+    "find": "    if (found.length >= SEARCH_CAP) {",
+    "replace": "    if (found.length > SEARCH_CAP) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/usage.test.ts",
+    "expect": "github.mjs > does not measure a month in which one day reaches"
   },
   {
     "id": "b14g2-gh-token",

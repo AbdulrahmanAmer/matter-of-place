@@ -1,5 +1,6 @@
 import type { Db } from "./db.ts";
 import { logLine, maskEmails } from "./log.ts";
+import { routePath } from "./pipeline.ts";
 
 // B14 GG-02, invariant 8: the unknown-path log. A 404 adds one `analytics_events` row to a per-isolate buffer, flushed
 // as one `record_analytics_events` call at most every 10 seconds or at 20 rows. No IP, no user agent, no query string,
@@ -22,9 +23,12 @@ const DAILY_CAP = 1000;
 const FLUSH_ROWS = 20;
 const FLUSH_DELAY_MS = 10_000;
 
-/** Static assets and probe noise, never logged (compared lower case, as the router matches). */
+/**
+ * Static assets, probe noise and the API, never logged, compared in the form the router matches (`routePath`). An API
+ * path is never a redirect candidate, and a hook path can carry a secret: the ops-health token (DO-03).
+ */
 const NOT_FOUND_SKIP = {
-  prefixes: ["/assets/", "/wp-"],
+  prefixes: ["/api/", "/assets/", "/wp-"],
   contains: [".php", "/.env", "/.git"],
   suffix: /\.(?:js|css|map|png|jpg|webp|avif|svg|ico|woff2)$/,
 } as const;
@@ -71,7 +75,7 @@ async function flush(db: Db): Promise<void> {
 export function logNotFound(db: Db, request: Request, ctx: NotFoundContext): void {
   const now = new Date();
   const { pathname } = new URL(request.url);
-  if (skipped(pathname.toLowerCase())) return;
+  if (skipped(routePath(pathname))) return;
   const today = now.toISOString().slice(0, 10);
   if (today !== capDay) {
     capDay = today;

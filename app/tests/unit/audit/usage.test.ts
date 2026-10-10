@@ -111,31 +111,61 @@ describe("github.mjs", () => {
     expect(ran).toEqual([{ command: "gh", args: ["auth", "status"] }]);
   });
 
-  it("reads the recorded runs through a signed-in gh, path without a leading slash", async () => {
+  it("reads the recorded runs through a signed-in gh one UTC day at a time, path without a leading slash", async () => {
     const { ctx, ran } = world(
       {},
       () => json("{}"),
-      (_command, args) =>
-        args[0] === "auth" ? { status: 0, stdout: "" } : { status: 0, stdout: ghLines() },
+      (_command, args) => ({
+        status: 0,
+        stdout: args[1]?.includes("created=2026-10-10&") === true ? ghLines() : "",
+      }),
     );
     expect(await github.collect(ctx)).toEqual([
       { line: "actions_minutes", used: 8, detail: { runs: 3 } },
     ]);
-    const path = ran[1]?.args[1] ?? "";
-    expect(path).toBe(
-      "repos/AbdulrahmanAmer/matter-of-place/actions/runs?created=>=2026-10-01&per_page=100",
+    const paths = ran.slice(1).map((call) => call.args[1]);
+    expect(paths).toHaveLength(10);
+    expect(paths[0]).toBe(
+      "repos/AbdulrahmanAmer/matter-of-place/actions/runs?created=2026-10-01&per_page=100",
     );
+    expect(paths[9]).toBe(
+      "repos/AbdulrahmanAmer/matter-of-place/actions/runs?created=2026-10-10&per_page=100",
+    );
+  });
+
+  it("does not measure a month in which one day reaches the 1,000 run list cap", async () => {
+    const { ctx } = world(
+      {},
+      () => json("{}"),
+      (_command, args) => ({
+        status: 0,
+        stdout:
+          args[1]?.includes("created=2026-10-03&") === true
+            ? Array.from({ length: 1000 }, () => ghLines().split("\n")[0]).join("\n")
+            : "",
+      }),
+    );
+    expect(await github.collect(ctx)).toEqual([
+      { line: "actions_minutes", error: "not_measured: 2026-10-03 reached the 1,000 run list cap" },
+    ]);
   });
 
   it("sums the recorded runs to actions_minutes with GITHUB_ACTIONS=true and the workflow's token", async () => {
     const { ctx, requests, ran } = world(
       { GITHUB_ACTIONS: "true", GITHUB_TOKEN: "gh-test-token" },
-      () => json(fixture("github-runs.json")),
+      (url) =>
+        json(
+          url.includes("created=2026-10-10&")
+            ? fixture("github-runs.json")
+            : '{"workflow_runs":[]}',
+        ),
     );
     expect(await github.collect(ctx)).toEqual([
       { line: "actions_minutes", used: 8, detail: { runs: 3 } },
     ]);
-    expect(requests.map((request) => request.authorization)).toEqual(["Bearer gh-test-token"]);
+    expect(requests.map((request) => request.authorization)).toEqual(
+      Array.from({ length: 10 }, () => "Bearer gh-test-token"),
+    );
     expect(requests[0]?.url).toMatch(/^https:\/\/api\.github\.com\/repos\/AbdulrahmanAmer\//);
     expect(ran).toEqual([]);
   });

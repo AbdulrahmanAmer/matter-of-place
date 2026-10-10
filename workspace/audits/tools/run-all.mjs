@@ -62,22 +62,12 @@ export const SECRET_NAMES = [
  */
 export const COLLECTORS = [
   { name: "psi", keys: ["psi"], vendor: true, collect: psi.collect },
-  {
-    name: "gsc",
-    keys: ["gsc", "keywords"],
-    vendor: true,
-    collect: gsc.collect,
-  },
+  { name: "gsc", keys: ["gsc", "keywords"], vendor: true, collect: gsc.collect },
   { name: "ga4", keys: ["ga4"], vendor: true, collect: ga4.collect },
   { name: "bing", keys: ["bing"], vendor: true, collect: bing.collect },
   { name: "uptime", keys: ["uptime"], vendor: true, collect: uptime.collect },
   { name: "usage", keys: ["usage"], vendor: true, collect: usage.collect },
-  {
-    name: "ours",
-    keys: ["usage_ours"],
-    vendor: false,
-    collect: usage.collectOurs,
-  },
+  { name: "ours", keys: ["usage_ours"], vendor: false, collect: usage.collectOurs },
   {
     name: "notfound",
     keys: ["not_found"],
@@ -90,12 +80,7 @@ export const COLLECTORS = [
     vendor: false,
     collect: (ctx) => kpis.collect(ctx),
   },
-  {
-    name: "crawl",
-    keys: ["seo", "aeo"],
-    vendor: false,
-    collect: crawl.collect,
-  },
+  { name: "crawl", keys: ["seo", "aeo"], vendor: false, collect: crawl.collect },
   { name: "cache", keys: ["cache"], vendor: false, collect: cache.collect },
 ];
 
@@ -287,9 +272,7 @@ export async function runAll(options) {
       collected = Object.fromEntries(
         entry.keys.map((key) => [
           key,
-          {
-            notMeasured: `collector ${entry.name} failed: ${messageOf(error)}`,
-          },
+          { notMeasured: `collector ${entry.name} failed: ${messageOf(error)}` },
         ]),
       );
     }
@@ -330,8 +313,5 @@ export async function runAll(options) {
 }
 
 if (isMain(import.meta.url)) {
-  process.exitCode = await runAll({
-    argv: process.argv.slice(2),
-    ctx: makeContext(),
-  });
+  process.exitCode = await runAll({ argv: process.argv.slice(2), ctx: makeContext() });
 }
