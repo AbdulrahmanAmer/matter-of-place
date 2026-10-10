@@ -147,7 +147,7 @@
     "id": "b7-g1-routes-pending-literal",
     "test": "tests/unit/admin-routes-parity.test.ts",
     "file": "tests/unit/admin-routes-parity.test.ts",
-    "find": "  \"settings.get\",\n",
+    "find": "  \"settings.redirects_get\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "× .*gives every matrix action a route"
@@ -5571,5 +5571,252 @@
     "test": "src/admin/team/team.test.tsx",
     "run": "bunx vitest run --testTimeout=60000 src/admin/team/team.test.tsx -t \"sends nothing on Cancel\"",
     "expect": "× .*sends nothing on Cancel"
+  },
+  {
+    "id": "b7-15-screen-identity-hint",
+    "test": "src/admin/settings/settings.test.tsx",
+    "file": "src/admin/settings/IdentitySection.tsx",
+    "find": "readiness.includes(spec.key) ? `${spec.help} Needed before launch.` : spec.help",
+    "replace": "spec.help",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/settings/settings.test.tsx -t \"draws the identity fields in B16\"",
+    "expect": "× .*draws the identity fields in B16"
+  },
+  {
+    "id": "b7-15-screen-readiness-empty",
+    "test": "src/admin/settings/settings.test.tsx",
+    "file": "src/admin/settings/ReadinessBanner.tsx",
+    "find": "if (readiness.length === 0) {",
+    "replace": "if (readiness.length < 0) {",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/settings/settings.test.tsx -t \"says every setting is in place\"",
+    "expect": "× .*says every setting is in place"
+  },
+  {
+    "id": "b7-15-screen-invoice-schema",
+    "test": "src/admin/settings/settings.test.tsx",
+    "file": "src/admin/settings/InvoicingSection.tsx",
+    "find": "        if (parsed.success) {\n          setErrors({});\n          onSave(parsed.data);",
+    "replace": "        if (parsed.success || draft.prefix !== \"\") {\n          setErrors({});\n          onSave(draft as never);",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/settings/settings.test.tsx -t \"checks the invoicing form with B6\"",
+    "expect": "× .*checks the invoicing form with B6"
+  },
+  {
+    "id": "b7-15-screen-invoice-route",
+    "test": "src/admin/settings/settings.test.tsx",
+    "file": "src/admin/settings/settings-api.ts",
+    "find": "\"/api/admin/settings/invoice\"",
+    "replace": "\"/api/admin/settings/invoices\"",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/settings/settings.test.tsx -t \"sends the invoicing form to its own route\"",
+    "expect": "× .*sends the invoicing form to its own route"
+  },
+  {
+    "id": "b7-15-screen-coming-soon-cancel",
+    "test": "src/admin/settings/settings.test.tsx",
+    "file": "src/admin/settings/SettingsPage.tsx",
+    "find": "        onCancel={() => {\n          setConfirming(null);\n        }}",
+    "replace": "        onCancel={() => {\n          if (confirming !== null) saveComingSoon.mutate(confirming);\n          setConfirming(null);\n        }}",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/settings/settings.test.tsx -t \"asks before showing the coming-soon page\"",
+    "expect": "× .*asks before showing the coming-soon page"
+  },
+  {
+    "id": "b7-15-screen-recipients-refused",
+    "test": "src/admin/settings/settings.test.tsx",
+    "file": "src/admin/settings/NotificationsSection.tsx",
+    "find": "        if (!parsed.success) {",
+    "replace": "        if (parsed.data === parsed.error) {",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/settings/settings.test.tsx -t \"puts the alert recipients one per line\"",
+    "expect": "× .*puts the alert recipients one per line"
+  },
+  {
+    "id": "b7-15-screen-audit-open",
+    "test": "src/admin/audit/audit.test.tsx",
+    "file": "src/admin/audit/AuditPage.tsx",
+    "find": "onOpen={setOpen}",
+    "replace": "onOpen={() => undefined}",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/audit/audit.test.tsx -t \"opens a row\"",
+    "expect": "× .*opens a row"
+  },
+  {
+    "id": "b7-15-screen-audit-scalar",
+    "test": "src/admin/audit/audit.test.tsx",
+    "file": "src/admin/audit/AuditPage.tsx",
+    "find": "return fieldsSchema.safeParse(value).data ?? { value };",
+    "replace": "return fieldsSchema.safeParse(value).data ?? null;",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/audit/audit.test.tsx -t \"shows a stored value that is not an object\"",
+    "expect": "× .*shows a stored value that is not an object"
+  },
+  {
+    "id": "b7-15-screen-audit-cursor",
+    "test": "src/admin/audit/audit.test.tsx",
+    "file": "src/admin/audit/audit-queries.ts",
+    "find": "...(cursor === null ? {} : { cursor })",
+    "replace": "...(cursor === null ? {} : {})",
+    "run": "bunx vitest run --testTimeout=60000 src/admin/audit/audit.test.tsx -t \"asks the API for one request\"",
+    "expect": "× .*asks the API for one request"
+  },
+  {
+    "id": "b7-15-settings-readiness-once",
+    "test": "tests/unit/settings.service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    readiness: [...new Set(readiness)],",
+    "replace": "    readiness,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/settings.service.test.ts -t \"returns the five keys and legal.entity in readiness\"",
+    "expect": "× .*returns the five keys and legal.entity in readiness"
+  },
+  {
+    "id": "b7-15-settings-readiness-invoice",
+    "test": "tests/unit/settings.service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "const readiness = [...(await siteReadiness(db)), ...invoiceReadiness(site, invoice)];",
+    "replace": "const readiness = [...(await siteReadiness(db))];",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/settings.service.test.ts -t \"lists invoice and the unset identity fields\"",
+    "expect": "× .*lists invoice and the unset identity fields"
+  },
+  {
+    "id": "b7-15-settings-invoice-once",
+    "test": "tests/unit/settings.service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  authorize(actor, \"settings.invoice_put\");\n",
+    "replace": "  authorize(actor, \"settings.invoice_put\");\n  await putSetting(actor, db, \"invoice\", null);\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/settings.service.test.ts -t \"putInvoice makes one settings_put_invoice call\"",
+    "expect": "× .*putInvoice makes one settings_put_invoice call"
+  },
+  {
+    "id": "b7-15-settings-site-request",
+    "test": "tests/unit/settings.service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    requestId: actor.requestId,\n    note: SCREEN_NOTE,\n  });\n  return input;",
+    "replace": "    note: SCREEN_NOTE,\n  });\n  return input;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/settings.service.test.ts -t \"putSite writes through settings_put_site with the request id\"",
+    "expect": "× .*putSite writes through settings_put_site with the request id"
+  },
+  {
+    "id": "b7-15-settings-notifications-key",
+    "test": "tests/unit/settings.service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "await putSetting(actor, db, \"notifications\", input);",
+    "replace": "await putSetting(actor, db, \"notification\", input);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/settings.service.test.ts -t \"putComingSoon and putNotifications call put_setting\"",
+    "expect": "× .*putComingSoon and putNotifications call put_setting"
+  },
+  {
+    "id": "b7-15-settings-put-error",
+    "test": "tests/unit/settings.service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  if (error !== null) throw fromRpcError(error);\n}\n\n/** `PUT settings/coming-soon`",
+    "replace": "  if (error !== null) throw new Error(error.message);\n}\n\n/** `PUT settings/coming-soon`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/settings.service.test.ts -t \"answers the put_setting refusal as its error code\"",
+    "expect": "× .*answers the put_setting refusal as its error code"
+  },
+  {
+    "id": "b7-15-settings-human-only",
+    "test": "tests/unit/settings.service.test.ts",
+    "file": "src/server/lib/permissions/settings.ts",
+    "find": "const guarded = { roles: [\"admin\"], humanOnly: true, recentAuth: true } as const;",
+    "replace": "const guarded = { roles: [\"admin\"], recentAuth: true } as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/settings.service.test.ts -t \"refuses an agent with human_only on every settings function\"",
+    "expect": "× .*refuses an agent with human_only on every settings function"
+  },
+  {
+    "id": "b7-15-settings-routes-human-only",
+    "test": "tests/unit/settings.service.test.ts",
+    "file": "src/server/lib/permissions/settings.ts",
+    "find": "const guarded = { roles: [\"admin\"], humanOnly: true, recentAuth: true } as const;",
+    "replace": "const guarded = { roles: [\"admin\"], recentAuth: true } as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/settings.service.test.ts -t \"an agent key gets 403 human_only from every settings route\"",
+    "expect": "× .*an agent key gets 403 human_only from every settings route"
+  },
+  {
+    "id": "b7-15-audit-editor",
+    "test": "tests/unit/audit.service.test.ts",
+    "file": "src/server/lib/permissions/audit.ts",
+    "find": "const readers = [\"chief_editor\", \"admin\"] as const;",
+    "replace": "const readers = [\"chief_editor\", \"admin\", \"managing_editor\"] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/audit.service.test.ts -t \"refuses a managing editor with 403\"",
+    "expect": "× .*refuses a managing editor with 403"
+  },
+  {
+    "id": "b7-15-audit-limit",
+    "test": "tests/unit/audit.service.test.ts",
+    "file": "src/domain/admin-audit.ts",
+    "find": "export const auditListInputSchema = adminPageSchema.extend({\n",
+    "replace": "export const auditListInputSchema = adminPageSchema.extend({\n  limit: z.coerce.number().int().min(1).max(100).default(50),\n",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/audit.service.test.ts -t \"refuses limit=51 with 422\"",
+    "expect": "× .*refuses limit=51 with 422"
+  },
+  {
+    "id": "b7-15-audit-request-filter",
+    "test": "tests/unit/audit.service.test.ts",
+    "file": "src/server/lib/audit.ts",
+    "find": "  if (input.request_id !== undefined) query = query.eq(\"request_id\", input.request_id);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/audit.service.test.ts -t \"with a request_id returns only that request\"",
+    "expect": "× .*with a request_id returns only that request"
+  },
+  {
+    "id": "b7-15-audit-ties",
+    "test": "tests/unit/audit.service.test.ts",
+    "file": "src/server/lib/audit.ts",
+    "find": ".eq(\"at\", at).lt(\"id\", Number(id))",
+    "replace": ".eq(\"at\", at).lt(\"id\", 0)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/audit.service.test.ts -t \"pages by\"",
+    "expect": "× .*pages by"
+  },
+  {
+    "id": "b7-15-audit-from",
+    "test": "tests/unit/audit.service.test.ts",
+    "file": "src/server/lib/audit.ts",
+    "find": "  if (input.from !== undefined) query = query.gte(\"at\", input.from);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/audit.service.test.ts -t \"keeps rows at or after from and before to\"",
+    "expect": "× .*keeps rows at or after from and before to"
+  },
+  {
+    "id": "b7-15-audit-bad-cursor",
+    "test": "tests/unit/audit.service.test.ts",
+    "file": "src/server/lib/audit.ts",
+    "find": "  if (at === undefined || id === undefined) {",
+    "replace": "  if (at === \"never\") {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/audit.service.test.ts -t \"refuses a cursor it did not write\"",
+    "expect": "× .*refuses a cursor it did not write"
+  },
+  {
+    "id": "b7-15-db-notifications-action",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.put_setting(\n  p_key text,\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The audit action of each key this function may write. 'invoice' is B6's settings_put_invoice, 'site' B16's\n  -- settings_put_site and 'flags' B8b's (G26). Of these three keys only coming_soon_global is public: B2's settings\n  -- trigger bumps catalog_version for it in this transaction (G21).\n  v_action text := case p_key\n    when 'coming_soon_global' then 'settings.coming_soon_put'\n    when 'notifications' then 'settings.coming_soon_put'\n    when 'agent_daily_limits' then 'team.limits_put'\n  end;\n  -- coming_soon_global is a bare boolean, as B2 seeds it and public_state reads it; the other two are objects. A case\n  -- inside the if below would end its condition at the first then (G-903).\n  v_type text := case p_key when 'coming_soon_global' then 'boolean' else 'object' end;\n  v_before jsonb;\nbegin\n  if v_action is null then\n    raise exception 'invalid_key';\n  end if;\n  if jsonb_typeof(p_value) is distinct from v_type then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  select s.value into v_before from public.settings s where s.key = p_key for update;\n  insert into public.settings (key, value) values (p_key, p_value)\n  on conflict (key) do update set value = excluded.value;\n  perform public.write_audit(\n    p_actor, p_actor_kind, v_action, 'settings.' || p_key, null, v_before, p_value, p_request_id\n  );\n  return p_value;\nend;\n$$;\n\nrevoke execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"each put_setting writes one audit row\"",
+    "expect": "× .*each put_setting writes one audit row"
+  },
+  {
+    "id": "b7-15-db-invoice-key",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.put_setting(\n  p_key text,\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The audit action of each key this function may write. 'invoice' is B6's settings_put_invoice, 'site' B16's\n  -- settings_put_site and 'flags' B8b's (G26). Of these three keys only coming_soon_global is public: B2's settings\n  -- trigger bumps catalog_version for it in this transaction (G21).\n  v_action text := case p_key\n    when 'coming_soon_global' then 'settings.coming_soon_put'\n    when 'notifications' then 'settings.notifications_put'\n    when 'agent_daily_limits' then 'team.limits_put'\n    when 'invoice' then 'settings.invoice_put'\n  end;\n  -- coming_soon_global is a bare boolean, as B2 seeds it and public_state reads it; the other two are objects. A case\n  -- inside the if below would end its condition at the first then (G-903).\n  v_type text := case p_key when 'coming_soon_global' then 'boolean' else 'object' end;\n  v_before jsonb;\nbegin\n  if v_action is null then\n    raise exception 'invalid_key';\n  end if;\n  if jsonb_typeof(p_value) is distinct from v_type then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  select s.value into v_before from public.settings s where s.key = p_key for update;\n  insert into public.settings (key, value) values (p_key, p_value)\n  on conflict (key) do update set value = excluded.value;\n  perform public.write_audit(\n    p_actor, p_actor_kind, v_action, 'settings.' || p_key, null, v_before, p_value, p_request_id\n  );\n  return p_value;\nend;\n$$;\n\nrevoke execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"put_setting refuses invoice, site, flags\"",
+    "expect": "× .*put_setting refuses invoice, site, flags"
+  },
+  {
+    "id": "b7-15-db-value-type",
+    "kind": "sql",
+    "test": "tests/db/admin.db.test.ts",
+    "sql": "create or replace function public.put_setting(\n  p_key text,\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The audit action of each key this function may write. 'invoice' is B6's settings_put_invoice, 'site' B16's\n  -- settings_put_site and 'flags' B8b's (G26). Of these three keys only coming_soon_global is public: B2's settings\n  -- trigger bumps catalog_version for it in this transaction (G21).\n  v_action text := case p_key\n    when 'coming_soon_global' then 'settings.coming_soon_put'\n    when 'notifications' then 'settings.notifications_put'\n    when 'agent_daily_limits' then 'team.limits_put'\n  end;\n  -- coming_soon_global is a bare boolean, as B2 seeds it and public_state reads it; the other two are objects. A case\n  -- inside the if below would end its condition at the first then (G-903).\n  v_type text := case when p_key = 'notifications' then 'object' else jsonb_typeof(p_value) end;\n  v_before jsonb;\nbegin\n  if v_action is null then\n    raise exception 'invalid_key';\n  end if;\n  if jsonb_typeof(p_value) is distinct from v_type then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  select s.value into v_before from public.settings s where s.key = p_key for update;\n  insert into public.settings (key, value) values (p_key, p_value)\n  on conflict (key) do update set value = excluded.value;\n  perform public.write_audit(\n    p_actor, p_actor_kind, v_action, 'settings.' || p_key, null, v_before, p_value, p_request_id\n  );\n  return p_value;\nend;\n$$;\n\nrevoke execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin.db.test.ts -t \"put_setting refuses a coming_soon_global that is not a boolean\"",
+    "expect": "× .*put_setting refuses a coming_soon_global that is not a boolean"
+  },
+  {
+    "id": "b7-15-db-coming-soon-bump",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "create or replace function public.put_setting(\n  p_key text,\n  p_value jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  -- The audit action of each key this function may write. 'invoice' is B6's settings_put_invoice, 'site' B16's\n  -- settings_put_site and 'flags' B8b's (G26). Of these three keys only coming_soon_global is public: B2's settings\n  -- trigger bumps catalog_version for it in this transaction (G21).\n  v_action text := case p_key\n    when 'coming_soon_global' then 'settings.coming_soon_put'\n    when 'notifications' then 'settings.notifications_put'\n    when 'agent_daily_limits' then 'team.limits_put'\n  end;\n  -- coming_soon_global is a bare boolean, as B2 seeds it and public_state reads it; the other two are objects. A case\n  -- inside the if below would end its condition at the first then (G-903).\n  v_type text := case p_key when 'coming_soon_global' then 'boolean' else 'object' end;\n  v_before jsonb;\nbegin\n  if v_action is null then\n    raise exception 'invalid_key';\n  end if;\n  if jsonb_typeof(p_value) is distinct from v_type then\n    raise exception 'validation' using errcode = '22023';\n  end if;\n  select s.value into v_before from public.settings s where s.key = p_key for update;\n  insert into public.settings (key, value) values (p_key, p_value)\n  on conflict (key) do nothing;\n  perform public.write_audit(\n    p_actor, p_actor_kind, v_action, 'settings.' || p_key, null, v_before, p_value, p_request_id\n  );\n  return p_value;\nend;\n$$;\n\nrevoke execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.put_setting(text, jsonb, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"settings.site and coming_soon_global raise it by one each\"",
+    "expect": "× .*settings.site and coming_soon_global raise it by one each"
+  },
+  {
+    "id": "b7-15-db-audit-indexes",
+    "kind": "sql",
+    "test": "tests/db/admin-cache.db.test.ts",
+    "sql": "drop index public.audit_log_request_idx;\n",
+    "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"screen 25 pages audit_log\"",
+    "expect": "× .*screen 25 pages audit_log"
   }
 ]

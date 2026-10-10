@@ -67,12 +67,12 @@ export async function listAudit(
   input: AuditListInput,
 ): Promise<{ items: AuditLogRow[]; next_cursor: string | null }> {
   const take = input.limit + 1;
-  const rows =
-    input.cursor === undefined
-      ? await newestFirst(filtered(db, input), take)
-      : await after(db, input, input.cursor, take);
+  const { cursor } = input;
+  const rows = await (cursor === undefined
+    ? newestFirst(filtered(db, input), take)
+    : after(db, input, cursor, take));
   const items = rows.slice(0, input.limit);
-  const last = items.at(-1);
-  if (rows.length <= input.limit || last === undefined) return { items, next_cursor: null };
-  return { items, next_cursor: `${last.at}~${String(last.id)}` };
+  // A row past the page means another page starts after its last row.
+  const last = rows.length > input.limit ? items.at(-1) : undefined;
+  return { items, next_cursor: last === undefined ? null : `${last.at}~${String(last.id)}` };
 }

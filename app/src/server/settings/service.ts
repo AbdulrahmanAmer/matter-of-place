@@ -40,6 +40,8 @@ interface NullableArgs {
 export interface SiteWriter {
   id: string | null;
   kind: ActorKind;
+  /** The request that made the change; the operator's script has none. */
+  requestId?: string;
   note: string;
 }
 
@@ -76,7 +78,7 @@ export async function applySiteSettings(db: Db, input: unknown, writer: SiteWrit
     p_value: parsed.data,
     p_actor: writer.id,
     p_actor_kind: writer.kind,
-    p_request_id: null,
+    p_request_id: writer.requestId ?? null,
     p_note: writer.note,
   };
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- generated types mark no function argument nullable; settings_put_site stores a null actor and request id as the audit row's
@@ -88,7 +90,13 @@ export async function applySiteSettings(db: Db, input: unknown, writer: SiteWrit
 // the identity and invoice writes go through B16 and B6, the other two keys through `put_setting`, which audits.
 
 const SCREEN_NOTE = "admin: settings";
-const SETTINGS_KEYS = ["site", "invoice", "coming_soon_global", "notifications", "agent_daily_limits"];
+const SETTINGS_KEYS = [
+  "site",
+  "invoice",
+  "coming_soon_global",
+  "notifications",
+  "agent_daily_limits",
+];
 
 /** `GET settings`: the five keys in one select, and the readiness list of B16 and B6 with each name once. */
 export async function getSettings(actor: AdminActor, db: Db): Promise<SettingsAnswer> {
@@ -112,14 +120,27 @@ export async function getSettings(actor: AdminActor, db: Db): Promise<SettingsAn
 }
 
 /** `PUT settings/site`: B16's write, audited by `settings_put_site` as `settings.site_put`. */
-export async function putSite(actor: AdminActor, db: Db, input: SiteSettings): Promise<SiteSettings> {
+export async function putSite(
+  actor: AdminActor,
+  db: Db,
+  input: SiteSettings,
+): Promise<SiteSettings> {
   authorize(actor, "settings.site_put");
-  await applySiteSettings(db, input, { id: actor.userId, kind: actor.kind, note: SCREEN_NOTE });
+  await applySiteSettings(db, input, {
+    id: actor.userId,
+    kind: actor.kind,
+    requestId: actor.requestId,
+    note: SCREEN_NOTE,
+  });
   return input;
 }
 
 /** `PUT settings/invoice`: B6's write, one `settings_put_invoice` call that audits `settings.invoice_put` (G26). */
-export async function putInvoice(actor: AdminActor, db: Db, input: unknown): Promise<InvoiceSettings> {
+export async function putInvoice(
+  actor: AdminActor,
+  db: Db,
+  input: unknown,
+): Promise<InvoiceSettings> {
   authorize(actor, "settings.invoice_put");
   return applyInvoiceSettings(db, input, {
     id: actor.userId,
@@ -129,14 +150,13 @@ export async function putInvoice(actor: AdminActor, db: Db, input: unknown): Pro
   });
 }
 
-async function putSetting(actor: AdminActor, db: Db, key: string, value: Json): Promise<unknown> {
-  const { data, error } = await db.rpc("put_setting", {
+async function putSetting(actor: AdminActor, db: Db, key: string, value: Json): Promise<void> {
+  const { error } = await db.rpc("put_setting", {
     p_key: key,
     p_value: value,
     ...auditContext(actor),
   });
   if (error !== null) throw fromRpcError(error);
-  return data;
 }
 
 /** `PUT settings/coming-soon`: a public key, so B2's trigger raises `catalog_version` in the same transaction. */
@@ -146,8 +166,8 @@ export async function putComingSoon(
   input: { coming_soon_global: boolean },
 ): Promise<{ coming_soon_global: boolean }> {
   authorize(actor, "settings.coming_soon_put");
-  const saved = await putSetting(actor, db, "coming_soon_global", input.coming_soon_global);
-  return { coming_soon_global: saved === true };
+  await putSetting(actor, db, "coming_soon_global", input.coming_soon_global);
+  return input;
 }
 
 /** `PUT settings/notifications`: the admin alert list; an admin-only key, so the catalog stays as it is (G21). */
@@ -157,5 +177,6 @@ export async function putNotifications(
   input: NotificationsInput,
 ): Promise<NotificationsInput> {
   authorize(actor, "settings.notifications_put");
-  return notificationsPutInput.parse(await putSetting(actor, db, "notifications", input));
+  await putSetting(actor, db, "notifications", input);
+  return input;
 }

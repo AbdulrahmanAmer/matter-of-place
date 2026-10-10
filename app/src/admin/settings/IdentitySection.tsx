@@ -13,7 +13,8 @@ type Values = Readonly<Record<string, string>>;
 function leafOf(site: SiteSettings, key: string): string {
   const [group = "", field = ""] = key.split(".");
   const leaves: unknown = Reflect.get(site, group);
-  const value: unknown = typeof leaves === "object" && leaves !== null ? Reflect.get(leaves, field) : null;
+  const value: unknown =
+    typeof leaves === "object" && leaves !== null ? Reflect.get(leaves, field) : null;
   return typeof value === "string" ? value : "";
 }
 
@@ -93,7 +94,9 @@ export function IdentitySection({
           return;
         }
         setErrors(
-          Object.fromEntries(parsed.error.issues.map((issue) => [issue.path.join("."), issue.message])),
+          Object.fromEntries(
+            parsed.error.issues.map((issue) => [issue.path.join("."), issue.message]),
+          ),
         );
       }}
     >

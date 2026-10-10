@@ -10,7 +10,7 @@ const invoiceLabels: Readonly<Record<string, string>> = {
 };
 
 /** The label of a readiness name; an unknown name shows as it is, so nothing missing is hidden. */
-export function readinessLabel(name: string): string {
+function readinessLabel(name: string): string {
   return siteFieldSpecs.find((spec) => spec.key === name)?.label ?? invoiceLabels[name] ?? name;
 }
 
@@ -22,7 +22,10 @@ export function ReadinessBanner({ readiness }: { readiness: readonly string[] })
   return (
     <section className="admin-banner" aria-labelledby="settings-readiness">
       <h2 id="settings-readiness">Before launch</h2>
-      <p>These settings are still unset. Invoices cannot be issued and the site cannot launch until they are.</p>
+      <p>
+        These settings are still unset. Invoices cannot be issued and the site cannot launch until
+        they are.
+      </p>
       <ul className="admin-readiness">
         {readiness.map((name) => (
           <li key={name}>{readinessLabel(name)}</li>

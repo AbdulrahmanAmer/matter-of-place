@@ -48,8 +48,7 @@ function AuditFilters({ values, onChange }: { values: Values; onChange: (next: V
   const [draft, setDraft] = useState<Values>(values);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const now = (value: string | undefined) =>
-    value === undefined ? undefined : `Now ${formatInZone(value, EASTERN, "datetime")}`;
+  const now = (value: string) => `Now set to ${formatInZone(value, EASTERN, "datetime")}`;
   return (
     <form
       className="admin-toolbar"
@@ -79,7 +78,11 @@ function AuditFilters({ values, onChange }: { values: Values; onChange: (next: V
         )}
       </Field>
       {textFilters.map((filter) => (
-        <Field key={filter.name} label={filter.label} {...(filter.hint === undefined ? {} : { hint: filter.hint })}>
+        <Field
+          key={filter.name}
+          label={filter.label}
+          {...(filter.hint === undefined ? {} : { hint: filter.hint })}
+        >
           {(control) => (
             <input
               {...control}
@@ -93,7 +96,10 @@ function AuditFilters({ values, onChange }: { values: Values; onChange: (next: V
           )}
         </Field>
       ))}
-      <Field label="From (Eastern time)" {...(values.from === undefined ? {} : { hint: now(values.from) })}>
+      <Field
+        label="From (Eastern time)"
+        {...(values.from === undefined ? {} : { hint: now(values.from) })}
+      >
         {(control) => (
           <input
             {...control}
@@ -105,7 +111,10 @@ function AuditFilters({ values, onChange }: { values: Values; onChange: (next: V
           />
         )}
       </Field>
-      <Field label="Before (Eastern time)" {...(values.to === undefined ? {} : { hint: now(values.to) })}>
+      <Field
+        label="Before (Eastern time)"
+        {...(values.to === undefined ? {} : { hint: now(values.to) })}
+      >
         {(control) => (
           <input
             {...control}
@@ -154,9 +163,13 @@ export function AuditTable({
         rowId={(row) => String(row.id)}
         empty={
           filtered ? (
-            <EmptyState title="Nothing matches">No audited change matches these filters.</EmptyState>
+            <EmptyState title="Nothing matches">
+              No audited change matches these filters.
+            </EmptyState>
           ) : (
-            <EmptyState title="Nothing audited yet">Every change made in the admin appears here.</EmptyState>
+            <EmptyState title="Nothing audited yet">
+              Every change made in the admin appears here.
+            </EmptyState>
           )
         }
         {...table}

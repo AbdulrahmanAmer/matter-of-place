@@ -8,6 +8,7 @@
 // Step 12: save, publish and unpublish of stories and their list (migration `admin_stories`).
 // Step 13: update_market and set_market_coming_soon (migration `admin_markets`). Step 14: roles, the last admin,
 // agent keys, `team_users` and the agent daily caps through `put_setting` (migration `admin_team`).
+// Step 15: `put_setting` for its three keys and the audit list read (migration `admin_settings`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
@@ -3156,6 +3157,124 @@ describe("team (step 14)", () => {
         stored: value,
         audit: 1,
       });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 15's migration (P-328). */
+async function assertStep15(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regclass('public.audit_log_list_idx') is not null
+       and position('notifications' in (select prosrc from pg_proc where proname = 'put_setting')) > 0 as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const PUT_SETTING = "select public.put_setting($1, $2::jsonb, $3, 'human', 'r-settings')";
+
+async function settingsAudit(db: Db): Promise<unknown[]> {
+  const { rows } = await db.query<{
+    action: string;
+    entity: string;
+    before: unknown;
+    after: unknown;
+  }>(
+    "select action, entity, before, after from public.audit_log where request_id = 'r-settings' order by id",
+  );
+  return rows;
+}
+
+describe("settings (step 15)", () => {
+  it("each put_setting writes one audit row with before and after under the action of its key", async () => {
+    await withRollback(async (db) => {
+      await assertStep15(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const before = await one<{ coming: unknown; notifications: unknown; limits: unknown }>(
+        db,
+        `select (select value from public.settings where key = 'coming_soon_global') as coming,
+                (select value from public.settings where key = 'notifications') as notifications,
+                (select value from public.settings where key = 'agent_daily_limits') as limits`,
+      );
+      const coming = before.coming !== true;
+      const recipients = { recipients: ["ops@example.invalid"] };
+      const limits = { decisions_per_day: 7, publish_per_day: 2, requests_per_day: 300 };
+      const results = [
+        await attempt(db, PUT_SETTING, ["coming_soon_global", JSON.stringify(coming), admin]),
+        await attempt(db, PUT_SETTING, ["notifications", JSON.stringify(recipients), admin]),
+        await attempt(db, PUT_SETTING, ["agent_daily_limits", JSON.stringify(limits), admin]),
+      ];
+      expect({ results, audit: await settingsAudit(db) }).toEqual({
+        results: ["ok", "ok", "ok"],
+        audit: [
+          {
+            action: "settings.coming_soon_put",
+            entity: "settings.coming_soon_global",
+            before: before.coming,
+            after: coming,
+          },
+          {
+            action: "settings.notifications_put",
+            entity: "settings.notifications",
+            before: before.notifications,
+            after: recipients,
+          },
+          {
+            action: "team.limits_put",
+            entity: "settings.agent_daily_limits",
+            before: before.limits,
+            after: limits,
+          },
+        ],
+      });
+    });
+  });
+
+  it("put_setting refuses invoice, site, flags and an unknown key with invalid_key and writes no row", async () => {
+    await withRollback(async (db) => {
+      await assertStep15(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const { stored } = await one<{ stored: unknown }>(
+        db,
+        "select coalesce(jsonb_object_agg(key, value), '{}') as stored from public.settings where key in ('invoice', 'site', 'flags')",
+      );
+      const refused = [];
+      for (const key of ["invoice", "site", "flags", "catalog_version", "no_such_key"]) {
+        refused.push(await attempt(db, PUT_SETTING, [key, "{}", admin]));
+      }
+      const after = await one<{ stored: unknown; unknown: number }>(
+        db,
+        `select coalesce(jsonb_object_agg(key, value) filter (where key in ('invoice', 'site', 'flags')), '{}') as stored,
+                count(*) filter (where key = 'no_such_key')::int as unknown
+         from public.settings`,
+      );
+      expect({
+        refused,
+        stored: after.stored,
+        unknown: after.unknown,
+        audit: await settingsAudit(db),
+      }).toEqual({
+        refused: refused.map(() => "P0001 invalid_key"),
+        stored,
+        unknown: 0,
+        audit: [],
+      });
+    });
+  });
+
+  it("put_setting refuses a coming_soon_global that is not a boolean and a notifications that is not an object", async () => {
+    await withRollback(async (db) => {
+      await assertStep15(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      expect({
+        coming: await attempt(db, PUT_SETTING, ["coming_soon_global", '{"on": true}', admin]),
+        notifications: await attempt(db, PUT_SETTING, [
+          "notifications",
+          '["a@example.invalid"]',
+          admin,
+        ]),
+        audit: await settingsAudit(db),
+      }).toEqual({ coming: "22023 validation", notifications: "22023 validation", audit: [] });
     });
   });
 });

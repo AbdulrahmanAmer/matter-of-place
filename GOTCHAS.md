@@ -1022,6 +1022,7 @@ Entry template
 - hit again: 2026-10-08, B11 merge: `python - 2>/dev/null; node -e '<edit of a11y.ts>'` typed ahead of a node edit; the call moved to the background, the edit then ran against a file that was already resolved by hand, and the file ended up with its tail duplicated (typecheck errors TS1434 at the end of `tests/e2e/fixtures/a11y.ts`). The file was rebuilt from `git show origin/main:` plus one anchored node script that throws when an anchor is missing. About 8 minutes.
 - hit again: 2026-10-08, B11 g2: a `python3 -` with an empty heredoc and a `cat > file` with no input both waited on stdin until the Bash tool's 120 s limit moved them to the background (two calls, four minutes). A file is written with Write, never with a redirect that has no here-document.
 - added: 2026-10-02
+- hit again: 2026-10-10, B7 g1: a stray `python3 - <<'EOF'` with an empty body ahead of a `node -e` edit in one Bash call hung the call into the background at 120 s; the node edit had run (both files changed), and the two python processes were stopped by their own ids (`taskkill //F //PID <id>`).
 - hit again: 2026-10-09 00:30, H73 post-merge gate builder: an inline `python - <<EOF` hung the Bash call for the full 120 s until killed.
 - hit again: 2026-10-07, B6 g1 follow-ups: a stray `python - 2>/dev/null;` typed ahead of the log heredocs hung the call to the 120 s ceiling; `wmic process where "ProcessId=<pid>" get CommandLine` showed `python.exe -` as the child I had started, and `taskkill //PID <pid> //F` ended it, after which the rest of the chain ran. Never type `python` into a chain.
 - hit again: 2026-10-04, B8 g4 follow-ups: a stray `python3 -` after a heredoc hung the shell for 120 seconds; the entry had already been appended, and the leftover `python3.exe` was killed by its own process id.
@@ -1504,6 +1505,7 @@ Entry template
 - proof: from the tree root, `node workspace/05-plans/quiet.mjs -- node -p process.argv.length "a b"` prints `3`, and with `"a.b"` prints `2` (measured 2026-10-03, B2 g9).
 - added: 2026-10-03
 - hit again: 2026-10-05, B17 g2: `quiet.mjs -- bunx vitest run <file> -t "csp|fonts|icons"` failed with `'fonts' is not recognized as an internal or external command`, because the shell the runner uses read the `|` inside the quoted argument as a pipe; a regular expression with `|` goes to the command without the runner.
+- hit again: 2026-10-10, B7 g1 (step 15): `quiet.mjs -- node node_modules/vitest/vitest.mjs run --project db tests/db/admin.db.test.ts -t "step 15"` ran the whole file (33 of the step 12 and later cases failed on a prelude error) instead of the four step 15 cases; `-t "step.15"` ran `4 passed | 85 skipped`.
 
 ## G-105 · In `format()`, a bare `%s` or `%L` after a numbered `%2$s` takes the argument after that one, not the next unused one
 - paths: app/tests/db/**, app/supabase/sql/functions/**
@@ -6140,6 +6142,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: to read one finished job of a running run, call `gh api --allow-escape-sequences repos/AbdulrahmanAmer/matter-of-place/actions/jobs/<job>/logs | sed 's/\x1b\[[0-9;]*m//g' > <file>` and grep the file.
 - proof: during run 37878662658 (e2e running), `gh run view 37878662658 --job 113653001650 --log` → `run 37878662658 is still in progress`; the `gh api --allow-escape-sequences` form → 6724 lines with `watchfail: replayed 220: ok 220, bad 0, stale 0` (measured 2026-10-09, B7 g4).
 - added: 2026-10-09
+
+## G-903 · In PL/pgSQL, a `case` inside an `if` condition ends the condition at its first `then`: `syntax error at end of input`
+- paths: app/supabase/sql/functions/**, app/supabase/migrations/**
+- severity: warn
+- symptom: B7 g1 (step 15): the paused builder's `put_setting` checked the value type with `if jsonb_typeof(p_value) is distinct from case p_key when 'coming_soon_global' then 'boolean' else 'object' end then`; applying `20261009035240_admin_settings.sql` inside a rolled-back transaction on mop-dev failed with `syntax error at end of input` at position 1615, the inner `then`. The WIP commit had never run the file, and every db case that used the prelude failed in `withRollback` with the same message.
+- cause: PL/pgSQL reads an `if` condition as SQL text up to the first `then` keyword outside parentheses, so a bare `case ... when ... then` cuts the condition short. A `declare` default (`v := case ... end;`) reads to the `;` and is safe.
+- rule: compute a `case` into a `declare` variable (as `put_setting`'s `v_type` does) or wrap it in parentheses before using it in `if`, `elsif` or `while`; dry-run every new or changed function file before calling it done (P-312, P-2022).
+- proof: from `app/` with the dev profile, a node `pg` script that runs `begin`, the three unpushed B7 migrations and `rollback` printed `FAILED supabase/migrations/20261009035240_admin_settings.sql syntax error at end of input 1615` with the inline `case`, and `applied` for all three with `v_type` (measured 2026-10-10).
+- added: 2026-10-10
 
 ## P-543 · The Workers Free plan's daily request limit (Cloudflare error 1027, 100,000 requests a day for the whole account) cuts off every Worker on `holy-meadow-4327.workers.dev` (previews, dev, production) until 00:00 UTC
 - symptom: 2026-10-08 20:44, PR 227's preview failed its wait step twice ("the Worker did not answer ten times in a row"); a plain GET of pr-227, matter-of-place-dev and matter-of-place on workers.dev all answered `429 Too Many Requests`, `Server: cloudflare`, body "This website has been temporarily rate limited", no `x-request-id` (the request never reached our Worker). The day had ten lane previews, three Lighthouse runs on six pages each, observatory scans and the H71 and P-2451 reruns, all against one subdomain. The night's Lighthouse "hangs" and the lhci-urls and observatory timeouts (H71, H71b, PR 242) were most likely earlier, softer forms of the same throttle.

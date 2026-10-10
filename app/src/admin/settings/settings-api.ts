@@ -3,9 +3,9 @@ import {
   invoicePutInput,
   notificationsPutInput,
   settingsAnswerSchema,
+  type InvoiceSettings,
   type NotificationsInput,
 } from "../../domain/admin-settings";
-import type { InvoiceSettings } from "../../domain/payments";
 import { siteSettingsSchema, type SiteSettings } from "../../domain/settings";
 import { adminFetch } from "../ui/admin-fetch";
 

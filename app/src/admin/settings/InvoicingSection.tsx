@@ -1,9 +1,6 @@
 import { useState } from "react";
-import {
-  campaignDaysSchema,
-  invoiceSettingsSchema,
-  type InvoiceSettings,
-} from "../../domain/payments";
+import type { InvoiceSettings } from "../../domain/admin-settings";
+import { campaignDaysSchema, invoiceSettingsSchema } from "../../domain/payments";
 import { Field } from "../ui/Field";
 
 const products = campaignDaysSchema.keyof().options;

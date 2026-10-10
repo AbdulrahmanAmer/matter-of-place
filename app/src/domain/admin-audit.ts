@@ -34,7 +34,7 @@ export const auditFilterNames = [
 ] as const;
 
 /** One audit row. `before` and `after` hold only the changed keys, personal data already redacted (invariant 18). */
-export const auditRowSchema = z.object({
+const auditRowSchema = z.object({
   id: z.number().int(),
   at: z.string(),
   actor_id: z.string().nullable(),

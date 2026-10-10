@@ -19,13 +19,15 @@ declare
     when 'notifications' then 'settings.notifications_put'
     when 'agent_daily_limits' then 'team.limits_put'
   end;
+  -- coming_soon_global is a bare boolean, as B2 seeds it and public_state reads it; the other two are objects. A case
+  -- inside the if below would end its condition at the first then (G-903).
+  v_type text := case p_key when 'coming_soon_global' then 'boolean' else 'object' end;
   v_before jsonb;
 begin
   if v_action is null then
     raise exception 'invalid_key';
   end if;
-  -- coming_soon_global is a bare boolean, as B2 seeds it and public_state reads it; the other two are objects.
-  if jsonb_typeof(p_value) is distinct from case p_key when 'coming_soon_global' then 'boolean' else 'object' end then
+  if jsonb_typeof(p_value) is distinct from v_type then
     raise exception 'validation' using errcode = '22023';
   end if;
   select s.value into v_before from public.settings s where s.key = p_key for update;

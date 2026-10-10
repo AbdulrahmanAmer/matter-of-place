@@ -9,6 +9,8 @@ import { siteSettingsSchema } from "./settings.ts";
 /** `PUT /api/admin/settings/invoice`: B6's schema as it stands, so the screen and `settings_put_invoice` agree. */
 export const invoicePutInput = invoiceSettingsSchema;
 
+export type InvoiceSettings = z.output<typeof invoicePutInput>;
+
 /** `PUT /api/admin/settings/coming-soon`: the whole site shows the coming-soon page while this is true. */
 export const comingSoonPutInput = z.object({ coming_soon_global: z.boolean() }).strict();
 
