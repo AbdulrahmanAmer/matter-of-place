@@ -27,7 +27,10 @@ type ServiceMode = "local" | "live";
 export interface CatalogService {
   listProperties(): Promise<PropertyCard[]>;
   /** With `draftToken`, the draft a preview link opens (B7 invariant 17 f); the local adapter has no drafts. */
-  getProperty(slug: string, opts?: { draftToken?: string }): Promise<Property | null>;
+  getProperty(
+    slug: string,
+    opts?: { draftToken?: string },
+  ): Promise<Property | { gone: true } | null>;
   listMarkets(): Promise<Market[]>;
   getMarket(slug: string): Promise<Market | null>;
   listStories(): Promise<Story[]>;
@@ -93,7 +96,7 @@ export type Services = {
   subjects: SubjectsService;
 };
 
-export type ServiceErrorKind = "network" | "validation" | "server" | "not-found";
+export type ServiceErrorKind = "network" | "validation" | "server" | "not-found" | "gone";
 
 /** Thrown by adapters; forms map `kind` to a calm message. */
 export class ServiceError extends Error {

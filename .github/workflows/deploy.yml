@@ -233,7 +233,8 @@ jobs:
         if: steps.fe.outputs.changed == 'true' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
         run: node scripts/lhci-pages.mjs "$PREVIEW_URL"
       # H76: each page's whole lhci output and Lighthouse's own status log (the step prints 10 lines of a failed attempt),
-      # so a hang can be read afterwards. A few kilobytes a run, kept 7 days (P-150).
+      # so a hang can be read afterwards, and (H76a) the lhr-*.json reports of each passing page that perf targets reads.
+      # Logs are a few kilobytes a run; the reports are the larger part (size UNPROVEN, JSON compresses well). Kept 7 days (P-150).
       - name: lighthouse logs
         if: ${{ !cancelled() && steps.lighthouse.outcome != 'skipped' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -244,6 +245,12 @@ jobs:
           if-no-files-found: ignore
           overwrite: true
           retention-days: 7
+      # B13: the performance targets read the reports the lighthouse step above kept: lhci-pages.mjs copies each page's
+      # passing reports into .lighthouseci-pages/<n>-<slug>/ (ruling H76a), and perf-targets.mjs reads that tree. It is
+      # its own step so the H76 step stays exactly as ruled; it runs only when the gate passed.
+      - name: perf targets
+        if: steps.lighthouse.outcome == 'success'
+        run: node scripts/perf-targets.mjs .lighthouseci-pages
       - name: comment
         env:
           GH_TOKEN: ${{ github.token }}
@@ -495,6 +502,7 @@ jobs:
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+          VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID }}
         run: bun run build
       # MOP_ENV keeps the wrangler.toml default, production. Media is served from the Worker's own
       # origin until L1 sets MOP_LAUNCHED at the domain cut-over (H33 (4)).

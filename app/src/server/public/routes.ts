@@ -60,6 +60,8 @@ export interface RouteLimit {
 export interface RouteCache {
   sMaxAge: number;
   tags: readonly string[];
+  /** The read can answer 410 (a taken-down property), stored for a minute like the 404 (invariant 10). */
+  gone?: true;
 }
 
 // One signature for every service: it takes the value its row's schema parsed, whatever that is
@@ -110,7 +112,7 @@ const DAY = 86_400;
 const catalogRead = (
   path: string,
   service: PublicService,
-  detail?: { tag: string },
+  detail?: { tag: string; gone?: true },
 ): PublicRoute => ({
   path,
   method: "GET",
@@ -120,6 +122,7 @@ const catalogRead = (
   cache: {
     sMaxAge: EDGE_LIFETIME,
     tags: detail === undefined ? ["catalog"] : ["catalog", `${detail.tag}:$slug`],
+    ...(detail?.gone === true && { gone: true as const }),
   },
   status: 200,
   service,
@@ -128,7 +131,7 @@ const catalogRead = (
 export const routes: PublicRoute[] = [
   catalogRead("/api/public/properties", listProperties),
   {
-    ...catalogRead("/api/public/properties/:slug", getProperty, { tag: "property" }),
+    ...catalogRead("/api/public/properties/:slug", getProperty, { tag: "property", gone: true }),
     query: previewQuerySchema,
     draftService: previews.getDraftProperty,
   },

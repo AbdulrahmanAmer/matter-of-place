@@ -3,17 +3,19 @@ import { PageIntro } from "../components/site/page-intro";
 import { legalVersions } from "../config/site";
 import { presentLines } from "../domain/settings";
 import { breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/terms")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: t.nav.terms,
       description: pageDescription("terms"),
       path: "/terms",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [breadcrumbLd([{ name: t.nav.terms, path: "/terms" }])],
     }),
   component: TermsPage,

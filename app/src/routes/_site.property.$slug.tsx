@@ -8,6 +8,7 @@ import { Gallery } from "../components/property/gallery";
 import { Representation } from "../components/property/representation";
 import { ShareCover } from "../components/property/share-cover";
 import { StickyActions } from "../components/property/sticky-actions";
+import { PropertyGone } from "../components/site/property-gone";
 import { ArchiveLink } from "../components/site/archive-link";
 import { Breadcrumb } from "../components/site/breadcrumb";
 import { IllustrativeNotice } from "../components/site/illustrative-notice";
@@ -17,6 +18,9 @@ import { PlaceMap } from "../components/site/place-map";
 import { PropertyGrid } from "../components/site/property-card";
 import { SectionHeading } from "../components/site/section-heading";
 import { TextButton, TextLink } from "../components/site/text-link";
+import type { FacetMap } from "../domain/archive";
+import type { Market } from "../domain/market";
+import type { Property, PropertyCard } from "../domain/property";
 import { siteConfig } from "../config/site";
 import { useTrackView } from "../hooks/use-track-view";
 import { track } from "../lib/analytics";
@@ -25,10 +29,12 @@ import { cx } from "../lib/cx";
 import { formatNumber } from "../lib/format";
 import { archiveFacetsQuery, marketsQuery, propertiesQuery, propertyQuery } from "../lib/queries";
 import { breadcrumbLd, propertyListingLd, videoLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { propertyDescription } from "../lib/seo-copy";
 
-// Opened by a click, so its code stays out of the first load (R60).
+// The dialog and its form helpers are a separate chunk, fetched once the page has hydrated. It is
+// mounted closed, so the modal hook sees a real open and close, never a mount that is already open.
 const InquiryDialog = lazy(() =>
   import("../components/forms/inquiry-dialog").then((module) => ({
     default: module.InquiryDialog,
@@ -50,6 +56,7 @@ export const Route = createFileRoute("/_site/property/$slug")({
       queryClient.ensureQueryData(archiveFacetsQuery()),
     ]);
     if (!property) throw notFound();
+    if ("gone" in property) return { gone: true as const };
     const market = marketOf(markets, property.market);
     const region = regionOf(markets, property.market, property.region);
     if (!market || !region) throw notFound();
@@ -62,14 +69,24 @@ export const Route = createFileRoute("/_site/property/$slug")({
       preview: deps.preview !== undefined,
     };
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, matches, params }) => {
     if (!loaderData) return unavailableHead("Property");
+    if ("gone" in loaderData) {
+      return pageHead({
+        title: "No longer listed",
+        description:
+          "This property is no longer listed. Browse the homes we publish in California, New York and Florida.",
+        path: `/property/${params.slug}`,
+        noindex: true,
+      });
+    }
     const { property, market, region, preview } = loaderData;
     const film = videoLd(property);
     return pageHead({
       title: `${property.title} ${property.city}`,
       description: propertyDescription(property),
       path: `/property/${property.slug}`,
+      image: ogImageFor({ key: "default", property, ogStatic: ogStaticOf(matches) }),
       type: "article",
       noindex: preview,
       jsonLd: [
@@ -88,12 +105,27 @@ export const Route = createFileRoute("/_site/property/$slug")({
 });
 
 function PropertyPage() {
-  const { property, market, region, related, facets } = Route.useLoaderData();
+  const data = Route.useLoaderData();
+  return "gone" in data ? <PropertyGone /> : <PropertyDossier data={data} />;
+}
+
+interface Dossier {
+  property: Property;
+  market: Market;
+  region: Market["regions"][number];
+  related: PropertyCard[];
+  facets: FacetMap | null;
+}
+
+function PropertyDossier({ data }: { data: Dossier }) {
+  const { property, market, region, related, facets } = data;
   const [intent, setIntent] = useState<Intent | null>(null);
   const [askOpen, setAskOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const closeIntent = useCallback(() => setIntent(null), []);
+  const [dialogMounted, setDialogMounted] = useState(false);
+  useEffect(() => setDialogMounted(true), []);
 
   useTrackView("property_view", property.slug, { slug: property.slug });
 
@@ -341,7 +373,7 @@ function PropertyPage() {
         onOpenChange={setAskOpen}
         onRequestShowing={requestShowing}
       />
-      {intent !== null && (
+      {dialogMounted && (
         <Suspense fallback={null}>
           <InquiryDialog
             intent={intent}

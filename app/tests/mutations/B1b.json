@@ -4285,5 +4285,68 @@
     "replace": "/status?per_page=100`",
     "run": "bunx vitest run tests/unit/merge-gate.test.ts",
     "expect": "finds the pull request merged as this commit and reads its head"
+  },
+  {
+    "id": "h76a-keep-copies",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "for (const name of names) copyFileSync(join(from, name), join(to, name));",
+    "replace": "for (const name of names.slice(0, 1)) copyFileSync(join(from, name), join(to, name));",
+    "expect": "FAIL .*> copies every lhr-.*json into the page"
+  },
+  {
+    "id": "h76a-keep-only-lhr",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "readdirSync(from).filter((name) => /^lhr-.*\\.json$/.test(name))",
+    "replace": "readdirSync(from)",
+    "expect": "FAIL .*> copies every lhr-.*json into the page"
+  },
+  {
+    "id": "h76a-keep-per-page",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "copyFileSync(join(from, name), join(to, name))",
+    "replace": "copyFileSync(join(from, name), join(to, \"..\", name))",
+    "expect": "FAIL .*> keeps the first page's reports when"
+  },
+  {
+    "id": "h76a-keep-none",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "  if (names.length === 0) return 0;\n",
+    "replace": "",
+    "expect": "FAIL .*> copies nothing and makes no folder"
+  },
+  {
+    "id": "h76a-keep-missing",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "  if (!existsSync(from)) return 0;\n",
+    "replace": "",
+    "expect": "FAIL .*> copies nothing and makes no folder"
+  },
+  {
+    "id": "h76a-main-pass-only",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "if (classify(attempt) === \"pass\") {",
+    "replace": "if (classify(attempt) !== \"never\") {",
+    "expect": "FAIL .*> calls keepReports once, only for a pass"
+  },
+  {
+    "id": "h76a-main-folder",
+    "test": "tests/unit/lhci-pages.test.ts",
+    "file": "scripts/lhci-pages.mjs",
+    "run": "bunx vitest run tests/unit/lhci-pages.test.ts",
+    "find": "join(dir, `${String(index + 1)}-${slugOf(url)}`),",
+    "replace": "dir,",
+    "expect": "FAIL .*> calls keepReports once, only for a pass"
   }
 ]

@@ -13,6 +13,9 @@ import { Route as SiteRouteImport } from './routes/_site'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as FeedDotjsonRouteImport } from './routes/feed[.]json'
 import { Route as FeedDotxmlRouteImport } from './routes/feed[.]xml'
+import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as DotwellKnownChangePasswordRouteImport } from './routes/[.]well-known.change-password'
 import { Route as DotwellKnownMtaStsDottxtRouteImport } from './routes/[.]well-known.mta-sts[.]txt'
@@ -251,6 +254,21 @@ const FeedDotjsonRoute = FeedDotjsonRouteImport.update({
 const FeedDotxmlRoute = FeedDotxmlRouteImport.update({
   id: '/feed.xml',
   path: '/feed.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsFullDottxtRoute = LlmsFullDottxtRouteImport.update({
+  id: '/llms-full.txt',
+  path: '/llms-full.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -1471,6 +1489,9 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/feed.json': typeof FeedDotjsonRoute
   '/feed.xml': typeof FeedDotxmlRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
   '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
@@ -1694,6 +1715,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/feed.json': typeof FeedDotjsonRoute
   '/feed.xml': typeof FeedDotxmlRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
   '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
@@ -1918,6 +1942,9 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/feed.json': typeof FeedDotjsonRoute
   '/feed.xml': typeof FeedDotxmlRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/.well-known/change-password': typeof DotwellKnownChangePasswordRoute
   '/.well-known/mta-sts.txt': typeof DotwellKnownMtaStsDottxtRoute
@@ -2146,6 +2173,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/feed.json'
     | '/feed.xml'
+    | '/llms-full.txt'
+    | '/llms.txt'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/.well-known/change-password'
     | '/.well-known/mta-sts.txt'
@@ -2369,6 +2399,9 @@ export interface FileRouteTypes {
   to:
     | '/feed.json'
     | '/feed.xml'
+    | '/llms-full.txt'
+    | '/llms.txt'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/.well-known/change-password'
     | '/.well-known/mta-sts.txt'
@@ -2592,6 +2625,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/feed.json'
     | '/feed.xml'
+    | '/llms-full.txt'
+    | '/llms.txt'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/.well-known/change-password'
     | '/.well-known/mta-sts.txt'
@@ -2819,6 +2855,9 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   FeedDotjsonRoute: typeof FeedDotjsonRoute
   FeedDotxmlRoute: typeof FeedDotxmlRoute
+  LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   DotwellKnownChangePasswordRoute: typeof DotwellKnownChangePasswordRoute
   DotwellKnownMtaStsDottxtRoute: typeof DotwellKnownMtaStsDottxtRoute
@@ -2933,6 +2972,27 @@ declare module '@tanstack/react-router' {
       path: '/feed.xml'
       fullPath: '/feed.xml'
       preLoaderRoute: typeof FeedDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms-full.txt': {
+      id: '/llms-full.txt'
+      path: '/llms-full.txt'
+      fullPath: '/llms-full.txt'
+      preLoaderRoute: typeof LlmsFullDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -5167,6 +5227,9 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   FeedDotjsonRoute: FeedDotjsonRoute,
   FeedDotxmlRoute: FeedDotxmlRoute,
+  LlmsFullDottxtRoute: LlmsFullDottxtRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   DotwellKnownChangePasswordRoute: DotwellKnownChangePasswordRoute,
   DotwellKnownMtaStsDottxtRoute: DotwellKnownMtaStsDottxtRoute,

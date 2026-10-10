@@ -111,6 +111,8 @@ export const propertySchema = z.object({
   campaignTier: z.enum(["Editorial", "Feature", "Reach", "Campaign"]).optional(),
   /** ISO date the dossier was published. */
   publishedAt: z.string(),
+  /** ISO timestamp of the last change to the published row; unset on the bundled data. */
+  updatedAt: z.string().optional(),
   /** Internal like `campaignTier`: unset on the API. */
   source: z.enum(["Editorial", "Submission"]).optional(),
   /** Slugs of hand-picked related properties, shown before automatic matches. */

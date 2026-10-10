@@ -1162,6 +1162,7 @@ describe("feed", () => {
     body: ["One paragraph."],
     properties: [],
     published_at: publishedAt,
+    updated_at: publishedAt,
   });
   const published = {
     properties: [

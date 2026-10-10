@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Json } from "../../../db/index.ts";
 import { stepSpecs } from "../../automation/step-specs.ts";
 import { readVar } from "../../lib/runtime-env.ts";
-import type { StepContext, StepDefinition, StepResult } from "../types.ts";
+import type { JsonObject, StepContext, StepDefinition, StepResult } from "../types.ts";
 import { NonRetryableError } from "../types.ts";
 
 // Asks Cloudflare's edge cache to forget what changed (F24). Housekeeping only: the cache key carries `catalog_version`,
@@ -11,15 +11,17 @@ import { NonRetryableError } from "../types.ts";
 const spec = stepSpecs.purge_cache;
 const MAX_URLS_PER_CALL = 30;
 const DEFAULT_RETRY_AFTER_S = 60;
+const INDEXNOW_URL = "https://api.indexnow.org/indexnow";
+const PROPERTY_ORIGIN = "https://matterofplace.com/property/";
 
 type Scope = "catalog" | "property" | "all";
 
 const isScope = (value: unknown): value is Scope =>
   value === "catalog" || value === "property" || value === "all";
 
-/** `property` has no narrower tag yet, so it purges what `catalog` does (B13 adds the document tags). */
+/** `property` has no narrower tag yet, so it purges what `catalog` does; `seo` is the tag of the sitemap, robots and `llms` documents. */
 export function purgeBody(scope: Scope): Json {
-  return scope === "all" ? { purge_everything: true } : { tags: ["catalog"] };
+  return scope === "all" ? { purge_everything: true } : { tags: ["catalog", "seo"] };
 }
 
 type Outcome = { kind: "skipped" } | { kind: "done" } | { kind: "retry"; at: Date };
@@ -50,13 +52,35 @@ async function send(ctx: StepContext, body: Json): Promise<Outcome> {
   return { kind: "done" };
 }
 
-async function run(ctx: StepContext, params: unknown): Promise<StepResult> {
-  const scope = spec.paramsSchema.parse(params)["scope"];
+/**
+ * One GET to IndexNow for the property of the event, after a purge that went through. It tells Bing and Yandex what
+ * changed and never decides how the step ends: a missing key or slug and any failed answer are logged, not thrown.
+ */
+async function pingIndexNow(ctx: StepContext, data: JsonObject): Promise<void> {
+  const key = readVar("INDEXNOW_KEY");
+  const slug = data["slug"];
+  if (!key || typeof slug !== "string") {
+    ctx.log("info", "indexnow_skipped", { reason: key ? "no_slug" : "no_key" });
+    return;
+  }
+  const query = new URLSearchParams({ url: `${PROPERTY_ORIGIN}${encodeURIComponent(slug)}`, key });
+  try {
+    const response = await fetch(`${INDEXNOW_URL}?${query.toString()}`, { signal: ctx.signal });
+    if (!response.ok) ctx.log("warn", "indexnow_failed", { status: response.status });
+  } catch {
+    ctx.log("warn", "indexnow_failed", { reason: "unreachable" });
+  }
+}
+
+async function run(ctx: StepContext, params: unknown, data: JsonObject): Promise<StepResult> {
+  const parsed = spec.paramsSchema.parse(params);
+  const scope = parsed["scope"];
   const outcome = await send(ctx, purgeBody(isScope(scope) ? scope : "catalog"));
   if (outcome.kind === "skipped") return { status: "done", result: { skipped: "not_configured" } };
   if (outcome.kind === "retry") {
     return { status: "retry_at", at: outcome.at, reason: "cf_rate_limited" };
   }
+  if (parsed["indexnow"] === true) await pingIndexNow(ctx, data);
   return { status: "done" };
 }
 

@@ -14,12 +14,20 @@ import { NotFound } from "../components/layout/not-found";
 import { RouteError } from "../components/layout/route-error";
 import { SiteChrome } from "../components/layout/site-chrome";
 import { siteConfig } from "../config/site";
-import { siteQuery } from "../lib/queries";
+import { ogStaticQuery, siteQuery } from "../lib/queries";
 import { defaultLocale, localeDirection } from "../lib/strings";
 import { services } from "../services";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  loader: ({ context }) => context.queryClient.ensureQueryData(siteQuery()),
+  // The site identity (`useSite()` reads it from this match) and the newer Open Graph cards (`ogStaticOf()` reads
+  // `ogStatic` from the same match for every route head): one loader, both shapes.
+  loader: async ({ context: { queryClient } }) => {
+    const [site, ogStatic] = await Promise.all([
+      queryClient.ensureQueryData(siteQuery()),
+      queryClient.ensureQueryData(ogStaticQuery()),
+    ]);
+    return { ...site, ogStatic };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

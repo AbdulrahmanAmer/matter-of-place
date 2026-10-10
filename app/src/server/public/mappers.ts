@@ -89,6 +89,7 @@ export const propertyRowSchema = z.object({
   hero_rank: z.number().nullable(),
   featured_rank: z.number().nullable(),
   published_at: z.string(),
+  updated_at: z.string(),
   media: z.array(mediaRowSchema),
   features: z.array(z.string()),
   related: z.array(z.string()),
@@ -141,6 +142,7 @@ const storyRowSchema = z.object({
   body: z.array(z.string()),
   properties: z.array(z.string()),
   published_at: z.string(),
+  updated_at: z.string(),
 });
 
 const redirectRowSchema = z.object({
@@ -188,6 +190,8 @@ export type Catalog = CatalogRows & {
   version: number;
   redirects: Snapshot["redirects"];
   slugHistory: Snapshot["slug_history"];
+  /** The slugs of taken-down properties. */
+  gone: Snapshot["gone"];
 };
 
 // `o/<owner>/<n>-<sha8>.webp` is the stored master of a photograph; every rendition's key is derived
@@ -298,6 +302,7 @@ export function toProperty(row: PropertyRow, representative?: RepresentativeRow)
     ...(row.hero_rank !== null && { heroRank: row.hero_rank }),
     ...(row.featured_rank !== null && { featuredRank: row.featured_rank }),
     publishedAt: isoDate(row.published_at),
+    updatedAt: row.updated_at,
     ...(row.related.length > 0 && { related: row.related }),
   };
 }
@@ -319,6 +324,7 @@ export function toStory(row: StoryRow): Story {
     body: row.body,
     properties: row.properties,
     publishedAt: isoDate(row.published_at),
+    updatedAt: row.updated_at,
   };
 }
 
@@ -397,5 +403,6 @@ export function mapSnapshot(snapshot: Snapshot, state: ComingSoonState): Catalog
     stories: snapshot.stories.map(toStory),
     redirects: snapshot.redirects,
     slugHistory: snapshot.slug_history,
+    gone: snapshot.gone,
   };
 }

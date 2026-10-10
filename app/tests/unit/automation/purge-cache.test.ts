@@ -76,7 +76,7 @@ describe("purge_cache step", () => {
         url: URL_PURGE,
         authorization: "Bearer token-abc",
         contentType: "application/json",
-        body: { tags: ["catalog"] },
+        body: { tags: ["catalog", "seo"] },
       },
     ]);
   });
@@ -86,12 +86,12 @@ describe("purge_cache step", () => {
     await run("property");
     await run("all");
     expect(sent.map((call) => call.body)).toEqual([
-      { tags: ["catalog"] },
+      { tags: ["catalog", "seo"] },
       { purge_everything: true },
     ]);
     expect((["catalog", "property", "all"] as const).map((scope) => purgeBody(scope))).toEqual([
-      { tags: ["catalog"] },
-      { tags: ["catalog"] },
+      { tags: ["catalog", "seo"] },
+      { tags: ["catalog", "seo"] },
       { purge_everything: true },
     ]);
   });

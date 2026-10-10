@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { SiteChrome } from "../components/layout/site-chrome";
+import { Ga4Loader } from "../components/site/ga4-loader";
 import { captureAttribution } from "../lib/attribution";
 import { installClientErrorListeners } from "../lib/report-error";
 import { t } from "../lib/strings";
@@ -38,6 +39,7 @@ function SiteLayout() {
         <span id="content" className="skip-target" tabIndex={-1} />
         <Outlet />
       </SiteChrome>
+      <Ga4Loader />
     </>
   );
 }

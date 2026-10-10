@@ -1055,8 +1055,8 @@
     "id": "runner-deploy-production",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
-    "find": "          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n        run: bun run build",
-    "replace": "          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n        run: bun run build && bunx supabase functions deploy job-runner --use-api",
+    "find": "          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n          VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID }}\n        run: bun run build",
+    "replace": "          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}\n          VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID }}\n        run: bun run build && bunx supabase functions deploy job-runner --use-api",
     "run": "bunx vitest run tests/unit/hygiene.test.ts --testTimeout=60000 -t \"only dev deploys the job runner\"",
     "expect": "× .*only dev deploys the job runner"
   },

@@ -4,16 +4,18 @@ import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { presentLines } from "../domain/settings";
 import { breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/contact")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: "Contact",
       description: pageDescription("contact"),
       path: "/contact",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [breadcrumbLd([{ name: "Contact", path: "/contact" }])],
     }),
   component: ContactPage,

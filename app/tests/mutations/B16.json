@@ -465,7 +465,7 @@
   {
     "id": "b16-g5-sitemap-privacy",
     "test": "tests/unit/legal-pages.test.tsx",
-    "file": "src/routes/sitemap[.]xml.ts",
+    "file": "src/server/seo/sitemap.ts",
     "find": "  \"/privacy\",\n  \"/terms\",",
     "replace": "  \"/terms\",",
     "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
@@ -474,7 +474,7 @@
   {
     "id": "b16-g5-sitemap-terms",
     "test": "tests/unit/legal-pages.test.tsx",
-    "file": "src/routes/sitemap[.]xml.ts",
+    "file": "src/server/seo/sitemap.ts",
     "find": "  \"/terms\",\n  \"/accessibility\",",
     "replace": "  \"/accessibility\",",
     "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",

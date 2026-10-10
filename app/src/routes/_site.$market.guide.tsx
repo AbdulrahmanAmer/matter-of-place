@@ -7,6 +7,7 @@ import type { Note } from "../domain/market";
 import { useTrackView } from "../hooks/use-track-view";
 import { marketQuery } from "../lib/queries";
 import { breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { marketGuideDescription } from "../lib/seo-copy";
 
@@ -16,12 +17,13 @@ export const Route = createFileRoute("/_site/$market/guide")({
     if (!market) throw notFound();
     return market;
   },
-  head: ({ loaderData: market }) => {
+  head: ({ loaderData: market, matches }) => {
     if (!market) return unavailableHead("Guide");
     return pageHead({
       title: `${market.name} guide`,
       description: marketGuideDescription(market),
       path: `/${market.slug}/guide`,
+      image: ogImageFor({ key: `market-${market.slug}`, ogStatic: ogStaticOf(matches) }),
       jsonLd: [
         breadcrumbLd([
           { name: "Markets", path: "/markets" },

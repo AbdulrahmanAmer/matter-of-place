@@ -2,8 +2,20 @@
 // The analytics choice (GP-02): one localStorage record, read in one place. A record for another version, a browser
 // that sends Global Privacy Control and any storage failure all mean "no". Nothing here may throw. A choice made
 // without JavaScript is the `mop_consent` cookie, which `readConsent()` reads before the record, because every writer sets it and the latest choice must win.
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+} from "@tanstack/react-router";
+import { createElement, Fragment } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { ConsentNotice } from "../../src/components/layout/consent-notice";
+import { Ga4Loader } from "../../src/components/site/ga4-loader";
+import { track } from "../../src/lib/analytics";
+import { loadGa4 } from "../../src/lib/ga4";
 import {
   CONSENT_VERSION,
   consentCookie,
@@ -15,7 +27,11 @@ import {
   writeConsent,
 } from "../../src/lib/consent";
 
+vi.mock("../../src/lib/analytics", () => ({ track: vi.fn() }));
+
 const KEY = "mop_consent";
+const MEASUREMENT_ID = "G-TEST000000";
+const GTAG = 'script[src^="https://www.googletagmanager.com/gtag/js"]';
 
 /** What `writeConsent` left in `localStorage`, read without `readConsent()`, which reads the cookie first. */
 function storedRecord() {
@@ -30,11 +46,21 @@ function sendGlobalPrivacyControl() {
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
+  vi.mocked(track).mockClear();
   document.cookie = `${KEY}=; Max-Age=0; Path=/`;
 });
 
 afterEach(() => {
+  cleanup();
   Reflect.deleteProperty(navigator, "globalPrivacyControl");
+  Reflect.deleteProperty(window, "dataLayer");
+  document.head.querySelectorAll(GTAG).forEach((script) => {
+    script.remove();
+  });
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -140,6 +166,166 @@ describe("the notice event", () => {
     stop();
     openConsentNotice();
     expect(opened).toHaveBeenCalledTimes(1);
+  });
+});
+
+function grant() {
+  localStorage.setItem(KEY, JSON.stringify({ version: CONSENT_VERSION, analytics: true }));
+}
+
+const argumentsLike = z.custom<ArrayLike<unknown>>(
+  (value) => typeof value === "object" && value !== null && "length" in value,
+);
+
+/** What gtag pushed to the dataLayer, one array per command. */
+function pushedCommands(): unknown[][] {
+  return (window.dataLayer ?? []).map((entry) => Array.from(argumentsLike.parse(entry)));
+}
+
+describe("loadGa4", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  it("injects one script on the first call and none on the second", () => {
+    grant();
+    loadGa4(MEASUREMENT_ID);
+    loadGa4(MEASUREMENT_ID);
+    vi.runAllTimers();
+    loadGa4(MEASUREMENT_ID);
+    vi.runAllTimers();
+    const scripts = document.querySelectorAll<HTMLScriptElement>(GTAG);
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]?.src).toBe(`https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`);
+  });
+
+  it("waits for idle: nothing is in the page before the browser is idle", () => {
+    grant();
+    loadGa4(MEASUREMENT_ID);
+    expect(document.querySelector(GTAG)).toBeNull();
+    vi.runAllTimers();
+    expect(document.querySelector(GTAG)).not.toBeNull();
+  });
+
+  it("injects nothing without consent, for a stale version or with Global Privacy Control", () => {
+    const refused = [
+      () => undefined,
+      () => localStorage.setItem(KEY, JSON.stringify({ version: 0, analytics: true })),
+      () => {
+        grant();
+        sendGlobalPrivacyControl();
+      },
+    ];
+    for (const setUp of refused) {
+      localStorage.clear();
+      Reflect.deleteProperty(navigator, "globalPrivacyControl");
+      setUp();
+      loadGa4(MEASUREMENT_ID);
+      vi.runAllTimers();
+      expect(document.querySelector(GTAG)).toBeNull();
+    }
+    expect(window.dataLayer).toBeUndefined();
+  });
+
+  it("injects nothing with no measurement id", () => {
+    grant();
+    loadGa4("");
+    vi.runAllTimers();
+    expect(document.querySelector(GTAG)).toBeNull();
+  });
+
+  it("injects nothing when the choice is withdrawn before the idle moment", () => {
+    grant();
+    loadGa4(MEASUREMENT_ID);
+    writeConsent(false);
+    vi.runAllTimers();
+    expect(document.querySelector(GTAG)).toBeNull();
+  });
+
+  it("makes the first config entry switch Google signals and ad personalization off", () => {
+    grant();
+    loadGa4(MEASUREMENT_ID);
+    vi.runAllTimers();
+    const commands = pushedCommands();
+    expect(commands.map((command) => command[0])).toEqual(["js", "config"]);
+    expect(commands.find((command) => command[0] === "config")).toEqual([
+      "config",
+      MEASUREMENT_ID,
+      { allow_google_signals: false, allow_ad_personalization_signals: false },
+    ]);
+  });
+});
+
+describe("Ga4Loader", () => {
+  beforeEach(() => {
+    vi.stubEnv("VITE_GA4_MEASUREMENT_ID", MEASUREMENT_ID);
+  });
+
+  it("loads the script after a later Allow and not before it", () => {
+    vi.useFakeTimers();
+    render(createElement(Ga4Loader));
+    vi.runAllTimers();
+    expect(document.querySelector(GTAG)).toBeNull();
+    writeConsent(true);
+    vi.runAllTimers();
+    expect(document.querySelectorAll(GTAG)).toHaveLength(1);
+  });
+
+  it("loads the script for a grant stored by an earlier visit", () => {
+    vi.useFakeTimers();
+    grant();
+    render(createElement(Ga4Loader));
+    vi.runAllTimers();
+    expect(document.querySelectorAll(GTAG)).toHaveLength(1);
+  });
+
+  it("does nothing without a measurement id", () => {
+    vi.stubEnv("VITE_GA4_MEASUREMENT_ID", "");
+    vi.useFakeTimers();
+    grant();
+    sendGlobalPrivacyControl();
+    render(createElement(Ga4Loader));
+    vi.runAllTimers();
+    expect(document.querySelector(GTAG)).toBeNull();
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it("tracks consent_set via gpc once per session when Global Privacy Control overrides a grant", () => {
+    grant();
+    sendGlobalPrivacyControl();
+    const first = render(createElement(Ga4Loader));
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith("consent_set", { analytics: false, via: "gpc" });
+    expect(sessionStorage.getItem("mop_consent_gpc_tracked")).not.toBeNull();
+    first.unmount();
+    render(createElement(Ga4Loader));
+    expect(track).toHaveBeenCalledTimes(1);
+  });
+
+  it("tracks nothing when Global Privacy Control overrides no grant, or a grant is not overridden", () => {
+    sendGlobalPrivacyControl();
+    localStorage.setItem(KEY, JSON.stringify({ version: CONSENT_VERSION, analytics: false }));
+    const declined = render(createElement(Ga4Loader));
+    declined.unmount();
+    Reflect.deleteProperty(navigator, "globalPrivacyControl");
+    grant();
+    render(createElement(Ga4Loader));
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it("leaves a click on the notice to the notice: one consent_set, and none from the loader", async () => {
+    sendGlobalPrivacyControl();
+    const router = createRouter({
+      routeTree: createRootRoute({
+        component: () =>
+          createElement(Fragment, null, createElement(ConsentNotice), createElement(Ga4Loader)),
+      }),
+      history: createMemoryHistory(),
+    });
+    render(createElement(RouterProvider, { router }));
+    fireEvent.click(await screen.findByRole("button", { name: "Allow" }));
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith("consent_set", { analytics: true });
   });
 });
 

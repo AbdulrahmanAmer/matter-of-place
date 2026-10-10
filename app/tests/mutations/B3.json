@@ -1230,8 +1230,8 @@
     "kind": "file",
     "test": "tests/unit/public-pipeline.test.ts",
     "file": "src/server/public/pipeline.ts",
-    "find": "        { status: 404, headers: { \"cache-control\": MISSING_CONTROL } },",
-    "replace": "        { status: 404 },",
+    "find": "        { status: error.status, headers: { \"cache-control\": MISSING_CONTROL } },",
+    "replace": "        { status: error.status },",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*answers a missing slug with the cacheable 404"
   },

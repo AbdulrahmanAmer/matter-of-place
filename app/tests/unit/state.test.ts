@@ -345,4 +345,11 @@ describe("getCatalog", () => {
     expect(rpcCalls(db, "public_catalog_snapshot")).toBe(1);
     expect(rpcCalls(db, "public_state")).toBe(1);
   });
+
+  it("carries the snapshot's gone slugs unchanged, and an empty list when none is taken down", async () => {
+    const taken = served(5);
+    taken.answers.snapshot = snapshotJson(5, { gone: ["old-slug"] });
+    expect((await (await load()).state.getCatalog(taken.db)).gone).toEqual(["old-slug"]);
+    expect((await (await load()).state.getCatalog(served(5).db)).gone).toEqual([]);
+  });
 });

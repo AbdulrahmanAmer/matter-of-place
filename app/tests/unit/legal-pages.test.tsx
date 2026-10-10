@@ -1,5 +1,6 @@
 // B16 step 4: the footer, /legal and /contact print what `settings.site` holds and nothing else, /legal states the
 // illustrative-content paragraph only where it is true, and the two inquiry forms say who receives the message.
+import "../fixtures/worker-env";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -32,7 +33,7 @@ import { Route as legalRoute } from "../../src/routes/_site.legal";
 import { Route as privacyRoute } from "../../src/routes/_site.privacy";
 import { Route as privacyChoicesRoute } from "../../src/routes/_site.privacy-choices";
 import { Route as termsRoute } from "../../src/routes/_site.terms";
-import { Route as sitemapRoute } from "../../src/routes/sitemap[.]xml";
+import { staticSitemapPaths } from "../../src/server/seo/sitemap";
 
 const UNSET: PublicSite = {
   contact: { email: null, phone: null, privacy_email: null },
@@ -255,11 +256,20 @@ describe("the legal pages", () => {
 
   it("the page titles carry the brand once", async () => {
     for (const route of [privacyRoute, termsRoute, accessibilityRoute]) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- these heads read no argument
-      const head = await route.options.head?.({} as never);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- these heads read only the matches
+      const head = await route.options.head?.({ matches: [] } as never);
       const title = head?.meta?.find((tag) => tag?.title !== undefined)?.title;
       expect(title?.split(siteConfig.name)).toHaveLength(2);
       expect(title?.endsWith(` | ${siteConfig.name}`)).toBe(true);
+    }
+  });
+
+  it("the page heads name the site's default card as their og:image", async () => {
+    for (const route of [privacyRoute, termsRoute, accessibilityRoute]) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- these heads read only the matches
+      const head = await route.options.head?.({ matches: [] } as never);
+      const image = head?.meta?.find((tag) => tag?.property === "og:image")?.content;
+      expect(image).toBe("https://matterofplace.com/og/static/default.png");
     }
   });
 
@@ -335,24 +345,13 @@ describe("the legal pages", () => {
 });
 
 describe("the sitemap", () => {
-  it("holds /privacy, /terms and /accessibility and not /privacy-request", async () => {
-    const handlers = sitemapRoute.options.server?.handlers;
-    const get = typeof handlers === "object" ? handlers["GET"] : undefined;
-    if (typeof get !== "function") throw new Error("the sitemap route has no GET handler");
-    const request = new Request(`${siteConfig.url}/sitemap.xml`);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the handler reads no argument
-    const response: unknown = await get({ request } as never);
-    if (!(response instanceof Response)) throw new Error("the sitemap answered nothing");
-    const body = await response.text();
-    const paths = [...body.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
-    expect(paths).toEqual(
-      expect.arrayContaining([
-        `${siteConfig.url}/privacy`,
-        `${siteConfig.url}/terms`,
-        `${siteConfig.url}/accessibility`,
-      ]),
+  // The route reads the catalog from the database since B13, so this test reads the list `buildSitemap` starts from
+  // (`tests/unit/sitemap.test.ts` proves the built document holds every one of them).
+  it("holds /privacy, /terms and /accessibility and not /privacy-request", () => {
+    expect(staticSitemapPaths).toEqual(
+      expect.arrayContaining(["/privacy", "/terms", "/accessibility"]),
     );
-    expect(paths).not.toContain(`${siteConfig.url}/privacy-request`);
+    expect(staticSitemapPaths).not.toContain("/privacy-request");
   });
 });
 

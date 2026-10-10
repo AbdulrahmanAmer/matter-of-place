@@ -4,9 +4,10 @@
 // (PERF-06), so it is compared with `properties.map(pickCard)`, the cards the local adapter serves; `/properties/:slug`
 // answers the whole property, compared with the bundled one.
 //
-// Three things differ by design and are named here, not hidden: the database makes `id` a uuid where the bundled data
-// has "mop-001" (no component reads it), the snapshot carries neither `campaignTier` nor `source` (G-303), and the list
-// of properties comes newest first (the snapshot's `published_at desc`) where the bundled array is in authoring order.
+// Four things differ by design and are named here, not hidden: the database makes `id` a uuid where the bundled data
+// has "mop-001" (no component reads it), the snapshot carries neither `campaignTier` nor `source` (G-303), the list
+// of properties comes newest first (the snapshot's `published_at desc`) where the bundled array is in authoring order,
+// and only the live records carry `updatedAt` (the sitemap's `lastmod`; the bundled data has none).
 import "./env";
 import { readdirSync, readFileSync } from "node:fs";
 import { relative, resolve, sep } from "node:path";
@@ -147,7 +148,7 @@ describe("the live catalog and the bundled data", () => {
         return differences(
           property.slug,
           bySlug(asFields([property]), ["id", "campaignTier", "source"], "bundled"),
-          bySlug([answer], ["id"], "live"),
+          bySlug([answer], ["id", "updatedAt"], "live"),
         );
       }),
     );
@@ -167,7 +168,7 @@ describe("the live catalog and the bundled data", () => {
       differences(
         "stories",
         bySlug(asFields(stories), ["id"], "bundled"),
-        bySlug(answer, ["id"], "live"),
+        bySlug(answer, ["id", "updatedAt"], "live"),
       ),
     ).toEqual([]);
     expect(answer.every((item) => UUID.test(String(item["id"])))).toBe(true);
