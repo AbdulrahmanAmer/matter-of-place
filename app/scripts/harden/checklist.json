@@ -217,14 +217,14 @@
             "port": 8788,
             "mopEnv": "production"
           },
-          "command": "bun run lhci:local -- --collect.url=<worker>/ --collect.url=<worker>/properties --collect.url=<worker>/california --collect.url=<worker>/exposure --collect.url=<worker>/submit"
+          "command": "CHROME_PATH=\"${CHROME_PATH:-$(node -e \"process.stdout.write(require('@playwright/test').chromium.executablePath())\")}\" bun run lhci:local -- --collect.url=<worker>/ --collect.url=<worker>/properties --collect.url=<worker>/california --collect.url=<worker>/exposure --collect.url=<worker>/submit"
         },
         {
           "worker": {
             "port": 8788,
             "mopEnv": "preview"
           },
-          "command": "slug=$(curl -s <worker>/api/public/properties | jq -er '.[0].slug') && bun run lhci:local -- --collect.url=<worker>/property/$slug --assert.assertions.categories:seo=off && node scripts/perf-targets.mjs .lighthouseci"
+          "command": "url=$(node scripts/lhci-urls.mjs <worker> | grep /property/) && CHROME_PATH=\"${CHROME_PATH:-$(node -e \"process.stdout.write(require('@playwright/test').chromium.executablePath())\")}\" bun run lhci:local -- --collect.url=$url --assert.assertions.categories:seo=off && node scripts/perf-targets.mjs .lighthouseci"
         }
       ]
     },
@@ -233,7 +233,7 @@
       "lane": "Website and honesty",
       "item": "Accessibility sweep",
       "expectation": "pass with tests/e2e/axe-baseline.json empty",
-      "command": "bunx playwright test --project=desktop --project=phone tests/e2e/sweep.spec.ts && jq -e 'length == 0' tests/e2e/axe-baseline.json"
+      "command": "bunx playwright test --project=desktop --project=phone tests/e2e/sweep.spec.ts && [ \"$(tr -d '[:space:]' < tests/e2e/axe-baseline.json)\" = '[]' ]"
     },
     {
       "id": "H1-29",
@@ -342,7 +342,7 @@
         "port": 8787,
         "testScheduled": true
       },
-      "command": "bunx vitest run tests/unit/state.test.ts tests/unit/cache.test.ts && (<load-dev> && bunx vitest run --project db tests/api/cache-calls.api.test.ts && bunx playwright test tests/e2e/hydration.spec.ts && bun run scripts/harden/cache-probe.ts --mode memory,identical,never,writes,edge,keepwarm <worker> 400 && bun run scripts/harden/check-headers.ts <worker> --cache)",
+      "command": "bunx vitest run tests/unit/state.test.ts tests/unit/cache.test.ts && (<load-dev> && bunx vitest run --project db tests/api/cache-calls.api.test.ts && E2E_TARGET=url E2E_BASE_URL=<worker> E2E_MODE=live bunx playwright test --project=live-desktop tests/e2e/hydration.spec.ts && bun run scripts/harden/cache-probe.ts --mode memory,identical,never,writes,edge,keepwarm <worker> 400 && bun run scripts/harden/check-headers.ts <worker> --cache)",
       "expectOutput": [
         "cache memory ok",
         "cache identical ok",

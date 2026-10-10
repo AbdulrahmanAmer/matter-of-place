@@ -359,5 +359,140 @@
     "test": "scripts/harden/restore-rehearsal.sh",
     "run": "a native PostgreSQL 18 database with scripts/harden/restore-shims.sql, public.settings made by hand and the row ('environment', '\"production\"'); DEV_DB_URL on it: bash scripts/harden/restore-rehearsal.sh /nonexistent.key, then bash scripts/harden/restore-supabase-drill.sh /nonexistent.key; each exits 1 and the database still holds only the settings table",
     "expect": "error: refusing: production database"
+  },
+  {
+    "id": "h1g8-t-edge-80-percent",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "scripts/harden/cache-probe.ts",
+    "find": "const HIT_RATIO = 0.95;",
+    "replace": "const HIT_RATIO = 0.75;",
+    "run": "node -e \"const r=require('node:child_process').spawnSync('bun',['run','scripts/harden/cache-probe.ts','--mode','edge','--fixture','scripts/harden/fixtures/cache-edge-80-percent.json'],{encoding:'utf8',shell:true});process.stdout.write(r.stdout+r.stderr);process.exit(r.status===0?1:0)\"",
+    "expect": "cache edge ok \\(edge hit ratio 80% ok"
+  },
+  {
+    "id": "h1g8-w-exceeded-cpu-ignored",
+    "test": "scripts/harden/cpu-probe.ts",
+    "file": "scripts/harden/cpu-probe.ts",
+    "find": "    if (outcome !== \"ok\") {",
+    "replace": "    if (outcome !== \"ok\" && outcome !== \"exceededCpu\") {",
+    "run": "node -e \"const r=require('node:child_process').spawnSync('bun',['run','scripts/harden/cpu-probe.ts','--fixture','scripts/harden/fixtures/tail-exceeded.json'],{encoding:'utf8',shell:true});process.stdout.write(r.stdout+r.stderr);process.exit(r.status===0?1:0)\"",
+    "expect": "cpu ok \\(1 invocations"
+  },
+  {
+    "id": "h1g8-p-memo-off",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "run": "append CATALOG_VERSION_TTL_MS=0 to .output/server/.dev.vars of a built Worker (the memo off), start it as in h1g8-p-loader-table-read, then bun run scripts/harden/cache-probe.ts --mode memory http://127.0.0.1:8839",
+    "expect": "public_state ran \\d+ times in \\d+ s, at most \\d+"
+  },
+  {
+    "id": "h1g8-p-loader-table-read",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "export async function listMarkets(db: Db): Promise<Market[]> {\n  return (await getCatalog(db)).markets;\n}",
+    "replace": "export async function listMarkets(db: Db): Promise<Market[]> {\n  await db.from(\"markets\").select(\"slug\").limit(1);\n  return (await getCatalog(db)).markets;\n}",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode memory http://127.0.0.1:8839",
+    "expect": "the Worker ran table markets x\\d+"
+  },
+  {
+    "id": "h1g8-q-nonce",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"script-src\": hashSources(hashes.scripts ?? []),",
+    "replace": "    \"script-src\": [...hashSources(hashes.scripts ?? []), \"'nonce-h1'\"],",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode identical http://127.0.0.1:8839",
+    "expect": "a nonce- token in the policy or the body"
+  },
+  {
+    "id": "h1g8-q-random-html",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { name: \"theme-color\", content: \"#F5F2EB\" },",
+    "replace": "      { name: \"theme-color\", content: \"#F5F2EB\" },\n      { name: \"h1-probe\", content: String(Math.random()) },",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode identical http://127.0.0.1:8839",
+    "expect": "two renders differ beyond clock values"
+  },
+  {
+    "id": "h1g8-r-admin-cacheable",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const NEVER_CACHED_PREFIXES = [\"/api/admin/\", \"/api/hooks/\"];",
+    "replace": "const NEVER_CACHED_PREFIXES = [\"/api/hooks/\"];",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode never http://127.0.0.1:8839",
+    "expect": "admin api /api/admin/me answered 401 with cache-control \"private, no-store\""
+  },
+  {
+    "id": "h1g8-s-turnstile-after-db",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n",
+    "replace": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n  await checkTurnstile(route, name, request, ctx);\n",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode writes http://127.0.0.1:8839",
+    "expect": "60 refused writes ran rpc rate_limit_check x\\d+"
+  },
+  {
+    "id": "h1g8-t-store-disabled",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  return parsed.success ? parsed.data.default : undefined;",
+    "replace": "  return parsed.success ? undefined : undefined;",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode edge http://127.0.0.1:8839 400",
+    "expect": "a new key answered miss then miss, expected miss then hit"
+  },
+  {
+    "id": "h1g8-r-404-cacheable",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    { status, headers: { \"cache-control\": \"no-store\" } },\n  );\n}\n\n/** The calm failure page",
+    "replace": "    { status, headers: { \"cache-control\": status === 404 ? \"public, s-maxage=60\" : \"no-store\" } },\n  );\n}\n\n/** The calm failure page",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode never http://127.0.0.1:8839",
+    "expect": "unknown api route /api/public/nothing-here-S+ answered 404 with cache-control \"public, s-maxage=60\""
+  },
+  {
+    "id": "h1g8-r-hit-checked",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "scripts/harden/cache-probe.ts",
+    "find": "{ name: \"admin api\", path: \"/api/admin/me\" }",
+    "replace": "{ name: \"admin api\", path: \"/api/public/markets\" }",
+    "run": "against a Worker built from the unmutated tree and started as in h1g8-r-404-cacheable, bun run scripts/harden/cache-probe.ts --mode never http://127.0.0.1:8839 (a route that is stored stands in for a never-cached route that leaked into the store)",
+    "expect": "admin api /api/public/markets was served from the store (x-mop-cache hit)"
+  },
+  {
+    "id": "h1g8-p-bump-noop",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "scripts/harden/cache-probe.ts",
+    "find": "select public.bump_catalog_version()::text as version",
+    "replace": "select 0::text as version",
+    "run": "against a Worker built from the unmutated tree and started as in h1g8-r-404-cacheable, bun run scripts/harden/cache-probe.ts --mode memory http://127.0.0.1:8839",
+    "expect": "public_catalog_snapshot never ran: nothing was rebuilt after the version bump"
+  },
+  {
+    "id": "h1g8-u-tick-skipped",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/nitro/keepwarm.ts",
+    "find": "      const db = await tickDb();\n      if (db === undefined) return undefined;",
+    "replace": "      const db = await tickDb();\n      if (db === undefined || db !== undefined) return undefined;",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode keepwarm http://127.0.0.1:8839",
+    "expect": "the tick ran public_state 0 times, expected exactly 1"
+  },
+  {
+    "id": "h1g8-u-no-request",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "  const { status, cache } = await pageStatus(input);",
+    "replace": "  const { status, cache } = { status: 200, cache: \"hit\" };",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode keepwarm http://127.0.0.1:8839",
+    "expect": "the tick ran public_state 0 times, expected exactly 1"
   }
 ]

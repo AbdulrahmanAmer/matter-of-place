@@ -41,6 +41,7 @@ const guardedScripts = [
   "scripts/harden/upload-probe.ts",
   "scripts/harden/restore-rehearsal.sh",
   "scripts/harden/restore-supabase-drill.sh",
+  "scripts/harden/cache-probe.ts",
 ];
 
 const missingTable = Object.assign(new Error('relation "public.settings" does not exist'), {
