@@ -220,12 +220,18 @@ async function portClosed(port) {
   return false;
 }
 
+// The build every Worker row serves: the live adapter the deployed site is built with (the repository variable
+// VITE_API_BASE_URL), because the local adapter has no catalog request to hydrate or to cache (H1-40). Git Bash rewrites
+// a value that starts with a slash unless MSYS_NO_PATHCONV is set (P-015).
+const BUILD =
+  "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build";
+
 /** @type {Promise<Run> | undefined} */
 let building;
 
 /** @returns {Promise<Run>} */
 function ensureBuilt() {
-  building ??= runShell("bun run build");
+  building ??= runShell(BUILD);
   return building;
 }
 
@@ -314,6 +320,14 @@ async function serve(command, spec, urls, port) {
 }
 
 /**
+ * @param {WorkerSpec} spec
+ * @returns {number} the port the phase's Worker listens on: HARDEN_PORT_<port> moves it when a lane uses another one
+ */
+function portOf(spec) {
+  return Number(process.env[`HARDEN_PORT_${String(spec.port)}`] ?? spec.port);
+}
+
+/**
  * Runs one command against the built Worker it starts and stops; `.dev.vars` is written again afterwards when the
  * phase changed MOP_ENV in it.
  * @param {string} command
@@ -322,7 +336,7 @@ async function serve(command, spec, urls, port) {
  * @returns {Promise<Run>}
  */
 async function runWithWorker(command, spec, urls) {
-  const port = Number(process.env[`HARDEN_PORT_${String(spec.port)}`] ?? spec.port);
+  const port = portOf(spec);
   const built = await ensureBuilt();
   if (built.code !== 0)
     return { code: built.code, output: `bun run build failed\n${built.output}` };
@@ -458,7 +472,11 @@ async function runRow(row, env, urls) {
     status,
     code,
     seconds: (Date.now() - started) / 1000,
-    command: phases.map((phase) => expand(phase.command, urls, phase.worker?.port)).join("\n"),
+    command: phases
+      .map((phase) =>
+        expand(phase.command, urls, phase.worker === undefined ? undefined : portOf(phase.worker)),
+      )
+      .join("\n"),
     lines,
     evidence: `${code === 0 ? "" : `exit ${String(code)}: `}${evidenceOf(status, lines)}`,
   };

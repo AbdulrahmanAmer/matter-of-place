@@ -152,7 +152,9 @@
       "lane": "Backend and data",
       "item": "Restore rehearsal on a throwaway native cluster",
       "expectation": "prints restore ok; row counts match; the marker audit_log row is present; elapsed time recorded in docs/runbooks/restore.md",
-      "command": "bash scripts/harden/restore-rehearsal.sh",
+      "needsEnv": "HARDEN_RESTORE_KEY",
+      "blockedText": "BLOCKED until the operator gives the path of the escrowed backup key in HARDEN_RESTORE_KEY",
+      "command": "<load-dev> && env -u CLOUDFLARE_API_TOKEN bash scripts/harden/restore-rehearsal.sh \"$HARDEN_RESTORE_KEY\"",
       "expectOutput": ["restore ok"]
     },
     {
@@ -162,7 +164,7 @@
       "expectation": "prints restore into project ok <minutes>; the minutes go into docs/runbooks/restore.md against the RTO",
       "needsEnv": "HARDEN_RESTORE_KEY",
       "blockedText": "BLOCKED until the operator gives the path of the escrowed backup key in HARDEN_RESTORE_KEY",
-      "command": "<load-dev> && bash scripts/harden/restore-supabase-drill.sh \"$HARDEN_RESTORE_KEY\"",
+      "command": "<load-dev> && env -u CLOUDFLARE_API_TOKEN bash scripts/harden/restore-supabase-drill.sh \"$HARDEN_RESTORE_KEY\"",
       "expectOutput": ["restore into project ok"]
     },
     {
@@ -178,7 +180,7 @@
       "lane": "Website and honesty",
       "item": "Empty, loading, 404 and 500 states",
       "expectation": "pass",
-      "command": "bunx playwright test --project=harden tests/e2e/states.spec.ts"
+      "command": "E2E_TARGET=url E2E_BASE_URL=<prod-config> E2E_MODE=live bunx playwright test --project=harden tests/e2e/states.spec.ts"
     },
     {
       "id": "H1-24",
@@ -194,15 +196,15 @@
       "expectation": "no 'illustrative' on /properties; no /property/ in sitemap.xml; after the launch switch: production|0",
       "blockedOn": "L1",
       "blockedText": "BLOCKED until L1's launch switch makes the one database production (ruling H35 (4))",
-      "command": "p=$(curl -sf '<prod-config>/properties') && ! printf '%s' \"$p\" | grep -qi illustrative && s=$(curl -sf '<prod-config>/sitemap.xml') && ! printf '%s' \"$s\" | grep -q '/property/'",
-      "prodCommand": "p=$(curl -sf '<prod-config>/properties') && ! printf '%s' \"$p\" | grep -qi illustrative && s=$(curl -sf '<prod-config>/sitemap.xml') && ! printf '%s' \"$s\" | grep -q '/property/' && (<load-dev> && [ \"$(bun run db:psql -- -Atc \"select (select value #>> '{}' from settings where key = 'environment'), (select count(*) from properties where status = 'Illustrative')\")\" = 'production|0' ])"
+      "command": "p=$(curl -sf '<prod-config>/properties') && ! printf '%s' \"$p\" | sed 's/illustrativeContent:!1//g' | grep -qi illustrative && s=$(curl -sf '<prod-config>/sitemap.xml') && ! printf '%s' \"$s\" | grep -q '/property/'",
+      "prodCommand": "p=$(curl -sf '<prod-config>/properties') && ! printf '%s' \"$p\" | sed 's/illustrativeContent:!1//g' | grep -qi illustrative && s=$(curl -sf '<prod-config>/sitemap.xml') && ! printf '%s' \"$s\" | grep -q '/property/' && (<load-dev> && [ \"$(bun run db:psql -- -Atc \"select (select value #>> '{}' from settings where key = 'environment'), (select count(*) from properties where status = 'Illustrative')\")\" = 'production|0' ])"
     },
     {
       "id": "H1-26",
       "lane": "Website and honesty",
       "item": "Coming-soon empty states and signup per market",
       "expectation": "pass; a signup creates a subscribers row with markets set",
-      "command": "<load-dev> && bun run test:e2e:coming-soon"
+      "command": "<load-dev> && MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon"
     },
     {
       "id": "H1-27",
@@ -215,14 +217,14 @@
             "port": 8788,
             "mopEnv": "production"
           },
-          "command": "bun run lhci:local -- --collect.url=<worker>/ --collect.url=<worker>/properties --collect.url=<worker>/california --collect.url=<worker>/exposure --collect.url=<worker>/submit"
+          "command": "CHROME_PATH=\"${CHROME_PATH:-$(node -e \"process.stdout.write(require('@playwright/test').chromium.executablePath())\")}\" bun run lhci:local -- --collect.url=<worker>/ --collect.url=<worker>/properties --collect.url=<worker>/california --collect.url=<worker>/exposure --collect.url=<worker>/submit"
         },
         {
           "worker": {
             "port": 8788,
             "mopEnv": "preview"
           },
-          "command": "slug=$(curl -s <worker>/api/public/properties | jq -er '.[0].slug') && bun run lhci:local -- --collect.url=<worker>/property/$slug --assert.assertions.categories:seo=off && node scripts/perf-targets.mjs .lighthouseci"
+          "command": "url=$(node scripts/lhci-urls.mjs <worker> | grep /property/) && CHROME_PATH=\"${CHROME_PATH:-$(node -e \"process.stdout.write(require('@playwright/test').chromium.executablePath())\")}\" bun run lhci:local -- --collect.url=$url --assert.assertions.categories:seo=off && node scripts/perf-targets.mjs .lighthouseci"
         }
       ]
     },
@@ -231,7 +233,7 @@
       "lane": "Website and honesty",
       "item": "Accessibility sweep",
       "expectation": "pass with tests/e2e/axe-baseline.json empty",
-      "command": "bunx playwright test --project=desktop --project=phone tests/e2e/sweep.spec.ts && jq -e 'length == 0' tests/e2e/axe-baseline.json"
+      "command": "bunx playwright test --project=desktop --project=phone tests/e2e/sweep.spec.ts && [ \"$(tr -d '[:space:]' < tests/e2e/axe-baseline.json)\" = '[]' ]"
     },
     {
       "id": "H1-29",
@@ -341,7 +343,7 @@
         "port": 8787,
         "testScheduled": true
       },
-      "command": "bunx vitest run tests/unit/state.test.ts tests/unit/cache.test.ts && (<load-dev> && bunx vitest run --project db tests/api/cache-calls.api.test.ts && bunx playwright test tests/e2e/hydration.spec.ts && bun run scripts/harden/cache-probe.ts --mode memory,identical,never,writes,edge,keepwarm <worker> 400 && bun run scripts/harden/check-headers.ts <worker> --cache)",
+      "command": "bunx vitest run tests/unit/state.test.ts tests/unit/cache.test.ts && (<load-dev> && bunx vitest run --project db tests/api/cache-calls.api.test.ts && E2E_TARGET=url E2E_BASE_URL=<worker> E2E_MODE=live bunx playwright test --project=live-desktop tests/e2e/hydration.spec.ts && bun run scripts/harden/cache-probe.ts --mode memory,identical,never,writes,edge,keepwarm <worker> 400 && bun run scripts/harden/check-headers.ts <worker> --cache)",
       "expectOutput": [
         "cache memory ok",
         "cache identical ok",

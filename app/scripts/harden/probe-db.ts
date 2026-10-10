@@ -57,26 +57,32 @@ export async function askRunner(): Promise<void> {
   await response.body?.cancel();
 }
 
-async function takeLock(client: pg.Client): Promise<void> {
-  const deadline = Date.now() + LOCK_WAIT_MS;
+/** The writer lock stayed with another client for the whole wait. */
+export class LockBusy extends Error {}
+
+async function takeLock(client: pg.Client, waitMs: number): Promise<void> {
+  const deadline = Date.now() + waitMs;
   for (;;) {
     const result = await client.query<{ got: boolean }>(
       `select pg_try_advisory_lock(${LOCK}) as got`,
     );
     if (result.rows[0]?.got === true) return;
     if (Date.now() >= deadline) {
-      throw new Error("probe-db: the mop-dev-tests lock was not free within 30 minutes");
+      throw new LockBusy(`another client held the writer lock for ${String(waitMs / 1000)} s`);
     }
     await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
   }
 }
 
-/** Connects, waits for the writer lock and returns the connection; `close` releases the lock. */
-export async function openProbeDb(dbUrl: string): Promise<ProbeDb> {
+/**
+ * Connects, waits for the writer lock and returns the connection; `close` releases the lock. With `waitMs` the wait
+ * ends after that long with `LockBusy`; without it the call waits up to 30 minutes.
+ */
+export async function openProbeDb(dbUrl: string, waitMs: number = LOCK_WAIT_MS): Promise<ProbeDb> {
   const client = new pg.Client({ connectionString: dbUrl });
   await client.connect();
   try {
-    await takeLock(client);
+    await takeLock(client, waitMs);
   } catch (error) {
     await client.end();
     throw error;

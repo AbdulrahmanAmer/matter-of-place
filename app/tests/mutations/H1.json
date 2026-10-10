@@ -325,5 +325,372 @@
     "replace": "select pg_advisory_lock(${LOCK}), true as got",
     "run": "with the dev profile loaded and a rebuilt Worker on 8828, hold the lock for 200 s with bun run db:psql -- -Atc \"select pg_advisory_lock(hashtext('mop-dev-tests'))\" -c \"select pg_sleep(100)\" -c \"select pg_sleep(100)\", and meanwhile run bun run scripts/harden/rate-probe.ts http://127.0.0.1:8828/api/public/subscribers 30",
     "expect": "canceling statement due to statement timeout"
+  },
+  {
+    "id": "h1g5-g-unknown-route-200",
+    "kind": "manual",
+    "test": "tests/e2e/states.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  response = apiShellGuard(underApi, response, requestId);\n",
+    "replace": "  response = apiShellGuard(underApi, response.status === 404 ? new Response(response.body, { status: 200, headers: response.headers }) : response, requestId);\n",
+    "run": "vite dev on a free port with the dev profile loaded and VITE_API_BASE_URL=/api/public, then E2E_TARGET=url E2E_BASE_URL=<that server> E2E_MODE=live bunx playwright test --project=harden tests/e2e/states.spec.ts --grep unknown",
+    "expect": "Expected: 404\\s+Received: 200"
+  },
+  {
+    "id": "h1g5-jj-pending-ms-5000",
+    "kind": "manual",
+    "test": "tests/e2e/states.spec.ts",
+    "file": "src/router.tsx",
+    "find": "defaultPendingMs: 300,",
+    "replace": "defaultPendingMs: 5000,",
+    "run": "serve and run as h1g5-g-unknown-route-200 with --grep \"two seconds\"",
+    "expect": "Locator: locator\\('\\[data-pending\\]'\\)\\s+Expected: visible"
+  },
+  {
+    "id": "h1g5-jj-request-id-header-dropped",
+    "kind": "manual",
+    "test": "tests/e2e/states.spec.ts",
+    "file": "src/services/http/client.ts",
+    "find": "  if (header !== null) return header;\n",
+    "replace": "",
+    "run": "serve and run as h1g5-g-unknown-route-200 with --grep \"response header\"",
+    "expect": "Locator:\\s+getByText\\('h1-states-body'\\)\\s+Expected: 0\\s+Received: 1"
+  },
+  {
+    "id": "h1g6-guard-restore-rehearsal",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/restore-rehearsal.sh",
+    "find": "bun -e \"await (await import('./scripts/lib/assert-not-production.mjs')).assertNotProduction({ dbUrl: process.env.DEV_DB_URL })\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/restore-rehearsal.sh"
+  },
+  {
+    "id": "h1g6-guard-restore-drill",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/restore-supabase-drill.sh",
+    "find": "bun -e \"await (await import('./scripts/lib/assert-not-production.mjs')).assertNotProduction({ dbUrl: process.env.DEV_DB_URL })\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/restore-supabase-drill.sh"
+  },
+  {
+    "id": "h1g6-i-corrupt-byte",
+    "kind": "manual",
+    "test": "scripts/harden/restore-rehearsal.sh",
+    "run": "with the dev profile, PATH led by a stand-in gh (workflow run = laptop pg_dump of DEV_DB_URL encrypted to a stand-in certificate) and its key: bash scripts/harden/restore-rehearsal.sh <stand-in key>, with the stand-in flipping the middle byte of the plain dump before encryption (FAKE_GH_CORRUPT=1)",
+    "expect": "restore blocked: processing data for table \"public\\.job_events\""
+  },
+  {
+    "id": "h1g6-mm-no-marker",
+    "kind": "manual",
+    "test": "scripts/harden/restore-rehearsal.sh",
+    "file": "scripts/harden/restore-rehearsal.sh",
+    "find": "restore_dev_psql -c \"insert into audit_log (action, entity, note) values ('restore.marker', 'restore', '$MARK') returning id\" > /dev/null\n",
+    "replace": "",
+    "run": "with the dev profile, PATH led by a stand-in gh (workflow run = laptop pg_dump of DEV_DB_URL encrypted to a stand-in certificate) and its key: bash scripts/harden/restore-rehearsal.sh <stand-in key>",
+    "expect": "restore: marker h1-restore-\\d{8}T\\d{6}Z found 0 times"
+  },
+  {
+    "id": "h1g6-tt-vault-skipped",
+    "kind": "manual",
+    "test": "scripts/harden/restore-supabase-drill.sh",
+    "file": "scripts/harden/restore-supabase-drill.sh",
+    "find": "restore_dev_psql > /dev/null << SQL || blocked \"the Vault rows job_runner_url and job_runner_secret\"\n",
+    "replace": "cat > /dev/null << SQL\n",
+    "run": "on a native PostgreSQL 18 copy of the dump with a stub vault schema, PATH led by a stand-in gh and a stand-in bun (db:reset rebuilds public from the dump, job-selftest.ts passes only when both runner Vault rows hold the stand-in values), DEV_DB_URL on that copy: bash scripts/harden/restore-supabase-drill.sh <stand-in key>",
+    "expect": "restore into project blocked: job-selftest\\.ts --light-only"
+  },
+  {
+    "id": "h1g6-cc-production",
+    "kind": "manual",
+    "test": "scripts/harden/restore-rehearsal.sh",
+    "run": "a native PostgreSQL 18 database with scripts/harden/restore-shims.sql, public.settings made by hand and the row ('environment', '\"production\"'); DEV_DB_URL on it: bash scripts/harden/restore-rehearsal.sh /nonexistent.key, then bash scripts/harden/restore-supabase-drill.sh /nonexistent.key; each exits 1 and the database still holds only the settings table",
+    "expect": "error: refusing: production database"
+  },
+  {
+    "id": "h1g8-t-edge-80-percent",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "scripts/harden/cache-probe.ts",
+    "find": "const HIT_RATIO = 0.95;",
+    "replace": "const HIT_RATIO = 0.75;",
+    "run": "node -e \"const r=require('node:child_process').spawnSync('bun',['run','scripts/harden/cache-probe.ts','--mode','edge','--fixture','scripts/harden/fixtures/cache-edge-80-percent.json'],{encoding:'utf8',shell:true});process.stdout.write(r.stdout+r.stderr);process.exit(r.status===0?1:0)\"",
+    "expect": "cache edge ok \\(edge hit ratio 80% ok"
+  },
+  {
+    "id": "h1g8-w-exceeded-cpu-ignored",
+    "test": "scripts/harden/cpu-probe.ts",
+    "file": "scripts/harden/cpu-probe.ts",
+    "find": "    if (outcome !== \"ok\") {",
+    "replace": "    if (outcome !== \"ok\" && outcome !== \"exceededCpu\") {",
+    "run": "node -e \"const r=require('node:child_process').spawnSync('bun',['run','scripts/harden/cpu-probe.ts','--fixture','scripts/harden/fixtures/tail-exceeded.json'],{encoding:'utf8',shell:true});process.stdout.write(r.stdout+r.stderr);process.exit(r.status===0?1:0)\"",
+    "expect": "cpu ok \\(1 invocations"
+  },
+  {
+    "id": "h1g8-p-memo-off",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "run": "append CATALOG_VERSION_TTL_MS=0 to .output/server/.dev.vars of a built Worker (the memo off), start it as in h1g8-p-loader-table-read, then bun run scripts/harden/cache-probe.ts --mode memory http://127.0.0.1:8839",
+    "expect": "public_state ran \\d+ times in \\d+ s, at most \\d+"
+  },
+  {
+    "id": "h1g8-p-loader-table-read",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/catalog/service.ts",
+    "find": "export async function listMarkets(db: Db): Promise<Market[]> {\n  return (await getCatalog(db)).markets;\n}",
+    "replace": "export async function listMarkets(db: Db): Promise<Market[]> {\n  await db.from(\"markets\").select(\"slug\").limit(1);\n  return (await getCatalog(db)).markets;\n}",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode memory http://127.0.0.1:8839",
+    "expect": "the Worker ran table markets x\\d+"
+  },
+  {
+    "id": "h1g8-q-nonce",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/lib/headers.ts",
+    "find": "    \"script-src\": hashSources(hashes.scripts ?? []),",
+    "replace": "    \"script-src\": [...hashSources(hashes.scripts ?? []), \"'nonce-h1'\"],",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode identical http://127.0.0.1:8839",
+    "expect": "a nonce- token in the policy or the body"
+  },
+  {
+    "id": "h1g8-q-random-html",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      { name: \"theme-color\", content: \"#F5F2EB\" },",
+    "replace": "      { name: \"theme-color\", content: \"#F5F2EB\" },\n      { name: \"h1-probe\", content: String(Math.random()) },",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode identical http://127.0.0.1:8839",
+    "expect": "two renders differ beyond clock values"
+  },
+  {
+    "id": "h1g8-r-admin-cacheable",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "const NEVER_CACHED_PREFIXES = [\"/api/admin/\", \"/api/hooks/\"];",
+    "replace": "const NEVER_CACHED_PREFIXES = [\"/api/hooks/\"];",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode never http://127.0.0.1:8839",
+    "expect": "admin api /api/admin/me answered 401 with cache-control \"private, no-store\""
+  },
+  {
+    "id": "h1g8-s-turnstile-after-db",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  await checkTurnstile(route, name, request, ctx);\n  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n",
+    "replace": "  const parsed =\n    route.schema === undefined\n      ? undefined\n      : route.schema.safeParse(withParams(body, route.path, match.params));\n  if (parsed?.success === false) throw fromZod(parsed.error);\n  const input: unknown = parsed?.data;\n  const limited = await dbLimited(db, route, name, ctx, input);\n  if (limited !== null) return limited;\n  await checkTurnstile(route, name, request, ctx);\n",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode writes http://127.0.0.1:8839",
+    "expect": "60 refused writes ran rpc rate_limit_check x\\d+"
+  },
+  {
+    "id": "h1g8-t-store-disabled",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  return parsed.success ? parsed.data.default : undefined;",
+    "replace": "  return parsed.success ? undefined : undefined;",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build, cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode edge http://127.0.0.1:8839 400",
+    "expect": "a new key answered miss then miss, expected miss then hit"
+  },
+  {
+    "id": "h1g8-r-404-cacheable",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    { status, headers: { \"cache-control\": \"no-store\" } },\n  );\n}\n\n/** The calm failure page",
+    "replace": "    { status, headers: { \"cache-control\": status === 404 ? \"public, s-maxage=60\" : \"no-store\" } },\n  );\n}\n\n/** The calm failure page",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode never http://127.0.0.1:8839",
+    "expect": "unknown api route /api/public/nothing-here-S+ answered 404 with cache-control \"public, s-maxage=60\""
+  },
+  {
+    "id": "h1g8-r-hit-checked",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "scripts/harden/cache-probe.ts",
+    "find": "{ name: \"admin api\", path: \"/api/admin/me\" }",
+    "replace": "{ name: \"admin api\", path: \"/api/public/markets\" }",
+    "run": "against a Worker built from the unmutated tree and started as in h1g8-r-404-cacheable, bun run scripts/harden/cache-probe.ts --mode never http://127.0.0.1:8839 (a route that is stored stands in for a never-cached route that leaked into the store)",
+    "expect": "admin api /api/public/markets was served from the store (x-mop-cache hit)"
+  },
+  {
+    "id": "h1g8-p-bump-noop",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "scripts/harden/cache-probe.ts",
+    "find": "select public.bump_catalog_version()::text as version",
+    "replace": "select 0::text as version",
+    "run": "against a Worker built from the unmutated tree and started as in h1g8-r-404-cacheable, bun run scripts/harden/cache-probe.ts --mode memory http://127.0.0.1:8839",
+    "expect": "public_catalog_snapshot never ran: nothing was rebuilt after the version bump"
+  },
+  {
+    "id": "h1g8-u-tick-skipped",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/nitro/keepwarm.ts",
+    "find": "      const db = await tickDb();\n      if (db === undefined) return undefined;",
+    "replace": "      const db = await tickDb();\n      if (db === undefined || db !== undefined) return undefined;",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode keepwarm http://127.0.0.1:8839",
+    "expect": "the tick ran public_state 0 times, expected exactly 1"
+  },
+  {
+    "id": "h1g8-u-no-request",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "  const { status, cache } = await pageStatus(input);",
+    "replace": "  const { status, cache } = { status: 200, cache: \"hit\" };",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode keepwarm http://127.0.0.1:8839",
+    "expect": "the tick ran public_state 0 times, expected exactly 1"
+  },
+  {
+    "id": "h1g9-oo-inventory-renamed",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/runbooks/rotation.md",
+    "find": "| `CONFIRM_TOKEN_SECRET`",
+    "replace": "| `CONFIRM_TOKEN_SECRETS`",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "CONFIRM_TOKEN_SECRET \\(tech-stack\\.md:\\d+\\) is in neither the inventory nor a constant"
+  },
+  {
+    "id": "h1g9-oo-tech-stack-name",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "../workspace/02-tech-stack/tech-stack.md",
+    "find": "Worker secrets (`wrangler secret`, never in the repo): `SUPABASE_URL`,",
+    "replace": "Worker secrets (`wrangler secret`, never in the repo): `NEW_FAKE_SECRET`, `SUPABASE_URL`,",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "NEW_FAKE_SECRET \\(tech-stack\\.md:\\d+\\) is in neither the inventory nor a constant"
+  },
+  {
+    "id": "h1g9-oo-env-example-name",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": ".env.example",
+    "find": "CATALOG_VERSION_TTL_MS=",
+    "replace": "CATALOG_VERSION_TTL_MSX=",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "CATALOG_VERSION_TTL_MSX \\(\\.env\\.example:\\d+\\) is in neither the inventory nor a constant"
+  },
+  {
+    "id": "h1g9-oo-h107-list",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "scripts/harden/checklist.json",
+    "find": "|INDEXNOW_KEY|",
+    "replace": "|",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/rotation.md",
+    "expect": "INDEXNOW_KEY is not in the H1-07 name list"
+  },
+  {
+    "id": "h1g9-cc-guard-retention",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/retention-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/retention-drill\\.ts"
+  },
+  {
+    "id": "h1g9-cc-guard-rotation",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/rotation-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/rotation-drill\\.ts"
+  },
+  {
+    "id": "h1g9-cc-guard-incident",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/incident-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/incident-drill\\.ts"
+  },
+  {
+    "id": "h1g9-o-heading-deleted",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/runbooks/incident.md",
+    "find": "## 5. Put the whole site in coming-soon",
+    "replace": "## 5. Put the whole site elsewhere",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/incident.md",
+    "expect": "incident\\.md:0: no heading \"Put the whole site in coming-soon\""
+  },
+  {
+    "id": "h1g9-o-command-renamed",
+    "test": "scripts/harden/runbook-lint.mjs",
+    "file": "docs/runbooks/incident.md",
+    "find": "`bun run scripts/harden/incident-drill.ts --env dev --base <dev>`",
+    "replace": "`bun run scripts/harden/incident-drils.ts --env dev --base <dev>`",
+    "run": "node scripts/harden/runbook-lint.mjs docs/runbooks/incident.md",
+    "expect": "incident\\.md:\\d+: scripts/harden/incident-drils\\.ts does not exist"
+  },
+  {
+    "id": "h1g9-l-cutoff-120",
+    "kind": "manual",
+    "test": "scripts/harden/retention-drill.ts",
+    "run": "on mop-dev: update retention_policies set keep_for = interval '120 days' where key = 'declined_submission_media' (restored to 90 days afterwards), then bun run scripts/harden/retention-drill.ts --env dev",
+    "expect": "retention drill: not purged: the 91 day declined submission's media rows and objects"
+  },
+  {
+    "id": "h1g9-l-cutoff-80",
+    "kind": "manual",
+    "test": "scripts/harden/retention-drill.ts",
+    "run": "on mop-dev: update retention_policies set keep_for = interval '80 days' where key = 'declined_submission_media' (restored to 90 days afterwards), then bun run scripts/harden/retention-drill.ts --env dev",
+    "expect": "retention drill: not kept: the 89 day declined submission's media row and object"
+  },
+  {
+    "id": "h1g9-n-first-key-not-revoked",
+    "kind": "manual",
+    "test": "scripts/harden/rotation-drill.ts",
+    "file": "scripts/harden/rotation-drill.ts",
+    "find": "    await revokeAgentKey(db, a.id);\n",
+    "replace": "",
+    "run": "with a local Worker on mop-dev: bun run scripts/harden/rotation-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "rotation drill: revoked key A answered 200, expected 401"
+  },
+  {
+    "id": "h1g9-n-audit-note-skipped",
+    "kind": "manual",
+    "test": "scripts/harden/rotation-drill.ts",
+    "run": "with a local Worker on mop-dev: bun run scripts/harden/rotation-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "rotation drill: no secret\\.rotated row for AGENT_KEY"
+  },
+  {
+    "id": "h1g9-x-agent-key-91-days",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev, holding the writer lock: insert an agent_keys row for the seed agent with created_at 91 days back, bun run scripts/harden/secret-ages.ts --env prod-config, delete the row",
+    "expect": "RED  agent key h1 wf-x 91 days \\(\\w+\\): 91 days old"
+  },
+  {
+    "id": "h1g9-ll-token-in-3-days",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev, holding the writer lock: set settings.x.token_expires_at to now plus 3 days (the value read first is restored), bun run scripts/harden/secret-ages.ts --env prod-config",
+    "expect": "RED  channel x: token expires in 2 days"
+  },
+  {
+    "id": "h1g9-o-switch-left-on",
+    "kind": "manual",
+    "test": "scripts/harden/incident-drill.ts",
+    "file": "scripts/harden/incident-drill.ts",
+    "find": "  await setComingSoon(db, original);\n  const back = await switchShows(base, original === \"true\");\n",
+    "replace": "",
+    "run": "with a local Worker on mop-dev, replacing those two lines by const back = 0, then restoring settings.coming_soon_global by hand: bun run scripts/harden/incident-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "incident drill: not restored: coming_soon_global false -> true"
+  },
+  {
+    "id": "h1g9-n-runner-secret-unset",
+    "kind": "manual",
+    "test": "scripts/harden/drill-lib.ts",
+    "run": "with a local Worker on mop-dev and the dev profile loaded, JOB_RUNNER_SECRET unset (env -u JOB_RUNNER_SECRET): bun run scripts/harden/incident-drill.ts --env dev --base http://127.0.0.1:8848",
+    "expect": "job runner: JOB_RUNNER_SECRET is not set, load the dev profile first"
+  },
+  {
+    "id": "h1g9-n-dependent-secret-listed",
+    "kind": "manual",
+    "test": "scripts/harden/secret-ages.ts",
+    "run": "on mop-dev with the dev profile loaded: bun run scripts/harden/secret-ages.ts --env prod-config",
+    "expect": "unrecorded PROD_TURNSTILE_SECRET: no secret.rotated row"
   }
 ]

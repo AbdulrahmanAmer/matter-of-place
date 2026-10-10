@@ -7,7 +7,8 @@ import {
 
 const APP = new URL("../../", import.meta.url);
 const DB_URL = "postgresql://postgres.ref:secret@127.0.0.1:5432/postgres";
-const IMPORTS_GUARD = /from\s+["'][^"']*\/assert-not-production\.mjs["']/;
+// A static import, or the dynamic import of the shell drills' `bun -e` line.
+const IMPORTS_GUARD = /(?:from\s+|import\()["'][^"']*\/assert-not-production\.mjs["']/;
 
 // Every destructive or test command (B2 invariant 23). Steps 3 and 12 and later slices append the files they create.
 const guardedScripts = [
@@ -40,6 +41,12 @@ const guardedScripts = [
   "scripts/harden/upload-probe.ts",
   "scripts/harden/fail-drill.ts",
   "scripts/harden/health-drill.ts",
+  "scripts/harden/restore-rehearsal.sh",
+  "scripts/harden/restore-supabase-drill.sh",
+  "scripts/harden/cache-probe.ts",
+  "scripts/harden/retention-drill.ts",
+  "scripts/harden/rotation-drill.ts",
+  "scripts/harden/incident-drill.ts",
 ];
 
 const missingTable = Object.assign(new Error('relation "public.settings" does not exist'), {

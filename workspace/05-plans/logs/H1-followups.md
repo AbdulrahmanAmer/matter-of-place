@@ -119,3 +119,135 @@ The three follow-ups whose file is GOTCHAS.md are banked as P-2813 (the empty `-
 5. `workspace/05-plans/H1.md` (step 4 proofs) (not blocking)
    - What: NOT DONE, owned outside this group and declared by the author. First, the claude-security scan report and H1-09 wait on the orchestrator (P-2830). Second, 'gh run list --workflow audit-deps.yml --branch slice/h1' prints failure only because of the runbooks half (g6, g7, g9; P-2832). Third, H1-08 and H1-10, and 'gh workflow run audit-deps.yml && gh run watch', are UNPROVEN until main has a run. One sequencing note for the orchestrator: merging slice/h1 before the four runbooks exist turns job check red on main and on every lane's PR (P-2832).
    - Evidence: Confirmed by running: the gh run list, gh run view and run-all outputs above. I did not verify the claim that the skill can only be started through the Workflow tool.
+
+## g5 · steps 5
+
+1. `app/scripts/harden/checklist.json` (not blocking)
+   - What: Row H1-26 no longer touches <prod-config>. The plan's checklist says `bun run test:e2e:coming-soon` on `<prod-config>`. The new row rebuilds whatever tree run-all runs in (overwriting .output) and tests that local Worker. So a run-all --env prod-config pass on H1-26 proves the checked-out tree, not the deployed Worker. The g1 row already did not target prod-config, so this is not a regression. E2E_TARGET=url E2E_BASE_URL=<prod-config> E2E_MODE=live is an alternative the author did not discuss in P-2860.
+   - Evidence: checklist.json H1-26 command: `<load-dev> && MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=... bun run build && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon`; workspace/05-plans/H1.md row H1-26 says 'on <prod-config>'.
+
+2. `workspace/05-plans/H1.md` (not blocking)
+   - What: The plan's rows H1-23, H1-25 and H1-26 still carry the commands the author found unrunnable (bare playwright command, unfiltered `grep -i illustrative`, dev-target coming-soon). checklist.json now differs from the plan text. The orchestrator should fold P-2860 and P-2861 into the plan.
+   - Evidence: git diff origin/main...slice/h1-g5 -- workspace/05-plans/H1.md shows no change to these rows; checklist.json rows H1-23/25/26 changed in f20a7b81.
+
+3. `app/src/components/layout/route-pending.tsx` (not blocking)
+   - What: As defaultPendingComponent it serves every route, including /admin, whose AdminShell already renders <main id="admin-main">. A slow admin route chunk or beforeLoad would show this public-site skeleton nested inside the admin <main>. Also, `role="status"` on <main> removes the main landmark while loading; axe aria-allowed-role reports this, minor severity. The plan asked for exactly this wiring, so this is a note for B7 or a later step: an admin pendingComponent, or a <div role="status"> inside a <main>. Suspected by reading, not observed in a browser.
+   - Evidence: src/routes/admin.tsx has beforeLoad dynamic imports and lazyRouteComponent; src/admin/ui/AdminShell.tsx:25 `<main id="admin-main"`; grep for pendingComponent under src/routes/admin* finds none.
+
+4. `app/scripts/harden/checklist.json` (not blocking)
+   - What: Rows H1-29 and H1-24 report `fail` from run-all for things the brief says wait. H1-29 fails with 'Module not found scripts/check-seo.ts' because B13 has not merged, where blocked would fit. H1-24's vitest half failed under load (60.37 s) when run beside other work. A wait that shows as `fail` makes the prod-config report red for known reasons. Record this as a follow-up for the run-all/checklist owner: a blockedOn for B13, or a note.
+   - Evidence: run-all --only H1-23,H1-24,H1-25,H1-29: `H1-24 | fail | exit 1: Duration 60.37s`, `H1-29 | fail | exit 1: error: Module not found "scripts/check-seo.ts"`.
+
+The two follow-ups whose file is GOTCHAS.md are banked as hit-again lines: the `step-specs.test.ts` timeout under load on G-031, and the cold built Worker in the coming-soon project on P-2860.
+
+## g6 · steps 6, 6b
+
+1. `C:/Users/DELL/AppData/Local/Temp/tmp.4GbAp0A9XI (process leftover, outside the repo)` (not blocking)
+   - What: The author's debugging copy of the drill (P-2892: 'a copy that keeps its folder') left a plaintext, decrypted mop-dev dump in the system temp folder. The folder holds x.dump (2.8 MB), public.sql (9.8 MB, every public row) and auth.sql (auth.users and identities: emails and password hashes). This goes against restore.md section 2 ('delete it after use'). The shipped scripts clean up correctly: my three runs left no folder. The fix is to delete that folder and bank a rule that any debug copy of a drill deletes its temp folder.
+   - Evidence: Confirmed by running: ls -la /tmp/tmp.4GbAp0A9XI shows auth.sql, public.sql, x.dump and download/mop-dev-standin.dump.p7m, dated 12:35. Its restore.sql is the earlier drill form (no vault delete) and reads E:/mop-build/h1g6/app/scripts/harden/rowcounts.sql, so it came from the author's session
+
+2. `app/scripts/harden/restore-lib.sh` (not blocking)
+   - What: STANDARDS 1.3 folder map, row `scripts/`, naming column, says '.sh and .ps1 only where a plan names it'. The plan does not name restore-lib.sh. The same row also puts shared script helpers in scripts/lib/, not scripts/harden/ (C02, C03). The author disclosed this (the file exists to satisfy jscpd), and nothing goes wrong at runtime. The orchestrator should add it to the plan's Files list or move it.
+   - Evidence: Found by reading: STANDARDS.md line 85 (folder map row scripts/); the log line 'a file the plan does not name'; check-layout.mjs gained a named entry for it
+
+3. `app/tests/unit/assert-not-production.test.ts` (not blocking)
+   - What: For the two shell drills, guardedScripts only checks text. If the bun -e guard line is commented out, the test stays green. It also stays green if the guard is moved below the marker insert. For .ts scripts, typecheck catches a commented call through the unused import; for .sh nothing does. The real damage is limited because db:reset refuses on production by itself, but restore-rehearsal.sh would write its marker row into production audit_log.
+   - Evidence: Confirmed by running: node scripts/watchfail.mjs --file scripts/harden/restore-supabase-drill.sh --find "bun -e ..." --replace "# bun -e ..." --run "bunx vitest run --project unit tests/unit/assert-not-production.test.ts" --expect restore-supabase-drill printed 'WATCHED-FAIL BAD: stayed green'
+
+4. `app/scripts/harden/checklist.json` (not blocking)
+   - What: The H1-21 and H1-21b blockedText, the log and restore.md section 6 all say the rows wait for the operator to give the path of the escrowed key. delivery.md 'The key pair' says the private key is at creds/backup-recipient.key in the laptop's root checkout until the escrow is done, so the orchestrator can probably run the real H1-21 now with that path; that is not something only the operator can do (S63). The lane was right not to read the root.
+   - Evidence: Found by reading: app/docs/runbooks/delivery.md line 453 ('Private key | creds/backup-recipient.key at the root of the laptop's checkout'); restore.md lines 182-184. I did not check that the file exists, because the brief forbids reading E:/Matter Of Place
+
+5. `app/docs/runbooks/restore.md` (not blocking)
+   - What: Section 4 and the H1-21b drill call `bun run db:reset`. That command refuses unless supabase/.temp/project-ref exists in the app folder (checkResetTarget needs the linked ref). The runbook never says to run `supabase link --project-ref` first, so on a fresh checkout the drill stops with 'restore into project blocked: bun run db:reset'.
+   - Evidence: Suspected by reading, not run against mop-dev: app/scripts/db-reset-dev.mjs checkLinkedTarget reads ../supabase/.temp/project-ref; reset-guard.mjs throws 'refusing: ref mismatch (linked none, ...)' when it is missing
+
+6. `app/src/admin/inquiries/inquiries.test.tsx` (not blocking)
+   - What: bun run check is red under load on component tests the branch does not touch: inquiries, settings and revisions. Inquiries was also red when run with the other two files only, and green alone. This is not this group's code. P-2895 has hit again, and its cause is still UNPROVEN.
+   - Evidence: Confirmed by running: full check: Tests 1 failed | 3801 passed, check-exit=1. JSON-reporter run: total 3929, failed 4. The three files together: 1 failed | 20 passed. Inquiries alone: 7 passed (7). git diff --stat origin/main...HEAD -- app/src/admin is empty
+
+The follow-up whose file is GOTCHAS.md (item 7 of the review) is banked as a hit-again line on P-094 (a `python3 -` patch failed with `couldn't create signal pipe, Win32 error 5`) and as P-2896 (a red vitest run whose quiet tail lost the failing file names: rerun with the JSON reporter). Item 1 asks for a rule that a debug copy of a drill deletes its temp folder; it is recorded here and not banked, because it names no file of the tree.
+
+## g7 · steps 7
+
+1. `app/scripts/harden/migration-rollback-drill.sh` (not blocking)
+   - What: The drill cannot tell a complete down block from a partial one. It checks only two things: the schema differs after the down block, and re-applying the up file gives back the first dump. Up files use create or replace, so a down block that drops 1 of 9 objects still prints 'migration rollback ok'. The script already stands at the prefix chain just before the drilled file, but it never dumps there and compares that dump with the post-down dump. Runbook section 4 says the drill proves 'one down block really undoes its migration', which claims more than the method checks. Today's admin_team down block does fully undo its migration (prefix dump equals post-down dump, checked by running), so nothing in the current tree is false. This is a weakness: the plan's H1-37 text defines exactly the differs/equals check the author built.
+   - Evidence: On a scratchpad copy, the admin_team down block reduced to 'drop function public.is_last_admin(uuid);' gave 'migration rollback ok', exit 0. A copy with a prefix dump added printed PREFIX-EQUALS-DOWN for the real block.
+
+2. `app/tests/mutations/H1.json` (not blocking)
+   - What: The two watched-fails of this group, (j) 'ROLLBACK_VERSION set to a version that does not exist' and (m) part 2 'down block made a no-op', have no entry in the slice registry. Earlier H1 groups registered their harden-script watched-fails (h1g2-b-hsts, h1g2-v-checkdb-allows and others, as kind manual), and C08 asks for registry entries. R49 scopes the rule to test files and mutation-registry.test.ts passes, so this is not blocking. The (m) part 2 mutation can be replayed locally with PG_BIN; (j) needs the live account and would be a manual entry.
+   - Evidence: git show 56cca034 --stat does not touch tests/mutations/H1.json. The H1 log says 'No file of this group is in a registry entry.' Listing H1.json ids shows none for rollback-drill.sh or migration-rollback-drill.sh.
+
+3. `app/scripts/harden/rollback-drill.sh` (not blocking)
+   - What: After the rollback the script polls for status 404 or 500 and never reads the body. P-2920's rule says 'The marker v2 (body) going away is the proof', but the code checks the status alone. The 500 means the built Worker (MOP_ENV=production, no secrets) fails on an unknown path; nobody has investigated it, and what the live Worker answers there is UNPROVEN. I found no input that makes the drill pass falsely today, because v2's static asset answers 200. A body check (body not equal to v2) would match the banked rule and drop the 500 special case.
+   - Evidence: In wait_for status '^(404|500)$', only %{http_code} is compared. Re-run printed 'answer after rollback: 500'.
+
+4. `app/docs/runbooks/rollback.md` (not blocking)
+   - What: The job-runner half of H1-22 (DO-10) is BLOCKED. scripts/rollback-runner.sh (B8) is not in the tree, so the runner rollback, the {"claimed":...} curl and the minutes for section 2b and the section 6 row do not exist. The runbook says so honestly. Close it when B8 lands. Two related items stay open: the in-job rollback record (run 37119653705) predates 110 lines of deploy.yml changes, and the CEO initials in section 5 are pending.
+   - Evidence: ls app/scripts/rollback-runner.sh shows no such file. Section 2b opens with 'BLOCKED'.
+
+The one follow-up whose file is GOTCHAS.md (P-2920's cause on how fast a deleted Worker stops answering) is banked as P-2924, and the sentence in P-2920 now points to it.
+
+## g5 · steps 8
+
+1. `app/scripts/harden/run-all.mjs (H1-40 row) / B13` (not blocking)
+   - What: H1-40 does not print 'pass'. check-headers --cache is red on /sitemap.xml because main's sitemap route sets its own cache-control, and B13's cached sitemap (cachedResponse, doc kind 'public, max-age=3600' in pipeline.ts) is not in main. The author reports this as NOT DONE / UNPROVEN, and the fix belongs to B13 (invariant 3). The step's closing proof stays open until B13 merges and H1-40 is run again.
+   - Evidence: run-all --env dev --only H1-40: 'check-headers: cache-control document: /sitemap.xml answered 200 with "public, s-maxage=300, stale-while-revalidate=86400", expected "public, max-age=3600"'; git merge-base --is-ancestor origin/slice/b13 origin/main -> 1
+
+2. `app/scripts/harden/checklist.json (H1-27)` (not blocking)
+   - What: H1-27 is red on the app's real Lighthouse figures (/ 0.87, LCP 3.4 s, 174.7 KB against a 160 KB budget). Phase 2 (the property page, perf-targets.mjs) is never reached. The author reports this; the fix belongs to the page and bundle owners. Record it for them.
+   - Evidence: .lighthouseci/assertion-results.json: http://127.0.0.1:8849/ categories minScore 0.95 actual 0.87; largest-contentful-paint 3400.9; resource-summary 174722
+
+3. `app/scripts/harden/cache-probe.ts:464-479 (writes mode)` (not blocking)
+   - What: Suspected from reading, not confirmed by running. The warm-up GET to /api/public/site may be served by a memo that is already nearly 15 s old, for example one filled by the never mode just before. If that memo expires during the 60 POSTs, the Worker legitimately reads public_state once, but stateBound is floor(elapsed/15s) = 0. That fits the author's first-run miss 'ran public_state 1 times, at most 0', which only the retry hides. Possible fixes: wait MEMO_MS after an observed state read, or allow +1. The probe is not wrong about the contract, but its first run can be red for a reason that is not a contract miss.
+   - Evidence: log H1.md g5 Proof 1: 'cache: running again ... the first run found 60 refused writes ran public_state 1 times, at most 0' then 'cache writes ok'
+
+4. `workspace/05-plans/B8b.md:60,126,141 and workspace/05-plans/trace.json:1510,7688` (not blocking)
+   - What: These still describe the old tick: 'exactly one state RPC', the keepwarm_state_rpc_failed event, the stateRpc field, and 'reuses the memo from (2)'. The code no longer has any of them after H78. The author disclosed this and ASSUMED H78 overrules these lines, but the orchestrator needs to bring the plan text and trace ids in line.
+   - Evidence: grep -rn 'keepwarm_state_rpc_failed\|stateRpc' workspace/05-plans/B8b.md; grep -n 'one state RPC' workspace/05-plans/trace.json
+
+5. `app/src/server/lib/log-events.ts, app/tests/mutations/B8b.json` (not blocking)
+   - What: H78 adds only scheduled.ts and scheduled.test.ts to the group's file list, but the repair also edited log-events.ts (removed keepwarm_state_rpc_failed) and B8b.json (entries renamed and re-targeted). Both edits follow directly from the change and are correct (I replayed every changed entry and all went red), but they are outside the files the ruling names and the log does not record them as such. The orchestrator should note them against H78.
+   - Evidence: git show --stat b444ad56 -> app/src/server/lib/log-events.ts, app/tests/mutations/B8b.json
+
+6. `workspace/05-plans/logs/H1.md:748` (not blocking)
+   - What: The author ran watched-fails p, q, r, s and u from one build carrying seven mutations at once. One mutation could mask or cause another's red (for example, the Turnstile reorder changes the statement counts the memory and keepwarm modes see). Each red reason matched its own mutation, and I reproduced (u) alone. p, q, r and s have not been re-proven one mutation per build.
+   - Evidence: log H1.md g5: 'Build A carried seven source mutations at once'
+
+## g9 · steps 9
+
+Review verdict ACCEPT: no blocking defect, eight follow-ups. The one whose file is GOTCHAS.md is banked as P-2987 (the cost behind item 1); items 1 to 7 below are the others, word for word.
+
+1. `app/scripts/harden/runbook-lint.mjs` (not blocking)
+   - What: The lint reads only positionals[0] and silently ignores every later argument. The author's proof 'runbook-lint.mjs docs/runbooks/incident.md docs/runbooks/rotation.md -> runbooks ok' never linted rotation.md. The real rotation.md does pass when linted alone, so the end state holds, but the proof as written cannot fail on the second file. Fix: refuse more than one positional with exit 64, and bank it.
+   - Evidence: Confirmed by running. A scratch rotation.md with `CONFIRM_TOKEN_SECRETX` passed as the second argument gave 'runbooks ok' exit=0. The same file alone gave exit=1 with 'CONFIRM_TOKEN_SECRET (tech-stack.md:144) is in neither the inventory nor a constant' and 4 more problems.
+
+2. `app/docs/runbooks/incident.md` (not blocking)
+   - What: Section 4 names the sibling runbook as bare `rollback.md` ('in `rollback.md` of this folder'), and rotation.md line 123 names bare `restore.md`. That hides both from the single-file lint and contradicts the author's own P-2982 rule ('a sibling runbook (`rollback.md`) is named with its directory and the lint stays red until it lands'). The folder lint still requires both files through OUTLINES, so nothing is truly hidden. But the plan outline says 'link to `docs/runbooks/rollback.md`', and the P-2982 sentence is inaccurate about the shipped file.
+   - Evidence: Read: incident.md line 64, rotation.md line 123, GOTCHAS.md P-2982 rule.
+
+3. `workspace/05-plans/H1.md` (not blocking)
+   - What: UNPROVEN: the step 9 plan proof does not pass from this branch. 'runbook-lint.mjs docs/runbooks' is red on rollback.md and restore.md (steps 6 and 7). run-all H1-39 fails on the same files. H1-36 fails at 'bun run db:psql' because psql is not installed on this laptop. The checklist row (g1) needs psql or a pg replacement. The drills themselves pass when run directly. Also, the check job of ci.yml (added by g4) runs the folder lint, so CI on any PR of this slice stays red until steps 6 and 7 merge. The orchestrator should order those merges first.
+   - Evidence: run-all --only H1-36,H1-38,H1-39: 'fail 2, pass 1', exit 1. ci.yml line 79-80 'node scripts/harden/runbook-lint.mjs docs/runbooks'.
+
+4. `app/scripts/harden/incident-drill.ts` (not blocking)
+   - What: Watched-fail (cc) is NOT DONE at run time: nothing shows a drill refusing a production-config database. Only the static guard test covers it, because initdb and psql are absent (ASSUMED E7 is stale, confirmed). The 30 s timeout hint and the switch 1 'already comingSoon' guard were never exercised. A related gap: on mop-dev, channel_settings.instagram was already enabled=false when I ran the drill. That makes switch 2's flip and restore trivially true, and the drill does not refuse that unobservable state the way switch 1 now does.
+   - Evidence: which psql initdb: not found. A pg query after my runs: instagram enabled = false, and the drill reported it as restored (it was the original value).
+
+5. `app/tests/mutations/H1.json` (not blocking)
+   - What: The manual entry h1g9-n-dependent-secret-listed names no break (no find/replace). It records today's output, so no mutation can turn it red, and it goes stale the first time someone records a PROD_TURNSTILE_SECRET rotation. The secret-ages cadence red path also has no watched-fail: a secret.rotated row older than its cadence, including inheritance through 'with PARENT'. I checked the parser by copying it into a scratch script: 39 names at 365 days, 1 at 60, 3 at 90, 8 null, matching rotation.md. The red branch itself has never been seen red.
+   - Evidence: Registry dump of h1g9-* entries. Scratch copy of cadences() run against docs/runbooks/rotation.md.
+
+6. `app/scripts/harden/drill-lib.ts` (not blocking)
+   - What: askRunner duplicates upload-probe.ts's runner nudge (STANDARDS C05). It was reworded to get past jscpd, and the two copies now behave differently (upload-probe's is still silent when the secret is unset, which is the P-2985 failure mode). drill-lib.ts is also a new file outside the group's named file list, and app/scripts/load-env.mjs (B2's file) gained JOB_RUNNER_SECRET in the dev profile. That file's header says 'later slices extend profiles', so the change looks sanctioned, but the orchestrator should confirm and have g2's upload-probe.ts import askRunner.
+   - Evidence: Read: drill-lib.ts:30-47 against upload-probe.ts:122. A git log of load-env.mjs shows 6f91af08.
+
+7. `app/docs/runbooks/incident.md` (not blocking)
+   - What: The game day (manual item M-05) by a second person is NOT DONE. Section 11 says so. An agent cannot close it.
+   - Evidence: incident.md lines 141-145, every cell NOT DONE.
+
+## Merge of the group branches (steps 5 to 9)
+
+1. `workspace/05-plans/H1.md` and `workspace/05-plans/trace.json` (not blocking)
+   - What: the plan's Files line and three trace items name one `scripts/harden/pg-shims.sql` for "the restore and migration drills"; after the merge there are two files, `pg-shims.sql` (migration drill) and `restore-shims.sql` (restore rehearsal), and the second is named by neither.
+   - Evidence: `grep -n "pg-shims" workspace/05-plans/H1.md workspace/05-plans/trace.json`; P-2838.
