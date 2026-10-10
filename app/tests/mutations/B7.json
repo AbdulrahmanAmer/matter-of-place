@@ -6088,5 +6088,45 @@
     "sql": "alter table public.redirects disable trigger redirects_bump_catalog_version;\n",
     "run": "bunx vitest run --project db tests/db/admin-cache.db.test.ts -t \"put_redirect of a new row, put_redirect of a change and archive_redirect\"",
     "expect": "× .*put_redirect of a new row, put_redirect of a change and archive_redirect"
+  },
+  {
+    "id": "b7-g3-e2e-agent-pill",
+    "kind": "manual",
+    "test": "tests/e2e/admin-full-path.spec.ts",
+    "file": "src/admin/ui/ActorBadge.tsx",
+    "find": "{kind === \"agent\" ?",
+    "replace": "{kind === \"never\" ?",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built E2E_MODE=live E2E_DATASET=1 E2E_PORT=8948 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts -g \"an agent key takes\" --reporter=line",
+    "expect": "admin-actor [.]admin-pill"
+  },
+  {
+    "id": "b7-g3-e2e-person-no-pill",
+    "kind": "manual",
+    "test": "tests/e2e/admin-full-path.spec.ts",
+    "file": "src/admin/requests/request-history.ts",
+    "find": "if (kind === \"agent\") return",
+    "replace": "if (kind === \"agent\" || kind === \"human\") return",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built E2E_MODE=live E2E_DATASET=1 E2E_PORT=8948 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts -g \"a person takes a request\" --reporter=line",
+    "expect": "Expected: 0"
+  },
+  {
+    "id": "b7-g3-e2e-activate-human-only",
+    "kind": "manual",
+    "test": "tests/e2e/admin-full-path.spec.ts",
+    "file": "src/server/lib/permissions/payments.ts",
+    "find": "{ action: \"submissions.activate\", group: \"submissions\", roles: issuers, humanOnly: true }",
+    "replace": "{ action: \"submissions.activate\", group: \"submissions\", roles: issuers }",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built E2E_MODE=live E2E_DATASET=1 E2E_PORT=8948 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts -g \"an agent key takes\" --reporter=line",
+    "expect": "wrong_state"
+  },
+  {
+    "id": "b7-g3-e2e-invoice-settings",
+    "kind": "manual",
+    "test": "tests/e2e/admin-full-path.spec.ts",
+    "file": "tests/e2e/fixtures/admin-data.ts",
+    "find": "legal: { entity: \"Example Media LLC\"",
+    "replace": "legal: { entity: null, x: \"Example Media LLC\"",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built E2E_MODE=live E2E_DATASET=1 E2E_PORT=8948 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts -g \"a person takes a request\" --reporter=line",
+    "expect": "Invoice issued"
   }
 ]
