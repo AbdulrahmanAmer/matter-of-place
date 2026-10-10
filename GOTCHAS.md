@@ -6524,3 +6524,31 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a script that prints its own lines next to a child's output must start each of them on a fresh line. `scripts/lhci-pages.mjs` no longer passes lhci's output through at all: each attempt's output goes to a file in `.lighthouseci-pages/`, and the script prints whole lines of its own (a failed attempt's last 10 lines are prefixed `  | `); the url lines are printed again above the summary.
 - proof: `gh run view 37857699620 --attempt 2 --log-failed | grep -a -c "Run #3...::warning"` → `1`; `cd app && node scripts/lhci-pages.mjs http://127.0.0.1:8976 --bound-seconds 30 --total-seconds 300` against a local `wrangler dev` on a loaded laptop printed the `::warning title=lighthouse http%3A//127.0.0.1%3A8976/ retried::...` line at the start of its own line (2026-10-09 05:35 +0300).
 - added: 2026-10-09
+
+## P-2920 · The rollback drill's plan line expects a 404 after the rollback; version 1 of a Worker with no secrets answers 500
+- symptom: H1 g7's first `rollback-drill.sh` run printed `deployed v2 marker ok`, rolled back, then waited the full 180 s for a 404 and failed with `did not give status 404 in 180s (last: 500)`; the address answered `{"status":500,"unhandled":true,"message":"HTTPError"}`. The trap then deleted the Worker, so nothing was left on the account.
+- cause: plan step 7 and H1-22 assumed that the built Worker answers an unknown path with the application's 404. The throwaway Worker has no `SUPABASE_*` or other secret and the cause of the 500 was not investigated. A deleted Worker answers 404 from the edge (seen right after the delete).
+- rule: the drill accepts 404 or 500 as "the marker is gone" and prints the status it saw; do not poll for 404 alone. The marker `v2` (body) going away is the proof the rollback took effect; the status says only that the Worker still answers.
+- proof: `cd app && (set -a; . <(tr -d '\r' < ../.env | grep -E '^CLOUDFLARE_(API_TOKEN|ACCOUNT_ID)='); set +a; bash scripts/harden/rollback-drill.sh)` → `deployed v2 marker ok`, `answer after rollback: 500`, `rollback ok`, `elapsed 7s`; with `ROLLBACK_VERSION=00000000-0000-0000-0000-000000000000` it exits 1 and still deletes `mop-drill` (2026-10-10 +0300).
+- added: 2026-10-10
+
+## P-2921 · The migration drill: a down block undoes its migration only where that migration is the newest, and this laptop has no PostgreSQL until the EDB zip is unpacked
+- symptom: H1 g7's first drill design applied all 76 migrations, then ran the newest SQL down block (`20261009004133_admin_team.sql`) and its file again. The schema after the up block differed from the first dump (`put_setting` came back as the older body, `v_type` and its comment missing), and a first pick of the drilled file chose `admin_withdraw` because a down block that starts with a newline and indented `--   drop` lines failed the "starts with a SQL verb" test. Separately `command -v initdb` printed nothing (P-2300 again).
+- cause: `20261009035240_admin_settings.sql` redefines `put_setting` after admin_team, so re-running admin_team alone on the head of the chain gives its own version of the function, not the head's. The down text of many files begins on the second line and is indented after the comment marker.
+- rule: apply the chain only up to the drilled migration, run down, dump, run the file again, dump, compare, then apply the newer files (`migration-rollback-drill.sh` does). Trim leading space and blank lines before testing a down block for a SQL verb. `pg_dump` 18 writes `\restrict <random key>` and `\unrestrict <same key>`, different on every run, so strip both before `cmp`. With no native PostgreSQL: P-2300's EDB zip, unpacked without `pgAdmin 4`, `doc` and `StackBuilder`, then `PG_BIN=<unpacked>/pgsql/bin`.
+- proof: `cd app && PG_BIN=<pgsql/bin> bash scripts/harden/migration-rollback-drill.sh | tail -3` → `migration rollback ok`, `elapsed 25s` (2026-10-10 +0300); `pg_dump --schema-only --no-owner | grep -c restrict` on an empty PostgreSQL 18.0 cluster → `2`.
+- added: 2026-10-10
+
+## P-2922 · A runbook that names a script the tree does not have fails `runbook-lint`, even where the section says BLOCKED
+- symptom: `node scripts/harden/runbook-lint.mjs docs/runbooks/rollback.md` printed `scripts/rollback-runner.sh does not exist` three times for the section on the job runner, which H1 g7 had to write because B8's `scripts/rollback-runner.sh` is not in the tree.
+- cause: the lint checks every path inside backticks or a code block against `app/`, the repository root and the git-ignored paths.
+- rule: a path that does not exist yet is written in plain text with the sentence that says so, never in code quotes; whoever lands the file quotes it. Do not create a stub script to satisfy the lint.
+- proof: `cd app && node scripts/harden/runbook-lint.mjs docs/runbooks/rollback.md` → `runbooks ok`; `grep -n "rollback-runner" docs/runbooks/rollback.md` → two lines, neither inside backticks.
+- added: 2026-10-10
+
+## P-2923 · `bun run check` stops at its first stage, `layout`, for a `.sh` or `.sql` file placed under `scripts/harden/`
+- symptom: after H1 g7's three files were written, `bun run check` ended in 3 s with `layout: app/scripts/harden/rollback-drill.sh: outside the folder map` (and the same for `migration-rollback-drill.sh` and `pg-shims.sql`); the drills and the runbook had been proven for an hour before the gate said so.
+- cause: the `scripts` row of `APP_ROWS` in `scripts/check-layout.mjs` lists `.ts` and `.mjs` for `scripts/harden/**` and names the three other files by path (`checklist.json`, `rls-review.sql`, `gitleaks.toml`); a plan that names a shell script there needs its own pattern (ruling H46).
+- rule: run `node scripts/check-layout.mjs` as soon as a new file exists, before the full check; add the smallest pattern that names the new files and say so in the log.
+- proof: `cd app && node scripts/check-layout.mjs` → `layout: OK (2522 files)` with the two patterns for `rollback-drill.sh`, `migration-rollback-drill.sh` and `pg-shims.sql` in place (2026-10-10).
+- added: 2026-10-10
