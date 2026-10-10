@@ -7,7 +7,7 @@
 // and exits 0. It writes nothing to the database. Prints `sentry ok <requestId>`, or the failing check and exit 1.
 import { parseArgs } from "node:util";
 import { z } from "zod";
-import { localEnv } from "./local-env.ts";
+import { readSecret } from "../lib/social-script.ts";
 import { sentryGet, sentryToken } from "./sentry-api.ts";
 
 const PROD_BASE = "https://matterofplace.com";
@@ -61,7 +61,7 @@ async function main(): Promise<number> {
     return 64;
   }
   const tokenName = prod ? "SENTRY_TEST_TOKEN" : "PREVIEW_SENTRY_TEST_TOKEN";
-  const token = prod ? process.env[tokenName] : localEnv(tokenName);
+  const token = prod ? process.env[tokenName] : readSecret(tokenName);
   if (token === undefined || token === "") {
     console.log(`BLOCKED ${tokenName}`);
     return 0;

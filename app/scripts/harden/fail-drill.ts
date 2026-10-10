@@ -13,7 +13,7 @@ import { createClient } from "@supabase/supabase-js";
 import { generateKey, hashAgentKey } from "../../src/server/lib/agent-keys.ts";
 import { assertNotProduction } from "../lib/assert-not-production.mjs";
 import { devProject } from "../lib/storage-env.ts";
-import { localEnv } from "./local-env.ts";
+import { readSecret } from "../lib/social-script.ts";
 import { ids, openProbeDb, type ProbeDb } from "./probe-db.ts";
 
 const AGENT_EMAIL = "fail-drill-agent@mop.invalid";
@@ -75,7 +75,7 @@ async function one(
 
 /** Part 4: a test email to a Resend address that bounces. Returns the line to print. */
 async function bouncedEmail(db: ProbeDb): Promise<string> {
-  if (localEnv("JOB_RUNNER_SECRET") === undefined) {
+  if (readSecret("JOB_RUNNER_SECRET") === undefined) {
     return "BLOCKED JOB_RUNNER_SECRET (part 4 sends through the deployed job runner)";
   }
   mustPass("email-test", child(["run", "scripts/email-test.ts", "received", BOUNCE_ADDRESS]));

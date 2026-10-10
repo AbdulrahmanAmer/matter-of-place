@@ -254,14 +254,15 @@
       "lane": "Automations, admin, money, growth",
       "item": "Recipes: dry-run equals the real run, switch-off honoured",
       "expectation": "pass",
-      "command": "bunx vitest run tests/unit/automation/plan.test.ts && (<load-dev> && bun run scripts/automation-smoke.ts && MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built bunx playwright test tests/e2e/automation-exit.spec.ts)"
+      "command": "bunx vitest run tests/unit/automation/plan.test.ts && (<load-dev> && env -u CLOUDFLARE_API_TOKEN bun run scripts/automation-smoke.ts && MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build && E2E_TARGET=built bunx playwright test tests/e2e/automation-exit.spec.ts; status=$?; bun run build >/dev/null 2>&1; exit $status)"
     },
     {
       "id": "H1-32",
       "lane": "Automations, admin, money, growth",
       "item": "Every failure visible and retryable",
       "expectation": "prints fail drill ok for parts 1 to 3; part 4 (bounced email) is blocked until EMAIL_LIVE=1 on mop-dev",
-      "command": "<load-dev> && bun run scripts/harden/fail-drill.ts --base <dev>",
+      "build": true,
+      "command": "<load-dev> && env -u CLOUDFLARE_API_TOKEN bun run scripts/harden/fail-drill.ts --base <dev>",
       "expectOutput": ["fail drill ok"]
     },
     {
@@ -438,7 +439,7 @@
     {
       "id": "M-08",
       "owner": "orchestrator",
-      "item": "Screen 2 shows the dead-job tile red while a dead job exists (fail-drill part 1 removes its job at the end: make one with bun run scripts/job-selftest.ts --fail-light, look, then cancel it on screen 16)"
+      "item": "Screen 2 shows the dead-job tile red while a dead job exists. Make one with bun run scripts/job-selftest.ts --fail-light (dev profile loaded, env -u CLOUDFLARE_API_TOKEN), look at the tile, then remove the job and its job_events rows by H1's cleanup rule (one transaction that sets mop.retention) before the day's health job runs: a dead job cannot be cancelled on screen 16 and counts in dead_jobs_24h for 24 hours"
     }
   ]
 }

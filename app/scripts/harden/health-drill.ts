@@ -100,6 +100,11 @@ async function cleanup(
       ])),
     ];
     await db.cleanup({
+      email_messages: await ids(
+        db,
+        "select id::text as id from email_messages where job_id::text = any($1::text[])",
+        [jobs],
+      ),
       job_events: await ids(
         db,
         "select id::text as id from job_events where job_id::text = any($1::text[])",

@@ -4,7 +4,7 @@
 // without it), table by table, children first. A failed cleanup throws `cleanup failed <table> <ids>`.
 import pg from "pg";
 import { devProject } from "../lib/storage-env.ts";
-import { localEnv } from "./local-env.ts";
+import { readSecret } from "../lib/social-script.ts";
 
 const LOCK = "hashtext('mop-dev-tests')";
 // The pooler cancels a statement after about two minutes (statement_timeout), and other lanes hold the lock for longer
@@ -17,6 +17,7 @@ const CLEANUP_ORDER = [
   "contacts",
   "subscribers",
   "inquiries",
+  "email_messages",
   "job_events",
   "jobs",
   "events",
@@ -45,7 +46,7 @@ export async function ids(db: ProbeDb, text: string, params: unknown[]): Promise
 
 /** Asks the deployed job runner for a tick when `JOB_RUNNER_SECRET` is set; otherwise its minute tick takes the job. */
 export async function askRunner(): Promise<void> {
-  const secret = localEnv("JOB_RUNNER_SECRET");
+  const secret = readSecret("JOB_RUNNER_SECRET");
   if (secret === undefined) return;
   const response = await fetch(`${devProject().url}/functions/v1/job-runner`, {
     method: "POST",
