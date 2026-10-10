@@ -19,7 +19,7 @@ import {
 } from "../../domain/settings.ts";
 import type { Database, Json } from "../../db/index.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
-import type { AdminActor } from "../lib/admin-route.ts";
+import type { AdminActor } from "../lib/actor-types.ts";
 import { auditContext } from "../lib/audit.ts";
 import { authorize, type ActorKind } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
