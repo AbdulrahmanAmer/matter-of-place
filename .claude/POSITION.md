@@ -1542,3 +1542,34 @@ first day of the new usage week; no step was cut from any plan.
   next free number at merge, bank-merge.mjs will refuse it) and hit-again lines; its last check was red only on a vitest
   worker timeout at 100 percent CPU; its registry replay after the last two edits is NOT DONE; the real local Lighthouse
   run is BLOCKED on P-1950. B8b WIP a74bd94a: see above. Board server (local) left running; every monitor stopped.
+
+## 2026-10-11 00:35 NIGHT (Saturday ran 07:00 to now; operator asleep, both laptops on; orchestrator Fable, workers Sonnet/Opus 5.5 high, bank agents Haiku 5.5)
+- On main (9fa756e3 + records): B7 admin complete (PRs 256, 257, 262, 267; lane 263), B8b (249), B13 SEO (163), B14 steps 4
+  and 5 (269, 270), B10 registry fix, chore PRs 264 (lhci-pages, H76), 265 (onlySteps), 266 (S67, H77). Rulings H73 to H78 in
+  ASSUMED.md; S67 in PROJECT-STATE.md (H2 panel on Opus 5.5).
+- H1: steps 1 to 10 accepted. slice/h1 fast-forwarded to 25f27887 (= slice/h1-g10, main merged in); PR 258 un-drafted, CI
+  running at 00:20; merge to main when green (runbooks exist, P-2832 satisfied). Step 10 run wf_8cb2e5fa-3e9 (fix rounds 2,
+  reviewer accept). Still open in H1: H1-18 reset and reseed (orchestrator, H75: `cd app && H1_DB_RESET=1 node
+  scripts/harden/run-all.mjs --env dev --only H1-18,H1-19` from main under G34 when no lane builds), H1-08/H1-10 red until
+  audit-deps.yml is on main (PR 258), H1-27 Lighthouse 0.85 to 0.89 vs 0.95 (page owners, follow-up), H1-21/21b backup key,
+  H1-24 legal entity, H1-44 uptime account, H1-32 part 4 (JOB_RUNNER_SECRET not in any env file), H1-30/41 L1. Six review
+  follow-ups in H1-followups.md (P-3019).
+- Security scan (H1-09): `workspace/audits/security-scan-2026-10-10.md` + `-full.md` on slice/h1; 0 critical, 0 high,
+  4 medium (F1 open redirect `_site.markets.$.tsx`, F2 ReDoS `search-match.ts`, F3 caption edit after approval
+  `assets/service.ts`, F4 db-push no TLS), 16 low; stamp CLAUDE-SECURITY-REVISION-791f6e754644.json in
+  E:/mop-build/scan/CLAUDE-SECURITY-20261010-080635/. Scan ran under scan-models.js (H77) after a Fable-only false start.
+- Dell (ssh dell; runner session c8fd54ed, report D:\mop\desktop\runner-report.md): at 00:23 dispatched two Sonnet builders,
+  D:/mop-build/fix1 fix/security-f1-f2 (F1, F2; P-3100 up) and D:/mop-build/fix2 fix/security-f3-deno (F3 plus `deno check`
+  of job-runner, 9 import errors; P-3110 up). They open PRs, do not merge. F4 (db-push TLS) not yet assigned.
+- Board https://claude.ai/artifact/2m9znBxT9A2yu6y4wY5DRh version 13: 229 of 259, 88.4 percent, 30 to go (20 build steps,
+  10 operator items). Local board server on 8790 writes the snapshot; publish = copy snapshot to scratchpad/board/build-board.html
+  with the status box, Artifact with url.
+- Next, in order: PR 258 green then merge; H1-18/19 from main; H2 acceptance panel (6 steps, Opus, lane from main after
+  258: `Workflow build-slice slice H2, previewPort 8838, bankBase P 3200 G 1400`); Dell fix PRs gate and merge; L1 in the
+  morning with the operator items (backup key path, legal entity and address, uptime account, AUDIT_AGENT_KEY_DEV mint on
+  screen 23, CF_ANALYTICS_TOKEN into .env and GitHub secret, DNS, Workers plan).
+- Follow-ups not started: render.yml DEV_SUPABASE_* under the one-database guard (P-2052, G-904); exit spec can leave a test
+  legal identity on mop-dev if killed; plan/trace still name one pg-shims.sql (restore-shims.sql split); leftover wrangler
+  dev processes from 10-08 in orch/app (UNPROVEN killed); worktrees plocal, pv227, pv249, pv250, lhci, seo, b10fix removable.
+- UNPROVEN: full green `bun run check` on slice/h1 locally (PR 258 CI is the proof); restore rehearsal live; H1-40 on the
+  corrected bundle in a full run.
