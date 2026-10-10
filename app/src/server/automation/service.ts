@@ -12,7 +12,7 @@ import {
 import { emailTemplateKeys, emailTemplateSchema } from "../../domain/email.ts";
 import { tiers } from "../../domain/events.ts";
 import type { Flags } from "../../domain/flags.ts";
-import { previewTemplate } from "../email/preview.ts";
+import { previewTemplate, sendTestEmail } from "../email/preview.ts";
 import type { RenderedEmail } from "../email/render.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
@@ -21,7 +21,7 @@ import { authorize, ForbiddenError } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError, fromZod } from "../lib/errors.ts";
 import { getFlags } from "../lib/flags.ts";
-import { getSpec } from "./catalog.ts";
+import { getSpec, isImplemented, listStepSpecs } from "./catalog.ts";
 import { dueAt, nextRun } from "./cron.ts";
 import { dryRun, type DryRunResult } from "./dry-run.ts";
 
@@ -223,10 +223,26 @@ async function readClock(
   return row;
 }
 
-/** `GET /api/admin/automation/recipes`: one recipe per event type. */
+/** What the recipe editor draws a step from: each spec without its Zod schema, which stays on the server. */
+function stepCatalog() {
+  return listStepSpecs().map(({ type, label, description, heavy, local, fields }) => ({
+    type,
+    label,
+    description,
+    heavy,
+    local: local ?? false,
+    implemented: isImplemented(type),
+    fields,
+  }));
+}
+
+/** `GET /api/admin/automation/recipes`: one recipe per event type, and the step catalog the editor offers. */
 export async function getRecipes(actor: AdminActor, db: Db) {
   authorize(actor, "automation.get");
-  return { items: await rows(db.from("automation_recipes").select("*").order("trigger")) };
+  return {
+    items: await rows(db.from("automation_recipes").select("*").order("trigger")),
+    steps: stepCatalog(),
+  };
 }
 
 /** `PUT /api/admin/automation/recipes/:trigger`. */
@@ -272,6 +288,25 @@ export async function previewEmailTemplate(
   authorize(actor, "automation.templates_preview");
   const { key, variables } = parse(templatePreviewInput, raw);
   return previewTemplate(db, variables === undefined ? { key } : { key, variables });
+}
+
+/**
+ * `POST /api/admin/automation/templates/:key/send-test`: queues one test of the stored row to the address of the
+ * person who asked. `queued` is false when this minute already holds a test of this template for them.
+ */
+export async function sendTemplateTest(actor: AdminActor, db: Db, raw: unknown) {
+  authorize(actor, "automation.templates_send_test");
+  const { key } = parse(templateKeyInput, raw);
+  const found = await db.auth.admin.getUserById(actor.userId);
+  if (found.error !== null) {
+    throw new AppError("unavailable", undefined, "The address for the test could not be read.");
+  }
+  const email = found.data.user.email;
+  if (email === undefined || email === "") {
+    throw new AppError("validation", undefined, "This account has no address to send a test to.");
+  }
+  const job = await sendTestEmail(db, { id: actor.userId, email }, key);
+  return { queued: job !== null, to: email };
 }
 
 /** `GET /api/admin/automation/reasons`, in the order of screen 19. */
