@@ -1,0 +1,18 @@
+{
+  "data": {
+    "viewer": {
+      "accounts": [
+        {
+          "workersInvocationsAdaptive": [
+            {
+              "sum": {
+                "requests": 310
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "errors": null
+}

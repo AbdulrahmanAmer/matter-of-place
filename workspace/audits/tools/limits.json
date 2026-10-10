@@ -1,0 +1,96 @@
+{
+  "thresholds": { "watch": 50, "decision": 70, "limit": 90 },
+  "lines": [
+    {
+      "line": "workers_requests_day",
+      "limit": 100000,
+      "unit": "requests a day",
+      "source": "cloudflare.mjs",
+      "kind": "vendor"
+    },
+    {
+      "line": "workers_requests_month",
+      "limit": 3000000,
+      "unit": "requests a month (30 days of the daily limit)",
+      "source": "cloudflare.mjs",
+      "kind": "vendor"
+    },
+    {
+      "line": "db_bytes",
+      "limit": 524288000,
+      "unit": "bytes",
+      "source": "ours.mjs",
+      "kind": "vendor"
+    },
+    {
+      "line": "storage_bytes",
+      "limit": 1073741824,
+      "unit": "bytes",
+      "source": "ours.mjs",
+      "kind": "vendor"
+    },
+    {
+      "line": "storage_egress",
+      "limit": 5368709120,
+      "unit": "bytes a month",
+      "source": "Supabase usage report",
+      "kind": "vendor"
+    },
+    {
+      "line": "edge_function_calls",
+      "limit": 500000,
+      "unit": "calls a month",
+      "source": "Supabase usage report",
+      "kind": "vendor"
+    },
+    {
+      "line": "email_sent_today",
+      "limit": 100,
+      "unit": "emails a day",
+      "source": "ours.mjs",
+      "kind": "vendor"
+    },
+    {
+      "line": "email_sent_month",
+      "limit": 3000,
+      "unit": "emails a month",
+      "source": "ours.mjs",
+      "kind": "vendor"
+    },
+    {
+      "line": "resend_contacts",
+      "limit": 1000,
+      "unit": "contacts",
+      "source": "ours.mjs",
+      "kind": "vendor"
+    },
+    {
+      "line": "actions_minutes",
+      "limit": 2000,
+      "unit": "minutes a month, approximate",
+      "source": "github.mjs",
+      "kind": "vendor"
+    },
+    {
+      "line": "sentry_errors",
+      "limit": 5000,
+      "unit": "errors a month",
+      "source": "sentry.mjs",
+      "kind": "vendor"
+    },
+    {
+      "line": "caption_tokens",
+      "limit": null,
+      "unit": "tokens a month",
+      "source": "ours.mjs",
+      "kind": "info"
+    },
+    {
+      "line": "reels_month",
+      "limit": 10,
+      "unit": "reels a month",
+      "source": "ours.mjs",
+      "kind": "guideline"
+    }
+  ]
+}

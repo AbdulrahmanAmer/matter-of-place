@@ -65,3 +65,47 @@ Source: the fresh review of group g4 found no blocking defect. Each item below i
 7. File: `.github/CODEOWNERS`
    - What: Still UNPROVEN, as the author says: no plan records whether @AbdulrahmanAmer is the CEO's handle. If the routine pushes as the same account, GitHub cannot request a review from the PR author. CODEOWNERS is documentation until branch protection exists (P-028).
    - Evidence: codeowners/errors returns {"errors":[]}. The handle only shows that the syntax is valid, not that it is the right owner.
+
+## g2 · steps 4
+
+Source: the fresh review of group g2 found no blocking defect. Each item below is the reviewer's text, word for word, with its evidence. None is blocking.
+
+1. File: `app/supabase/sql/functions/audit_health.sql`
+   - What: STANDARDS C13: line 103 casts a timestamptz to date without 'at time zone' (`x.day < r.cutoff::date`, where cutoff is `now() - (keep_for + interval '30 days')`). The result depends on the session TimeZone. On Supabase that is UTC, so today it changes nothing, and at worst the analytics_daily overdue count would be off by one day inside a 30-day grace. Fix: `(r.cutoff at time zone 'utc')::date` in the function file and the migration.
+   - Evidence: Found by reading: audit_health.sql lines 102-108 (the cutoff is defined on line 108).
+
+2. File: `workspace/audits/tools/usage.mjs`
+   - What: R04/C04: names are exported that nothing imports. usage.mjs exports gaugeStatus, gaugeRows and describeRows; collectors/cloudflare.mjs exports sumRequests; collectors/sentry.mjs exports parseSentryStats; collectors/ours.mjs exports agentGet. knip does not scan workspace/, so no gate catches them. Only minutesThisMonth is a plan-sanctioned test export.
+   - Evidence: A grep loop over every exported name of the g2 workspace files found 0 importers outside the defining file for those six names (workspace/audits/tools, app/tests, scripts).
+
+3. File: `workspace/05-plans/B14.md`
+   - What: Stale plan lines the orchestrator must fold (not this group's file). The Files list of NOT_FOUND_SKIP lacks the `/api/` prefix and the routePath comparison the code now uses (P-2703). The audit_record_run line still says 'raises schedule_row_missing' (the code raises not_found P0002). recordAuditRun is still written with a requestId argument. The github.mjs line still describes per-run /timing calls and `minutesThisMonth(runs, timings)`.
+   - Evidence: plan-brief B14 --steps 4, Files list, compared with not-found-log.ts NOT_FOUND_SKIP, audit_record_run.sql, service.ts recordAuditRun(actor, db) and collectors/github.mjs.
+
+4. File: mop-dev analytics_events (shared rows)
+   - What: Shared-data note for the orchestrator. My built-Worker reproduction left two page-path rows: '/no-such-page' and '/no-such-page-rv1791654644'. Neither holds a secret, so they do not trip lint-report. The author's earlier row '/api/hooks/ops-health/probe-b14rev1791651173' is still there and would fail lint-report.mjs if a weekly report runs before 2026-10-17. The orchestrator decides whether to delete it.
+   - Evidence: Node pg count with the dev profile: '/no-such-page' 1 and the stamped page 1 within 10 minutes of my probe.
+
+The three follow-ups of the review whose file is GOTCHAS.md are not listed here: they went into the bank (P-2700 rule and proof corrected to point at P-2702; a "hit again: 2026-10-10, B14 g2" line in P-015 and in P-310; the new entry P-2704 for the reviewer's cost).
+
+## g2 · steps 5
+
+Source: the fresh review of group g2 (step 5) found no blocking defect. Each item below is the reviewer's text, word for word, with its evidence. None is blocking.
+
+1. File: `workspace/audits/tools/security.mjs`
+   - What: The forms_turnstile row (lines 184-202, 278-281) only tells you whether the build contains Turnstile at all. It does not check each form. The Turnstile chunk is reachable from the entry script, so every page counts as covered. A form that stops calling Turnstile still shows green while any other route uses the chunk. /submit renders no <form> on the server, so it is never judged. The author disclosed this as UNPROVEN. The authoritative per-form gate is H1's G27 turnstile-coverage test.
+   - Evidence: Confirmed by running against the keyed build on 8858: forms_turnstile ok on 2 pages. curl of /submit gives 200, 0 <form> tags and 1 <input>. grep -l challenges.cloudflare.com finds a single chunk, DLCPXgdq.js, loaded by the entry script.
+
+2. File: `workspace/audits/tools/compare.mjs`
+   - What: newestSidecars (lines 123-128) uses a bare catch that returns [] for any readdirSync error, not just a missing folder. A permission or ENOTDIR error then prints 'Two sidecars are needed' and exits 0 (R10 / C06). One positional argument is silently ignored and the tool falls back to the data folder (line 138). I could not name a realistic event where this misleads the routine, so it is a follow-up. The author disclosed both.
+   - Evidence: Read: compare.mjs:124-127 is `try { names = readdirSync(DATA_DIR); } catch { return []; }`. Line 138 is `positionals.length >= 2 ? positionals : newestSidecars()`.
+
+3. File: `workspace/05-plans/B14.md`
+   - What: Stale plan lines, which are the orchestrator's to fold. Files says gauges.ts is 'used by audit/service.ts', but only health.ts imports it, and service.ts has no thresholds of its own, so invariant 7 still holds. Files gives gaugeStatus(percent), but the code is gaugeStatus(line, used), the same as usage.mjs. Step 5 prose still says port 8788. The Files tests line does not list compare.test.ts or the two B8 test files this step had to change (tests/unit/jobs/health.test.ts and tests/unit/health-site.test.ts, P-2710).
+   - Evidence: grep of 'percent|threshold|70' in app/src/server/audit/service.ts finds nothing. git diff --stat lists the two B8 test files and compare.test.ts.
+
+4. File: `app/src/server/jobs/system/health.ts`
+   - What: health.ts runs inside the Deno job runner. Through readUsage in audit/service.ts, whose `import type { AdminActor } from '../lib/admin-route.ts'` pulls admin-route, it now gives the runner a second type-graph path to session.ts and env.ts. At runtime this changes nothing, because the import is type-only and every value import of service.ts is Deno-clean. But the runner's deno check already fails on main through settings/service.ts, and a fix that cuts only that path would stay red. Moving readUsage, or the AdminActor type import, out of service.ts would avoid this.
+   - Evidence: Confirmed by running deno info --config supabase/functions/job-runner/deno.json src/server/audit/service.ts: it lists admin-route.ts, session.ts (with @supabase/ssr and jose unresolved) and env.ts. deno check on the runner entry fails with 9 errors on both the snapshot and origin/main.
+
+The follow-up of the review whose file is GOTCHAS.md is not listed here: it went into the bank as P-2713 (the full `deno check` of the job runner is red on main with 9 errors through `settings/service.ts > admin-route.ts > session.ts`; the command was re-run here with the same count and the `deno info` chain confirmed).

@@ -1136,6 +1136,20 @@ isOneToOne: false
 "attach_reel":
 { Args: { "p_asset": string,"p_detach"?: boolean,"p_property": string }; Returns: undefined
                            },
+"audit_health":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"audit_not_found":
+{ Args: { "p_days"?: number,"p_limit"?: number }; Returns: {
+              "count": number,"path": string,"redirected": boolean,"top_referrer_host": string
+            }[]
+                           },
+"audit_record_run":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string }; Returns: string
+                           },
+"audit_usage":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "auto_approve_asset":
 { Args: { "p_asset_id": string,"p_evidence": Json,"p_request_id"?: string }; Returns: string
                            },

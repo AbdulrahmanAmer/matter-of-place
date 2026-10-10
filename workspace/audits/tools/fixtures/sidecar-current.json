@@ -1,0 +1,43 @@
+{
+  "front": { "date": "2026-10-10", "run_id": "audit-2026-10-10" },
+  "usage": [
+    {
+      "line": "actions_minutes",
+      "used": 1400,
+      "limit": 2000,
+      "percent": 70,
+      "status": "DECISION"
+    },
+    {
+      "line": "workers_requests_day",
+      "used": 2777,
+      "limit": 100000,
+      "percent": 2.8,
+      "status": "ok"
+    },
+    {
+      "line": "sentry_errors",
+      "used": 581,
+      "limit": 5000,
+      "percent": 11.6,
+      "status": "ok"
+    }
+  ],
+  "security": {
+    "host": "matterofplace.com",
+    "checks": [
+      {
+        "check": "content-security-policy",
+        "status": "watch",
+        "detail": "Report-Only, not enforcing yet (F10)"
+      },
+      {
+        "check": "strict-transport-security",
+        "status": "ok",
+        "detail": "Strict-Transport-Security: max-age=31536000"
+      }
+    ]
+  },
+  "cache": { "edge_hit_ratio": 0.96 },
+  "not_measured": {}
+}

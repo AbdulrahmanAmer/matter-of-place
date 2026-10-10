@@ -45,6 +45,8 @@ export const LogEvent = [
   "decision_jobs_unread",
   // B7 step 14: the role write of a new auth account failed, and the account was deleted again (or not).
   "team_account_rolled_back",
+  // B14 invariant 8: a buffered flush of the unknown-path log failed and its rows were dropped.
+  "not_found_flush_failed",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

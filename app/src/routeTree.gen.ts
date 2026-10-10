@@ -102,7 +102,12 @@ import { Route as SiteArchiveKindSlugRouteImport } from './routes/_site.archive.
 import { Route as ApiAdminAssetsIndexRouteImport } from './routes/api/admin/assets.index'
 import { Route as ApiAdminAssetsIdRouteImport } from './routes/api/admin/assets.$id'
 import { Route as ApiAdminAuditIndexRouteImport } from './routes/api/admin/audit.index'
+import { Route as ApiAdminAuditHealthRouteImport } from './routes/api/admin/audit.health'
+import { Route as ApiAdminAuditKpisRouteImport } from './routes/api/admin/audit.kpis'
+import { Route as ApiAdminAuditNotfoundRouteImport } from './routes/api/admin/audit.notfound'
+import { Route as ApiAdminAuditRecordRunRouteImport } from './routes/api/admin/audit.record-run'
 import { Route as ApiAdminAuditSubjectRequestsRouteImport } from './routes/api/admin/audit.subject-requests'
+import { Route as ApiAdminAuditUsageRouteImport } from './routes/api/admin/audit.usage'
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
@@ -731,12 +736,37 @@ const ApiAdminAuditIndexRoute = ApiAdminAuditIndexRouteImport.update({
   path: '/api/admin/audit/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminAuditHealthRoute = ApiAdminAuditHealthRouteImport.update({
+  id: '/api/admin/audit/health',
+  path: '/api/admin/audit/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminAuditKpisRoute = ApiAdminAuditKpisRouteImport.update({
+  id: '/api/admin/audit/kpis',
+  path: '/api/admin/audit/kpis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminAuditNotfoundRoute = ApiAdminAuditNotfoundRouteImport.update({
+  id: '/api/admin/audit/notfound',
+  path: '/api/admin/audit/notfound',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminAuditRecordRunRoute = ApiAdminAuditRecordRunRouteImport.update({
+  id: '/api/admin/audit/record-run',
+  path: '/api/admin/audit/record-run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminAuditSubjectRequestsRoute =
   ApiAdminAuditSubjectRequestsRouteImport.update({
     id: '/api/admin/audit/subject-requests',
     path: '/api/admin/audit/subject-requests',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminAuditUsageRoute = ApiAdminAuditUsageRouteImport.update({
+  id: '/api/admin/audit/usage',
+  path: '/api/admin/audit/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminAuthSendLinkRoute = ApiAdminAuthSendLinkRouteImport.update({
   id: '/api/admin/auth/send-link',
   path: '/api/admin/auth/send-link',
@@ -1575,7 +1605,12 @@ export interface FileRoutesByFullPath {
   '/admin/team/': typeof AdminTeamIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/assets/$id': typeof ApiAdminAssetsIdRouteWithChildren
+  '/api/admin/audit/health': typeof ApiAdminAuditHealthRoute
+  '/api/admin/audit/kpis': typeof ApiAdminAuditKpisRoute
+  '/api/admin/audit/notfound': typeof ApiAdminAuditNotfoundRoute
+  '/api/admin/audit/record-run': typeof ApiAdminAuditRecordRunRoute
   '/api/admin/audit/subject-requests': typeof ApiAdminAuditSubjectRequestsRouteWithChildren
+  '/api/admin/audit/usage': typeof ApiAdminAuditUsageRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
@@ -1799,7 +1834,12 @@ export interface FileRoutesByTo {
   '/admin/team': typeof AdminTeamIndexRoute
   '/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/assets/$id': typeof ApiAdminAssetsIdRouteWithChildren
+  '/api/admin/audit/health': typeof ApiAdminAuditHealthRoute
+  '/api/admin/audit/kpis': typeof ApiAdminAuditKpisRoute
+  '/api/admin/audit/notfound': typeof ApiAdminAuditNotfoundRoute
+  '/api/admin/audit/record-run': typeof ApiAdminAuditRecordRunRoute
   '/api/admin/audit/subject-requests': typeof ApiAdminAuditSubjectRequestsRouteWithChildren
+  '/api/admin/audit/usage': typeof ApiAdminAuditUsageRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
@@ -2029,7 +2069,12 @@ export interface FileRoutesById {
   '/admin/team/': typeof AdminTeamIndexRoute
   '/_site/archive/$kind/$slug': typeof SiteArchiveKindSlugRoute
   '/api/admin/assets/$id': typeof ApiAdminAssetsIdRouteWithChildren
+  '/api/admin/audit/health': typeof ApiAdminAuditHealthRoute
+  '/api/admin/audit/kpis': typeof ApiAdminAuditKpisRoute
+  '/api/admin/audit/notfound': typeof ApiAdminAuditNotfoundRoute
+  '/api/admin/audit/record-run': typeof ApiAdminAuditRecordRunRoute
   '/api/admin/audit/subject-requests': typeof ApiAdminAuditSubjectRequestsRouteWithChildren
+  '/api/admin/audit/usage': typeof ApiAdminAuditUsageRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
@@ -2259,7 +2304,12 @@ export interface FileRouteTypes {
     | '/admin/team/'
     | '/archive/$kind/$slug'
     | '/api/admin/assets/$id'
+    | '/api/admin/audit/health'
+    | '/api/admin/audit/kpis'
+    | '/api/admin/audit/notfound'
+    | '/api/admin/audit/record-run'
     | '/api/admin/audit/subject-requests'
+    | '/api/admin/audit/usage'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
@@ -2483,7 +2533,12 @@ export interface FileRouteTypes {
     | '/admin/team'
     | '/archive/$kind/$slug'
     | '/api/admin/assets/$id'
+    | '/api/admin/audit/health'
+    | '/api/admin/audit/kpis'
+    | '/api/admin/audit/notfound'
+    | '/api/admin/audit/record-run'
     | '/api/admin/audit/subject-requests'
+    | '/api/admin/audit/usage'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
@@ -2712,7 +2767,12 @@ export interface FileRouteTypes {
     | '/admin/team/'
     | '/_site/archive/$kind/$slug'
     | '/api/admin/assets/$id'
+    | '/api/admin/audit/health'
+    | '/api/admin/audit/kpis'
+    | '/api/admin/audit/notfound'
+    | '/api/admin/audit/record-run'
     | '/api/admin/audit/subject-requests'
+    | '/api/admin/audit/usage'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
@@ -2882,7 +2942,12 @@ export interface RootRouteChildren {
   ApiPublicSubmissionsRoute: typeof ApiPublicSubmissionsRouteWithChildren
   ApiPublicSubscribersRoute: typeof ApiPublicSubscribersRouteWithChildren
   ApiAdminAssetsIdRoute: typeof ApiAdminAssetsIdRouteWithChildren
+  ApiAdminAuditHealthRoute: typeof ApiAdminAuditHealthRoute
+  ApiAdminAuditKpisRoute: typeof ApiAdminAuditKpisRoute
+  ApiAdminAuditNotfoundRoute: typeof ApiAdminAuditNotfoundRoute
+  ApiAdminAuditRecordRunRoute: typeof ApiAdminAuditRecordRunRoute
   ApiAdminAuditSubjectRequestsRoute: typeof ApiAdminAuditSubjectRequestsRouteWithChildren
+  ApiAdminAuditUsageRoute: typeof ApiAdminAuditUsageRoute
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
@@ -3597,11 +3662,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuditIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/audit/health': {
+      id: '/api/admin/audit/health'
+      path: '/api/admin/audit/health'
+      fullPath: '/api/admin/audit/health'
+      preLoaderRoute: typeof ApiAdminAuditHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/audit/kpis': {
+      id: '/api/admin/audit/kpis'
+      path: '/api/admin/audit/kpis'
+      fullPath: '/api/admin/audit/kpis'
+      preLoaderRoute: typeof ApiAdminAuditKpisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/audit/notfound': {
+      id: '/api/admin/audit/notfound'
+      path: '/api/admin/audit/notfound'
+      fullPath: '/api/admin/audit/notfound'
+      preLoaderRoute: typeof ApiAdminAuditNotfoundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/audit/record-run': {
+      id: '/api/admin/audit/record-run'
+      path: '/api/admin/audit/record-run'
+      fullPath: '/api/admin/audit/record-run'
+      preLoaderRoute: typeof ApiAdminAuditRecordRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/audit/subject-requests': {
       id: '/api/admin/audit/subject-requests'
       path: '/api/admin/audit/subject-requests'
       fullPath: '/api/admin/audit/subject-requests'
       preLoaderRoute: typeof ApiAdminAuditSubjectRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/audit/usage': {
+      id: '/api/admin/audit/usage'
+      path: '/api/admin/audit/usage'
+      fullPath: '/api/admin/audit/usage'
+      preLoaderRoute: typeof ApiAdminAuditUsageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/auth/send-link': {
@@ -5254,8 +5354,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSubmissionsRoute: ApiPublicSubmissionsRouteWithChildren,
   ApiPublicSubscribersRoute: ApiPublicSubscribersRouteWithChildren,
   ApiAdminAssetsIdRoute: ApiAdminAssetsIdRouteWithChildren,
+  ApiAdminAuditHealthRoute: ApiAdminAuditHealthRoute,
+  ApiAdminAuditKpisRoute: ApiAdminAuditKpisRoute,
+  ApiAdminAuditNotfoundRoute: ApiAdminAuditNotfoundRoute,
+  ApiAdminAuditRecordRunRoute: ApiAdminAuditRecordRunRoute,
   ApiAdminAuditSubjectRequestsRoute:
     ApiAdminAuditSubjectRequestsRouteWithChildren,
+  ApiAdminAuditUsageRoute: ApiAdminAuditUsageRoute,
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,
