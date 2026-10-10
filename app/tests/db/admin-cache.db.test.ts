@@ -473,3 +473,59 @@ describe("catalog_version and the story writes (F25 a)", () => {
     });
   });
 });
+
+/** The case runs only against a database that holds step 13's migration (P-328). */
+async function assertStep13(db: Db): Promise<void> {
+  const { rows } = await db.query<{ present: boolean }>(
+    "select to_regproc('public.update_market') is not null and to_regproc('public.set_market_coming_soon') is not null as present",
+  );
+  expect(rows[0]?.present).toBe(true);
+}
+
+describe("catalog_version and the market writes (F25 a)", () => {
+  it("update_market and set_market_coming_soon each raise it by exactly one", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await db.query(
+        `insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x')
+         on conflict (slug) do nothing`,
+      );
+      await db.query("update public.markets set coming_soon = true where slug = 'california'");
+      const beforeEdit = await catalogVersion(db);
+      await db.query(
+        `select public.update_market('california', '{"intro": "Edited"}', null, null, null, $1, 'human', 'req-cv')`,
+        [editor],
+      );
+      const edited = (await catalogVersion(db)) - beforeEdit;
+      await db.query(
+        `select public.set_market_coming_soon(p_slug => 'california', p_coming_soon => false, p_actor => $1,
+           p_actor_kind => 'human', p_request_id => 'req-cv')`,
+        [editor],
+      );
+      expect({ edited, toggled: (await catalogVersion(db)) - beforeEdit - edited }).toEqual({
+        edited: 1,
+        toggled: 1,
+      });
+    });
+  });
+
+  it("set_market_coming_soon to the state a market is already in leaves it", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await db.query(
+        `insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x')
+         on conflict (slug) do nothing`,
+      );
+      await db.query("update public.markets set coming_soon = true where slug = 'california'");
+      const before = await catalogVersion(db);
+      await db.query(
+        `select public.set_market_coming_soon(p_slug => 'california', p_coming_soon => true, p_actor => $1,
+           p_actor_kind => 'human', p_request_id => 'req-cv')`,
+        [editor],
+      );
+      expect((await catalogVersion(db)) - before).toBe(0);
+    });
+  });
+});
