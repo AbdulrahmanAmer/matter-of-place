@@ -119,3 +119,29 @@ The three follow-ups whose file is GOTCHAS.md are banked as P-2813 (the empty `-
 5. `workspace/05-plans/H1.md` (step 4 proofs) (not blocking)
    - What: NOT DONE, owned outside this group and declared by the author. First, the claude-security scan report and H1-09 wait on the orchestrator (P-2830). Second, 'gh run list --workflow audit-deps.yml --branch slice/h1' prints failure only because of the runbooks half (g6, g7, g9; P-2832). Third, H1-08 and H1-10, and 'gh workflow run audit-deps.yml && gh run watch', are UNPROVEN until main has a run. One sequencing note for the orchestrator: merging slice/h1 before the four runbooks exist turns job check red on main and on every lane's PR (P-2832).
    - Evidence: Confirmed by running: the gh run list, gh run view and run-all outputs above. I did not verify the claim that the skill can only be started through the Workflow tool.
+
+## g5 · steps 8
+
+1. `app/scripts/harden/run-all.mjs (H1-40 row) / B13` (not blocking)
+   - What: H1-40 does not print 'pass'. check-headers --cache is red on /sitemap.xml because main's sitemap route sets its own cache-control, and B13's cached sitemap (cachedResponse, doc kind 'public, max-age=3600' in pipeline.ts) is not in main. The author reports this as NOT DONE / UNPROVEN, and the fix belongs to B13 (invariant 3). The step's closing proof stays open until B13 merges and H1-40 is run again.
+   - Evidence: run-all --env dev --only H1-40: 'check-headers: cache-control document: /sitemap.xml answered 200 with "public, s-maxage=300, stale-while-revalidate=86400", expected "public, max-age=3600"'; git merge-base --is-ancestor origin/slice/b13 origin/main -> 1
+
+2. `app/scripts/harden/checklist.json (H1-27)` (not blocking)
+   - What: H1-27 is red on the app's real Lighthouse figures (/ 0.87, LCP 3.4 s, 174.7 KB against a 160 KB budget). Phase 2 (the property page, perf-targets.mjs) is never reached. The author reports this; the fix belongs to the page and bundle owners. Record it for them.
+   - Evidence: .lighthouseci/assertion-results.json: http://127.0.0.1:8849/ categories minScore 0.95 actual 0.87; largest-contentful-paint 3400.9; resource-summary 174722
+
+3. `app/scripts/harden/cache-probe.ts:464-479 (writes mode)` (not blocking)
+   - What: Suspected from reading, not confirmed by running. The warm-up GET to /api/public/site may be served by a memo that is already nearly 15 s old, for example one filled by the never mode just before. If that memo expires during the 60 POSTs, the Worker legitimately reads public_state once, but stateBound is floor(elapsed/15s) = 0. That fits the author's first-run miss 'ran public_state 1 times, at most 0', which only the retry hides. Possible fixes: wait MEMO_MS after an observed state read, or allow +1. The probe is not wrong about the contract, but its first run can be red for a reason that is not a contract miss.
+   - Evidence: log H1.md g5 Proof 1: 'cache: running again ... the first run found 60 refused writes ran public_state 1 times, at most 0' then 'cache writes ok'
+
+4. `workspace/05-plans/B8b.md:60,126,141 and workspace/05-plans/trace.json:1510,7688` (not blocking)
+   - What: These still describe the old tick: 'exactly one state RPC', the keepwarm_state_rpc_failed event, the stateRpc field, and 'reuses the memo from (2)'. The code no longer has any of them after H78. The author disclosed this and ASSUMED H78 overrules these lines, but the orchestrator needs to bring the plan text and trace ids in line.
+   - Evidence: grep -rn 'keepwarm_state_rpc_failed\|stateRpc' workspace/05-plans/B8b.md; grep -n 'one state RPC' workspace/05-plans/trace.json
+
+5. `app/src/server/lib/log-events.ts, app/tests/mutations/B8b.json` (not blocking)
+   - What: H78 adds only scheduled.ts and scheduled.test.ts to the group's file list, but the repair also edited log-events.ts (removed keepwarm_state_rpc_failed) and B8b.json (entries renamed and re-targeted). Both edits follow directly from the change and are correct (I replayed every changed entry and all went red), but they are outside the files the ruling names and the log does not record them as such. The orchestrator should note them against H78.
+   - Evidence: git show --stat b444ad56 -> app/src/server/lib/log-events.ts, app/tests/mutations/B8b.json
+
+6. `workspace/05-plans/logs/H1.md:748` (not blocking)
+   - What: The author ran watched-fails p, q, r, s and u from one build carrying seven mutations at once. One mutation could mask or cause another's red (for example, the Turnstile reorder changes the statement counts the memory and keepwarm modes see). Each red reason matched its own mutation, and I reproduced (u) alone. p, q, r and s have not been re-proven one mutation per build.
+   - Evidence: log H1.md g5: 'Build A carried seven source mutations at once'
