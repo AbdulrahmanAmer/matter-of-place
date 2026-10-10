@@ -3,8 +3,14 @@
 // one transaction that sets `mop.retention` (B2's `refuse_hard_delete()` and B8's append-only triggers refuse a delete
 // without it), table by table, children first. A failed cleanup throws `cleanup failed <table> <ids>`.
 import pg from "pg";
+import { devProject } from "../lib/storage-env.ts";
+import { localEnv } from "./local-env.ts";
 
 const LOCK = "hashtext('mop-dev-tests')";
+// The pooler cancels a statement after about two minutes (statement_timeout), and other lanes hold the lock for longer
+// than that, so the lock is polled with short queries instead of waited for in one blocking call.
+const LOCK_POLL_MS = 3000;
+const LOCK_WAIT_MS = 30 * 60_000;
 const CLEANUP_ORDER = [
   "submission_media",
   "submissions",
@@ -30,11 +36,50 @@ export interface ProbeDb {
   close: () => Promise<void>;
 }
 
+/** The `id` column of every row a query returns. */
+export async function ids(db: ProbeDb, text: string, params: unknown[]): Promise<string[]> {
+  return (await db.rows(text, params)).flatMap((row) =>
+    row["id"] === null || row["id"] === undefined ? [] : [row["id"]],
+  );
+}
+
+/** Asks the deployed job runner for a tick when `JOB_RUNNER_SECRET` is set; otherwise its minute tick takes the job. */
+export async function askRunner(): Promise<void> {
+  const secret = localEnv("JOB_RUNNER_SECRET");
+  if (secret === undefined) return;
+  const response = await fetch(`${devProject().url}/functions/v1/job-runner`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" },
+    body: "{}",
+    signal: AbortSignal.timeout(60_000),
+  });
+  await response.body?.cancel();
+}
+
+async function takeLock(client: pg.Client): Promise<void> {
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  for (;;) {
+    const result = await client.query<{ got: boolean }>(
+      `select pg_try_advisory_lock(${LOCK}) as got`,
+    );
+    if (result.rows[0]?.got === true) return;
+    if (Date.now() >= deadline) {
+      throw new Error("probe-db: the mop-dev-tests lock was not free within 30 minutes");
+    }
+    await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
+  }
+}
+
 /** Connects, waits for the writer lock and returns the connection; `close` releases the lock. */
 export async function openProbeDb(dbUrl: string): Promise<ProbeDb> {
   const client = new pg.Client({ connectionString: dbUrl });
   await client.connect();
-  await client.query(`select pg_advisory_lock(${LOCK})`);
+  try {
+    await takeLock(client);
+  } catch (error) {
+    await client.end();
+    throw error;
+  }
   const rows = async (text: string, params: unknown[] = []) => {
     const result = await client.query<Record<string, string | null>>(text, params);
     return result.rows;

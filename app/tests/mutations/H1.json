@@ -277,5 +277,53 @@
     "replace": "by H1-99.",
     "run": "node scripts/harden/runbook-lint.mjs docs/security.md",
     "expect": "docs/security\\.md:\\d+: H1-99 is not a row of checklist\\.json"
+  },
+  {
+    "id": "h1g7-guard-fail-drill",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/fail-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/fail-drill.ts"
+  },
+  {
+    "id": "h1g7-guard-health-drill",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/health-drill.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/health-drill.ts"
+  },
+  {
+    "id": "h1g7-ee-no-health-event",
+    "kind": "manual",
+    "test": "scripts/harden/health-drill.ts",
+    "file": "scripts/harden/health-drill.ts",
+    "find": "where type = 'health.failed' and at",
+    "replace": "where type = 'health.failedx' and at",
+    "run": "with the dev profile loaded, bun run scripts/harden/health-drill.ts (a stand-in for watched-fail (ee): the deployed job runner is not mutated, so the drill reads an event type nobody emits)",
+    "expect": "health drill: no health.failed event was written"
+  },
+  {
+    "id": "h1g7-ff-retry-no-requeue",
+    "kind": "manual",
+    "test": "scripts/harden/fail-drill.ts",
+    "file": "src/server/jobs/service.ts",
+    "find": "  return act(actor, db, \"admin_retry_job\", input.id, \"queued\");",
+    "replace": "  return { id: input.id, status: \"queued\" };",
+    "run": "rebuild and serve on 8828, then with the dev profile bun run scripts/harden/fail-drill.ts --base http://127.0.0.1:8828",
+    "expect": "has 0 manual_retry events, not 1"
+  },
+  {
+    "id": "h1g7-lock-poll",
+    "kind": "manual",
+    "test": "scripts/harden/rate-probe.ts",
+    "file": "scripts/harden/probe-db.ts",
+    "find": "select pg_try_advisory_lock(${LOCK}) as got",
+    "replace": "select pg_advisory_lock(${LOCK}), true as got",
+    "run": "with the dev profile loaded and a rebuilt Worker on 8828, hold the lock for 200 s with bun run db:psql -- -Atc \"select pg_advisory_lock(hashtext('mop-dev-tests'))\" -c \"select pg_sleep(100)\" -c \"select pg_sleep(100)\", and meanwhile run bun run scripts/harden/rate-probe.ts http://127.0.0.1:8828/api/public/subscribers 30",
+    "expect": "canceling statement due to statement timeout"
   }
 ]

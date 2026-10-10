@@ -12,7 +12,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { assertNotProduction } from "../lib/assert-not-production.mjs";
 import { devProject } from "../lib/storage-env.ts";
-import { openProbeDb, type ProbeDb } from "./probe-db.ts";
+import { askRunner, ids, openProbeDb, type ProbeDb } from "./probe-db.ts";
 
 const TOKEN = "XXXX.DUMMY.TOKEN.XXXX";
 // The IP bucket of a local Worker is keyed on the `cf-connecting-ip` it is sent; a new documentation address per run
@@ -77,12 +77,6 @@ const put = (url: string, bytes: Uint8Array) =>
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 
-async function ids(db: ProbeDb, text: string, params: unknown[]): Promise<string[]> {
-  return (await db.rows(text, params)).flatMap((row) =>
-    row["id"] === null || row["id"] === undefined ? [] : [row["id"]],
-  );
-}
-
 /** Cases (1) and (2): a 422 `validation` and no submission row for that address. */
 async function refused(
   base: string,
@@ -116,18 +110,6 @@ async function waitForJob(db: ProbeDb, jobId: string): Promise<z.infer<typeof jo
     await new Promise((resolve) => setTimeout(resolve, POLL_MS));
   }
   throw new Error(`upload probe: reconcile ${status}`);
-}
-
-async function askRunner(): Promise<void> {
-  const secret = process.env["JOB_RUNNER_SECRET"];
-  if (secret === undefined || secret === "") return;
-  const response = await fetch(`${devProject().url}/functions/v1/job-runner`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" },
-    body: "{}",
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  await response.body?.cancel();
 }
 
 async function main(): Promise<number> {

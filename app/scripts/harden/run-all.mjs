@@ -537,9 +537,10 @@ function summary(outcomes) {
  * @param {string} env
  * @param {string[] | undefined} wanted
  * @param {Outcome[]} outcomes
+ * @param {string} rowCount "<rows run> of <rows in the checklist>"
  * @returns {string} the report path
  */
-function writeReport(env, wanted, outcomes) {
+function writeReport(env, wanted, outcomes, rowCount) {
   const date = new Date().toISOString().slice(0, 10);
   const head = spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd: ROOT, encoding: "utf8" });
   const path = `${ROOT}workspace/audits/harden-${date}.md`;
@@ -549,7 +550,7 @@ function writeReport(env, wanted, outcomes) {
     `# HARDEN report ${date}`,
     "",
     `Env: ${env}. Commit: ${head.stdout.trim()}. Selection: ${selection}.`,
-    `Result: ${summary(outcomes)}.`,
+    `Rows: ${rowCount}. Result: ${summary(outcomes)}.`,
     "",
     "| ID | Item | Result | Evidence |",
     "|---|---|---|---|",
@@ -592,7 +593,10 @@ async function runSelected(env, report, rows, manualItems, wanted) {
     }
   }
   console.log(`\n${summary(outcomes)}`);
-  if (report) console.log(`report: ${writeReport(env, wanted, outcomes)}`);
+  if (report) {
+    const rowCount = `${String(selected.length)} of ${String(rows.length)}`;
+    console.log(`report: ${writeReport(env, wanted, outcomes, rowCount)}`);
+  }
   return outcomes.some((outcome) => outcome.status === "fail") ? 1 : 0;
 }
 

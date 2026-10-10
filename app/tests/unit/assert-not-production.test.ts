@@ -38,6 +38,8 @@ const guardedScripts = [
   "tests/e2e/admin-jobs.spec.ts",
   "scripts/harden/rate-probe.ts",
   "scripts/harden/upload-probe.ts",
+  "scripts/harden/fail-drill.ts",
+  "scripts/harden/health-drill.ts",
 ];
 
 const missingTable = Object.assign(new Error('relation "public.settings" does not exist'), {
