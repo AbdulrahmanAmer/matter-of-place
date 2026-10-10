@@ -237,3 +237,143 @@ Recorded from the g6 review (no blocking defect). The seventh item concerned GOT
 - what: The step-6 proof names `bun run scripts/gen-action-roles.mjs`, and it was not run. The author says the matrix is unchanged and that the script writes a duplicate migration on every run. tests/unit/action-roles.sync.test.ts passes, so the seed equals the matrix. The proof line and the script's behaviour need an orchestrator ruling. Live HTTP calls to the 16 new routes are also UNPROVEN: they are covered only by the parity and authz sweep and by service unit tests against fakeDb.
 - evidence: bunx vitest run tests/unit/action-roles.sync.test.ts passes (inside the 67/67 run). The author's own unproven list.
 - blocking: false
+
+## g7 · steps 7
+
+Recorded from the g7 review (no blocking defect). None is blocking.
+
+### 1. app/src/admin/automation/RecipesPage.tsx
+
+- what: Follow-up. The plan's Files line asks for 'the pending skeleton through B7's shared admin route options'. The route has no pendingComponent, and the page's loading state is the text line 'Loading recipes.' rather than B7's AdminPending skeleton. The other screens built under H66 (assets.index.lazy.tsx, people.$id.lazy.tsx, properties.$id.lazy.tsx) draw <AdminPending /> in the page. The route comment's reason, 'no loader, so there is no pending screen', is also inexact by reading. TanStack Router shows a route's pending component while a lazyRouteComponent chunk preloads, not only while a loader runs. A loading state does exist, so C17 is met. The gap is consistency, not behaviour.
+- evidence: RecipesPage.tsx:34 `if (recipes.isPending) return <p role="status">Loading recipes.</p>;`. `grep -rn "pendingComponent\|AdminPending" src/routes src/admin/ui` shows the in-page AdminPending pattern in three other screens and no pendingComponent in automation.recipes.tsx.
+- blocking: false
+
+### 2. app/src/admin/automation/RecipesPage.tsx
+
+- what: Follow-up (suspected by reading, not run). With an empty recipe list there is no empty state of its own. The page shows an empty Events nav beside 'Choose an event. Pick one on the left', which points at nothing. The seed holds one recipe per event type, so production should never reach this.
+- evidence: RecipesPage.tsx:53-55 renders the EmptyState only when `open === undefined`, with no branch for `items.length === 0`.
+- blocking: false
+
+### 3. app/src/admin/automation/RecipeEditor.tsx
+
+- what: Follow-up, already listed by the author. The plan's Contract item 9 says server errors carry a JSON path so the form shows them inline. A 422 such as an unknown send_email.template is shown as one message under the form, because B7's adminFetch drops `issues`. Also open: the heading order h1 then h3 (axe heading-order is a moderate rule, so R47's serious/critical bar is not crossed), no guard for an unsaved draft when another event is picked, and maxSteps and the 120-character name limit copied from src/domain/automation.ts.
+- evidence: B8b.md line 53 ('Errors carry a JSON path so the form shows them inline'); RecipeEditor.tsx:104 `<h3>Steps</h3>` under the page h1; recipe-draft.ts:128 `export const maxSteps = 20;` beside the unexported `maxSteps` in domain/automation.ts:35.
+- blocking: false
+
+### 4. workspace/05-plans/B8b.md
+
+- what: Follow-up for the orchestrator to fold. GET /api/admin/automation/recipes now also answers `steps` (the catalog without Zod schemas), and the plan and API contract text do not say so. R42 asks for the `a-` admin selector prefix, but every admin stylesheet, this one included, uses `admin-`.
+- evidence: service.ts getRecipes returns `{ items, steps: stepCatalog() }`; STANDARDS.md line 272 'admin selectors use the `a-` prefix'; automation.css selectors are all `.admin-*`.
+- blocking: false
+
+### 5. app/src/server/automation/service.ts
+
+- what: UNPROVEN against reality (the author says so). The `steps` field of GET /recipes is tested only against fake-db in service.test.ts. Screen 17 is tested only against a stand-in fetch written by the same author. No built Worker answer and no browser render of the screen was observed.
+- evidence: recipes.test.tsx:200-235 stubs global fetch with a hand-written API; the log's g7 UNPROVEN line.
+- blocking: false
+
+## g8 · steps 8
+
+Recorded from the g8 review (no blocking defect). None is blocking. A first follow-up, a costTime line filed under the wrong gotcha entry (the scratch file `D:/tmp_ids.txt`), is banked in GOTCHAS.md (P-071 "hit again"), not listed here.
+
+### 1. app/src/admin/automation/emails.test.tsx
+
+- what: Suspected by reading, not run. In the test 'asks nothing of the preview route for a role the matrix leaves out' (lines 349-354), the count `api.count(POST preview) === 0` is read right after ready(), with no settled(). The watched-fail goes red because of the heading assertion, not the count. So the request-count half of the title is not proved on its own. This is the same timing pattern P-2521 banked for the save case.
+- evidence: emails.test.tsx:349-354. Line 352 checks that the Preview heading is absent, and line 353 reads the count with no `await settled()`. The b8b-g8-preview-gated replay was WATCHED-FAIL OK, but removing the gate also brings the heading back, so the replay cannot tell which assertion caught it.
+- blocking: false
+
+### 2. app/src/admin/automation/template-draft.ts
+
+- what: maxBlocks = 40 and maxFactRows = 12 copy the literals in emailTemplateSchema (body .max(40)) and emailBlockSchema (rows .max(12)) in src/domain/email.ts instead of reading them from there. If the schema changes, the Add block and Add row buttons drift from it. The server still validates, so nothing wrong gets stored.
+- evidence: template-draft.ts:30-34 versus src/domain/email.ts:66 (.max(12)) and :77 (.max(40))
+- blocking: false
+
+### 3. app/src/admin/automation/EmailTemplateEditor.tsx
+
+- what: Note for the slice e2e. 'Send test to me' (line 166 onward) sends mail through Resend on one click, with no confirm Dialog. STANDARDS C17 asks for a confirm Dialog on every external action. The plan's proof wording ('posts once') and the per-minute idempotency key make a single click reasonable, so this needs a ruling on whether a test mail to oneself counts as external under C17. It is not a defect of this step.
+- evidence: EmailTemplateEditor.tsx:166-195. STANDARDS.md:431 (C17)
+- blocking: false
+
+## g9 · steps 9
+
+Recorded from the g9 review (no blocking defect). None is blocking. No follow-up names GOTCHAS.md, so no bank entry was added.
+
+### 1. app/src/admin/automation/SettingsPage.tsx
+
+- what: Screen 20 shows only a partial view of the token's state. credentialsOf (lines 115-128) ignores the top-level `level` that the health answer also sends, and that level turns red when a post failed with `token_dead` (the deadRow case in server/channels/service.ts around line 180). It also treats an `amber` token whose label is 'API version expired' as Connected. In both cases screens 2 and 12 show red or amber while screen 20 says Connected. The author already lists the 0 to 7 days-left dead-token case as UNPROVEN. The fix belongs in B10's health answer (send token_state, or an explicit credentials state), not in a client heuristic.
+- evidence: Found by reading, not run. service.ts: `level: worst(token.level, deadRow ? "red" : "ok", ...)` and `token_state === "version_expired"` gives `level: "amber", label: "API version expired"`. SettingsPage.tsx reads only `found.token.{daysLeft,level}`. The test fixture settings.test.tsx:80 hard-codes the top-level `level: "ok"` for every row, which is the 'ok only' fixture that P-2512's own rule forbids.
+- blocking: false
+
+### 2. app/src/admin/automation/automation-queries.ts
+
+- what: Saving or reordering a decline reason invalidates only adminKeys.automation (and the dashboard). The decline menu on the request screen reads the same reasons under a different key, [...adminKeys.submissions.all(), "decline-reasons"] (requests-queries.ts:79). In one admin session, a request detail opened in the last 30 s (staleTime) can therefore offer the old list or order, even though screen 19 says 'A change applies to the next decline'.
+- evidence: Found by reading. useSaveReason and useReorderReasons call `onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all())`. requests-queries.ts:79 uses `queryKey: [...adminKeys.submissions.all(), "decline-reasons"]`. query.ts sets staleTime: 30_000.
+- blocking: false
+
+### 3. app/src/admin/settings/FlagsSection.tsx
+
+- what: A single click on a checkbox flips maintenance or csp_enforce immediately: maintenance answers every public page with the maintenance notice. There is no confirm Dialog. STANDARDS C17 asks that a destructive action go through the confirm Dialog. The change is reversible and step 9 does not ask for a confirm, so this is a follow-up to settle when FlagsSection is mounted on screen 24 (B7 step 15).
+- evidence: Found by reading. FlagsSection.tsx lines 33-46: `onChange={(event) => { save.mutate({ flag, value: event.target.checked }, ...) }}` with no Dialog.
+- blocking: false
+
+### 4. app/src/admin/automation/emails.test.tsx
+
+- what: The author reported this themselves. Step 8's test still keeps its own copy of the fetch stub and router mount that test-mount.tsx now holds. It is another group's file and jscpd passes today, so this is a follow-up to record.
+- evidence: From the author's unproven list and the g9 rework log block. `bun run check` passed (jscpd included), so no gate is red.
+- blocking: false
+
+### 5. app/src/admin/automation/settings.test.tsx
+
+- what: The secret-leak guard (b8b-g9-settings-no-secret) is a manual registry entry, so CI's watchfail never replays it. If a later change adds credentials_ref back to channelRowSchema, nothing mechanical shows that the guard can still go red.
+- evidence: tests/mutations/B8b.json, entry b8b-g9-settings-no-secret: kind manual, a two-file procedure. The author's log reports one hand replay on 2026-10-08. I did not repeat it.
+- blocking: false
+
+### 6. FlagsSection mount (src/routes/admin/settings.index.tsx)
+
+- what: NOT DONE by design: FlagsSection is not mounted on screen 24 because B7 step 15 has not created settings.index.tsx. Until that step lands, nothing in the app renders the component. The orchestrator must make sure B7 step 15, or whoever lands after it, adds the one import line. Otherwise the flags have no editor.
+- evidence: `grep -rn FlagsSection src` finds only FlagsSection.tsx and its test. `ls src/routes/admin | grep settings` shows only automation.settings.tsx. The group title excepts this mount.
+- blocking: false
+
+## g10 · steps 10
+
+Recorded from the g10 review (no blocking defect). None is blocking. Two further items of that review name GOTCHAS.md and went into the bank (P-2513, and a hit-again line on the guardEnv entry), not here.
+
+### 1. app/tests/e2e/automation-exit.spec.ts
+
+- what: The spec never deletes the agent identity it creates or the key rows it adds. On mop-dev, which becomes production at the launch switch (H35), it leaves an auth user e2e-automation-agent@matterofplace.invalid with an active media_ops agent role (disabled_at null), plus one revoked agent_keys row per run. The plan's proof says 'the spec deletes the rows it creates', and the spec's header comment lists what stays (the events row) without naming these. No key is live, so this is not an exploit today. After launch, though, the Team screen would show an enabled test agent in production.
+- evidence: Queried mop-dev after my run: user_roles for that email returns [{role: media_ops, actor_kind: agent, disabled_at: null}]. 33 agent_keys rows match label 'e2e automation exit%' and 0 of them are unrevoked. The afterAll at lines 126-145 revokes the key and deletes only the submission.
+- blocking: false
+
+### 2. app/tests/e2e/automation-exit.spec.ts
+
+- what: The screen 16 negative assertion (line 338, not.toContainText(/notify admin/i)) has no watched-fail of its own; the author says so. Reading the code, I think it can go red: the jobs filter includes job_event_entity_id.eq.<id>, and words(row.type) renders notify_admin as 'notify admin'. Neither point was proven by running.
+- evidence: src/server/lib/jobs.ts:65-73 entityJobsFilter; src/admin/jobs/JobsTable.tsx:46 words(row.type). There is no registry entry that mutates only the screen 16 path.
+- blocking: false
+
+### 3. app/tests/e2e/automation-exit.spec.ts
+
+- what: The plan's proof is only partly met. The agent key is inserted straight into agent_keys instead of being created through B7 step 14's team service, which is not on main. This stays UNPROVEN until step 14 lands and the insert is replaced, as the author's own unproven list says.
+- evidence: Lines 104-119 insert into user_roles and agent_keys with pg.
+- blocking: false
+
+### 4. workspace/05-plans/B8b.md
+
+- what: Stale plan text, for the orchestrator to fold in. Step 10's proof says 'a limit above 50 is clamped to 50' and calls the cursor `before`. The code refuses a limit over 50 with 422 and names the cursor `cursor` (<at>~<id>). Watched-fail (n) 'drop ... the 50 clamp' is met by b8b-g10-limit-clamp against the refusal, not against a clamp.
+- evidence: src/server/automation/service.ts listRevisions and revisionsInput = adminPageSchema.extend(...); the existing case 'refuses a limit over 50 and a cursor that is not <at>~<id> with 422'.
+- blocking: false
+
+## c8bx · steps 10
+
+Recorded from the c8bx review (no blocking defect). None is blocking. The third item of that review names GOTCHAS.md and went into the bank (P-2517), not here.
+
+### 1. app/tests/e2e/automation-exit.spec.ts
+
+- what: The CI-visible case at line 242 ('... records the event and enqueues no notify_admin job') stays green when the behaviour named in its title is removed. Its notify_admin assertion can only pass. In CI no runner exists, so no job exists at all. On the laptop the case finishes before the runner plans the event. The title therefore claims more than CI proves. The brief asked for this split and the author marked it UNPROVEN, so it is not blocking. Possible fix: rename it to say what it proves, or assert that no job exists for the event yet, which states the H70 boundary honestly.
+- evidence: Confirmed by running. In the replay of b8b-g10-e2e-step-on the step was left on (the planner would make notify_admin_received), yet case 1 passed: '✓ 1 ... a submission from /submit records the event and enqueues no notify_admin job (3.7s)'. Only the runner case went red.
+- blocking: false
+
+### 2. app/tests/mutations/B8b.json
+
+- what: No registry entry names the new CI-visible test title red (C08, P-079). The old entry b8b-g10-e2e-step-on used to expect '✘ .*a submission from /submit'. It now expects only the runner case. The author's watched-fail for that case (event query given SUBMITTER + 'x', 'Expected length: 1 / Received length: 0') is in the log only and was never registered.
+- evidence: Confirmed by running. A node listing of B8b.json entries that mention automation-exit shows these expects: no-store, '› the runner plans', 'a restore from screen 21', 'an agent key makes the same switch'. None names 'a submission from /submit records the event'.
+- blocking: false

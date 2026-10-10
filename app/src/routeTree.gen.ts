@@ -52,6 +52,11 @@ import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slu
 import { Route as AdminAssetsIndexRouteImport } from './routes/admin/assets.index'
 import { Route as AdminAuditIndexRouteImport } from './routes/admin/audit.index'
 import { Route as AdminAuthConfirmRouteImport } from './routes/admin/auth.confirm'
+import { Route as AdminAutomationEmailsRouteImport } from './routes/admin/automation.emails'
+import { Route as AdminAutomationReasonsRouteImport } from './routes/admin/automation.reasons'
+import { Route as AdminAutomationRecipesRouteImport } from './routes/admin/automation.recipes'
+import { Route as AdminAutomationRevisionsRouteImport } from './routes/admin/automation.revisions'
+import { Route as AdminAutomationSettingsRouteImport } from './routes/admin/automation.settings'
 import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
 import { Route as AdminInquiriesIndexRouteImport } from './routes/admin/inquiries.index'
 import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
@@ -213,6 +218,7 @@ import { Route as ApiAdminAuditSubjectRequestsIdExportRouteImport } from './rout
 import { Route as ApiAdminAuditSubjectRequestsIdOptOutRouteImport } from './routes/api/admin/audit.subject-requests.$id.opt-out'
 import { Route as ApiAdminAuditSubjectRequestsIdStatusRouteImport } from './routes/api/admin/audit.subject-requests.$id.status'
 import { Route as ApiAdminAutomationRevisionsIdRestoreRouteImport } from './routes/api/admin/automation.revisions.$id.restore'
+import { Route as ApiAdminAutomationTemplatesKeySendTestRouteImport } from './routes/api/admin/automation.templates.$key.send-test'
 import { Route as ApiAdminChannelsPostsIdCancelRouteImport } from './routes/api/admin/channels.posts.$id.cancel'
 import { Route as ApiAdminChannelsPostsIdMetricsRefreshRouteImport } from './routes/api/admin/channels.posts.$id.metrics-refresh'
 import { Route as ApiAdminChannelsPostsIdRetryRouteImport } from './routes/api/admin/channels.posts.$id.retry'
@@ -445,6 +451,32 @@ const AdminAuditIndexRoute = AdminAuditIndexRouteImport.update({
 const AdminAuthConfirmRoute = AdminAuthConfirmRouteImport.update({
   id: '/auth/confirm',
   path: '/auth/confirm',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAutomationEmailsRoute = AdminAutomationEmailsRouteImport.update({
+  id: '/automation/emails',
+  path: '/automation/emails',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAutomationReasonsRoute = AdminAutomationReasonsRouteImport.update({
+  id: '/automation/reasons',
+  path: '/automation/reasons',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAutomationRecipesRoute = AdminAutomationRecipesRouteImport.update({
+  id: '/automation/recipes',
+  path: '/automation/recipes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAutomationRevisionsRoute =
+  AdminAutomationRevisionsRouteImport.update({
+    id: '/automation/revisions',
+    path: '/automation/revisions',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminAutomationSettingsRoute = AdminAutomationSettingsRouteImport.update({
+  id: '/automation/settings',
+  path: '/automation/settings',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminChannelsIndexRoute = AdminChannelsIndexRouteImport.update({
@@ -1343,6 +1375,12 @@ const ApiAdminAutomationRevisionsIdRestoreRoute =
     path: '/$id/restore',
     getParentRoute: () => ApiAdminAutomationRevisionsRoute,
   } as any)
+const ApiAdminAutomationTemplatesKeySendTestRoute =
+  ApiAdminAutomationTemplatesKeySendTestRouteImport.update({
+    id: '/send-test',
+    path: '/send-test',
+    getParentRoute: () => ApiAdminAutomationTemplatesKeyRoute,
+  } as any)
 const ApiAdminChannelsPostsIdCancelRoute =
   ApiAdminChannelsPostsIdCancelRouteImport.update({
     id: '/$id/cancel',
@@ -1466,6 +1504,11 @@ export interface FileRoutesByFullPath {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/automation/emails': typeof AdminAutomationEmailsRoute
+  '/admin/automation/reasons': typeof AdminAutomationReasonsRoute
+  '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
+  '/admin/automation/revisions': typeof AdminAutomationRevisionsRoute
+  '/admin/automation/settings': typeof AdminAutomationSettingsRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/newsletter/$id': typeof AdminNewsletterIdRoute
@@ -1584,7 +1627,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/automation/reasons/order': typeof ApiAdminAutomationReasonsOrderRoute
   '/api/admin/automation/recipes/$trigger': typeof ApiAdminAutomationRecipesTriggerRoute
   '/api/admin/automation/schedule-settings/$key': typeof ApiAdminAutomationScheduleSettingsKeyRoute
-  '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRoute
+  '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
@@ -1632,6 +1675,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
   '/api/admin/audit/subject-requests/$id/status': typeof ApiAdminAuditSubjectRequestsIdStatusRoute
   '/api/admin/automation/revisions/$id/restore': typeof ApiAdminAutomationRevisionsIdRestoreRoute
+  '/api/admin/automation/templates/$key/send-test': typeof ApiAdminAutomationTemplatesKeySendTestRoute
   '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
   '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
   '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
@@ -1681,6 +1725,11 @@ export interface FileRoutesByTo {
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/automation/emails': typeof AdminAutomationEmailsRoute
+  '/admin/automation/reasons': typeof AdminAutomationReasonsRoute
+  '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
+  '/admin/automation/revisions': typeof AdminAutomationRevisionsRoute
+  '/admin/automation/settings': typeof AdminAutomationSettingsRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/newsletter/$id': typeof AdminNewsletterIdRoute
@@ -1799,7 +1848,7 @@ export interface FileRoutesByTo {
   '/api/admin/automation/reasons/order': typeof ApiAdminAutomationReasonsOrderRoute
   '/api/admin/automation/recipes/$trigger': typeof ApiAdminAutomationRecipesTriggerRoute
   '/api/admin/automation/schedule-settings/$key': typeof ApiAdminAutomationScheduleSettingsKeyRoute
-  '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRoute
+  '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
@@ -1847,6 +1896,7 @@ export interface FileRoutesByTo {
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
   '/api/admin/audit/subject-requests/$id/status': typeof ApiAdminAuditSubjectRequestsIdStatusRoute
   '/api/admin/automation/revisions/$id/restore': typeof ApiAdminAutomationRevisionsIdRestoreRoute
+  '/api/admin/automation/templates/$key/send-test': typeof ApiAdminAutomationTemplatesKeySendTestRoute
   '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
   '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
   '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
@@ -1902,6 +1952,11 @@ export interface FileRoutesById {
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
+  '/admin/automation/emails': typeof AdminAutomationEmailsRoute
+  '/admin/automation/reasons': typeof AdminAutomationReasonsRoute
+  '/admin/automation/recipes': typeof AdminAutomationRecipesRoute
+  '/admin/automation/revisions': typeof AdminAutomationRevisionsRoute
+  '/admin/automation/settings': typeof AdminAutomationSettingsRoute
   '/admin/invoices/$id': typeof AdminInvoicesIdRoute
   '/admin/invoices/new': typeof AdminInvoicesNewRoute
   '/admin/newsletter/$id': typeof AdminNewsletterIdRoute
@@ -2020,7 +2075,7 @@ export interface FileRoutesById {
   '/api/admin/automation/reasons/order': typeof ApiAdminAutomationReasonsOrderRoute
   '/api/admin/automation/recipes/$trigger': typeof ApiAdminAutomationRecipesTriggerRoute
   '/api/admin/automation/schedule-settings/$key': typeof ApiAdminAutomationScheduleSettingsKeyRoute
-  '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRoute
+  '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
@@ -2068,6 +2123,7 @@ export interface FileRoutesById {
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
   '/api/admin/audit/subject-requests/$id/status': typeof ApiAdminAuditSubjectRequestsIdStatusRoute
   '/api/admin/automation/revisions/$id/restore': typeof ApiAdminAutomationRevisionsIdRestoreRoute
+  '/api/admin/automation/templates/$key/send-test': typeof ApiAdminAutomationTemplatesKeySendTestRoute
   '/api/admin/channels/posts/$id/cancel': typeof ApiAdminChannelsPostsIdCancelRoute
   '/api/admin/channels/posts/$id/metrics-refresh': typeof ApiAdminChannelsPostsIdMetricsRefreshRoute
   '/api/admin/channels/posts/$id/retry': typeof ApiAdminChannelsPostsIdRetryRoute
@@ -2123,6 +2179,11 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/automation/emails'
+    | '/admin/automation/reasons'
+    | '/admin/automation/recipes'
+    | '/admin/automation/revisions'
+    | '/admin/automation/settings'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
     | '/admin/newsletter/$id'
@@ -2289,6 +2350,7 @@ export interface FileRouteTypes {
     | '/api/admin/audit/subject-requests/$id/opt-out'
     | '/api/admin/audit/subject-requests/$id/status'
     | '/api/admin/automation/revisions/$id/restore'
+    | '/api/admin/automation/templates/$key/send-test'
     | '/api/admin/channels/posts/$id/cancel'
     | '/api/admin/channels/posts/$id/metrics-refresh'
     | '/api/admin/channels/posts/$id/retry'
@@ -2338,6 +2400,11 @@ export interface FileRouteTypes {
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/automation/emails'
+    | '/admin/automation/reasons'
+    | '/admin/automation/recipes'
+    | '/admin/automation/revisions'
+    | '/admin/automation/settings'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
     | '/admin/newsletter/$id'
@@ -2504,6 +2571,7 @@ export interface FileRouteTypes {
     | '/api/admin/audit/subject-requests/$id/opt-out'
     | '/api/admin/audit/subject-requests/$id/status'
     | '/api/admin/automation/revisions/$id/restore'
+    | '/api/admin/automation/templates/$key/send-test'
     | '/api/admin/channels/posts/$id/cancel'
     | '/api/admin/channels/posts/$id/metrics-refresh'
     | '/api/admin/channels/posts/$id/retry'
@@ -2558,6 +2626,11 @@ export interface FileRouteTypes {
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
+    | '/admin/automation/emails'
+    | '/admin/automation/reasons'
+    | '/admin/automation/recipes'
+    | '/admin/automation/revisions'
+    | '/admin/automation/settings'
     | '/admin/invoices/$id'
     | '/admin/invoices/new'
     | '/admin/newsletter/$id'
@@ -2724,6 +2797,7 @@ export interface FileRouteTypes {
     | '/api/admin/audit/subject-requests/$id/opt-out'
     | '/api/admin/audit/subject-requests/$id/status'
     | '/api/admin/automation/revisions/$id/restore'
+    | '/api/admin/automation/templates/$key/send-test'
     | '/api/admin/channels/posts/$id/cancel'
     | '/api/admin/channels/posts/$id/metrics-refresh'
     | '/api/admin/channels/posts/$id/retry'
@@ -3132,6 +3206,41 @@ declare module '@tanstack/react-router' {
       path: '/auth/confirm'
       fullPath: '/admin/auth/confirm'
       preLoaderRoute: typeof AdminAuthConfirmRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/automation/emails': {
+      id: '/admin/automation/emails'
+      path: '/automation/emails'
+      fullPath: '/admin/automation/emails'
+      preLoaderRoute: typeof AdminAutomationEmailsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/automation/reasons': {
+      id: '/admin/automation/reasons'
+      path: '/automation/reasons'
+      fullPath: '/admin/automation/reasons'
+      preLoaderRoute: typeof AdminAutomationReasonsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/automation/recipes': {
+      id: '/admin/automation/recipes'
+      path: '/automation/recipes'
+      fullPath: '/admin/automation/recipes'
+      preLoaderRoute: typeof AdminAutomationRecipesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/automation/revisions': {
+      id: '/admin/automation/revisions'
+      path: '/automation/revisions'
+      fullPath: '/admin/automation/revisions'
+      preLoaderRoute: typeof AdminAutomationRevisionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/automation/settings': {
+      id: '/admin/automation/settings'
+      path: '/automation/settings'
+      fullPath: '/admin/automation/settings'
+      preLoaderRoute: typeof AdminAutomationSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/channels/': {
@@ -4261,6 +4370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAutomationRevisionsIdRestoreRouteImport
       parentRoute: typeof ApiAdminAutomationRevisionsRoute
     }
+    '/api/admin/automation/templates/$key/send-test': {
+      id: '/api/admin/automation/templates/$key/send-test'
+      path: '/send-test'
+      fullPath: '/api/admin/automation/templates/$key/send-test'
+      preLoaderRoute: typeof ApiAdminAutomationTemplatesKeySendTestRouteImport
+      parentRoute: typeof ApiAdminAutomationTemplatesKeyRoute
+    }
     '/api/admin/channels/posts/$id/cancel': {
       id: '/api/admin/channels/posts/$id/cancel'
       path: '/$id/cancel'
@@ -4462,6 +4578,11 @@ interface AdminRouteChildren {
   AdminSignInRoute: typeof AdminSignInRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
+  AdminAutomationEmailsRoute: typeof AdminAutomationEmailsRoute
+  AdminAutomationReasonsRoute: typeof AdminAutomationReasonsRoute
+  AdminAutomationRecipesRoute: typeof AdminAutomationRecipesRoute
+  AdminAutomationRevisionsRoute: typeof AdminAutomationRevisionsRoute
+  AdminAutomationSettingsRoute: typeof AdminAutomationSettingsRoute
   AdminInvoicesIdRoute: typeof AdminInvoicesIdRoute
   AdminInvoicesNewRoute: typeof AdminInvoicesNewRoute
   AdminNewsletterIdRoute: typeof AdminNewsletterIdRoute
@@ -4491,6 +4612,11 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminSignInRoute: AdminSignInRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
+  AdminAutomationEmailsRoute: AdminAutomationEmailsRoute,
+  AdminAutomationReasonsRoute: AdminAutomationReasonsRoute,
+  AdminAutomationRecipesRoute: AdminAutomationRecipesRoute,
+  AdminAutomationRevisionsRoute: AdminAutomationRevisionsRoute,
+  AdminAutomationSettingsRoute: AdminAutomationSettingsRoute,
   AdminInvoicesIdRoute: AdminInvoicesIdRoute,
   AdminInvoicesNewRoute: AdminInvoicesNewRoute,
   AdminNewsletterIdRoute: AdminNewsletterIdRoute,
@@ -4713,14 +4839,30 @@ const ApiAdminAutomationScheduleSettingsRouteWithChildren =
     ApiAdminAutomationScheduleSettingsRouteChildren,
   )
 
+interface ApiAdminAutomationTemplatesKeyRouteChildren {
+  ApiAdminAutomationTemplatesKeySendTestRoute: typeof ApiAdminAutomationTemplatesKeySendTestRoute
+}
+
+const ApiAdminAutomationTemplatesKeyRouteChildren: ApiAdminAutomationTemplatesKeyRouteChildren =
+  {
+    ApiAdminAutomationTemplatesKeySendTestRoute:
+      ApiAdminAutomationTemplatesKeySendTestRoute,
+  }
+
+const ApiAdminAutomationTemplatesKeyRouteWithChildren =
+  ApiAdminAutomationTemplatesKeyRoute._addFileChildren(
+    ApiAdminAutomationTemplatesKeyRouteChildren,
+  )
+
 interface ApiAdminAutomationTemplatesRouteChildren {
-  ApiAdminAutomationTemplatesKeyRoute: typeof ApiAdminAutomationTemplatesKeyRoute
+  ApiAdminAutomationTemplatesKeyRoute: typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   ApiAdminAutomationTemplatesPreviewRoute: typeof ApiAdminAutomationTemplatesPreviewRoute
 }
 
 const ApiAdminAutomationTemplatesRouteChildren: ApiAdminAutomationTemplatesRouteChildren =
   {
-    ApiAdminAutomationTemplatesKeyRoute: ApiAdminAutomationTemplatesKeyRoute,
+    ApiAdminAutomationTemplatesKeyRoute:
+      ApiAdminAutomationTemplatesKeyRouteWithChildren,
     ApiAdminAutomationTemplatesPreviewRoute:
       ApiAdminAutomationTemplatesPreviewRoute,
   }
