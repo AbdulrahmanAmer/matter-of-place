@@ -3454,6 +3454,8 @@ describe("data requests (step 15a)", () => {
     await withRollback(async (db) => {
       await assertStep15a(db);
       const admin = await createStaffUser(db, ["admin"]);
+      // A second admin fulfils, so handled_by names the person who exported, not the one who confirmed.
+      const exporter = await createStaffUser(db, ["admin"]);
       const email = `subject+${randomUUID()}@example.invalid`;
       const { inquiry, submissions } = await personRows(db, email);
       const request = await subjectRequest(db, email.toUpperCase(), "access");
@@ -3465,7 +3467,7 @@ describe("data requests (step 15a)", () => {
           contacts: { email: string }[];
           submissions: { id: string }[];
         };
-      }>(db, EXPORT, [request, admin]);
+      }>(db, EXPORT, [request, exporter]);
       const after = await one<{ status: string; handled_by: string; fulfilled: boolean }>(
         db,
         "select status, handled_by, fulfilled_at is not null as fulfilled from public.subject_requests where id = $1",
@@ -3483,7 +3485,7 @@ describe("data requests (step 15a)", () => {
         inquiries: [inquiry],
         contacts: [email],
         submissions: [...submissions].sort(),
-        after: { status: "fulfilled", handled_by: admin, fulfilled: true },
+        after: { status: "fulfilled", handled_by: exporter, fulfilled: true },
         audit: auditTrail("audit.subject_export"),
       });
     });
