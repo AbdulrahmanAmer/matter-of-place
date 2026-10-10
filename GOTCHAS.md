@@ -5724,7 +5724,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh api repos/AbdulrahmanAmer/matter-of-place/commits/<head of PR 248>/statuses --jq '.[0].creator.login'` prints the login; the same path with `/status` and `.statuses[0].creator` prints null.
 - added: 2026-10-09
 
-## P-546 · A Lighthouse run stopped at its bound leaves `Run #1...` open, and a `::warning` printed next is glued to it and is no annotation
+## P-548 · A Lighthouse run stopped at its bound leaves `Run #1...` open, and a `::warning` printed next is glued to it and is no annotation
 - symptom: in PR 256's preview log (run 37857699620, attempt 2) H71's retry warning reads `Run #3...::warning title=lighthouse attempt 1 did not finish::...` on one line; the H76 slice's first local run of `scripts/lhci-pages.mjs` printed its url line for a page stopped at its bound glued the same way, so `grep "^lighthouse "` missed it.
 - cause: `@lhci/cli`'s collect writes `Run #<n>...` without a newline and adds `done.` or `failed!` only when the run ends; a run killed at the bound never ends the line. GitHub reads a workflow command only at the start of a line, so H71's `::warning` never became an annotation.
 - rule: a script that prints its own lines next to a child's output must start each of them on a fresh line. `scripts/lhci-pages.mjs` no longer passes lhci's output through at all: each attempt's output goes to a file in `.lighthouseci-pages/`, and the script prints whole lines of its own (a failed attempt's last 10 lines are prefixed `  | `); the url lines are printed again above the summary.
