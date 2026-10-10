@@ -1118,6 +1118,9 @@ isOneToOne: false
 "approve_job":
 { Args: { "p_actor_id"?: string,"p_job_id": string }; Returns: boolean
                            },
+"archive_redirect":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_request_id": string }; Returns: Json
+                           },
 "assert_agent_daily_cap":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_group": string }; Returns: undefined
                            },
@@ -1264,6 +1267,9 @@ isOneToOne: false
 "delete_media":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_media_id": string,"p_request_id": string }; Returns: string
                            },
+"delete_subject":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_subject_request_id": string }; Returns: Json
+                           },
 "drop_old_analytics_partitions":
 { Args: { "keep_months"?: number }; Returns: number
                            },
@@ -1298,6 +1304,9 @@ isOneToOne: false
                            },
 "ensure_analytics_partitions":
 { Args: { "months_ahead"?: number }; Returns: undefined
+                           },
+"export_subject":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_subject_request_id": string }; Returns: Json
                            },
 "fail_job":
 { Args: { "p_claim": string,"p_dead"?: boolean,"p_error": string,"p_job_id": string,"p_run_url"?: string }; Returns: boolean
@@ -1557,6 +1566,9 @@ isOneToOne: false
 "ops_health":
 { Args: { "p_now": string }; Returns: Json
                            },
+"opt_out_subject":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_subject_request_id": string }; Returns: Json
+                           },
 "package_duration_days":
 { Args: { "p_product": Database["public"]['Enums']["exposure_package"] }; Returns: number
                            },
@@ -1594,6 +1606,9 @@ isOneToOne: false
                            },
 "put_channel_ids":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_key": string,"p_request_id": string,"p_value": Json }; Returns: Json
+                           },
+"put_redirect":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_from_path": string,"p_id"?: string,"p_request_id": string,"p_status": number,"p_to_path": string }; Returns: Json
                            },
 "put_setting":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_key": string,"p_request_id": string,"p_value": Json }; Returns: Json
@@ -1837,6 +1852,9 @@ isOneToOne: false
                            },
 "set_social_post_metrics":
 { Args: { "p_id": string,"p_metrics": Json }; Returns: undefined
+                           },
+"set_subject_request_status":
+{ Args: { "p_action": string,"p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note"?: string,"p_request_id": string,"p_subject_request_id": string }; Returns: Json
                            },
 "set_target_image":
 { Args: { "p_image": string,"p_slug": string,"p_target": string,"p_variants": Json }; Returns: undefined

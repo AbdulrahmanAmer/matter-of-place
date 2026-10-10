@@ -8,6 +8,7 @@ import { IdentitySection } from "./IdentitySection";
 import { InvoicingSection } from "./InvoicingSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { ReadinessBanner } from "./ReadinessBanner";
+import { RedirectsSection } from "./RedirectsSection";
 import {
   useSaveComingSoon,
   useSaveInvoice,
@@ -78,6 +79,10 @@ function Sections({ settings }: { settings: SettingsAnswer }) {
           }}
         />
       </section>
+      <section aria-labelledby="settings-redirects">
+        <h2 id="settings-redirects">Redirects</h2>
+        <RedirectsSection />
+      </section>
       <ConfirmDialog
         open={confirming !== null}
         title={confirming === true ? "Show the coming-soon page" : "Open the site"}
@@ -107,7 +112,7 @@ function Sections({ settings }: { settings: SettingsAnswer }) {
   );
 }
 
-/** Screen 24: identity, invoicing, the coming-soon switch and alert recipients, with what launch still needs. */
+/** Screen 24: identity, invoicing, the coming-soon switch, alert recipients and redirects, with what launch still needs. */
 export function SettingsPage() {
   const settings = useSettings();
   const error = settings.error;

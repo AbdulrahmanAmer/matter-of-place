@@ -5,8 +5,10 @@ import { AdminApiError } from "../ui/admin-fetch";
 import { DiffView } from "../ui/DiffView";
 import { Drawer } from "../ui/Drawer";
 import { LocalTime } from "../ui/LocalTime";
+import { Tabs } from "../ui/Tabs";
 import { useUrlFilters } from "../ui/use-url-filters";
 import { AuditTable } from "./AuditTable";
+import { SubjectRequestsTab } from "./SubjectRequestsTab";
 import { useAuditLog } from "./audit-queries";
 
 const fieldsSchema = z.record(z.string(), z.unknown());
@@ -50,8 +52,8 @@ function AuditDiff({ row, onClose }: { row: AuditRow; onClose: () => void }) {
   );
 }
 
-/** Screen 25: the audit log, newest first, narrowed by the address; a row opens what it changed. */
-export function AuditPage() {
+/** The audit log tab: newest first, narrowed by the address; a row opens what it changed. */
+function AuditLogTab() {
   const filters = useUrlFilters(auditFilterNames);
   const audit = useAuditLog(filters.values, filters.cursor);
   const [open, setOpen] = useState<AuditRow | null>(null);
@@ -59,7 +61,6 @@ export function AuditPage() {
   const nextCursor = audit.data?.next_cursor ?? null;
   return (
     <>
-      <h1>Audit log</h1>
       <AuditTable
         filters={{ values: filters.values, onChange: filters.setFilters }}
         rows={audit.data?.items ?? []}
@@ -93,6 +94,24 @@ export function AuditPage() {
           }}
         />
       )}
+    </>
+  );
+}
+
+const TABS = [
+  { id: "log", label: "Audit log" },
+  { id: "requests", label: "Data requests" },
+] as const;
+
+/** Screen 25: the audit log, and the data requests with their 45 day clock. */
+export function AuditPage() {
+  const [tab, setTab] = useState<string>("log");
+  return (
+    <>
+      <h1>Audit log</h1>
+      <Tabs label="Audit" tabs={TABS} active={tab} onChange={setTab}>
+        {tab === "requests" ? <SubjectRequestsTab /> : <AuditLogTab />}
+      </Tabs>
     </>
   );
 }
