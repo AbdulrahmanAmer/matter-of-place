@@ -3,6 +3,9 @@ name: audit-deps
 # H1 step 4: the dependency audit of app/ and launch/, gitleaks over the git history and the checkout (H1-08, H1-10),
 # and the runbook lint. ci.yml ignores **/*.md (B1b), so a pull request that edits only a runbook or docs/security.md
 # is linted here (G-012: paths-ignore cannot carry an exception).
+# Cost (C22): measured on runs 37876481838 and 37876648822, audit 22 s and runbook-lint 8 to 9 s, each billed as one
+# whole minute, so 2 Actions minutes a run: about 9 a month from the weekly schedule, plus 2 for each push to a pull
+# request that touches the paths below; drawn from the 2,000 minutes a month of GOTCHAS P-009.
 on:
   workflow_dispatch:
   schedule:

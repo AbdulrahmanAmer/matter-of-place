@@ -58,8 +58,8 @@
       "id": "H1-08",
       "lane": "Security",
       "item": "Secret scan of files and history (CI job audit-deps.yml is the proof of record)",
-      "expectation": "the last audit-deps.yml run concluded success (its log says: no leaks found)",
-      "command": "[ \"$(gh run list --workflow audit-deps.yml --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ]"
+      "expectation": "the last audit-deps.yml run on main concluded success (its log says: no leaks found)",
+      "command": "[ \"$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ]"
     },
     {
       "id": "H1-09",
@@ -73,8 +73,8 @@
       "id": "H1-10",
       "lane": "Security",
       "item": "Dependency audit",
-      "expectation": "no high or critical advisory in the app and in launch/, or a waiver recorded in the audit:deps script and docs/security.md; the last audit-deps.yml run succeeded",
-      "command": "bun run audit:deps && (cd ../launch && bun run audit:deps) && [ \"$(gh run list --workflow audit-deps.yml --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ]"
+      "expectation": "no high or critical advisory in the app and in launch/, or a waiver recorded in the audit:deps script and docs/security.md; the last audit-deps.yml run on main succeeded",
+      "command": "bun run audit:deps && (cd ../launch && bun run audit:deps) && [ \"$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion')\" = success ]"
     },
     {
       "id": "H1-11",

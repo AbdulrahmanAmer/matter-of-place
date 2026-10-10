@@ -17,10 +17,16 @@ regexes = [
   '''^whsec_dGVzdC1zZWNyZXQt[A-Za-z0-9+/]*=*$''',
   # The example signing secret of Svix's verification documentation, used by resend-signature.test.ts.
   '''^whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw$''',
-  # Registry entry ids of the watched-fail tool (`b11-g2-standalone-variables`, `b7-14-svc-raw-key`): a slice code,
-  # then lowercase words, one of them with a letter after f, which keeps a hexadecimal uuid out (RE2: no lookahead).
-  '''^[a-z]{1,2}[0-9]+[a-z0-9]*(-[a-z0-9]+)*-[a-z0-9]*[g-z][a-z0-9]*(-[a-z0-9]+)*$''',
 ]
+
+[[allowlists]]
+description = "Registry entry ids quoted in the build logs, such as b11-g2-standalone-variables and b7-14-svc-raw-key"
+condition = "AND"
+regexTarget = "secret"
+# A slice code, then lowercase words, one of them with a letter after f, which keeps a hexadecimal uuid out (RE2: no
+# lookahead). Only in workspace/05-plans/logs, so a key of the same shape anywhere else is still reported.
+paths = ['''^workspace/05-plans/logs/[^/]+\.md$''']
+regexes = ['''^[a-z]{1,2}[0-9]+[a-z0-9]*(-[a-z0-9]+)*-[a-z0-9]*[g-z][a-z0-9]*(-[a-z0-9]+)*$''']
 
 [[allowlists]]
 description = "Installed packages and build output are not the repository's own text"

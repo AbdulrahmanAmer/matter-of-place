@@ -98,7 +98,13 @@ writes itself and every 5xx answer with `Cache-Control: no-store`, set by `src/s
 
 ## Retention
 
-The daily retention job `src/server/jobs/system/retention.ts` is the only code that hard-deletes; it runs policy by
+The row trigger `refuse_hard_delete` (`supabase/sql/functions/refuse_hard_delete.sql`, added by migration
+`20261001090700_editorial_gate.sql`) is on `properties`, `stories`, `subscribers`, `submissions`, `contacts`,
+`inquiries`, `payments` and `campaigns`. It raises `hard_delete_refused` on every delete, the service role included,
+unless the transaction set `mop.retention` to `on`. In `supabase/sql` the functions that set it are
+`retention_delete_rows`, `retention_delete_media` and `prune_jobs`; some API and database tests set it inside their own
+transactions. Tables without the trigger are deleted from by other functions too, for example `property_media` by
+`delete_media` and `jobs` by `prune_jobs`. The daily retention job `src/server/jobs/system/retention.ts` runs policy by
 policy from the `retention_policies` table and writes one audit row per run. Proved by H1-36.
 
 ## Open risks (rulings H4 and H5, SEC-04)
