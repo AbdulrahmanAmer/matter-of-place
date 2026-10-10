@@ -2,11 +2,10 @@
 // merge gate). The run itself needs a build and `wrangler dev`; its proof is a real log under
 // workspace/05-plans/logs/preview-local/.
 import { describe, expect, it } from "vitest";
+import { summary, verdict } from "../../scripts/lhci-pages.mjs";
 import {
   STEPS,
   frontEndChanged,
-  lhciUrlArgs,
-  lighthouseRetry,
   lighthouseStep,
   localPreviewProblem,
   parseArgs,
@@ -83,15 +82,6 @@ describe("frontEndChanged, the change test of deploy.yml", () => {
       ]),
       frontEndChanged([]),
     ]).toEqual([true, true, true, true, false, false]);
-  });
-});
-
-describe("lhciUrlArgs", () => {
-  it("makes one --collect.url per printed line and drops blank lines", () => {
-    expect(lhciUrlArgs("http://127.0.0.1:8970/\r\nhttp://127.0.0.1:8970/properties\n\n")).toEqual([
-      "--collect.url=http://127.0.0.1:8970/",
-      "--collect.url=http://127.0.0.1:8970/properties",
-    ]);
   });
 });
 
@@ -177,71 +167,81 @@ describe("localPreviewProblem, the merge gate's reading of a log (H73)", () => {
   });
 });
 
-describe("lighthouseRetry and lighthouseStep, the two attempts of ruling H71", () => {
-  const lines = (name: string, count: number) =>
-    Array.from({ length: count }, (_, i) => `${name} line ${String(i + 1)}`);
-  const attempt = (code: number, name: string) => ({
-    code,
+describe("lighthouseStep, one run of scripts/lhci-pages.mjs (ruling H76)", () => {
+  const base = "http://127.0.0.1:8970";
+  const ok = { code: 0, signal: null, timedOut: false, output: "", seconds: 90 };
+  const hung = { code: null, signal: "SIGINT", timedOut: true, output: "", seconds: 240 };
+  const failed = {
+    code: 1,
+    signal: null,
     timedOut: false,
-    lines: lines(name, 30),
-    seconds: 154,
-    label: "lighthouserc.json, 6 urls",
-  });
+    output: "assert command failed. Exiting with status code 1.",
+    seconds: 90,
+  };
+  // The output of lhci-pages: lhci's own lines, each url line after its url and again above the summary.
+  const output = (verdicts: ReturnType<typeof verdict>[]) =>
+    [
+      ...verdicts.flatMap((one) => ["Running Lighthouse 3 time(s)", one.line]),
+      "",
+      ...verdicts.map((one) => one.line),
+      summary(verdicts).line,
+    ].join("\n");
+  const pages = (code: number, verdicts: ReturnType<typeof verdict>[]) => {
+    const stdout = output(verdicts);
+    return { code, timedOut: false, lines: stdout.split("\n"), stdout, seconds: 312 };
+  };
   const withSteps = (lighthouse: Step) =>
     log((steps) => steps.map((step) => (step.name === "lighthouse" ? lighthouse : step)));
 
-  it("makes one attempt when the first passes", () => {
-    const first = [attempt(0, "one")];
-    const step = lighthouseStep(first);
-    expect([lighthouseRetry(first), step.verdict, step.detail, step.earlier]).toEqual([
-      false,
+  it("passes with the url and retry counts and keeps one line per url under its own heading", () => {
+    const verdicts = [verdict(`${base}/`, [ok], 1200), verdict(`${base}/submit`, [hung, ok], 1200)];
+    const step = lighthouseStep(pages(0, verdicts));
+    expect([step.verdict, step.detail]).toEqual([
       "pass",
-      "lighthouserc.json, 6 urls, 154 s",
-      undefined,
-    ]);
-  });
-
-  it("passes on the second attempt, notes it, and keeps the first attempt's last 5 lines under their own heading", () => {
-    const tried = [attempt(1, "one")];
-    const both = [...tried, attempt(0, "two")];
-    const step = lighthouseStep(both);
-    expect([lighthouseRetry(tried), lighthouseRetry(both), step.verdict, step.detail]).toEqual([
-      true,
-      false,
-      "pass",
-      "lighthouserc.json, 6 urls, attempt 2 of 2, 154 s",
+      "scripts/lhci-pages.mjs, 2 urls, 1 retried, 312 s",
     ]);
     const text = withSteps(step);
-    expect(text).toContain("lighthouse | pass | lighthouserc.json, 6 urls, attempt 2 of 2, 154 s");
-    const kept = ["one line 26", "one line 27", "one line 28", "one line 29", "one line 30"];
+    expect(text).toContain("lighthouse | pass | scripts/lhci-pages.mjs, 2 urls, 1 retried, 312 s");
     expect(text).toContain(
       [
-        "## lighthouse attempt 1 (did not finish, retried under ruling H71)",
+        "## lighthouse, one line per url (ruling H76)",
         "",
         "```text",
-        ...kept,
+        `lighthouse ${base}/: pass`,
+        `lighthouse ${base}/submit: pass (runtime, retried: stopped at its bound after 240 s)`,
         "```",
       ].join("\n"),
     );
-    expect(text).not.toContain("one line 25");
     expect(localPreviewProblem(text, "227", HEAD)).toBe("");
   });
 
-  it("fails when both attempts fail, never makes a third, and keeps the last 20 lines of each", () => {
-    const both = [attempt(1, "one"), attempt(1, "two")];
-    const step = lighthouseStep(both);
-    expect([lighthouseRetry(both), step.verdict, step.detail]).toEqual([
-      false,
+  it("fails on the script's exit, keeps the tail and the url lines, and the gate refuses it", () => {
+    const verdicts = [verdict(`${base}/`, [ok], 1200), verdict(`${base}/exposure`, [failed], 1200)];
+    const step = lighthouseStep(pages(1, verdicts));
+    expect([step.verdict, step.detail, step.earlier?.[0]?.lines]).toEqual([
       "fail",
-      "lighthouserc.json, 6 urls, attempt 2 of 2, exit 1 after 154 s",
+      "scripts/lhci-pages.mjs, 2 urls, 0 retried, exit 1 after 312 s",
+      [`lighthouse ${base}/: pass`, `lighthouse ${base}/exposure: fail (assertion)`],
     ]);
-    expect(step.tail).toEqual(lines("two", 30).slice(-20));
-    expect(step.earlier?.[0]?.lines).toEqual(lines("one", 30).slice(-20));
     const text = withSteps(step);
-    expect(text).toContain("## Output of lighthouse (last 20 lines)");
-    expect(text).toContain("## lighthouse attempt 1 (did not finish, retried under ruling H71)");
+    expect(text).toContain("## Output of lighthouse (last 8 lines)");
     expect(localPreviewProblem(text, "227", HEAD)).toBe(
-      "lighthouse is fail in the log: lighthouserc.json, 6 urls, attempt 2 of 2, exit 1 after 154 s",
+      "lighthouse is fail in the log: scripts/lhci-pages.mjs, 2 urls, 0 retried, exit 1 after 312 s",
     );
+  });
+
+  it("fails a run that printed no summary, saying so", () => {
+    const step = lighthouseStep({
+      code: null,
+      timedOut: true,
+      lines: ["Run #1..."],
+      stdout: "Run #1...",
+      seconds: 1320,
+    });
+    expect([step.verdict, step.detail, step.earlier]).toEqual([
+      "fail",
+      "scripts/lhci-pages.mjs, no summary, stopped at its time limit after 1320 s",
+      undefined,
+    ]);
   });
 });
