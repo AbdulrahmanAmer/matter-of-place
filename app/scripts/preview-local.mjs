@@ -22,6 +22,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { stripVTControlCharacters } from "node:util";
+import { readOutput } from "./lhci-pages.mjs";
 
 const USAGE = "usage: node scripts/preview-local.mjs --pr <n> [--port 8970] [--mode live|local]";
 const REPO = "AbdulrahmanAmer/matter-of-place";
@@ -51,7 +52,7 @@ export const STEPS = /** @type {const} */ ([
  * @typedef {typeof STEPS[number]} StepName
  * @typedef {"pass" | "fail" | "skipped" | "not run"} Verdict
  * @typedef {"live" | "local"} Mode
- * @typedef {{ heading: string, lines: string[] }} Earlier an earlier attempt of a step, kept under its own heading
+ * @typedef {{ heading: string, lines: string[] }} Earlier lines of a step kept under their own heading (the urls of lighthouse)
  * @typedef {{ name: StepName, verdict: Verdict, detail: string, tail: string[], earlier?: Earlier[] }} Step
  * @typedef {{
  *   pr: string,
@@ -97,62 +98,25 @@ export function frontEndChanged(files) {
   return files.some((file) => FRONT_END.test(file));
 }
 
-/**
- * `--collect.url=<url>` for each line `scripts/lhci-urls.mjs` printed.
- * @param {string} printed
- * @returns {string[]}
- */
-export function lhciUrlArgs(printed) {
-  return printed
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line !== "")
-    .map((url) => `--collect.url=${url}`);
-}
-
-/** Ruling H71: the Lighthouse step runs the same command at most this many times, as deploy.yml's does. */
-export const LIGHTHOUSE_ATTEMPTS = 2;
-const RETRIED = "did not finish, retried under ruling H71";
+/** The heading of the url lines of the Lighthouse step in the log. */
+const PER_URL = "lighthouse, one line per url (ruling H76)";
 
 /**
- * @typedef {{ code: number | null, timedOut: boolean, lines: string[], seconds: number, label: string }} Attempt
- */
-
-/**
- * Whether the Lighthouse step runs again: the last attempt failed and fewer than two have run (H71).
- * @param {Attempt[]} attempts the attempts made so far, in order
- * @returns {boolean}
- */
-export function lighthouseRetry(attempts) {
-  const last = attempts.at(-1);
-  return last !== undefined && last.code !== 0 && attempts.length < LIGHTHOUSE_ATTEMPTS;
-}
-
-/**
- * The Lighthouse step from its attempts: the last attempt decides, the detail says `attempt 2 of 2` when the second ran,
- * and a first attempt that failed stays in the record under its own heading (5 lines when the retry passed, 20 when it
- * failed too).
- * @param {Attempt[]} attempts one or two attempts, in order
+ * The Lighthouse step from one run of `scripts/lhci-pages.mjs`, the command deploy.yml runs (ruling H76: page by page,
+ * one retry of a page that hit a Lighthouse runtime error, never a retry of an assertion failure). Its exit decides; the
+ * detail counts the urls and the retried ones, and the url lines stay in the record under their own heading.
+ * @param {{ code: number | null, timedOut: boolean, lines: string[], stdout: string, seconds: number }} result
  * @returns {Step}
  */
-export function lighthouseStep(attempts) {
-  const last = attempts.at(-1);
-  const first = attempts[0];
-  if (last === undefined || first === undefined) {
-    return step("lighthouse", "fail", "no attempt was made");
-  }
-  const note =
-    attempts.length > 1
-      ? `attempt ${String(attempts.length)} of ${String(LIGHTHOUSE_ATTEMPTS)}`
-      : "";
-  const label = [last.label, note].filter((part) => part !== "").join(", ");
-  const done = judged(last, "lighthouse", label);
-  if (attempts.length === 1 || first.code === 0) return done;
-  const kept = done.verdict === "pass" ? 5 : TAIL;
-  return {
-    ...done,
-    earlier: [{ heading: `lighthouse attempt 1 (${RETRIED})`, lines: first.lines.slice(-kept) }],
-  };
+export function lighthouseStep(result) {
+  const read = readOutput(result.stdout);
+  const label =
+    read === undefined
+      ? "scripts/lhci-pages.mjs, no summary"
+      : `scripts/lhci-pages.mjs, ${String(read.urls)} urls, ${String(read.retried)} retried`;
+  const done = judged(result, "lighthouse", label);
+  if (read === undefined || read.lines.length === 0) return done;
+  return { ...done, earlier: [{ heading: PER_URL, lines: read.lines }] };
 }
 
 /**
@@ -739,38 +703,14 @@ async function main({ pr, port, mode }) {
       const summary = overflow.lines.filter((line) => /^\s*\d+ (passed|failed|flaky)/.test(line));
       record(judged(overflow, "overflow", summary.map((line) => line.trim()).join(", ")));
 
-      // lighthouse: CI's config (lighthouserc.json, the gate of the preview job), at most two attempts of the same
-      // command, each bounded to 10 minutes, the url read inside each attempt (rulings H71, H71b).
-      /** @type {Attempt[]} */
-      const attempts = [];
-      do {
-        const n = String(attempts.length + 1);
-        const urls = await execute(process.execPath, ["scripts/lhci-urls.mjs", base], {
-          env: childEnv({}),
-          out: join(raw, `lhci-urls-${n}.out`),
-          timeoutMs: MINUTE,
-        });
-        if (urls.code !== 0) {
-          attempts.push({ ...urls, label: "scripts/lhci-urls.mjs" });
-        } else {
-          const urlArgs = lhciUrlArgs(urls.stdout);
-          const lighthouse = await execute("bun", ["run", "lhci", "--", ...urlArgs], {
-            env: childEnv({}),
-            out: join(raw, `lighthouse-${n}.out`),
-            timeoutMs: 10 * MINUTE,
-          });
-          attempts.push({
-            ...lighthouse,
-            label: `lighthouserc.json, ${String(urlArgs.length)} urls`,
-          });
-        }
-        if (lighthouseRetry(attempts)) {
-          process.stdout.write(
-            "preview-local: lighthouse attempt 1 did not finish, retried (ruling H71)\n",
-          );
-        }
-      } while (lighthouseRetry(attempts));
-      record(lighthouseStep(attempts));
+      // lighthouse: the command of deploy.yml's step (lighthouserc.json, the gate of the preview job), page by page with
+      // its own bounds and retries (ruling H76), inside the step's 22 minutes.
+      const lighthouse = await execute(process.execPath, ["scripts/lhci-pages.mjs", base], {
+        env: childEnv({}),
+        out: join(raw, "lighthouse.out"),
+        timeoutMs: 22 * MINUTE,
+      });
+      record(lighthouseStep(lighthouse));
     }
   } finally {
     stop();

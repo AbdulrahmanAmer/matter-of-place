@@ -520,23 +520,18 @@ describe.skipIf(deploy === undefined)("deploy.yml pull request jobs (step 6)", (
     });
   });
 
-  it("the Lighthouse step is a gate that survives a hung preview: two attempts of 10 minutes inside a 22 minute step (H71)", () => {
+  it("the Lighthouse step is a gate that survives a hung page: lhci-pages.mjs inside a 22 minute step (H76)", () => {
     const step = (deployJob("preview")?.steps ?? []).find((s) => s.name === "lighthouse");
-    const run = step?.run ?? "";
     expect({
       id: step?.id,
       minutes: step?.["timeout-minutes"],
       advisory: step?.["continue-on-error"],
-      attempts: run.includes("for attempt in 1 2; do"),
-      bounded: run.includes("timeout 600 bun run lhci"),
-      refuses: run.trimEnd().endsWith("exit 1"),
+      run: step?.run,
     }).toEqual({
       id: "lighthouse",
       minutes: 22,
       advisory: undefined,
-      attempts: true,
-      bounded: true,
-      refuses: true,
+      run: 'node scripts/lhci-pages.mjs "$PREVIEW_URL"',
     });
   });
 
