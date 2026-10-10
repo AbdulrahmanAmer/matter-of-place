@@ -44,6 +44,8 @@ export const LogEvent = [
   "thumbnail_sign_failed",
   "invoice_glyph_replaced",
   "decision_jobs_unread",
+  // B7 step 14: the role write of a new auth account failed, and the account was deleted again (or not).
+  "team_account_rolled_back",
 ] as const;
 
 export type LogEvent = (typeof LogEvent)[number];

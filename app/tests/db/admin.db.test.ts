@@ -6,13 +6,23 @@
 // (migration `admin_takedown`). Step 8: the media functions and the one render job per property (migration
 // `admin_media`). Step 11: assign, forward, close and the list of inquiries (migration `admin_inquiries`).
 // Step 12: save, publish and unpublish of stories and their list (migration `admin_stories`).
+// Step 13: update_market and set_market_coming_soon (migration `admin_markets`). Step 14: roles, the last admin,
+// agent keys, `team_users` and the agent daily caps through `put_setting` (migration `admin_team`).
+// Step 15: `put_setting` for its three keys and the audit list read (migration `admin_settings`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { asRole, createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
+import {
+  asRole,
+  createAuthUser,
+  createStaffUser,
+  dbNow,
+  withRollback,
+  type Db,
+} from "../fixtures/db";
 import { createInvoice, createSubmission, publishedProperty } from "../fixtures/factories";
 import { serviceClient } from "../fixtures/service";
 import { stepSchema } from "../../src/domain/automation";
@@ -2541,6 +2551,730 @@ describe("stories (step 12)", () => {
         drafts: [middle.id],
         reviews: [oldest.id],
       });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 13's migration (P-328). */
+async function assertStep13(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.update_market') is not null
+       and to_regproc('public.set_market_coming_soon') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const TOGGLE =
+  "select public.set_market_coming_soon(p_slug => $1, p_coming_soon => $2, p_actor => $3, p_actor_kind => 'human', p_request_id => 't', p_notify => $4) as answer";
+const UPDATE_MARKET =
+  "select public.update_market($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, $6, 'human', 'req-markets', $7) as answer";
+
+/** The market as the case needs it: its fixture row, with `coming_soon` set and no job left from an earlier run. */
+async function marketIn(db: Db, comingSoon: boolean): Promise<void> {
+  await markets(db);
+  await db.query("update public.markets set coming_soon = $1 where slug = 'california'", [
+    comingSoon,
+  ]);
+  await db.query("delete from public.jobs where idempotency_key = 'market_open:california'");
+}
+
+async function openNotices(db: Db) {
+  return (
+    await db.query<{ key: string; payload: unknown }>(
+      `select idempotency_key as key, payload from public.jobs
+       where type = 'market_open_notice' and payload -> 'data' ->> 'market' = 'california'`,
+    )
+  ).rows;
+}
+
+async function marketAudits(db: Db, action: string): Promise<number> {
+  return count(
+    db,
+    "select count(*)::int as n from public.audit_log where action = $1 and entity = 'markets.california'",
+    [action],
+  );
+}
+
+async function comingSoonOf(db: Db): Promise<boolean> {
+  return (
+    await one<{ coming_soon: boolean }>(
+      db,
+      "select coming_soon from public.markets where slug = 'california'",
+    )
+  ).coming_soon;
+}
+
+async function renderJobsOf(db: Db) {
+  return (
+    await db.query<{ heavy: boolean; payload: unknown; key: string }>(
+      `select heavy, payload, idempotency_key as key from public.jobs
+       where type = 'render_variants' and payload -> 'data' ->> 'target' in ('market', 'region')
+         and payload -> 'data' ->> 'slug' in ('california', 'bay-area')
+       order by payload -> 'data' ->> 'target'`,
+    )
+  ).rows;
+}
+
+const note = (label: string) => ({ label, text: `${label} text` });
+
+describe("markets (step 13)", () => {
+  it("set_market_coming_soon with p_notify on a coming-soon market opens it and queues exactly one market_open_notice job keyed market_open:california, and closing it then opening it again queues none", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await marketIn(db, true);
+      await db.query(TOGGLE, ["california", false, editor, true]);
+      const opened = { open: !(await comingSoonOf(db)), jobs: await openNotices(db) };
+      await db.query(TOGGLE, ["california", true, editor, true]);
+      const closed = { open: !(await comingSoonOf(db)), jobs: (await openNotices(db)).length };
+      await db.query(TOGGLE, ["california", false, editor, true]);
+      expect({ opened, closed, again: (await openNotices(db)).length }).toEqual({
+        opened: {
+          open: true,
+          jobs: [
+            {
+              key: "market_open:california",
+              payload: { params: {}, data: { market: "california" } },
+            },
+          ],
+        },
+        closed: { open: false, jobs: 1 },
+        again: 1,
+      });
+    });
+  });
+
+  it("set_market_coming_soon without p_notify opens the market and queues no market_open_notice job", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      await marketIn(db, true);
+      await db.query(TOGGLE, ["california", false, editor, false]);
+      expect({ open: !(await comingSoonOf(db)), jobs: await openNotices(db) }).toEqual({
+        open: true,
+        jobs: [],
+      });
+    });
+  });
+
+  it("set_market_coming_soon writes one markets.coming_soon audit row per change, none for a repeat, and refuses a commercial user and an unknown market", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const commercial = await createStaffUser(db, ["commercial"]);
+      await marketIn(db, true);
+      await db.query(TOGGLE, ["california", false, editor, false]);
+      await db.query(TOGGLE, ["california", false, editor, false]);
+      await db.query(TOGGLE, ["california", true, editor, false]);
+      expect({
+        audits: await marketAudits(db, "markets.coming_soon"),
+        commercial: await attempt(db, TOGGLE, ["california", false, commercial, false]),
+        unknown: await attempt(db, TOGGLE, ["texas", false, editor, false]),
+        stillClosed: await comingSoonOf(db),
+      }).toEqual({
+        audits: 2,
+        commercial: "42501 forbidden",
+        unknown: "P0002 not_found",
+        stillClosed: true,
+      });
+    });
+  });
+
+  it("update_market with two notes leaves exactly those two rows with sort_order 0 and 1, with three guide entries exactly those three, and with null notes leaves the notes alone", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      const rows = (table: string) =>
+        db.query<{ label: string; sort_order: number }>(
+          `select label, sort_order from public.${table} where market_slug = 'california' order by sort_order`,
+        );
+      await db.query(UPDATE_MARKET, [
+        "california",
+        "{}",
+        null,
+        JSON.stringify([note("Light"), note("Water")]),
+        JSON.stringify([
+          { section: "need", label: "Parking", text: "t" },
+          { section: "service", region_slug: "bay-area", label: "Movers", text: "t" },
+          { section: "neighborhood", label: "Pacific Heights", text: "t" },
+        ]),
+        editor,
+        null,
+      ]);
+      const first = {
+        notes: (await rows("market_notes")).rows,
+        guide: (await rows("market_guide_entries")).rows,
+      };
+      await db.query(UPDATE_MARKET, ["california", "{}", null, null, null, editor, null]);
+      expect({ first, kept: (await rows("market_notes")).rows }).toEqual({
+        first: {
+          notes: [
+            { label: "Light", sort_order: 0 },
+            { label: "Water", sort_order: 1 },
+          ],
+          guide: [
+            { label: "Parking", sort_order: 0 },
+            { label: "Movers", sort_order: 1 },
+            { label: "Pacific Heights", sort_order: 2 },
+          ],
+        },
+        kept: [
+          { label: "Light", sort_order: 0 },
+          { label: "Water", sort_order: 1 },
+        ],
+      });
+    });
+  });
+
+  it("update_market changes the market fields, upserts a region by slug and writes one markets.edit audit row", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      const region = (slug: string, name: string) => ({
+        slug,
+        name,
+        intro: `${name} intro`,
+        places: ["One", "Two"],
+        sort_order: 3,
+      });
+      const answer = await one<{ answer: { slug: string } }>(db, UPDATE_MARKET, [
+        "california",
+        JSON.stringify({
+          name: "California Coast",
+          places: ["Malibu", "Carmel"],
+          interest_copy: null,
+        }),
+        JSON.stringify([region("bay-area", "San Francisco Bay"), region("big-sur", "Big Sur")]),
+        null,
+        null,
+        editor,
+        null,
+      ]);
+      expect({
+        answer: answer.answer.slug,
+        market: await one(
+          db,
+          "select name, places, interest_copy from public.markets where slug = 'california'",
+        ),
+        regions: (
+          await db.query(
+            `select slug, market_slug, name, places, sort_order from public.regions
+             where slug in ('bay-area', 'big-sur') order by slug`,
+          )
+        ).rows,
+        audits: await marketAudits(db, "markets.edit"),
+      }).toEqual({
+        answer: "california",
+        market: { name: "California Coast", places: ["Malibu", "Carmel"], interest_copy: null },
+        regions: [
+          {
+            slug: "bay-area",
+            market_slug: "california",
+            name: "San Francisco Bay",
+            places: ["One", "Two"],
+            sort_order: 3,
+          },
+          {
+            slug: "big-sur",
+            market_slug: "california",
+            name: "Big Sur",
+            places: ["One", "Two"],
+            sort_order: 3,
+          },
+        ],
+        audits: 1,
+      });
+    });
+  });
+
+  it("update_market with a market image path and one region image path queues exactly two heavy render_variants jobs keyed by target, slug and path, and leaves both image values unchanged", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      await db.query("update public.markets set image = 'm/old.webp' where slug = 'california'");
+      await db.query("update public.regions set image = 'r/old.webp' where slug = 'bay-area'");
+      await db.query(
+        "delete from public.jobs where type = 'render_variants' and payload -> 'data' ->> 'slug' in ('california', 'bay-area')",
+      );
+      const marketPath = `staging/market/california/${randomUUID()}.jpg`;
+      const regionPath = `staging/region/bay-area/${randomUUID()}.jpg`;
+      const regions = JSON.stringify([
+        {
+          slug: "bay-area",
+          name: "Bay Area",
+          intro: "x",
+          places: [],
+          sort_order: 0,
+          image_staging_path: regionPath,
+        },
+      ]);
+      await db.query(UPDATE_MARKET, ["california", "{}", regions, null, null, editor, marketPath]);
+      await db.query(UPDATE_MARKET, ["california", "{}", regions, null, null, editor, marketPath]);
+      const imageOf = async (table: string, slug: string) =>
+        (
+          await one<{ image: string }>(db, `select image from public.${table} where slug = $1`, [
+            slug,
+          ])
+        ).image;
+      expect({
+        jobs: await renderJobsOf(db),
+        images: [await imageOf("markets", "california"), await imageOf("regions", "bay-area")],
+      }).toEqual({
+        jobs: [
+          {
+            heavy: true,
+            payload: {
+              params: {},
+              data: { target: "market", slug: "california", staging_path: marketPath },
+            },
+            key: `render_variants:market:california:${marketPath}`,
+          },
+          {
+            heavy: true,
+            payload: {
+              params: {},
+              data: { target: "region", slug: "bay-area", staging_path: regionPath },
+            },
+            key: `render_variants:region:bay-area:${regionPath}`,
+          },
+        ],
+        images: ["m/old.webp", "r/old.webp"],
+      });
+    });
+  });
+
+  it("update_market refuses image, coming_soon and unknown keys, a path under another folder, a region of another market and a guide entry for one, with invalid_key and no change", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      await db.query(
+        `insert into public.regions (slug, market_slug, name, intro) values ('miami', 'florida', 'Miami', 'x')
+         on conflict (slug) do nothing`,
+      );
+      const refused = (patch: unknown, regions: unknown, guide: unknown, path: string | null) =>
+        attempt(db, UPDATE_MARKET, [
+          "california",
+          JSON.stringify(patch),
+          regions === null ? null : JSON.stringify(regions),
+          null,
+          guide === null ? null : JSON.stringify(guide),
+          editor,
+          path,
+        ]);
+      const miami = { slug: "miami", name: "Miami", intro: "x", places: [], sort_order: 0 };
+      const foreignImage = `staging/region/miami/${randomUUID()}.jpg`;
+      expect({
+        image: await refused({ image: "m/x.webp" }, null, null, null),
+        comingSoon: await refused({ coming_soon: false }, null, null, null),
+        unknown: await refused({ slug: "texas" }, null, null, null),
+        foreignPath: await refused({}, null, null, `staging/market/florida/${randomUUID()}.jpg`),
+        foreignRegion: await refused({}, [miami], null, null),
+        regionPath: await refused(
+          {},
+          [{ ...miami, slug: "bay-area", image_staging_path: foreignImage }],
+          null,
+          null,
+        ),
+        guideRegion: await refused(
+          {},
+          null,
+          [{ section: "need", region_slug: "miami", label: "a", text: "b" }],
+          null,
+        ),
+        section: await refused({}, null, [{ section: "other", label: "a", text: "b" }], null),
+        jobs: (await renderJobsOf(db)).length,
+      }).toEqual({
+        image: "P0001 invalid_key",
+        comingSoon: "P0001 invalid_key",
+        unknown: "P0001 invalid_key",
+        foreignPath: "P0001 invalid_key",
+        foreignRegion: "P0001 invalid_key",
+        regionPath: "P0001 invalid_key",
+        guideRegion: "P0001 invalid_key",
+        section: "P0001 invalid_key",
+        jobs: 0,
+      });
+    });
+  });
+
+  it("update_market is refused for a commercial user with forbidden and for an unknown market with not_found", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const commercial = await createStaffUser(db, ["commercial"]);
+      await markets(db);
+      const call = (slug: string, actor: string) =>
+        attempt(db, UPDATE_MARKET, [slug, "{}", null, null, null, actor, null]);
+      expect({
+        commercial: await call("california", commercial),
+        unknown: await call("texas", editor),
+      }).toEqual({ commercial: "42501 forbidden", unknown: "P0002 not_found" });
+    });
+  });
+});
+
+async function assertStep14(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.team_users') is not null
+       and to_regproc('public.revoke_all_agent_keys') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+/** Leaves `admin` with the only enabled admin row of the transaction: every other admin row is disabled in it. */
+async function onlyAdmin(db: Db, roles: string[]): Promise<string> {
+  await db.query(
+    "update public.user_roles set disabled_at = now() where role = 'admin' and disabled_at is null",
+  );
+  return createStaffUser(db, roles);
+}
+
+const REVOKE_ROLE = "select public.revoke_role($1, $2::public.app_role, $3, 'human', 'r-team')";
+const DISABLE = "select public.set_user_disabled($1, $2, $3, 'human', 'r-team')";
+const GRANT =
+  "select public.grant_role($1, $2::public.app_role, $3, $4, 'human', 'r-team', $5::public.actor_kind, $6)";
+
+/** The `team_users` row of one user: the page that starts right after the user id before it. */
+async function teamRow(db: Db, userId: string): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await db.query<Record<string, unknown>>(
+    `select t.user_id, t.email, t.display_name, t.roles::text[] as roles, t.actor_kind, t.disabled
+     from public.team_users(1, (
+       select r.user_id from public.user_roles r where r.user_id < $1 order by r.user_id desc limit 1
+     )) t`,
+    [userId],
+  );
+  return rows.find((row) => row["user_id"] === userId);
+}
+
+async function teamAudit(db: Db, action: string): Promise<unknown[]> {
+  const { rows } = await db.query<{ after: unknown; note: string | null }>(
+    "select after, note from public.audit_log where request_id = 'r-team' and action = $1 order by id",
+    [action],
+  );
+  return rows;
+}
+
+describe("team (step 14)", () => {
+  it("with one enabled admin, revoke_role of its admin row and set_user_disabled of the user each raise last_admin; with a second admin both pass", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const first = await onlyAdmin(db, ["admin", "chief_editor"]);
+      const alone = {
+        revoke: await attempt(db, REVOKE_ROLE, [first, "admin", first]),
+        disable: await attempt(db, DISABLE, [first, true, first]),
+      };
+      const second = await createStaffUser(db, ["admin"]);
+      const third = await createStaffUser(db, ["admin"]);
+      // Each paired call takes an enabled admin row while another enabled admin exists, so both reach the guard.
+      const paired = {
+        revoke: await attempt(db, REVOKE_ROLE, [first, "admin", second]),
+        disable: await attempt(db, DISABLE, [second, true, third]),
+      };
+      expect({
+        alone,
+        paired,
+        audit: {
+          revoke: (await teamAudit(db, "team.role_revoke")).length,
+          disable: await teamAudit(db, "team.user_disable"),
+        },
+      }).toEqual({
+        alone: { revoke: "P0001 last_admin", disable: "P0001 last_admin" },
+        paired: { revoke: "ok", disable: "ok" },
+        audit: {
+          revoke: 1,
+          disable: [{ after: { id: second, disabled: true }, note: null }],
+        },
+      });
+    });
+  });
+
+  it("an agent holding admin does not count as a second admin", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const person = await onlyAdmin(db, ["admin"]);
+      const bot = await createAuthUser(db);
+      await db.query(
+        "insert into public.user_roles (user_id, role, actor_kind) values ($1, 'admin', 'agent')",
+        [bot],
+      );
+      expect(await attempt(db, DISABLE, [person, true, person])).toBe("P0001 last_admin");
+    });
+  });
+
+  it("revoke_all_agent_keys returns the number of unrevoked keys, leaves none unrevoked and writes one team.revoke_all_keys row with the count", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const bot = await createAuthUser(db);
+      await db.query(
+        `insert into public.agent_keys (user_id, key_hash, label, revoked_at)
+         values ($1, md5(random()::text), 'a', null), ($1, md5(random()::text), 'b', null),
+                ($1, md5(random()::text), 'old', now() - interval '1 day')`,
+        [bot],
+      );
+      const { live } = await one<{ live: number }>(
+        db,
+        "select count(*)::int as live from public.agent_keys where revoked_at is null",
+      );
+      const { revoked } = await one<{ revoked: number }>(
+        db,
+        "select public.revoke_all_agent_keys($1, 'human', 'r-team') as revoked",
+        [admin],
+      );
+      const { left } = await one<{ left: number }>(
+        db,
+        "select count(*)::int as left from public.agent_keys where revoked_at is null",
+      );
+      expect({ revoked, left, audit: await teamAudit(db, "team.revoke_all_keys") }).toEqual({
+        revoked: live,
+        left: 0,
+        audit: [{ after: { count: live }, note: null }],
+      });
+      expect(live).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it("team_users returns a staff user made with createStaffUser with its auth email, its role, kind human and not disabled", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const { email } = await one<{ email: string }>(
+        db,
+        "select email from auth.users where id = $1",
+        [editor],
+      );
+      expect(await teamRow(db, editor)).toEqual({
+        user_id: editor,
+        email,
+        display_name: null,
+        roles: ["managing_editor"],
+        actor_kind: "human",
+        disabled: false,
+      });
+    });
+  });
+
+  it("grant_role with p_user_kind agent and p_display_name Queue bot leaves an agent row with that name, team_users returns it and a staff user, and a human grant to it raises invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const bot = await createAuthUser(db);
+      await db.query(GRANT, [bot, "managing_editor", "agent_create", admin, "agent", "Queue bot"]);
+      const { rows } = await db.query<{ actor_kind: string; display_name: string }>(
+        "select actor_kind, display_name from public.user_roles where user_id = $1",
+        [bot],
+      );
+      const kinds = [await teamRow(db, bot), await teamRow(db, editor)].map((row) => [
+        row?.["user_id"],
+        row?.["actor_kind"],
+        row?.["display_name"],
+      ]);
+      expect({
+        rows,
+        kinds,
+        human: await attempt(db, GRANT, [bot, "media_ops", null, admin, "human", null]),
+        audit: (
+          await db.query(
+            `select after ->> 'role' as role, after ->> 'actor_kind' as kind, note
+             from public.audit_log where request_id = 'r-team' and action = 'team.role_grant'`,
+          )
+        ).rows,
+      }).toEqual({
+        rows: [{ actor_kind: "agent", display_name: "Queue bot" }],
+        kinds: [
+          [bot, "agent", "Queue bot"],
+          [editor, "human", null],
+        ],
+        human: "P0001 invalid_key",
+        audit: [{ role: "managing_editor", kind: "agent", note: "agent_create" }],
+      });
+    });
+  });
+
+  it("create_agent_key stores the hash for an agent only, refuses the team scope, and revoke_agent_key revokes once", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const bot = await createAuthUser(db);
+      await db.query(GRANT, [bot, "managing_editor", "agent_create", admin, "agent", "Queue bot"]);
+      const create = (user: string, scopes: string[]) =>
+        `select public.create_agent_key('${user}', 'hash-${randomUUID()}', 'k', '{${scopes.join(",")}}', '${admin}', 'human', 'r-team') as id`;
+      const refused = {
+        human: await attempt(db, create(admin, ["submissions"])),
+        team: await attempt(db, create(bot, ["submissions", "team"])),
+      };
+      const { id } = await one<{ id: string }>(db, create(bot, ["submissions"]));
+      const revoke = "select public.revoke_agent_key($1, $2, 'human', 'r-team')";
+      const first = await attempt(db, revoke, [id, admin]);
+      const again = await attempt(db, revoke, [id, admin]);
+      const { rows } = await db.query<{ revoked: boolean }>(
+        "select revoked_at is not null as revoked from public.agent_keys where id = $1",
+        [id],
+      );
+      const created = await teamAudit(db, "team.agent_key_create");
+      expect({ refused, first, again, rows, created }).toEqual({
+        refused: { human: "P0001 invalid_kind", team: "22023 validation" },
+        first: "ok",
+        again: "P0001 wrong_state",
+        rows: [{ revoked: true }],
+        created: [
+          {
+            after: { id, user_id: bot, label: "k", scopes: ["submissions"] },
+            note: null,
+          },
+        ],
+      });
+    });
+  });
+
+  it("put_setting writes agent_daily_limits with one team.limits_put row and refuses invoice with invalid_key", async () => {
+    await withRollback(async (db) => {
+      await assertStep14(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const value = { decisions_per_day: 9, publish_per_day: 3, requests_per_day: 500 };
+      const put = "select public.put_setting($1, $2::jsonb, $3, 'human', 'r-team')";
+      const written = await attempt(db, put, ["agent_daily_limits", JSON.stringify(value), admin]);
+      const invoice = await attempt(db, put, ["invoice", "{}", admin]);
+      const { stored } = await one<{ stored: unknown }>(
+        db,
+        "select value as stored from public.settings where key = 'agent_daily_limits'",
+      );
+      expect({
+        written,
+        invoice,
+        stored,
+        audit: (await teamAudit(db, "team.limits_put")).length,
+      }).toEqual({
+        written: "ok",
+        invoice: "P0001 invalid_key",
+        stored: value,
+        audit: 1,
+      });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 15's migration (P-328). */
+async function assertStep15(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regclass('public.audit_log_list_idx') is not null
+       and position('notifications' in (select prosrc from pg_proc where proname = 'put_setting')) > 0 as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const PUT_SETTING = "select public.put_setting($1, $2::jsonb, $3, 'human', 'r-settings')";
+
+async function settingsAudit(db: Db): Promise<unknown[]> {
+  const { rows } = await db.query<{
+    action: string;
+    entity: string;
+    before: unknown;
+    after: unknown;
+  }>(
+    "select action, entity, before, after from public.audit_log where request_id = 'r-settings' order by id",
+  );
+  return rows;
+}
+
+describe("settings (step 15)", () => {
+  it("each put_setting writes one audit row with before and after under the action of its key", async () => {
+    await withRollback(async (db) => {
+      await assertStep15(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const before = await one<{ coming: unknown; notifications: unknown; limits: unknown }>(
+        db,
+        `select (select value from public.settings where key = 'coming_soon_global') as coming,
+                (select value from public.settings where key = 'notifications') as notifications,
+                (select value from public.settings where key = 'agent_daily_limits') as limits`,
+      );
+      const coming = before.coming !== true;
+      const recipients = { recipients: ["ops@example.invalid"] };
+      const limits = { decisions_per_day: 7, publish_per_day: 2, requests_per_day: 300 };
+      const results = [
+        await attempt(db, PUT_SETTING, ["coming_soon_global", JSON.stringify(coming), admin]),
+        await attempt(db, PUT_SETTING, ["notifications", JSON.stringify(recipients), admin]),
+        await attempt(db, PUT_SETTING, ["agent_daily_limits", JSON.stringify(limits), admin]),
+      ];
+      expect({ results, audit: await settingsAudit(db) }).toEqual({
+        results: ["ok", "ok", "ok"],
+        audit: [
+          {
+            action: "settings.coming_soon_put",
+            entity: "settings.coming_soon_global",
+            before: before.coming,
+            after: coming,
+          },
+          {
+            action: "settings.notifications_put",
+            entity: "settings.notifications",
+            before: before.notifications,
+            after: recipients,
+          },
+          {
+            action: "team.limits_put",
+            entity: "settings.agent_daily_limits",
+            before: before.limits,
+            after: limits,
+          },
+        ],
+      });
+    });
+  });
+
+  it("put_setting refuses invoice, site, flags and an unknown key with invalid_key and writes no row", async () => {
+    await withRollback(async (db) => {
+      await assertStep15(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const { stored } = await one<{ stored: unknown }>(
+        db,
+        "select coalesce(jsonb_object_agg(key, value), '{}') as stored from public.settings where key in ('invoice', 'site', 'flags')",
+      );
+      const refused = [];
+      for (const key of ["invoice", "site", "flags", "catalog_version", "no_such_key"]) {
+        refused.push(await attempt(db, PUT_SETTING, [key, "{}", admin]));
+      }
+      const after = await one<{ stored: unknown; unknown: number }>(
+        db,
+        `select coalesce(jsonb_object_agg(key, value) filter (where key in ('invoice', 'site', 'flags')), '{}') as stored,
+                count(*) filter (where key = 'no_such_key')::int as unknown
+         from public.settings`,
+      );
+      expect({
+        refused,
+        stored: after.stored,
+        unknown: after.unknown,
+        audit: await settingsAudit(db),
+      }).toEqual({
+        refused: refused.map(() => "P0001 invalid_key"),
+        stored,
+        unknown: 0,
+        audit: [],
+      });
+    });
+  });
+
+  it("put_setting refuses a coming_soon_global that is not a boolean and a notifications that is not an object", async () => {
+    await withRollback(async (db) => {
+      await assertStep15(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      expect({
+        coming: await attempt(db, PUT_SETTING, ["coming_soon_global", '{"on": true}', admin]),
+        notifications: await attempt(db, PUT_SETTING, [
+          "notifications",
+          '["a@example.invalid"]',
+          admin,
+        ]),
+        audit: await settingsAudit(db),
+      }).toEqual({ coming: "22023 validation", notifications: "22023 validation", audit: [] });
     });
   });
 });

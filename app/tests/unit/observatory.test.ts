@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parse } from "yaml";
 import { z } from "zod";
+import { parseArgs } from "../../scripts/lhci-pages.mjs";
 import { runObservatory } from "../../scripts/observatory.mjs";
 
 const APP = resolve(import.meta.dirname, "../..");
@@ -212,6 +213,8 @@ const Step = z.object({
   run: z.string().optional(),
   if: z.string().optional(),
   env: z.record(z.string(), z.string()).optional(),
+  uses: z.string().optional(),
+  with: z.record(z.string(), z.union([z.string(), z.boolean(), z.number()])).optional(),
 });
 const Deploy = z.object({ jobs: z.object({ preview: z.object({ steps: z.array(Step) }) }) });
 
@@ -261,26 +264,57 @@ describe.skipIf(!existsSync(DEPLOY))("the preview steps of deploy.yml (step 12)"
     });
   });
 
-  it("bounds the Lighthouse step to 22 minutes and never makes it advisory (H71)", () => {
+  it("bounds the Lighthouse step to 22 minutes and never makes it advisory (H71, H76)", () => {
     const lighthouse = find("lighthouse");
     expect({
       id: lighthouse?.id,
       minutes: lighthouse?.["timeout-minutes"],
       advisory: lighthouse?.["continue-on-error"],
-      bounded: lighthouse?.run?.includes("timeout 600 bun run lhci") ?? false,
-    }).toEqual({ id: "lighthouse", minutes: 22, advisory: undefined, bounded: true });
+    }).toEqual({ id: "lighthouse", minutes: 22, advisory: undefined });
   });
 
-  it("runs Lighthouse at most twice, warns after the first miss and exits 1 after the second (H71)", () => {
-    const run = find("lighthouse")?.run ?? "";
+  it("runs Lighthouse page by page through lhci-pages.mjs, its total inside the step's limit (H76)", () => {
+    const lighthouse = find("lighthouse");
+    const defaults = parseArgs(["http://x"]);
+    const total = typeof defaults === "string" ? Infinity : defaults.totalSeconds;
     expect({
-      attempts: run.match(/for attempt in (.*); do/)?.[1],
-      stopsAtSuccess: run.includes("exit 0"),
-      warns: run.includes(
-        "::warning title=lighthouse attempt $attempt did not finish::preview hang, retried (ruling H71)",
-      ),
-      refuses: run.trimEnd().endsWith("exit 1"),
-    }).toEqual({ attempts: "1 2", stopsAtSuccess: true, warns: true, refuses: true });
+      command: lighthouse?.run,
+      bound: typeof defaults === "string" ? defaults : defaults.boundSeconds,
+      fits: total + 60 <= (lighthouse?.["timeout-minutes"] ?? 0) * 60,
+    }).toEqual({ command: 'node scripts/lhci-pages.mjs "$PREVIEW_URL"', bound: 180, fits: true });
+  });
+
+  it("uploads each page's Lighthouse logs whenever the step ran, a failed step included (H76)", () => {
+    const logs = find("lighthouse logs");
+    const defaults = parseArgs(["http://x"]);
+    expect({
+      condition: logs?.if,
+      uploads: logs?.uses?.startsWith("actions/upload-artifact@") ?? false,
+      path: logs?.with?.["path"],
+      hidden: logs?.with?.["include-hidden-files"],
+    }).toEqual({
+      condition: "${{ !cancelled() && steps.lighthouse.outcome != 'skipped' }}",
+      uploads: true,
+      path: `app/${typeof defaults === "string" ? defaults : defaults.outDir}/`,
+      hidden: true,
+    });
+  });
+
+  it("reads the kept Lighthouse reports for the performance targets, after the gate and only when it passed (B13, H76a)", () => {
+    const names = steps().map((step) => step.name);
+    const perf = find("perf targets");
+    const defaults = parseArgs(["http://x"]);
+    expect({
+      condition: perf?.if,
+      command: perf?.run,
+      afterGate: names.indexOf("perf targets") > names.indexOf("lighthouse"),
+      advisory: perf?.["continue-on-error"],
+    }).toEqual({
+      condition: "steps.lighthouse.outcome == 'success'",
+      command: `node scripts/perf-targets.mjs ${typeof defaults === "string" ? defaults : defaults.outDir}`,
+      afterGate: true,
+      advisory: undefined,
+    });
   });
 
   it("scans the preview host and still prints the grade after a red essentials step", () => {

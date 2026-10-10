@@ -318,7 +318,7 @@
   {
     "id": "b8b-g2-catalog-youtube",
     "test": "tests/unit/automation/catalog.test.ts",
-    "file": "src/server/automation/catalog.ts",
+    "file": "src/domain/automation.ts",
     "find": "youtube: null,",
     "replace": "youtube: \"post_meta\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
@@ -2050,5 +2050,950 @@
     "sql": "create or replace function public.automation_put_recipe(\n  p_trigger text,\n  p_patch jsonb,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text,\n  p_note text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_old public.automation_recipes;\n  v_new public.automation_recipes;\nbegin\n  -- Invariant 8: one row per event type comes from the seed; this function never inserts.\n  select * into v_old from public.automation_recipes where trigger = p_trigger for update;\n  if not found then\n    raise exception 'unknown_trigger' using errcode = 'P0002';\n  end if;\n  if exists (select 1 from jsonb_object_keys(p_patch) k where k <> all (array['name', 'enabled', 'steps'])) then\n    raise exception 'invalid_patch_key' using errcode = '22023';\n  end if;\n  v_new := jsonb_populate_record(v_old, p_patch);\n  -- Invariant 7: the revision trigger reads the actor of this transaction.\n  perform set_config('mop.actor_id', coalesce(p_actor::text, ''), true);\n  perform set_config('mop.actor_kind', coalesce(p_actor_kind::text, ''), true);\n  perform set_config('mop.note', coalesce(p_note, ''), true);\n  update public.automation_recipes\n  set name = v_new.name, enabled = v_new.enabled, steps = v_new.steps\n  where id = v_old.id\n  returning * into v_new;\n  -- SEC-11, ruling H23: an agent's change reaches a human in the same transaction.\n  if p_actor_kind = 'agent' then\n    perform public.enqueue_job(\n      'notify_admin',\n      jsonb_build_object(\n        'params', jsonb_build_object('headline', 'Agent changed automation'),\n        'data', jsonb_build_object('summary', 'recipe ' || p_trigger, 'link_path', '/admin/automation/revisions')\n      ),\n      'agent_automation:' || p_request_id,\n      p_max_attempts => 12\n    );\n  end if;\n  perform public.write_audit(\n    null, p_actor_kind, 'automation.recipes_put', 'automation_recipes', v_old.id, to_jsonb(v_old),\n    to_jsonb(v_new), p_request_id, p_note\n  );\n  return to_jsonb(v_new);\nend;\n$$;\n\nrevoke execute on function public.automation_put_recipe(text, jsonb, uuid, public.actor_kind, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.automation_put_recipe(text, jsonb, uuid, public.actor_kind, text, text)\n  to service_role;\n",
     "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"with an agent's id and p_actor_kind human raises 42501\"",
     "expect": "× .*with an agent's id and p_actor_kind human raises 42501[\\s\\S]*\"outcome\": \"ok\""
+  },
+  {
+    "id": "b8b-g7-list-current",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeList.tsx",
+    "find": "aria-current={recipe.trigger === selected ? \"true\" : undefined}",
+    "replace": "aria-current={undefined}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > lists a recipe per event"
+  },
+  {
+    "id": "b8b-g7-choose-event",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipesPage.tsx",
+    "find": "<EmptyState title=\"Choose an event\">",
+    "replace": "<EmptyState title=\"Pick an event\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > asks to choose an event"
+  },
+  {
+    "id": "b8b-g7-not-built",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/StepCard.tsx",
+    "find": "spec?.implemented === false ?",
+    "replace": "spec?.implemented === true ?",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > marks a step the catalog has not built yet"
+  },
+  {
+    "id": "b8b-g7-params-default",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/ParamsForm.tsx",
+    "find": "\"Choose\" : \"Default\"",
+    "replace": "\"Choose\" : \"None\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the settings of a step > draw one control per field"
+  },
+  {
+    "id": "b8b-g7-params-blank-number",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/ParamsForm.tsx",
+    "find": "if (raw === \"\") set(field.key, undefined);",
+    "replace": "if (raw === \"\") set(field.key, 0);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the settings of a step > are written only for the keys the person set"
+  },
+  {
+    "id": "b8b-g7-required",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/recipe-draft.ts",
+    "find": "return field.required === true ? \"Required\" : undefined;",
+    "replace": "return undefined;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the settings of a step > stop a save with a message"
+  },
+  {
+    "id": "b8b-g7-max",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/recipe-draft.ts",
+    "find": "value > field.max)",
+    "replace": "value > field.max + 1)",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the settings of a step > refuse a number over the limit"
+  },
+  {
+    "id": "b8b-g7-conditions-empty",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/ConditionsField.tsx",
+    "find": "next.length === 0 ? kept : [...kept, [key, next]]",
+    "replace": "[...kept, [key, next]]",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the conditions of a step > are written as the groups picked"
+  },
+  {
+    "id": "b8b-g7-save-refetch",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "putRecipe(trigger, patch),\n    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),",
+    "replace": "putRecipe(trigger, patch),\n    onSettled: () => undefined,",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > sends the changed recipe, refetches"
+  },
+  {
+    "id": "b8b-g7-refusal",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "{save.isError ?",
+    "replace": "{false ?",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > shows the server's refusal"
+  },
+  {
+    "id": "b8b-g7-order",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "steps.splice(index + by, 0, moved);",
+    "replace": "steps.splice(index, 0, moved);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > puts steps in the order chosen"
+  },
+  {
+    "id": "b8b-g7-new-id",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/recipe-draft.ts",
+    "find": "for (let n = 2;",
+    "replace": "for (let n = 3;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > puts steps in the order chosen"
+  },
+  {
+    "id": "b8b-g7-discard",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "setDraft(draftOf(recipe));",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > can be discarded"
+  },
+  {
+    "id": "b8b-g7-save-gate",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "<RoleGate action=\"automation.recipes_put\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > leaves a person without the recipes permission"
+  },
+  {
+    "id": "b8b-g7-read-only",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipeEditor.tsx",
+    "find": "disabled={!canEdit || save.isPending}",
+    "replace": "disabled={save.isPending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*saving a recipe > leaves a person without the recipes permission"
+  },
+  {
+    "id": "b8b-g7-dry-trigger",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "dryRun.mutate({ trigger, entityId",
+    "replace": "dryRun.mutate({ trigger: \"x\", entityId",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > plans the saved recipe"
+  },
+  {
+    "id": "b8b-g7-dry-reason",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "<span>{skipReasonLabels[step.reason]}</span>",
+    "replace": "<span>{step.reason}</span>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > plans the saved recipe"
+  },
+  {
+    "id": "b8b-g7-dry-uuid",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "!UUID.test(trimmed)",
+    "replace": "UUID.test(trimmed)",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > sends the record id when one is given"
+  },
+  {
+    "id": "b8b-g7-dry-unsaved",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "{unsaved ? \" It reads",
+    "replace": "{!unsaved ? \" It reads",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > sends the record id when one is given"
+  },
+  {
+    "id": "b8b-g7-catalog",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "    steps: stepCatalog(),",
+    "replace": "    steps: [],",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "FAIL .*getRecipes > answers the recipes with the step catalog"
+  },
+  {
+    "id": "b8b-g8-list-current",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailsPage.tsx",
+    "find": "aria-current={template.key === open?.key ? \"true\" : undefined}",
+    "replace": "aria-current={undefined}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*EmailsPage > lists a template per key"
+  },
+  {
+    "id": "b8b-g8-choose",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailsPage.tsx",
+    "find": "<EmptyState title=\"Choose a template\">",
+    "replace": "<EmptyState title=\"Pick a template\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*EmailsPage > asks to choose a template"
+  },
+  {
+    "id": "b8b-g8-used",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/VariablesList.tsx",
+    "find": "{used.includes(name) ? <StatusPill",
+    "replace": "{!used.includes(name) ? <StatusPill",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the variables > name what the template may use"
+  },
+  {
+    "id": "b8b-g8-missing-blocks-save",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "if (!problems.ok || missing.length > 0) return;",
+    "replace": "if (!problems.ok) return;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the variables > warn about a name"
+  },
+  {
+    "id": "b8b-g8-missing-text",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/VariablesList.tsx",
+    "find": "Not available in this email: ",
+    "replace": "Unavailable: ",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the variables > warn about a name"
+  },
+  {
+    "id": "b8b-g8-preview-html",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/TemplatePreview.tsx",
+    "find": "srcDoc={preview.data.html}",
+    "replace": "srcDoc={preview.data.text}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the preview > draws what the preview route answers"
+  },
+  {
+    "id": "b8b-g8-preview-key",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "{ preview: key, version, variables }",
+    "replace": "{ preview: key, version }",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the preview > asks again with the values typed"
+  },
+  {
+    "id": "b8b-g8-preview-unsaved",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/TemplatePreview.tsx",
+    "find": "{unsaved ?",
+    "replace": "{false ?",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the preview > says it shows the saved template"
+  },
+  {
+    "id": "b8b-g8-send-path",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/automation-api.ts",
+    "find": "/send-test`",
+    "replace": "/sendtest`",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > posts once"
+  },
+  {
+    "id": "b8b-g8-send-twice",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "sendTest.mutate(template.key, {",
+    "replace": "sendTest.mutate(template.key); sendTest.mutate(template.key, {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > posts once"
+  },
+  {
+    "id": "b8b-g8-send-repeat",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "message: result.queued",
+    "replace": "message: !result.queued",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > says so when this minute"
+  },
+  {
+    "id": "b8b-g8-send-dirty",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "disabled={dirty || sendTest.isPending}",
+    "replace": "disabled={sendTest.isPending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > waits for a save"
+  },
+  {
+    "id": "b8b-g8-send-gate",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "<RoleGate action=\"automation.templates_send_test\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > is not offered"
+  },
+  {
+    "id": "b8b-g8-save-enabled",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "{ key: template.key, patch: draft },",
+    "replace": "{ key: template.key, patch: { ...draft, enabled: true } },",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > sends the four fields"
+  },
+  {
+    "id": "b8b-g8-move",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/BlocksEditor.tsx",
+    "find": "next.splice(index + by, 0, moved);",
+    "replace": "next.splice(index, 0, moved);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > sends the four fields"
+  },
+  {
+    "id": "b8b-g8-subject-error",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/template-draft.ts",
+    "find": "if (field === \"subject\") errors.subject ??=",
+    "replace": "if (field === \"subject\") errors.preheader ??=",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > names the block and the field"
+  },
+  {
+    "id": "b8b-g8-block-error",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/template-draft.ts",
+    "find": "errors.blocks[index] ??= messageOf(issue)",
+    "replace": "errors.body ??= messageOf(issue)",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > names the block and the field"
+  },
+  {
+    "id": "b8b-g8-body-unchecked",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/template-draft.ts",
+    "find": "  preheader: true,\n  body: true,\n",
+    "replace": "  preheader: true,\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*saving > refuses a link"
+  },
+  {
+    "id": "b8b-g8-preview-variables",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "variables === undefined ? { key } : { key, variables }",
+    "replace": "variables === undefined ? { key } : { key }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*previewEmailTemplate > returns what renderTemplate returns"
+  },
+  {
+    "id": "b8b-g8-preview-sample",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "variables === undefined ? { key } : { key, variables }",
+    "replace": "variables === undefined ? { key, variables: { city: \"Elsewhere\" } } : { key, variables }",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*previewEmailTemplate > draws the sample variables"
+  },
+  {
+    "id": "b8b-g8-preview-authz",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "authorize(actor, \"automation.templates_preview\");",
+    "replace": "authorize(actor, \"automation.get\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*previewEmailTemplate > refuses a role"
+  },
+  {
+    "id": "b8b-g8-test-address",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "sendTestEmail(db, { id: actor.userId, email }, key)",
+    "replace": "sendTestEmail(db, { id: actor.userId, email: \"other@example.com\" }, key)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > queues one send_email job"
+  },
+  {
+    "id": "b8b-g8-test-queued",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "queued: job !== null,",
+    "replace": "queued: true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > answers queued false"
+  },
+  {
+    "id": "b8b-g8-test-authz",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "authorize(actor, \"automation.templates_send_test\");",
+    "replace": "authorize(actor, \"automation.templates_preview\");",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > refuses a role"
+  },
+  {
+    "id": "b8b-g8-test-key",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "authorize(actor, \"automation.templates_send_test\");\n  const { key } = parse(templateKeyInput, raw);",
+    "replace": "authorize(actor, \"automation.templates_send_test\");\n  const key = emailTemplateKeys[0] ?? \"received\";",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > refuses a key outside"
+  },
+  {
+    "id": "b8b-g8-test-no-address",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "if (email === undefined || email === \"\") {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > stops with a plain message"
+  },
+  {
+    "id": "b8b-g8-test-auth-down",
+    "test": "tests/unit/automation/email-templates.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "if (found.error !== null) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/email-templates.test.ts",
+    "expect": "FAIL .*sendTemplateTest > answers unavailable"
+  },
+  {
+    "id": "b8b-g7-request-id",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RequestFailure.tsx",
+    "find": "{requestId === undefined ? null : ` Request ${requestId}.`}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > says why the recipes did not load"
+  },
+  {
+    "id": "b8b-g7-read-report",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/RecipesPage.tsx",
+    "find": "if (failure === null) return;",
+    "replace": "return;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*RecipesPage > says why the recipes did not load"
+  },
+  {
+    "id": "b8b-g7-dryrun-request-id",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/DryRunPanel.tsx",
+    "find": "<RequestFailure error={dryRun.error} className=\"admin-field__error\" />",
+    "replace": "<p role=\"alert\">{dryRun.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
+    "expect": "FAIL .*the dry run > names the request id when the dry run fails"
+  },
+  {
+    "id": "b8b-g9-reasons-order",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "{items.map((item, index) => (",
+    "replace": "{[...items].reverse().map((item, index) => (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*the list > shows the reasons in the order"
+  },
+  {
+    "id": "b8b-g9-reasons-role",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "<RoleGate action=\"automation.reasons_put\">\n        <section",
+    "replace": "<RoleGate action=\"automation.get\">\n        <section",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*the list > offers no edit control"
+  },
+  {
+    "id": "b8b-g9-reasons-add",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "postReason(input.draft)",
+    "replace": "postReason({ ...input.draft, label: \"x\" })",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*adding > sends the new reason"
+  },
+  {
+    "id": "b8b-g9-reasons-check",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "if (Object.keys(problemsOf(draft)).length > 0) return;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*adding > names the field that is not ready"
+  },
+  {
+    "id": "b8b-g9-reasons-refused",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "{save.isError ? <RequestFailure error={save.error} className=\"admin-field__error\" /> : null}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*adding > shows the server's words"
+  },
+  {
+    "id": "b8b-g9-reasons-code-fixed",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "disabled={reason !== null}",
+    "replace": "disabled={false}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*editing > sends the changed fields"
+  },
+  {
+    "id": "b8b-g9-reasons-swap",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "ids[from] = neighbour;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*reordering > sends one request"
+  },
+  {
+    "id": "b8b-g9-reasons-ends",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "disabled={index === 0 || reorder.isPending}",
+    "replace": "disabled={reorder.isPending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*reordering > cannot move the first"
+  },
+  {
+    "id": "b8b-g9-settings-tz",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/channel-draft.ts",
+    "find": "tz: draft.tz,",
+    "replace": "tz: \"America/Los_Angeles\",",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a channel's window > saves a window in America/New_York"
+  },
+  {
+    "id": "b8b-g9-settings-zones",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/channel-draft.ts",
+    "find": "return offered.includes(stored) ? offered : [stored, ...offered];",
+    "replace": "return offered;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a channel's window > offers the three zones"
+  },
+  {
+    "id": "b8b-g9-settings-cap",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/channel-draft.ts",
+    "find": "cap < 1 ||",
+    "replace": "cap < 0 ||",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a channel's window > refuses a daily cap of 0"
+  },
+  {
+    "id": "b8b-g9-settings-window",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/channel-draft.ts",
+    "find": "\"posting_window.from\": \"from\",",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a channel's window > refuses a window that ends"
+  },
+  {
+    "id": "b8b-g9-settings-flag-gate",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ChannelSettingsForm.tsx",
+    "find": "const gated = channel === \"facebook\" || channel === \"youtube\";",
+    "replace": "const gated = false;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the blocked channels > keeps the Facebook and YouTube switches off"
+  },
+  {
+    "id": "b8b-g9-settings-youtube-step",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ChannelSettingsForm.tsx",
+    "find": "|| channelSteps[channel] === null",
+    "replace": "|| false",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the blocked channels > lets Facebook be switched on"
+  },
+  {
+    "id": "b8b-g9-settings-health-404",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/SettingsPage.tsx",
+    "find": "if (found === undefined || !found.connected) return \"Not connected\";",
+    "replace": "if (found === undefined) return \"Connected\";\n  if (!found.connected) return \"Not connected\";",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*sign-in status > reads not connected when the health route is missing"
+  },
+  {
+    "id": "b8b-g9-settings-expired",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/SettingsPage.tsx",
+    "find": "if (daysLeft !== null && daysLeft < 0) return \"Expired\";",
+    "replace": "if (daysLeft === -999) return \"Expired\";",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*sign-in status > reads connected and expired"
+  },
+  {
+    "id": "b8b-g9-reasons-empty",
+    "test": "src/admin/automation/reasons.test.tsx",
+    "file": "src/admin/automation/ReasonsTable.tsx",
+    "find": "{items.length === 0 ? (",
+    "replace": "{false ? (",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/reasons.test.tsx",
+    "expect": "FAIL .*an empty list > says so"
+  },
+  {
+    "id": "b8b-g9-settings-blocked-on",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ChannelSettingsForm.tsx",
+    "find": "disabled={notEnabledYet && !row.enabled}",
+    "replace": "disabled={notEnabledYet}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a blocked channel that is already on > can still be switched off"
+  },
+  {
+    "id": "b8b-g9-settings-dead-token",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/SettingsPage.tsx",
+    "find": "const dead = level === \"red\" && (daysLeft === null || daysLeft > redDays);",
+    "replace": "const dead = false;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a token the daily check marked dead > reads expired"
+  },
+  {
+    "id": "b8b-g9-settings-next-run",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "<LocalTime value={row.next_run_at} />",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > shows the next run in UTC"
+  },
+  {
+    "id": "b8b-g9-settings-dst-note",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/SettingsPage.tsx",
+    "find": "twice a year",
+    "replace": "now and then",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > says that a clock moves"
+  },
+  {
+    "id": "b8b-g9-settings-external",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "readonly string[] = [\"keepwarm\", \"audit\", \"backup\"];",
+    "replace": "readonly string[] = [\"audit\", \"backup\"];",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > shows an external clock's cron read only"
+  },
+  {
+    "id": "b8b-g9-settings-interval",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "patch.interval_days = days;",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > saves a switched clock"
+  },
+  {
+    "id": "b8b-g9-settings-no-cron",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "if (!external) patch.cron = draft.cron.trim();",
+    "replace": "patch.cron = draft.cron.trim();",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > sends no cron for an external clock"
+  },
+  {
+    "id": "b8b-g9-settings-cron-check",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "if (!parsed.success) {",
+    "replace": "if (!parsed.success && false) {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*the clocks > refuses a cron that has not five fields"
+  },
+  {
+    "id": "b8b-g9-settings-role",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ChannelSettingsForm.tsx",
+    "find": "<RoleGate action=\"automation.channels_put\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "FAIL .*a role without the write > shows the settings and no save control"
+  },
+  {
+    "id": "b8b-g9-flags-save",
+    "test": "src/admin/settings/FlagsSection.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "putFlags({ [flag]: value })",
+    "replace": "putFlags({ [flag]: value, new_channels: true })",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/FlagsSection.test.tsx",
+    "expect": "FAIL .*the feature flags > saves archive pages with one request"
+  },
+  {
+    "id": "b8b-g9-flags-lines",
+    "test": "src/admin/settings/FlagsSection.test.tsx",
+    "file": "src/admin/settings/FlagsSection.tsx",
+    "find": "<p className=\"admin-field__hint\">{flagLabels[flag]}</p>",
+    "replace": "<p className=\"admin-field__hint\">{flag}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/FlagsSection.test.tsx",
+    "expect": "FAIL .*the feature flags > describes each flag in a line"
+  },
+  {
+    "id": "b8b-g9-flags-role",
+    "test": "src/admin/settings/FlagsSection.test.tsx",
+    "file": "src/admin/settings/FlagsSection.tsx",
+    "find": "disabled={!canEdit || save.isPending}",
+    "replace": "disabled={save.isPending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/FlagsSection.test.tsx",
+    "expect": "FAIL .*the feature flags > shows the flags to a role that cannot change them"
+  },
+  {
+    "id": "b8b-g9-settings-no-secret",
+    "kind": "manual",
+    "test": "src/admin/automation/settings.test.tsx",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
+    "expect": "× .*sign-in status > reads connected and expired",
+    "procedure": "Two files: the row schema drops `credentials_ref` and the form never draws it, so a one-file mutation stays green. Replay: in src/admin/automation/automation-api.ts replace `.omit({ credentials_ref: true })` with an empty string, then in src/admin/automation/ChannelSettingsForm.tsx replace `{label} on` with `{label} on {JSON.stringify(row)}`; the case that reads the health route goes red on `expect(document.body.innerHTML).not.toContain(SECRET)` (the two blocked-channel cases go red as well, because their label text changed); restore both. Measured 2026-10-08."
+  },
+  {
+    "id": "b8b-g8-class-shown",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "Class: {template.class}. It sets",
+    "replace": "Class: {template.key}. It sets",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*the class > shows the class of the template"
+  },
+  {
+    "id": "b8b-g8-id-read",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailsPage.tsx",
+    "find": "<RequestFailure error={templates.error} />",
+    "replace": "<p role=\"alert\">{templates.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*a failed request > names the request id when the templates did not load"
+  },
+  {
+    "id": "b8b-g8-id-preview",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/TemplatePreview.tsx",
+    "find": "<RequestFailure error={preview.error} />",
+    "replace": "<p role=\"alert\">{preview.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*a failed request > names the request id when the preview did not draw"
+  },
+  {
+    "id": "b8b-g8-id-save",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "<RequestFailure error={save.error} className=\"admin-field__error\" />",
+    "replace": "<p role=\"alert\">{save.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*a failed request > names the request id when a save fails"
+  },
+  {
+    "id": "b8b-g8-id-send-test",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "<RequestFailure error={sendTest.error} className=\"admin-field__error\" />",
+    "replace": "<p role=\"alert\">{sendTest.error.message}</p>",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*a failed request > names the request id when the test send fails"
+  },
+  {
+    "id": "b8b-g8-preview-gated",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailTemplateEditor.tsx",
+    "find": "<RoleGate action=\"automation.templates_preview\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
+    "expect": "FAIL .*send test to me > asks nothing of the preview route"
+  },
+  {
+    "id": "b8b-g10-agent-pill",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "ActorBadge name=\"Automation key\" kind=\"agent\"",
+    "replace": "ActorBadge name=\"Automation key\" kind=\"human\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*the list > shows the newest changes first"
+  },
+  {
+    "id": "b8b-g10-table-filter",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsPage.tsx",
+    "find": "filters.setFilters({ table_name: event.target.value });",
+    "replace": "filters.setFilters({});",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*the list > asks for one table when it is chosen"
+  },
+  {
+    "id": "b8b-g10-next-cursor",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsPage.tsx",
+    "find": "if (page?.next_cursor != null) filters.goNext(page.next_cursor);",
+    "replace": "if (page?.next_cursor != null) filters.goNext(\"\");",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*the list > opens the next page with the cursor"
+  },
+  {
+    "id": "b8b-g10-diff-sides",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "<DiffView before={row.before} after={row.after} />",
+    "replace": "<DiffView before={row.after} after={row.before} />",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*one revision > shows what changed as the value before and the value after"
+  },
+  {
+    "id": "b8b-g10-insert-no-restore",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "row.before === null ? (\n            <p>This revision",
+    "replace": "row.before === undefined ? (\n            <p>This revision",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*one revision > offers no way back for the revision that created the row"
+  },
+  {
+    "id": "b8b-g10-restore-gate",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "<RoleGate action=\"automation.revisions_restore\">",
+    "replace": "<RoleGate action=\"automation.get\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*one revision > offers no restore to a role the matrix leaves out"
+  },
+  {
+    "id": "b8b-g10-confirm-first",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "setAsking(true);",
+    "replace": "restore.mutate(row.id);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*restoring > asks first, sends nothing on cancel"
+  },
+  {
+    "id": "b8b-g10-restore-once",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "    restore.mutate(row.id, {\n      onSuccess:",
+    "replace": "    restore.mutate(row.id);\n    restore.mutate(row.id, {\n      onSuccess:",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*restoring > asks first, sends nothing on cancel"
+  },
+  {
+    "id": "b8b-g10-restore-refetch",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/automation-queries.ts",
+    "find": "mutationFn: (id: string) => postRestore(id),\n    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.automation.all()),",
+    "replace": "mutationFn: (id: string) => postRestore(id),",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*restoring > asks first, sends nothing on cancel"
+  },
+  {
+    "id": "b8b-g10-refused-words",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "{restore.isError ? <RequestFailure error={restore.error} /> : null}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
+    "expect": "FAIL .*restoring > shows the server's words when the restore is refused"
+  },
+  {
+    "id": "b8b-g10-cursor-older",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "      ...(await take(newestFirst().lt(\"at\", at))),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*pages on the cursor of the page before"
+  },
+  {
+    "id": "b8b-g10-cursor-value",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "`${last.at}~${last.id}`",
+    "replace": "`${last.at}~${last.at}`",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*pages on the cursor of the page before"
+  },
+  {
+    "id": "b8b-g10-limit-clamp",
+    "test": "tests/unit/automation/service.test.ts",
+    "file": "src/domain/admin-page.ts",
+    "find": ".max(ADMIN_PAGE_MAX)",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/service.test.ts",
+    "expect": "× .*refuses a limit over 50 and a cursor"
+  },
+  {
+    "id": "b8b-g10-at-index",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "drop index public.automation_revisions_at_idx;",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts -t \"pg_indexes lists the\"",
+    "expect": "× .*pg_indexes lists the"
+  },
+  {
+    "id": "b8b-g10-guarded-exit-spec",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "tests/e2e/automation-exit.spec.ts",
+    "find": "  await assertNotProduction();\n  release = await holdDevLock();",
+    "replace": "  release = await holdDevLock();",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assert-not-production.test.ts",
+    "expect": "FAIL .*every listed file exists[\\s\\S]*tests/e2e/automation-exit.spec.ts"
+  },
+  {
+    "id": "b8b-g10-e2e-no-store",
+    "kind": "manual",
+    "test": "tests/e2e/automation-exit.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "headers.set(\"cache-control\", \"no-store\");",
+    "replace": "headers.append(\"cache-control\", \"no-store\");",
+    "run": "E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts",
+    "expect": "Received: \"private, no-store, no-store\""
+  },
+  {
+    "id": "b8b-g10-e2e-step-on",
+    "kind": "manual",
+    "test": "tests/e2e/automation-exit.spec.ts",
+    "run": "E2E_FULL_STACK=1 E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts --grep \"a.submission.from|the.runner.plans\" --retries=0",
+    "expect": "✘ .*› the runner plans",
+    "procedure": "The step is left on (the first case, which switches it off, is not selected), so the submission case makes the submission and the runner case finds a notify_admin_received job. Replay by hand with the dev profile and a build made with the Turnstile test key; the runner case goes red on `Received: [\"send_received\", \"notify_admin_received\"]`. Measured 2026-10-08."
+  },
+  {
+    "id": "b8b-g10-e2e-restore",
+    "kind": "manual",
+    "test": "tests/e2e/automation-exit.spec.ts",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "onConfirm={confirm}",
+    "replace": "onConfirm={cancel}",
+    "run": "E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts",
+    "expect": "✘ .*a restore from screen 21 brings the step back"
+  },
+  {
+    "id": "b8b-g10-e2e-agent-pill",
+    "kind": "manual",
+    "test": "tests/e2e/automation-exit.spec.ts",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "ActorBadge name=\"Automation key\" kind=\"agent\"",
+    "replace": "ActorBadge name=\"Automation key\" kind=\"human\"",
+    "run": "E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts",
+    "expect": "✘ .*an agent key makes the same switch"
   }
 ]

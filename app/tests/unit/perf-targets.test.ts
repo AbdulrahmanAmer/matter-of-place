@@ -38,6 +38,24 @@ function reports(...runs: ReturnType<typeof report>[]): string {
   return dir;
 }
 
+/** A tree as lhci-pages.mjs leaves it: one folder per page, the reports of that page inside (ruling H76a). */
+function tree(
+  pages: Record<string, ReturnType<typeof report>[]>,
+  loose?: ReturnType<typeof report>,
+) {
+  const dir = mkdtempSync(join(tmpdir(), "lhci-"));
+  folders.push(dir);
+  for (const [name, runs] of Object.entries(pages)) {
+    mkdirSync(join(dir, name));
+    runs.forEach((run, index) => {
+      writeFileSync(join(dir, name, `lhr-${String(index)}.json`), JSON.stringify(run));
+    });
+    writeFileSync(join(dir, name, "manifest.json"), "[]");
+  }
+  if (loose) writeFileSync(join(dir, "lhr-loose.json"), JSON.stringify(loose));
+  return dir;
+}
+
 afterEach(() => {
   for (const dir of folders.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
@@ -109,6 +127,28 @@ describe("measure", () => {
     ]);
   });
 
+  it("reads the reports in the immediate subfolders, a page from each (ruling H76a)", () => {
+    const dir = tree({
+      "1-home": [report({ lcp: 3000, url: "https://example.test/" })],
+      "2-submit": [report({ lcp: 3000, url: "https://example.test/submit" })],
+    });
+    expect(measure(dir).warnings).toEqual([
+      "warn https://example.test/ LCP 3000 ms, target 2000 ms",
+      "warn https://example.test/submit LCP 3000 ms, target 2000 ms",
+    ]);
+  });
+
+  it("reads the reports of the folder itself beside those of its subfolders", () => {
+    const dir = tree(
+      { "1-home": [report({ lcp: 3000, url: "https://example.test/a" })] },
+      report({ lcp: 3000, url: "https://example.test/b" }),
+    );
+    expect(measure(dir).warnings).toEqual([
+      "warn https://example.test/a LCP 3000 ms, target 2000 ms",
+      "warn https://example.test/b LCP 3000 ms, target 2000 ms",
+    ]);
+  });
+
   it("throws on a folder with no report", () => {
     const dir = mkdtempSync(join(tmpdir(), "lhci-"));
     folders.push(dir);
@@ -125,6 +165,17 @@ describe("the command", () => {
     const result = run(reports(report({ lcp: 2400 })));
     expect(result.status).toBe(0);
     expect(result.stdout).toContain(`warn ${PAGE} LCP 2400 ms`);
+  });
+
+  it("prints a warn line for each page of a tree of per-page folders", () => {
+    const dir = tree({
+      "1-home": [report({ lcp: 2400, url: "https://example.test/" })],
+      "2-submit": [report({ lcp: 2500, url: "https://example.test/submit" })],
+    });
+    const result = run(dir);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("warn https://example.test/ LCP 2400 ms");
+    expect(result.stdout).toContain("warn https://example.test/submit LCP 2500 ms");
   });
 
   it("exits 1 and prints an error line for a request to Google Analytics", () => {

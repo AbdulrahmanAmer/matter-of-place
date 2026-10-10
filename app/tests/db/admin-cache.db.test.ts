@@ -473,3 +473,150 @@ describe("catalog_version and the story writes (F25 a)", () => {
     });
   });
 });
+
+/** The case runs only against a database that holds step 13's migration (P-328). */
+async function assertStep13(db: Db): Promise<void> {
+  const { rows } = await db.query<{ present: boolean }>(
+    "select to_regproc('public.update_market') is not null and to_regproc('public.set_market_coming_soon') is not null as present",
+  );
+  expect(rows[0]?.present).toBe(true);
+}
+
+describe("catalog_version and the market writes (F25 a)", () => {
+  it("update_market and set_market_coming_soon each raise it by exactly one", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await db.query(
+        `insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x')
+         on conflict (slug) do nothing`,
+      );
+      await db.query("update public.markets set coming_soon = true where slug = 'california'");
+      const beforeEdit = await catalogVersion(db);
+      await db.query(
+        `select public.update_market('california', '{"intro": "Edited"}', null, null, null, $1, 'human', 'req-cv')`,
+        [editor],
+      );
+      const edited = (await catalogVersion(db)) - beforeEdit;
+      await db.query(
+        `select public.set_market_coming_soon(p_slug => 'california', p_coming_soon => false, p_actor => $1,
+           p_actor_kind => 'human', p_request_id => 'req-cv')`,
+        [editor],
+      );
+      expect({ edited, toggled: (await catalogVersion(db)) - beforeEdit - edited }).toEqual({
+        edited: 1,
+        toggled: 1,
+      });
+    });
+  });
+
+  it("set_market_coming_soon to the state a market is already in leaves it", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await db.query(
+        `insert into public.markets (slug, name, country, intro) values ('california', 'California', 'United States', 'x')
+         on conflict (slug) do nothing`,
+      );
+      await db.query("update public.markets set coming_soon = true where slug = 'california'");
+      const before = await catalogVersion(db);
+      await db.query(
+        `select public.set_market_coming_soon(p_slug => 'california', p_coming_soon => true, p_actor => $1,
+           p_actor_kind => 'human', p_request_id => 'req-cv')`,
+        [editor],
+      );
+      expect((await catalogVersion(db)) - before).toBe(0);
+    });
+  });
+});
+
+async function assertStep15(db: Db): Promise<void> {
+  const { rows } = await db.query<{ present: boolean }>(
+    `select position('notifications' in (select prosrc from pg_proc where proname = 'put_setting')) > 0 as present`,
+  );
+  expect(rows[0]?.present).toBe(true);
+}
+
+describe("catalog_version and the settings writes (G21)", () => {
+  it("settings.site and coming_soon_global raise it by one each; invoice, notifications and agent_daily_limits leave it", async () => {
+    await withRollback(async (db) => {
+      await assertStep15(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const { rows } = await db.query<{ site: unknown; coming: unknown }>(
+        `select (select value from public.settings where key = 'site') as site,
+                (select value from public.settings where key = 'coming_soon_global') as coming`,
+      );
+      const stored = rows[0];
+      const invoice = {
+        prefix: "MOP",
+        due_days: 14,
+        terms: "",
+        late_terms: "",
+        tax_line: "",
+        payment_methods: [],
+        campaign_days: {
+          "The Feature": null,
+          "The Reach": null,
+          "The Campaign": null,
+          "Five Features": null,
+        },
+        billing_email: "billing@example.invalid",
+      };
+      const steps: [string, string, unknown[]][] = [
+        [
+          "site",
+          "select public.settings_put_site($1::jsonb, $2, 'human', 'req-cv', null)",
+          [JSON.stringify(stored?.site ?? {}), admin],
+        ],
+        [
+          "coming_soon_global",
+          "select public.put_setting('coming_soon_global', $1::jsonb, $2, 'human', 'req-cv')",
+          [JSON.stringify(stored?.coming !== true), admin],
+        ],
+        [
+          "invoice",
+          "select public.settings_put_invoice($1::jsonb, $2, 'human', 'req-cv', null)",
+          [JSON.stringify(invoice), admin],
+        ],
+        [
+          "notifications",
+          "select public.put_setting('notifications', $1::jsonb, $2, 'human', 'req-cv')",
+          [JSON.stringify({ recipients: [] }), admin],
+        ],
+        [
+          "agent_daily_limits",
+          "select public.put_setting('agent_daily_limits', $1::jsonb, $2, 'human', 'req-cv')",
+          [
+            JSON.stringify({ decisions_per_day: 25, publish_per_day: 5, requests_per_day: 2000 }),
+            admin,
+          ],
+        ],
+      ];
+      const raised: Record<string, number> = {};
+      for (const [key, sql, params] of steps) {
+        const before = await catalogVersion(db);
+        await db.query(sql, params);
+        raised[key] = (await catalogVersion(db)) - before;
+      }
+      expect(raised).toEqual({
+        site: 1,
+        coming_soon_global: 1,
+        invoice: 0,
+        notifications: 0,
+        agent_daily_limits: 0,
+      });
+    });
+  });
+});
+
+describe("audit list indexes (step 15)", () => {
+  it("screen 25 pages audit_log on (at desc, id desc) and finds one request's rows by request_id", async () => {
+    const definitions = await withRollback((db) =>
+      indexDefinitions(db, "audit_log", ["audit_log_list_idx", "audit_log_request_idx"]),
+    );
+    expect(definitions).toEqual([
+      "CREATE INDEX audit_log_list_idx ON public.audit_log USING btree (at DESC, id DESC)",
+      "CREATE INDEX audit_log_request_idx ON public.audit_log USING btree (request_id)",
+    ]);
+  });
+});

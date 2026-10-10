@@ -1803,8 +1803,8 @@
     "id": "b13-g4-perf-empty",
     "test": "tests/unit/perf-targets.test.ts",
     "file": "scripts/perf-targets.mjs",
-    "find": "if (names.length === 0) throw",
-    "replace": "if (names.length === -1) throw",
+    "find": "if (files.length === 0) throw",
+    "replace": "if (files.length === -1) throw",
     "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
     "expect": "FAIL .*measure > throws on a folder with no report"
   },
@@ -2467,5 +2467,41 @@
     "replace": "",
     "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx -t \"og:image\"",
     "expect": "FAIL .*> the legal pages > the page heads name the site's default card as their og:image"
+  },
+  {
+    "id": "b13-h76a-perf-subdirs",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "find": "      .map((name) => join(dir, entry.name, name));",
+    "replace": "      .map((name) => join(dir, name));",
+    "expect": "FAIL .*measure > reads the reports in the immediate subfolders"
+  },
+  {
+    "id": "b13-h76a-perf-loose",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "find": "isReport(entry.name) ? [join(dir, entry.name)] : []",
+    "replace": "[]",
+    "expect": "FAIL .*measure > reads the reports of the folder itself beside"
+  },
+  {
+    "id": "b13-h76a-perf-cli-tree",
+    "test": "tests/unit/perf-targets.test.ts",
+    "file": "scripts/perf-targets.mjs",
+    "run": "bunx vitest run --project unit tests/unit/perf-targets.test.ts",
+    "find": "      .map((name) => join(dir, entry.name, name));",
+    "replace": "      .map((name) => join(dir, entry.name, name))\n      .slice(0, 0);",
+    "expect": "FAIL .*the command > prints a warn line for each page of a tree"
+  },
+  {
+    "id": "b13-h76a-deploy-perf-step",
+    "test": "tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "run": "bunx vitest run --project unit tests/unit/observatory.test.ts",
+    "find": "run: node scripts/perf-targets.mjs .lighthouseci-pages",
+    "replace": "run: node scripts/perf-targets.mjs .lighthouseci",
+    "expect": "FAIL .*> reads the kept Lighthouse reports for the performance targets"
   }
 ]

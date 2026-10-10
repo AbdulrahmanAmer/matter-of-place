@@ -8,7 +8,9 @@ import { z } from "zod";
 // `lighthouserc.json` and these targets live here. Per page the three runs are reduced to their median, except the
 // hero weight and the font count, which take the largest run. Exit 1 only when a report shows a request to Google
 // Tag Manager or Google Analytics: the lab run never consents (invariant 9).
-// usage: node scripts/perf-targets.mjs [.lighthouseci]
+// The folder may hold the reports itself or in its immediate subfolders: `scripts/lhci-pages.mjs` keeps each page's
+// reports in `.lighthouseci-pages/<n>-<slug>/` (ruling H76a). Both are read; a page's runs group by their final url.
+// usage: node scripts/perf-targets.mjs [.lighthouseci]  (the CI step passes .lighthouseci-pages)
 
 const TARGETS = { lcpMs: 2000, cls: 0.02, tbtMs: 150, heroBytes: 180 * 1024, fonts: 2 };
 const ANALYTICS_HOSTS = ["googletagmanager.com", "google-analytics.com"];
@@ -57,17 +59,33 @@ function isAnalytics(url) {
 }
 
 /**
- * The `warn` lines and the analytics requests of every report in `dir`. Throws when the folder holds no report.
+ * The `lhr-*.json` files directly in `dir` and in its immediate subfolders.
+ * @param {string} dir
+ * @returns {string[]} the paths
+ */
+function reportFiles(dir) {
+  const isReport = (/** @type {string} */ name) => /^lhr-.*\.json$/.test(name);
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (!entry.isDirectory()) return isReport(entry.name) ? [join(dir, entry.name)] : [];
+    return readdirSync(join(dir, entry.name))
+      .filter(isReport)
+      .map((name) => join(dir, entry.name, name));
+  });
+}
+
+/**
+ * The `warn` lines and the analytics requests of every report in `dir` and its immediate subfolders. Throws when
+ * there is none.
  * @param {string} dir
  * @returns {{ warnings: string[], analytics: string[] }}
  */
 export function measure(dir) {
-  const names = readdirSync(dir).filter((name) => /^lhr-.*\.json$/.test(name));
-  if (names.length === 0) throw new Error(`no lhr-*.json report in ${dir}`);
+  const files = reportFiles(dir);
+  if (files.length === 0) throw new Error(`no lhr-*.json report in ${dir}`);
   /** @type {Map<string, z.infer<typeof report>[]>} */
   const pages = new Map();
-  for (const name of names) {
-    const parsed = report.parse(JSON.parse(readFileSync(join(dir, name), "utf8")));
+  for (const file of files) {
+    const parsed = report.parse(JSON.parse(readFileSync(file, "utf8")));
     pages.set(parsed.finalDisplayedUrl, [...(pages.get(parsed.finalDisplayedUrl) ?? []), parsed]);
   }
 

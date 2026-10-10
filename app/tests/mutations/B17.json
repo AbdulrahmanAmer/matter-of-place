@@ -1822,18 +1822,36 @@
     "run": "bunx vitest run tests/unit/observatory.test.ts",
     "file": "../.github/workflows/deploy.yml",
     "id": "b17-deploy-lighthouse-retry",
-    "find": "          for attempt in 1 2; do\n",
-    "replace": "          for attempt in 1; do\n",
-    "expect": "runs Lighthouse at most twice"
+    "find": "        run: node scripts/lhci-pages.mjs \"$PREVIEW_URL\"\n",
+    "replace": "        run: node scripts/lhci-pages.mjs \"$PREVIEW_URL\" --bound-seconds 600\n",
+    "expect": "runs Lighthouse page by page through lhci-pages"
   },
   {
     "test": "tests/unit/hygiene.test.ts",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/deploy.yml",
     "id": "b17-deploy-lighthouse-gate",
-    "find": "&& timeout 600 bun run lhci",
-    "replace": "&& bun run lhci",
-    "expect": "the Lighthouse step is a gate that survives a hung"
+    "find": "node scripts/lhci-pages.mjs \"$PREVIEW_URL\"",
+    "replace": "bun run lhci -- --collect.url=\"$PREVIEW_URL\"",
+    "expect": "the Lighthouse step is a gate that survives a hung page"
+  },
+  {
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "id": "b17-deploy-lighthouse-logs-failed",
+    "find": "        if: ${{ !cancelled() && steps.lighthouse.outcome != 'skipped' }}\n",
+    "replace": "        if: ${{ success() }}\n",
+    "expect": "uploads each page's Lighthouse logs whenever the step ran"
+  },
+  {
+    "test": "tests/unit/observatory.test.ts",
+    "run": "bunx vitest run tests/unit/observatory.test.ts",
+    "file": "../.github/workflows/deploy.yml",
+    "id": "b17-deploy-lighthouse-logs-hidden",
+    "find": "          include-hidden-files: true\n",
+    "replace": "",
+    "expect": "uploads each page's Lighthouse logs whenever the step ran"
   },
   {
     "id": "b17-a11y-settle-wait",

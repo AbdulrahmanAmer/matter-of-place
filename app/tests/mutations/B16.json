@@ -210,8 +210,8 @@
     "id": "b16-g2-put-error",
     "test": "tests/unit/settings-service.test.ts",
     "file": "src/server/settings/service.ts",
-    "find": "  if (error !== null) throw fromRpcError(error);",
-    "replace": "  if (error !== null) return;",
+    "find": "  const { error } = await db.rpc(\"settings_put_site\", args as PutSiteArgs);\n  if (error !== null) throw fromRpcError(error);",
+    "replace": "  const { error } = await db.rpc(\"settings_put_site\", args as PutSiteArgs);\n  if (error !== null) return;",
     "run": "bunx vitest run --project unit tests/unit/settings-service.test.ts",
     "expect": "FAIL .*> applySiteSettings > throws the function's error code"
   },
@@ -925,8 +925,8 @@
     "id": "b16-g8-deno-workers",
     "test": "tests/deno/site-context.smoke.ts",
     "file": "src/server/settings/service.ts",
-    "find": "import { siteSettingsSchema, type PublicSite, type SiteSettings } from \"../../domain/settings.ts\";",
-    "replace": "import \"cloudflare:workers\";\nimport { siteSettingsSchema, type PublicSite, type SiteSettings } from \"../../domain/settings.ts\";",
+    "find": "} from \"../../domain/settings.ts\";\n",
+    "replace": "} from \"../../domain/settings.ts\";\nimport \"cloudflare:workers\";\n",
     "run": "MOP_ENV=development deno run --config supabase/functions/job-runner/deno.json --allow-env tests/deno/site-context.smoke.ts",
     "expect": "Unsupported scheme \"cloudflare\""
   },

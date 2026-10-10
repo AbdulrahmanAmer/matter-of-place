@@ -33,6 +33,7 @@ test-results/
 playwright-report/
 coverage/
 .lighthouseci/
+.lighthouseci-pages/
 *.log
 scratch/
 *.tmp

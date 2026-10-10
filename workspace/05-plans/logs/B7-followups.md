@@ -803,3 +803,111 @@ what: The g2 CI line (log line 1267) lists db/check/build/e2e success for 273f0f
 evidence: gh run list --branch slice/b7 -> '273f0fbb deploy failure', '23f71578 deploy failure'; gh run view 37855598010 --log-failed -> 'the Worker did not answer ten times in a row in 180 s', 'observatory: ... status 422, error scan-failed'
 
 blocking: false
+
+## g3 · steps 13
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. No follow-up of this review concerns GOTCHAS.md, so none is banked there.
+
+### 1. app/src/server/lib/permissions/markets.ts
+
+what: Follow-up (plan/matrix level, not this group's file). markets.coming_soon has no humanOnly flag and no agent daily cap. It is the action that makes a market public and queues the bulk market_open mail to every confirmed interest signup. STANDARDS R12 (SEC-11, ruling H23) says an action an agent can reach that changes public visibility or outbound content must be humanOnly, or counted by assert_agent_daily_cap and announced through notify_admin. The plan's matrix row ('markets.edit, .coming_soon | CE ME') leaves out both, and set_market_coming_soon calls neither. Concrete case: an agent key with scope markets and the managing_editor role can open a market and set off the mail with no cap and no admin notice. Found by reading; not exercised.
+
+evidence: grep -n humanOnly app/src/server/lib/permissions/markets.ts prints nothing; supabase/sql/functions/set_market_coming_soon.sql has no assert_agent_daily_cap or notify_admin call; B7.md matrix row 'markets.edit, .coming_soon | CE ME'
+
+blocking: false
+
+### 2. app/src/admin/markets/ComingSoonToggle.tsx
+
+what: Follow-up. The confirm text says 'Confirmed interest signups are sent one notice that it is open.' every time a market is opened. When the market was opened before, the key market_open:<slug> is already taken, so a reopen queues nothing (admin.db.test.ts asserts 'again: 1'). Also, the counts on screen come from market_interest_counts, which counts every subscriber of the market, while market_open_notice mails only rows whose source is like 'interest:%'. On a reopen the editor is told a mail goes out when none does, and the number shown is not the number mailed.
+
+evidence: ComingSoonToggle.tsx confirm body (line ~74 of the file); tests/db/admin.db.test.ts:2622-2634 (again: 1); src/server/jobs/system/market-open-notice.ts interested() filters .like('source','interest:%'); supabase/migrations/20261004155556_coming_soon.sql:79-89 has no source filter
+
+blocking: false
+
+### 3. workspace/05-plans/B7.md
+
+what: Follow-up (stale plan lines, the orchestrator's to fold). (1) Step 13 Files says setComingSoon passes isImplemented("market_open_notice") and that getStep includes system job types. It does not; the code correctly uses getStep ?? getSystemJob (P-1608, logged as a deviation). (2) The step 13 proof says an update_market raises catalog_version 'by one'. B2's statement triggers bump once per statement: a full update_market (patch, region, note, guide) raises it by 7 (author's measurement, in the log). The admin-cache case proves the literal line only with a patch-only call. Harmless for the cache contract, since every bump is in the same transaction, but the plan line should say 'at least once, in the writing transaction'.
+
+evidence: B7.md step 13 Files text; app/tests/db/admin-cache.db.test.ts:496-509 calls update_market with '{"intro": "Edited"}' only; workspace/05-plans/logs/B7.md g3 block 'raised catalog_version by 7'
+
+blocking: false
+
+### 4. app/supabase/sql/functions/update_market.sql
+
+what: Follow-up, minor. SQL accepts a neighborhood guide entry with no region_slug; only the Zod schema refuses one. The admin.db case even inserts { section: 'neighborhood', label: 'Pacific Heights' } with no region. Nothing breaks today because the API refuses it first, and the log says the public mapper drops such rows. The database rule is looser than the API's.
+
+evidence: tests/db/admin.db.test.ts:2692 inserts a neighborhood with no region and expects it stored; src/domain/admin-markets.ts:116 refine refuses it
+
+blocking: false
+
+## g4 · steps 14
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The seventh follow-up of the review names GOTCHAS.md and is banked as a hit-again line under P-328.
+
+### 1. app/src/server/team/service.ts
+
+what: revokeAgentKey ignores the :id path segment. DELETE team/agents/A/keys/K revokes key K even when K belongs to agent B, because revoke_agent_key takes only p_key. The author already lists this as a follow-up.
+
+evidence: service.ts lines 399-407 pass only { p_key: input.keyId }; keyRevokeInputSchema parses id but nothing reads it. Read, not run. Admin-only and person-only, so I found no concrete harm.
+
+blocking: false
+
+### 2. app/supabase/migrations/20261009004133_admin_team.sql
+
+what: No test runs revoke_role and set_user_disabled at the same time on the last two admins (STANDARDS C11). By reading, the shared pg_advisory_xact_lock(hashtext('team.last_admin')) plus the new per-statement snapshot under READ COMMITTED is correct. But removing the lock would turn no test red. The author lists this as a follow-up.
+
+evidence: grep of tests/db/admin.db.test.ts shows no two-connection case. Lines 101 and 137 hold the lock.
+
+blocking: false
+
+### 3. app/scripts/bootstrap-admin.ts
+
+what: Unlike its sibling scripts that write to the one project (seed-admin-users.ts, set-environment.ts, set-site.ts), it never calls guardEnv() from scripts/lib/guard-env.mjs (R50, SEC-08). So it would run in a shell that holds CLOUDFLARE_API_TOKEN or SUPABASE_ACCESS_TOKEN. It reads only the DEV_* names through oneDatabaseValue, so I found no concrete harm.
+
+evidence: grep -ln guard-env scripts/*.ts lists seed-admin-users.ts, set-environment.ts and set-site.ts but not bootstrap-admin.ts. The author's own proof needed env -u CLOUDFLARE_API_TOKEN.
+
+blocking: false
+
+### 4. app/docs/runbooks/admin.md
+
+what: Line 8 says bootstrap-admin.ts 'is a later step of B7 and is not on main yet: UNPROVEN'. That line goes stale once this group merges. It is step 10's file, not this group's, so the orchestrator should fold it.
+
+evidence: grep -rn bootstrap-admin app/docs -> app/docs/runbooks/admin.md:8
+
+blocking: false
+
+### 5. app/src/server/team/service.ts
+
+what: An auth account with zero user_roles rows cannot be reached from screen 23. revoke_role may delete a last role (only the UI hides that button), team_users lists only users that have rows, and a re-invite answers 409 already_exists. The plan does not ask step 14 to close this; it is a note for later.
+
+evidence: Read: inviteUser maps email_exists to already_exists; team_users selects from user_roles only; revoke_role has no last-role guard. Not run.
+
+blocking: false
+
+### 6. app/supabase/sql/functions/is_last_admin.sql
+
+what: An invited admin who has never signed in counts as the second enabled admin. So the only working admin can revoke their own admin role or disable their own account while the invitee has not yet accepted, which leaves no admin who can sign in. The plan's wording ('no enabled admin') is met; this is a follow-up for a later hardening pass.
+
+evidence: is_last_admin checks disabled_at and actor_kind only, not auth.users.last_sign_in_at or email confirmation. Read, not run.
+
+blocking: false
+
+## g1 · steps 15
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The two follow-ups that name GOTCHAS.md are banked in the bank itself (P-2047 rule rewritten with a hit-again under P-547, and a hit-again under P-066).
+
+### 1. app/src/server/settings/service.ts
+
+what: getSettings reads `site` straight from the table for invoiceReadiness, but takes identity readiness from siteReadiness(db), which reads the per-isolate public-state memo (15 s TTL). Right after an identity save, the banner can still list a field (for example legal.entity) that the identity form shows as filled, for up to 15 s on the same isolate. The author logged this as a follow-up. The plan names siteReadiness(db), so it is not a contract break.
+
+evidence: Confirmed by reading: src/server/settings/service.ts line 109 (readiness built from await siteReadiness(db) plus invoiceReadiness(site, invoice)); src/server/settings/readiness.ts calls getSiteSettings, which calls getPublicState(db).
+
+blocking: false
+
+### 2. app/tests/mutations/B7.json
+
+what: The five sql entries b7-15-db-* use an expect that only matches the test title ('x .*<title>'). On any database without the step 15 migration (mop-dev today), the test already goes red at assertStep15, so a local replay without the prelude counts as OK for the wrong reason. CI's ephemeral stack has the migration, so CI's replay is sound, and so is my own prelude-backed invoice mutation. This is a registry-wide pattern, not something new in this step.
+
+evidence: Confirmed by reading: node -e prints the b7-15-db-* entries; the expect for each is '× .*<test title>', with no reason text.
+
+blocking: false
