@@ -1,13 +1,16 @@
 // scripts/lhci-pages.mjs, ruling H76: the pure half (arguments, the lhci command, the classification of a run, the retry
 // decision, the url line, the summary and the exit code). The run itself needs a served build and Chrome; its proof is
 // a real run against `wrangler dev` (the slice log of H76).
-import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
   DEFAULT_CONFIG,
   classify,
   failureTail,
+  keepReports,
   lhciArgs,
   notRun,
   parseArgs,
@@ -290,5 +293,70 @@ describe("warning and readOutput", () => {
       lines,
       undefined,
     ]);
+  });
+});
+
+describe("keepReports, the reports of a passing page kept for perf-targets (ruling H76a)", () => {
+  const folders: string[] = [];
+  const scratch = () => {
+    const dir = mkdtempSync(join(tmpdir(), "lhci-keep-"));
+    folders.push(dir);
+    return dir;
+  };
+  afterEach(() => {
+    for (const dir of folders.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("copies every lhr-*.json into the page's folder and nothing else", () => {
+    const from = scratch();
+    for (const name of ["lhr-1.json", "lhr-2.json", "lhr-3.json"]) {
+      writeFileSync(join(from, name), JSON.stringify({ name }));
+    }
+    writeFileSync(join(from, "manifest.json"), "[]");
+    writeFileSync(join(from, "assertion-results.json"), "[]");
+    const to = join(scratch(), "1-home");
+    expect(keepReports(from, to)).toBe(3);
+    expect(readdirSync(to).sort()).toEqual(["lhr-1.json", "lhr-2.json", "lhr-3.json"]);
+    expect(JSON.parse(readFileSync(join(to, "lhr-2.json"), "utf8"))).toEqual({
+      name: "lhr-2.json",
+    });
+  });
+
+  it("keeps the first page's reports when the next page's run empties the source", () => {
+    const from = scratch();
+    const out = scratch();
+    writeFileSync(join(from, "lhr-1.json"), '{"page":"a"}');
+    keepReports(from, join(out, "1-a"));
+    rmSync(from, { recursive: true, force: true });
+    mkdirSync(from);
+    writeFileSync(join(from, "lhr-1.json"), '{"page":"b"}');
+    keepReports(from, join(out, "2-b"));
+    expect(readdirSync(out).sort()).toEqual(["1-a", "2-b"]);
+    expect(readFileSync(join(out, "1-a", "lhr-1.json"), "utf8")).toBe('{"page":"a"}');
+  });
+
+  it("copies nothing and makes no folder when the source is missing or holds no report", () => {
+    const empty = scratch();
+    writeFileSync(join(empty, "manifest.json"), "[]");
+    const out = scratch();
+    expect([
+      keepReports(join(empty, "absent"), join(out, "1-a")),
+      keepReports(empty, join(out, "2-b")),
+      readdirSync(out),
+    ]).toEqual([0, 0, []]);
+  });
+});
+
+describe("main keeps the reports of a passing attempt, in a folder named like the page's other files (H76a)", () => {
+  it("calls keepReports once, only for a pass, from .lighthouseci into <out-dir>/<n>-<slug>", () => {
+    const source = readFileSync("scripts/lhci-pages.mjs", "utf8");
+    const calls = source.split("keepReports(").length - 1;
+    const guarded =
+      /if \(classify\(attempt\) === "pass"\) \{\s+const kept = keepReports\(\s+join\(APP, REPORTS\),\s+join\(dir, `\$\{String\(index \+ 1\)\}-\$\{slugOf\(url\)\}`\),\s+\);/;
+    expect([
+      calls,
+      guarded.test(source),
+      source.includes('const REPORTS = ".lighthouseci";'),
+    ]).toEqual([2, true, true]);
   });
 });

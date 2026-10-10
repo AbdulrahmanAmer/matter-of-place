@@ -42,6 +42,16 @@ const nullOnNotFound = async <T>(promise: Promise<T>): Promise<T | null> => {
   }
 };
 
+/** A taken-down page answers 410: the caller gets `{ gone: true }` and shows the calm page (invariant 10). */
+const goneOnGone = async <T>(promise: Promise<T>): Promise<T | { gone: true }> => {
+  try {
+    return await promise;
+  } catch (error) {
+    if (error instanceof ServiceError && error.kind === "gone") return { gone: true };
+    throw error;
+  }
+};
+
 const text = z.string().nullable();
 /** The body the server already validated; the type ties it to `PublicSite`, which the server builds. */
 const publicSiteSchema: z.ZodType<PublicSite> = z.object({
@@ -72,7 +82,7 @@ export function createHttpServices(baseUrl: string, fetchImpl?: FetchImpl) {
       const query =
         opts?.draftToken === undefined ? "" : `?draft_token=${encodeURIComponent(opts.draftToken)}`;
       return nullOnNotFound(
-        api.get(`/properties/${encodeURIComponent(slug)}${query}`, propertySchema),
+        goneOnGone(api.get(`/properties/${encodeURIComponent(slug)}${query}`, propertySchema)),
       );
     },
     listMarkets: () => api.get("/markets", z.array(marketSchema)),

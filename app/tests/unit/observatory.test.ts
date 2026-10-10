@@ -300,6 +300,23 @@ describe.skipIf(!existsSync(DEPLOY))("the preview steps of deploy.yml (step 12)"
     });
   });
 
+  it("reads the kept Lighthouse reports for the performance targets, after the gate and only when it passed (B13, H76a)", () => {
+    const names = steps().map((step) => step.name);
+    const perf = find("perf targets");
+    const defaults = parseArgs(["http://x"]);
+    expect({
+      condition: perf?.if,
+      command: perf?.run,
+      afterGate: names.indexOf("perf targets") > names.indexOf("lighthouse"),
+      advisory: perf?.["continue-on-error"],
+    }).toEqual({
+      condition: "steps.lighthouse.outcome == 'success'",
+      command: `node scripts/perf-targets.mjs ${typeof defaults === "string" ? defaults : defaults.outDir}`,
+      afterGate: true,
+      advisory: undefined,
+    });
+  });
+
   it("scans the preview host and still prints the grade after a red essentials step", () => {
     const observatory = find("observatory");
     expect({ run: observatory?.run, condition: observatory?.if }).toEqual({

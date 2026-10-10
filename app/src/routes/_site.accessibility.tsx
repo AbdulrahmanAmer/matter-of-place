@@ -3,17 +3,19 @@ import { PageIntro } from "../components/site/page-intro";
 import { legalUpdated } from "../config/site";
 import { presentLines } from "../domain/settings";
 import { breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/accessibility")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: t.nav.accessibility,
       description: pageDescription("accessibility"),
       path: "/accessibility",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [breadcrumbLd([{ name: t.nav.accessibility, path: "/accessibility" }])],
     }),
   component: AccessibilityPage,

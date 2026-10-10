@@ -3,15 +3,17 @@ import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { editorialQualities } from "../data/exposure";
 import { breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/editorial-standard")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: "Editorial Standard",
       description: pageDescription("editorial-standard"),
       path: "/editorial-standard",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [breadcrumbLd([{ name: "Editorial Standard", path: "/editorial-standard" }])],
     }),
   component: StandardPage,

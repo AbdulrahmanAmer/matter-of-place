@@ -90,6 +90,18 @@ export const archiveQuery = (kind: ArchiveKind, slug: string) =>
     staleTime: catalogStaleTime,
   });
 
+/** The newer static Open Graph cards as absolute addresses, `{}` while there are none or the media base is unset. */
+export const ogStaticQuery = () =>
+  queryOptions({
+    queryKey: ["og-static"],
+    queryFn: async (): Promise<Record<string, string>> => {
+      if (!isLive) return {};
+      const { getOgStaticFn } = await import("./og.functions");
+      return getOgStaticFn();
+    },
+    staleTime: catalogStaleTime,
+  });
+
 /** The facets that exist, for the links of a property page. */
 export const archiveFacetsQuery = () =>
   queryOptions({

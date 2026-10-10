@@ -8,6 +8,8 @@ import { captureException } from "./server/lib/sentry";
 import { waitUntilOf } from "./server/lib/wait-until";
 import { cachedResponse } from "./server/public/cache";
 import { resolveRedirect } from "./server/public/redirects";
+import { getCatalog } from "./server/public/state";
+import { withGoneStatus } from "./server/seo/gone";
 
 // After the launch switch a preview holds no database key and runs the illustrative adapter (H35 (7)):
 // it renders every page itself, with no redirect lookup and no stored copy.
@@ -34,7 +36,10 @@ const pipeline = createMiddleware({ type: "request" }).server<{ requestId: strin
       request,
       { env: { MOP_ENV: env.MOP_ENV }, waitUntil: waitUntilOf(request) },
       {
-        render: async (_request, requestId) => (await next({ context: { requestId } })).response,
+        render: async (page, requestId) => {
+          const { response } = await next({ context: { requestId } });
+          return hasDatabase ? withGoneStatus(page, response, () => getCatalog(getDb())) : response;
+        },
         redirect: (page) => (hasDatabase ? resolveRedirect(page, getDb()) : Promise.resolve(null)),
         cache: (page, render) => (hasDatabase ? cachedResponse(page, "html", render) : render()),
         getFlags: () => (hasDatabase ? getFlags(getDb()) : Promise.resolve({})),

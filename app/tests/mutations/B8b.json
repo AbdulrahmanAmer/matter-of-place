@@ -1140,8 +1140,8 @@
     "id": "b8b-g4-purge-tag",
     "test": "tests/unit/automation/purge-cache.test.ts",
     "file": "src/server/jobs/steps/purge-cache.ts",
-    "find": "{ purge_everything: true } : { tags: [\"catalog\"] }",
-    "replace": "{ purge_everything: true } : { tags: [\"catalogue\"] }",
+    "find": "{ purge_everything: true } : { tags: [\"catalog\", \"seo\"] }",
+    "replace": "{ purge_everything: true } : { tags: [\"catalogue\", \"seo\"] }",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/purge-cache.test.ts",
     "expect": "× .*purges the catalog tag with the exact URL, header and body"
   },

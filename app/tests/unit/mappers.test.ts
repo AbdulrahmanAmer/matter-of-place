@@ -56,6 +56,7 @@ function row(overrides: Partial<PropertyRow> = {}): PropertyRow {
     hero_rank: null,
     featured_rank: null,
     published_at: "2026-08-14T00:00:00+00:00",
+    updated_at: "2026-09-30T09:15:00+00:00",
     media: [
       { media_key: MASTER, variants: {}, alt: "Front", orientation: "landscape", sort_order: 0 },
     ],
@@ -210,6 +211,29 @@ describe("toProperty", () => {
   });
 });
 
+describe("updatedAt", () => {
+  it("maps a property row's updated_at to updatedAt, whole", () => {
+    expect(toProperty(row()).updatedAt).toBe("2026-09-30T09:15:00+00:00");
+  });
+
+  it("maps a story row's updated_at to updatedAt, whole", () => {
+    const story = toStory({
+      id: "s1",
+      slug: "s",
+      title: "T",
+      deck: "D",
+      category: "Places",
+      market_slug: "california",
+      image: null,
+      body: [],
+      properties: [],
+      published_at: "2026-05-01T00:00:00+00:00",
+      updated_at: "2026-05-02T10:00:00+00:00",
+    });
+    expect(story.updatedAt).toBe("2026-05-02T10:00:00+00:00");
+  });
+});
+
 describe("toPropertyCard", () => {
   const gallery = Array.from({ length: 30 }, (_, index) => ({
     media_key: `o/p1/${String(index + 2)}-0badc0de.webp`,
@@ -294,6 +318,7 @@ describe("images that are not stored yet (G55)", () => {
       body: [],
       properties: [],
       published_at: "2026-05-01T00:00:00+00:00",
+      updated_at: "2026-05-02T00:00:00+00:00",
     });
     expect("image" in story).toBe(false);
   });
@@ -366,6 +391,14 @@ describe("mapSnapshot", () => {
     });
     expect(catalog.markets[1]?.interestCopy).toBe("Soon.");
     expect(catalog.redirects).toEqual(snapshot.redirects);
+  });
+
+  it("carries the taken-down slugs of the snapshot as gone", () => {
+    const catalog = mapSnapshot(parseSnapshot({ ...snapshot, gone: ["old-slug"] }), {
+      comingSoonGlobal: false,
+      comingSoonMarkets: {},
+    });
+    expect(catalog.gone).toEqual(["old-slug"]);
   });
 
   it("makes every market coming soon when the whole site is", () => {

@@ -150,7 +150,7 @@ jobs:
   db:
     if: github.event_name == 'pull_request' && github.event.pull_request.draft == false && vars.CI_HEAVY != 'off'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     permissions:
       contents: read
     steps:
@@ -338,6 +338,33 @@ jobs:
           else
             echo "admin project absent (B7 not landed)"
           fi
+      # B13 step 9: the SEO checks on this job's own live build, served as the production host (MOP_ENV=production on
+      # 127.0.0.1) so the head, the robots body and the sitemap are what the domain will answer. No build and no
+      # Lighthouse here: the preview job of deploy.yml runs Lighthouse once per push.
+      - name: seo serve
+        if: steps.fe.outputs.changed == 'true'
+        run: |
+          sed -i '/^MOP_ENV=/d' .dev.vars && echo MOP_ENV=production >> .dev.vars
+          # MOP_ENV=production refuses to start without a Sentry DSN; this one points at a closed local port, so no event leaves the runner.
+          echo SENTRY_DSN=http://ci@127.0.0.1:9/1 >> .dev.vars
+          bunx wrangler dev --config .output/server/wrangler.json --env-file "$(pwd)/.dev.vars" --port 8788 > "$RUNNER_TEMP/seo-wrangler.log" 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:8788/ && break; sleep 2; done
+          curl -s http://127.0.0.1:8788/ | grep -q 'data-services="live"'
+      - name: seo check
+        if: steps.fe.outputs.changed == 'true'
+        run: bun run scripts/check-seo.ts http://127.0.0.1:8788
+      - name: seo jsonld
+        if: steps.fe.outputs.changed == 'true'
+        run: bun run scripts/validate-jsonld.ts http://127.0.0.1:8788
+      - name: seo llms
+        if: steps.fe.outputs.changed == 'true'
+        run: bun run scripts/validate-llms.ts http://127.0.0.1:8788
+      - name: seo preview host
+        if: steps.fe.outputs.changed == 'true'
+        run: bun run scripts/check-seo.ts http://127.0.0.1:8788 --host pr-1.holy-meadow-4327.workers.dev
+      - name: seo log
+        if: failure() && steps.fe.outputs.changed == 'true'
+        run: tail -n 40 "$RUNNER_TEMP/seo-wrangler.log"
       # B5 step 9 (GQ-04): every email template, linted and drawn at 600 px and 375 px; the PNGs are for a person to open.
       # It needs no database and no Resend key. Chromium comes from the install step above.
       - name: email shots

@@ -14,7 +14,8 @@ import { propertiesIn } from "../lib/catalog";
 import { pluralize } from "../lib/format";
 import { marketQuery, propertiesQuery, storiesQuery } from "../lib/queries";
 import { breadcrumbLd, collectionLd } from "../lib/jsonld";
-import { pageHead, unavailableHead } from "../lib/seo";
+import { ogImageFor, ogStaticOf } from "../lib/og";
+import { indexable, pageHead, unavailableHead } from "../lib/seo";
 import { marketDescription } from "../lib/seo-copy";
 import { fill, t } from "../lib/strings";
 
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/_site/$market/")({
       stories: stories.filter((story) => story.market === market.slug).slice(0, 3),
     };
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, matches }) => {
     if (!loaderData) return unavailableHead("Market");
     const { market, pool } = loaderData;
     const intro = `${market.intro.split(".")[0] ?? market.intro}.`;
@@ -43,13 +44,15 @@ export const Route = createFileRoute("/_site/$market/")({
         title: market.name,
         description: fill(t.comingSoon.meta.market, { intro, market: market.name }),
         path: `/${market.slug}`,
-        noindex: true,
+        image: ogImageFor({ key: `market-${market.slug}`, ogStatic: ogStaticOf(matches) }),
+        ...indexable(pool.length),
       });
     }
     return pageHead({
       title: market.name,
       description: marketDescription(market),
       path: `/${market.slug}`,
+      image: ogImageFor({ key: `market-${market.slug}`, ogStatic: ogStaticOf(matches) }),
       jsonLd: [
         collectionLd(
           "market",

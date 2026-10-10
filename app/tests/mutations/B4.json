@@ -706,8 +706,8 @@
     "id": "seo-robots",
     "test": "tests/unit/seo.test.ts",
     "file": "src/lib/seo.ts",
-    "find": "...(noindex ? [{ name: \"robots\", content: \"noindex, nofollow\" }] : []),",
-    "replace": "...[],",
+    "find": "? [{ name: \"robots\", content: \"noindex, nofollow\" }]",
+    "replace": "? []",
     "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
     "expect": "FAIL .*> pageHead > adds the robots meta only when noindex is set"
   },
@@ -980,8 +980,8 @@
     "id": "x-group",
     "test": "tests/unit/hygiene.test.ts",
     "file": "../.github/workflows/ci.yml",
-    "find": "    timeout-minutes: 20\n",
-    "replace": "    timeout-minutes: 20\n    concurrency:\n      group: mop-dev\n",
+    "find": "    timeout-minutes: 35\n",
+    "replace": "    timeout-minutes: 35\n    concurrency:\n      group: mop-dev\n",
     "run": "bunx vitest run tests/unit/hygiene.test.ts",
     "expect": "[+] +\"db: group:"
   },

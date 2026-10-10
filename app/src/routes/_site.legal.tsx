@@ -5,17 +5,19 @@ import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
 import { presentLines } from "../domain/settings";
 import { breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/legal")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: "Legal",
       description: pageDescription("legal"),
       path: "/legal",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [breadcrumbLd([{ name: "Legal", path: "/legal" }])],
     }),
   component: LegalPage,

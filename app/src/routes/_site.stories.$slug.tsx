@@ -7,6 +7,7 @@ import { TextLink } from "../components/site/text-link";
 import { useTrackView } from "../hooks/use-track-view";
 import { propertiesQuery, storyQuery } from "../lib/queries";
 import { articleLd, breadcrumbLd } from "../lib/jsonld";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { storyDescription } from "../lib/seo-copy";
 
@@ -22,13 +23,14 @@ export const Route = createFileRoute("/_site/stories/$slug")({
       mentioned: properties.filter((property) => story.properties.includes(property.slug)),
     };
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, matches }) => {
     if (!loaderData) return unavailableHead("Story");
     const { story } = loaderData;
     return pageHead({
       title: story.title.replace(/\.$/, ""),
       description: storyDescription(story),
       path: `/stories/${story.slug}`,
+      image: ogImageFor({ key: "stories", ogStatic: ogStaticOf(matches) }),
       type: "article",
       published: story.publishedAt,
       jsonLd: [

@@ -7,10 +7,20 @@
 // that fails both attempts, and `--total-seconds` keeps it inside the workflow step's own limit; a page not run is a
 // failure. Each attempt's whole output, and a copy of Lighthouse's own status log (`scripts/lhci-tee.mjs`; lhci keeps it in
 // memory and loses it when a hung run is stopped), go to `--out-dir`; a failed attempt prints only its last 10 lines.
+// Ruling H76a: every `lhr-*.json` of a page's passing attempt is copied into `<out-dir>/<n>-<slug>/` before the next
+// page runs (lhci empties `.lighthouseci` at each start), so `scripts/perf-targets.mjs <out-dir>` reads all the pages.
 // One line per url `lighthouse <url>: pass|fail (...)`, then a summary. Exit 0 only when every url passed, 1 otherwise,
 // 64 on a usage error.
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { stripVTControlCharacters } from "node:util";
@@ -22,6 +32,8 @@ export const DEFAULT_CONFIG = "lighthouserc.json";
 const DEFAULT_BOUND = 180;
 const DEFAULT_TOTAL = 1200;
 const DEFAULT_OUT = ".lighthouseci-pages";
+/** Where `lhci collect` leaves its reports (lighthouserc.json sets no outputDir); it empties this folder at each start. */
+const REPORTS = ".lighthouseci";
 /** The lines of a failed attempt printed to the log; the whole output stays in the out dir. */
 export const TAIL_LINES = 10;
 /** A url is not started with less than this left of the total: no Lighthouse run of a page finishes in less. */
@@ -96,6 +108,21 @@ export function lhciArgs(config, url) {
 export function slugOf(url) {
   const path = new URL(url).pathname.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "");
   return path === "" ? "home" : path;
+}
+
+/**
+ * Copies every `lhr-*.json` of `from` into `to` (made when missing), for `scripts/perf-targets.mjs` (ruling H76a).
+ * @param {string} from the folder `lhci collect` wrote
+ * @param {string} to the page's folder under the out dir
+ * @returns {number} how many reports were copied; 0 when `from` is missing or holds none
+ */
+export function keepReports(from, to) {
+  if (!existsSync(from)) return 0;
+  const names = readdirSync(from).filter((name) => /^lhr-.*\.json$/.test(name));
+  if (names.length === 0) return 0;
+  mkdirSync(to, { recursive: true });
+  for (const name of names) copyFileSync(join(from, name), join(to, name));
+  return names.length;
 }
 
 /**
@@ -451,6 +478,13 @@ async function main({ base, config, boundSeconds, totalSeconds, outDir }) {
           `lhci-pages: attempt ${String(n)}: ${classify(attempt)}, ${reason(attempt)}; ` +
             `last ${String(lines.length)} lines (whole output in ${outDir}/${name}.*.log):\n${lines.join("\n")}\n`,
         );
+      }
+      if (classify(attempt) === "pass") {
+        const kept = keepReports(
+          join(APP, REPORTS),
+          join(dir, `${String(index + 1)}-${slugOf(url)}`),
+        );
+        process.stdout.write(`lhci-pages: kept ${String(kept)} reports of ${url} in ${outDir}\n`);
       }
       if (retryAfter(attempts)) process.stdout.write(`${warning(url, reason(attempt))}\n`);
     } while (retryAfter(attempts));

@@ -1,15 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { faq } from "../data/faq";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { faqJsonLd, pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/faq")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: "FAQ",
       description: pageDescription("faq"),
       path: "/faq",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: faqJsonLd(faq),
     }),
   component: FaqPage,

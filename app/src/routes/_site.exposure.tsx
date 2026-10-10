@@ -4,15 +4,17 @@ import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { exposureFaq, offerings, programmatic, selectionSteps } from "../data/exposure";
 import { padIndex } from "../lib/format";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { faqJsonLd, pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/exposure")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: "Property Exposure",
       description: pageDescription("exposure"),
       path: "/exposure",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: faqJsonLd(exposureFaq),
     }),
   component: ExposurePage,

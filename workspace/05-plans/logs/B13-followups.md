@@ -91,3 +91,185 @@ Source: the fresh reviewer of group g1 (second run), none blocking. The two GOTC
 5. File `app/tests/mutations/B3.json` (not blocking).
    What: b3-g4-an-unique is re-anchored on "archive_view" being the last name in analyticsEvents. The next lane that appends an event will make it STALE again, the same way B3b and this group already broke it.
    Evidence: git show 2d1b81c: find changed from '"home_finder",\n] as const;' to '"archive_view",\n] as const;'; the log's Proof 7 records the earlier 'STALE B3:b3-g4-an-unique: find occurs 0 times'
+
+## c5 · steps 5
+
+Source: the fresh reviewer of group c5, none blocking. Three reviewer items about GOTCHAS.md (the proof of P-1814 that cannot fail, the sed cost with no entry, the P-712 hit) and the unreadable bank diff went into the bank (P-1814 proof fixed, P-1817 new, hit-again lines on P-064, P-072 and P-712) and are not repeated here.
+
+1. File `app/src/server/seo/sitemap.ts` (not blocking).
+   What: UNPROVEN, not a defect of this group's code. The step 5 live proof 'every sitemap URL answers 200 without a redirect' fails on this tree, and I reproduced the author's result exactly. /privacy, /terms, /accessibility and /cookies return 404 because B16 and B17 are not merged. /place-notes returns a 301 to /stories. The plan dictates this staticSitemapPaths list, and P-1814 rightly forbids dropping paths to turn the check green. One correction: the author's report says 'B5 merged' and suggests the orchestrator 'drop /place-notes'. B5 is not finished. B5.md lines 119 and 168 give step 7 the job of replacing the 301 with the page, and POSITION shows B5 steps 5 to 9 still to run. B13 has to land after B16, B17 and B5 step 7, or step 9's check-seo stays red. The orchestrator owns that ordering.
+   Evidence: curl loop on the live build at port 8929 over the 24 <loc>: 'ok 19 bad 5' (404 /privacy, 404 /terms, 404 /accessibility, 404 /cookies, 301 /place-notes); app/src/routes/_site.place-notes.tsx throws redirect({ to: "/stories", statusCode: 301 }); workspace/05-plans/B5.md:119 'src/routes/place-notes.tsx — replaces the 301 to /stories with a page'
+
+2. File `app/src/server/seo/sitemap.ts` (not blocking).
+   What: Taken-down properties still count toward archive facets. buildSitemap removes gone slugs from its own property list but passes the unfiltered `source` to listFacets(source, state). A property that is still editorial_state='published' with taken_down_at set appears in both the snapshot's properties and its gone list, because no constraint forbids that state (catalog_version.sql:274 and :321). Such a property still counts toward the 3-property threshold, so the archive page is listed with only 2 live properties. Contract 10 says taken-down properties are absent from archive counts, and the archive page itself (step 4's archive.ts) counts the same way. The plan gives that exclusion to step 11's gone.ts, so this is a follow-up for step 11. By reading only: the head() of the three list pages also counts the pool without removing gone slugs, so a head and the sitemap could disagree in the same case.
+   Evidence: Confirmed by running: a bun probe of buildSitemap over three Modernist properties with gone: ["c"] and archive_pages on printed /archive/style/modernist next to /property/a and /property/b only
+
+3. File `app/tests/unit/sitemap.test.ts` (not blocking).
+   What: Known follow-up, still open. The test 'keeps a path whose redirect row is archived, because the snapshot never carries it' only runs with redirects: [], so it cannot show an archived row. Its mutation b13-s5-sm-redirect-archived adds a special case for /about to make it fail. The real behaviour lives in SQL (where rd.enabled) and is covered by tests/db/public-reads.db.test.ts.
+   Evidence: tests/mutations/B13.json b13-s5-sm-redirect-archived replaces `!redirected.has(path)` with `!redirected.has(path) && path !== "/about"`
+
+4. File `app/src/server/seo/sitemap.ts` (not blocking).
+   What: Known follow-up. The hero's image:caption is the property title, not alt text as the plan says, because Property exposes no hero alt.
+   Evidence: imagesOf: { address: property.heroImage, caption: property.title }
+
+## c6 · steps 6
+
+Source: the fresh reviewer of group c6, none blocking. Two reviewer items about GOTCHAS.md are banked (P-1818, and a hit-again line on P-140), not listed here.
+
+1. File `app/tests/mutations/B13.json` (not blocking).
+   What: The single-file proof and all 16 b13-s6 registry 'run' lines use a bare 'bunx vitest run'. That runs with vitest's 5000 ms default timeout, not the 60 s that 'bun run test' sets. On a cold transform cache the route test, which dynamically imports robots[.]txt.ts inside the test body, times out. The 'expect' of b13-s6-robots-route-kind ('FAIL .*the robots route > stores the indexable body as a doc') also matches that timeout. So a cold replay of that entry can print WATCHED-FAIL OK for the wrong reason. The bank already holds this rule (P-140: run a single-file proof as 'bun run test <file>' or add --testTimeout=60000). This group's proof line and registry did not follow it. Confirmed by running.
+   Evidence: First run of 'bunx vitest run --project unit tests/unit/robots.test.ts' in the fresh snapshot: 'x stores the indexable body as a doc ... 5916ms', 'Error: Test timed out in 5000ms', 'Tests 1 failed | 22 passed (23)', exit 1. The next two runs: 23 passed. bun run check (60 s timeout) was green.
+
+2. File `workspace/05-plans/STANDARDS.md` (not blocking).
+   What: Stale prose after the deletion. The folder-map row for public/ (line 87) still lists 'robots.txt' among the static files served as-is. app/docs/README.md line 34 says 'public/ static files served as-is (favicon, robots, ...)'. app/scripts/check-layout.mjs line 152 still allows 'public/{_headers,robots.txt,sw.js,offline.html}'. These are not this group's files: the orchestrator should fold them. robots.test.ts 'the static file > is gone' is what actually stops a re-added file in CI. Found by reading.
+   Evidence: grep -rn robots workspace/05-plans/STANDARDS.md app/docs/README.md app/scripts/check-layout.mjs → STANDARDS.md:87, README.md:34, check-layout.mjs:152
+
+3. File `app/tests/unit/audit/scope-check.test.ts` (not blocking).
+   What: The audit robot's scope check still lists 'app/public/robots.txt' as a path the robot may write (line 60). That is the exact file whose existence silently shadows the dynamic route and turns off the preview-host Disallow. robots.test.ts would turn such a PR red, so this is not a live hole. Still, the audit slice's allow-list should name the route file or nothing. Not this group's file. Found by reading.
+   Evidence: sed -n 50,62p app/tests/unit/audit/scope-check.test.ts shows "app/public/robots.txt" in the allowed list
+
+4. File `app/src/routes/robots[.]txt.ts` (not blocking).
+   What: Suspected by reading, not measured. UNPROVEN. The indexable branch goes through cachedResponse, which calls readState(db) before it looks in the cache. On a fresh isolate with the database unreachable and no last-good doc copy, serveLastGood rethrows and the apex robots.txt answers 503, even though its body is a constant. Crawlers read a 5xx robots.txt as a temporary full disallow. The plan's Contract prescribes cachedResponse for this route, so this is a plan-level weakness, not a builder defect.
+   Evidence: cache.ts lines 173-179: readState failure → serveLastGood → 'if (kept === undefined) throw failure'
+
+## g1 · steps 7
+
+Source: the fresh reviewer of group g1, none blocking. No follow-up named GOTCHAS.md as its file, so none went into the bank.
+
+1. File `app/src/routes/__root.tsx` (not blocking).
+   What: Nothing tests the root loader that carries ogStatic. og.test.ts gives the route heads their matches directly, so deleting the `loader` from __root.tsx (line 25, ensureQueryData(ogStaticQuery())) would leave every unit test and every registry entry green. Through the whole chain, the newer-card path (settings.og_static row, then getOgStaticFn, then root loader, then head) is UNPROVEN until a row exists and MEDIA_PUBLIC_BASE is set on a deployed Worker. The author's unproven list does not name this path.
+   Evidence: Suspected from reading, not run: og.test.ts lines 153-157 build `matches` themselves; none of the 42 b13-g1 registry entries mutates __root.tsx. Live curls on 8929 all printed the committed /og/static/*.png fallback, which is the same output with or without the loader.
+
+2. File `app/src/routes/llms[.]txt.ts` (not blocking).
+   What: No unit test or registry entry covers the two llms route handlers (content-type text/plain, cachedResponse 'doc' with sMaxAge 3600 and tags ['seo']). They are proved only by the live-build curl, so a later edit that drops the tag or the content-type would not fail CI until step 13's validate-llms or check-seo exists.
+   Evidence: git diff 183b6ba..c9a4662 -- tests/mutations/B13.json has no entry whose file is src/routes/llms[.]txt.ts or llms-full[.]txt.ts. My live curl confirmed both headers are correct today.
+
+3. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: STANDARDS C22: the new public routes /llms.txt and /llms-full.txt and the new browser-callable server function getOgStaticFn (fired by the root loader on client navigation) state no unit cost (Worker requests, Supabase calls) and no P-009 line in the g1 log block.
+   Evidence: The g1 block in logs/B13.md has no unit-cost or P-009 line. By reading: each is one memoised public_state RPC per interval per isolate, so the cost is small, but C22 asks for it to be written down.
+
+4. File `app/src/server/automation/step-specs.ts` (not blocking).
+   What: purge_cache keeps `sideEffect: "none"`, but with indexnow true it now makes an outside GET to api.indexnow.org. A second run after a crash pings again. That is harmless because IndexNow is idempotent, but R28 and C12 ask the step to say so and to have a 'runs twice' answer. This is a note for whoever owns the spec, since the spec line belongs to B8b.
+   Evidence: step-specs.ts purge_cache entry: `sideEffect: "none"`; purge-cache.ts pingIndexNow does fetch(INDEXNOW_URL...).
+
+5. File `workspace/05-plans/logs/B13-followups.md` (not blocking).
+   What: The author says the 8 BAD B3/B4 api-test registry entries ('No test files found' under --project db) and the STALE B4:seo-robots entry are follow-ups, but they appear only in the prose of the g1 log block. They are not in B13-followups.md, where the other follow-ups of the slice are listed for folding. Recorded here by this step; the entries themselves (the 8 BAD B3/B4 api-test entries and the STALE B4:seo-robots entry) still need an owner.
+   Evidence: grep -n 'seo-robots\|parity.api\|payload-budget' workspace/05-plans/logs/B13-followups.md printed nothing.
+
+## c7b · steps 7
+
+1. File `app/src/routes/_site.property.$slug.tsx` (not blocking).
+   What: Line 34 uses plain React `lazy`. It has no reload when the import fails, and the rework makes this worse: the chunk is now fetched on every property page view right after hydration, not only on a click. If the chunk fails to load (a deploy between the HTML and the chunk fetch, or a flaky mobile network), React.lazy throws to the root `errorComponent: PublicRouteError` (__root.tsx:49). A visitor who never touched the dialog then sees the whole page replaced by the error. `lazyRouteComponent` from @tanstack/react-router is already installed and does a one-time `window.location.reload()` on `isModuleNotFoundError`. This is the only `lazy(` in src/. The previous reviewer raised it and it is not in workspace/05-plans/logs/B13-followups.md (grep -i lazy finds nothing). Found by reading; I did not reproduce a failure.
+   Evidence: grep -rn "lazy(" app/src → only _site.property.$slug.tsx:34; grep -n reload node_modules/@tanstack/react-router/dist/esm/lazyRouteComponent.js → lines 25-39; grep -n errorComponent src/routes/__root.tsx → 49
+
+2. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: The test counts in Proof 1 and Proof 3 do not come from the command written next to them. Proof 3 says `5 passed` for `-g "inquiry dialog"`, and Proof 1 says 3 passed and 2 failed, one of them `contact: ...`. That filter matches 4 tests and can never match the contact test. The output most likely came from a broader filter. The substance still holds: every inquiry test passes on the live build. P-1822's proof line has the same `5 passed` and also expects `151177`, while the shipped tree prints 151188.
+   Evidence: bunx playwright test --project=desktop tests/e2e/forms.spec.ts -g "inquiry dialog" → `Running 4 tests ... 4 passed`; grep -n "inquiry dialog" tests/e2e/forms.spec.ts → lines 100 and 141 only; bundle-check → 151188
+
+3. File `app/tests/e2e/forms.spec.ts` (not blocking).
+   What: The guard the author names, `inquiry dialog: focus moves in on open and returns to the opener on close`, only fails under vite dev with StrictMode. P-1822 itself says it passes on the built Worker with the earlier broken variant. CI runs e2e only with E2E_TARGET: built (ci.yml:314, 321, 332). So no CI job would catch a return to mounting the dialog on click. The budget keeps the dialog out of the static graph, but nothing in CI checks that it mounts closed.
+   Evidence: grep -n E2E_TARGET .github/workflows/ci.yml → built only; GOTCHAS.md P-1822 cause line
+
+## g1 · steps 8-9
+
+Source: the fresh reviewer of group g1, none blocking. No follow-up named GOTCHAS.md as its file, so none went into the bank (the first one is already banked in P-1814).
+
+1. File `app/scripts/check-seo.ts (CI e2e job, PR 163)` (not blocking).
+   What: The live proof of step 9 ('one ok per check, exit 0', and the seo steps of e2e green on a PR) is UNPROVEN and red. The causes are outside this group: B16 and B17 legal pages give 404, B17 step 2 fonts.googleapis is still in __root.tsx, and /place-notes gives no image to pageHead. Consequence: e2e is a REQUIRED_PR_CHECK, so PR 163 cannot merge, and the accepted steps 1 to 7 on it cannot merge either, until those land or the orchestrator changes the merge order. P-1814 already banks this. The orchestrator also has to name who wires og:image on /place-notes: that page became a page after B13 step 7 was built.
+   Evidence: gh run view 37554841638 --log: 'seo check | fail status: /privacy answered 404' ... 'Process completed with exit code 1'; app/scripts/merge-gate.mjs:12 REQUIRED_PR_CHECKS = ["check","build","db","e2e","preview"]
+
+2. File `app/scripts/perf-targets.mjs` (not blocking).
+   What: Lines 7-8 of the comment say 'the hard limits stay `error` assertions in `lighthouserc.json`'. That is false today: largest-contentful-paint and resource-summary:script:size are 'warn' in B4's lighthouserc.json. The plan's step 8 proof ('preview lhci exits 0 with the hard limits of invariant 12 met') did not hold: LCP was 2604 to 4388 ms on every URL in both PR 163 runs, and script size was 161876 bytes. The job passed only because of the warn level. Invariant 12 ('enforced per PR') is not enforced. The fix is B4's file, not this group's. The comment and the log line 'Step 8 PROVEN in CI' should say that the hard-limit half is NOT met.
+   Evidence: app/lighthouserc.json: "largest-contentful-paint": ["warn", {"maxNumericValue": 2500 ...}], "resource-summary:script:size": ["warn", ...]; gh run view 37554841564 --log shows 'largest-contentful-paint warning' for all 6 URLs and step exit 0
+
+3. File `app/scripts/perf-targets.mjs` (not blocking).
+   What: The hero-weight target is UNPROVEN against a real report. HERO_VARIANT (line 15) matches only /media/v/.../hero.webp, but on PR 163's preview the property page shows its hero through the mapper fallback (mappers.ts:283, mediaUrl(row.hero_image)) as the master /media/o/.../0-49087d38.webp, so no real run has ever weighed a hero. The plan's watched-fail (g), a 300 KB image on the home route, would stay silent unless the image is a hero variant. Only the synthetic unit fixture exercises this line. In production the variants are made when a photograph is attached (G66), so the gap is limited to the time before they render.
+   Evidence: curl -s https://pr-163.holy-meadow-4327.workers.dev/property/west-village-townhouse | grep -a -o '/media/[^"]*' gives only /media/o/... addresses; curl of /media/o/west-village-townhouse/0-49087d38.webp gives 404 application/json
+
+4. File `app/tests/unit/check-seo.test.ts` (not blocking).
+   What: (Suspected by reading, not mutated.) Some branches of check-seo.ts have no test that would go red if they were removed: the robots 'x-mop-cache: bypass' requirement on a non-indexable host (check-seo.ts:264-265; the only workers.dev case supplies the header and asserts a pass), the llms content-type check (268-274), the og:title/og:description/og:url/og:type/twitter:card loop (94-103), and the --production non-200 throw (285-286). The 'seo preview host' CI step has also never run, because it is skipped after seo check fails.
+   Evidence: tests/mutations/B13.json b13-g4-* entries: none mutates lines 94-103, 264-265, 268-274 or 285-286; the 'sends the Host header ...' case passes x-mop-cache: bypass in its own stub
+
+5. File `app/scripts/check-seo.ts` (not blocking).
+   What: (Suspected by reading.) Line 174 calls AbortSignal.timeout(15000) once in runChecks, and every request shares that signal. The 15 s limit therefore covers the whole crawl (the Promise.all over every sitemap URL, then robots, llms and the API), not each request. After L1, the runbook's 'check-seo.ts https://matterofplace.com --production' against a sitemap that grows with properties and facets can stop with a single 'aborted' failure.
+   Evidence: check-seo.ts:172-177: const init = { redirect: "manual", signal: AbortSignal.timeout(TIMEOUT_MS), ... }; get = (path) => fetcher(`${root}${path}`, init)
+
+6. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: STANDARDS C22: the new seo steps of the e2e job do not state their unit cost (Actions minutes). Measured, it is small: in run 37554841638, seo serve started 01:05:30 and seo check 01:05:33.
+   Evidence: git diff 83c9855..daed675 -- workspace/05-plans/logs/B13.md | grep -i -E 'actions minute|unit cost|P-009' gives no line
+
+7. File `workspace/05-plans/sizing/B13.json` (not blocking).
+   What: The sizing entry for g4 names app/docs/runbooks/seo.md and app/lighthouserc.json. The plan and the brief name docs/runbooks/search.md, and B13 never edits lighthouserc.json. The orchestrator owns this file and should correct it.
+   Evidence: workspace/05-plans/sizing/B13.json:9 "files": [..., "app/docs/runbooks/seo.md", ..., "app/lighthouserc.json"]
+
+## g1 · steps 10
+
+Source: the fresh reviewer of group g1, none blocking. The one item that names GOTCHAS.md (the third costTime item, the first e2e mutation of ga4.ts that never applied) went into the bank as a hit-again line of P-008 with a pointer in P-1827 and is not repeated here.
+
+1. File `app/src/lib/ga4.ts` (not blocking).
+   What: Follow-up. In a real browser, nothing tests that the script waits for idle. jsdom has no requestIdleCallback, so the unit test 'waits for idle' (and its mutation b13-g1-ga4-idle) only covers the setTimeout fallback on line 19. The e2e Allow test checks the request count, not the timing. If line 18 were replaced with run(), every test would stay green (found by reading, not by running a mutation). The plan's 'loads the script once after idle' is UNPROVEN in a browser. This affects performance only, not consent.
+   Evidence: grep -rn requestIdleCallback tests/setup src finds only src/lib/ga4.ts:17-18. The registry entry b13-g1-ga4-idle mutates only 'else setTimeout(run, 1);'
+
+2. File `.github/workflows/ci.yml` (not blocking).
+   What: Follow-up for the orchestrator. CI never runs ga4.spec.ts. The e2e job runs desktop, phone, live-desktop, edge, coming-soon and admin projects plus the check-seo scripts, but no --project=seo, and its build has no GA4 id. So in CI the consent gate is guarded only by the unit tests. The same applies to B7's admin-signin googletagmanager check: on a build with no id the loader does nothing, so that check passes without testing anything, and FE-02 has no CI proof that can fail.
+   Evidence: grep -n 'seo\|ga4' .github/workflows/ci.yml: line 316 runs desktop/phone/live-desktop/edge; the seo steps at 344-372 run scripts/check-seo.ts only
+
+3. File `app/src/components/site/ga4-loader.tsx` (not blocking).
+   What: Follow-up (C06/C07). In trackGpcOverride, `catch { return; }` (lines 20-22) silently drops the GPC consent_set when sessionStorage throws (storage blocked), and no comment says this is deliberate. Not tracking is the safe result, but the reason should be written down, as consent.ts does for its own catch.
+   Evidence: lines 17-23 of ga4-loader.tsx
+
+4. File `app/src/lib/ga4.ts` (not blocking).
+   What: Follow-up. Clicking Decline (from the footer settings) after Allow in the same page view leaves gtag.js running until the next full load. Nothing sets window['ga-disable-<id>']. The author lists this as UNPROVEN. The plan does not ask this step to handle it, but B16's privacy wording or B17 should.
+   Evidence: Ga4Loader's onConsentChange only calls loadGa4, which returns early once consent is not granted. Nothing undoes a loaded script
+
+5. File `workspace/05-plans/B13.md` (not blocking).
+   What: Follow-up. The step 10 proof `curl -s http://localhost:8080/ | grep -c googletagmanager` cannot be reproduced as written. bun run dev answers 500 on / when the public reads have no database env (already banked). The author replaced it with the built-Worker HTML test, which does run and can fail (mutation b13-g1-e2e-html). The plan line should name the built-Worker check.
+   Evidence: vite dev --port 8949: curl / returned 500, and the dev log showed 118 public reads with status 503
+
+## g1 · steps 11
+
+Source: the fresh reviewer of group g1, none blocking. The two items that name GOTCHAS.md (the wrong failure text in the proof of P-1836, the missing hit-again line of P-027) went into the bank and are not repeated here.
+
+1. File `app/tests/api/gone.api.test.ts` (not blocking).
+   What: After the fix, no CI job runs the only end-to-end proof of invariant 10's page 410. The db job of ci.yml sets no E2E_BASE_URL, and deploy.yml sets it only for Playwright (essentials, overflow), never for the vitest db project. So the 410 on a real server is proven only by hand on a laptop and by the manual registry entry b13-g1-gone-api-start. If start.ts stopped calling withGoneStatus, CI would catch it only through the stand-in render in gone.test.ts and seo-cache.test.ts. This is not a regression: before the fix the file would have turned the db job red. It is a coverage gap for a later step (for example a check-seo --gone-slug run or an e2e case against the preview).
+   Evidence: grep -rn E2E_BASE_URL .github/workflows/*.yml app/vitest.config.ts finds only deploy.yml:168 and :195, both Playwright steps. Running the file with no E2E_BASE_URL prints 'Tests 1 skipped (1)'.
+
+2. File `workspace/05-plans/B13.md` (not blocking).
+   What: The plan and trace are stale for the orchestrator to fold (not this group's files). Step 11 (line 115) still says the test's E2E_BASE_URL has the default http://localhost:8080, so the proof command as written now prints '1 skipped', which reads like a pass. Files lines 72-73 and trace.json (ids around 9762, 10638, 13389) still name markGone in src/lib/gone.ts and a fallback inside src/server/lib/pipeline.ts. The code has withGoneStatus in src/server/seo/gone.ts, called from src/start.ts. The author named this deviation in the log (B13.md log lines 747 and 830).
+   Evidence: grep -rn "markGone\|src/lib/gone" workspace/05-plans/B13.md workspace/05-plans/trace.json returns B13.md:72, 73, 115 and trace.json:9762, 10638, 10641, 13389.
+
+3. File `app/tests/api/gone.api.test.ts` (not blocking).
+   What: STANDARDS R48 says a conditional skip uses `it.skipIf` with a printed reason. This file uses `describe.skipIf` and puts the reason in the describe title, which the default reporter does not print when the file is skipped. The repo already does the same in tests/unit/hygiene.test.ts:450 and :845, and in observatory.test.ts:215, and lint passes. So this is a wording gap between R48 and practice, not a broken gate.
+   Evidence: app/tests/api/gone.api.test.ts:63 `describe.skipIf(BASE === "")(`; STANDARDS.md:298 (R48). The non-verbose run printed only 'Tests 1 skipped (1)', with no reason.
+
+## g2 · steps 12
+
+Source: the fresh reviewer of group g2, none blocking. The two items that name GOTCHAS.md (the wrong G-103 citation for the `Reflect.get` lint cost, the `ps -o winpid` miss) went into the bank as hit-again lines on P-076 and P-042 and are not repeated here.
+
+1. File `app/tests/unit/seo-cache.test.ts` (not blocking).
+   What: The case 'serves the last good copy as stale in a new isolate that cannot read the database at all' (lines 348-362) checks the four documents and the archive page but not the gone slug (GONE). The plan's database-error clause covers the 410 body as well. I confirmed by running a temporary probe that the behaviour already holds (410, x-mop-cache stale, same body). This is only a coverage gap: adding GONE to that case would lock it in.
+   Evidence: Lines 353-361 loop over DOCUMENTS, then ARCHIVE only. The probe copy with `booted.ask(GONE)` expecting 410/stale passed: 'Tests 1 passed | 13 skipped'
+
+2. File `workspace/05-plans/logs/B13.md` (not blocking).
+   What: The UNPROVEN items stand as the author recorded them. The archive page and the 410 page have never been seen as `hit` on a real Worker: the unit test uses a stand-in render, and mop-dev has no archive facet and no planted gone row. The indexable robots.txt has never been stored on a Worker (MOP_ENV=local makes it bypass). The custom-domain hit ratio and the pg_stat_statements count wait for L1. These should be carried to L1 or H1 so they are not lost.
+   Evidence: curl of /sitemap.xml on 8929 lists no /archive/ URL; /robots.txt with host matterofplace.com answers x-mop-cache: bypass under MOP_ENV=local
+
+## g3 · steps 13
+
+Source: the fresh reviewer of group g3, none blocking. The one item that names GOTCHAS.md (reading the log of a finished job inside a running CI run) went into the bank as P-1834 and is not repeated here.
+
+1. File `app/docs/runbooks/search.md` (not blocking).
+   What: Lines 125-126 still say the `seo llms` step 'prints a note and passes while scripts/validate-llms.ts does not exist'. This group removed that guard from ci.yml, so the runbook line is now false. The file belongs to g4, not this group, and the author flagged it for the orchestrator.
+   Evidence: grep -n llms app/docs/runbooks/search.md -> line 126 'and passes while `scripts/validate-llms.ts` does not exist'; git show 016c3ee -- .github/workflows/ci.yml removes the if [ -f ] guard
+
+2. File `workspace/05-plans/B13.md` (not blocking).
+   What: The Files line, and trace.json, still say validate-llms.ts takes NO_PROPERTIES_SENTENCE, MAX_BYTES and the truncation line from src/server/seo/llms.ts. The script repeats them on purpose (P-1830, confirmed: importing llms.ts without env throws). Drift is caught by the registry entries b13-g3-llms-cap-value and b13-g3-llms-sentence-value plus the builder round-trip tests, and I re-ran all three. The plan text is the orchestrator's to fold.
+   Evidence: env -i PATH=$PATH bun -e 'await import("./src/server/seo/llms.ts")' throws; validate-llms.ts lines 6-10
+
+3. File `app/scripts/validate-llms.ts` (not blocking).
+   What: Line 55 (`if (line.startsWith("## ")) inEntry = false;`) has no test that fails if it is removed. Every llms.txt fixture has no `###`, and the llms-full builder outputs have no link-less list line after a `###` section. Without the reset, a link-less `- ` line in the llms-full Archives section would pass. The code is correct today; only the coverage is missing. I found this by reading and did not run a mutation (read-only).
+   Evidence: By reading tests/unit/validate-llms.test.ts: 'reports a list entry with no link' appends to the llms.txt sample, which has no ### line. No b13-g3 registry entry mutates line 55.
+
+4. File `app/scripts/validate-llms.ts` (not blocking).
+   What: Editorial text in llms-full that starts with '### ', '## ' or 'List truncated' (plain() in llms.ts escapes only brackets) is still read as structure, so a good document could fail CI or B14's crawl. The author declared this and banked it in P-1833 with the owner named (the llms.ts group, which should escape a leading marker in plain()).
+   Evidence: GOTCHAS.md P-1833 rule; llms.ts line 59-60 plain() escapes only [ and ]
