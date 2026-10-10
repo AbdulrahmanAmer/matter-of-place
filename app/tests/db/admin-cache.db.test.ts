@@ -529,3 +529,94 @@ describe("catalog_version and the market writes (F25 a)", () => {
     });
   });
 });
+
+async function assertStep15(db: Db): Promise<void> {
+  const { rows } = await db.query<{ present: boolean }>(
+    `select position('notifications' in (select prosrc from pg_proc where proname = 'put_setting')) > 0 as present`,
+  );
+  expect(rows[0]?.present).toBe(true);
+}
+
+describe("catalog_version and the settings writes (G21)", () => {
+  it("settings.site and coming_soon_global raise it by one each; invoice, notifications and agent_daily_limits leave it", async () => {
+    await withRollback(async (db) => {
+      await assertStep15(db);
+      const admin = await createStaffUser(db, ["admin"]);
+      const { rows } = await db.query<{ site: unknown; coming: unknown }>(
+        `select (select value from public.settings where key = 'site') as site,
+                (select value from public.settings where key = 'coming_soon_global') as coming`,
+      );
+      const stored = rows[0];
+      const invoice = {
+        prefix: "MOP",
+        due_days: 14,
+        terms: "",
+        late_terms: "",
+        tax_line: "",
+        payment_methods: [],
+        campaign_days: {
+          "The Feature": null,
+          "The Reach": null,
+          "The Campaign": null,
+          "Five Features": null,
+        },
+        billing_email: "billing@example.invalid",
+      };
+      const steps: [string, string, unknown[]][] = [
+        [
+          "site",
+          "select public.settings_put_site($1::jsonb, $2, 'human', 'req-cv', null)",
+          [JSON.stringify(stored?.site ?? {}), admin],
+        ],
+        [
+          "coming_soon_global",
+          "select public.put_setting('coming_soon_global', $1::jsonb, $2, 'human', 'req-cv')",
+          [JSON.stringify(stored?.coming !== true), admin],
+        ],
+        [
+          "invoice",
+          "select public.settings_put_invoice($1::jsonb, $2, 'human', 'req-cv', null)",
+          [JSON.stringify(invoice), admin],
+        ],
+        [
+          "notifications",
+          "select public.put_setting('notifications', $1::jsonb, $2, 'human', 'req-cv')",
+          [JSON.stringify({ recipients: [] }), admin],
+        ],
+        [
+          "agent_daily_limits",
+          "select public.put_setting('agent_daily_limits', $1::jsonb, $2, 'human', 'req-cv')",
+          [
+            JSON.stringify({ decisions_per_day: 25, publish_per_day: 5, requests_per_day: 2000 }),
+            admin,
+          ],
+        ],
+      ];
+      const raised: Record<string, number> = {};
+      for (const [key, sql, params] of steps) {
+        const before = await catalogVersion(db);
+        await db.query(sql, params);
+        raised[key] = (await catalogVersion(db)) - before;
+      }
+      expect(raised).toEqual({
+        site: 1,
+        coming_soon_global: 1,
+        invoice: 0,
+        notifications: 0,
+        agent_daily_limits: 0,
+      });
+    });
+  });
+});
+
+describe("audit list indexes (step 15)", () => {
+  it("screen 25 pages audit_log on (at desc, id desc) and finds one request's rows by request_id", async () => {
+    const definitions = await withRollback((db) =>
+      indexDefinitions(db, "audit_log", ["audit_log_list_idx", "audit_log_request_idx"]),
+    );
+    expect(definitions).toEqual([
+      "CREATE INDEX audit_log_list_idx ON public.audit_log USING btree (at DESC, id DESC)",
+      "CREATE INDEX audit_log_request_idx ON public.audit_log USING btree (request_id)",
+    ]);
+  });
+});
