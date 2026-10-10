@@ -1,4 +1,4 @@
-import { randomToken, sha256Hex } from "./crypto";
+import { randomToken, sha256Hex } from "./crypto.ts";
 
 // No request id lives here: a handler takes it from `context.requestId`, which `src/start.ts` sets
 // (H39 (1)). Every hash and random value comes from `crypto.ts`, the one Web Crypto module (CS-04).
