@@ -29,6 +29,8 @@ export interface PipelineDeps {
   report: (error: unknown, info: { requestId: string; route: string }) => Promise<void>;
   /** True when an API route file matches the path (decoded, lower case), for any method. */
   isApiRoute: (pathname: string) => boolean;
+  /** B14 GG-02: told of a GET that answered 404, from the cache hook or a render, never of a redirect. */
+  notFound?: (request: Request, ctx: PipelineContext) => void;
 }
 
 type CacheKind = "html" | "json" | "doc";
@@ -272,6 +274,7 @@ export async function handle(
     const redirect = closed === null && page ? await deps.redirect(request) : null;
     redirected = redirect !== null;
     response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());
+    if (request.method === "GET" && response.status === 404) deps.notFound?.(request, ctx);
   } catch (error) {
     // A page that cannot read the database and holds no last good copy is an outage, already logged and
     // reported once a minute by the read path: it answers 503, not an unhandled error.

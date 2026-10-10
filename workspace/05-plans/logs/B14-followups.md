@@ -65,3 +65,25 @@ Source: the fresh review of group g4 found no blocking defect. Each item below i
 7. File: `.github/CODEOWNERS`
    - What: Still UNPROVEN, as the author says: no plan records whether @AbdulrahmanAmer is the CEO's handle. If the routine pushes as the same account, GitHub cannot request a review from the PR author. CODEOWNERS is documentation until branch protection exists (P-028).
    - Evidence: codeowners/errors returns {"errors":[]}. The handle only shows that the syntax is valid, not that it is the right owner.
+
+## g2 · steps 4
+
+Source: the fresh review of group g2 found no blocking defect. Each item below is the reviewer's text, word for word, with its evidence. None is blocking.
+
+1. File: `app/supabase/sql/functions/audit_health.sql`
+   - What: STANDARDS C13: line 103 casts a timestamptz to date without 'at time zone' (`x.day < r.cutoff::date`, where cutoff is `now() - (keep_for + interval '30 days')`). The result depends on the session TimeZone. On Supabase that is UTC, so today it changes nothing, and at worst the analytics_daily overdue count would be off by one day inside a 30-day grace. Fix: `(r.cutoff at time zone 'utc')::date` in the function file and the migration.
+   - Evidence: Found by reading: audit_health.sql lines 102-108 (the cutoff is defined on line 108).
+
+2. File: `workspace/audits/tools/usage.mjs`
+   - What: R04/C04: names are exported that nothing imports. usage.mjs exports gaugeStatus, gaugeRows and describeRows; collectors/cloudflare.mjs exports sumRequests; collectors/sentry.mjs exports parseSentryStats; collectors/ours.mjs exports agentGet. knip does not scan workspace/, so no gate catches them. Only minutesThisMonth is a plan-sanctioned test export.
+   - Evidence: A grep loop over every exported name of the g2 workspace files found 0 importers outside the defining file for those six names (workspace/audits/tools, app/tests, scripts).
+
+3. File: `workspace/05-plans/B14.md`
+   - What: Stale plan lines the orchestrator must fold (not this group's file). The Files list of NOT_FOUND_SKIP lacks the `/api/` prefix and the routePath comparison the code now uses (P-2703). The audit_record_run line still says 'raises schedule_row_missing' (the code raises not_found P0002). recordAuditRun is still written with a requestId argument. The github.mjs line still describes per-run /timing calls and `minutesThisMonth(runs, timings)`.
+   - Evidence: plan-brief B14 --steps 4, Files list, compared with not-found-log.ts NOT_FOUND_SKIP, audit_record_run.sql, service.ts recordAuditRun(actor, db) and collectors/github.mjs.
+
+4. File: mop-dev analytics_events (shared rows)
+   - What: Shared-data note for the orchestrator. My built-Worker reproduction left two page-path rows: '/no-such-page' and '/no-such-page-rv1791654644'. Neither holds a secret, so they do not trip lint-report. The author's earlier row '/api/hooks/ops-health/probe-b14rev1791651173' is still there and would fail lint-report.mjs if a weekly report runs before 2026-10-17. The orchestrator decides whether to delete it.
+   - Evidence: Node pg count with the dev profile: '/no-such-page' 1 and the stamped page 1 within 10 minutes of my probe.
+
+The three follow-ups of the review whose file is GOTCHAS.md are not listed here: they went into the bank (P-2700 rule and proof corrected to point at P-2702; a "hit again: 2026-10-10, B14 g2" line in P-015 and in P-310; the new entry P-2704 for the reviewer's cost).

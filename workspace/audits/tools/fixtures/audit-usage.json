@@ -1,0 +1,15 @@
+{
+  "queues": { "jobs_heavy": 0, "jobs_light": 2 },
+  "db_bytes": 67573427,
+  "reels_month": 11,
+  "storage_bytes": 800000000,
+  "cron_failed_7d": 0,
+  "jobs_failed_7d": 224,
+  "email_sent_month": 0,
+  "email_sent_today": 0,
+  "model_usage_month": [
+    { "jobs": 3, "model": "claude-sonnet", "input_tokens": 9000, "output_tokens": 1200 },
+    { "jobs": 1, "model": "claude-haiku", "input_tokens": 500, "output_tokens": 80 }
+  ],
+  "subscribers_confirmed": 0
+}

@@ -3,6 +3,7 @@ import { getRouter } from "./router";
 import { getDb } from "./server/lib/db";
 import { env, sentryOptions } from "./server/lib/env";
 import { getFlags } from "./server/lib/flags";
+import { logNotFound } from "./server/lib/not-found-log";
 import { handle } from "./server/lib/pipeline";
 import { captureException } from "./server/lib/sentry";
 import { waitUntilOf } from "./server/lib/wait-until";
@@ -45,6 +46,7 @@ const pipeline = createMiddleware({ type: "request" }).server<{ requestId: strin
         getFlags: () => (hasDatabase ? getFlags(getDb()) : Promise.resolve({})),
         report: (error, info) => captureException(error, { ...info, ...sentryOptions() }),
         isApiRoute,
+        ...(hasDatabase ? { notFound: (r, c) => logNotFound(getDb(), r, c) } : {}),
       },
     );
   },

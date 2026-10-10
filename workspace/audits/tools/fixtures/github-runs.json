@@ -1,0 +1,38 @@
+{
+  "total_count": 2312,
+  "workflow_runs": [
+    {
+      "id": 38064392646,
+      "name": "deploy",
+      "status": "completed",
+      "conclusion": "failure",
+      "event": "workflow_run",
+      "run_started_at": "2026-10-10T15:37:58Z",
+      "created_at": "2026-10-10T15:37:58Z",
+      "updated_at": "2026-10-10T15:40:17Z",
+      "run_attempt": 1
+    },
+    {
+      "id": 38064181151,
+      "name": "ci",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "push",
+      "run_started_at": "2026-10-10T15:34:46Z",
+      "created_at": "2026-10-10T15:34:46Z",
+      "updated_at": "2026-10-10T15:37:56Z",
+      "run_attempt": 1
+    },
+    {
+      "id": 38064179909,
+      "name": "deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "run_started_at": "2026-10-10T15:34:45Z",
+      "created_at": "2026-10-10T15:34:45Z",
+      "updated_at": "2026-10-10T15:35:07Z",
+      "run_attempt": 1
+    }
+  ]
+}

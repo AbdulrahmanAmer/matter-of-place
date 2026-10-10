@@ -1,0 +1,26 @@
+{
+  "current": {
+    "week_start": "2026-09-28",
+    "week_end": "2026-10-04",
+    "submissions_received": 3,
+    "decisions": { "accepted": 1, "declined": 1 },
+    "time_to_decision_hours": 20,
+    "invoices": { "issued": 1, "issued_amount": 2500, "paid": 0, "paid_amount": 0 },
+    "properties_published": 2,
+    "posts_by_channel": { "linkedin": 1 },
+    "newsletter": { "confirmed": 2, "unsubscribed": 0, "net": 2, "total_confirmed": 40 },
+    "inquiries": { "received": 5, "published_properties": 2, "top": [] }
+  },
+  "previous": {
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "submissions_received": 1,
+    "decisions": { "accepted": 0, "declined": 1 },
+    "time_to_decision_hours": null,
+    "invoices": { "issued": 0, "issued_amount": 0, "paid": 0, "paid_amount": 0 },
+    "properties_published": 0,
+    "posts_by_channel": {},
+    "newsletter": { "confirmed": 1, "unsubscribed": 0, "net": 1, "total_confirmed": 38 },
+    "inquiries": { "received": 2, "published_properties": 0, "top": [] }
+  }
+}
