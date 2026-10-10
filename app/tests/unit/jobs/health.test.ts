@@ -29,6 +29,15 @@ const completeSite: Json = {
   social: { instagram: null, x: null, linkedin: null },
 };
 
+// B14's `usage_gauges` check reads `audit_usage()`; every line is far under 70 percent here.
+const quietUsage: Json = {
+  db_bytes: 0,
+  storage_bytes: 0,
+  email_sent_today: 0,
+  email_sent_month: 0,
+  subscribers_confirmed: 0,
+};
+
 interface Setup {
   counts?: Partial<HealthCounts>;
   cronFailures?: number;
@@ -39,6 +48,7 @@ function setup({ counts = {}, cronFailures = 0 }: Setup = {}): FakeDb {
     rpc: {
       health_counts: () => ({ ...quiet, ...counts }),
       health_cron_failures: () => cronFailures,
+      audit_usage: () => quietUsage,
       emit_event: () => "5b0c7c4e-0000-4000-8000-000000000009",
       public_state: () => stateJson(7, { site: completeSite }),
     },
@@ -122,6 +132,7 @@ describe("health job", () => {
       "long_waits",
       "backup_fresh",
       "site_identity",
+      "usage_gauges",
       "github_dispatch",
       "resend_domain",
       "linkedin_version",

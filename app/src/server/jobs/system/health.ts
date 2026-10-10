@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { Json } from "../../../db/index.ts";
+import { gaugeStatus, P009_LIMITS } from "../../audit/gauges.ts";
+import { readUsage } from "../../audit/service.ts";
 import { AppError } from "../../lib/errors.ts";
 import { emitEvent } from "../../lib/events.ts";
 import { readState, resetPublicStateMemo } from "../../public/state.ts";
@@ -28,6 +30,15 @@ const countsSchema = z.object({
   backup: z.object({ enabled: z.boolean(), last_run_at: z.string().nullable() }).nullable(),
 });
 export type HealthCounts = z.infer<typeof countsSchema>;
+
+// The numbers of `audit_usage()` that fill the gauge lines our own database can measure (B14 invariant 4).
+const usageSchema = z.object({
+  db_bytes: z.number(),
+  storage_bytes: z.number(),
+  email_sent_today: z.number(),
+  email_sent_month: z.number(),
+  subscribers_confirmed: z.number(),
+});
 
 /** A check's view of the run: the step context plus the one `health_counts` read, made on first use. */
 export interface HealthContext extends StepContext {
@@ -58,7 +69,7 @@ async function readCounts(ctx: StepContext): Promise<HealthCounts> {
   return countsSchema.parse(data);
 }
 
-// Later slices append one entry each (B14 usage_gauges); the provider checks come last.
+// Later slices append one entry each (B14 added usage_gauges); the provider checks come last.
 export const healthChecks: readonly HealthCheck[] = [
   {
     // Ruling H34 (6): a caption job waits for the laptop runner, and a day of waiting needs a person.
@@ -163,6 +174,29 @@ export const healthChecks: readonly HealthCheck[] = [
         status: lenient ? "warn" : "fail",
         message: `settings.site is missing: ${missing.join(", ")}`,
       };
+    },
+  },
+  {
+    // B14 GS-06: the vendors mail at thresholds of their own choosing, so this is the 70 percent line (invariant 7).
+    name: "usage_gauges",
+    async run(ctx) {
+      const usage = usageSchema.parse(await readUsage(ctx.db));
+      const used: Record<string, number> = {
+        db_bytes: usage.db_bytes,
+        storage_bytes: usage.storage_bytes,
+        email_sent_today: usage.email_sent_today,
+        email_sent_month: usage.email_sent_month,
+        resend_contacts: usage.subscribers_confirmed,
+      };
+      const reached = P009_LIMITS.flatMap((gauge) => {
+        const value = used[gauge.line];
+        if (value === undefined) return [];
+        const { percent, status } = gaugeStatus(gauge, value);
+        return status === "DECISION" || status === "LIMIT"
+          ? [`${gauge.line} at ${String(percent)} percent of ${String(gauge.limit)} ${gauge.unit}`]
+          : [];
+      });
+      return reached.length > 0 ? fail(reached.join("; ")) : ok("every line is under 70 percent");
     },
   },
   ...providerChecks,

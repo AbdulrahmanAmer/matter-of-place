@@ -1344,5 +1344,329 @@
     "replace": "logLine(\"warn\", \"not_found_flush_dropped\", { dropped: rows.length });",
     "run": "bun run typecheck",
     "expect": "not-found-log\\.ts\\(\\d+,\\d+\\): error TS2345"
+  },
+  {
+    "id": "b14g2s5-gauges-mirror",
+    "test": "tests/unit/audit/gauges.test.ts",
+    "file": "src/server/audit/gauges.ts",
+    "find": "limit: 3000000,",
+    "replace": "limit: 3000001,",
+    "run": "bunx vitest run --project unit tests/unit/audit/gauges.test.ts",
+    "expect": "limits.json and gauges.ts > hold the same lines"
+  },
+  {
+    "id": "b14g2s5-gauges-sweep",
+    "test": "tests/unit/audit/gauges.test.ts",
+    "file": "../workspace/audits/tools/usage.mjs",
+    "find": "if (percent >= thresholds.limit)",
+    "replace": "if (percent > thresholds.limit)",
+    "run": "bunx vitest run --project unit tests/unit/audit/gauges.test.ts",
+    "expect": "limits.json and gauges.ts > answer the same status and percent as usage.mjs"
+  },
+  {
+    "id": "b14g2s5-gauges-decision",
+    "test": "tests/unit/audit/gauges.test.ts",
+    "file": "src/server/audit/gauges.ts",
+    "find": "if (percent >= THRESHOLDS.decision)",
+    "replace": "if (percent > THRESHOLDS.decision)",
+    "run": "bunx vitest run --project unit tests/unit/audit/gauges.test.ts",
+    "expect": "gaugeStatus > puts 70 percent of a vendor limit at DECISION"
+  },
+  {
+    "id": "b14g2s5-gauges-limit",
+    "test": "tests/unit/audit/gauges.test.ts",
+    "file": "src/server/audit/gauges.ts",
+    "find": "if (percent >= THRESHOLDS.limit)",
+    "replace": "if (percent > THRESHOLDS.limit)",
+    "run": "bunx vitest run --project unit tests/unit/audit/gauges.test.ts",
+    "expect": "gaugeStatus > puts 90 percent of a vendor limit at LIMIT"
+  },
+  {
+    "id": "b14g2s5-gauges-watch",
+    "test": "tests/unit/audit/gauges.test.ts",
+    "file": "src/server/audit/gauges.ts",
+    "find": "percent >= THRESHOLDS.watch ? \"watch\" : \"ok\"",
+    "replace": "percent > THRESHOLDS.watch ? \"watch\" : \"ok\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/gauges.test.ts",
+    "expect": "gaugeStatus > puts 50 percent of a vendor limit at watch"
+  },
+  {
+    "id": "b14g2s5-gauges-guideline",
+    "test": "tests/unit/audit/gauges.test.ts",
+    "file": "src/server/audit/gauges.ts",
+    "find": "used > line.limit ? \"watch\" : \"ok\"",
+    "replace": "used >= line.limit ? \"watch\" : \"ok\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/gauges.test.ts",
+    "expect": "gaugeStatus > gives a guideline line only ok or watch"
+  },
+  {
+    "id": "b14g2s5-gauges-info",
+    "test": "tests/unit/audit/gauges.test.ts",
+    "file": "src/server/audit/gauges.ts",
+    "find": "{ line: \"caption_tokens\", limit: null, unit: \"tokens a month\", source: \"ours.mjs\", kind: \"info\" }",
+    "replace": "{ line: \"caption_tokens\", limit: null, unit: \"tokens a month\", source: \"ours.mjs\", kind: \"vendor\" }",
+    "run": "bunx vitest run --project unit tests/unit/audit/gauges.test.ts",
+    "expect": "gaugeStatus > gives an info line only info"
+  },
+  {
+    "id": "b14g2s5-gauges-storage",
+    "test": "tests/unit/audit/gauges.test.ts",
+    "file": "src/server/audit/gauges.ts",
+    "find": "limit: 5368709120,",
+    "replace": "limit: 5368709121,",
+    "run": "bunx vitest run --project unit tests/unit/audit/gauges.test.ts",
+    "expect": "gaugeStatus > holds the Storage walls of H33"
+  },
+  {
+    "id": "b14g2s5-gauges-actions",
+    "test": "tests/unit/audit/gauges.test.ts",
+    "file": "src/server/audit/gauges.ts",
+    "find": "limit: 2000,",
+    "replace": "limit: 2001,",
+    "run": "bunx vitest run --project unit tests/unit/audit/gauges.test.ts",
+    "expect": "gaugeStatus > holds actions_minutes at 2000"
+  },
+  {
+    "id": "b14g2s5-security-green",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "[\"referrer-policy\", \"Referrer-Policy\"],",
+    "replace": "[\"referer-policy\", \"Referrer-Policy\"],",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "parseSecurityHeaders > is green for all four headers present"
+  },
+  {
+    "id": "b14g2s5-security-hsts",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "? row(name, \"red\", `no ${label} header`)",
+    "replace": "? row(name, \"watch\", `no ${label} header`)",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "parseSecurityHeaders > makes a missing HSTS a red row"
+  },
+  {
+    "id": "b14g2s5-security-xfo-ref",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "? row(name, \"red\", `no ${label} header`)",
+    "replace": "? row(name, name === \"x-frame-options\" ? \"ok\" : \"red\", `no ${label} header`)",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "parseSecurityHeaders > makes a missing X-Frame-Options and a missing Referrer-Policy red rows"
+  },
+  {
+    "id": "b14g2s5-security-report-only",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "csp = row(\"content-security-policy\", \"watch\", \"Report-Only",
+    "replace": "csp = row(\"content-security-policy\", \"ok\", \"Report-Only",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "parseSecurityHeaders > makes a CSP sent only as Report-Only a watch row"
+  },
+  {
+    "id": "b14g2s5-security-no-csp",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "let csp = row(\"content-security-policy\", \"red\", \"no Content-Security-Policy header\");",
+    "replace": "let csp = row(\"content-security-policy\", \"watch\", \"no Content-Security-Policy header\");",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "parseSecurityHeaders > makes a missing CSP a red row"
+  },
+  {
+    "id": "b14g2s5-security-429",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "body: JSON.stringify({ text: \"audit probe\" }),",
+    "replace": "body: JSON.stringify({ text: \"audit probe 2\" }),",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "probeRateLimit > reports the 429 of the 61st request"
+  },
+  {
+    "id": "b14g2s5-security-local-red",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "? row(\"rate_limit_search\", \"red\", `${took}: one isolate",
+    "replace": "? row(\"rate_limit_search\", \"watch\", `${took}: one isolate",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "probeRateLimit > gives a red row when a local host never answers 429"
+  },
+  {
+    "id": "b14g2s5-security-slow",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "if (seconds * 1000 >= MINUTE_MS) {",
+    "replace": "if (seconds * 1000 >= 10 * MINUTE_MS) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "probeRateLimit > gives a watch row on a local host when 61 requests took a minute"
+  },
+  {
+    "id": "b14g2s5-security-deployed-watch",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": ": row(\"rate_limit_search\", \"watch\", `${took}: the memory limit",
+    "replace": ": row(\"rate_limit_search\", \"red\", `${took}: the memory limit",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "probeRateLimit > gives a watch row when a workers.dev host never answers 429"
+  },
+  {
+    "id": "b14g2s5-security-unreachable",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "if (answer.status === 0) return row(\"rate_limit_search\", \"watch\", answer.reason);",
+    "replace": "if (answer.status === 0) return row(\"rate_limit_search\", \"red\", answer.reason);",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "probeRateLimit > gives a watch row, not a failure, when the host cannot be reached"
+  },
+  {
+    "id": "b14g2s5-security-same-origin",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "if (url.origin === origin) found.add(url.href);",
+    "replace": "found.add(url.href);",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "the served JavaScript > reads same-origin scripts and module preloads only"
+  },
+  {
+    "id": "b14g2s5-security-patterns",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "/\\bsk_[A-Za-z0-9_]{16,}/",
+    "replace": "/sk_[A-Za-z0-9_]{2,}/",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "the served JavaScript > finds the three secret patterns"
+  },
+  {
+    "id": "b14g2s5-security-secret-value",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "hits.push(`${name} in ${new URL(url).pathname}`);",
+    "replace": "hits.push(`${name} in ${text}`);",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "the served JavaScript > is red for a secret in a script and names where"
+  },
+  {
+    "id": "b14g2s5-security-forms",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "} else if (bare.length > 0) {",
+    "replace": "} else if (bare.length > 99) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "the served JavaScript > is red for a form page whose scripts never name Turnstile"
+  },
+  {
+    "id": "b14g2s5-security-unset",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "notMeasured(\"SITE_URL unset\")",
+    "replace": "notMeasured(\"unset\")",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "collect > is not measured without a site URL"
+  },
+  {
+    "id": "b14g2s5-security-lines",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "`${String(c[\"status\"])}  ${String(c[\"check\"])}",
+    "replace": "`${String(c[\"check\"])}  ${String(c[\"status\"])}",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "collect > lists the four headers, the secret row, the form row and the 429"
+  },
+  {
+    "id": "b14g2s5-security-exit",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "if (home.headers === null) return { reason: `${base}/ ${home.reason}` };",
+    "replace": "if (home.headers === null) throw new Error(home.reason);",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts",
+    "expect": "collect > exits 0 from the command line whatever it finds"
+  },
+  {
+    "id": "b14g2s5-compare-sign",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "delta.delta > 0 ? \"+\" : \"\"",
+    "replace": "delta.delta > 0 ? \"\" : \"\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "compareSidecars > prints a number's change with its sign"
+  },
+  {
+    "id": "b14g2s5-compare-status",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "typeof value === \"string\" && path.endsWith(\".status\")",
+    "replace": "typeof value === \"string\" && path.endsWith(\".statusx\")",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "compareSidecars > prints a status change without a number"
+  },
+  {
+    "id": "b14g2s5-compare-gone",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "kind: \"gone\",",
+    "replace": "kind: \"new\",",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "compareSidecars > names what is new and what is gone"
+  },
+  {
+    "id": "b14g2s5-compare-wording",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "typeof value === \"string\" && path.endsWith(\".status\")",
+    "replace": "typeof value === \"string\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "compareSidecars > reads neither the front block"
+  },
+  {
+    "id": "b14g2s5-compare-cli",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "process.stdout.write(`${lines.join(\"\\n\")}\\n`);",
+    "replace": "process.stdout.write(`${lines.join(\" | \")}\\n`);",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "compareSidecars > is run from the command line on two files"
+  },
+  {
+    "id": "b14g2s5-usage-71",
+    "test": "tests/unit/audit/health-usage-gauges.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "status === \"DECISION\" || status === \"LIMIT\"",
+    "replace": "status === \"LIMIT\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/health-usage-gauges.test.ts",
+    "expect": "usage_gauges > fails with a gauge at 71 percent and names the line"
+  },
+  {
+    "id": "b14g2s5-usage-69",
+    "test": "tests/unit/audit/health-usage-gauges.test.ts",
+    "file": "src/server/audit/gauges.ts",
+    "find": "decision: 70,",
+    "replace": "decision: 60,",
+    "run": "bunx vitest run --project unit tests/unit/audit/health-usage-gauges.test.ts",
+    "expect": "usage_gauges > passes with the same gauge at 69 percent"
+  },
+  {
+    "id": "b14g2s5-usage-70-90",
+    "test": "tests/unit/audit/health-usage-gauges.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "status === \"DECISION\" || status === \"LIMIT\"",
+    "replace": "status === \"LIMIT\" && percent > 95",
+    "run": "bunx vitest run --project unit tests/unit/audit/health-usage-gauges.test.ts",
+    "expect": "usage_gauges > fails at exactly 70 percent"
+  },
+  {
+    "id": "b14g2s5-usage-every",
+    "test": "tests/unit/audit/health-usage-gauges.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "fail(reached.join(\"; \"))",
+    "replace": "fail(reached[0] ?? \"\")",
+    "run": "bunx vitest run --project unit tests/unit/audit/health-usage-gauges.test.ts",
+    "expect": "usage_gauges > names every line that is over"
+  },
+  {
+    "id": "b14g2s5-usage-contacts",
+    "test": "tests/unit/audit/health-usage-gauges.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "resend_contacts: usage.subscribers_confirmed,",
+    "replace": "resend_contacts: 0,",
+    "run": "bunx vitest run --project unit tests/unit/audit/health-usage-gauges.test.ts",
+    "expect": "usage_gauges > names every line that is over"
   }
 ]

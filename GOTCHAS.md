@@ -281,6 +281,7 @@ Entry template
 - hit again: 2026-10-07, B10 g6 fix round: a heredoc patch script lost the backslashes of a `new RegExp("...\\*...")` and failed with `Invalid regular expression: Nothing to repeat`; written again with the Write tool, without a regular expression.
 - hit again: 2026-10-09, B7 g3 (step 13): two heredocs and one `node -e` whose text held apostrophes (`market's`) and backticks ended in `unexpected EOF` and wrote nothing; the files were written with the Write tool and the one-line patches with the Edit tool.
 - hit again: 2026-10-09, B7 g4: one Bash call holding a quoted heredoc (`cat >> src/server/team/service.ts <<'EOF'`, about 200 lines with backticks and apostrophes) and a `node -e '...'` patch with `\"` escapes ended in `unexpected EOF while looking for matching ''`, and none of it ran; the block went in with Write to a scratch file and `cat >>`.
+- hit again: 2026-10-10, B14 g2: a heredoc patch of `compare.mjs` turned the backslash sequences of a regex and of two newline-escape strings into plain letters and a real line break (`SyntaxError: Unterminated string constant`), and a second heredoc with backticks and an apostrophe ended in `unexpected EOF`; both files went in with the Write and Edit tools. The group's costTime names this entry.
 
 ## P-010 · New agent definitions and `fork` are not available mid-session
 - symptom: `Agent type 'mop-producer' not found` right after writing `.claude/agents/mop-producer.md`; `Agent type 'fork' not found` in this build.
@@ -6633,6 +6634,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the skip list covered assets and probe noise only, and it compared `pathname.toLowerCase()`, while the router also matches `//api/x` and `/%61pi/x`.
 - rule: a log that stores request paths skips `/api/` (no API path is a redirect candidate) and compares in `routePath` form, as the pipeline does. A new route that carries a secret in its path is checked against every place a path is written: logs, `analytics_events`, Sentry breadcrumbs, report sidecars.
 - proof: `cd app && bunx vitest run --project unit tests/unit/audit/not-found-log.test.ts -t "skips every API path"` passes; registry entries `b14g2-nf-api` and `b14g2-nf-routepath` turn it red (2026-10-10).
+- added: 2026-10-10
+
+## P-2710 · Appending a check to `health.ts` breaks every test that runs the full health job: `fakeDb` throws `unexpected rpc <name>`
+- symptom: B14 g2 appended `usage_gauges` (it calls `audit_usage`) to `healthChecks`; the next run of `tests/unit/jobs/health.test.ts` and `tests/unit/health-site.test.ts` failed 16 cases with `Error: unexpected rpc audit_usage` from `tests/fixtures/fake-db.ts:54`, and the expected list of check names in the first case was one short. The brief named neither file.
+- cause: the full-job tests build a `fakeDb` that answers exactly the rpcs of the checks that existed; a new check that reads an rpc the setup does not register throws, and the job's `checks` list is asserted by name.
+- rule: when a slice appends a check to `healthChecks`, run `bunx vitest run tests/unit/jobs/health.test.ts tests/unit/health-site.test.ts tests/unit/jobs/health-providers.test.ts` straight after the append, register the check's rpc in the `setup` of each (a quiet answer), and add its name to the expected list; list those files in the group.
+- proof: `cd app && bunx vitest run tests/unit/jobs/health.test.ts tests/unit/health-site.test.ts tests/unit/jobs/health-providers.test.ts` → `3 passed`; with the `audit_usage` line removed from the `setup` of `health.test.ts` it prints `unexpected rpc audit_usage` (measured 2026-10-10, B14 g2).
+- added: 2026-10-10
+
+## P-2711 · A new `.mjs` under `workspace/audits/tools` meets the strict type-aware lint and `noUncheckedIndexedAccess` too: four `bun run check` runs went red one after the other
+- symptom: B14 g2's first `bun run check` stopped at typecheck on `security.mjs` (`'name' is possibly 'undefined'` from `const [tag, name] of html.matchAll(...)`), the next at lint (`Unsafe return of a value of type any[]` from `const found = new Set()`; `no-base-to-string` on `String(init?.body ?? "")` in a test), the next at knip (`GaugeKind` exported and never imported). Each run took minutes under load and showed only the first failing stage.
+- cause: `check` is `layout && typecheck && lint && knip && ...`, so a later stage's errors appear only after the earlier one is green; `tsconfig.scripts.json` checks the `.mjs` files with `noUncheckedIndexedAccess`, and the lint preset is the strict type-aware one (R01).
+- rule: before the first `bun run check` of a group with new `.mjs` or test files, run the stages one by one in a single call and read all of them: `bun run typecheck; bun run lint; bun run knip`. Destructure a regex match with a default (`[tag, name = ""]`), type an empty collection with a JSDoc `@type {Set<string>}`, compare a body with `typeof body === "string"` before using it, and export a type only when a file imports it. Never run `prettier --write` on `GOTCHAS.md`: it rewrote the whole file (842 lines) and was undone with `git checkout`.
+- proof: `cd app && bun run typecheck; bun run lint; bun run knip` → three `$` lines and no error on slice/b14 at B14 g2 (measured 2026-10-10).
 - added: 2026-10-10
 
 ## P-2704 · A mutant-only `sql` registry entry on an unmerged migration reports `WATCHED-FAIL OK` for the wrong reason

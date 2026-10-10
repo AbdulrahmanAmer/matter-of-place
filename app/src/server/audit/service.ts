@@ -42,7 +42,7 @@ async function call<T>(request: PromiseLike<{ data: T; error: unknown }>): Promi
 }
 
 /** The raw `audit_usage()` numbers, with no actor. */
-const readUsage = (db: Db) => call(db.rpc("audit_usage"));
+export const readUsage = (db: Db) => call(db.rpc("audit_usage"));
 
 /** `GET /api/admin/audit/usage`: the free-tier numbers our own database measures (invariant 4). */
 export async function getUsage(actor: AdminActor, db: Db) {

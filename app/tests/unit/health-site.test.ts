@@ -45,6 +45,13 @@ const siteDb = (): CountingDb => {
         backup: null,
       }),
       health_cron_failures: () => 0,
+      audit_usage: () => ({
+        db_bytes: 0,
+        storage_bytes: 0,
+        email_sent_today: 0,
+        email_sent_month: 0,
+        subscribers_confirmed: 0,
+      }),
       emit_event: () => "5b0c7c4e-0000-4000-8000-000000000009",
     },
   });
