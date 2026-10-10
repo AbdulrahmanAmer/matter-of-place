@@ -402,5 +402,15 @@
     "replace": "      const db = await tickDb();\n      if (db === undefined || db !== undefined) return undefined;",
     "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode keepwarm http://127.0.0.1:8839",
     "expect": "the tick ran public_state 0 times, expected exactly 1"
+  },
+  {
+    "id": "h1g8-u-no-request",
+    "kind": "manual",
+    "test": "scripts/harden/cache-probe.ts",
+    "file": "src/server/scheduled.ts",
+    "find": "  const { status, cache } = await pageStatus(input);",
+    "replace": "  const { status, cache } = { status: 200, cache: \"hit\" };",
+    "run": "rebuild with MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build (stop any Worker serving .output first: EBUSY, P-2957), cp .dev.vars .output/server/.dev.vars, start bunx wrangler dev --config .output/server/wrangler.json --test-scheduled --port 8839, load the dev profile, then bun run scripts/harden/cache-probe.ts --mode keepwarm http://127.0.0.1:8839",
+    "expect": "the tick ran public_state 0 times, expected exactly 1"
   }
 ]
