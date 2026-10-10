@@ -14,3 +14,12 @@ export async function listAuditLog(actor: AdminActor, db: Db, filters: unknown) 
   if (!parsed.success) throw fromZod(parsed.error);
   return listAudit(db, parsed.data);
 }
+
+// Step 15a: the data requests live in `subject-requests.ts`; route files import services from this file only.
+export {
+  deleteSubject,
+  exportSubject,
+  listSubjectRequests,
+  optOutSubject,
+  setSubjectRequestStatus,
+} from "./subject-requests.ts";

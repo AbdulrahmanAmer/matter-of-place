@@ -2,6 +2,7 @@
 // creates, a write bumps `catalog_version` through B2's triggers exactly when the public catalog changes (F25 a), and
 // the dashboard is one call of indexed counts (17d).
 import "../fixtures/worker-env";
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { getDashboard } from "../../src/server/dashboard/service";
 import type { AdminActor } from "../../src/server/lib/admin-route";
@@ -618,5 +619,34 @@ describe("audit list indexes (step 15)", () => {
       "CREATE INDEX audit_log_list_idx ON public.audit_log USING btree (at DESC, id DESC)",
       "CREATE INDEX audit_log_request_idx ON public.audit_log USING btree (request_id)",
     ]);
+  });
+});
+
+describe("catalog_version and the redirect writes (step 15a, F25 a)", () => {
+  it("put_redirect of a new row, put_redirect of a change and archive_redirect each raise it by exactly one", async () => {
+    await withRollback(async (db) => {
+      const { rows: present } = await db.query<{ present: boolean }>(
+        "select to_regproc('public.put_redirect') is not null and to_regproc('public.archive_redirect') is not null as present",
+      );
+      expect(present[0]?.present).toBe(true);
+      const admin = await createStaffUser(db, ["admin"]);
+      const from = `/cv-${randomUUID().slice(0, 8)}`;
+      const before = await catalogVersion(db);
+      const { rows } = await db.query<{ id: string }>(
+        "select public.put_redirect($1, '/markets', 301, $2, 'human', 'req-cv') ->> 'id' as id",
+        [from, admin],
+      );
+      const id = rows[0]?.id;
+      const added = await catalogVersion(db);
+      await db.query("select public.put_redirect($1, '/stories', 302, $2, 'human', 'req-cv', $3)", [
+        from,
+        admin,
+        id,
+      ]);
+      const changed = await catalogVersion(db);
+      await db.query("select public.archive_redirect($1, $2, 'human', 'req-cv')", [id, admin]);
+      const archived = await catalogVersion(db);
+      expect([added - before, changed - added, archived - changed]).toEqual([1, 1, 1]);
+    });
   });
 });
