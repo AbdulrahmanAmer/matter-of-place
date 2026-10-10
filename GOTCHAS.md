@@ -1753,6 +1753,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - merged: P-2113
 - hit again: 2026-10-06, B7 c2b: `quiet.mjs -- bash -c "cd app && bun run check"` printed `error: Script not found "check"`; the title was in the check-gotchas list and was not opened.
 - added: 2026-10-03
+- hit again: 2026-10-10, H1 g6: `node workspace/05-plans/quiet.mjs -- bash -c "cd app && bun run check"` from the tree root printed `error: Script not found "check"`; the title was in the check-gotchas list and was not opened before the call. Re-run as `cd app && node ../workspace/05-plans/quiet.mjs -- bun run check`.
 - hit again: 2026-10-07, B7 g2 (step 5a) review: `quiet.mjs -- bash -c "cd app && bunx vitest run ..."` from the repository root ran vitest in the root: every component test failed with `ReferenceError: document is not defined` and `bunx` fetched vitest 5.0.3 on the fly (`RUN v5.0.3 D:/mop-build/admin-review`). From `app/` the same files ran under `RUN v5.0.2 D:/mop-build/admin-review/app` and printed `Tests  54 passed (54)`. Proof: `grep -c "hit again: 2026-10-07, B7 g2 (step 5a) review" GOTCHAS.md` counts the line in P-708.
 
 ## G-250 · The social templates inline only three CSS files, so a browser default such as `h1 { font-weight: bold }` is never reset: set the weight on the slot
@@ -6524,3 +6525,45 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a script that prints its own lines next to a child's output must start each of them on a fresh line. `scripts/lhci-pages.mjs` no longer passes lhci's output through at all: each attempt's output goes to a file in `.lighthouseci-pages/`, and the script prints whole lines of its own (a failed attempt's last 10 lines are prefixed `  | `); the url lines are printed again above the summary.
 - proof: `gh run view 37857699620 --attempt 2 --log-failed | grep -a -c "Run #3...::warning"` → `1`; `cd app && node scripts/lhci-pages.mjs http://127.0.0.1:8976 --bound-seconds 30 --total-seconds 300` against a local `wrangler dev` on a loaded laptop printed the `::warning title=lighthouse http%3A//127.0.0.1%3A8976/ retried::...` line at the start of its own line (2026-10-09 05:35 +0300).
 - added: 2026-10-09
+
+## P-2890 · A stand-in folder put on PATH in its `C:/...` form is never searched: the colon splits it, and the real `gh` dispatched a real backup run
+- symptom: H1 g6's first stand-in run of `restore-rehearsal.sh` exported `PATH="C:/Users/.../scratchpad/h1g6-rr/fakebin:$PATH"` so a stand-in `gh` would serve a laptop dump; the real `gh` ran instead, dispatched `backup.yml` on GitHub (run 38039559280, green in 37 s), downloaded its artifact and failed at the decrypt with `Error decrypting CMS structure`, because the key was the stand-in's.
+- cause: PATH is colon-separated, so `C:/Users/...` becomes the two entries `C` and `/Users/...`, neither of which exists; Git Bash needs the `/c/Users/...` form there. Nothing warns.
+- rule: put a folder on PATH in its POSIX form (`export PATH="$(cygpath -u "$dir"):$PATH"`) and check `command -v <tool> | grep -q <dir>` before a run whose stand-in guards an outside call (a dispatch, a deploy, a write); stop if the check fails.
+- proof: `PATH="C:/Users/DELL/AppData/Local/Temp/claude/E--Matter-Of-Place/bdd9245b-a217-4a62-859d-18b11075b310/scratchpad/h1g6-rr/fakebin:$PATH" command -v gh` → `/c/Program Files/GitHub CLI/gh`; with `$(cygpath -u ...)` it prints the stand-in (measured 2026-10-10, H1 g6).
+- added: 2026-10-10
+
+## P-2891 · psql on Windows ends every line with CRLF: a captured count broke bash arithmetic and a row-count check passed open
+- symptom: H1 g6's stand-in rehearsal printed `line 61: 17: arithmetic syntax error: invalid arithmetic operator (error token is "")` and then `restore ok 5.3 minutes`, exit 0: the count comparison and the marker check never decided anything.
+- cause: the native psql writes `1\r\n` (`psql -Atc "select 1" | od -c` shows `1 \r \n`, through `bun run db:psql` too); `$(...)` strips the newline and keeps the CR, `$((n <= m))` fails on it, and the failed expansion aborts the loop without tripping `set -e`.
+- rule: every psql answer a script captures goes through `tr -d '\r'` (`restore_psql` and `restore_dev_psql` in `scripts/harden/restore-lib.sh`), and a comparison fails closed: `[ "$n" -le "$m" ]` inside an `if`, where a non-number is a mismatch, never `$(( ))`.
+- proof: `psql -h 127.0.0.1 -p <port> -U postgres -Atc "select 1" | od -c | head -1` → `0000000   1  \r  \n`; `restore_compare` with a missing count prints `restore: row counts differ in shape` and exits 1 (H1 g6 log, 2026-10-10).
+- added: 2026-10-10
+
+## P-2892 · A Git Bash path written into a psql script file is not converted: `\i '/e/...'` fails, and a blocked message that looked only for `ERROR:` came out empty
+- symptom: H1 g6's drill on a native stand-in printed `restore into project blocked: ` with nothing after it; a copy of the script with the app folder written as `E:/mop-build/h1g6/app` passed.
+- cause: `APP=$(cd ... && pwd)` gives `/e/mop-build/...`; Git Bash converts such paths in the arguments of a native program, never inside a file the program reads, so psql's `\i` failed with `psql:<file>:<n>: error: /e/...: No such file or directory`, a lowercase `error:` the extraction did not match.
+- rule: a path that a native tool reads from a file is made with `pwd -W` (`(pwd -W 2> /dev/null || pwd)`) or `cygpath -m`; a script that reports psql's failure matches `(ERROR|error):` and the `STATEMENT:` line `--echo-errors` adds.
+- proof: `psql ... -f e2.sql` with `\i /e/nonexistent/x.sql` → `psql:e2.sql:1: error: /e/nonexistent/x.sql: No such file or directory`, exit 3; with `set session_replication_role = bogus;` mutated into the drill it prints `restore into project blocked: set session_replication_role = bogus; (invalid value for parameter "session_replication_role": "bogus")` (measured 2026-10-10, H1 g6).
+- added: 2026-10-10
+
+## P-2893 · `initdb` on the laptop spends about two minutes in "syncing data to disk"; `--no-sync` skips it for a throwaway cluster
+- symptom: H1 g6's first `initdb -D <dir> -U postgres --auth=trust` sat at `syncing data to disk ...` past the 120 s tool limit and was moved to the background; the rest of the cluster start took 6 s.
+- cause: initdb fsyncs every file it wrote, and this laptop's disk under five lanes is slow at that.
+- rule: a throwaway cluster (P-718, `restore-rehearsal.sh`) runs `initdb ... --no-sync`; start it with `pg_ctl ... -l <log> -w start > /dev/null 2>&1 < /dev/null`, which returns once the server is up (6 s here) instead of holding the Bash tool.
+- proof: `grep -n "no-sync" app/scripts/harden/restore-rehearsal.sh` → the initdb line; the stand-in rehearsal of 2026-10-10 09:46 UTC ran in 2.2 minutes including its dump (H1 g6 log).
+- added: 2026-10-10
+
+## P-2894 · H1 steps 6 and 6b lines that did not match the tree: Vault survives `db:reset`, the dump lacks schema `app`, and the RTO is not in architecture 7
+- symptom: H1 g6 found (1) watched-fail (tt) "skip the Vault step, the smoke must time out" cannot go red on the existing project, because `scripts/db-reset-dev.mjs` drops `public` and `app` only and the runner's Vault rows stay; (2) every policy of `public` calls `app.is_staff()` or `app.role_in(...)`, and `backup.yml` dumps `public` and `auth` only, so a restore into a bare cluster stops at the first policy; (3) the restore outline cites "architecture 7" for RPO 24 h and RTO 4 h and 8 h, and `grep -n -i "RPO\|RTO" workspace/06-architecture/architecture.md` finds nothing; (4) `.github/workflows/backup.yml` has no `schedule:` trigger yet, so the "nightly dump" of the outline does not exist.
+- cause: the plan was written before B2 c9 moved the role helpers to `app` and before the reset script's scope was fixed; the targets live only in the plan; the schedule line waits for B1b step 8 part B1.
+- rule: the drill removes the two runner rows (`job_runner_url`, `job_runner_secret`) inside its restore session, as a new project lacks them, so the re-entry step is what (tt) skips; `scripts/harden/pg-shims.sql` stubs `app.is_staff()` and `app.role_in(variadic anyarray)`; `docs/runbooks/restore.md` cites the plan for the targets and says the RPO is the age of the newest green run until the schedule exists.
+- proof: `grep -n "drop schema" app/scripts/db-reset-dev.mjs` → `public` and `app` only; `grep -nE "schedule:|workflow_dispatch:" .github/workflows/backup.yml` → `11:  workflow_dispatch:` alone; with the roles of `pg-shims.sql` but not its `app` stubs, `pg_restore --exit-on-error` of the dump stops at `ERROR:  schema "app" does not exist` on `CREATE POLICY agent_keys_delete_admin` (measured 2026-10-10, H1 g6).
+- added: 2026-10-10
+
+## P-2895 · `inquiries.test.tsx` "opened at /admin/inquiries?id=<uuid> shows InquiryDrawer" failed once inside a full `bun run check` under load and passed alone
+- symptom: H1 g6's `bun run check` (lanes testing at once, 673 s of vitest) ended `Tests  1 failed | 3928 passed (3929)` on `× opened at /admin/inquiries?id=<uuid> shows InquiryDrawer on that inquiry, read by its own GET 1953ms`; the branch does not touch `src/admin/inquiries`, and the file alone passed.
+- cause: UNPROVEN. The case failed at 1953 ms, far under the script's 60 s limit, so it is not G-031's timeout; a Testing Library wait with its default 1000 ms limit under load is the likely reading, not measured.
+- rule: a red component case in a file the group does not touch is run alone before it is read as a fault (`bunx vitest run --project component <file>`); report the full run's line and the alone run together, and do not edit another group's test to quiet it.
+- proof: `cd app && bunx vitest run --project component src/admin/inquiries/inquiries.test.tsx` → `Tests  7 passed (7)`; `git diff --stat origin/main -- src/admin/inquiries` → empty (measured 2026-10-10, H1 g6).
+- added: 2026-10-10

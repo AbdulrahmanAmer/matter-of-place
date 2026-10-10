@@ -152,7 +152,9 @@
       "lane": "Backend and data",
       "item": "Restore rehearsal on a throwaway native cluster",
       "expectation": "prints restore ok; row counts match; the marker audit_log row is present; elapsed time recorded in docs/runbooks/restore.md",
-      "command": "bash scripts/harden/restore-rehearsal.sh",
+      "needsEnv": "HARDEN_RESTORE_KEY",
+      "blockedText": "BLOCKED until the operator gives the path of the escrowed backup key in HARDEN_RESTORE_KEY",
+      "command": "<load-dev> && env -u CLOUDFLARE_API_TOKEN bash scripts/harden/restore-rehearsal.sh \"$HARDEN_RESTORE_KEY\"",
       "expectOutput": ["restore ok"]
     },
     {
@@ -162,7 +164,7 @@
       "expectation": "prints restore into project ok <minutes>; the minutes go into docs/runbooks/restore.md against the RTO",
       "needsEnv": "HARDEN_RESTORE_KEY",
       "blockedText": "BLOCKED until the operator gives the path of the escrowed backup key in HARDEN_RESTORE_KEY",
-      "command": "<load-dev> && bash scripts/harden/restore-supabase-drill.sh \"$HARDEN_RESTORE_KEY\"",
+      "command": "<load-dev> && env -u CLOUDFLARE_API_TOKEN bash scripts/harden/restore-supabase-drill.sh \"$HARDEN_RESTORE_KEY\"",
       "expectOutput": ["restore into project ok"]
     },
     {
