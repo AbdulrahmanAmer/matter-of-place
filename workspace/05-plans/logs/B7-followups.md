@@ -803,3 +803,39 @@ what: The g2 CI line (log line 1267) lists db/check/build/e2e success for 273f0f
 evidence: gh run list --branch slice/b7 -> '273f0fbb deploy failure', '23f71578 deploy failure'; gh run view 37855598010 --log-failed -> 'the Worker did not answer ten times in a row in 180 s', 'observatory: ... status 422, error scan-failed'
 
 blocking: false
+
+## g3 · steps 13
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. No follow-up of this review concerns GOTCHAS.md, so none is banked there.
+
+### 1. app/src/server/lib/permissions/markets.ts
+
+what: Follow-up (plan/matrix level, not this group's file). markets.coming_soon has no humanOnly flag and no agent daily cap. It is the action that makes a market public and queues the bulk market_open mail to every confirmed interest signup. STANDARDS R12 (SEC-11, ruling H23) says an action an agent can reach that changes public visibility or outbound content must be humanOnly, or counted by assert_agent_daily_cap and announced through notify_admin. The plan's matrix row ('markets.edit, .coming_soon | CE ME') leaves out both, and set_market_coming_soon calls neither. Concrete case: an agent key with scope markets and the managing_editor role can open a market and set off the mail with no cap and no admin notice. Found by reading; not exercised.
+
+evidence: grep -n humanOnly app/src/server/lib/permissions/markets.ts prints nothing; supabase/sql/functions/set_market_coming_soon.sql has no assert_agent_daily_cap or notify_admin call; B7.md matrix row 'markets.edit, .coming_soon | CE ME'
+
+blocking: false
+
+### 2. app/src/admin/markets/ComingSoonToggle.tsx
+
+what: Follow-up. The confirm text says 'Confirmed interest signups are sent one notice that it is open.' every time a market is opened. When the market was opened before, the key market_open:<slug> is already taken, so a reopen queues nothing (admin.db.test.ts asserts 'again: 1'). Also, the counts on screen come from market_interest_counts, which counts every subscriber of the market, while market_open_notice mails only rows whose source is like 'interest:%'. On a reopen the editor is told a mail goes out when none does, and the number shown is not the number mailed.
+
+evidence: ComingSoonToggle.tsx confirm body (line ~74 of the file); tests/db/admin.db.test.ts:2622-2634 (again: 1); src/server/jobs/system/market-open-notice.ts interested() filters .like('source','interest:%'); supabase/migrations/20261004155556_coming_soon.sql:79-89 has no source filter
+
+blocking: false
+
+### 3. workspace/05-plans/B7.md
+
+what: Follow-up (stale plan lines, the orchestrator's to fold). (1) Step 13 Files says setComingSoon passes isImplemented("market_open_notice") and that getStep includes system job types. It does not; the code correctly uses getStep ?? getSystemJob (P-1608, logged as a deviation). (2) The step 13 proof says an update_market raises catalog_version 'by one'. B2's statement triggers bump once per statement: a full update_market (patch, region, note, guide) raises it by 7 (author's measurement, in the log). The admin-cache case proves the literal line only with a patch-only call. Harmless for the cache contract, since every bump is in the same transaction, but the plan line should say 'at least once, in the writing transaction'.
+
+evidence: B7.md step 13 Files text; app/tests/db/admin-cache.db.test.ts:496-509 calls update_market with '{"intro": "Edited"}' only; workspace/05-plans/logs/B7.md g3 block 'raised catalog_version by 7'
+
+blocking: false
+
+### 4. app/supabase/sql/functions/update_market.sql
+
+what: Follow-up, minor. SQL accepts a neighborhood guide entry with no region_slug; only the Zod schema refuses one. The admin.db case even inserts { section: 'neighborhood', label: 'Pacific Heights' } with no region. Nothing breaks today because the API refuses it first, and the log says the public mapper drops such rows. The database rule is looser than the API's.
+
+evidence: tests/db/admin.db.test.ts:2692 inserts a neighborhood with no region and expects it stored; src/domain/admin-markets.ts:116 refine refuses it
+
+blocking: false

@@ -6,6 +6,7 @@
 // (migration `admin_takedown`). Step 8: the media functions and the one render job per property (migration
 // `admin_media`). Step 11: assign, forward, close and the list of inquiries (migration `admin_inquiries`).
 // Step 12: save, publish and unpublish of stories and their list (migration `admin_stories`).
+// Step 13: update_market and set_market_coming_soon (migration `admin_markets`).
 // Every case but the `getSubmission` one runs in one rolled-back transaction (F22).
 import "../fixtures/worker-env";
 import { randomUUID } from "node:crypto";
@@ -2541,6 +2542,369 @@ describe("stories (step 12)", () => {
         drafts: [middle.id],
         reviews: [oldest.id],
       });
+    });
+  });
+});
+
+/** The case runs only against a database that holds step 13's migration (P-328). */
+async function assertStep13(db: Db): Promise<void> {
+  const { present } = await one<{ present: boolean }>(
+    db,
+    `select to_regproc('public.update_market') is not null
+       and to_regproc('public.set_market_coming_soon') is not null as present`,
+  );
+  expect(present).toBe(true);
+}
+
+const TOGGLE =
+  "select public.set_market_coming_soon(p_slug => $1, p_coming_soon => $2, p_actor => $3, p_actor_kind => 'human', p_request_id => 't', p_notify => $4) as answer";
+const UPDATE_MARKET =
+  "select public.update_market($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, $6, 'human', 'req-markets', $7) as answer";
+
+/** The market as the case needs it: its fixture row, with `coming_soon` set and no job left from an earlier run. */
+async function marketIn(db: Db, comingSoon: boolean): Promise<void> {
+  await markets(db);
+  await db.query("update public.markets set coming_soon = $1 where slug = 'california'", [
+    comingSoon,
+  ]);
+  await db.query("delete from public.jobs where idempotency_key = 'market_open:california'");
+}
+
+async function openNotices(db: Db) {
+  return (
+    await db.query<{ key: string; payload: unknown }>(
+      `select idempotency_key as key, payload from public.jobs
+       where type = 'market_open_notice' and payload -> 'data' ->> 'market' = 'california'`,
+    )
+  ).rows;
+}
+
+async function marketAudits(db: Db, action: string): Promise<number> {
+  return count(
+    db,
+    "select count(*)::int as n from public.audit_log where action = $1 and entity = 'markets.california'",
+    [action],
+  );
+}
+
+async function comingSoonOf(db: Db): Promise<boolean> {
+  return (
+    await one<{ coming_soon: boolean }>(
+      db,
+      "select coming_soon from public.markets where slug = 'california'",
+    )
+  ).coming_soon;
+}
+
+async function renderJobsOf(db: Db) {
+  return (
+    await db.query<{ heavy: boolean; payload: unknown; key: string }>(
+      `select heavy, payload, idempotency_key as key from public.jobs
+       where type = 'render_variants' and payload -> 'data' ->> 'target' in ('market', 'region')
+         and payload -> 'data' ->> 'slug' in ('california', 'bay-area')
+       order by payload -> 'data' ->> 'target'`,
+    )
+  ).rows;
+}
+
+const note = (label: string) => ({ label, text: `${label} text` });
+
+describe("markets (step 13)", () => {
+  it("set_market_coming_soon with p_notify on a coming-soon market opens it and queues exactly one market_open_notice job keyed market_open:california, and closing it then opening it again queues none", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await marketIn(db, true);
+      await db.query(TOGGLE, ["california", false, editor, true]);
+      const opened = { open: !(await comingSoonOf(db)), jobs: await openNotices(db) };
+      await db.query(TOGGLE, ["california", true, editor, true]);
+      const closed = { open: !(await comingSoonOf(db)), jobs: (await openNotices(db)).length };
+      await db.query(TOGGLE, ["california", false, editor, true]);
+      expect({ opened, closed, again: (await openNotices(db)).length }).toEqual({
+        opened: {
+          open: true,
+          jobs: [
+            {
+              key: "market_open:california",
+              payload: { params: {}, data: { market: "california" } },
+            },
+          ],
+        },
+        closed: { open: false, jobs: 1 },
+        again: 1,
+      });
+    });
+  });
+
+  it("set_market_coming_soon without p_notify opens the market and queues no market_open_notice job", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["chief_editor"]);
+      await marketIn(db, true);
+      await db.query(TOGGLE, ["california", false, editor, false]);
+      expect({ open: !(await comingSoonOf(db)), jobs: await openNotices(db) }).toEqual({
+        open: true,
+        jobs: [],
+      });
+    });
+  });
+
+  it("set_market_coming_soon writes one markets.coming_soon audit row per change, none for a repeat, and refuses a commercial user and an unknown market", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const commercial = await createStaffUser(db, ["commercial"]);
+      await marketIn(db, true);
+      await db.query(TOGGLE, ["california", false, editor, false]);
+      await db.query(TOGGLE, ["california", false, editor, false]);
+      await db.query(TOGGLE, ["california", true, editor, false]);
+      expect({
+        audits: await marketAudits(db, "markets.coming_soon"),
+        commercial: await attempt(db, TOGGLE, ["california", false, commercial, false]),
+        unknown: await attempt(db, TOGGLE, ["texas", false, editor, false]),
+        stillClosed: await comingSoonOf(db),
+      }).toEqual({
+        audits: 2,
+        commercial: "42501 forbidden",
+        unknown: "P0002 not_found",
+        stillClosed: true,
+      });
+    });
+  });
+
+  it("update_market with two notes leaves exactly those two rows with sort_order 0 and 1, with three guide entries exactly those three, and with null notes leaves the notes alone", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      const rows = (table: string) =>
+        db.query<{ label: string; sort_order: number }>(
+          `select label, sort_order from public.${table} where market_slug = 'california' order by sort_order`,
+        );
+      await db.query(UPDATE_MARKET, [
+        "california",
+        "{}",
+        null,
+        JSON.stringify([note("Light"), note("Water")]),
+        JSON.stringify([
+          { section: "need", label: "Parking", text: "t" },
+          { section: "service", region_slug: "bay-area", label: "Movers", text: "t" },
+          { section: "neighborhood", label: "Pacific Heights", text: "t" },
+        ]),
+        editor,
+        null,
+      ]);
+      const first = {
+        notes: (await rows("market_notes")).rows,
+        guide: (await rows("market_guide_entries")).rows,
+      };
+      await db.query(UPDATE_MARKET, ["california", "{}", null, null, null, editor, null]);
+      expect({ first, kept: (await rows("market_notes")).rows }).toEqual({
+        first: {
+          notes: [
+            { label: "Light", sort_order: 0 },
+            { label: "Water", sort_order: 1 },
+          ],
+          guide: [
+            { label: "Parking", sort_order: 0 },
+            { label: "Movers", sort_order: 1 },
+            { label: "Pacific Heights", sort_order: 2 },
+          ],
+        },
+        kept: [
+          { label: "Light", sort_order: 0 },
+          { label: "Water", sort_order: 1 },
+        ],
+      });
+    });
+  });
+
+  it("update_market changes the market fields, upserts a region by slug and writes one markets.edit audit row", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      const region = (slug: string, name: string) => ({
+        slug,
+        name,
+        intro: `${name} intro`,
+        places: ["One", "Two"],
+        sort_order: 3,
+      });
+      const answer = await one<{ answer: { slug: string } }>(db, UPDATE_MARKET, [
+        "california",
+        JSON.stringify({
+          name: "California Coast",
+          places: ["Malibu", "Carmel"],
+          interest_copy: null,
+        }),
+        JSON.stringify([region("bay-area", "San Francisco Bay"), region("big-sur", "Big Sur")]),
+        null,
+        null,
+        editor,
+        null,
+      ]);
+      expect({
+        answer: answer.answer.slug,
+        market: await one(
+          db,
+          "select name, places, interest_copy from public.markets where slug = 'california'",
+        ),
+        regions: (
+          await db.query(
+            `select slug, market_slug, name, places, sort_order from public.regions
+             where slug in ('bay-area', 'big-sur') order by slug`,
+          )
+        ).rows,
+        audits: await marketAudits(db, "markets.edit"),
+      }).toEqual({
+        answer: "california",
+        market: { name: "California Coast", places: ["Malibu", "Carmel"], interest_copy: null },
+        regions: [
+          {
+            slug: "bay-area",
+            market_slug: "california",
+            name: "San Francisco Bay",
+            places: ["One", "Two"],
+            sort_order: 3,
+          },
+          {
+            slug: "big-sur",
+            market_slug: "california",
+            name: "Big Sur",
+            places: ["One", "Two"],
+            sort_order: 3,
+          },
+        ],
+        audits: 1,
+      });
+    });
+  });
+
+  it("update_market with a market image path and one region image path queues exactly two heavy render_variants jobs keyed by target, slug and path, and leaves both image values unchanged", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      await db.query("update public.markets set image = 'm/old.webp' where slug = 'california'");
+      await db.query("update public.regions set image = 'r/old.webp' where slug = 'bay-area'");
+      await db.query(
+        "delete from public.jobs where type = 'render_variants' and payload -> 'data' ->> 'slug' in ('california', 'bay-area')",
+      );
+      const marketPath = `staging/market/california/${randomUUID()}.jpg`;
+      const regionPath = `staging/region/bay-area/${randomUUID()}.jpg`;
+      const regions = JSON.stringify([
+        {
+          slug: "bay-area",
+          name: "Bay Area",
+          intro: "x",
+          places: [],
+          sort_order: 0,
+          image_staging_path: regionPath,
+        },
+      ]);
+      await db.query(UPDATE_MARKET, ["california", "{}", regions, null, null, editor, marketPath]);
+      await db.query(UPDATE_MARKET, ["california", "{}", regions, null, null, editor, marketPath]);
+      const imageOf = async (table: string, slug: string) =>
+        (
+          await one<{ image: string }>(db, `select image from public.${table} where slug = $1`, [
+            slug,
+          ])
+        ).image;
+      expect({
+        jobs: await renderJobsOf(db),
+        images: [await imageOf("markets", "california"), await imageOf("regions", "bay-area")],
+      }).toEqual({
+        jobs: [
+          {
+            heavy: true,
+            payload: {
+              params: {},
+              data: { target: "market", slug: "california", staging_path: marketPath },
+            },
+            key: `render_variants:market:california:${marketPath}`,
+          },
+          {
+            heavy: true,
+            payload: {
+              params: {},
+              data: { target: "region", slug: "bay-area", staging_path: regionPath },
+            },
+            key: `render_variants:region:bay-area:${regionPath}`,
+          },
+        ],
+        images: ["m/old.webp", "r/old.webp"],
+      });
+    });
+  });
+
+  it("update_market refuses image, coming_soon and unknown keys, a path under another folder, a region of another market and a guide entry for one, with invalid_key and no change", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      await markets(db);
+      await db.query(
+        `insert into public.regions (slug, market_slug, name, intro) values ('miami', 'florida', 'Miami', 'x')
+         on conflict (slug) do nothing`,
+      );
+      const refused = (patch: unknown, regions: unknown, guide: unknown, path: string | null) =>
+        attempt(db, UPDATE_MARKET, [
+          "california",
+          JSON.stringify(patch),
+          regions === null ? null : JSON.stringify(regions),
+          null,
+          guide === null ? null : JSON.stringify(guide),
+          editor,
+          path,
+        ]);
+      const miami = { slug: "miami", name: "Miami", intro: "x", places: [], sort_order: 0 };
+      const foreignImage = `staging/region/miami/${randomUUID()}.jpg`;
+      expect({
+        image: await refused({ image: "m/x.webp" }, null, null, null),
+        comingSoon: await refused({ coming_soon: false }, null, null, null),
+        unknown: await refused({ slug: "texas" }, null, null, null),
+        foreignPath: await refused({}, null, null, `staging/market/florida/${randomUUID()}.jpg`),
+        foreignRegion: await refused({}, [miami], null, null),
+        regionPath: await refused(
+          {},
+          [{ ...miami, slug: "bay-area", image_staging_path: foreignImage }],
+          null,
+          null,
+        ),
+        guideRegion: await refused(
+          {},
+          null,
+          [{ section: "need", region_slug: "miami", label: "a", text: "b" }],
+          null,
+        ),
+        section: await refused({}, null, [{ section: "other", label: "a", text: "b" }], null),
+        jobs: (await renderJobsOf(db)).length,
+      }).toEqual({
+        image: "P0001 invalid_key",
+        comingSoon: "P0001 invalid_key",
+        unknown: "P0001 invalid_key",
+        foreignPath: "P0001 invalid_key",
+        foreignRegion: "P0001 invalid_key",
+        regionPath: "P0001 invalid_key",
+        guideRegion: "P0001 invalid_key",
+        section: "P0001 invalid_key",
+        jobs: 0,
+      });
+    });
+  });
+
+  it("update_market is refused for a commercial user with forbidden and for an unknown market with not_found", async () => {
+    await withRollback(async (db) => {
+      await assertStep13(db);
+      const editor = await createStaffUser(db, ["managing_editor"]);
+      const commercial = await createStaffUser(db, ["commercial"]);
+      await markets(db);
+      const call = (slug: string, actor: string) =>
+        attempt(db, UPDATE_MARKET, [slug, "{}", null, null, null, actor, null]);
+      expect({
+        commercial: await call("california", commercial),
+        unknown: await call("texas", editor),
+      }).toEqual({ commercial: "42501 forbidden", unknown: "P0002 not_found" });
     });
   });
 });
