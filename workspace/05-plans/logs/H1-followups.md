@@ -245,3 +245,9 @@ Review verdict ACCEPT: no blocking defect, eight follow-ups. The one whose file 
 7. `app/docs/runbooks/incident.md` (not blocking)
    - What: The game day (manual item M-05) by a second person is NOT DONE. Section 11 says so. An agent cannot close it.
    - Evidence: incident.md lines 141-145, every cell NOT DONE.
+
+## Merge of the group branches (steps 5 to 9)
+
+1. `workspace/05-plans/H1.md` and `workspace/05-plans/trace.json` (not blocking)
+   - What: the plan's Files line and three trace items name one `scripts/harden/pg-shims.sql` for "the restore and migration drills"; after the merge there are two files, `pg-shims.sql` (migration drill) and `restore-shims.sql` (restore rehearsal), and the second is named by neither.
+   - Evidence: `grep -n "pg-shims" workspace/05-plans/H1.md workspace/05-plans/trace.json`; P-2838.
