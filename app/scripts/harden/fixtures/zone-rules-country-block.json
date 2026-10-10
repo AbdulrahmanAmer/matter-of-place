@@ -1,0 +1,81 @@
+{
+  "rulesets/phase/http_ratelimit/entrypoint": {
+    "success": true,
+    "errors": [],
+    "messages": [],
+    "result": {
+      "id": "4a8e2f6c1b3d4e5f8a9b0c1d2e3f4a5b",
+      "name": "default",
+      "kind": "zone",
+      "phase": "http_ratelimit",
+      "rules": [
+        {
+          "id": "9c1e7a2b5d4f4c3a8b6e0d1f2a3b4c5d",
+          "action": "block",
+          "description": "mop: public API and sign-in link (cf-edge.mjs)",
+          "expression": "(starts_with(http.request.uri.path, \"/api/public/\") or starts_with(http.request.uri.path, \"/api/admin/auth/\"))",
+          "enabled": true,
+          "ratelimit": {
+            "characteristics": ["cf.colo.id", "ip.src"],
+            "period": 10,
+            "requests_per_period": 60,
+            "mitigation_timeout": 10
+          }
+        }
+      ]
+    }
+  },
+  "rulesets/phase/http_request_firewall_managed/entrypoint": {
+    "success": true,
+    "errors": [],
+    "messages": [],
+    "result": {
+      "id": "6d2c9e1a7b4f4e8c9a0b1c2d3e4f5a6b",
+      "name": "default",
+      "kind": "zone",
+      "phase": "http_request_firewall_managed",
+      "rules": [
+        {
+          "id": "1f3a5c7e9b2d4f6a8c0e2a4b6d8f0a1c",
+          "action": "execute",
+          "action_parameters": {
+            "id": "77454fe2d30c4220b5701f6fdfb893ba"
+          },
+          "description": "Cloudflare Free Managed Ruleset",
+          "expression": "true",
+          "enabled": true
+        }
+      ]
+    }
+  },
+  "rulesets/phase/http_request_firewall_custom/entrypoint": {
+    "success": true,
+    "errors": [],
+    "messages": [],
+    "result": {
+      "id": "2b4d6f8a0c1e4a3b5c7d9e1f3a5b7c9d",
+      "name": "default",
+      "kind": "zone",
+      "phase": "http_request_firewall_custom",
+      "rules": [
+        {
+          "id": "5e7a9c1b3d5f4a6c8e0b2d4f6a8c0e1b",
+          "action": "block",
+          "description": "admin outside the United States",
+          "expression": "(starts_with(http.request.uri.path, \"/admin\") and ip.src.country ne \"US\")",
+          "enabled": true
+        }
+      ]
+    }
+  },
+  "bot_management": {
+    "success": true,
+    "errors": [],
+    "messages": [],
+    "result": {
+      "fight_mode": true,
+      "enable_js": true,
+      "using_latest_model": true
+    }
+  }
+}

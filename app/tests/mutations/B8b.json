@@ -1233,16 +1233,16 @@
     "find": "const { status, cache } = await pageStatus(input);",
     "replace": "const { status, cache } = { status: 200, cache: \"hit\" };",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*in production makes one clock claim, one state RPC"
+    "expect": "× .*in production makes one clock claim, one beat"
   },
   {
-    "id": "b8b-g4-kw-state",
+    "id": "b8b-g4-kw-no-state",
     "test": "tests/unit/scheduled.test.ts",
     "file": "src/server/scheduled.ts",
-    "find": "data: await getPublicState(db),",
-    "replace": "data: null,",
+    "find": "  await attempt(\"keepwarm_beat_failed\", () =>",
+    "replace": "  await db.rpc(\"public_state\");\n  await attempt(\"keepwarm_beat_failed\", () =>",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*in production makes one clock claim, one state RPC"
+    "expect": "× .*in production makes one clock claim, one beat"
   },
   {
     "id": "b8b-g4-kw-beat",
@@ -1251,7 +1251,7 @@
     "find": "db.rpc(\"beat\", { p_name: \"keepwarm\", p_detail: { cron } })",
     "replace": "Promise.resolve({ data: null, error: null })",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*in production makes one clock claim, one state RPC"
+    "expect": "× .*in production makes one clock claim, one beat"
   },
   {
     "id": "b8b-g4-kw-claim-guard",
@@ -1260,7 +1260,7 @@
     "find": "p_guard: false,",
     "replace": "p_guard: true,",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*in production makes one clock claim, one state RPC"
+    "expect": "× .*in production makes one clock claim, one beat"
   },
   {
     "id": "b8b-g4-kw-next",
@@ -1269,7 +1269,7 @@
     "find": "p_next_run_at: nextRun(cron, now).toISOString(),",
     "replace": "p_next_run_at: now.toISOString(),",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*in production makes one clock claim, one state RPC"
+    "expect": "× .*in production makes one clock claim, one beat"
   },
   {
     "id": "b8b-g4-kw-liveness-always",
@@ -1341,7 +1341,7 @@
     "find": "    logLine(\"warn\", event, { reason: error instanceof Error ? error.message : \"unknown\" });",
     "replace": "    logLine(\"warn\", event, { reason: error instanceof Error ? error.message : \"unknown\" });\n    throw error;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
-    "expect": "× .*a failing the state RPC is logged once and the tick still finishes"
+    "expect": "× .*a failing a malformed liveness answer is logged once and the tick still finishes"
   },
   {
     "id": "b8b-g4-kw-claim-event",
@@ -1357,7 +1357,7 @@
     "test": "tests/unit/scheduled.test.ts",
     "file": "src/server/scheduled.ts",
     "find": "attempt(\"keepwarm_beat_failed\"",
-    "replace": "attempt(\"keepwarm_state_rpc_failed\"",
+    "replace": "attempt(\"keepwarm_liveness_rpc_failed\"",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/scheduled.test.ts",
     "expect": "× .*a failing the beat is logged once and the tick still finishes"
   },

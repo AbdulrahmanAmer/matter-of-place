@@ -2,17 +2,15 @@ import "../fixtures/worker-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Json } from "../../src/db";
 import { fakeDb, type FakeDb } from "../fixtures/fake-db";
-import { stateJson } from "../fixtures/snapshot";
 
 // The keep-warm tick (B8b invariant 15 c) against B3's fakeDb, whose `calls` count every RPC and query, a stub for
-// Nitro's in-process fetch and a spy `report`. A fresh module per case, so the state memo of one tick never serves the next.
+// Nitro's in-process fetch and a spy `report`. The tick reads no state itself (H78): its page request warms the serving memo.
 
 const NOW = new Date("2026-10-05T10:10:00.000Z");
 const CRON = "*/10 * * * *";
 
 interface Rpcs {
   claim?: boolean | Error;
-  state?: Error;
   beat?: Error;
   liveness?: Json | Error;
 }
@@ -22,11 +20,10 @@ const fresh = (): Json => ({
   oldest_due_age_s: null,
 });
 
-function setup({ claim = true, state, beat, liveness = fresh() }: Rpcs = {}): FakeDb {
+function setup({ claim = true, beat, liveness = fresh() }: Rpcs = {}): FakeDb {
   return fakeDb({
     rpc: {
       claim_schedule: () => claim,
-      public_state: () => state ?? stateJson(),
       beat: () => beat ?? undefined,
       jobs_liveness: () => liveness,
     },
@@ -87,15 +84,10 @@ const events = (): unknown[] =>
 const rpcNames = (db: FakeDb) => db.calls.map((call) => `${call.kind}:${call.name}`);
 
 describe("runKeepWarm", () => {
-  it("in production makes one clock claim, one state RPC, one beat, one liveness RPC and one page request", async () => {
+  it("in production makes one clock claim, one beat, one liveness RPC and one page request, with no state RPC", async () => {
     const db = setup();
     await tick(db);
-    expect(rpcNames(db)).toEqual([
-      "rpc:claim_schedule",
-      "rpc:public_state",
-      "rpc:beat",
-      "rpc:jobs_liveness",
-    ]);
+    expect(rpcNames(db)).toEqual(["rpc:claim_schedule", "rpc:beat", "rpc:jobs_liveness"]);
     expect(pages.map((page) => [page.method, page.url])).toEqual([
       ["GET", "https://example.test/"],
     ]);
@@ -107,9 +99,9 @@ describe("runKeepWarm", () => {
         p_next_run_at: "2026-10-05T10:20:00.000Z",
       },
     ]);
-    expect(db.calls[2]?.args).toEqual([{ p_name: "keepwarm", p_detail: { cron: CRON } }]);
+    expect(db.calls[1]?.args).toEqual([{ p_name: "keepwarm", p_detail: { cron: CRON } }]);
     expect(lines.map((line) => JSON.parse(line) as unknown)).toEqual([
-      { level: "info", event: "keepwarm_tick", status: 200, cache: "hit", stateRpc: 1 },
+      { level: "info", event: "keepwarm_tick", status: 200, cache: "hit" },
     ]);
     expect(reports).toEqual([]);
   });
@@ -117,7 +109,7 @@ describe("runKeepWarm", () => {
   it("outside production makes the same calls without jobs_liveness", async () => {
     const db = setup();
     await tick(db, "preview");
-    expect(rpcNames(db)).toEqual(["rpc:claim_schedule", "rpc:public_state", "rpc:beat"]);
+    expect(rpcNames(db)).toEqual(["rpc:claim_schedule", "rpc:beat"]);
     expect(pages).toHaveLength(1);
   });
 
@@ -158,9 +150,13 @@ describe("runKeepWarm", () => {
 
   it.each([
     ["the claim", { claim: new Error("down") }, "keepwarm_last_run_update_failed"],
-    ["the state RPC", { state: new Error("down") }, "keepwarm_state_rpc_failed"],
     ["the beat", { beat: new Error("down") }, "keepwarm_beat_failed"],
     ["the liveness RPC", { liveness: new Error("down") }, "keepwarm_liveness_rpc_failed"],
+    [
+      "a malformed liveness answer",
+      { liveness: { runner_beat_at: 5 } },
+      "keepwarm_liveness_rpc_failed",
+    ],
   ])("a failing %s is logged once and the tick still finishes", async (_name, failure, event) => {
     await tick(setup(failure));
     expect(events().filter((name) => name === event)).toEqual([event]);

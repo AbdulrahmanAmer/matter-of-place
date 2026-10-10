@@ -1,0 +1,8 @@
+{
+  "intent": "general",
+  "name": "H1 Probe",
+  "email": "h1-probe@example.invalid",
+  "message": "A valid inquiry body that carries no Turnstile token.",
+  "details": {},
+  "sourcePath": "/contact"
+}
