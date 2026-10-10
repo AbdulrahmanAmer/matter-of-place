@@ -299,7 +299,7 @@ const settle = async () => {
     pending.splice(pending.indexOf(item), 1)
     if (blocks(review)) { finish(item, false); continue }
     if (followUps(review).length) {
-      item.bankClosed = await callAgent(bankPrompt(item.g, followUps(review)), { label: `bank:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: 'sonnet', effort: 'high', agentType: 'mop-builder', schema: BUILD })
+      item.bankClosed = await callAgent(bankPrompt(item.g, followUps(review)), { label: `bank:${slice}:${item.g.id}:${item.g.steps}`, phase: 'Fix', model: 'claude-haiku-5-5', effort: 'high', agentType: 'mop-builder', schema: BUILD })
       finish(item, Boolean(item.bankClosed && item.bankClosed.status === 'done'))
     } else finish(item, true)
   }
