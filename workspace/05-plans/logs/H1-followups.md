@@ -139,3 +139,31 @@ The three follow-ups whose file is GOTCHAS.md are banked as P-2813 (the empty `-
    - Evidence: run-all --only H1-23,H1-24,H1-25,H1-29: `H1-24 | fail | exit 1: Duration 60.37s`, `H1-29 | fail | exit 1: error: Module not found "scripts/check-seo.ts"`.
 
 The two follow-ups whose file is GOTCHAS.md are banked as hit-again lines: the `step-specs.test.ts` timeout under load on G-031, and the cold built Worker in the coming-soon project on P-2860.
+
+## g6 · steps 6, 6b
+
+1. `C:/Users/DELL/AppData/Local/Temp/tmp.4GbAp0A9XI (process leftover, outside the repo)` (not blocking)
+   - What: The author's debugging copy of the drill (P-2892: 'a copy that keeps its folder') left a plaintext, decrypted mop-dev dump in the system temp folder. The folder holds x.dump (2.8 MB), public.sql (9.8 MB, every public row) and auth.sql (auth.users and identities: emails and password hashes). This goes against restore.md section 2 ('delete it after use'). The shipped scripts clean up correctly: my three runs left no folder. The fix is to delete that folder and bank a rule that any debug copy of a drill deletes its temp folder.
+   - Evidence: Confirmed by running: ls -la /tmp/tmp.4GbAp0A9XI shows auth.sql, public.sql, x.dump and download/mop-dev-standin.dump.p7m, dated 12:35. Its restore.sql is the earlier drill form (no vault delete) and reads E:/mop-build/h1g6/app/scripts/harden/rowcounts.sql, so it came from the author's session
+
+2. `app/scripts/harden/restore-lib.sh` (not blocking)
+   - What: STANDARDS 1.3 folder map, row `scripts/`, naming column, says '.sh and .ps1 only where a plan names it'. The plan does not name restore-lib.sh. The same row also puts shared script helpers in scripts/lib/, not scripts/harden/ (C02, C03). The author disclosed this (the file exists to satisfy jscpd), and nothing goes wrong at runtime. The orchestrator should add it to the plan's Files list or move it.
+   - Evidence: Found by reading: STANDARDS.md line 85 (folder map row scripts/); the log line 'a file the plan does not name'; check-layout.mjs gained a named entry for it
+
+3. `app/tests/unit/assert-not-production.test.ts` (not blocking)
+   - What: For the two shell drills, guardedScripts only checks text. If the bun -e guard line is commented out, the test stays green. It also stays green if the guard is moved below the marker insert. For .ts scripts, typecheck catches a commented call through the unused import; for .sh nothing does. The real damage is limited because db:reset refuses on production by itself, but restore-rehearsal.sh would write its marker row into production audit_log.
+   - Evidence: Confirmed by running: node scripts/watchfail.mjs --file scripts/harden/restore-supabase-drill.sh --find "bun -e ..." --replace "# bun -e ..." --run "bunx vitest run --project unit tests/unit/assert-not-production.test.ts" --expect restore-supabase-drill printed 'WATCHED-FAIL BAD: stayed green'
+
+4. `app/scripts/harden/checklist.json` (not blocking)
+   - What: The H1-21 and H1-21b blockedText, the log and restore.md section 6 all say the rows wait for the operator to give the path of the escrowed key. delivery.md 'The key pair' says the private key is at creds/backup-recipient.key in the laptop's root checkout until the escrow is done, so the orchestrator can probably run the real H1-21 now with that path; that is not something only the operator can do (S63). The lane was right not to read the root.
+   - Evidence: Found by reading: app/docs/runbooks/delivery.md line 453 ('Private key | creds/backup-recipient.key at the root of the laptop's checkout'); restore.md lines 182-184. I did not check that the file exists, because the brief forbids reading E:/Matter Of Place
+
+5. `app/docs/runbooks/restore.md` (not blocking)
+   - What: Section 4 and the H1-21b drill call `bun run db:reset`. That command refuses unless supabase/.temp/project-ref exists in the app folder (checkResetTarget needs the linked ref). The runbook never says to run `supabase link --project-ref` first, so on a fresh checkout the drill stops with 'restore into project blocked: bun run db:reset'.
+   - Evidence: Suspected by reading, not run against mop-dev: app/scripts/db-reset-dev.mjs checkLinkedTarget reads ../supabase/.temp/project-ref; reset-guard.mjs throws 'refusing: ref mismatch (linked none, ...)' when it is missing
+
+6. `app/src/admin/inquiries/inquiries.test.tsx` (not blocking)
+   - What: bun run check is red under load on component tests the branch does not touch: inquiries, settings and revisions. Inquiries was also red when run with the other two files only, and green alone. This is not this group's code. P-2895 has hit again, and its cause is still UNPROVEN.
+   - Evidence: Confirmed by running: full check: Tests 1 failed | 3801 passed, check-exit=1. JSON-reporter run: total 3929, failed 4. The three files together: 1 failed | 20 passed. Inquiries alone: 7 passed (7). git diff --stat origin/main...HEAD -- app/src/admin is empty
+
+The follow-up whose file is GOTCHAS.md (item 7 of the review) is banked as a hit-again line on P-094 (a `python3 -` patch failed with `couldn't create signal pipe, Win32 error 5`) and as P-2896 (a red vitest run whose quiet tail lost the failing file names: rerun with the JSON reporter). Item 1 asks for a rule that a debug copy of a drill deletes its temp folder; it is recorded here and not banked, because it names no file of the tree.

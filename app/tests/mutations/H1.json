@@ -307,5 +307,57 @@
     "replace": "",
     "run": "serve and run as h1g5-g-unknown-route-200 with --grep \"response header\"",
     "expect": "Locator:\\s+getByText\\('h1-states-body'\\)\\s+Expected: 0\\s+Received: 1"
+  },
+  {
+    "id": "h1g6-guard-restore-rehearsal",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/restore-rehearsal.sh",
+    "find": "bun -e \"await (await import('./scripts/lib/assert-not-production.mjs')).assertNotProduction({ dbUrl: process.env.DEV_DB_URL })\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/restore-rehearsal.sh"
+  },
+  {
+    "id": "h1g6-guard-restore-drill",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/harden/restore-supabase-drill.sh",
+    "find": "bun -e \"await (await import('./scripts/lib/assert-not-production.mjs')).assertNotProduction({ dbUrl: process.env.DEV_DB_URL })\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "× .*every listed file exists, imports the guard and calls assertNotProduction\\([\\s\\S]*scripts/harden/restore-supabase-drill.sh"
+  },
+  {
+    "id": "h1g6-i-corrupt-byte",
+    "kind": "manual",
+    "test": "scripts/harden/restore-rehearsal.sh",
+    "run": "with the dev profile, PATH led by a stand-in gh (workflow run = laptop pg_dump of DEV_DB_URL encrypted to a stand-in certificate) and its key: bash scripts/harden/restore-rehearsal.sh <stand-in key>, with the stand-in flipping the middle byte of the plain dump before encryption (FAKE_GH_CORRUPT=1)",
+    "expect": "restore blocked: processing data for table \"public\\.job_events\""
+  },
+  {
+    "id": "h1g6-mm-no-marker",
+    "kind": "manual",
+    "test": "scripts/harden/restore-rehearsal.sh",
+    "file": "scripts/harden/restore-rehearsal.sh",
+    "find": "restore_dev_psql -c \"insert into audit_log (action, entity, note) values ('restore.marker', 'restore', '$MARK') returning id\" > /dev/null\n",
+    "replace": "",
+    "run": "with the dev profile, PATH led by a stand-in gh (workflow run = laptop pg_dump of DEV_DB_URL encrypted to a stand-in certificate) and its key: bash scripts/harden/restore-rehearsal.sh <stand-in key>",
+    "expect": "restore: marker h1-restore-\\d{8}T\\d{6}Z found 0 times"
+  },
+  {
+    "id": "h1g6-tt-vault-skipped",
+    "kind": "manual",
+    "test": "scripts/harden/restore-supabase-drill.sh",
+    "file": "scripts/harden/restore-supabase-drill.sh",
+    "find": "restore_dev_psql > /dev/null << SQL || blocked \"the Vault rows job_runner_url and job_runner_secret\"\n",
+    "replace": "cat > /dev/null << SQL\n",
+    "run": "on a native PostgreSQL 18 copy of the dump with a stub vault schema, PATH led by a stand-in gh and a stand-in bun (db:reset rebuilds public from the dump, job-selftest.ts passes only when both runner Vault rows hold the stand-in values), DEV_DB_URL on that copy: bash scripts/harden/restore-supabase-drill.sh <stand-in key>",
+    "expect": "restore into project blocked: job-selftest\\.ts --light-only"
+  },
+  {
+    "id": "h1g6-cc-production",
+    "kind": "manual",
+    "test": "scripts/harden/restore-rehearsal.sh",
+    "run": "a native PostgreSQL 18 database with scripts/harden/pg-shims.sql, public.settings made by hand and the row ('environment', '\"production\"'); DEV_DB_URL on it: bash scripts/harden/restore-rehearsal.sh /nonexistent.key, then bash scripts/harden/restore-supabase-drill.sh /nonexistent.key; each exits 1 and the database still holds only the settings table",
+    "expect": "error: refusing: production database"
   }
 ]
