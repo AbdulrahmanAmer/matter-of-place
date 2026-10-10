@@ -1,5 +1,6 @@
 import type { ZodType, ZodTypeDef } from "zod";
-import { requireActor, type Actor } from "./actor.ts";
+import { requireActor } from "./actor.ts";
+import type { Actor, AdminActor } from "./actor-types.ts";
 import { fromRpcError } from "./admin-errors.ts";
 import { adminJson, withAdminHeaders } from "./admin-response.ts";
 import { KeyRateLimited } from "./agent-keys.ts";
@@ -31,11 +32,7 @@ type Auth = "session" | "none";
 /** The two sign-in routes that run before there is an actor (invariant 19). */
 type OpenAction = "auth.send_link" | "auth.verify";
 
-/** A signed-in person or agent key; services pass it on, and `auditContext` reads it. */
-export interface AdminActor extends Actor {
-  /** The router's `context.requestId`, set by the wrapper. */
-  readonly requestId: string;
-}
+export type { AdminActor };
 
 interface OpenContext {
   db: Db;
