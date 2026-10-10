@@ -911,3 +911,107 @@ what: The five sql entries b7-15-db-* use an expect that only matches the test t
 evidence: Confirmed by reading: node -e prints the b7-15-db-* entries; the expect for each is '× .*<test title>', with no reason text.
 
 blocking: false
+
+## g2 · steps 15a
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The fifth follow-up of the review names GOTCHAS.md and is banked in the bank itself (a hit-again line under P-066).
+
+### 1. app/src/admin/audit/SubjectRequestsTab.tsx
+
+what: Suspected by reading, not run. The 'Identity confirmed' dialog hints 'Optional. How identity was confirmed.' The note is passed as p_note and stored word for word in audit_log.note. write_audit does not redact notes, audit_log is immutable and delete_subject cannot scrub it. An admin who writes 'confirmed by reply from jane@x.com' leaves a plaintext address in the audit trail that a later deletion cannot remove (invariant 18, C16). The plan itself asks for the note, so this is a follow-up: change the hint so it asks for no address, or redact notes for the subject_request entity.
+
+evidence: set_subject_request_status.sql passes v_note to write_audit. write_audit.sql lines 78-79 insert p_note as is. The delete case in tests/db/admin.db.test.ts passes only because its seeded note 'Replied from the address.' holds no address.
+
+blocking: false
+
+### 2. app/src/domain/admin-audit.ts
+
+what: R22 asks that a state column's allowed transitions be declared once in a domain file and compared with the SQL guard. The subject_requests transitions (received to verifying to fulfilled or rejected, plus the verified_at gate) exist only in set_subject_request_status.sql and in the button logic of SubjectRequestsTab.tsx. No domain table and no parity test exist, so the UI and SQL can drift apart without any test failing. No product input breaks today, and the step did not ask for a table.
+
+evidence: grep -rn subject src/domain/workflow.ts finds nothing. The only list is subjectRequestStatuses in admin-audit.ts, which holds statuses but no transitions.
+
+blocking: false
+
+### 3. app/tests/mutations/B7.json
+
+what: b7-15a-db-correction-note goes red on 'error: wrong_state' from the case's second call, not on the note_required assertion. Its expect is a title-only regex, so any red counts as a pass. It still catches the mutation today, but the red comes from a later call rather than the check it targets.
+
+evidence: From the author's log, and consistent with the entry's expect '× .*fulfil_correction without a note raises note_required'.
+
+blocking: false
+
+### 4. app/src/server/settings/service.ts
+
+what: putRedirect reads every active redirect for redirectSchema with no limit. Past PostgREST's max-rows cap (1000 on Supabase by default) the TypeScript loop and duplicate checks see only part of the table. put_redirect's SQL check still refuses the row, so this costs only the early refusal before any RPC. RedirectsSection's inline check likewise sees only the current page of 50 rows.
+
+evidence: service.ts putRedirect: db.from("redirects").select(REDIRECT_COLUMNS).is("archived_at", null) with no .limit.
+
+blocking: false
+
+## g3 · steps 16
+
+None blocks. Each entry is the reviewer's text, with its file and evidence. The ninth follow-up of this review names GOTCHAS.md and is banked in the bank itself (hit-again line on P-326).
+
+### 1. .github/workflows/render.yml
+
+what: Every render_variants job on mop-dev fails. The workflow passes only SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, and the one-database guard needs the DEV_ names. So no submitted photograph is ever rendered, and the E2E_RENDER legs of this spec (render wait, staging_path null and media_key set, GET /media/<hero> 200, publish) stay UNPROVEN. The file belongs to B9, not to this group, and the problem is already banked as P-2052.
+
+evidence: render.yml:34-35 vs app/scripts/lib/one-database.mjs:15-19 (confirmed by reading). The author's two 600 s runs ended 'failed: media-store: SUPABASE_SERVICE_ROLE_KEY is read only from the dev profile'.
+
+blocking: false
+
+### 2. app/tests/e2e/admin-full-path.spec.ts
+
+what: The step line says 'the mail leg waits for B5 step 5 as in step 10', but the spec has no mail leg at all, not even a gated one, and the invoice's 'Issue and email' send_email job and email_messages row are not asserted. The author points to admin-editorial (decline letter) and admin-invoice (E2E_RESEND=1) for that coverage. The orchestrator should decide whether that satisfies the step or whether a gated leg is owed.
+
+evidence: grep send_email/email_messages in admin-full-path.spec.ts finds no assertion; there is only the cleanup delete in fixtures/admin-data.ts.
+
+blocking: false
+
+### 3. app/tests/e2e/fixtures/admin-data.ts
+
+what: seedFullPathRun holds the G34 dev lock (pg_advisory_lock, no timeout) for the whole person body, which takes more than 2 minutes with E2E_FULL_STACK=1 and up to 25 minutes with E2E_RENDER=1. Specs that take the lock in beforeAll have a 120 s hook timeout, so a laptop run of the whole admin project with E2E_FULL_STACK=1 fails admin-invoice, admin-jobs and admin-newsletter in beforeAll. CI (E2E_STACK, short run) is unaffected.
+
+evidence: Confirmed by running: the E2E_FULL_STACK run that quiet.mjs widened to the full admin project ended '3 failed ... beforeAll hook timeout of 120000ms exceeded' at holdDevLock, 23 passed, 15 did not run.
+
+blocking: false
+
+### 4. app/tests/e2e/fixtures/admin-data.ts
+
+what: The invoice-settings swap (settingValue, putSetting, counterLast, configure, restore) and the run's request removal are a second copy of the same logic in tests/e2e/admin-invoice.spec.ts (lines 256-292). sql/one/sessionCall in the spec are likewise copies of admin-editorial.spec.ts and admin-invoice.spec.ts. This is STANDARDS C05 drift: the helpers belong in tests/e2e/fixtures or helpers. jscpd did not flag it.
+
+evidence: Compare admin-invoice.spec.ts:256-292 with admin-data.ts configureInvoicing and seedFullPathRun; grep 'async function sql' tests/e2e finds three copies.
+
+blocking: false
+
+### 5. app/tests/e2e/fixtures/admin-data.ts
+
+what: Suspected by reading. If the process is hard-killed between configureInvoicing and cleanup, mop-dev keeps the example legal identity 'Example Media LLC' and the example payment instructions. The next run saves those as its baseline and restores them, so they stay. mop-dev becomes production at the launch switch, and a 'legal identity is set' check would pass on the example value. B6's admin-invoice spec has the same pattern. A launch-checklist check that refuses the example values would close it.
+
+evidence: configureInvoicing saves whatever settings it finds as the baseline (saved.site = current value); restore happens only in committed's finally.
+
+blocking: false
+
+### 6. app/tests/e2e/admin-full-path.spec.ts
+
+what: The 'names who acted' check (line 151, not.toHaveText('')) passes on the generic labels 'Team member', 'Agent' and 'System' that actorOf in src/admin/requests/request-history.ts returns. The history names the kind of actor, not the person or agent. The Contract's 'every timeline entry names the actor' is met only loosely. That is an earlier group's product decision, but the test title overclaims.
+
+evidence: request-history.ts actorOf returns { name: 'Team member' } for every human actor.
+
+blocking: false
+
+### 7. app/tests/e2e/admin-full-path.spec.ts
+
+what: The agent's mark-paid refusal posts to payments/<property.id>/mark-paid, a property id where a payment id belongs. The 403 human_only only proves that humanOnly is checked before the lookup. No watched-fail entry covers removing humanOnly from mark-paid; only activate has one.
+
+evidence: spec line 488; tests/mutations/B7.json has b7-g3-e2e-activate-human-only but no mark-paid entry.
+
+blocking: false
+
+### 8. workspace/05-plans/B7.md
+
+what: Step 16's proof line writes '--project admin tests/e2e/admin-full-path.spec.ts', which Playwright cannot run. It needs '--project=admin'. This is a stale plan line for the orchestrator to fold (P-2004, hit for the third time).
+
+evidence: bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts --list fails at filterProjects; --project=admin lists 2 tests.
+
+blocking: false

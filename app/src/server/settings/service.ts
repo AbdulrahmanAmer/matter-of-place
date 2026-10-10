@@ -1,7 +1,13 @@
 import { dailyLimitsSchema } from "../../domain/admin-team.ts";
 import {
   notificationsPutInput,
+  redirectArchivedSchema,
+  redirectRowSchema,
+  redirectSchema,
   type NotificationsInput,
+  type RedirectArchived,
+  type RedirectPutInput,
+  type RedirectRow,
   type SettingsAnswer,
 } from "../../domain/admin-settings.ts";
 import { invoiceSettingsSchema } from "../../domain/payments.ts";
@@ -17,7 +23,7 @@ import type { AdminActor } from "../lib/admin-route.ts";
 import { auditContext } from "../lib/audit.ts";
 import { authorize, type ActorKind } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
-import { fromZod } from "../lib/errors.ts";
+import { AppError, fromZod } from "../lib/errors.ts";
 import {
   applyInvoiceSettings,
   invoiceReadiness,
@@ -179,4 +185,71 @@ export async function putNotifications(
   authorize(actor, "settings.notifications_put");
   await putSetting(actor, db, "notifications", input);
   return input;
+}
+
+// Redirects (step 15a, invariant 16). The rules run here before any write and again in `put_redirect`; both answer
+// `invalid_redirect`. B2's trigger on `redirects` raises `catalog_version` with each write (F25 a).
+
+const REDIRECT_COLUMNS = "id, from_path, to_path, status";
+
+/** `GET settings/redirects`: one page of active rows in `from_path` order, on B2's partial unique index. */
+export async function listRedirects(
+  actor: AdminActor,
+  db: Db,
+  input: { limit: number; cursor?: string | undefined },
+): Promise<{ items: RedirectRow[]; next_cursor: string | null }> {
+  authorize(actor, "settings.redirects_get");
+  let query = db.from("redirects").select(REDIRECT_COLUMNS).is("archived_at", null);
+  if (input.cursor !== undefined) query = query.gt("from_path", input.cursor);
+  const { data, error } = await query.order("from_path").limit(input.limit + 1);
+  if (error !== null) throw fromRpcError(error);
+  const items = data.slice(0, input.limit);
+  return {
+    items,
+    next_cursor: data.length > input.limit ? (items.at(-1)?.from_path ?? null) : null,
+  };
+}
+
+/** `PUT settings/redirects`: adds a row, or changes the active row `id`, once it passes `redirectSchema`. */
+export async function putRedirect(
+  actor: AdminActor,
+  db: Db,
+  input: RedirectPutInput,
+): Promise<RedirectRow> {
+  authorize(actor, "settings.redirects_put");
+  const active = await db.from("redirects").select(REDIRECT_COLUMNS).is("archived_at", null);
+  if (active.error !== null) throw fromRpcError(active.error);
+  const checked = redirectSchema(active.data).safeParse(input);
+  if (!checked.success) {
+    throw new AppError(
+      "invalid_redirect",
+      undefined,
+      checked.error.issues[0]?.message ?? "This redirect is not valid.",
+    );
+  }
+  const { id, from_path, to_path, status } = checked.data;
+  const { data, error } = await db.rpc("put_redirect", {
+    p_from_path: from_path,
+    p_to_path: to_path,
+    p_status: status,
+    ...auditContext(actor),
+    ...(id === undefined ? {} : { p_id: id }),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return redirectRowSchema.parse(data);
+}
+
+/** `DELETE settings/redirects`: archives the row and keeps it (GD-04). */
+export async function archiveRedirect(
+  actor: AdminActor,
+  db: Db,
+  input: { id: string },
+): Promise<RedirectArchived> {
+  authorize(actor, "settings.redirects_put");
+  const { data, error } = await db.rpc("archive_redirect", {
+    p_id: input.id,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return redirectArchivedSchema.parse(data);
 }

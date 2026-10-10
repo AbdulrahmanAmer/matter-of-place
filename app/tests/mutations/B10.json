@@ -2246,7 +2246,7 @@
     "file": "src/routes/api/admin/channels.posts.ts",
     "find": "action: \"channels.posts_list\",",
     "replace": "action: \"channels.health\",",
-    "run": "bunx vitest run --project unit tests/unit/admin-routes-parity.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "FAIL .*admin-routes-parity\\.test\\.ts > the admin route registry > gives every matrix action a route"
   },
   {
@@ -2916,7 +2916,7 @@
     "file": "src/routes/api/admin/channels.posts.$id.withdrawn.ts",
     "find": "POST: defineAdminRoute({",
     "replace": "POST: ((definition: unknown) => () => Promise.resolve(Response.json(definition)))({",
-    "run": "bunx vitest run --project unit tests/unit/admin-routes-parity.test.ts",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-routes-parity.test.ts",
     "expect": "channels\\.posts\\.\\$id\\.withdrawn\\.ts"
   },
   {

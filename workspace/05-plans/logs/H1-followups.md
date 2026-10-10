@@ -119,3 +119,23 @@ The three follow-ups whose file is GOTCHAS.md are banked as P-2813 (the empty `-
 5. `workspace/05-plans/H1.md` (step 4 proofs) (not blocking)
    - What: NOT DONE, owned outside this group and declared by the author. First, the claude-security scan report and H1-09 wait on the orchestrator (P-2830). Second, 'gh run list --workflow audit-deps.yml --branch slice/h1' prints failure only because of the runbooks half (g6, g7, g9; P-2832). Third, H1-08 and H1-10, and 'gh workflow run audit-deps.yml && gh run watch', are UNPROVEN until main has a run. One sequencing note for the orchestrator: merging slice/h1 before the four runbooks exist turns job check red on main and on every lane's PR (P-2832).
    - Evidence: Confirmed by running: the gh run list, gh run view and run-all outputs above. I did not verify the claim that the skill can only be started through the Workflow tool.
+
+## g5 · steps 5
+
+1. `app/scripts/harden/checklist.json` (not blocking)
+   - What: Row H1-26 no longer touches <prod-config>. The plan's checklist says `bun run test:e2e:coming-soon` on `<prod-config>`. The new row rebuilds whatever tree run-all runs in (overwriting .output) and tests that local Worker. So a run-all --env prod-config pass on H1-26 proves the checked-out tree, not the deployed Worker. The g1 row already did not target prod-config, so this is not a regression. E2E_TARGET=url E2E_BASE_URL=<prod-config> E2E_MODE=live is an alternative the author did not discuss in P-2860.
+   - Evidence: checklist.json H1-26 command: `<load-dev> && MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=... bun run build && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon`; workspace/05-plans/H1.md row H1-26 says 'on <prod-config>'.
+
+2. `workspace/05-plans/H1.md` (not blocking)
+   - What: The plan's rows H1-23, H1-25 and H1-26 still carry the commands the author found unrunnable (bare playwright command, unfiltered `grep -i illustrative`, dev-target coming-soon). checklist.json now differs from the plan text. The orchestrator should fold P-2860 and P-2861 into the plan.
+   - Evidence: git diff origin/main...slice/h1-g5 -- workspace/05-plans/H1.md shows no change to these rows; checklist.json rows H1-23/25/26 changed in f20a7b81.
+
+3. `app/src/components/layout/route-pending.tsx` (not blocking)
+   - What: As defaultPendingComponent it serves every route, including /admin, whose AdminShell already renders <main id="admin-main">. A slow admin route chunk or beforeLoad would show this public-site skeleton nested inside the admin <main>. Also, `role="status"` on <main> removes the main landmark while loading; axe aria-allowed-role reports this, minor severity. The plan asked for exactly this wiring, so this is a note for B7 or a later step: an admin pendingComponent, or a <div role="status"> inside a <main>. Suspected by reading, not observed in a browser.
+   - Evidence: src/routes/admin.tsx has beforeLoad dynamic imports and lazyRouteComponent; src/admin/ui/AdminShell.tsx:25 `<main id="admin-main"`; grep for pendingComponent under src/routes/admin* finds none.
+
+4. `app/scripts/harden/checklist.json` (not blocking)
+   - What: Rows H1-29 and H1-24 report `fail` from run-all for things the brief says wait. H1-29 fails with 'Module not found scripts/check-seo.ts' because B13 has not merged, where blocked would fit. H1-24's vitest half failed under load (60.37 s) when run beside other work. A wait that shows as `fail` makes the prod-config report red for known reasons. Record this as a follow-up for the run-all/checklist owner: a blockedOn for B13, or a note.
+   - Evidence: run-all --only H1-23,H1-24,H1-25,H1-29: `H1-24 | fail | exit 1: Duration 60.37s`, `H1-29 | fail | exit 1: error: Module not found "scripts/check-seo.ts"`.
+
+The two follow-ups whose file is GOTCHAS.md are banked as hit-again lines: the `step-specs.test.ts` timeout under load on G-031, and the cold built Worker in the coming-soon project on P-2860.

@@ -277,5 +277,35 @@
     "replace": "by H1-99.",
     "run": "node scripts/harden/runbook-lint.mjs docs/security.md",
     "expect": "docs/security\\.md:\\d+: H1-99 is not a row of checklist\\.json"
+  },
+  {
+    "id": "h1g5-g-unknown-route-200",
+    "kind": "manual",
+    "test": "tests/e2e/states.spec.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  response = apiShellGuard(underApi, response, requestId);\n",
+    "replace": "  response = apiShellGuard(underApi, response.status === 404 ? new Response(response.body, { status: 200, headers: response.headers }) : response, requestId);\n",
+    "run": "vite dev on a free port with the dev profile loaded and VITE_API_BASE_URL=/api/public, then E2E_TARGET=url E2E_BASE_URL=<that server> E2E_MODE=live bunx playwright test --project=harden tests/e2e/states.spec.ts --grep unknown",
+    "expect": "Expected: 404\\s+Received: 200"
+  },
+  {
+    "id": "h1g5-jj-pending-ms-5000",
+    "kind": "manual",
+    "test": "tests/e2e/states.spec.ts",
+    "file": "src/router.tsx",
+    "find": "defaultPendingMs: 300,",
+    "replace": "defaultPendingMs: 5000,",
+    "run": "serve and run as h1g5-g-unknown-route-200 with --grep \"two seconds\"",
+    "expect": "Locator: locator\\('\\[data-pending\\]'\\)\\s+Expected: visible"
+  },
+  {
+    "id": "h1g5-jj-request-id-header-dropped",
+    "kind": "manual",
+    "test": "tests/e2e/states.spec.ts",
+    "file": "src/services/http/client.ts",
+    "find": "  if (header !== null) return header;\n",
+    "replace": "",
+    "run": "serve and run as h1g5-g-unknown-route-200 with --grep \"response header\"",
+    "expect": "Locator:\\s+getByText\\('h1-states-body'\\)\\s+Expected: 0\\s+Received: 1"
   }
 ]
