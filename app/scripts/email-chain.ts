@@ -6,6 +6,7 @@
 // append-only (B2 invariant 3).
 import { setTimeout as sleep } from "node:timers/promises";
 import pg from "pg";
+import { pgClientConfig } from "./lib/pg-connect.mjs";
 import { currentRightsVersion } from "../src/domain/contracts.ts";
 import { holdDevLock } from "../tests/fixtures/dev-lock.ts";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
@@ -152,7 +153,7 @@ async function main(): Promise<void> {
   guardEnv();
   const dbUrl = process.env["DEV_DB_URL"];
   await assertNotProduction({ dbUrl });
-  const client = new pg.Client({ connectionString: dbUrl });
+  const client = new pg.Client(pgClientConfig(dbUrl));
   let submissionId: string | undefined;
   const release = await holdDevLock();
   try {

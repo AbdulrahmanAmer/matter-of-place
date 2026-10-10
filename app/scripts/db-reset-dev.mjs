@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { pgClientConfig } from "./lib/pg-connect.mjs";
 import { mainMigrationFiles } from "./db-push.mjs";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
 import { findBranchMigrations, migrationFiles } from "./lib/push-guard.mjs";
@@ -75,7 +76,7 @@ function run(args, env) {
  * @param {string[]} files
  */
 async function resetLocal(dbUrl, files) {
-  const client = new pg.Client({ connectionString: dbUrl });
+  const client = new pg.Client(pgClientConfig(dbUrl));
   await client.connect();
   try {
     await emptyDatabase(client, files);
@@ -114,7 +115,7 @@ async function resetLinked(dbUrl, files, acceptForeign) {
     if (branch.length > 0) throw new Error(`refusing: branch migrations ${branch.join(" ")}`);
   }
 
-  const client = new pg.Client({ connectionString: dbUrl });
+  const client = new pg.Client(pgClientConfig(dbUrl));
   await client.connect();
   try {
     // G34: one writer at a time on mop-dev, held for the whole run; the db:push child is told it is held.

@@ -31,6 +31,10 @@ jobs:
     env: &job-env
       MOP_JOB: ${{ inputs.job }}
       MOP_ENV: ${{ fromJSON(inputs.job).env }}
+      # P-3122: the one-database guard (scripts/lib/one-database.mjs, G-901) reads the DEV_ pair first and refuses the
+      # generic names off a laptop without E2E_STACK=1. Same secret names as deploy.yml and backup.yml for the ref.
+      DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}
+      DEV_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
       SUPABASE_URL: https://${{ secrets.DEV_SUPABASE_PROJECT_REF }}.supabase.co
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
     steps:

@@ -16,6 +16,7 @@ import { dirname } from "node:path";
 import { parseArgs } from "node:util";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
+import { pgClientConfig } from "./lib/pg-connect.mjs";
 import type { Db } from "../src/server/lib/db.ts";
 import {
   invoiceSnapshotSchema,
@@ -51,7 +52,7 @@ function requiredEnv(name: string): string {
 
 /** Commits one accepted request of an agent or owner and answers its id. The id differs on every run. */
 async function createFixtureSubmission(email: string): Promise<string> {
-  const client = new pg.Client({ connectionString: requiredEnv("DEV_DB_URL") });
+  const client = new pg.Client(pgClientConfig(requiredEnv("DEV_DB_URL")));
   await client.connect();
   try {
     await client.query("begin");

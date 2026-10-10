@@ -3,6 +3,7 @@
 // one transaction that sets `mop.retention` (B2's `refuse_hard_delete()` and B8's append-only triggers refuse a delete
 // without it), table by table, children first. A failed cleanup throws `cleanup failed <table> <ids>`.
 import pg from "pg";
+import { pgClientConfig } from "../lib/pg-connect.mjs";
 import { devProject } from "../lib/storage-env.ts";
 import { readSecret } from "../lib/social-script.ts";
 
@@ -79,7 +80,7 @@ async function takeLock(client: pg.Client, waitMs: number): Promise<void> {
  * ends after that long with `LockBusy`; without it the call waits up to 30 minutes.
  */
 export async function openProbeDb(dbUrl: string, waitMs: number = LOCK_WAIT_MS): Promise<ProbeDb> {
-  const client = new pg.Client({ connectionString: dbUrl });
+  const client = new pg.Client(pgClientConfig(dbUrl));
   await client.connect();
   try {
     await takeLock(client, waitMs);
