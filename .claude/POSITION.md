@@ -1640,3 +1640,16 @@ first day of the new usage week; no step was cut from any plan.
   lists "<Field> on step <n>: <message>". Typing in a field clears its mark. Registry `fix-submit-review-errors.json`
   (fsre-a to fsre-w unit, fsre-x to fsre-z manual e2e). Not changed: Continue still checks only that fields are filled
   (panel's smallest-fix suggestion of format checks per step is left open). P-3225, P-3226, P-042 hit again.
+
+## 2026-10-11 15:30 LIVE
+- matterofplace.com answers since 14:18 +0300 in the coming-soon state: Omnikom LLC and the Sheridan address in the
+  footer, 0 properties, 3 markets coming soon, www 301 to the apex, both uptime monitors up, first production backup done
+  (783767 bytes). The database is marked production (guard prints "refusing: production database"); previews hold no
+  database key since 15:07 (step 1b). Log: workspace/05-plans/logs/LAUNCH-LOG.md (attempts 1 and 2).
+- Merging after launch (gate loop): 312 (header, footer, coming-soon hero), 311 (cookie bar, H85), 288 (auth config, already
+  applied by `supabase config push`), 304 (B18 prices in the admin), 299 (mail and Sentry readers).
+- Left (Not Done list): ops-health uptime monitor (token in .env.ops; free plan refuses API creation); verify-production's
+  pattern on slice/l1; rehearsal.ts upload confirmation; edge 404 cache and one CSP hash per page (report-only);
+  cf-edge.mjs never built (WAF, Bot Fight, rate limit, MTA-STS, DMARC not applied); 18 build accounts in auth.users;
+  the H1 report and the stub/secret reds in preflight; H2 steps 2 to 6 parked; the request-timeout investigation; the
+  unblock and consent lanes' leftovers; X, LinkedIn, Meta accounts after launch.
