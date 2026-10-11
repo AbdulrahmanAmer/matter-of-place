@@ -1,0 +1,28 @@
+H1 step 5 isolation dev: E2E_TARGET=url E2E_MODE=live E2E_BASE_URL=https://matter-of-place-dev.holy-meadow-4327.workers.dev bunx playwright test --project=harden tests/e2e/states.spec.ts (2026-10-11T04:55:38+03:00)
+
+Running 5 tests using 4 workers
+
+(node:15004) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:1156) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:16452) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:15300) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/5] [harden] › tests\e2e\states.spec.ts:32:1 › states: an unknown route answers HTTP 404 and shows the not-found page
+[2/5] [harden] › tests\e2e\states.spec.ts:44:1 › states: a failed read shows the request id of the response header, not the body's
+[3/5] [harden] › tests\e2e\states.spec.ts:38:1 › states: an unknown property slug answers HTTP 404 through notFound()
+[4/5] [harden] › tests\e2e\states.spec.ts:55:1 › states: a failed read without the header shows the request id of the body
+[5/5] [harden] › tests\e2e\states.spec.ts:65:1 › states: a read that takes two seconds shows the loading skeleton, then the page
+  5 passed (10.7s)
+exit 0
+PASS 2 DONE 2026-10-11T04:55:50+03:00

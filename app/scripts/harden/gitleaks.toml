@@ -24,8 +24,9 @@ description = "Registry entry ids quoted in the build logs, such as b11-g2-stand
 condition = "AND"
 regexTarget = "secret"
 # A slice code, then lowercase words, one of them with a letter after f, which keeps a hexadecimal uuid out (RE2: no
-# lookahead). Only in workspace/05-plans/logs, so a key of the same shape anywhere else is still reported.
-paths = ['''^workspace/05-plans/logs/[^/]+\.md$''']
+# lookahead). Only in workspace/05-plans/logs and the plan files beside it (B18.md quotes its registry ids, 2026-10-11), so a
+# key of the same shape anywhere else is still reported.
+paths = ['''^workspace/05-plans/logs/[^/]+\.md$''', '''^workspace/05-plans/[^/]+\.md$''']
 regexes = ['''^[a-z]{1,2}[0-9]+[a-z0-9]*(-[a-z0-9]+)*-[a-z0-9]*[g-z][a-z0-9]*(-[a-z0-9]+)*$''']
 
 [[allowlists]]
