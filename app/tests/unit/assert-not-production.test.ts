@@ -47,6 +47,7 @@ const guardedScripts = [
   "scripts/harden/retention-drill.ts",
   "scripts/harden/rotation-drill.ts",
   "scripts/harden/incident-drill.ts",
+  "scripts/rehearsal.ts",
 ];
 
 const missingTable = Object.assign(new Error('relation "public.settings" does not exist'), {

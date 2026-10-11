@@ -1,0 +1,12 @@
+[
+  {
+    "id": "l1-q-rehearsal-guard",
+    "kind": "file",
+    "test": "tests/unit/assert-not-production.test.ts",
+    "file": "scripts/rehearsal.ts",
+    "find": "  await assertNotProduction({ dbUrl });",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assert-not-production.test.ts",
+    "expect": "\\+   \"scripts/rehearsal\\.ts\""
+  }
+]

@@ -1,0 +1,49 @@
+{
+  "source": "L1 step 2 rehearsal. Photographs and dossier text are read in place from B9's property fixture and B2's GPS photograph; nothing is copied here.",
+  "propertyFixture": "src/templates/social/fixtures/property.fixture.json",
+  "extraPhotographs": ["tests/fixtures/photo-gps.jpg"],
+  "submission": {
+    "address": "27 Oak Hill Lane",
+    "city": "Los Altos Hills",
+    "state": "California",
+    "zip": "94022",
+    "price": 8950000,
+    "currency": "USD",
+    "propertyType": "Estate",
+    "beds": 5,
+    "baths": 4.5,
+    "interiorSqFt": 4320,
+    "yearBuilt": 2021,
+    "submitterKind": "agent",
+    "submitterName": "Rehearsal Agent",
+    "submitterEmail": "admin+rehearsal-agent@matterofplace.com",
+    "brokerage": "Rehearsal Brokerage",
+    "story": "Long, low stone volumes open onto terraces that follow the contours of the site.",
+    "significance": "A recent house that sits low among old oaks and gives every room a terrace.",
+    "package": "The Feature",
+    "rightsConfirmed": true,
+    "sourcePath": "/submit"
+  },
+  "duplicate": {
+    "address": "27 Oak Hill Lane, second copy",
+    "significance": "The same house sent a second time, declined as outside our markets in the rehearsal."
+  },
+  "invoice": { "product": "The Feature", "preferredMethod": "bank_transfer" },
+  "property": { "region_slug": "bay-area", "status": "Active", "presented_by_owner": false },
+  "photoOrder": [1, 0, 2, 3, 4, 5],
+  "ranks": { "hero_rank": 1, "featured_rank": 1 },
+  "newsletter": {
+    "approver": "admin@matterofplace.com",
+    "audience": [
+      "admin+rehearsal-1@matterofplace.com",
+      "admin+rehearsal-2@matterofplace.com",
+      "admin+rehearsal-3@matterofplace.com"
+    ]
+  },
+  "inquiry": {
+    "intent": "showing",
+    "name": "Rehearsal Inquirer",
+    "email": "admin+rehearsal-inquiry@matterofplace.com",
+    "message": "May I see the house on a weekday morning?"
+  }
+}

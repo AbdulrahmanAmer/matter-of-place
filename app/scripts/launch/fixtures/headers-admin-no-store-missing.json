@@ -1,0 +1,22 @@
+{
+  "source": "hand-made: /admin answers without no-store (watched-fail i)",
+  "recorded_at": "2026-10-11T12:00:00Z",
+  "answers": {
+    "never GET /admin": [
+      {
+        "status": 200,
+        "headers": {
+          "cache-control": "private, max-age=0"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "cache-control": "private, max-age=0"
+        },
+        "body": ""
+      }
+    ]
+  }
+}
