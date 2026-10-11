@@ -1,0 +1,79 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { HireInput } from "../../domain/workforce";
+import { adminKeys } from "../query";
+import {
+  fetchApprovals,
+  fetchMessages,
+  fetchOffice,
+  postAgentState,
+  postDecision,
+  postHire,
+  postMessage,
+} from "./workforce-api";
+
+// W1: the office is live: the team's state every 5 seconds, the open conversation every 4.
+
+export function useOffice() {
+  return useQuery({
+    queryKey: adminKeys.workforce.list("office"),
+    queryFn: fetchOffice,
+    refetchInterval: 5_000,
+  });
+}
+
+export function useMessages(thread: string) {
+  return useQuery({
+    queryKey: adminKeys.workforce.timeline(thread),
+    queryFn: () => fetchMessages(thread),
+    refetchInterval: 4_000,
+  });
+}
+
+export function usePostMessage(thread: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) => postMessage(thread, body),
+    onSuccess: () => client.invalidateQueries({ queryKey: adminKeys.workforce.all() }),
+  });
+}
+
+export function useHire() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: HireInput) => postHire(input),
+    onSuccess: () => client.invalidateQueries({ queryKey: adminKeys.workforce.all() }),
+  });
+}
+
+export function useAgentState() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ slug, state }: { slug: string; state: "idle" | "paused" | "off" }) =>
+      postAgentState(slug, state),
+    onSuccess: () => client.invalidateQueries({ queryKey: adminKeys.workforce.all() }),
+  });
+}
+
+export function useApprovals() {
+  return useQuery({
+    queryKey: adminKeys.workforce.list("approvals"),
+    queryFn: fetchApprovals,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useDecide() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      decision,
+      contentHash,
+    }: {
+      id: string;
+      decision: "approved" | "rejected";
+      contentHash: string;
+    }) => postDecision(id, decision, contentHash),
+    onSuccess: () => client.invalidateQueries({ queryKey: adminKeys.workforce.all() }),
+  });
+}

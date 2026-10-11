@@ -41,6 +41,8 @@ import { Route as SiteStoriesRouteImport } from './routes/_site.stories'
 import { Route as SiteSubmitRouteImport } from './routes/_site.submit'
 import { Route as SiteTermsRouteImport } from './routes/_site.terms'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
+import { Route as AdminOfficeRouteImport } from './routes/admin/office'
 import { Route as AdminSignInRouteImport } from './routes/admin/sign-in'
 import { Route as ApiConsentRouteImport } from './routes/api/consent'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
@@ -163,6 +165,10 @@ import { Route as ApiAdminSubmissionsStartReviewRouteImport } from './routes/api
 import { Route as ApiAdminTeamAgentsRouteImport } from './routes/api/admin/team.agents'
 import { Route as ApiAdminTeamLimitsRouteImport } from './routes/api/admin/team.limits'
 import { Route as ApiAdminTeamUsersRouteImport } from './routes/api/admin/team.users'
+import { Route as ApiAdminWorkforceAgentsRouteImport } from './routes/api/admin/workforce.agents'
+import { Route as ApiAdminWorkforceApprovalsRouteImport } from './routes/api/admin/workforce.approvals'
+import { Route as ApiAdminWorkforceMessagesRouteImport } from './routes/api/admin/workforce.messages'
+import { Route as ApiAdminWorkforceOfficeRouteImport } from './routes/api/admin/workforce.office'
 import { Route as ApiHooksOpsHealthTokenRouteImport } from './routes/api/hooks/ops-health.$token'
 import { Route as ApiHooksRenderCallbackRouteImport } from './routes/api/hooks/render.callback'
 import { Route as ApiPublicMarketsSlugRouteImport } from './routes/api/public/markets.$slug'
@@ -222,6 +228,8 @@ import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/
 import { Route as ApiAdminSubmissionsIdWaiveRouteImport } from './routes/api/admin/submissions.$id.waive'
 import { Route as ApiAdminSubmissionsIdWithdrawRouteImport } from './routes/api/admin/submissions.$id.withdraw'
 import { Route as ApiAdminTeamAgentsRevokeAllRouteImport } from './routes/api/admin/team.agents.revoke-all'
+import { Route as ApiAdminWorkforceAgentsSlugRouteImport } from './routes/api/admin/workforce.agents.$slug'
+import { Route as ApiAdminWorkforceApprovalsIdRouteImport } from './routes/api/admin/workforce.approvals.$id'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
 import { Route as ApiAdminAuditSubjectRequestsIdDeleteRouteImport } from './routes/api/admin/audit.subject-requests.$id.delete'
 import { Route as ApiAdminAuditSubjectRequestsIdExportRouteImport } from './routes/api/admin/audit.subject-requests.$id.export'
@@ -404,6 +412,16 @@ const SiteTermsRoute = SiteTermsRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApprovalsRoute = AdminApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOfficeRoute = AdminOfficeRouteImport.update({
+  id: '/office',
+  path: '/office',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSignInRoute = AdminSignInRouteImport.update({
@@ -1065,6 +1083,28 @@ const ApiAdminTeamUsersRoute = ApiAdminTeamUsersRouteImport.update({
   path: '/api/admin/team/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminWorkforceAgentsRoute = ApiAdminWorkforceAgentsRouteImport.update({
+  id: '/api/admin/workforce/agents',
+  path: '/api/admin/workforce/agents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminWorkforceApprovalsRoute =
+  ApiAdminWorkforceApprovalsRouteImport.update({
+    id: '/api/admin/workforce/approvals',
+    path: '/api/admin/workforce/approvals',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminWorkforceMessagesRoute =
+  ApiAdminWorkforceMessagesRouteImport.update({
+    id: '/api/admin/workforce/messages',
+    path: '/api/admin/workforce/messages',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminWorkforceOfficeRoute = ApiAdminWorkforceOfficeRouteImport.update({
+  id: '/api/admin/workforce/office',
+  path: '/api/admin/workforce/office',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHooksOpsHealthTokenRoute = ApiHooksOpsHealthTokenRouteImport.update({
   id: '/api/hooks/ops-health/$token',
   path: '/api/hooks/ops-health/$token',
@@ -1401,6 +1441,18 @@ const ApiAdminTeamAgentsRevokeAllRoute =
     path: '/revoke-all',
     getParentRoute: () => ApiAdminTeamAgentsRoute,
   } as any)
+const ApiAdminWorkforceAgentsSlugRoute =
+  ApiAdminWorkforceAgentsSlugRouteImport.update({
+    id: '/$slug',
+    path: '/$slug',
+    getParentRoute: () => ApiAdminWorkforceAgentsRoute,
+  } as any)
+const ApiAdminWorkforceApprovalsIdRoute =
+  ApiAdminWorkforceApprovalsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => ApiAdminWorkforceApprovalsRoute,
+  } as any)
 const ApiPublicSubmissionsIdUploadsRoute =
   ApiPublicSubmissionsIdUploadsRouteImport.update({
     id: '/$id/uploads',
@@ -1559,6 +1611,8 @@ export interface FileRoutesByFullPath {
   '/stories': typeof SiteStoriesRouteWithChildren
   '/submit': typeof SiteSubmitRoute
   '/terms': typeof SiteTermsRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
+  '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
@@ -1670,6 +1724,10 @@ export interface FileRoutesByFullPath {
   '/api/admin/team/agents': typeof ApiAdminTeamAgentsRouteWithChildren
   '/api/admin/team/limits': typeof ApiAdminTeamLimitsRoute
   '/api/admin/team/users': typeof ApiAdminTeamUsersRouteWithChildren
+  '/api/admin/workforce/agents': typeof ApiAdminWorkforceAgentsRouteWithChildren
+  '/api/admin/workforce/approvals': typeof ApiAdminWorkforceApprovalsRouteWithChildren
+  '/api/admin/workforce/messages': typeof ApiAdminWorkforceMessagesRoute
+  '/api/admin/workforce/office': typeof ApiAdminWorkforceOfficeRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
@@ -1741,6 +1799,8 @@ export interface FileRoutesByFullPath {
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/admin/submissions/$id/withdraw': typeof ApiAdminSubmissionsIdWithdrawRoute
   '/api/admin/team/agents/revoke-all': typeof ApiAdminTeamAgentsRevokeAllRoute
+  '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
+  '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
@@ -1789,6 +1849,8 @@ export interface FileRoutesByTo {
   '/properties': typeof SitePropertiesRoute
   '/submit': typeof SiteSubmitRoute
   '/terms': typeof SiteTermsRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
+  '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
@@ -1901,6 +1963,10 @@ export interface FileRoutesByTo {
   '/api/admin/team/agents': typeof ApiAdminTeamAgentsRouteWithChildren
   '/api/admin/team/limits': typeof ApiAdminTeamLimitsRoute
   '/api/admin/team/users': typeof ApiAdminTeamUsersRouteWithChildren
+  '/api/admin/workforce/agents': typeof ApiAdminWorkforceAgentsRouteWithChildren
+  '/api/admin/workforce/approvals': typeof ApiAdminWorkforceApprovalsRouteWithChildren
+  '/api/admin/workforce/messages': typeof ApiAdminWorkforceMessagesRoute
+  '/api/admin/workforce/office': typeof ApiAdminWorkforceOfficeRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
@@ -1972,6 +2038,8 @@ export interface FileRoutesByTo {
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/admin/submissions/$id/withdraw': typeof ApiAdminSubmissionsIdWithdrawRoute
   '/api/admin/team/agents/revoke-all': typeof ApiAdminTeamAgentsRevokeAllRoute
+  '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
+  '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
@@ -2026,6 +2094,8 @@ export interface FileRoutesById {
   '/_site/stories': typeof SiteStoriesRouteWithChildren
   '/_site/submit': typeof SiteSubmitRoute
   '/_site/terms': typeof SiteTermsRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
+  '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
   '/media/$': typeof MediaSplatRoute
@@ -2138,6 +2208,10 @@ export interface FileRoutesById {
   '/api/admin/team/agents': typeof ApiAdminTeamAgentsRouteWithChildren
   '/api/admin/team/limits': typeof ApiAdminTeamLimitsRoute
   '/api/admin/team/users': typeof ApiAdminTeamUsersRouteWithChildren
+  '/api/admin/workforce/agents': typeof ApiAdminWorkforceAgentsRouteWithChildren
+  '/api/admin/workforce/approvals': typeof ApiAdminWorkforceApprovalsRouteWithChildren
+  '/api/admin/workforce/messages': typeof ApiAdminWorkforceMessagesRoute
+  '/api/admin/workforce/office': typeof ApiAdminWorkforceOfficeRoute
   '/api/hooks/ops-health/$token': typeof ApiHooksOpsHealthTokenRoute
   '/api/hooks/render/callback': typeof ApiHooksRenderCallbackRoute
   '/api/public/markets/$slug': typeof ApiPublicMarketsSlugRoute
@@ -2209,6 +2283,8 @@ export interface FileRoutesById {
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/admin/submissions/$id/withdraw': typeof ApiAdminSubmissionsIdWithdrawRoute
   '/api/admin/team/agents/revoke-all': typeof ApiAdminTeamAgentsRevokeAllRoute
+  '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
+  '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
@@ -2264,6 +2340,8 @@ export interface FileRouteTypes {
     | '/stories'
     | '/submit'
     | '/terms'
+    | '/admin/approvals'
+    | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
@@ -2375,6 +2453,10 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents'
     | '/api/admin/team/limits'
     | '/api/admin/team/users'
+    | '/api/admin/workforce/agents'
+    | '/api/admin/workforce/approvals'
+    | '/api/admin/workforce/messages'
+    | '/api/admin/workforce/office'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
     | '/api/public/markets/$slug'
@@ -2446,6 +2528,8 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/waive'
     | '/api/admin/submissions/$id/withdraw'
     | '/api/admin/team/agents/revoke-all'
+    | '/api/admin/workforce/agents/$slug'
+    | '/api/admin/workforce/approvals/$id'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
@@ -2494,6 +2578,8 @@ export interface FileRouteTypes {
     | '/properties'
     | '/submit'
     | '/terms'
+    | '/admin/approvals'
+    | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
@@ -2606,6 +2692,10 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents'
     | '/api/admin/team/limits'
     | '/api/admin/team/users'
+    | '/api/admin/workforce/agents'
+    | '/api/admin/workforce/approvals'
+    | '/api/admin/workforce/messages'
+    | '/api/admin/workforce/office'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
     | '/api/public/markets/$slug'
@@ -2677,6 +2767,8 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/waive'
     | '/api/admin/submissions/$id/withdraw'
     | '/api/admin/team/agents/revoke-all'
+    | '/api/admin/workforce/agents/$slug'
+    | '/api/admin/workforce/approvals/$id'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
@@ -2730,6 +2822,8 @@ export interface FileRouteTypes {
     | '/_site/stories'
     | '/_site/submit'
     | '/_site/terms'
+    | '/admin/approvals'
+    | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
     | '/media/$'
@@ -2842,6 +2936,10 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents'
     | '/api/admin/team/limits'
     | '/api/admin/team/users'
+    | '/api/admin/workforce/agents'
+    | '/api/admin/workforce/approvals'
+    | '/api/admin/workforce/messages'
+    | '/api/admin/workforce/office'
     | '/api/hooks/ops-health/$token'
     | '/api/hooks/render/callback'
     | '/api/public/markets/$slug'
@@ -2913,6 +3011,8 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/waive'
     | '/api/admin/submissions/$id/withdraw'
     | '/api/admin/team/agents/revoke-all'
+    | '/api/admin/workforce/agents/$slug'
+    | '/api/admin/workforce/approvals/$id'
     | '/api/public/submissions/$id/uploads'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
@@ -3018,6 +3118,10 @@ export interface RootRouteChildren {
   ApiAdminTeamAgentsRoute: typeof ApiAdminTeamAgentsRouteWithChildren
   ApiAdminTeamLimitsRoute: typeof ApiAdminTeamLimitsRoute
   ApiAdminTeamUsersRoute: typeof ApiAdminTeamUsersRouteWithChildren
+  ApiAdminWorkforceAgentsRoute: typeof ApiAdminWorkforceAgentsRouteWithChildren
+  ApiAdminWorkforceApprovalsRoute: typeof ApiAdminWorkforceApprovalsRouteWithChildren
+  ApiAdminWorkforceMessagesRoute: typeof ApiAdminWorkforceMessagesRoute
+  ApiAdminWorkforceOfficeRoute: typeof ApiAdminWorkforceOfficeRoute
   ApiHooksOpsHealthTokenRoute: typeof ApiHooksOpsHealthTokenRoute
   ApiHooksRenderCallbackRoute: typeof ApiHooksRenderCallbackRoute
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
@@ -3260,6 +3364,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/approvals': {
+      id: '/admin/approvals'
+      path: '/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AdminApprovalsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/office': {
+      id: '/admin/office'
+      path: '/office'
+      fullPath: '/admin/office'
+      preLoaderRoute: typeof AdminOfficeRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/sign-in': {
@@ -4116,6 +4234,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminTeamUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/workforce/agents': {
+      id: '/api/admin/workforce/agents'
+      path: '/api/admin/workforce/agents'
+      fullPath: '/api/admin/workforce/agents'
+      preLoaderRoute: typeof ApiAdminWorkforceAgentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/workforce/approvals': {
+      id: '/api/admin/workforce/approvals'
+      path: '/api/admin/workforce/approvals'
+      fullPath: '/api/admin/workforce/approvals'
+      preLoaderRoute: typeof ApiAdminWorkforceApprovalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/workforce/messages': {
+      id: '/api/admin/workforce/messages'
+      path: '/api/admin/workforce/messages'
+      fullPath: '/api/admin/workforce/messages'
+      preLoaderRoute: typeof ApiAdminWorkforceMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/workforce/office': {
+      id: '/api/admin/workforce/office'
+      path: '/api/admin/workforce/office'
+      fullPath: '/api/admin/workforce/office'
+      preLoaderRoute: typeof ApiAdminWorkforceOfficeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/hooks/ops-health/$token': {
       id: '/api/hooks/ops-health/$token'
       path: '/api/hooks/ops-health/$token'
@@ -4529,6 +4675,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminTeamAgentsRevokeAllRouteImport
       parentRoute: typeof ApiAdminTeamAgentsRoute
     }
+    '/api/admin/workforce/agents/$slug': {
+      id: '/api/admin/workforce/agents/$slug'
+      path: '/$slug'
+      fullPath: '/api/admin/workforce/agents/$slug'
+      preLoaderRoute: typeof ApiAdminWorkforceAgentsSlugRouteImport
+      parentRoute: typeof ApiAdminWorkforceAgentsRoute
+    }
+    '/api/admin/workforce/approvals/$id': {
+      id: '/api/admin/workforce/approvals/$id'
+      path: '/$id'
+      fullPath: '/api/admin/workforce/approvals/$id'
+      preLoaderRoute: typeof ApiAdminWorkforceApprovalsIdRouteImport
+      parentRoute: typeof ApiAdminWorkforceApprovalsRoute
+    }
     '/api/public/submissions/$id/uploads': {
       id: '/api/public/submissions/$id/uploads'
       path: '/$id/uploads'
@@ -4776,6 +4936,8 @@ const SiteRouteChildren: SiteRouteChildren = {
 const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
 
 interface AdminRouteChildren {
+  AdminApprovalsRoute: typeof AdminApprovalsRoute
+  AdminOfficeRoute: typeof AdminOfficeRoute
   AdminSignInRoute: typeof AdminSignInRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminAuthConfirmRoute: typeof AdminAuthConfirmRoute
@@ -4810,6 +4972,8 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminApprovalsRoute: AdminApprovalsRoute,
+  AdminOfficeRoute: AdminOfficeRoute,
   AdminSignInRoute: AdminSignInRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminAuthConfirmRoute: AdminAuthConfirmRoute,
@@ -5377,6 +5541,34 @@ const ApiAdminTeamUsersRouteChildren: ApiAdminTeamUsersRouteChildren = {
 const ApiAdminTeamUsersRouteWithChildren =
   ApiAdminTeamUsersRoute._addFileChildren(ApiAdminTeamUsersRouteChildren)
 
+interface ApiAdminWorkforceAgentsRouteChildren {
+  ApiAdminWorkforceAgentsSlugRoute: typeof ApiAdminWorkforceAgentsSlugRoute
+}
+
+const ApiAdminWorkforceAgentsRouteChildren: ApiAdminWorkforceAgentsRouteChildren =
+  {
+    ApiAdminWorkforceAgentsSlugRoute: ApiAdminWorkforceAgentsSlugRoute,
+  }
+
+const ApiAdminWorkforceAgentsRouteWithChildren =
+  ApiAdminWorkforceAgentsRoute._addFileChildren(
+    ApiAdminWorkforceAgentsRouteChildren,
+  )
+
+interface ApiAdminWorkforceApprovalsRouteChildren {
+  ApiAdminWorkforceApprovalsIdRoute: typeof ApiAdminWorkforceApprovalsIdRoute
+}
+
+const ApiAdminWorkforceApprovalsRouteChildren: ApiAdminWorkforceApprovalsRouteChildren =
+  {
+    ApiAdminWorkforceApprovalsIdRoute: ApiAdminWorkforceApprovalsIdRoute,
+  }
+
+const ApiAdminWorkforceApprovalsRouteWithChildren =
+  ApiAdminWorkforceApprovalsRoute._addFileChildren(
+    ApiAdminWorkforceApprovalsRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
@@ -5467,6 +5659,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminTeamAgentsRoute: ApiAdminTeamAgentsRouteWithChildren,
   ApiAdminTeamLimitsRoute: ApiAdminTeamLimitsRoute,
   ApiAdminTeamUsersRoute: ApiAdminTeamUsersRouteWithChildren,
+  ApiAdminWorkforceAgentsRoute: ApiAdminWorkforceAgentsRouteWithChildren,
+  ApiAdminWorkforceApprovalsRoute: ApiAdminWorkforceApprovalsRouteWithChildren,
+  ApiAdminWorkforceMessagesRoute: ApiAdminWorkforceMessagesRoute,
+  ApiAdminWorkforceOfficeRoute: ApiAdminWorkforceOfficeRoute,
   ApiHooksOpsHealthTokenRoute: ApiHooksOpsHealthTokenRoute,
   ApiHooksRenderCallbackRoute: ApiHooksRenderCallbackRoute,
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,

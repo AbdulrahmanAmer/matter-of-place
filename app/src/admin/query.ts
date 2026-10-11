@@ -37,6 +37,7 @@ export const adminKeys = {
   channels: feature("channels"),
   newsletter: feature("newsletter"),
   reports: feature("reports"),
+  workforce: feature("workforce"),
   automation: {
     all: () => ["admin", "automation"] as const,
     recipes: automationKey("recipes"),

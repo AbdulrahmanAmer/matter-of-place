@@ -1,0 +1,47 @@
+[
+  {
+    "id": "w1-a-chief-default",
+    "test": "tests/unit/workforce.test.ts",
+    "file": "src/domain/workforce.ts",
+    "find": "  return onDuty(\"chief\") ? [\"chief\"] : [];",
+    "replace": "  return [];",
+    "run": "bunx vitest run --project unit tests/unit/workforce.test.ts",
+    "expect": "× .*wakes the chief of staff for a team message that mentions nobody"
+  },
+  {
+    "id": "w1-b-off-never-woken",
+    "test": "tests/unit/workforce.test.ts",
+    "file": "src/domain/workforce.ts",
+    "find": "member.slug === slug && member.state !== \"off\"",
+    "replace": "member.slug === slug",
+    "run": "bunx vitest run --project unit tests/unit/workforce.test.ts",
+    "expect": "× .*never wakes a colleague who is off"
+  },
+  {
+    "id": "w1-c-direct-thread",
+    "test": "tests/unit/workforce.test.ts",
+    "file": "src/domain/workforce.ts",
+    "find": "  if (thread !== \"team\") return onDuty(thread) ? [thread] : [];",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce.test.ts",
+    "expect": "× .*wakes the colleague of a direct thread whatever the message mentions"
+  },
+  {
+    "id": "w1-d-no-email-domain",
+    "test": "tests/unit/workforce.test.ts",
+    "file": "src/domain/workforce.ts",
+    "find": "/(?:^|[\\s(])@([a-z][a-z0-9-]{1,39})\\b/g",
+    "replace": "/@([a-z][a-z0-9-]{1,39})\\b/g",
+    "run": "bunx vitest run --project unit tests/unit/workforce.test.ts",
+    "expect": "× .*not an email address's domain part"
+  },
+  {
+    "id": "w1-e-handle-shape",
+    "test": "tests/unit/workforce.test.ts",
+    "file": "src/domain/workforce.ts",
+    "find": "  .regex(/^[a-z][a-z0-9-]{1,39}$/, \"Use lower-case letters, digits and dashes\");",
+    "replace": "  .min(1);",
+    "run": "bunx vitest run --project unit tests/unit/workforce.test.ts",
+    "expect": "× .*refuses a handle with capitals or spaces"
+  }
+]

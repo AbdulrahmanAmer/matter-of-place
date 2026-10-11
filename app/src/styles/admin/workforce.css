@@ -1,0 +1,542 @@
+/* W1: the office of the AI colleagues and their approvals. Editorial: Cormorant for names and headings, hairlines,
+   no boxes beyond what separates one colleague from the next. Tokens only (admin-motion test). */
+
+.admin-visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.wf-office,
+.wf-approvals {
+  display: grid;
+  gap: var(--admin-space-6);
+}
+
+.wf-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--admin-space-5);
+  padding-block-end: var(--admin-space-5);
+  border-block-end: 1px solid var(--foreground);
+}
+
+.wf-head h1 {
+  margin: var(--admin-space-2) 0 var(--admin-space-2);
+  font-family: var(--font-serif);
+  font-size: clamp(40px, 4vw, 56px);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.wf-head__line {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.wf-head__approvals {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.wf-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: var(--admin-space-6);
+  align-items: start;
+}
+
+.wf-floor-wrap {
+  display: grid;
+  gap: var(--admin-space-7);
+}
+
+.wf-floor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0;
+  border-block-start: 1px solid var(--border);
+  border-inline-start: 1px solid var(--border);
+}
+
+/* One colleague. The quick ask shows on hover and on keyboard focus anywhere inside. */
+.wf-card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--admin-space-3);
+  min-block-size: 220px;
+  padding: var(--admin-space-5);
+  border-inline-end: 1px solid var(--border);
+  border-block-end: 1px solid var(--border);
+  background: var(--background);
+}
+
+.wf-card:hover,
+.wf-card:focus-within {
+  background: var(--secondary);
+}
+
+.wf-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-4);
+}
+
+.wf-card h3 {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.wf-card__role,
+.wf-card__meta {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.wf-card__state {
+  display: flex;
+  align-items: baseline;
+  gap: var(--admin-space-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.wf-dot {
+  flex: none;
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+  transform: translateY(-1px);
+}
+
+.wf-card--working .wf-dot {
+  background: var(--status-ok);
+}
+
+.wf-card--paused .wf-dot,
+.wf-card--off .wf-dot {
+  background: var(--border);
+}
+
+.wf-card--paused,
+.wf-card--off {
+  color: var(--muted-foreground);
+}
+
+.wf-card__actions {
+  display: flex;
+  gap: var(--admin-space-4);
+}
+
+.wf-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 5px;
+  cursor: pointer;
+}
+
+.wf-link:hover,
+.wf-link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.wf-ask {
+  display: flex;
+  gap: var(--admin-space-2);
+  margin-block-start: var(--admin-space-2);
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.wf-card:hover .wf-ask,
+.wf-card:focus-within .wf-ask {
+  opacity: 1;
+  transform: none;
+}
+
+.wf-ask input {
+  flex: 1;
+  min-inline-size: 0;
+  padding: var(--admin-space-2) 0;
+  border: 0;
+  border-block-end: 1px solid var(--foreground);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+}
+
+.wf-ask button {
+  padding: var(--admin-space-2) var(--admin-space-3);
+  border: 1px solid var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.wf-ask button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The mark: initials in a ring; an arc turns while the colleague works. */
+.wf-avatar {
+  flex: none;
+}
+
+.wf-avatar__ring {
+  fill: var(--background);
+  stroke: var(--foreground);
+  stroke-width: 1;
+}
+
+.wf-avatar__arc {
+  fill: none;
+  stroke: var(--status-ok);
+  stroke-width: 2;
+  stroke-dasharray: 22 78;
+  transform-origin: 28px 28px;
+}
+
+.wf-avatar__initials {
+  fill: var(--foreground);
+  font-family: var(--font-serif);
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+
+.wf-avatar--paused,
+.wf-avatar--off {
+  opacity: 0.45;
+}
+
+/* The conversation. */
+.wf-convo {
+  position: sticky;
+  top: calc(var(--admin-bar-h) + var(--admin-space-4));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  block-size: calc(100vh - var(--admin-bar-h) - var(--admin-space-7));
+  min-block-size: 480px;
+  border: 1px solid var(--foreground);
+  background: var(--background);
+}
+
+.wf-convo__threads {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border-block-end: 1px solid var(--border);
+}
+
+.wf-convo__threads button {
+  flex: none;
+  padding: var(--admin-space-3) var(--admin-space-4);
+  border: 0;
+  border-inline-end: 1px solid var(--border);
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.wf-convo__threads button[aria-pressed="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.wf-convo__title {
+  display: grid;
+  gap: 2px;
+  padding: var(--admin-space-4);
+  border-block-end: 1px solid var(--border);
+  font-family: var(--font-serif);
+  font-size: 22px;
+}
+
+.wf-convo__title span {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.wf-convo__list {
+  display: grid;
+  align-content: start;
+  gap: var(--admin-space-4);
+  margin: 0;
+  padding: var(--admin-space-4);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.wf-convo__empty,
+.wf-empty {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.wf-msg {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--admin-space-3);
+}
+
+.wf-msg__mark {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 50%;
+  background: var(--foreground);
+  color: var(--background);
+  font-family: var(--font-serif);
+  font-size: 15px;
+}
+
+.wf-msg--system .wf-msg__mark {
+  background: none;
+  color: var(--muted-foreground);
+}
+
+.wf-msg__by {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wf-msg__by time {
+  margin-inline-start: var(--admin-space-2);
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
+.wf-msg__body {
+  margin-block-start: 2px;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wf-msg--system .wf-msg__body {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+.wf-composer {
+  display: grid;
+  gap: var(--admin-space-2);
+  padding: var(--admin-space-4);
+  border-block-start: 1px solid var(--border);
+}
+
+.wf-composer textarea {
+  resize: vertical;
+  padding: var(--admin-space-3);
+  border: 1px solid var(--border);
+  background: var(--background);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wf-composer textarea:focus {
+  border-color: var(--foreground);
+}
+
+/* Recent work: one line per task. */
+.wf-work h2,
+.wf-subhead {
+  margin-block-end: var(--admin-space-4);
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.wf-work ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block-start: 1px solid var(--foreground);
+}
+
+.wf-run {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) auto;
+  gap: var(--admin-space-4);
+  padding: var(--admin-space-3) 0;
+  border-block-end: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.wf-run__who {
+  font-weight: 600;
+}
+
+.wf-run time {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.wf-run--failed .wf-run__what {
+  color: var(--status-danger);
+}
+
+/* Hiring. */
+.wf-hire {
+  display: grid;
+  gap: var(--admin-space-4);
+  padding: var(--admin-space-5);
+}
+
+.wf-hire h2 {
+  font-family: var(--font-serif);
+  font-size: 36px;
+  font-weight: 400;
+}
+
+.wf-hire__lede {
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.wf-hire__set {
+  display: grid;
+  gap: var(--admin-space-2);
+  margin: 0;
+  padding: var(--admin-space-4) 0 0;
+  border: 0;
+  border-block-start: 1px solid var(--border);
+}
+
+.wf-hire__set legend {
+  padding: 0;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.wf-check {
+  display: flex;
+  gap: var(--admin-space-2);
+  align-items: center;
+  font-size: 14px;
+}
+
+.wf-hire__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--admin-space-3);
+}
+
+/* Approvals: each proposal reads like a document. */
+.wf-proposals {
+  display: grid;
+  gap: var(--admin-space-5);
+}
+
+.wf-proposal {
+  display: grid;
+  gap: var(--admin-space-4);
+  padding: var(--admin-space-5);
+  border: 1px solid var(--foreground);
+  background: var(--background);
+}
+
+.wf-proposal--approved,
+.wf-proposal--rejected,
+.wf-proposal--void {
+  border-color: var(--border);
+  color: var(--muted-foreground);
+}
+
+.wf-proposal h2 {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.wf-proposal__content {
+  max-block-size: 360px;
+  margin: 0;
+  padding: var(--admin-space-4);
+  overflow: auto;
+  border-inline-start: 2px solid var(--foreground);
+  background: var(--secondary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.wf-proposal__actions {
+  display: flex;
+  gap: var(--admin-space-3);
+}
+
+@media (max-width: 1100px) {
+  .wf-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wf-convo {
+    position: static;
+    block-size: 640px;
+  }
+}
+
+@media (max-width: 700px) {
+  .wf-run {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wf-card {
+    transition: background-color 300ms ease;
+  }
+
+  .wf-link {
+    transition: text-decoration-color 300ms ease;
+  }
+
+  .wf-ask {
+    transition:
+      opacity 250ms ease,
+      transform 250ms ease;
+  }
+
+  .wf-avatar__arc {
+    animation: wf-turn 1.6s linear infinite;
+  }
+
+  @keyframes wf-turn {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
