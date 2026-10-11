@@ -93,11 +93,18 @@ function matches(pattern: RegExp, allowed: (file: string) => boolean = () => fal
 describe("layers (R06, G-005)", () => {
   it("keeps server and domain code away from the browser layers", () => {
     const banned = ["src/data", "src/components", "src/admin", "src/routes", "src/services"];
-    // B6: `pricing.ts` is the one server reader of the price schedule (S3); it reads `exposure.ts` and nothing else.
+    // H80: `products.ts` is the one server reader of the seed of the plans; it reads `exposure.ts` and nothing else.
+    // An invoice prices from the stored plans (B18 step 3), so `pricing.ts` reads no data file.
     const priceReader = (i: Import) =>
-      i.file === "src/server/payments/pricing.ts" && under(i.resolved, "src/data/exposure");
+      i.file === "src/server/settings/products.ts" && under(i.resolved, "src/data/exposure");
+    // P-3410: after the launch switch a local build holds no database key, so the sitemap and llms documents read the
+    // bundled catalog; `local-catalog.ts` is the one server module that imports it.
+    const localDocs = (i: Import) =>
+      i.file === "src/server/public/local-catalog.ts" &&
+      under(i.resolved, "src/services/local/catalog");
     const found = imports.filter(
-      (i) => isServerSide(i.file) && under(i.resolved, ...banned) && !priceReader(i),
+      (i) =>
+        isServerSide(i.file) && under(i.resolved, ...banned) && !priceReader(i) && !localDocs(i),
     );
     expect(report(found)).toEqual([]);
   });

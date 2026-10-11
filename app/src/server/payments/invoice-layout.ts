@@ -4,6 +4,7 @@ import {
   requiredInvoiceFields,
   type InvoiceSnapshot,
 } from "../../domain/payments.ts";
+import { productLine } from "../../config/legal-identity.ts";
 import type { themeRgb } from "../../templates/theme.gen.ts";
 import { AppError } from "../lib/errors.ts";
 import { logLine } from "../lib/log.ts";
@@ -240,7 +241,7 @@ export async function layoutInvoice(snapshot: InvoiceSnapshot): Promise<TextRun[
   const mark = put("Matter of Place", wordmark, top + (display.size - wordmark.size) * LEADING, {
     x: PAGE.margin,
   });
-  const sub = put("A product of Omnikom.", note, mark + 2, { x: PAGE.margin });
+  const sub = put(productLine, note, mark + 2, { x: PAGE.margin });
   let facts = put("Invoice", display, top, { right: PAGE.width - PAGE.margin });
   facts = put(clean(snapshot.invoice_number), strong, facts + 4, {
     right: PAGE.width - PAGE.margin,

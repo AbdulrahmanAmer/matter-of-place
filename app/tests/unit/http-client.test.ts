@@ -53,4 +53,51 @@ describe("api client", () => {
       status: 404,
     });
   });
+
+  // Panel finding 3: the fields a 422 names reach the form instead of being dropped with the body.
+  it("carries the refused fields of a 422 and the request id", async () => {
+    const issues = [
+      { code: "invalid_string", path: ["submitterEmail"], message: "Invalid email" },
+      { code: "invalid_literal", path: ["rightsConfirmed"], message: "Invalid", received: false },
+    ];
+    stubFetch(
+      Response.json(
+        { error: { code: "validation", message: "Some", issues, requestId: "req-1" } },
+        { status: 422, statusText: "Unprocessable Entity" },
+      ),
+    );
+    await expect(
+      createApiClient("/api").post("/submissions", {}, receiptSchema),
+    ).rejects.toMatchObject({
+      kind: "validation",
+      status: 422,
+      requestId: "req-1",
+      issues,
+    });
+  });
+
+  it("keeps the issues it can read and drops one of an unexpected shape", async () => {
+    const good = { code: "custom", path: ["brokerage"], message: "Name your brokerage" };
+    stubFetch(
+      Response.json(
+        { error: { issues: [good, { path: "brokerage" }, "text"] } },
+        { status: 422, statusText: "Unprocessable Entity" },
+      ),
+    );
+    await expect(
+      createApiClient("/api").post("/submissions", {}, receiptSchema),
+    ).rejects.toMatchObject({
+      issues: [good],
+    });
+  });
+
+  it("gives no issues for an answer that is not JSON", async () => {
+    stubFetch(new Response("<html>", { status: 400, statusText: "Bad Request" }));
+    await expect(
+      createApiClient("/api").post("/submissions", {}, receiptSchema),
+    ).rejects.toMatchObject({
+      kind: "validation",
+      issues: [],
+    });
+  });
 });

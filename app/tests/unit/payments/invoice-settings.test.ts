@@ -9,6 +9,7 @@ import {
   invoiceReadiness,
   readInvoiceInputs,
 } from "../../../src/server/payments/invoice-settings";
+import { seedProducts } from "../../../src/server/settings/products";
 import { fakeDb } from "../../fixtures/fake-db";
 
 function fixture(name: string): unknown {
@@ -73,8 +74,8 @@ describe("readInvoiceInputs", () => {
     ];
     const good = await readInvoiceInputs(fakeDb({ tables: { settings: rows(example) } }));
     const bad = await readInvoiceInputs(fakeDb({ tables: { settings: rows({ prefix: "x" }) } }));
-    expect(good).toEqual({ site, invoice: example });
-    expect(bad).toEqual({ site, invoice: null });
+    expect(good).toEqual({ site, invoice: example, products: seedProducts() });
+    expect(bad).toEqual({ site, invoice: null, products: seedProducts() });
   });
 });
 

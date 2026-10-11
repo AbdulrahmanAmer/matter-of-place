@@ -56,6 +56,7 @@ export default defineConfig({
         "**/consent.spec.ts",
         "**/essentials.spec.ts",
         "**/a11y-settle.spec.ts",
+        "**/legal-identity.spec.ts",
       ],
       ...skipOverflow,
       use: desktop,
@@ -95,6 +96,7 @@ export default defineConfig({
         "**/admin-channels.spec.ts",
         "**/admin-newsletter.spec.ts",
         "**/admin-jobs.spec.ts",
+        "**/exposure-products.spec.ts",
       ],
       // Admin pages render in the browser only (`ssr: false`), and `vite dev` compiles them on first request.
       timeout: 120_000,

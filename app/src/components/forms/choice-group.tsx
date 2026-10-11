@@ -6,14 +6,25 @@ export function ChoiceGroup<T extends string>({
   options,
   value,
   onChange,
+  invalid,
+  describedBy,
 }: {
   label: string;
   options: readonly T[];
   value: T | undefined;
   onChange: (value: T) => void;
+  /** Marks the group refused; `describedBy` is the id of the visible message. */
+  invalid?: true | undefined;
+  describedBy?: string | undefined;
 }) {
   return (
-    <div className="choice-group" role="radiogroup" aria-label={label}>
+    <div
+      className="choice-group"
+      role="radiogroup"
+      aria-label={label}
+      aria-invalid={invalid}
+      aria-describedby={describedBy}
+    >
       {options.map((option) => (
         <button
           type="button"

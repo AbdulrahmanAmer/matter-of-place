@@ -6,6 +6,8 @@
  * keys. Editorial copy inside property and market data is authored per record
  * and is not part of this table.
  */
+import { productLine } from "../config/legal-identity";
+
 export type Locale = "en";
 
 export const defaultLocale: Locale = "en";
@@ -56,7 +58,7 @@ const en = {
     },
     statement:
       "Matter of Place is an independent real-estate media and distribution platform focused on exceptional residential property in California, New York and Florida.",
-    line: "A product of Omnikom.",
+    line: productLine,
   },
   common: {
     illustrative: "ILLUSTRATIVE",
@@ -87,6 +89,27 @@ const en = {
     /** Beside a field the browser found empty or malformed when the form was sent. */
     fieldRequired: "Please fill in this field.",
     fieldInvalid: "Please check this entry.",
+    /** When the details were refused but none of them is a field the form shows (the submit wizard). */
+    invalidUnplaced: "Some of the details were not accepted. Please look through each step.",
+    /** Beside a field of the submit wizard that was refused, by what was wrong with it. */
+    issue: {
+      choose: "Please choose one.",
+      tooLong: "Please shorten this entry.",
+      zip: "Please enter a five-digit ZIP.",
+      link: "Please enter a full link, starting with https://.",
+      email: "Please enter a valid email address.",
+      price: "Please enter an amount above zero.",
+      beds: "Please enter a whole number, zero or more.",
+      squareFeet: "Please enter a whole number above zero.",
+      zeroOrMore: "Please enter zero or more.",
+      year: "Please enter a year from 1600 to 2100.",
+      rights: "Please confirm you have the rights.",
+      photographs: "Please check the photographs.",
+    },
+    /** The title of the list on the Review step, and one line of it: the field, its step (from 1) and what to do. */
+    reviewIssues: "Still to look at",
+    issueLine: (field: string, step: number, message: string) =>
+      `${field} on step ${String(step)}: ${message}`,
     /** A received submission whose photographs are still going out (FE-04). */
     uploading: (done: number, total: number) =>
       `Received. Uploading ${String(done)} of ${String(total)} photographs.`,
@@ -153,10 +176,11 @@ const en = {
   },
   consent: {
     label: "Cookie notice",
-    text: "We would like to count which pages are read, using Google Analytics. It sets cookies. If you say no, nothing else changes.",
+    title: "Cookies",
+    text: "May we count visits with Google Analytics? It sets cookies. Saying no changes nothing.",
     accept: "Allow",
     decline: "No, thank you",
-    link: "Read our privacy policy",
+    link: "Privacy policy",
     change: "Cookie settings",
   },
   privacyRequest: {
@@ -189,7 +213,7 @@ const en = {
   cookies: {
     title: "Cookies",
     intro:
-      "These are the cookies this site can set. Analytics cookies are set only after you allow them.",
+      "These are the cookies this site can set. Necessary cookies are always on. Analytics cookies are set only after you allow them.",
   },
   errors: {
     reference: "Reference",

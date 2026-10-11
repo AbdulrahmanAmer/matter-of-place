@@ -3,7 +3,7 @@
 > agent-os reads this file at session start and loads only the current stage's contract.
 > Append to the log, never rewrite it. Only the operator advances the STAGE line.
 
-STAGE: 3
+STAGE: 5
 enforcement: deny
 
 ## OPEN DECISIONS
@@ -111,3 +111,4 @@ first editors' emails and roles, Meta Business access, Namecheap purchase of mat
 - 2026-09-30 STAGE 0 → 3 on the CEO's instruction to start the Lovable cleanup (slice B1) now. Stage 1 and 2 gates are
   carried as work inside B9 (creative direction from rendered options) and P1 (plan file); they are not skipped, they are
   sequenced behind B1 because B1 touches only tooling and the removal of the preset.
+- 2026-10-11 STAGE 3 → 5 (LAUNCH) on the operator's instruction ("I told you to launch so yes advance it", 13:05 +0300): launch today, target 16:00; H2 steps 2 to 6 parked to after launch by the operator; the acceptance panel walked the site instead.

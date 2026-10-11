@@ -14,7 +14,8 @@ const APP = fileURLToPath(new URL("../../", import.meta.url));
 const TIMEOUT_MS = 20_000;
 const MARKETS = ["/california", "/new-york", "/florida"];
 const EMPTY_STATE = "No property is listed";
-const ILLUSTRATIVE = /illustrative/i;
+// `illustrativeContent` is a key of the dehydrated state on every page, not shown text (P-3411).
+const ILLUSTRATIVE = /illustrative(?!Content)/i;
 const POLICY = {
   "report-only": "content-security-policy-report-only",
   enforce: "content-security-policy",

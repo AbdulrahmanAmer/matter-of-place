@@ -68,6 +68,12 @@
   border-color: var(--foreground);
 }
 
+.choice-group[aria-invalid="true"],
+.check [aria-invalid="true"] {
+  outline: 1px solid var(--foreground);
+  outline-offset: 2px;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -255,6 +261,23 @@
   grid-template-columns: 140px 1fr;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
+}
+
+.review-issues {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  padding-left: 12px;
+  border-left: 1px solid var(--foreground);
+}
+
+.review-issues h3 {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
 }
 
 .review-list dt {

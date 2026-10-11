@@ -6,6 +6,7 @@ export const LogEvent = [
   "media_public_base_unset",
   "request",
   "public_read_stale",
+  "products_invalid",
   "stale_report_failed",
   "honeypot",
   "turnstile_unreachable",

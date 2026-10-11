@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ServiceError, type ServiceErrorKind } from "../types";
+import { ServiceError, serviceIssues, type ServiceErrorKind, type ServiceIssue } from "../types";
 
 /**
  * Minimal JSON client for the Matter of Place API. Every body is parsed with the response schema
@@ -9,32 +9,55 @@ import { ServiceError, type ServiceErrorKind } from "../types";
  * the site's origin.
  */
 export type ApiClient = {
-  get<T>(path: string, shape: z.ZodType<T>, init?: RequestInit): Promise<T>;
-  post<T>(path: string, body: unknown, shape: z.ZodType<T>, init?: RequestInit): Promise<T>;
+  get<T>(path: string, shape: z.ZodType<T, z.ZodTypeDef, unknown>, init?: RequestInit): Promise<T>;
+  post<T>(
+    path: string,
+    body: unknown,
+    shape: z.ZodType<T, z.ZodTypeDef, unknown>,
+    init?: RequestInit,
+  ): Promise<T>;
 };
 
 /** A failed call, with the id the Worker logged it under so an error page can quote it (G33). */
 export class HttpServiceError extends ServiceError {
   readonly requestId?: string;
 
-  constructor(kind: ServiceErrorKind, message: string, status: number, requestId?: string) {
-    super(kind, message, status);
+  constructor(
+    kind: ServiceErrorKind,
+    message: string,
+    status: number,
+    requestId?: string,
+    issues?: readonly ServiceIssue[],
+  ) {
+    super(kind, message, status, issues);
     this.name = "HttpServiceError";
     if (requestId !== undefined) this.requestId = requestId;
   }
 }
 
-const errorBodySchema = z.object({ error: z.object({ requestId: z.string().optional() }) });
+const errorBodySchema = z.object({
+  error: z.object({
+    requestId: z.string().optional(),
+    issues: z.unknown(),
+  }),
+});
 
-/** The `x-request-id` header, else the id in the error body; a body that is not JSON gives none. */
-async function requestIdOf(response: Response): Promise<string | undefined> {
+/**
+ * What a failed answer says: the `x-request-id` header, else the id in the error body, and the refused fields of a
+ * 400 or 422 (`error.issues`); a body that is not JSON gives neither.
+ */
+async function errorDetails(
+  response: Response,
+): Promise<{ requestId: string | undefined; issues: ServiceIssue[] }> {
   const header = response.headers.get("x-request-id");
-  if (header !== null) return header;
   try {
     const body = errorBodySchema.safeParse(await response.json());
-    return body.success ? body.data.error.requestId : undefined;
+    return {
+      requestId: header ?? (body.success ? body.data.error.requestId : undefined),
+      issues: body.success ? serviceIssues(body.data.error.issues) : [],
+    };
   } catch {
-    return undefined;
+    return { requestId: header ?? undefined, issues: [] };
   }
 }
 
@@ -55,7 +78,11 @@ const kindForStatus = (status: number) => {
 export type FetchImpl = (input: string, init: RequestInit) => Promise<Response>;
 
 export function createApiClient(baseUrl: string, fetchImpl: FetchImpl = fetch): ApiClient {
-  const request = async <T>(path: string, shape: z.ZodType<T>, init: RequestInit): Promise<T> => {
+  const request = async <T>(
+    path: string,
+    shape: z.ZodType<T, z.ZodTypeDef, unknown>,
+    init: RequestInit,
+  ): Promise<T> => {
     let response: Response;
     try {
       response = await fetchImpl(`${baseUrl}${path}`, {
@@ -66,11 +93,13 @@ export function createApiClient(baseUrl: string, fetchImpl: FetchImpl = fetch): 
       throw new ServiceError("network", error instanceof Error ? error.message : "Network error");
     }
     if (!response.ok) {
+      const { requestId, issues } = await errorDetails(response);
       throw new HttpServiceError(
         kindForStatus(response.status),
         response.statusText,
         response.status,
-        await requestIdOf(response),
+        requestId,
+        issues,
       );
     }
     return shape.parse(response.status === 204 ? undefined : await response.json());

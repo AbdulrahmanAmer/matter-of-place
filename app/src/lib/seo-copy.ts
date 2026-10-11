@@ -90,12 +90,10 @@ const pageDescriptions = {
     "A quiet selection of residences across California, Florida and New York, searchable by place, type and architecture.",
   "stories.index":
     "Architecture, interiors and places across California, New York and Florida, from the Matter of Place editorial desks.",
-  exposure:
-    "How a property is presented and distributed: The Feature, The Reach, The Campaign and Five Features, all after editorial review.",
+  exposure: "How a property is presented and distributed, all after editorial review.",
   submit:
     "Submit an existing residential property in California, New York or Florida for editorial review.",
-  about:
-    "An independent real-estate media platform for exceptional residential property in California, New York and Florida. A product of Omnikom.",
+  about: `An independent real-estate media platform for exceptional residential property in California, New York and Florida. A product of ${siteConfig.parentCompany}.`,
   contact:
     "Write to Matter of Place about a property, a market, or presenting a residence you own or represent.",
   faq: "Short answers about Matter of Place: what we feature, what it costs and who receives inquiries.",

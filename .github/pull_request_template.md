@@ -14,6 +14,7 @@ Tick the path this change follows. A change with no path stops until one is adde
 - [ ] role or permission
 - [ ] social or email channel
 - [ ] new public read
+- [ ] setting
 - [ ] none: tooling or docs only
 
 Proof command of the ticked path and its output:

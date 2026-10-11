@@ -11,7 +11,8 @@ import { PropertyGrid } from "../components/site/property-card";
 import { SectionHeading } from "../components/site/section-heading";
 import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
-import { editorialQualities, offerings, programmatic } from "../data/exposure";
+import { editorialQualities, programmatic } from "../data/exposure";
+import { toOffering, waysIn } from "../domain/exposure";
 import { emptySiteSettings } from "../domain/settings";
 import type { PropertyCard } from "../domain/property";
 import { featuredProperties, heroProperties } from "../lib/catalog";
@@ -66,7 +67,7 @@ const howItWorks = [
 ];
 
 function HomePage() {
-  const { hero, featured, preview, markets } = Route.useLoaderData();
+  const { hero, featured, preview, markets, site } = Route.useLoaderData();
   return (
     <main>
       {hero.length > 0 ? (
@@ -85,10 +86,16 @@ function HomePage() {
       )}
       <IllustrativeNotice properties={preview} />
 
-      <section className="section-wrap editorial-statement">
-        <p className="eyebrow">MATTER OF PLACE</p>
+      <section
+        className={
+          hero.length > 0
+            ? "section-wrap editorial-statement"
+            : "section-wrap editorial-statement statement-plain"
+        }
+      >
+        {hero.length > 0 && <p className="eyebrow">MATTER OF PLACE</p>}
         <div>
-          <h2>Exceptional property. Properly considered.</h2>
+          {hero.length > 0 && <h2>Exceptional property. Properly considered.</h2>}
           <p>
             An editorial real-estate media platform for exceptional residential property across
             California, New York and Florida. We select, present and distribute places worth
@@ -149,12 +156,12 @@ function HomePage() {
         <div className="section-wrap home-exposure">
           <SectionHeading
             eyebrow="PROPERTY EXPOSURE"
-            title="Four ways in."
+            title={waysIn(site.products.length)}
             id="exposure-heading"
             action={<TextLink to="/exposure">View Property Exposure</TextLink>}
           />
           <div className="offer-row">
-            {offerings.map((offering) => (
+            {site.products.map(toOffering).map((offering) => (
               <OfferCard key={offering.id} offering={offering} compact />
             ))}
           </div>

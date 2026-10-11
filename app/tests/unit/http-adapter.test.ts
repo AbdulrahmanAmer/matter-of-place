@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { properties } from "../../src/data/properties";
 import { pickCard } from "../../src/lib/property-card";
+import { seedProducts } from "../../src/server/settings/products";
 import { getTurnstileToken } from "../../src/lib/turnstile";
 import { inquirySchema, submissionSchema } from "../../src/domain/contracts";
 import { createApiClient, HttpServiceError, type FetchImpl } from "../../src/services/http/client";
@@ -96,6 +97,47 @@ describe("the property list", () => {
     const [card] = await createHttpServices("/api/public", fetchImpl).catalog.listProperties();
     expect(card).toEqual({ ...pickCard(first), heroVariants: { card: rendition } });
     expect(Object.keys(card ?? {})).not.toContain("gallery");
+  });
+});
+
+describe("the site read", () => {
+  const site = {
+    contact: { email: null, phone: null, privacy_email: null },
+    legal: { entity: null, address: null },
+    social: { instagram: null, x: null, linkedin: null },
+    illustrativeContent: false,
+  };
+
+  it("parses the plans the body carries", async () => {
+    const plans = seedProducts().map((plan) => ({ ...plan, price: plan.price + 30 }));
+    reply = () => Response.json({ ...site, products: plans });
+    const answer = await createHttpServices("/api/public", fetchImpl).site.get();
+    expect(answer.products).toEqual(plans);
+  });
+
+  it("keeps the plans when a plan carries a key this build does not know", async () => {
+    const plans = seedProducts();
+    reply = () =>
+      Response.json({ ...site, products: plans.map((plan) => ({ ...plan, later: 1 })) });
+    const answer = await createHttpServices("/api/public", fetchImpl).site.get();
+    expect(answer.products).toEqual(plans);
+  });
+
+  it("refuses a body whose plans are missing or carry no price", async () => {
+    const [first, ...rest] = seedProducts();
+    const refused = (body: unknown) => {
+      reply = () => Response.json(body);
+      return createHttpServices("/api/public", fetchImpl)
+        .site.get()
+        .then(
+          () => "parsed",
+          (error: unknown) => error instanceof z.ZodError,
+        );
+    };
+    expect([
+      await refused(site),
+      await refused({ ...site, products: [{ ...first, price: null }, ...rest] }),
+    ]).toEqual([true, true]);
   });
 });
 
