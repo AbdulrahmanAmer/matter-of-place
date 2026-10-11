@@ -28,12 +28,25 @@ const invoice: InvoiceSettings = {
   billing_email: "billing@example.invalid",
 };
 
+/** Four plans, one per bound id; this file does not look at them (ProductsSection.test.tsx does). */
+const plans = (["feature", "reach", "campaign", "five-features"] as const).map((id, index) => ({
+  id,
+  name: `Plan ${String(index + 1)}`,
+  price: 100 * (index + 1),
+  line: "A line.",
+  note: null,
+  items: [],
+  cta: "Ask",
+  recommended: false,
+}));
+
 const answer = (over: Partial<SettingsAnswer> = {}): SettingsAnswer => ({
   site: siteSettingsSchema.parse({ contact: { email: "hello@example.invalid" } }),
   invoice,
   coming_soon_global: false,
   notifications: { recipients: [] },
   agent_daily_limits: null,
+  products: { current: null, defaults: { plans } },
   readiness: ["legal.entity", "legal.address"],
   ...over,
 });

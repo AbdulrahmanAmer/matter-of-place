@@ -43,6 +43,7 @@ const DENO_FILES = [
   "src/server/assets/{reel-spec,spec,captions,voice,links}.ts",
   "src/server/subscribers/confirm-email.ts",
   "src/server/reports/build.ts",
+  "src/data/exposure.ts",
   "src/domain/**",
   "src/templates/**",
   "supabase/functions/job-runner/index.ts",

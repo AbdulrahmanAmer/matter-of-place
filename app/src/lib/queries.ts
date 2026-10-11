@@ -64,7 +64,7 @@ export const siteQuery = () =>
     staleTime: catalogStaleTime,
   });
 
-const noSite: PublicSite = { ...emptySiteSettings, illustrativeContent: false };
+const noSite: PublicSite = { ...emptySiteSettings, illustrativeContent: false, products: [] };
 
 /**
  * The site identity the root loader filled with `siteQuery()`. Where that loader has not finished (the root error

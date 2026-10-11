@@ -27,7 +27,7 @@ import { Route as termsRoute } from "../../src/routes/_site.terms";
 
 vi.mock("../../src/lib/analytics", () => ({ track: vi.fn() }));
 
-const EMPTY: PublicSite = { ...emptySiteSettings, illustrativeContent: false };
+const EMPTY: PublicSite = { ...emptySiteSettings, illustrativeContent: false, products: [] };
 const SET: PublicSite = {
   ...EMPTY,
   legal: { entity: "Example Test LLC", address: "1 Test Street, Testville, CA 90000" },
@@ -139,6 +139,7 @@ describe("the home headline (finding 9)", () => {
   const card = properties[0];
   const market = markets[0];
   if (card === undefined || market === undefined) throw new Error("no bundled data");
+  const entry = { slug: market.slug, name: market.name, open: false };
 
   function home(hero: (typeof card)[]) {
     vi.spyOn(homeRoute, "useLoaderData").mockReturnValue({
@@ -146,7 +147,7 @@ describe("the home headline (finding 9)", () => {
       featured: [],
       preview: [],
       markets: [market],
-      marketIndex: [{ slug: market.slug, name: market.name, open: false }],
+      marketIndex: [entry],
       site: EMPTY,
     });
     return show(pageOf(homeRoute), EMPTY);

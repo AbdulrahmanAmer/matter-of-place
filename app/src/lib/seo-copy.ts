@@ -90,8 +90,7 @@ const pageDescriptions = {
     "A quiet selection of residences across California, Florida and New York, searchable by place, type and architecture.",
   "stories.index":
     "Architecture, interiors and places across California, New York and Florida, from the Matter of Place editorial desks.",
-  exposure:
-    "How a property is presented and distributed: The Feature, The Reach, The Campaign and Five Features, all after editorial review.",
+  exposure: "How a property is presented and distributed, all after editorial review.",
   submit:
     "Submit an existing residential property in California, New York or Florida for editorial review.",
   about: `An independent real-estate media platform for exceptional residential property in California, New York and Florida. A product of ${siteConfig.parentCompany}.`,

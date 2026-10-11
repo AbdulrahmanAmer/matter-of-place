@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { offerings } from "../../src/data/exposure";
+import { seedOfferings } from "../../src/data/exposure";
 import { plansFromOfferings, productsSettingSchema } from "../../src/domain/exposure";
 import { productsOf, seedProducts } from "../../src/server/settings/products";
 
@@ -37,7 +37,7 @@ afterEach(() => {
 
 describe("the seed of settings.products", () => {
   it("is the four offerings with their prices in whole dollars", () => {
-    expect(seedProducts()).toEqual(plansFromOfferings(offerings));
+    expect(seedProducts()).toEqual(plansFromOfferings(seedOfferings));
     expect(seedProducts().map((plan) => [plan.id, plan.price])).toEqual([
       ["feature", 295],
       ["reach", 695],
@@ -53,7 +53,7 @@ describe("the seed of settings.products", () => {
   });
 
   it("is the literal the migration inserts, field for field", () => {
-    expect(seededLiteral()).toEqual({ plans: plansFromOfferings(offerings) });
+    expect(seededLiteral()).toEqual({ plans: plansFromOfferings(seedOfferings) });
   });
 
   it("is inserted once and never overwritten, and the triggers name the key", () => {
