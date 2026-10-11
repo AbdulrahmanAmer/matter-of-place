@@ -13,7 +13,9 @@ const TIMEOUT_MS = 20_000;
 const NO_PROPERTIES = z.array(z.unknown()).length(0);
 const MARKETS_COMING_SOON = z.array(z.object({ comingSoon: z.literal(true) })).length(3);
 const PAGES = ["/", "/properties"];
-const ILLUSTRATIVE = /illustrative/i;
+// The word as page text, not the serialized state key `illustrativeContent` the router data carries (2026-10-11:
+// that key, always false in production, made every production deploy roll back).
+const ILLUSTRATIVE = /illustrative(?!Content)/i;
 const CARD = 'class="property-card"';
 const CALIFORNIA = "No property is listed in California yet.";
 

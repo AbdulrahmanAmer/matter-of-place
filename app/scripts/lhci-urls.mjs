@@ -1,7 +1,7 @@
 // `node scripts/lhci-urls.mjs <baseUrl>`: prints the six absolute URLs Lighthouse measures, one per line (GQ-01). The
 // templates are the `paths` of `budget.json`; `property:first` and `market:first` become the first item of
 // `GET /api/public/properties` and `/markets` of the target, so it works on a preview and on a locally served build.
-// Exits 1 naming the endpoint when either list is not 200 or is empty.
+// Exits 1 naming the endpoint when the markets list is not 200 or is empty; an empty property list measures /properties.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
@@ -37,7 +37,10 @@ try {
   const urls = [];
   for (const template of paths) {
     if (template === "property:first") {
-      urls.push(`${base}/property/${await firstSlug(base, "/api/public/properties")}`);
+      // Coming-soon (L1, 2026-10-11): production lists no property until the first is published, so the empty
+      // collection page stands in for the property template; a non-empty list measures its first property again.
+      const slug = await firstSlug(base, "/api/public/properties").catch(() => "");
+      urls.push(slug === "" ? `${base}/properties` : `${base}/property/${slug}`);
     } else if (template === "market:first") {
       urls.push(`${base}/${await firstSlug(base, "/api/public/markets")}`);
     } else {

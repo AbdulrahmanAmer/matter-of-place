@@ -1234,8 +1234,8 @@
     "kind": "file",
     "test": "tests/unit/assert-coming-soon.test.ts",
     "file": "scripts/assert-coming-soon.mjs",
-    "find": "const ILLUSTRATIVE = /illustrative/i;",
-    "replace": "const ILLUSTRATIVE = /illustrative/;",
+    "find": "const ILLUSTRATIVE = /illustrative(?!Content)/i;",
+    "replace": "const ILLUSTRATIVE = /illustrative(?!Content)/;",
     "run": "bunx vitest run --project unit tests/unit/assert-coming-soon.test.ts",
     "expect": "FAIL .*assert-coming-soon > an ILLUSTRATIVE label on / fails no-illustrative in both modes"
   },
