@@ -7,17 +7,17 @@ import { Intro } from "./intro.tsx";
 const title: CSSProperties = {
   margin: "0 0 10px",
   fontFamily: fonts.display,
-  fontSize: "28px",
+  fontSize: "30px",
   fontWeight: 400,
-  lineHeight: "1.2",
+  lineHeight: "1.15",
   color: themeHex.foreground,
 };
 
 const deck: CSSProperties = {
   margin: "0 0 14px",
   fontFamily: fonts.body,
-  fontSize: "15px",
-  lineHeight: "1.6",
+  fontSize: "16px",
+  lineHeight: "1.65",
   color: themeHex.mutedForeground,
 };
 

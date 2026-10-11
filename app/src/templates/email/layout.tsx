@@ -6,8 +6,7 @@ import {
   Html,
   Img,
   Preview,
-  Row,
-  Column,
+  Section,
   Text,
 } from "@react-email/components";
 import type { CSSProperties, ReactNode } from "react";
@@ -15,9 +14,12 @@ import type { emailClasses, EmailBlock, EmailTemplateKey } from "../../domain/em
 import type { SiteContext } from "../../server/email/context.ts";
 import { themeHex } from "../theme.gen.ts";
 
-// The shell of every transactional email: emblem and wordmark, one 600 px column, a footer. Colours come from
-// `theme.gen.ts` (the tokens), never typed here. Mail clients load no web fonts, so each stack names the brand face
-// first and a system face the client does have.
+// The shell of every email (operator, 2026-10-12: "a massive design that shows the high level of who we are"): the
+// Obsidian masthead with the stacked lockup, the letter on Ivory with wide margins, an ornament, and an Obsidian
+// footer band with the emblem, the line, the three markets and the legal lines. The artwork is drawn as SVG by
+// `scripts/email-art.mjs` and shown as PNG from our own domain, since mail clients strip inline SVG. Colours come from
+// `theme.gen.ts`, never typed here. Mail clients load no web fonts, so each stack names the brand face first and a
+// system face the client does have.
 
 export const fonts = {
   display: '"Cormorant Garamond", Georgia, "Times New Roman", serif',
@@ -25,8 +27,10 @@ export const fonts = {
 } as const;
 
 const PRODUCT_LINE = "Exceptional property. Properly considered.";
-const EMBLEM_PATH = "/apple-touch-icon.png";
-const EMBLEM_SIZE = 36;
+const MARKETS_LINE = "California · New York · Florida";
+const MASTHEAD = { path: "/email/masthead.png", width: 600, height: 240 } as const;
+const ORNAMENT = { path: "/email/ornament.png", width: 600, height: 32 } as const;
+const EMBLEM = { path: "/email/emblem.png", width: 48, height: 54 } as const;
 
 /**
  * What a template component receives: text and links already interpolated, empty blocks already dropped, and the
@@ -61,7 +65,7 @@ export interface EmailDefinition {
 
 const page: CSSProperties = {
   margin: 0,
-  padding: "32px 12px",
+  padding: "40px 12px",
   backgroundColor: themeHex.secondary,
   fontFamily: fonts.body,
   color: themeHex.foreground,
@@ -70,31 +74,54 @@ const page: CSSProperties = {
 const column: CSSProperties = {
   maxWidth: "600px",
   margin: "0 auto",
-  padding: "40px 32px",
   backgroundColor: themeHex.background,
 };
 
-const mark: CSSProperties = {
-  margin: 0,
+const image: CSSProperties = { display: "block", width: "100%", height: "auto", border: 0 };
+
+const letter: CSSProperties = {
+  padding: "52px 52px 20px",
+  backgroundColor: themeHex.background,
+};
+
+const band: CSSProperties = {
+  padding: "44px 40px 40px",
+  backgroundColor: themeHex.foreground,
+  textAlign: "center",
+};
+
+const line: CSSProperties = {
+  margin: "20px 0 0",
+  fontFamily: fonts.display,
+  fontSize: "21px",
+  fontStyle: "italic",
+  lineHeight: "1.3",
+  color: themeHex.secondary,
+};
+
+const markets: CSSProperties = {
+  margin: "14px 0 0",
   fontFamily: fonts.body,
-  fontSize: "12px",
+  fontSize: "10px",
   letterSpacing: "0.32em",
   textTransform: "uppercase",
-  color: themeHex.foreground,
+  color: themeHex.accent,
 };
 
-const rule: CSSProperties = {
-  margin: "28px 0",
+const hairline: CSSProperties = {
+  margin: "28px auto 22px",
+  width: "48px",
   border: 0,
-  borderTop: `1px solid ${themeHex.accent}`,
+  borderTop: `1px solid ${themeHex.mutedForeground}`,
 };
 
-const footer: CSSProperties = {
+const legal: CSSProperties = {
   margin: 0,
   fontFamily: fonts.body,
-  fontSize: "12px",
-  lineHeight: "1.7",
-  color: themeHex.mutedForeground,
+  fontSize: "11px",
+  letterSpacing: "0.04em",
+  lineHeight: "1.8",
+  color: themeHex.accent,
 };
 
 /** The closing lines of every email, in the HTML footer and at the end of the plain-text part. */
@@ -109,44 +136,59 @@ export function Layout({
   afterFooter = null,
 }: Pick<EmailProps, "title" | "preheader" | "site"> & {
   children: ReactNode;
-  /** Drawn below the legal lines: the unsubscribe link of a commercial email. */
+  /** Drawn below the legal lines, on the dark band: the unsubscribe link of a commercial email. */
   afterFooter?: ReactNode;
 }) {
+  const [, ...legalLines] = footerLines(site);
   return (
     <Html lang="en">
       <Head>
         <title>{title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="color-scheme" content="light" />
+        <meta name="supported-color-schemes" content="light" />
       </Head>
       <Body style={page}>
         {preheader === "" ? null : <Preview>{preheader}</Preview>}
         <Container style={column}>
-          <Row>
-            <Column style={{ width: EMBLEM_SIZE, verticalAlign: "middle" }}>
-              {/* The text beside it names the business, so the emblem has no alt text. `loading` keeps React 19 from adding a preload link to the head. */}
-              <Img
-                src={`${site.siteUrl}${EMBLEM_PATH}`}
-                alt=""
-                width={EMBLEM_SIZE}
-                height={EMBLEM_SIZE}
-                loading="lazy"
-                style={{ display: "block" }}
-              />
-            </Column>
-            <Column style={{ paddingLeft: "16px", verticalAlign: "middle" }}>
-              <Text style={mark}>Matter of Place</Text>
-            </Column>
-          </Row>
-          <Hr style={rule} />
-          {children}
-          <Hr style={rule} />
-          {footerLines(site).map((line) => (
-            <Text key={line} style={footer}>
-              {line}
-            </Text>
-          ))}
-          {afterFooter}
+          {/* The masthead names the business, so its alt text says it. `loading` keeps React 19 from adding a preload link to the head (G-500). */}
+          <Img
+            src={`${site.siteUrl}${MASTHEAD.path}`}
+            alt="Matter of Place"
+            width={MASTHEAD.width}
+            height={MASTHEAD.height}
+            loading="lazy"
+            style={image}
+          />
+          <Section style={letter}>{children}</Section>
+          <Img
+            src={`${site.siteUrl}${ORNAMENT.path}`}
+            alt=""
+            width={ORNAMENT.width}
+            height={ORNAMENT.height}
+            loading="lazy"
+            style={image}
+          />
+          <Section style={{ ...letter, padding: "0 0 28px" }} />
+          <Section style={band}>
+            <Img
+              src={`${site.siteUrl}${EMBLEM.path}`}
+              alt=""
+              width={EMBLEM.width}
+              height={EMBLEM.height}
+              loading="lazy"
+              style={{ display: "block", margin: "0 auto", border: 0 }}
+            />
+            <Text style={line}>{PRODUCT_LINE}</Text>
+            <Text style={markets}>{MARKETS_LINE}</Text>
+            {legalLines.length === 0 && afterFooter === null ? null : <Hr style={hairline} />}
+            {legalLines.map((text) => (
+              <Text key={text} style={legal}>
+                {text}
+              </Text>
+            ))}
+            {afterFooter}
+          </Section>
         </Container>
       </Body>
     </Html>

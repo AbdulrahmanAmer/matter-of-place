@@ -387,7 +387,7 @@ describe("renderTemplate", () => {
       site,
     );
     expect(html).toContain("Row text");
-    expect(html).toContain("apple-touch-icon.png");
+    expect(html).toContain("/email/masthead.png");
   });
 
   it("renders the blocks of a row that differs from its definition inside the Email of its key", async () => {

@@ -98,8 +98,8 @@ describe("lintEmail", () => {
       change: (m) => ({
         ...m,
         html: m.html.replace(
-          "https://matterofplace.com/apple-touch-icon.png",
-          "/apple-touch-icon.png",
+          "https://matterofplace.com/email/masthead.png",
+          "/email/masthead.png",
         ),
       }),
     },
@@ -107,7 +107,7 @@ describe("lintEmail", () => {
       name: "image with no width",
       rule: "img-width",
       key: "received",
-      change: (m) => ({ ...m, html: m.html.replace('width="36"', 'width="auto"') }),
+      change: (m) => ({ ...m, html: m.html.replace('width="600"', 'width="auto"') }),
     },
     {
       name: "http link",
