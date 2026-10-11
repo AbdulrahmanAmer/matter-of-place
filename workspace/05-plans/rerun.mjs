@@ -13,8 +13,9 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const LIST = resolve(ROOT, process.argv[2] ?? "workspace/05-plans/rerun-2026-10-11.json");
-const LOG = resolve(ROOT, process.argv[3] ?? "workspace/05-plans/logs/rerun-2026-10-11.log");
+const positional = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const LIST = resolve(ROOT, positional[0] ?? "workspace/05-plans/rerun-2026-10-11.json");
+const LOG = resolve(ROOT, positional[1] ?? "workspace/05-plans/logs/rerun-2026-10-11.log");
 const TIMEOUT_MS = 15 * 60 * 1000;
 const TAIL = 20;
 const DEV_PROFILE = process.env.RERUN_DEV_PROFILE !== "0";
@@ -86,7 +87,11 @@ function run(entry) {
 }
 
 const parsed = JSON.parse(readFileSync(LIST, "utf8"));
-const entries = Array.isArray(parsed) ? parsed : (parsed.entries ?? []);
+const all = Array.isArray(parsed) ? parsed : (parsed.entries ?? []);
+// --only slice:step,slice:step runs just those entries (a second pass over corrected commands appends to the same log).
+const onlyArg = process.argv.find((a) => a.startsWith("--only="))?.slice("--only=".length);
+const only = onlyArg ? new Set(onlyArg.split(",").map((s) => s.trim())) : undefined;
+const entries = only ? all.filter((e) => only.has(`${e.slice}:${e.step}`)) : all;
 const results = new Map(); // "slice step" -> pass | fail | skipped
 const mark = (key, verdict) => {
   const before = results.get(key);
@@ -100,6 +105,11 @@ for (const entry of entries) {
   index += 1;
   const key = `${entry.slice} ${entry.step}`;
   const head = `--- [${index}/${entries.length}] ${entry.slice} step ${entry.step} (${entry.source ?? "?"})\ncwd: ${entry.cwd}\ncommand: ${entry.command}`;
+  if (entry.skip) {
+    log(`${head}\nSKIPPED ${entry.skip}`);
+    mark(key, "skipped");
+    continue;
+  }
   if (!entry.command) {
     log(`${head}\nNO COMMAND${entry.note ? ` (${entry.note})` : ""}`);
     mark(key, "skipped");
