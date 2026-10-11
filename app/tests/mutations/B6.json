@@ -375,8 +375,8 @@
     "id": "b6-g2-price-reader",
     "test": "tests/unit/boundaries.test.ts",
     "file": "tests/unit/boundaries.test.ts",
-    "find": "i.file === \"src/server/payments/pricing.ts\" &&",
-    "replace": "i.file === \"src/server/payments/never.ts\" &&",
+    "find": "i.file === \"src/server/payments/pricing.ts\") &&",
+    "replace": "i.file === \"src/server/payments/never.ts\") &&",
     "run": "bunx vitest run --project unit tests/unit/boundaries.test.ts",
     "expect": "FAIL .*> layers \\(R06, G-005\\) > keeps server and domain code away from the browser layers[\\s\\S]*src/server/payments/pricing.ts"
   },

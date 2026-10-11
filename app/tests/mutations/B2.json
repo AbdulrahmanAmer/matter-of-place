@@ -1922,24 +1922,24 @@
     "kind": "sql",
     "test": "tests/db/public-reads.db.test.ts",
     "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
-    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"seven keys\"",
-    "expect": "× returns exactly the seven keys"
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"eight keys\"",
+    "expect": "× returns exactly the eight keys"
   },
   {
     "id": "t-og-static",
     "kind": "sql",
     "test": "tests/db/public-reads.db.test.ts",
     "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    )\n  )\n$$;\n",
-    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"seven keys\"",
-    "expect": "× returns exactly the seven keys"
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"eight keys\"",
+    "expect": "× returns exactly the eight keys"
   },
   {
     "id": "g8-flags-default",
     "kind": "sql",
     "test": "tests/db/public-reads.db.test.ts",
     "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', (select s.value from public.settings s where s.key = 'flags'),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
-    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"seven keys\"",
-    "expect": "× returns exactly the seven keys"
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"eight keys\"",
+    "expect": "× returns exactly the eight keys"
   },
   {
     "id": "g8-site",
