@@ -24,6 +24,11 @@
   margin-bottom: 28px;
 }
 
+/* The same block without its eyebrow and headline (the coming-soon home, where the hero already says both) */
+.editorial-statement.statement-plain {
+  grid-template-columns: 1fr;
+}
+
 /* Long-form story: eyebrow left, serif prose right */
 .story-layout {
   padding-top: 115px;

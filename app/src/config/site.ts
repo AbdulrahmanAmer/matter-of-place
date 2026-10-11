@@ -6,6 +6,8 @@
  * registered entity, social profiles) live in `settings.site`; the nulls here are
  * the local-mode default, so no page ever shows an invented address or telephone number.
  */
+import { legalAddress, parentCompany } from "./legal-identity";
+
 const env = import.meta.env;
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
@@ -17,7 +19,9 @@ export const siteConfig = {
     "An editorial real-estate media platform for exceptional residential property in California, New York and Florida.",
   url: trimTrailingSlash(env.VITE_SITE_URL ?? "https://matterofplace.com"),
   apiBaseUrl: env.VITE_API_BASE_URL ? trimTrailingSlash(env.VITE_API_BASE_URL) : null,
-  parentCompany: "Omnikom",
+  parentCompany,
+  /** The postal address the pages print while `settings.site.legal.address` is empty (ruling H83). */
+  legalAddress,
   locale: "en-US",
   social: {
     instagram: null as string | null,
@@ -42,7 +46,7 @@ export const legalUpdated = "2026-10-08";
  * (`currentRightsVersion`), so editing the terms adds a new version here and a new entry in
  * `tests/unit/fixtures/legal-hashes.json`.
  */
-export const legalVersions = { privacy: "2026-10-08", terms: "2026-10-08" } as const;
+export const legalVersions = { privacy: "2026-10-11", terms: "2026-10-11" } as const;
 
 /** Absolute URL for a site path, used in canonical links and structured data. */
 export const absoluteUrl = (path: string) =>
