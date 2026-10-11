@@ -136,7 +136,7 @@ async function runProperty(
     };
   }
 
-  // STUB(B7 step 8): at 40 claimed rows one request_property_render(p_property_id) call queues the next job for the rows beyond; the function and its generated type come with B7's migration
+  // STUB(post-v1): (B7 closed without it, H84) at 40 claimed rows one request_property_render(p_property_id) call queues the next job for the rows beyond; the function and its generated type come with B7's migration
   const urls = await sign(
     ctx,
     claimed.map(({ path }) => path),
