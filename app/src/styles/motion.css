@@ -67,6 +67,18 @@
   }
 }
 
+@keyframes sheetLower {
+  from {
+    transform: translate3d(0, -24px, 0);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
 @keyframes softRise {
   from {
     opacity: 0;

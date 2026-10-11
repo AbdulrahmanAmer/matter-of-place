@@ -447,3 +447,15 @@
     padding-right: 0;
   }
 }
+
+/* Property page (2026-10-11): the place heading scales with the screen, and the feature and fact rows take a firmer
+   first rule; each row arrives on its own with the site motion. */
+.place-section h2 {
+  font-size: clamp(44px, 5vw, 70px);
+  line-height: 1;
+}
+
+.details-features,
+.details-list {
+  border-top: 1px solid var(--foreground);
+}

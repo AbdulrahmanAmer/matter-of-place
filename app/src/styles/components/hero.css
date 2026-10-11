@@ -334,3 +334,31 @@
     transform: none;
   }
 }
+
+/* The headline keeps the full width; below it the lede and actions sit left and the index right. */
+@media (min-width: 1100px) {
+  .hero-text-split > div {
+    display: contents;
+  }
+
+  .hero-text-split {
+    column-gap: clamp(48px, 6vw, 96px);
+    row-gap: 0;
+  }
+
+  .hero-text-split .eyebrow,
+  .hero-text-split h1 {
+    grid-column: 1 / -1;
+  }
+
+  .hero-text-split .hero-text-lede,
+  .hero-text-split .hero-text-actions {
+    grid-column: 1;
+  }
+
+  .hero-text-split .hero-index {
+    grid-column: 2;
+    grid-row: 3 / span 2;
+    align-self: end;
+  }
+}

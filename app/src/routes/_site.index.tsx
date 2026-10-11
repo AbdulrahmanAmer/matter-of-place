@@ -14,7 +14,7 @@ import { siteConfig } from "../config/site";
 import { editorialQualities, offerings, programmatic } from "../data/exposure";
 import { emptySiteSettings } from "../domain/settings";
 import type { PropertyCard } from "../domain/property";
-import { featuredProperties, heroProperties } from "../lib/catalog";
+import { featuredProperties, heroProperties, propertiesIn } from "../lib/catalog";
 import { padIndex } from "../lib/format";
 import { websiteLd } from "../lib/jsonld";
 import { marketsQuery, propertiesQuery, siteQuery } from "../lib/queries";
@@ -35,6 +35,11 @@ export const Route = createFileRoute("/_site/")({
       featured: featuredProperties(properties).slice(0, 6),
       preview: properties.filter((property) => property.status === "Illustrative").slice(0, 1),
       markets,
+      marketIndex: markets.map((market) => ({
+        slug: market.slug,
+        name: market.name,
+        open: propertiesIn(properties, market.slug).length > 0,
+      })),
       site,
     };
   },
@@ -66,7 +71,7 @@ const howItWorks = [
 ];
 
 function HomePage() {
-  const { hero, featured, preview, markets } = Route.useLoaderData();
+  const { hero, featured, preview, markets, marketIndex } = Route.useLoaderData();
   return (
     <main>
       {hero.length > 0 ? (
@@ -93,13 +98,13 @@ function HomePage() {
               {/* The three markets as an editorial index, the way a magazine's cover lists what is inside. */}
               <nav className="hero-index" aria-label="Markets">
                 <ol>
-                  {markets.map((market, index) => (
+                  {marketIndex.map((market, index) => (
                     <li key={market.slug}>
                       <Link to="/$market" params={{ market: market.slug }}>
                         <span className="hero-index-number">{padIndex(index + 1)}</span>
                         <span className="hero-index-name">{market.name}</span>
                         <span className="hero-index-state">
-                          {market.comingSoon ? "Opening soon" : "Open"}
+                          {market.open ? "Open" : "Opening soon"}
                         </span>
                       </Link>
                     </li>
