@@ -4,20 +4,10 @@
     "kind": "file",
     "test": "tests/unit/consent-notice.test.tsx",
     "file": "src/styles/components/consent.css",
-    "find": "  position: fixed;\n  inset: auto 0 0 0;",
-    "replace": "  position: static;\n  inset: auto 0 0 0;",
+    "find": "  position: fixed;\n  left: 24px;",
+    "replace": "  position: static;\n  left: 24px;",
     "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
-    "expect": "× .*is a bar fixed to the bottom"
-  },
-  {
-    "id": "fix-cb-property-flow",
-    "kind": "file",
-    "test": "tests/unit/consent-notice.test.tsx",
-    "file": "src/components/layout/consent-notice.tsx",
-    "find": "const inFlow = (pathname: string) => pathname.startsWith(\"/property/\");",
-    "replace": "const inFlow = (pathname: string) => pathname.startsWith(\"/propertyx/\");",
-    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
-    "expect": "× .*stays in the footer flow on a property page"
+    "expect": "× .*is a popup fixed to the bottom of the screen"
   },
   {
     "id": "fix-cb-height-cleanup",
@@ -28,16 +18,6 @@
     "replace": "",
     "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
     "expect": "× .*publishes its height as --consent-bar-h only while"
-  },
-  {
-    "id": "fix-cb-height-property",
-    "kind": "file",
-    "test": "tests/unit/consent-notice.test.tsx",
-    "file": "src/components/layout/consent-notice.tsx",
-    "find": "    if (!open || !fixed || node === null) return;",
-    "replace": "    if (!open || node === null) return;",
-    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
-    "expect": "× .*publishes no height on a property page"
   },
   {
     "id": "fix-cb-no-toggle",
@@ -198,5 +178,25 @@
     "replace": "    setOpen(true);",
     "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"stores the choice|stores analytics false\"",
     "expect": "(Allow stores the choice|No thank you stores analytics false)[\\s\\S]*toHaveCount"
+  },
+  {
+    "id": "fix-cb-property-fixed",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/styles/components/consent.css",
+    "find": "  position: fixed;\n  left: 24px;",
+    "replace": "  position: absolute;\n  left: 24px;",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*is the same fixed popup on a property page"
+  },
+  {
+    "id": "fix-cb-height-closed",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "      root.style.removeProperty(\"--consent-bar-h\");",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*publishes its height as --consent-bar-h only while the bar shows"
   }
 ]

@@ -1,6 +1,5 @@
-/* The analytics choice (GP-02, ruling H85). On a property page it is one row at the top of the footer, in normal
-   flow, so it cannot cover the sticky action bar. Everywhere else it is `.consent-bar`, fixed to the bottom of the
-   screen; the component publishes its height as --consent-bar-h while it shows. */
+/* The analytics choice (GP-02, ruling H85): `.consent-bar`, a popup fixed near the bottom of the screen on every page;
+   the component publishes the height it covers as --consent-bar-h while it shows. */
 
 /* The page ends above the bar, and a focused element scrolls into view above it. */
 html {
@@ -133,5 +132,10 @@ a.consent-decline {
     width: 100%;
     padding: 20px var(--container-pad) 20px;
     border-width: 1px 0 0;
+  }
+
+  /* On a property page the phone's sticky action bar (56px) holds the bottom edge: the popup sits on top of it. */
+  body:has(.sticky-actions) .consent-bar {
+    bottom: 56px;
   }
 }

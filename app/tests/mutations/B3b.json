@@ -17,7 +17,7 @@
     "find": "    badge: \"Opening soon\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
-    "expect": "× .*holds 31 strings"
+    "expect": "× .*holds 32 strings"
   },
   {
     "id": "b3b-cv-hype",
@@ -814,20 +814,10 @@
     "kind": "file",
     "test": "tests/unit/consent-notice.test.tsx",
     "file": "src/components/layout/consent-notice.tsx",
-    "find": "<section className=\"consent-notice\" aria-label={t.consent.label}>",
-    "replace": "<section className=\"consent-notice\" role=\"dialog\" aria-label={t.consent.label}>",
+    "find": "<section ref={bar} className={cx(\"consent-notice\", \"consent-bar\")} aria-label={t.consent.label}>",
+    "replace": "<section ref={bar} className={cx(\"consent-notice\", \"consent-bar\")} role=\"dialog\" aria-label={t.consent.label}>",
     "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
     "expect": "× .*shows a region named Cookie notice"
-  },
-  {
-    "id": "b3b-j",
-    "kind": "file",
-    "test": "tests/unit/consent-notice.test.tsx",
-    "file": "src/styles/components/consent.css",
-    "find": ".consent-notice {\n  padding-block: 24px;",
-    "replace": ".consent-notice {\n  position: fixed;\n  bottom: 0;\n  padding-block: 24px;",
-    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
-    "expect": "× .*stays in the footer flow on a property page"
   },
   {
     "id": "b3b-dd",

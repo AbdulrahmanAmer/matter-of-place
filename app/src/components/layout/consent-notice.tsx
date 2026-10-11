@@ -44,14 +44,21 @@ export function ConsentNotice() {
     const node = bar.current;
     if (!open || node === null) return;
     const root = document.documentElement;
+    // The card floats above the bottom edge, so what it covers is everything from its top to the bottom of the screen.
     const publish = () => {
-      root.style.setProperty("--consent-bar-h", `${String(node.offsetHeight)}px`);
+      const covered = Math.ceil(window.innerHeight - node.getBoundingClientRect().top);
+      root.style.setProperty(
+        "--consent-bar-h",
+        `${String(Math.max(covered, node.offsetHeight))}px`,
+      );
     };
     publish();
     const watch = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(publish);
     watch?.observe(node);
+    window.addEventListener("resize", publish);
     return () => {
       watch?.disconnect();
+      window.removeEventListener("resize", publish);
       root.style.removeProperty("--consent-bar-h");
     };
   }, [open]);
