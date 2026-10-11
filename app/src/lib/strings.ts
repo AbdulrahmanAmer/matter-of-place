@@ -6,6 +6,8 @@
  * keys. Editorial copy inside property and market data is authored per record
  * and is not part of this table.
  */
+import { productLine } from "../config/legal-identity";
+
 export type Locale = "en";
 
 export const defaultLocale: Locale = "en";
@@ -56,7 +58,7 @@ const en = {
     },
     statement:
       "Matter of Place is an independent real-estate media and distribution platform focused on exceptional residential property in California, New York and Florida.",
-    line: "A product of Omnikom.",
+    line: productLine,
   },
   common: {
     illustrative: "ILLUSTRATIVE",

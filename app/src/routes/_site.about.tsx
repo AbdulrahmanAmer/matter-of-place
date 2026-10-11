@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { siteConfig } from "../config/site";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { breadcrumbLd } from "../lib/jsonld";
@@ -59,10 +60,10 @@ function AboutPage() {
         </section>
 
         <section className="section-block">
-          <h2>A product of Omnikom</h2>
+          <h2>A product of {siteConfig.parentCompany}</h2>
           <p>
-            Omnikom provides the media and distribution infrastructure beneath the platform. Matter
-            of Place owns the editorial point of view.
+            {siteConfig.parentCompany} provides the media and distribution infrastructure beneath
+            the platform. Matter of Place owns the editorial point of view.
           </p>
         </section>
 

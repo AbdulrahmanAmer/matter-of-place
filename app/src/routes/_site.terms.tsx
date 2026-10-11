@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
-import { legalVersions } from "../config/site";
+import { legalVersions, siteConfig } from "../config/site";
 import { presentLines } from "../domain/settings";
 import { breadcrumbLd } from "../lib/jsonld";
+import { legalIdentity } from "../lib/legal-identity";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
@@ -22,7 +23,9 @@ export const Route = createFileRoute("/_site/terms")({
 });
 
 function TermsPage() {
-  const email = presentLines(useSite().contact.email)[0];
+  const site = useSite();
+  const email = presentLines(site.contact.email)[0];
+  const identity = legalIdentity(site.legal);
   return (
     <main>
       <PageIntro
@@ -31,6 +34,12 @@ function TermsPage() {
         text="These terms are for agents, brokers, architects and owners who submit a property, and for anyone using the site."
       />
       <div className="copy-page">
+        <h2>Who we are</h2>
+        <p>
+          These terms are between you and {identity.entity}, {identity.address}. Matter of Place is
+          a product of {siteConfig.parentCompany}.
+        </p>
+
         <h2>Using this site</h2>
         <p>
           You may read the site and share links to it. Do not copy it in bulk, interfere with it or
@@ -51,8 +60,8 @@ function TermsPage() {
 
         <h2>Submitting a property</h2>
         <p>
-          A submission is a request for editorial consideration. Acceptance is not promised. The
-          review time is the one stated on the <Link to="/exposure">exposure page</Link>.
+          A submission is a request for editorial consideration. Acceptance is not promised.
+          Editorial review usually takes up to five business days.
         </p>
 
         <h2 id="rights-to-photographs">Rights to photographs</h2>

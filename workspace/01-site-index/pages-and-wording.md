@@ -211,7 +211,7 @@ All property-specific text comes from src/data/properties.ts fields noted.
 2. ContactForm (see Forms).
 3. Aside, three blocks:
    - Eyebrow PROPERTY SEEKERS. H3 "Ask about a place." P: "Each property page has its own inquiry paths: private showings, questions, similar properties, and selling first. Start there if you have a specific house in mind." Link "Browse properties" -> `/properties`.
-   - Eyebrow "OWNERS, AGENTS & DEVELOPERS". H3 "Present a property." P: "Submissions go through a short guided form. Every property is reviewed before a paid feature or campaign is agreed." Link "Submit a property" -> `/submit`.
+   - Eyebrow "OWNERS AND AGENTS". H3 "Present a property." P: "Submissions go through a short guided form. Every property is reviewed before a paid feature or campaign is agreed." Link "Submit a property" -> `/submit`.
    - Eyebrow MARKETS. H3 "California, Florida and New York." P: "Three markets, read closely, each with its own guide." Then, only if siteConfig.contact.email or phone is set: mailto/tel links. Both are null in src/config/site.ts, so currently nothing renders.
 
 ### `/faq` (src/routes/faq.tsx)

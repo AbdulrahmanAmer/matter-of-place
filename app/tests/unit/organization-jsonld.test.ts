@@ -22,7 +22,7 @@ describe("organizationJsonLd", () => {
       name: siteConfig.name,
       url: siteConfig.url,
       description: siteConfig.description,
-      parentOrganization: { "@type": "Organization", name: "Omnikom" },
+      parentOrganization: { "@type": "Organization", name: "Omnikom LLC" },
     });
     expect(JSON.stringify(node)).not.toContain("null");
   });
@@ -64,7 +64,7 @@ describe("organizationJsonLd", () => {
     for (const site of [emptySiteSettings, full]) {
       expect(organizationJsonLd(site).parentOrganization).toEqual({
         "@type": "Organization",
-        name: "Omnikom",
+        name: "Omnikom LLC",
       });
     }
   });

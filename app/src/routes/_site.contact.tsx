@@ -48,7 +48,7 @@ function ContactPage() {
             </TextLink>
           </div>
           <div>
-            <p className="eyebrow">OWNERS, AGENTS & DEVELOPERS</p>
+            <p className="eyebrow">OWNERS AND AGENTS</p>
             <h3>Present a property.</h3>
             <p>
               Submissions go through a short guided form. Every property is reviewed before a paid
