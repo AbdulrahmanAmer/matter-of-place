@@ -5,11 +5,13 @@ import {
   redirectRowSchema,
   redirectSchema,
   type NotificationsInput,
+  type ProductsPreview,
   type RedirectArchived,
   type RedirectPutInput,
   type RedirectRow,
   type SettingsAnswer,
 } from "../../domain/admin-settings.ts";
+import { productsReadSchema, type ProductsSetting } from "../../domain/exposure.ts";
 import { invoiceSettingsSchema } from "../../domain/payments.ts";
 import {
   emptySiteSettings,
@@ -30,6 +32,7 @@ import {
   type InvoiceSettings,
 } from "../payments/invoice-settings.ts";
 import { getPublicState } from "../public/state.ts";
+import { previewProducts, putProducts, seedProducts } from "./products.ts";
 import { siteReadiness } from "./readiness.ts";
 
 // `settings.site` (B16). Reads go through the public state the Worker already shares, never the table
@@ -93,7 +96,8 @@ export async function applySiteSettings(db: Db, input: unknown, writer: SiteWrit
 }
 
 // Screen 24 (B7 step 15). Every function checks its matrix action first (admin, people only, a recent sign-in);
-// the identity and invoice writes go through B16 and B6, the other two keys through `put_setting`, which audits.
+// the identity and invoice writes go through B16 and B6, the plans through B18's `settings_put_products`, the other
+// two keys through `put_setting`, which audits.
 
 const SCREEN_NOTE = "admin: settings";
 const SETTINGS_KEYS = [
@@ -102,9 +106,10 @@ const SETTINGS_KEYS = [
   "coming_soon_global",
   "notifications",
   "agent_daily_limits",
+  "products",
 ];
 
-/** `GET settings`: the five keys in one select, and the readiness list of B16 and B6 with each name once. */
+/** `GET settings`: the six keys in one select, and the readiness list of B16 and B6 with each name once. */
 export async function getSettings(actor: AdminActor, db: Db): Promise<SettingsAnswer> {
   authorize(actor, "settings.get");
   const { data, error } = await db.from("settings").select("key, value").in("key", SETTINGS_KEYS);
@@ -121,6 +126,10 @@ export async function getSettings(actor: AdminActor, db: Db): Promise<SettingsAn
       recipients: [],
     },
     agent_daily_limits: dailyLimitsSchema.safeParse(valueOf("agent_daily_limits")).data ?? null,
+    products: {
+      current: productsReadSchema.safeParse(valueOf("products")).data ?? null,
+      defaults: { plans: seedProducts() },
+    },
     readiness: [...new Set(readiness)],
   };
 }
@@ -154,6 +163,31 @@ export async function putInvoice(
     requestId: actor.requestId,
     note: SCREEN_NOTE,
   });
+}
+
+/** `PUT settings/products`: one `settings_put_products` call that audits `settings.products_put` (B18, H80). */
+export async function putProductsSetting(
+  actor: AdminActor,
+  db: Db,
+  input: unknown,
+): Promise<ProductsSetting> {
+  authorize(actor, "settings.products_put");
+  return putProducts(db, input, {
+    id: actor.userId,
+    kind: actor.kind,
+    requestId: actor.requestId,
+    note: SCREEN_NOTE,
+  });
+}
+
+/** `POST settings/products/preview`: the dry run of the plans; it reads the stored row and writes nothing. */
+export async function previewProductsSetting(
+  actor: AdminActor,
+  db: Db,
+  input: unknown,
+): Promise<ProductsPreview> {
+  authorize(actor, "settings.products_preview");
+  return previewProducts(db, input);
 }
 
 async function putSetting(actor: AdminActor, db: Db, key: string, value: Json): Promise<void> {

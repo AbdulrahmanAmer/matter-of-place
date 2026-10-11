@@ -292,5 +292,203 @@
     "sql": "-- down:\n--   delete from public.settings where key = 'products';\n--   drop trigger settings_bump_catalog_version on public.settings;\n--   drop trigger settings_bump_catalog_version_del on public.settings;\n--   create trigger settings_bump_catalog_version\n--   after insert or update on public.settings\n--   for each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\n--   execute function public.tg_bump_catalog_version();\n--   create trigger settings_bump_catalog_version_del\n--   after delete on public.settings\n--   for each row when (old.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\n--   execute function public.tg_bump_catalog_version();\n--   and the seven-key public_state() again, as supabase/sql/functions/public_state.sql held it before this file:\n--   create or replace function public.public_state()\n--   returns jsonb\n--   language sql\n--   stable\n--   security definer\n--   set search_path = ''\n--   as $$\n--     select jsonb_build_object(\n--       'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n--       'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n--       'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n--       'coming_soon_markets', coalesce(\n--         (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n--         '{}'::jsonb\n--       ),\n--       'site', (\n--         select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n--         from public.settings s\n--         where s.key = 'site'\n--       ),\n--       'illustrative_content', coalesce(\n--         (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n--         false\n--       ),\n--       'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n--     )\n--   $$;\nset lock_timeout = '5s';\n\n-- H80: the Property Exposure plans are a setting an owner edits without a deploy. `products` is a public key (a page\n-- renders it), so it joins the key list of the two triggers that raise catalog_version (P-041, G21). The triggers\n-- are dropped and created again because the `when` of a trigger cannot be altered.\ndrop trigger settings_bump_catalog_version on public.settings;\ndrop trigger settings_bump_catalog_version_del on public.settings;\ncreate trigger settings_bump_catalog_version\nafter insert or update on public.settings\nfor each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static', 'products'))\nexecute function public.tg_bump_catalog_version();\ncreate trigger settings_bump_catalog_version_del\nafter delete on public.settings\nfor each row when (old.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static', 'products'))\nexecute function public.tg_bump_catalog_version();\n\n-- G39 amended by H80: public_state() has eight keys; `products` is the stored value, null when the row is missing.\ncreate or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb),\n    'products', null::jsonb\n  )\n$$;\n\n-- The seed is the four rows of `offerings` in src/data/exposure.ts with each price in whole dollars;\n-- tests/unit/products-seed.test.ts requires this literal to equal them. A replay conflicts and changes nothing, so it\n-- never overwrites an edit. A first insert fires the trigger above once, so the plans reach the next read.\ninsert into public.settings (key, value)\nvalues (\n  'products',\n  '{\n  \"plans\": [\n    {\n      \"id\": \"feature\",\n      \"name\": \"The Feature\",\n      \"price\": 295,\n      \"line\": \"Editorial presence.\",\n      \"note\": null,\n      \"items\": [\n        \"Dedicated Matter of Place property page\",\n        \"Professionally edited editorial narrative\",\n        \"Architecture, design and location context\",\n        \"Curated image sequencing\",\n        \"Matter of Place social carousel\",\n        \"Collaborator invitation where applicable\",\n        \"Agent or brokerage attribution\",\n        \"Direct inquiry routing\",\n        \"Search-indexable permanent URL\",\n        \"Placement in the California, New York or Florida collection\"\n      ],\n      \"cta\": \"Submit a Property\",\n      \"recommended\": false\n    },\n    {\n      \"id\": \"reach\",\n      \"name\": \"The Reach\",\n      \"price\": 695,\n      \"line\": \"Editorial presence, expanded through precision distribution.\",\n      \"note\": null,\n      \"items\": [\n        \"Everything in The Feature\",\n        \"Matter of Place Stories\",\n        \"Newsletter inclusion\",\n        \"Priority editorial scheduling\",\n        \"Homepage or market-page rotation\",\n        \"Additional social distribution\",\n        \"Programmatic campaign planning\",\n        \"Audience-targeting setup\",\n        \"Campaign reporting framework\",\n        \"Option to add programmatic media spend\"\n      ],\n      \"cta\": \"Expand the Reach\",\n      \"recommended\": true\n    },\n    {\n      \"id\": \"campaign\",\n      \"name\": \"The Campaign\",\n      \"price\": 1495,\n      \"line\": \"A deeper, multi-channel property campaign.\",\n      \"note\": \"Recommended media investment: $500 to $2,500+\",\n      \"items\": [\n        \"Everything in The Reach\",\n        \"Deeper editorial research and an expanded property story\",\n        \"Multi-post editorial treatment\",\n        \"Short-form video or reel from supplied assets\",\n        \"Standalone property email\",\n        \"Priority homepage positioning\",\n        \"A 10 to 14 day campaign window\",\n        \"Multiple creative variants where appropriate\",\n        \"Programmatic media and retargeting strategy\",\n        \"Campaign optimization and post-campaign reporting\"\n      ],\n      \"cta\": \"Build a Campaign\",\n      \"recommended\": false\n    },\n    {\n      \"id\": \"five-features\",\n      \"name\": \"Five Features\",\n      \"price\": 1250,\n      \"line\": \"For agents, teams and brokerages with several qualifying properties.\",\n      \"note\": \"$250 per property\",\n      \"items\": [\n        \"Five Feature credits\",\n        \"No expiration during the initial launch period\",\n        \"Submit properties individually\",\n        \"Every property remains subject to editorial approval\",\n        \"Declined properties do not use a credit\",\n        \"Distribution upgrades available per property\"\n      ],\n      \"cta\": \"Secure Five Features\",\n      \"recommended\": false\n    }\n  ]\n}'::jsonb\n)\non conflict (key) do nothing;\n",
     "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"products is the stored value\"",
     "expect": "× .*products is the stored value as it is"
+  },
+  {
+    "id": "b18-g2-humanonly",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/lib/permissions/settings.ts",
+    "find": "  { action: \"settings.products_put\", group: \"settings\", ...guarded },",
+    "replace": "  { action: \"settings.products_put\", group: \"settings\", ...guarded, humanOnly: false },",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"refuses an agent key\"",
+    "expect": "× .*refuses an agent key with 403 human_only"
+  },
+  {
+    "id": "b18-g2-authorize-after-parse",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  authorize(actor, \"settings.products_put\");\n  return putProducts(db, input, {",
+    "replace": "  const parsed = productsReadSchema.parse(input);\n  authorize(actor, \"settings.products_put\");\n  return putProducts(db, parsed, {",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"refuses an agent key\"",
+    "expect": "× .*refuses an agent key with 403 human_only"
+  },
+  {
+    "id": "b18-g2-editor",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/lib/permissions/settings.ts",
+    "find": "  { action: \"settings.products_preview\", group: \"settings\", ...guarded },",
+    "replace": "  { action: \"settings.products_preview\", group: \"settings\", ...guarded, roles: [\"admin\", \"managing_editor\"] },",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"refuses an editor\"",
+    "expect": "× .*refuses an editor with 403 forbidden"
+  },
+  {
+    "id": "b18-g2-recent",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/lib/permissions/settings.ts",
+    "find": "  { action: \"settings.products_put\", group: \"settings\", ...guarded },",
+    "replace": "  { action: \"settings.products_put\", group: \"settings\", ...guarded, recentAuth: false },",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"reauth_required\"",
+    "expect": "× .*gets 401 reauth_required from both routes"
+  },
+  {
+    "id": "b18-g2-put-raw",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "    p_value: value,",
+    "replace": "    p_value: input,",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"validated value\"",
+    "expect": "× .*calls settings_put_products once with the validated value"
+  },
+  {
+    "id": "b18-g2-put-unchecked",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "  const value = productsOrThrow(input);",
+    "replace": "  const value = input as ProductsSetting;",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"refuses a body with\"",
+    "expect": "× .*refuses a body with three plans"
+  },
+  {
+    "id": "b18-g2-put-error",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "    p_note: writer.note,\n  });\n  if (error !== null) throw fromRpcError(error);",
+    "replace": "    p_note: writer.note,\n  });\n  if (error !== null) throw error;",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"refusal as 422\"",
+    "expect": "× .*answers the function's refusal as 422 validation"
+  },
+  {
+    "id": "b18-g2-preview-writes",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "  const stored = (await readProducts(db)) ?? seedProducts();",
+    "replace": "  await putProducts(db, input, { id: \"\", kind: \"human\", requestId: \"\", note: \"\" });\n  const stored = (await readProducts(db)) ?? seedProducts();",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"makes no rpc call\"",
+    "expect": "× .*makes no rpc call, and lists a renamed bound plan"
+  },
+  {
+    "id": "b18-g2-preview-seed",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "  const stored = (await readProducts(db)) ?? seedProducts();",
+    "replace": "  const stored = (await readProducts(db)) ?? plans;",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"compares with the seed\"",
+    "expect": "× .*compares with the seed when nothing is stored"
+  },
+  {
+    "id": "b18-g2-preview-unchecked",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "  const { plans } = productsOrThrow(input);",
+    "replace": "  const { plans } = input as ProductsSetting;",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"reads nothing\"",
+    "expect": "× .*refuses an invalid body with the same 422 and reads nothing"
+  },
+  {
+    "id": "b18-g2-settings-current",
+    "test": "tests/unit/settings-products.service.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "      current: productsReadSchema.safeParse(valueOf(\"products\")).data ?? null,",
+    "replace": "      current: null,",
+    "run": "bunx vitest run --project unit tests/unit/settings-products.service.test.ts -t \"as current\"",
+    "expect": "× .*answers the stored plans as current and the seed as defaults"
+  },
+  {
+    "id": "b18-g2-no-add",
+    "test": "src/admin/settings/ProductsSection.test.tsx",
+    "file": "src/admin/settings/ProductsSection.tsx",
+    "find": "          Start from the original plans",
+    "replace": "          Add a plan",
+    "run": "bunx vitest run --project component src/admin/settings/ProductsSection.test.tsx -t \"fixed ids\"",
+    "expect": "× .*draws the four plans with their fixed ids"
+  },
+  {
+    "id": "b18-g2-move",
+    "test": "src/admin/settings/ProductsSection.test.tsx",
+    "file": "src/admin/settings/ProductsSection.tsx",
+    "find": "    next.splice(index + by, 0, plan);",
+    "replace": "    next.splice(index, 0, plan);",
+    "run": "bunx vitest run --project component src/admin/settings/ProductsSection.test.tsx -t \"moves a plan down\"",
+    "expect": "× .*moves a plan down, flags another as recommended"
+  },
+  {
+    "id": "b18-g2-save-without-preview",
+    "test": "src/admin/settings/ProductsSection.test.tsx",
+    "file": "src/admin/settings/ProductsSection.tsx",
+    "find": "disabled={save.isPending || !previewMatches}",
+    "replace": "disabled={save.isPending}",
+    "run": "bunx vitest run --project component src/admin/settings/ProductsSection.test.tsx -t \"keeps Save disabled\"",
+    "expect": "× .*keeps Save disabled until a preview of exactly this form"
+  },
+  {
+    "id": "b18-g2-confirm",
+    "test": "src/admin/settings/ProductsSection.test.tsx",
+    "file": "src/admin/settings/ProductsSection.tsx",
+    "find": "        if (priceChanged) setConfirming(true);",
+    "replace": "        if (false) setConfirming(true);",
+    "run": "bunx vitest run --project component src/admin/settings/ProductsSection.test.tsx -t \"asks before saving\"",
+    "expect": "× .*asks before saving a changed price"
+  },
+  {
+    "id": "b18-g2-field-issues",
+    "test": "src/admin/settings/ProductsSection.test.tsx",
+    "file": "src/admin/settings/ProductsSection.tsx",
+    "find": "[issue.path.join(\".\"), issue.message]",
+    "replace": "[\"plans\", issue.message]",
+    "run": "bunx vitest run --project component src/admin/settings/ProductsSection.test.tsx -t \"issues by field\"",
+    "expect": "× .*shows the issues by field"
+  },
+  {
+    "id": "b18-g2-keep-typed",
+    "test": "src/admin/settings/ProductsSection.test.tsx",
+    "file": "src/admin/settings/ProductsSection.tsx",
+    "find": "      onSettled: () => {\n        setConfirming(false);",
+    "replace": "      onSettled: () => {\n        setDraft(draftOf((products.current ?? products.defaults).plans));\n        setConfirming(false);",
+    "run": "bunx vitest run --project component src/admin/settings/ProductsSection.test.tsx -t \"answers 503\"",
+    "expect": "× .*keeps what the admin typed when the save answers 503"
+  },
+  {
+    "id": "b18-g2-no-audit",
+    "test": "tests/db/settings-products.db.test.ts",
+    "file": "supabase/migrations/20261011042604_fn_settings_put_products.sql",
+    "find": "  perform public.write_audit(\n    p_actor, p_actor_kind, 'settings.products_put', 'settings.products', null, v_before, p_value, p_request_id, p_note\n  );",
+    "replace": "  perform 1;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/settings-products.db.test.ts -t \"saves the plans\"",
+    "expect": "× .*saves the plans, writes one audit row"
+  },
+  {
+    "id": "b18-g2-sql-count",
+    "test": "tests/db/settings-products.db.test.ts",
+    "file": "supabase/migrations/20261011042604_fn_settings_put_products.sql",
+    "find": "  if jsonb_array_length(v_plans) <> 4 or v_bound <> 4 then",
+    "replace": "  if jsonb_array_length(v_plans) > 4 or v_bound < 3 then",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/settings-products.db.test.ts -t \"refuses three plans\"",
+    "expect": "× .*refuses three plans with 'adding or removing a plan needs a migration'"
+  },
+  {
+    "id": "b18-g2-before",
+    "test": "tests/db/settings-products.db.test.ts",
+    "file": "supabase/migrations/20261011042604_fn_settings_put_products.sql",
+    "find": "  select s.value into v_before from public.settings s where s.key = 'products' for update;",
+    "replace": "  v_before := null;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/settings-products.db.test.ts -t \"two saves in a row\"",
+    "expect": "× .*keeps the before value of each of two saves in a row"
+  },
+  {
+    "id": "b18-g2-grant",
+    "test": "tests/db/settings-products.db.test.ts",
+    "file": "supabase/migrations/20261011042604_fn_settings_put_products.sql",
+    "find": "grant execute on function public.settings_put_products(jsonb, uuid, public.actor_kind, text, text) to service_role;",
+    "replace": "grant execute on function public.settings_put_products(jsonb, uuid, public.actor_kind, text, text) to service_role, authenticated;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/settings-products.db.test.ts -t \"anon or authenticated\"",
+    "expect": "× .*cannot be executed by anon or authenticated"
+  },
+  {
+    "id": "b18-g2-sql-plan-set",
+    "test": "tests/db/settings-products.db.test.ts",
+    "file": "supabase/migrations/20261011042604_fn_settings_put_products.sql",
+    "find": "  if jsonb_array_length(v_plans) <> 4 or v_bound <> 4 then",
+    "replace": "  if jsonb_array_length(v_plans) < 4 or v_bound < 4 then",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/settings-products.db.test.ts -t \"verdict productsSettingSchema\"",
+    "expect": "× .*gives every value of the table the verdict productsSettingSchema"
   }
 ]

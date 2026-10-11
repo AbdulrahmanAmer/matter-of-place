@@ -77,6 +77,8 @@ settings.coming_soon_put           AD | H R
 settings.notifications_put         AD | H R
 settings.redirects_get             AD | H R
 settings.redirects_put             AD | H R
+settings.products_put              AD | H R
+settings.products_preview          AD | H R
 audit.list                         CE AD
 audit.subject_requests             CE AD
 audit.subject_export               AD | H R
@@ -220,7 +222,7 @@ describe("the authorization matrix", () => {
   it("refuses an agent on every team and settings action, whatever its role and scope", () => {
     const agent = actor("agent", ["admin"], ["team", "settings"]);
     const guarded = matrix.filter((entry) => ["team", "settings"].includes(entry.group));
-    expect(guarded).toHaveLength(17);
+    expect(guarded).toHaveLength(19);
     expect(guarded.map((entry) => refusalOf(agent, entry.action))).toEqual(
       guarded.map(() => "human_only"),
     );

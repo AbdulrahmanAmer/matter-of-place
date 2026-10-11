@@ -1,4 +1,4 @@
-import type { Offering, ProgrammaticTerms } from "../domain/exposure";
+import type { Offering, ProgrammaticTerms } from "../domain/exposure.ts";
 
 /**
  * Owner-approved Property Exposure schedule. The home page and the Exposure
