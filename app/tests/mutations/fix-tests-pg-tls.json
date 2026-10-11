@@ -1,0 +1,47 @@
+[
+  {
+    "id": "tls-a-bare-fixture",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "tests/fixtures/db.ts",
+    "find": "new pg.Client(pgClientConfig(dbUrl()))",
+    "replace": "new pg.Client({ connectionString: dbUrl() })",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*builds every test client from pgClientConfig"
+  },
+  {
+    "id": "tls-b-bare-dev-lock",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "tests/fixtures/dev-lock.ts",
+    "find": "new pg.Client(pgClientConfig(url))",
+    "replace": "new pg.Client({ connectionString: url })",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*builds every test client from pgClientConfig"
+  },
+  {
+    "id": "tls-c-no-import-spec",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "tests/e2e/live-forms.spec.ts",
+    "find": "import { pgClientConfig } from \"../../scripts/lib/pg-connect.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*imports the helper in each test and fixture"
+  },
+  {
+    "id": "tls-d-no-import-db-test",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "tests/db/render-claim.db.test.ts",
+    "find": "import { pgClientConfig } from \"../../scripts/lib/pg-connect.mjs\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*imports the helper in each test and fixture"
+  },
+  {
+    "id": "tls-e-finder-blind",
+    "test": "tests/unit/pg-connect.test.ts",
+    "file": "tests/unit/pg-connect.test.ts",
+    "find": "const TESTS_SKIP = new Set([\"unit/pg-connect.test.ts\"]);",
+    "replace": "const TESTS_SKIP = new Set([\"fixtures/db.ts\"]);",
+    "run": "bunx vitest run --project unit tests/unit/pg-connect.test.ts",
+    "expect": "× .*finds the tests and fixtures that open a client"
+  }
+]

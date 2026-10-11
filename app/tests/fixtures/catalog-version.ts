@@ -1,4 +1,5 @@
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs";
 
 // The bump writes the settings row, so the guard runs before the first one of a process, not before each of up to five.
@@ -15,7 +16,7 @@ export async function bumpCatalogVersion(): Promise<void> {
   await checked;
   const url = process.env["DEV_DB_URL"];
   if (url === undefined || url === "") throw new Error("refusing: DEV_DB_URL is not set");
-  const db = new pg.Client({ connectionString: url });
+  const db = new pg.Client(pgClientConfig(url));
   await db.connect();
   try {
     await db.query("select public.bump_catalog_version()");

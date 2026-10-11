@@ -4,6 +4,7 @@
 // connections and so commits rows keyed `test:<uuid>` that its cleanup removes (F22).
 import { randomUUID } from "node:crypto";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { describe, expect, it } from "vitest";
 import { asRole, committed, createStaffUser, withRollback, type Db } from "../fixtures/db";
 import { publishedProperty } from "../fixtures/factories";
@@ -317,7 +318,7 @@ describe("claim_job", () => {
           "select public.enqueue_job('test.job', '{}', $1, p_run_after => now() + interval '1 hour') as id",
           [key],
         );
-        const b = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
+        const b = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
         await b.connect();
         try {
           await a.query("begin");
