@@ -468,3 +468,46 @@
     letter-spacing: 0.08em;
   }
 }
+
+/* Launch upgrade of the fields (2026-10-11): labels in the small caps of the eyebrows, a larger entry line, and a focus
+   that thickens the rule under the field instead of a box. */
+.field {
+  gap: 10px;
+}
+
+/* Only the label text takes the small caps; the error under the field keeps its plain reading size. */
+.field > label > span:first-child {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.field input,
+.field select {
+  padding: 14px 0 12px;
+  font-size: 1.05rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--foreground);
+}
+
+.field textarea {
+  padding: 16px;
+  font-size: 1rem;
+  line-height: 1.6;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.field input:focus,
+.field select:focus {
+  box-shadow: 0 1px 0 var(--foreground);
+}
+
+.field textarea:focus {
+  border-color: var(--foreground);
+}

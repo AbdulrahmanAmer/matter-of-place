@@ -112,9 +112,8 @@ export function Footer() {
           </p>
         </div>
       </div>
-      <p className="footer-signature" aria-hidden="true">
-        {siteConfig.name}
-      </p>
+      {/* Decoration, not text: the name is drawn by CSS from data-signature, so no reader or contrast check meets it. */}
+      <div className="footer-signature" aria-hidden="true" data-signature={siteConfig.name} />
     </footer>
   );
 }

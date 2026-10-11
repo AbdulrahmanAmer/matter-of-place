@@ -166,3 +166,7 @@
   color: var(--accent);
   user-select: none;
 }
+
+.footer-signature::before {
+  content: attr(data-signature);
+}

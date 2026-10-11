@@ -362,3 +362,64 @@
 .faq-page {
   padding-top: clamp(64px, 7vw, 112px);
 }
+
+/* Launch upgrade of contact (2026-10-11): the form takes the wider column under the band, the three notes stand beside
+   it as ruled editorial entries, numbered like the steps of the home page. */
+.contact-layout {
+  padding-top: clamp(64px, 7vw, 112px);
+  padding-bottom: clamp(96px, 11vw, 168px);
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: clamp(48px, 7vw, 120px);
+}
+
+.contact-form {
+  gap: 28px;
+}
+
+.contact-meta {
+  gap: 0;
+  counter-reset: contact-note;
+  border-top: 1px solid var(--foreground);
+}
+
+.contact-meta > div {
+  counter-increment: contact-note;
+  position: relative;
+  padding: 32px 0 36px 56px;
+  border-bottom: 1px solid var(--border);
+}
+
+.contact-meta > div::before {
+  content: counter(contact-note, decimal-leading-zero);
+  position: absolute;
+  top: 30px;
+  left: 0;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--muted-foreground);
+}
+
+.contact-meta h3 {
+  margin: 10px 0 12px;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 2.6vw, 38px);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.contact-details a {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  color: var(--foreground);
+}
+
+@media (max-width: 900px) {
+  .contact-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-meta > div {
+    padding-left: 44px;
+  }
+}
