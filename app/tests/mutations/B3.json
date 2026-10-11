@@ -810,8 +810,8 @@
     "kind": "file",
     "test": "tests/unit/cache.test.ts",
     "file": "src/server/public/cache.ts",
-    "find": "  const { pathname } = new URL(request.url);\n  const cache = edgeCache();",
-    "replace": "  const pathname = new URL(request.url).pathname + new URL(request.url).search;\n  const cache = edgeCache();",
+    "find": "  const url = new URL(request.url);\n  const cache = edgeCache();",
+    "replace": "  const url = new URL(request.url);\n  url.pathname += url.search;\n  const cache = edgeCache();",
     "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
     "expect": "× .*drops the query string from the key"
   },
