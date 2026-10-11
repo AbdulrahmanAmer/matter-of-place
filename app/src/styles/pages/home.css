@@ -217,3 +217,9 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 700px) {
+  .finder-examples button {
+    min-height: 44px;
+  }
+}
