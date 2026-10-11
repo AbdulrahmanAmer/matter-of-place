@@ -2428,9 +2428,9 @@
     "file": "scripts/check-seo.ts",
     "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts -t \"allowedUntil\"",
     "id": "b13-h64-allow-legal",
-    "find": "pattern: /^status: \\/(?:privacy|terms|accessibility) answered 404$/,",
-    "replace": "pattern: /^status: \\/(?:privacy|terms) answered 404$/,",
-    "expect": "allows the legal pages' 404"
+    "find": "export const ALLOWED_UNTIL: readonly { pattern: RegExp; until: string }[] = [];",
+    "replace": "export const ALLOWED_UNTIL: readonly { pattern: RegExp; until: string }[] = [{ pattern: /og:image/, until: \"B17\" }];",
+    "expect": "× .*allows none of the old gaps"
   },
   {
     "test": "tests/unit/check-seo.test.ts",
