@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-11 04:30 (UTC+3)",
-  "now": "Sunday 04:30, 11 October. 230 of 259 steps accepted. On main tonight: H1 hardening 1 to 10, the four medium security findings fixed, the deno fixes, the board phone layout, the B14 and H1 follow-ups, and the merge guard hook (a night of merges had skipped the gate; main is deployed again since 01:00). Running: H2 acceptance panel step 2 on this laptop; on the Dell, the proof re-run pass for the 84 reviewer-only steps, B18 (plan prices editable from the admin portal, 3 steps), and the fix for PR 280 (tests over TLS). Waiting to merge: 281 (leftovers, H79), 282 (visual pass: header, footer, tap sizes). Next: the coming-soon flip on the dev site for the operator to look at, H1-18 reset and reseed, then L1 with the operator items: backup key, legal entity and address, uptime account, Workers plan, DNS, the social apps.",
+  "updated": "2026-10-11 06:20 (UTC+3)",
+  "now": "Sunday 06:20. 230 of 259 steps accepted. Closed by the operator this morning: the backup key is escrowed, the domain’s nameservers are on Cloudflare, the legal entity is Omnikom LLC, Cloudflare stays on Free (H83). On main since 04:30: 283 (merge guard), 286, 284, 285, 289, 281 (H79 leftovers), 291 (gitleaks), 280 (tests over TLS). Merging next: 290 (cache keys carry host and environment: the production Worker had served pages rendered by the dev Worker), 282 (visual pass), 287 (re-run pass 2: 64 pass, 10 fail, 9 skipped). Running: H2 steps 2 and 3, L1 steps 0, 2, 3 (this laptop); B18 prices in the admin, the B7 person-invoice fix and the proof faults (the Dell). Left for the operator before launch: the uptime account only. After launch: a postal address for the newsletter, the social accounts.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -420,19 +420,15 @@
   "waiting": [
     {
       "what": "Sign up at uptimerobot.com",
-      "why": "Then the orchestrator sets up the uptime monitor. Nothing is held back today."
+      "why": "Then the orchestrator sets up the uptime monitor (H1-44). Nothing else waits on it."
     },
     {
-      "what": "Store the backup private key offline",
-      "why": "Asked for when B1b step 8 creates it."
+      "what": "A postal address for the newsletter",
+      "why": "Every Place Notes email must carry one (CAN-SPAM). A PO box or registered agent address is enough. The site launches without it; the newsletter waits (H83)."
     },
     {
-      "what": "Legal entity, address and payment methods",
-      "why": "Needed in the last phase, for invoices and the legal pages."
-    },
-    {
-      "what": "X, LinkedIn and Meta apps",
-      "why": "Needed at the end. Posting is built and tested against stubs until then."
+      "what": "X, LinkedIn and Meta accounts",
+      "why": "After launch. X posts through a browser agent (H81); LinkedIn page through the partner’s profile; Instagram exists."
     },
     {
       "what": "Your word to register the captions task on this laptop",
