@@ -40,6 +40,7 @@ const UNSET: PublicSite = {
   legal: { entity: null, address: null },
   social: { instagram: null, x: null, linkedin: null },
   illustrativeContent: false,
+  products: [],
 };
 const SET: PublicSite = {
   contact: { email: "hello@example.test", phone: "+1 555 010 0100", privacy_email: null },
@@ -50,6 +51,7 @@ const SET: PublicSite = {
     linkedin: "https://www.linkedin.com/company/exampletest",
   },
   illustrativeContent: false,
+  products: [],
 };
 const noop = () => undefined;
 const LINKS_OF_SET_VALUES =

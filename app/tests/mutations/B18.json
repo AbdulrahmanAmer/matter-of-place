@@ -246,8 +246,8 @@
     "id": "b18-g1-boundary",
     "test": "tests/unit/boundaries.test.ts",
     "file": "tests/unit/boundaries.test.ts",
-    "find": "i.file === \"src/server/settings/products.ts\" ||",
-    "replace": "i.file === \"src/server/settings/products-none.ts\" ||",
+    "find": "i.file === \"src/server/settings/products.ts\" && under(i.resolved, \"src/data/exposure\");",
+    "replace": "i.file === \"src/server/settings/products-none.ts\" && under(i.resolved, \"src/data/exposure\");",
     "run": "bunx vitest run --project unit tests/unit/boundaries.test.ts",
     "expect": "× .*keeps server and domain code away from the browser layers"
   },
@@ -490,5 +490,241 @@
     "replace": "  if jsonb_array_length(v_plans) < 4 or v_bound < 4 then",
     "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/settings-products.db.test.ts -t \"verdict productsSettingSchema\"",
     "expect": "× .*gives every value of the table the verdict productsSettingSchema"
+  },
+  {
+    "id": "b18-g3-table-read",
+    "test": "tests/unit/products-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  const state = await getPublicState(db);\n  return {\n    ...siteSettingsSchema.parse(state.site),",
+    "replace": "  const state = await getPublicState(db);\n  await db.from(\"settings\").select(\"value\").eq(\"key\", \"products\");\n  return {\n    ...siteSettingsSchema.parse(state.site),",
+    "run": "bunx vitest run --project unit tests/unit/products-read-path.test.ts",
+    "expect": "FAIL .*> the plans on the site read path > makes one public_state call and no table read"
+  },
+  {
+    "id": "b18-g3-seed-always",
+    "test": "tests/unit/products-render.test.tsx",
+    "file": "src/server/settings/service.ts",
+    "find": "    products: plansOf(state),",
+    "replace": "    products: seedProducts(),",
+    "run": "bunx vitest run --project component tests/unit/products-render.test.tsx",
+    "expect": "FAIL .*> a price changed in settings.products > changes every surface through the site read"
+  },
+  {
+    "id": "b18-g3-read-stored",
+    "test": "tests/unit/products-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    products: plansOf(state),",
+    "replace": "    products: [...plansOf(state)].reverse(),",
+    "run": "bunx vitest run --project unit tests/unit/products-read-path.test.ts",
+    "expect": "FAIL .*> the plans on the site read path > serves the stored plans, in their order"
+  },
+  {
+    "id": "b18-g3-log-once",
+    "test": "tests/unit/products-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  if (known !== undefined) return known;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/products-read-path.test.ts",
+    "expect": "FAIL .*> the plans on the site read path > serves the seed and logs products_invalid once"
+  },
+  {
+    "id": "b18-g3-missing-silent",
+    "test": "tests/unit/products-read-path.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "  if (state.products === null) return seedProducts();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/products-read-path.test.ts",
+    "expect": "FAIL .*> the plans on the site read path > serves the seed without a log line"
+  },
+  {
+    "id": "b18-g3-site-products",
+    "test": "tests/unit/site-read-path.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    products: plansOf(state),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/site-read-path.test.ts",
+    "expect": "FAIL .*> the site read path > answers with the site, illustrativeContent and the plans"
+  },
+  {
+    "id": "b18-g3-price-seed",
+    "test": "tests/unit/payments/invoice-snapshot.test.ts",
+    "file": "src/server/payments/pricing.ts",
+    "find": "  return offeringFor(plans, product).price;",
+    "replace": "  return { \"The Feature\": 295, \"The Reach\": 695, \"The Campaign\": 1495, \"Five Features\": 1250 }[product] ?? offeringFor(plans, product).price;",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-snapshot.test.ts",
+    "expect": "FAIL .*> the invoice snapshot of a stored plan > carries the stored plan's amount and invoiceLine"
+  },
+  {
+    "id": "b18-g3-stored-ignored",
+    "test": "tests/unit/payments/invoice-snapshot.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "    products: productsOf({ products: valueOf(\"products\") ?? null }),",
+    "replace": "    products: productsOf({ products: null }),",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-snapshot.test.ts -t \"carries the stored plan's amount\"",
+    "expect": "FAIL .*> the invoice snapshot of a stored plan > carries the stored plan's amount and invoiceLine"
+  },
+  {
+    "id": "b18-g3-seed-absent",
+    "test": "tests/unit/payments/invoice-snapshot.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "  if (state.products === null) return seedProducts();",
+    "replace": "  if (state.products === null) return [];",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-snapshot.test.ts",
+    "expect": "FAIL .*> the invoice snapshot of a stored plan > carries the seed when the products row is absent"
+  },
+  {
+    "id": "b18-g3-invoice-invalid-log",
+    "test": "tests/unit/payments/invoice-snapshot.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "    products: productsOf({ products: valueOf(\"products\") ?? null }),",
+    "replace": "    products: productsOf({ products: productsReadSchema.safeParse(valueOf(\"products\")).success ? valueOf(\"products\") : null }),",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-snapshot.test.ts",
+    "expect": "FAIL .*> the invoice snapshot of a stored plan > carries the seed, with one products_invalid line"
+  },
+  {
+    "id": "b18-g3-memo-invoice",
+    "test": "tests/unit/payments/invoice-snapshot.test.ts",
+    "file": "src/server/payments/invoice-settings.ts",
+    "find": "    products: productsOf({ products: valueOf(\"products\") ?? null }),",
+    "replace": "    products: productsOf(await (await import(\"../public/state.ts\")).getPublicState(db)),",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-snapshot.test.ts",
+    "expect": "FAIL .*> the invoice snapshot of a stored plan > reads the plans straight from the table"
+  },
+  {
+    "id": "b18-g3-match-by-name",
+    "test": "tests/unit/payments/invoice-snapshot.test.ts",
+    "file": "src/server/payments/pricing.ts",
+    "find": "candidate.id === planIdOf[product]",
+    "replace": "candidate.name === product",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-snapshot.test.ts",
+    "expect": "FAIL .*> the invoice snapshot of a stored plan > finds the plan by its bound id, so a renamed plan"
+  },
+  {
+    "id": "b18-g3-pricing-renamed",
+    "test": "tests/unit/payments/pricing.test.ts",
+    "file": "src/server/payments/pricing.ts",
+    "find": "candidate.id === planIdOf[product]",
+    "replace": "candidate.name === product",
+    "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > finds a renamed plan by its bound id"
+  },
+  {
+    "id": "b18-g3-issue-amount",
+    "test": "tests/unit/payments/invoice-snapshot.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "      p_amount: snapshot.amount,",
+    "replace": "      p_amount: snapshot.amount - 30,",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-snapshot.test.ts",
+    "expect": "FAIL .*> issuing and waiving at the stored price > issues at the stored price"
+  },
+  {
+    "id": "b18-g3-issued-untouched",
+    "test": "tests/unit/payments/invoice-snapshot.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  await assertInvoiceReady(db);\n",
+    "replace": "  await assertInvoiceReady(db);\n  await db.from(\"payments\").select(\"id\").eq(\"submission_id\", input.submissionId);\n",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-snapshot.test.ts",
+    "expect": "FAIL .*> issuing and waiving at the stored price > issues at the stored price and neither reads"
+  },
+  {
+    "id": "b18-g3-waiver-stored",
+    "test": "tests/unit/payments/invoice-snapshot.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  const { products } = await readInvoiceInputs(db);\n",
+    "replace": "  const { products } = await readInvoiceInputs(db);\n  products.splice(0, products.length, ...(await import(\"../settings/products.ts\")).seedProducts());\n",
+    "run": "bunx vitest run --project unit tests/unit/payments/invoice-snapshot.test.ts",
+    "expect": "FAIL .*> issuing and waiving at the stored price > records a waiver at the stored price"
+  },
+  {
+    "id": "b18-g3-heading",
+    "test": "tests/unit/products-render.test.tsx",
+    "file": "src/routes/_site.index.tsx",
+    "find": "            title={waysIn(site.products.length)}",
+    "replace": "            title=\"Four ways in.\"",
+    "run": "bunx vitest run --project component tests/unit/products-render.test.tsx",
+    "expect": "FAIL .*> the home pricing block > titles a three-plan prop Three ways in\\."
+  },
+  {
+    "id": "b18-g3-home-cards",
+    "test": "tests/unit/products-render.test.tsx",
+    "file": "src/routes/_site.index.tsx",
+    "find": "            {site.products.map(toOffering).map((offering) => (",
+    "replace": "            {site.products.slice(1).map(toOffering).map((offering) => (",
+    "run": "bunx vitest run --project component tests/unit/products-render.test.tsx",
+    "expect": "FAIL .*> the home pricing block > renders the plans it is given, titled Four ways in\\."
+  },
+  {
+    "id": "b18-g3-exposure-cards",
+    "test": "tests/unit/products-render.test.tsx",
+    "file": "src/routes/_site.exposure.tsx",
+    "find": "          {plans.map(toOffering).map((offering) => (",
+    "replace": "          {plans.slice(1).map(toOffering).map((offering) => (",
+    "run": "bunx vitest run --project component tests/unit/products-render.test.tsx",
+    "expect": "FAIL .*> the Exposure page > renders the plans it is given"
+  },
+  {
+    "id": "b18-g3-five-price",
+    "test": "tests/unit/products-render.test.tsx",
+    "file": "src/data/exposure.ts",
+    "find": "            a: `Yes. Five Feature credits are available for ${formatPrice(five.price)}.`,",
+    "replace": "            a: \"Yes. Five Feature credits are available for $1,250.\",",
+    "run": "bunx vitest run --project component tests/unit/products-render.test.tsx",
+    "expect": "FAIL .*> the Exposure page > renders the plans it is given, and the Five Features answer"
+  },
+  {
+    "id": "b18-g3-faq",
+    "test": "tests/unit/products-render.test.tsx",
+    "file": "src/data/faq.ts",
+    "find": "      a: costAnswer(plans),",
+    "replace": "      a: \"The Feature $295, The Reach $695, The Campaign $1,495, or Five Features for $1,250. Programmatic media is billed separately.\",",
+    "run": "bunx vitest run --project component tests/unit/products-render.test.tsx",
+    "expect": "FAIL .*> /faq > answers What does it cost\\? with every price it is given"
+  },
+  {
+    "id": "b18-g3-source",
+    "test": "tests/unit/products-source.test.ts",
+    "file": "src/routes/_site.exposure.tsx",
+    "find": "import { exposureFaqFor, programmatic, selectionSteps } from \"../data/exposure\";",
+    "replace": "import { exposureFaqFor, programmatic, seedOfferings, selectionSteps } from \"../data/exposure\";",
+    "run": "bunx vitest run --project unit tests/unit/products-source.test.ts",
+    "expect": "FAIL .*> the source of the plans > lets only the data file, the server seed and the local adapter"
+  },
+  {
+    "id": "b18-g3-route-price",
+    "test": "tests/unit/products-source.test.ts",
+    "file": "src/routes/_site.exposure.tsx",
+    "find": "  const plans = Route.useLoaderData();\n  return (\n    <main>",
+    "replace": "  const plans = Route.useLoaderData();\n  return (\n    <main data-from=\"$295\">",
+    "run": "bunx vitest run --project unit tests/unit/products-source.test.ts",
+    "expect": "FAIL .*> the source of the plans > quotes a dollar amount under src/data and src/routes"
+  },
+  {
+    "id": "b18-g3-http-plans",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "  products: z.array(productPlanSchema),",
+    "replace": "  products: z.array(productPlanSchema).transform(() => []),",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "FAIL .*> the site read > parses the plans the body carries"
+  },
+  {
+    "id": "b18-g3-http-refuse",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "  products: z.array(productPlanSchema),",
+    "replace": "  products: z.array(productPlanSchema).catch([]),",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "FAIL .*> the site read > refuses a body whose plans are missing or carry no price"
+  },
+  {
+    "id": "b18-g3-e2e-seed-always",
+    "kind": "manual",
+    "test": "tests/e2e/exposure-products.spec.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    products: plansOf(state),",
+    "replace": "    products: seedProducts(),",
+    "run": "node scripts/dev-vars.mjs && bun run build && E2E_TARGET=built E2E_PORT=8868 E2E_MODE=live bunx playwright test --project=admin tests/e2e/exposure-products.spec.ts --reporter=line",
+    "expect": "expect(received).toBe(expected)[sS]*Expected: [0-9]+",
+    "what": "by hand against mop-dev (a built Worker, a browser and the dev profile): the site read always serves the seed, so the poll ends after 40 seconds with the old price. Not replayed: steps 1 and 2 (the products row and settings_put_products) are not pushed to mop-dev until main merges B18, so the spec itself is UNPROVEN until then."
   }
 ]

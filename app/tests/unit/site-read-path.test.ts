@@ -1,7 +1,9 @@
 // B16 step 3: `GET /api/public/site` and `getSiteSettings` read the site from the shared public state only (S52).
+// B18 step 3: the body carries the plans of `settings.products` as well, and no other key of the state.
 import "../fixtures/worker-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { seedProducts } from "../../src/server/settings/products";
 import { countingDb } from "../fixtures/db-counter";
 import { fakeDb } from "../fixtures/fake-db";
 import { stateJson } from "../fixtures/snapshot";
@@ -73,13 +75,19 @@ describe("the site read path", () => {
     expect(db.counts.rpc["public_state"]).toBeGreaterThan(1);
   });
 
-  it("answers with the site and illustrativeContent and no other key of the public state (invariant 3)", async () => {
+  it("answers with the site, illustrativeContent and the plans and no other key of the public state (invariant 3)", async () => {
     const { pipeline } = await load();
     const response = await pipeline.handlePublic(siteRequest(), "r1", stateDb());
     expect(response.status).toBe(200);
     const body = z.record(z.string(), z.unknown()).parse(await response.json());
-    expect(body).toEqual({ ...SITE, illustrativeContent: true });
-    expect(Object.keys(body).sort()).toEqual(["contact", "illustrativeContent", "legal", "social"]);
+    expect(body).toEqual({ ...SITE, illustrativeContent: true, products: seedProducts() });
+    expect(Object.keys(body).sort()).toEqual([
+      "contact",
+      "illustrativeContent",
+      "legal",
+      "products",
+      "social",
+    ]);
   });
 
   it("answers illustrativeContent false in production although the database says true (F26 c, invariant 6)", async () => {

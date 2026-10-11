@@ -1,10 +1,12 @@
-import type { Offering, ProgrammaticTerms } from "../domain/exposure.ts";
+import {
+  formatPrice,
+  type Offering,
+  type ProductPlan,
+  type ProgrammaticTerms,
+} from "../domain/exposure.ts";
 
-/**
- * Owner-approved Property Exposure schedule. The home page and the Exposure
- * page both read this file, so no price or promise can drift between them.
- */
-export const offerings: Offering[] = [
+/** The seed of settings.products and its fallback: the pages render the stored plans (H80). */
+export const seedOfferings: Offering[] = [
   {
     id: "feature",
     name: "The Feature",
@@ -111,7 +113,12 @@ export const editorialQualities = [
   "Sense of place",
 ];
 
-export const exposureFaq = [
+interface ExposureQuestion {
+  q: string;
+  a: string;
+}
+
+const policyFaq: ExposureQuestion[] = [
   {
     q: "Does paying guarantee acceptance?",
     a: "No. Every property is subject to the Matter of Place editorial standard.",
@@ -132,12 +139,24 @@ export const exposureFaq = [
     q: "Is paid media included?",
     a: "No. Programmatic media budgets are separate from editorial product fees.",
   },
-  {
-    q: "Can agents purchase multiple Features?",
-    a: "Yes. Five Feature credits are available for $1,250.",
-  },
-  {
-    q: "Can a property remain discreet?",
-    a: "Yes. Sensitive property details can be handled discreetly where appropriate.",
-  },
 ];
+
+const discreetFaq: ExposureQuestion = {
+  q: "Can a property remain discreet?",
+  a: "Yes. Sensitive property details can be handled discreetly where appropriate.",
+};
+
+/** The Exposure page's questions; the Five Features answer quotes the price of the `five-features` plan it is given. */
+export function exposureFaqFor(plans: readonly ProductPlan[]): ExposureQuestion[] {
+  const five = plans.find((plan) => plan.id === "five-features");
+  const credits =
+    five === undefined
+      ? []
+      : [
+          {
+            q: "Can agents purchase multiple Features?",
+            a: `Yes. Five Feature credits are available for ${formatPrice(five.price)}.`,
+          },
+        ];
+  return [...policyFaq, ...credits, discreetFaq];
+}

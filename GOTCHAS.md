@@ -3849,6 +3849,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: write the project with an equals sign, `--project=admin`, in every Playwright command, as the B4 and B13 proofs already do.
 - proof: `cd app && bunx playwright test --project admin tests/e2e/admin-signin.spec.ts --list` → `Project(s) "tests/e2e/admin-signin.spec.ts" not found`; `bunx playwright test --project=admin tests/e2e/admin-signin.spec.ts --list` → `Total: 4 tests in 1 file` (measured 2026-10-05, B7 g2).
 - added: 2026-10-05
+- hit again: 2026-10-11, B18 g3: step 3's proof line is written `--project admin tests/e2e/exposure-products.spec.ts`; the first run answered `Project(s) "tests/e2e/exposure-products.spec.ts" not found`, and the same spelling had been copied into the manual registry entry `b18-g3-e2e-seed-always`, fixed to `--project=admin`.
 - hit again: 2026-10-10, B7 g3: step 16's proof line is written `--project admin tests/e2e/admin-full-path.spec.ts` and answered `Project(s) ... not found`; the runs used `--project=admin`.
 - hit again: 2026-10-07, B6 g3: step 9's proof line is written `--project admin tests/e2e/admin-invoice.spec.ts`; it answered `Project(s) "tests/e2e/admin-invoice.spec.ts" not found` and the first run was lost; `--project=admin` ran it.
 
@@ -7327,6 +7328,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: the B18 step 1 proof `node scripts/watchfail.mjs --registry tests/mutations --only b18-g1-price-zero,b18-g1-two-recommended,...` printed `watchfail: no entry with id b18-g1-price-zero,b18-g1-two-recommended,...` and `replayed 0`.
 - cause: `parseArgs` reads `--only` as one string and compares it with each `entry.id` (`scripts/watchfail.mjs` line 342); a comma list is one id that no entry has.
 - rule: replay a list of ids with a shell loop, one `--only <id>` per entry, in one call: `for id in a b c; do node scripts/watchfail.mjs --registry tests/mutations --only $id 2>&1 | grep -E "WATCHED-FAIL|BAD|STALE"; done`. A plan line that writes a comma list is read that way.
+- hit again: 2026-10-11, B18 g3: `--only <id>` replays the entry with that id in every registry, so a loop over the ids of one registry's entries also replays other slices' entries that share a short id: `--only bb` (meant for `B1b:bb`) replayed `B2:bb`, `B8:bb` and `--only bc` `B8:bc`, three `sql` db entries that went `BAD: wrong reason` on `refusing: DEV_DB_URL is not set`. Read a BAD line's registry prefix before treating it as a regression; a db entry replays only with the dev profile loaded.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b18-g1-price-zero,b18-g1-ways 2>&1 | tail -1` → `watchfail: no entry with id b18-g1-price-zero,b18-g1-ways`; with one id → `WATCHED-FAIL OK B18:b18-g1-price-zero` (measured 2026-10-11, B18 g1).
 - added: 2026-10-11
 
@@ -7372,6 +7374,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: step 1 made `products.ts` the one server reader of `src/data/exposure.ts`, but nothing the runner loads imported `products.ts` until step 2; that data file still had the extensionless `import type ... from "../domain/exposure"`, and `deno check` resolves type imports too (P-2713). The plan lists `src/data/exposure.ts` only under step 3 (the `seedOfferings` rename), so step 2's own proof could not pass without touching it, and `eslint.config.js`'s `DENO_FILES` did not name it, so lint did not warn.
 - rule: when a step makes a runner-reachable module (`src/server/{settings,email,jobs,audit,...}/**`) import a file for the first time, run the full `deno check` above right after that import; a file it reaches gets `.ts` on its imports and a line in `DENO_FILES` in the same change (ruling H46), and the log says which later-step file was touched and why.
 - proof: `cd app && deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` exits 0 on slice/b18 at B18 g2; with line 1 of `src/data/exposure.ts` back to `from "../domain/exposure"` it prints the TS2307 error above and exits 1 (measured 2026-10-11).
+- added: 2026-10-11
+
+## P-3308 · `bun run check` is red on main at the stubs gate since the ledger closed B7, B8 and B8b, so no lane can show a green check
+- symptom: B18 g3's `bun run check` passed layout, typecheck, lint, knip and jscpd and then stopped at `bun run stubs` with `stubs: 6 markers, 3 on closed slices` (`src/server/jobs/steps/render-specs.ts:6 STUB(B8b)`, `src/server/jobs/steps/render-variants.ts:139 STUB(B7)`, `src/server/lib/crypto.ts:37 STUB(B8)`, each "slice is closed") and exit 1. None of the three files is the lane's.
+- cause: main's commit d7e16cf4 set the status rows of B7, B8 and B8b in `workspace/05-plans/PLAN.md` to `closed`; `scripts/stubs.ts` reads those rows and refuses a `STUB(<slice>)` marker of a closed slice, and the three markers were never removed or re-pointed. The ledger commit did not run `bun run check`.
+- rule: a commit that closes a slice in PLAN.md runs `cd app && bun run stubs` first and resolves each marker of that slice (do the replacement, or move the marker to the slice that now owns it). A lane that meets this red stage runs the stages after it (`bun run format:check`, `bun run test`) by hand, reports the stubs line as main's, and does not edit the three files.
+- proof: `cd app && bun run stubs` on slice/b18 at B18 g3 (and on origin/main d7e16cf4, whose three files and PLAN.md status rows are the same) prints `stubs: 6 markers, 3 on closed slices` and exits 1 (measured 2026-10-11).
+- added: 2026-10-11
+
+## P-3309 · A proof line that lists a `.test.tsx` file after `--project unit` never runs it: the unit project includes only `*.test.ts`
+- symptom: B18 step 3's proof is one `bunx vitest run --project unit ... tests/unit/products-render.test.tsx ...` command; its summary counted the `.ts` files only, and the render cases (the three-plan title, the Five Features price, the changed price on every surface) were not among them.
+- cause: `vitest.config.ts` gives `tests/unit/**/*.test.ts` to the `unit` project (node) and `tests/unit/**/*.test.tsx` to the `component` project (jsdom); a file filter outside the chosen project matches nothing and vitest says nothing about it.
+- rule: run a `.test.tsx` file with `--project component` (or name both projects); a plan line that lists one after `--project unit` is run as two commands, and the log says so.
+- proof: `cd app && bunx vitest run --project unit tests/unit/products-render.test.tsx` → `No test files found`; `bunx vitest run --project component tests/unit/products-render.test.tsx` → `Tests  5 passed (5)` (measured 2026-10-11, B18 g3).
+- added: 2026-10-11
+
+## P-3310 · `ApiClient.get(path, schema)` typed `z.ZodType<T>` infers `unknown` for a schema whose input differs from its output
+- symptom: B18 g3 added `products: z.array(productPlanSchema)` to `publicSiteSchema` in `src/services/http/index.ts`; tsc printed `TS2322: Type 'Promise<unknown>' is not assignable to type 'Promise<PublicSite>'` at `site.get`, although the schema's output is `PublicSite`.
+- cause: `z.ZodType<T>` means `ZodType<T, ZodTypeDef, T>`, so T is inferred from the input type as well; `productPlanSchema` has a `preprocess` and defaults, so its input is not `ProductPlan` and T fell back to `unknown`. The admin clients already take `z.ZodType<T, z.ZodTypeDef, unknown>`.
+- rule: a client helper that parses a response takes `z.ZodType<T, z.ZodTypeDef, unknown>` (a response is unknown until parsed); `src/services/http/client.ts` does since B18 g3.
+- proof: `cd app && bunx tsc -p tsconfig.json --noEmit` exits 0 on slice/b18 at B18 g3; with `get<T>(path: string, shape: z.ZodType<T>, ...)` put back in `src/services/http/client.ts` it prints the TS2322 above (measured 2026-10-11).
 - added: 2026-10-11
 
 ## P-3180 · The Agent tool's `haiku` is Haiku 4.5, not 5.5, and its proof-command extraction for the rerun was too thin to trust as written: one command per step, plan Proof lines only, every writes flag false, one command copied across eight steps

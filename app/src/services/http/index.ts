@@ -7,6 +7,7 @@ import {
   signedUploadsSchema,
   submissionReceiptSchema,
 } from "../../domain/contracts";
+import { productPlanSchema } from "../../domain/exposure";
 import { marketSchema } from "../../domain/market";
 import type { PublicSite } from "../../domain/settings";
 import { propertySchema } from "../../domain/property";
@@ -54,11 +55,12 @@ const goneOnGone = async <T>(promise: Promise<T>): Promise<T | { gone: true }> =
 
 const text = z.string().nullable();
 /** The body the server already validated; the type ties it to `PublicSite`, which the server builds. */
-const publicSiteSchema: z.ZodType<PublicSite> = z.object({
+const publicSiteSchema: z.ZodType<PublicSite, z.ZodTypeDef, unknown> = z.object({
   contact: z.object({ email: text, phone: text, privacy_email: text }),
   legal: z.object({ entity: text, address: text }),
   social: z.object({ instagram: text, x: text, linkedin: text }),
   illustrativeContent: z.boolean(),
+  products: z.array(productPlanSchema),
 });
 
 /**

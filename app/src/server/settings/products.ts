@@ -1,4 +1,4 @@
-import { offerings } from "../../data/exposure.ts";
+import { seedOfferings } from "../../data/exposure.ts";
 import type { ProductsPreview } from "../../domain/admin-settings.ts";
 import {
   boundPlanIds,
@@ -23,7 +23,7 @@ import type { PublicState } from "../public/state.ts";
 
 /** The four plans of `src/data/exposure.ts`: the first stored row and the fallback when the setting is absent. */
 export function seedProducts(): ProductPlan[] {
-  return plansFromOfferings(offerings);
+  return plansFromOfferings(seedOfferings);
 }
 
 /**

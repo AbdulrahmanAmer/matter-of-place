@@ -11,7 +11,11 @@ import {
   type RedirectRow,
   type SettingsAnswer,
 } from "../../domain/admin-settings.ts";
-import { productsReadSchema, type ProductsSetting } from "../../domain/exposure.ts";
+import {
+  productsReadSchema,
+  type ProductPlan,
+  type ProductsSetting,
+} from "../../domain/exposure.ts";
 import { invoiceSettingsSchema } from "../../domain/payments.ts";
 import {
   emptySiteSettings,
@@ -31,8 +35,8 @@ import {
   invoiceReadiness,
   type InvoiceSettings,
 } from "../payments/invoice-settings.ts";
-import { getPublicState } from "../public/state.ts";
-import { previewProducts, putProducts, seedProducts } from "./products.ts";
+import { getPublicState, type PublicState } from "../public/state.ts";
+import { previewProducts, productsOf, putProducts, seedProducts } from "./products.ts";
 import { siteReadiness } from "./readiness.ts";
 
 // `settings.site` (B16). Reads go through the public state the Worker already shares, never the table
@@ -59,10 +63,23 @@ export async function getSiteSettings(db: Db): Promise<SiteSettings> {
   return siteSettingsSchema.parse((await getPublicState(db)).site);
 }
 
+// The plans of each state the memo holds, judged once: an invalid stored value costs one `products_invalid` line per
+// state read, not one per request.
+const plansOfState = new WeakMap<PublicState, ProductPlan[]>();
+
+function plansOf(state: PublicState): ProductPlan[] {
+  const known = plansOfState.get(state);
+  if (known !== undefined) return known;
+  const plans = productsOf(state);
+  plansOfState.set(state, plans);
+  return plans;
+}
+
 /**
- * The body of `GET /api/public/site`: one state read gives both parts. `illustrativeContent` is forced false
- * when `MOP_ENV` is production (F26 c, invariant 6), as `applyVisibility` does for the catalog: the one database
- * says `development` until the launch switch, and the production Worker reads it. The environment is the route's.
+ * The body of `GET /api/public/site`: one state read gives every part, the plans included (the seed when the setting
+ * is missing or invalid). `illustrativeContent` is forced false when `MOP_ENV` is production (F26 c, invariant 6), as
+ * `applyVisibility` does for the catalog: the one database says `development` until the launch switch, and the
+ * production Worker reads it. The environment is the route's.
  */
 export async function getPublicSite(
   db: Db,
@@ -73,6 +90,7 @@ export async function getPublicSite(
   return {
     ...siteSettingsSchema.parse(state.site),
     illustrativeContent: state.illustrativeContent && ctx.env.MOP_ENV !== "production",
+    products: plansOf(state),
   };
 }
 

@@ -5,7 +5,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
-import { offerings } from "../../src/data/exposure";
+import { seedOfferings } from "../../src/data/exposure";
 import { plansFromOfferings, productsSettingSchema } from "../../src/domain/exposure";
 import { asRole, createStaffUser, withRollback, type Db } from "../fixtures/db";
 
@@ -40,11 +40,15 @@ describe("settings.products: the seed row", () => {
       return stored(db);
     });
     expect(rows).toHaveLength(1);
-    expect(productsSettingSchema.parse(rows[0])).toEqual({ plans: plansFromOfferings(offerings) });
+    expect(productsSettingSchema.parse(rows[0])).toEqual({
+      plans: plansFromOfferings(seedOfferings),
+    });
   });
 
   it("is run twice and leaves one row, an edit kept and the version where the first run left it", async () => {
-    const edited = { plans: plansFromOfferings(offerings).map((plan) => ({ ...plan, price: 9 })) };
+    const edited = {
+      plans: plansFromOfferings(seedOfferings).map((plan) => ({ ...plan, price: 9 })),
+    };
     const result = await withRollback(async (db) => {
       await db.query("delete from public.settings where key = 'products'");
       await db.query(migration());
@@ -97,7 +101,7 @@ const audited = async (db: Db) =>
     )
   ).rows;
 
-const seed = plansFromOfferings(offerings);
+const seed = plansFromOfferings(seedOfferings);
 const withPrice = (price: unknown) =>
   seed.map((plan, index) => (index === 0 ? { ...plan, price } : plan));
 
