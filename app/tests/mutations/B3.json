@@ -2360,8 +2360,8 @@
     "kind": "file",
     "test": "tests/unit/http-adapter.test.ts",
     "file": "src/services/http/client.ts",
-    "find": "    return body.success ? body.data.error.requestId : undefined;",
-    "replace": "    return undefined;",
+    "find": "(body.success ? body.data.error.requestId : undefined)",
+    "replace": "undefined",
     "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
     "expect": "× .*falls back to the request id in the error body"
   },
@@ -2370,8 +2370,8 @@
     "kind": "file",
     "test": "tests/unit/http-adapter.test.ts",
     "file": "src/services/http/client.ts",
-    "find": "  } catch {\n    return undefined;\n  }",
-    "replace": "  } catch {\n    return \"unknown\";\n  }",
+    "find": "  } catch {\n    return { requestId: header ?? undefined, issues: [] };\n  }",
+    "replace": "  } catch {\n    return { requestId: header ?? \"unknown\", issues: [] };\n  }",
     "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
     "expect": "× .*has no request id when the body is not JSON or names none"
   },

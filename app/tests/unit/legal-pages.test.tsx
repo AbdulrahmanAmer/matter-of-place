@@ -17,6 +17,7 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { ContactForm } from "../../src/components/forms/contact-form";
+import { problemsOf } from "../../src/components/forms/submit/issues";
 import { initialDraft } from "../../src/components/forms/submit/state";
 import { ExposureStep } from "../../src/components/forms/submit/steps";
 import { ConsentNotice } from "../../src/components/layout/consent-notice";
@@ -312,7 +313,10 @@ describe("the legal pages", () => {
   });
 
   it("the submit wizard's rights step links /terms#rights-to-photographs", async () => {
-    await renderPage(() => <ExposureStep draft={initialDraft} update={noop} />, UNSET);
+    await renderPage(
+      () => <ExposureStep draft={initialDraft} update={noop} problems={problemsOf([], "legal")} />,
+      UNSET,
+    );
     expect(hrefOf(t.nav.terms)).toBe("/terms#rights-to-photographs");
   });
 

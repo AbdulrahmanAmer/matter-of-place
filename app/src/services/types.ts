@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { Market } from "../domain/market";
 import type { Property, PropertyCard } from "../domain/property";
 import type { PublicSite } from "../domain/settings";
@@ -98,15 +99,46 @@ export type Services = {
 
 export type ServiceErrorKind = "network" | "validation" | "server" | "not-found" | "gone";
 
-/** Thrown by adapters; forms map `kind` to a calm message. */
+/**
+ * One refused field of a form, as the API's `error.issues` and a client-side Zod refusal both give it: where it
+ * is (`path`), what Zod called it (`code`, and `type` or `received` for the two that say "empty") and its message.
+ */
+const serviceIssueSchema = z.object({
+  path: z.array(z.union([z.string(), z.number()])),
+  message: z.string(),
+  code: z.string(),
+  type: z.string().optional(),
+  /** A string for a missing value ("undefined"), but a boolean or a number for `invalid_literal`: only read it for equality. */
+  received: z.unknown(),
+});
+export type ServiceIssue = z.infer<typeof serviceIssueSchema>;
+
+/** The issues of a refusal, each read on its own: one entry in an unexpected shape is left out, the rest stay. */
+export function serviceIssues(value: unknown): ServiceIssue[] {
+  const list = z.array(z.unknown()).safeParse(value);
+  if (!list.success) return [];
+  return list.data.flatMap((item) => {
+    const one = serviceIssueSchema.safeParse(item);
+    return one.success ? [one.data] : [];
+  });
+}
+
+/** Thrown by adapters; forms map `kind` to a calm message. A refusal of the details (`validation`) lists the fields in `issues`. */
 export class ServiceError extends Error {
   readonly kind: ServiceErrorKind;
   readonly status: number | undefined;
+  readonly issues: readonly ServiceIssue[];
 
-  constructor(kind: ServiceErrorKind, message: string, status?: number) {
+  constructor(
+    kind: ServiceErrorKind,
+    message: string,
+    status?: number,
+    issues: readonly ServiceIssue[] = [],
+  ) {
     super(message);
     this.name = "ServiceError";
     this.kind = kind;
     this.status = status;
+    this.issues = issues;
   }
 }
