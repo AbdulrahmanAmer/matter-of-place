@@ -1637,7 +1637,7 @@
     "find": "@import \"./ui.css\";",
     "replace": "@import \"./ui.css\";\n@import \"../base.css\";",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-motion.test.ts",
-    "expect": "× .*takes the tokens and its own files onl"
+    "expect": "× .*takes the font faces, the tokens and its own files onl"
   },
   {
     "id": "b7-g3-mot-gradient",
