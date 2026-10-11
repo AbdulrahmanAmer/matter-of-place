@@ -146,6 +146,7 @@ describe("the home headline (finding 9)", () => {
       featured: [],
       preview: [],
       markets: [market],
+      marketIndex: [{ slug: market.slug, name: market.name, open: false }],
       site: EMPTY,
     });
     return show(pageOf(homeRoute), EMPTY);

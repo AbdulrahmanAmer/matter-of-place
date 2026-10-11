@@ -511,3 +511,16 @@
 .field textarea:focus {
   border-color: var(--foreground);
 }
+
+/* A field on a dark band (the not-found search): light label and entry, light rule. */
+.not-found .field > label > span:first-child {
+  color: color-mix(in oklab, var(--primary-foreground) 72%, transparent);
+}
+
+.not-found .field input {
+  color: var(--primary-foreground);
+}
+
+.not-found .field input:focus {
+  box-shadow: 0 1px 0 var(--primary-foreground);
+}
