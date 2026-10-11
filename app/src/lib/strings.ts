@@ -176,6 +176,7 @@ const en = {
   },
   consent: {
     label: "Cookie notice",
+    title: "Cookies",
     text: "May we count visits with Google Analytics? It sets cookies. Saying no changes nothing.",
     accept: "Allow",
     decline: "No, thank you",

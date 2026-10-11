@@ -152,7 +152,7 @@ describe("ConsentNotice", () => {
     expect(consentGranted()).toBe(false);
   });
 
-  it("is a bar fixed to the bottom of the screen on a page that is not a property page", async () => {
+  it("is a popup fixed to the bottom of the screen on a page that is not a property page", async () => {
     const style = document.createElement("style");
     style.textContent = css;
     document.head.append(style);
@@ -162,14 +162,14 @@ describe("ConsentNotice", () => {
     expect(getComputedStyle(region).position).toBe("fixed");
   });
 
-  it("stays in the footer flow on a property page, never fixed or sticky", async () => {
+  it("is the same fixed popup on a property page (operator 2026-10-11: like any other cookie popup)", async () => {
     const style = document.createElement("style");
     style.textContent = css;
     document.head.append(style);
     await renderFooter("/property/oak-hill-residence");
     const region = await screen.findByRole("region", { name: "Cookie notice" });
-    expect(region.classList.contains("consent-bar")).toBe(false);
-    expect(["fixed", "sticky"]).not.toContain(getComputedStyle(region).position);
+    expect(region.classList.contains("consent-bar")).toBe(true);
+    expect(getComputedStyle(region).position).toBe("fixed");
   });
 
   it("publishes its height as --consent-bar-h only while the bar shows", async () => {
@@ -181,10 +181,10 @@ describe("ConsentNotice", () => {
     expect(root.style.getPropertyValue("--consent-bar-h")).toBe("");
   });
 
-  it("publishes no height on a property page, where the notice is in flow", async () => {
+  it("publishes its height on a property page too, where the popup also floats", async () => {
     await renderFooter("/property/oak-hill-residence");
     await screen.findByRole("region", { name: "Cookie notice" });
-    expect(document.documentElement.style.getPropertyValue("--consent-bar-h")).toBe("");
+    expect(document.documentElement.style.getPropertyValue("--consent-bar-h")).not.toBe("");
   });
 
   it("asks only about analytics: no toggle, checkbox or switch, and no word about necessary cookies", async () => {

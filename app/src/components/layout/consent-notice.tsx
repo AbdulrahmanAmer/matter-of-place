@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { track } from "../../lib/analytics";
 import {
   CONSENT_VERSION,
@@ -13,12 +13,9 @@ import { t } from "../../lib/strings";
 
 const decided = () => readConsent()?.version === CONSENT_VERSION;
 
-/** Property pages keep the notice in the footer flow, beside their sticky inquiry bar (ruling H85). */
-const inFlow = (pathname: string) => pathname.startsWith("/property/");
-
 /**
- * The analytics choice (GP-02, ruling H85): a slim bar fixed to the bottom of the screen on every page but a property
- * page, where it stays one row at the top of the footer. No dialog and no focus taken. Necessary cookies are not a
+ * The analytics choice (GP-02, ruling H85, operator 2026-10-11: "like any other cookies pop up"): a card floating at the
+ * bottom of the screen on every page. No dialog and no focus taken. Necessary cookies are not a
  * choice and are not mentioned here. It renders nothing until the browser has read the stored choice, so the server
  * HTML is the same for every visitor, and nothing once a choice is stored until the footer's cookie settings control
  * asks again. While the bar shows, it publishes its height as `--consent-bar-h`, which pads the page and its scroll
@@ -26,7 +23,6 @@ const inFlow = (pathname: string) => pathname.startsWith("/property/");
  */
 export function ConsentNotice() {
   const [open, setOpen] = useState(false);
-  const fixed = !useRouterState({ select: (state) => inFlow(state.location.pathname) });
   const bar = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -46,7 +42,7 @@ export function ConsentNotice() {
 
   useEffect(() => {
     const node = bar.current;
-    if (!open || !fixed || node === null) return;
+    if (!open || node === null) return;
     const root = document.documentElement;
     const publish = () => {
       root.style.setProperty("--consent-bar-h", `${String(node.offsetHeight)}px`);
@@ -58,7 +54,7 @@ export function ConsentNotice() {
       watch?.disconnect();
       root.style.removeProperty("--consent-bar-h");
     };
-  }, [open, fixed]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -71,11 +67,8 @@ export function ConsentNotice() {
   };
 
   return (
-    <section
-      ref={bar}
-      className={cx("consent-notice", fixed && "consent-bar")}
-      aria-label={t.consent.label}
-    >
+    <section ref={bar} className={cx("consent-notice", "consent-bar")} aria-label={t.consent.label}>
+      <p className="consent-title">{t.consent.title}</p>
       <p className="consent-text">
         {t.consent.text} <Link to="/privacy">{t.consent.link}</Link>
       </p>
