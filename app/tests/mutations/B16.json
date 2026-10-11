@@ -358,8 +358,8 @@
     "id": "b16-g4-footer-entity",
     "test": "tests/unit/legal-pages.test.tsx",
     "file": "src/components/layout/footer.tsx",
-    "find": "presentLines(legal.entity)[0] ?? siteConfig.name",
-    "replace": "siteConfig.name",
+    "find": "{identity.entity}",
+    "replace": "{siteConfig.name}",
     "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
     "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
   },
@@ -367,8 +367,8 @@
     "id": "b16-g4-legal-address",
     "test": "tests/unit/legal-pages.test.tsx",
     "file": "src/routes/_site.legal.tsx",
-    "find": "presentLines(legal.entity, legal.address)",
-    "replace": "presentLines(legal.entity)",
+    "find": "<p>{identity.address}</p>",
+    "replace": "<p>{identity.entity}</p>",
     "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
     "expect": "FAIL .*> the public pages that name the business > an all-set site shows"
   },
@@ -421,7 +421,7 @@
     "id": "b16-g4-footer-line",
     "test": "tests/unit/legal-pages.test.tsx",
     "file": "src/lib/strings.ts",
-    "find": "line: \"A product of Omnikom.\",",
+    "find": "line: productLine,",
     "replace": "line: \"An Omnikom company.\",",
     "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
     "expect": "FAIL .*> the parent company > t.footer.line names"
@@ -547,7 +547,7 @@
     "id": "b16-g5-rights-version",
     "test": "tests/unit/legal-pages.test.tsx",
     "file": "src/domain/contracts.ts",
-    "find": "currentRightsVersion = \"2026-10-08\";",
+    "find": "currentRightsVersion = \"2026-10-11\";",
     "replace": "currentRightsVersion = \"2026-10-01\";",
     "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
     "expect": "FAIL .*> the legal pages > currentRightsVersion equals legalVersions.terms"
@@ -646,8 +646,8 @@
     "id": "b16-g5-unset-null",
     "test": "tests/unit/legal-pages.test.tsx",
     "file": "src/routes/_site.terms.tsx",
-    "find": "presentLines(useSite().contact.email)[0]",
-    "replace": "String(useSite().contact.email)",
+    "find": "presentLines(site.contact.email)[0]",
+    "replace": "String(site.contact.email)",
     "run": "bunx vitest run --project component tests/unit/legal-pages.test.tsx",
     "expect": "FAIL .*> the legal pages > an unset site leaves no null"
   },
