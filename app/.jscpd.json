@@ -5,7 +5,8 @@
     "src/routeTree.gen.ts",
     "src/db/types.ts",
     "**/*.css",
-    "scripts/harden/fixtures/**"
+    "scripts/harden/fixtures/**",
+    "scripts/launch/fixtures/**"
   ],
   "minTokens": 70,
   "threshold": 0,

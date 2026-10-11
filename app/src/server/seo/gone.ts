@@ -25,16 +25,22 @@ const GONE_CONTROL = "public, s-maxage=60";
  * Rewrites the status of a rendered property page to 410 when its slug is in `gone`. A status set while the
  * router renders never reaches the response (Start answers with the router's own status code), so `start.ts`
  * calls this on the pipeline's render, before the cache hook stores the page, with the same one-minute
- * lifetime as the API's 410. The snapshot is read only for a property page that rendered with 200.
+ * lifetime as the API's 410. A page that rendered 404 gets that lifetime too, so the cache hook may store it. The snapshot is read only for a property page that rendered with 200.
  */
 export async function withGoneStatus(
   request: Request,
   response: Response,
   readSnapshot: () => Promise<Snapshot>,
 ): Promise<Response> {
-  if ((request.method !== "GET" && request.method !== "HEAD") || response.status !== 200) {
-    return response;
+  if (request.method !== "GET" && request.method !== "HEAD") return response;
+  // A missing page is one body for every visitor, keyed by the catalog version like any page: the edge keeps it a
+  // minute, so a scan of made-up paths renders each once (the API's 404 has the same lifetime).
+  if (response.status === 404 && !response.headers.has("cache-control")) {
+    const headers = new Headers(response.headers);
+    headers.set("cache-control", GONE_CONTROL);
+    return new Response(response.body, { status: 404, headers });
   }
+  if (response.status !== 200) return response;
   const slug = PROPERTY_PAGE.exec(routePath(new URL(request.url).pathname))?.[1];
   if (slug === undefined || goneState(await readSnapshot(), "property", slug) !== "gone") {
     return response;
