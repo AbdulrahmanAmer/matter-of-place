@@ -854,8 +854,8 @@
     "kind": "file",
     "test": "tests/unit/no-image.test.tsx",
     "file": "src/components/site/market-card.tsx",
-    "find": "{open && market.image !== undefined && (",
-    "replace": "{open && (",
+    "find": "{market.image !== undefined && (",
+    "replace": "{(",
     "run": "bunx vitest run --project component tests/unit/no-image.test.tsx",
     "expect": "FAIL .*MarketCard > draws no img without an image"
   },
@@ -874,8 +874,8 @@
     "kind": "file",
     "test": "tests/unit/no-image.test.tsx",
     "file": "src/components/site/market-card.tsx",
-    "find": "{open && market.image !== undefined && (",
-    "replace": "{market.image !== undefined && (",
+    "find": "  if (!open) {",
+    "replace": "  if (false) {",
     "run": "bunx vitest run --project component tests/unit/no-image.test.tsx",
     "expect": "FAIL .*MarketCard > draws no img while coming soon"
   },
@@ -884,8 +884,8 @@
     "kind": "file",
     "test": "tests/unit/no-image.test.tsx",
     "file": "src/components/site/market-card.tsx",
-    "find": "{open ? \"EDITORIAL DESK\" : t.comingSoon.badge}",
-    "replace": "EDITORIAL DESK",
+    "find": "            {t.comingSoon.badge}",
+    "replace": "            EDITORIAL DESK",
     "run": "bunx vitest run --project component tests/unit/no-image.test.tsx",
     "expect": "FAIL .*MarketCard > draws no img while coming soon"
   },

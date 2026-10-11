@@ -319,7 +319,8 @@ test("with Global Privacy Control on, Allow is stored and consent is still not g
   expect((await events(page)).filter((envelope) => "utm" in envelope.data)).toEqual([]);
 });
 
-test("the focused Allow has a visible outline that differs from the footer, and focus moves on", async ({
+// The ring sits on the popup card, not on the footer behind it (the card is light, the footer dark since 2026-10-11).
+test("the focused Allow has a visible outline that differs from the card, and focus moves on", async ({
   page,
 }, testInfo) => {
   await page.goto("/", { waitUntil: "networkidle" });
@@ -328,21 +329,21 @@ test("the focused Allow has a visible outline that differs from the footer, and 
   await expect(allow(page)).toBeFocused();
   const measured = await allow(page).evaluate((button) => {
     const style = getComputedStyle(button);
-    const footer = button.closest("footer");
+    const card = button.closest(".consent-bar");
     return {
       focusVisible: button.matches(":focus-visible"),
       outlineStyle: style.outlineStyle,
       outlineWidth: style.outlineWidth,
       outlineColor: style.outlineColor,
-      footerBackground: footer === null ? "" : getComputedStyle(footer).backgroundColor,
+      cardBackground: card === null ? "" : getComputedStyle(card).backgroundColor,
     };
   });
   expect(measured.focusVisible).toBe(true);
   expect(measured.outlineStyle).not.toBe("none");
   expect(measured.outlineWidth).not.toBe("0px");
   expect(measured.outlineColor).not.toMatch(/^(transparent|rgba\(0, 0, 0, 0\))$/);
-  expect(measured.footerBackground).not.toBe("");
-  expect(measured.outlineColor).not.toBe(measured.footerBackground);
+  expect(measured.cardBackground).not.toBe("");
+  expect(measured.outlineColor).not.toBe(measured.cardBackground);
 
   await page.keyboard.press("Enter");
   await expect(notice(page)).toHaveCount(0);

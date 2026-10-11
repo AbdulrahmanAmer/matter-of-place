@@ -98,6 +98,9 @@ summary::-webkit-details-marker {
 .markets-feature,
 .home-submit,
 .market-card,
+.page-intro,
+.not-found,
+.site-footer,
 .site-header-overlay {
   --focus-ring: var(--background);
 }

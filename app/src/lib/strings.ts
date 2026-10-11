@@ -56,8 +56,6 @@ const en = {
       professionals: "For Professionals",
       company: "Company",
     },
-    statement:
-      "Matter of Place is an independent real-estate media and distribution platform focused on exceptional residential property in California, New York and Florida.",
     line: productLine,
     product: "{name} is a product of {entity}.",
   },
@@ -162,7 +160,7 @@ const en = {
         "Thank you. We will write when the first property is published. Please confirm from the email we send.",
     },
     badge: "Opening soon",
-    cardLine: "No property listed yet",
+    cardLine: "Hear when it opens",
     meta: {
       properties:
         "No property is listed yet. Leave your email to hear when the first one is published.",

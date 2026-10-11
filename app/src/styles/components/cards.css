@@ -296,3 +296,103 @@
     transform: none;
   }
 }
+
+/* A market still opening (2026-10-11): no box and no photograph to wait for. Ruled columns on the dark band, each with
+   its state, its name at display size, its own introduction, its regions and the way to hear when it opens. */
+.market-grid:has(.market-card-opening) {
+  gap: 0;
+  border-top: 1px solid color-mix(in oklab, var(--primary-foreground) 30%, transparent);
+}
+
+.market-card.market-card-opening {
+  height: auto;
+  min-height: 0;
+  padding: clamp(28px, 3vw, 44px) 0 clamp(32px, 3.4vw, 48px);
+  align-items: stretch;
+  background: none;
+  color: var(--primary-foreground);
+  border-bottom: 1px solid color-mix(in oklab, var(--primary-foreground) 30%, transparent);
+}
+
+.market-card.market-card-opening::after {
+  content: none;
+}
+
+.market-card-opening > div {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+
+.market-card-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 1;
+  color: color-mix(in oklab, var(--primary-foreground) 72%, transparent);
+}
+
+.market-card-opening h3 {
+  margin: 4px 0 0;
+  font-size: clamp(44px, 4.6vw, 72px);
+  line-height: 0.95;
+}
+
+.market-card-opening .market-card-intro {
+  max-width: 30ch;
+  font-family: var(--font-serif);
+  font-size: clamp(20px, 1.7vw, 24px);
+  letter-spacing: 0;
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--primary-foreground) 80%, transparent);
+}
+
+.market-card-opening .market-card-regions {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  line-height: 1.8;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--primary-foreground) 62%, transparent);
+}
+
+.market-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.market-card-cta svg {
+  transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.market-card-opening:hover .market-card-cta svg,
+.market-card-opening:focus-visible .market-card-cta svg {
+  transform: translateX(8px);
+}
+
+.market-card-opening:hover h3 {
+  transform: none;
+}
+
+@media (min-width: 701px) {
+  .market-card.market-card-opening {
+    height: auto;
+    padding-right: clamp(24px, 3vw, 48px);
+    padding-left: clamp(24px, 3vw, 48px);
+    border-bottom: 0;
+  }
+
+  .market-card.market-card-opening:first-child {
+    padding-left: 0;
+  }
+
+  .market-card.market-card-opening + .market-card-opening {
+    border-left: 1px solid color-mix(in oklab, var(--primary-foreground) 30%, transparent);
+  }
+}

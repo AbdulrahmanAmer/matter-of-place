@@ -80,6 +80,8 @@ a.consent-decline {
 /* The popup (operator 2026-10-11: "like any other cookies pop up"): a card floating at the bottom left on a wide screen and
    across the bottom on a phone, on every page, above everything but a dialog. Warm Ivory, hairline, no shadow. */
 .consent-bar {
+  /* It sits inside the dark footer in the page but is a light card: its focus ring stays Obsidian. */
+  --focus-ring: var(--foreground);
   position: fixed;
   left: 24px;
   bottom: 24px;
