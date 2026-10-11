@@ -54,42 +54,45 @@ const blankToNull = (value: unknown): unknown => {
 const text = (min: number, max: number) =>
   z.string().trim().min(min).max(max).refine(noDash, DASH_MESSAGE);
 
-export const productPlanSchema = z
-  .object({
-    id: z.enum(planIds, { errorMap: () => ({ message: PLAN_COUNT_MESSAGE }) }),
-    name: text(2, 60),
-    price: z.number().int().min(1).max(1_000_000),
-    line: text(1, 160),
-    note: z.preprocess(blankToNull, text(1, 120).nullable()).default(null),
-    items: z
-      .array(z.string())
-      .transform((lines) => lines.map((line) => line.trim()).filter((line) => line !== ""))
-      .pipe(z.array(text(1, 140)).max(12)),
-    cta: text(2, 40),
-    recommended: z.boolean().default(false),
-  })
-  .strict();
+const planObject = z.object({
+  id: z.enum(planIds, { errorMap: () => ({ message: PLAN_COUNT_MESSAGE }) }),
+  name: text(2, 60),
+  price: z.number().int().min(1).max(1_000_000),
+  line: text(1, 160),
+  note: z.preprocess(blankToNull, text(1, 120).nullable()).default(null),
+  items: z
+    .array(z.string())
+    .transform((lines) => lines.map((line) => line.trim()).filter((line) => line !== ""))
+    .pipe(z.array(text(1, 140)).max(12)),
+  cta: text(2, 40),
+  recommended: z.boolean().default(false),
+});
 
-export const productsSettingSchema = z
-  .object({
-    plans: z.array(productPlanSchema).superRefine((plans, context) => {
-      const ids = new Set(plans.map((plan) => plan.id));
+const settingOf = <Plan extends z.ZodType<ProductPlan, z.ZodTypeDef, unknown>>(plan: Plan) =>
+  z.object({
+    plans: z.array(plan).superRefine((plans, context) => {
+      const ids = new Set(plans.map((item) => item.id));
       if (plans.length !== planIds.length || ids.size !== planIds.length) {
         context.addIssue({ code: "custom", message: PLAN_COUNT_MESSAGE });
         return;
       }
-      if (plans.filter((plan) => plan.recommended).length > 1) {
+      if (plans.filter((item) => item.recommended).length > 1) {
         context.addIssue({ code: "custom", message: "Only one plan can be recommended." });
       }
-      const names = new Set(plans.map((plan) => plan.name.toLowerCase()));
+      const names = new Set(plans.map((item) => item.name.toLowerCase()));
       if (names.size !== plans.length) {
         context.addIssue({ code: "custom", message: "Each plan needs its own name." });
       }
     }),
-  })
-  .strict();
+  });
 
-export type ProductPlan = z.output<typeof productPlanSchema>;
+/** What a save accepts: an unknown key is refused. */
+export const productPlanSchema = planObject.strict();
+export const productsSettingSchema = settingOf(productPlanSchema).strict();
+/** What a read accepts: the same rules, an unknown key is ignored, so a field added later never throws away the stored plans. */
+export const productsReadSchema = settingOf(planObject);
+
+export type ProductPlan = z.output<typeof planObject>;
 
 /** "$" and the whole dollars with comma thousands separators. A regular expression, not `toLocaleString`, so the server and the browser print the same text. */
 export function formatPrice(dollars: number): string {

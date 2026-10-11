@@ -1,9 +1,5 @@
 import { offerings } from "../../data/exposure.ts";
-import {
-  plansFromOfferings,
-  productsSettingSchema,
-  type ProductPlan,
-} from "../../domain/exposure.ts";
+import { plansFromOfferings, productsReadSchema, type ProductPlan } from "../../domain/exposure.ts";
 import { logLine } from "../lib/log.ts";
 import type { PublicState } from "../public/state.ts";
 
@@ -18,7 +14,7 @@ export function seedProducts(): ProductPlan[] {
  */
 export function productsOf(state: Pick<PublicState, "products">): ProductPlan[] {
   if (state.products === null) return seedProducts();
-  const parsed = productsSettingSchema.safeParse(state.products);
+  const parsed = productsReadSchema.safeParse(state.products);
   if (parsed.success) return parsed.data.plans;
   logLine("warn", "products_invalid", {
     issues: parsed.error.issues.length,

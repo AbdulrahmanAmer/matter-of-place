@@ -70,6 +70,19 @@ describe("productsOf", () => {
     expect(logged).toEqual([]);
   });
 
+  it("reads a stored value that carries a key this build does not know, as stored", () => {
+    const plans = seedProducts().map((plan, index) => ({
+      ...plan,
+      price: plan.price + 100,
+      ...(index === 0 ? { badge: "new" } : {}),
+    }));
+    const stored = { plans, version: 2 };
+    expect(productsOf({ products: stored })).toEqual(
+      seedProducts().map((plan) => ({ ...plan, price: plan.price + 100 })),
+    );
+    expect(logged).toEqual([]);
+  });
+
   it("serves the seed without a word when the row is missing", () => {
     expect(productsOf({ products: null })).toEqual(seedProducts());
     expect(logged).toEqual([]);

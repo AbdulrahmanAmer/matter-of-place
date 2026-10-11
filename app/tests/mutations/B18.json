@@ -12,7 +12,7 @@
     "id": "b18-g1-two-recommended",
     "test": "tests/unit/products-schema.test.ts",
     "file": "src/domain/exposure.ts",
-    "find": "if (plans.filter((plan) => plan.recommended).length > 1) {",
+    "find": "if (plans.filter((item) => item.recommended).length > 1) {",
     "replace": "if (false) {",
     "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
     "expect": "× .*refuses two recommended plans"
@@ -84,8 +84,8 @@
     "id": "b18-g1-unknown-key",
     "test": "tests/unit/products-schema.test.ts",
     "file": "src/domain/exposure.ts",
-    "find": "    recommended: z.boolean().default(false),\n  })\n  .strict();",
-    "replace": "    recommended: z.boolean().default(false),\n  });",
+    "find": "export const productPlanSchema = planObject.strict();",
+    "replace": "export const productPlanSchema = planObject;",
     "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
     "expect": "× .*refuses an unknown key on a plan and on the setting"
   },
@@ -187,6 +187,15 @@
     "replace": "if (parsed.success) return seedProducts();",
     "run": "bunx vitest run --project unit tests/unit/products-seed.test.ts",
     "expect": "× .*reads a stored value that parses"
+  },
+  {
+    "id": "b18-g1-read-strips",
+    "test": "tests/unit/products-seed.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "export const productsReadSchema = settingOf(planObject);",
+    "replace": "export const productsReadSchema = settingOf(planObject.strict());",
+    "run": "bunx vitest run --project unit tests/unit/products-seed.test.ts",
+    "expect": "× .*reads a stored value that carries a key this build does not know"
   },
   {
     "id": "b18-g1-missing-silent",
