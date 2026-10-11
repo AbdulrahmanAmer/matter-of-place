@@ -1948,3 +1948,279 @@ SKIPPED needs quiet: the plan's step 10 proof enables the digest schedule on mop
 | B11 | 10 | skipped |
 steps: 13 | pass 2 | fail 9 | skipped 2
 ==== END ====
+
+==== rerun 2026-10-11T03:18:25.879Z | 8 entries | list C:\Users\ka\AppData\Local\Temp\claude\D--mop-Matter-Of-Place\c8fd54ed-8f33-419a-89ae-e94978ccb8e2\scratchpad\rerun-fix9.json | dev profile on ====
+--- [1/8] B7 step 11 (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 0
+seconds: 113
+  | [WebServer]     curl "http://127.0.0.1:8878/cdn-cgi/local/scheduled"
+  | [WebServer]   For more details, see https://developers.cloudflare.com/workers/configuration/cron-triggers/#test-cron-triggers-locally
+  | [WebServer] 
+  | [WebServer] 
+  | 
+  | lock mop-dev-tests held
+  | 
+  | fixtures: submissions 11, invoices 3
+  | 
+  | 
+  | Running 2 tests using 1 worker
+  | 
+  | 
+  |   ✓  1 [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted (48.9s)
+  | 
+  |   ✓  2 [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill (43.0s)
+  | 
+  | 
+  | 
+  |   2 passed (1.9m)
+--- [2/8] B7 step 11a (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 101
+  |       113 | }
+  |       114 |
+  |       115 | /** The agent's call: a bearer key and no cookie. */
+  |         at removeAgent (D:\mop-build\fix9\app\tests\e2e\admin-full-path.spec.ts:112:47)
+  |         at D:\mop-build\fix9\app\tests\e2e\admin-full-path.spec.ts:538:36
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-03daf-ntries-carry-the-Agent-pill-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-03daf-ntries-carry-the-Agent-pill-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-03daf-ntries-carry-the-Agent-pill-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill 
+  |   1 passed (1.7m)
+--- [3/8] B7 step 12 (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 125
+  |         at D:\mop-build\fix9\app\node_modules\pg\lib\client.js:694:17
+  |         at insertFixtures (D:\mop-build\fix9\app\tests\e2e\fixtures\admin-data.ts:114:5)
+  |         at D:\mop-build\fix9\app\tests\e2e\fixtures\admin-data.ts:131:18
+  |         at committed (D:\mop-build\fix9\app\tests\fixtures\db.ts:75:14)
+  |         at D:\mop-build\fix9\app\tests\e2e\admin-full-path.spec.ts:434:7
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-03daf-ntries-carry-the-Agent-pill-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-03daf-ntries-carry-the-Agent-pill-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-03daf-ntries-carry-the-Agent-pill-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill 
+  |   1 passed (2.1m)
+--- [4/8] B7 step 13 (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 0
+seconds: 133
+  | 
+  | lock mop-dev-tests held
+  | 
+  | fixtures: submissions 11, invoices 3
+  | 
+  | 
+  | Running 2 tests using 1 worker
+  | 
+  | 
+  |   ✓  1 [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted (45.2s)
+  | 
+  | [WebServer] ▲ [WARNING] {"level":"warn","event":"public_read_stale","rpc":"public_state"}
+  | [WebServer] 
+  | [WebServer] 
+  | 
+  |   ✓  2 [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill (1.2m)
+  | 
+  | 
+  | 
+  |   2 passed (2.2m)
+--- [5/8] B7 step 14 (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 0
+seconds: 132
+  | 
+  | [WebServer] ▲ [WARNING] {"level":"warn","event":"public_read_stale","rpc":"public_state"}
+  | [WebServer] 
+  | [WebServer] 
+  | 
+  | lock mop-dev-tests held
+  | 
+  | fixtures: submissions 11, invoices 3
+  | 
+  | 
+  | Running 2 tests using 1 worker
+  | 
+  | 
+  |   ✓  1 [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted (1.0m)
+  | 
+  |   ✓  2 [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill (49.7s)
+  | 
+  | 
+  | 
+  |   2 passed (2.2m)
+--- [6/8] B7 step 15 (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 0
+seconds: 139
+  | [WebServer]     curl "http://127.0.0.1:8878/cdn-cgi/local/scheduled"
+  | [WebServer]   For more details, see https://developers.cloudflare.com/workers/configuration/cron-triggers/#test-cron-triggers-locally
+  | [WebServer] 
+  | [WebServer] 
+  | 
+  | lock mop-dev-tests held
+  | 
+  | fixtures: submissions 11, invoices 3
+  | 
+  | 
+  | Running 2 tests using 1 worker
+  | 
+  | 
+  |   ✓  1 [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted (1.0m)
+  | 
+  |   ✓  2 [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill (1.0m)
+  | 
+  | 
+  | 
+  |   2 passed (2.3m)
+--- [7/8] B7 step 15a (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 0
+seconds: 118
+  | [WebServer]     curl "http://127.0.0.1:8878/cdn-cgi/local/scheduled"
+  | [WebServer]   For more details, see https://developers.cloudflare.com/workers/configuration/cron-triggers/#test-cron-triggers-locally
+  | [WebServer] 
+  | [WebServer] 
+  | 
+  | lock mop-dev-tests held
+  | 
+  | fixtures: submissions 11, invoices 3
+  | 
+  | 
+  | Running 2 tests using 1 worker
+  | 
+  | 
+  |   ✓  1 [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted (49.3s)
+  | 
+  |   ✓  2 [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill (53.1s)
+  | 
+  | 
+  | 
+  |   2 passed (2.0m)
+--- [8/8] B7 step 16 (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 0
+seconds: 120
+  | [WebServer]     curl "http://127.0.0.1:8878/cdn-cgi/local/scheduled"
+  | [WebServer]   For more details, see https://developers.cloudflare.com/workers/configuration/cron-triggers/#test-cron-triggers-locally
+  | [WebServer] 
+  | [WebServer] 
+  | 
+  | lock mop-dev-tests held
+  | 
+  | fixtures: submissions 11, invoices 3
+  | 
+  | 
+  | Running 2 tests using 1 worker
+  | 
+  | 
+  |   ✓  1 [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted (46.9s)
+  | 
+  |   ✓  2 [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill (57.3s)
+  | 
+  | 
+  | 
+  |   2 passed (2.0m)
+
+==== SUMMARY 2026-10-11T03:34:45.487Z ====
+| slice | step | result |
+| --- | --- | --- |
+| B7 | 11 | pass |
+| B7 | 11a | fail |
+| B7 | 12 | fail |
+| B7 | 13 | pass |
+| B7 | 14 | pass |
+| B7 | 15 | pass |
+| B7 | 15a | pass |
+| B7 | 16 | pass |
+steps: 8 | pass 6 | fail 2 | skipped 0
+==== END ====
+
+==== rerun 2026-10-11T03:38:39.906Z | 2 entries | list C:\Users\ka\AppData\Local\Temp\claude\D--mop-Matter-Of-Place\c8fd54ed-8f33-419a-89ae-e94978ccb8e2\scratchpad\rerun-fix9.json | dev profile on ====
+--- [1/2] B7 step 11a (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 0
+seconds: 124
+  | [WebServer]   For more details, see https://developers.cloudflare.com/workers/configuration/cron-triggers/#test-cron-triggers-locally
+  | [WebServer] 
+  | [WebServer] 
+  | 
+  | lock mop-dev-tests held
+  | 
+  | fixtures: submissions 11, invoices 3
+  | 
+  | 
+  | Running 2 tests using 1 worker
+  | 
+  | 
+  |   ✓  1 [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted (59.6s)
+  | 
+  | 
+  |   ✓  2 [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill (46.0s)
+  | 
+  | 
+  | 
+  |   2 passed (2.1m)
+--- [2/2] B7 step 12 (plan)
+cwd: D:/mop-build/fix9/app
+command: E2E_PORT=8878 E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 0
+seconds: 110
+  | [WebServer]     curl "http://127.0.0.1:8878/cdn-cgi/local/scheduled"
+  | [WebServer]   For more details, see https://developers.cloudflare.com/workers/configuration/cron-triggers/#test-cron-triggers-locally
+  | [WebServer] 
+  | [WebServer] 
+  | 
+  | lock mop-dev-tests held
+  | 
+  | fixtures: submissions 11, invoices 3
+  | 
+  | 
+  | Running 2 tests using 1 worker
+  | 
+  | 
+  |   ✓  1 [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted (50.6s)
+  | 
+  |   ✓  2 [admin] › tests\e2e\admin-full-path.spec.ts:427:3 › admin full path (B7 step 16) › an agent key takes the same decisions, is refused the two only a person takes, and its history entries carry the Agent pill (44.9s)
+  | 
+  | 
+  | 
+  |   2 passed (1.8m)
+
+==== SUMMARY 2026-10-11T03:42:33.492Z ====
+| slice | step | result |
+| --- | --- | --- |
+| B7 | 11a | pass |
+| B7 | 12 | pass |
+steps: 2 | pass 2 | fail 0 | skipped 0
+==== END ====
