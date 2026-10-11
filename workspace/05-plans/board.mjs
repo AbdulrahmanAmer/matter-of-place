@@ -470,6 +470,65 @@ function ago(ms, now) {
   return `${hours} hours ago`;
 }
 
+/** A small mark for a state. Always printed beside the state's words, so colour and shape never carry it alone. */
+function mark(kind) {
+  const open = '<svg class="mk" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false">';
+  const shapes = {
+    accepted: '<circle cx="6" cy="6" r="5" fill="currentColor"/>',
+    work: '<circle cx="6" cy="6" r="4.4" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M6 1.6a4.4 4.4 0 0 0 0 8.8z" fill="currentColor"/>',
+    waiting: '<path d="M6 .9 11.1 6 6 11.1.9 6z" fill="none" stroke="currentColor" stroke-width="1.2"/>',
+    none: '<circle cx="6" cy="6" r="4.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/>',
+  };
+  return `${open}${shapes[kind] ?? shapes.none}</svg>`;
+}
+
+const STEP_MARK = { accepted: "accepted", "in review": "work", "waiting on you": "waiting", "not started": "none" };
+const STEP_WORDS = { accepted: "Accepted", "in review": "In work", "waiting on you": "Waiting on you", "not started": "Not started" };
+const SLICE_MARK = { closed: "accepted", "in progress": "work", "not started": "none" };
+
+function outcomeMark(outcome) {
+  if (outcome.startsWith("running")) return "work";
+  if (outcome.startsWith("accepted") || outcome.startsWith("done")) return "accepted";
+  if (outcome.startsWith("finished")) return "work";
+  return "waiting";
+}
+
+const ICONS = {
+  overview: '<path d="M3 3h6v6H3zM11 3h6v6h-6zM3 11h6v6H3zM11 11h6v6h-6z"/>',
+  arms: '<path d="M4 3v14M10 3v14M16 3v14"/>',
+  lanes: '<path d="M3 5h14M3 10h14M3 15h14"/>',
+  slices: '<path d="M3 4h14v3H3zM3 9h14v3H3zM3 14h9v3H3z"/>',
+  steps: '<path d="M4 4l2 2 3-3M12 5h5M4 11l2 2 3-3M12 12h5"/>',
+  activity: '<path d="M3 10h3l2-5 3 10 2-5h4"/>',
+  waiting: '<circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/>',
+  method: '<path d="M5 3h10v14H5zM8 7h4M8 10h4M8 13h2"/>',
+};
+const VIEWS = [
+  ["overview", "Overview"],
+  ["arms", "Arms"],
+  ["lanes", "Lanes"],
+  ["slices", "Slices"],
+  ["steps", "Every step"],
+  ["activity", "Activity"],
+  ["waiting", "Waiting on you"],
+  ["method", "How it is counted"],
+];
+const EMBLEM =
+  '<svg class="emblem" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 2h7v20H3zM14 6h7v16h-7z"/></svg>';
+
+/** The two typefaces as data in a snapshot, so the one static file asks the network for nothing. */
+function embeddedFonts() {
+  const face = (family, file, weights) => {
+    try {
+      const data = readFileSync(join(ROOT, file)).toString("base64");
+      return `@font-face { font-family: "${family}"; src: url("data:font/woff2;base64,${data}") format("woff2"); font-weight: ${weights}; font-display: swap; }`;
+    } catch {
+      return "";
+    }
+  };
+  return `${face("Jost", FONTS["/fonts/jost.woff2"], "100 900")}\n${face("Cormorant Garamond", FONTS["/fonts/cormorant.woff2"], "300 700")}`;
+}
+
 export function render(data, version, snapshot = false) {
   const o = data.overall;
   const now = new Date(data.generated);
@@ -480,7 +539,6 @@ export function render(data, version, snapshot = false) {
         `<tr><th scope="row">${esc(arm.label)}</th><td data-label="Covers">${esc(arm.what)}</td><td class="num" data-label="Pieces">${arm.pieces}</td><td class="num" data-label="Own">${arm.ownPercent}%</td><td data-label="Needs">${esc(arm.needs.join(", ") || "nothing else")}</td><td class="num" data-label="To go">${arm.remaining} of ${arm.total}</td><td class="num" data-label="To launch">${arm.percent}%</td><td class="barcell">${bar(arm.accepted, 0, arm.total)}</td></tr>`,
     )
     .join("\n");
-  const remainingHours = pace.hoursPerStep === null ? null : Math.round(pace.hoursPerStep * (o.total - o.accepted));
   // The laptop's own clock with its offset from UTC written out: the shell here prints "EDT" for
   // Egypt Daylight Time, which reads as US Eastern (GOTCHAS P-130).
   const offset = -now.getTimezoneOffset() / 60;
@@ -488,7 +546,7 @@ export function render(data, version, snapshot = false) {
   const paceLine =
     pace.hoursPerStep === null
       ? "No step is accepted yet, so there is no pace to report."
-      : `Pace so far: ${o.accepted} steps accepted in ${pace.hours} hours, about ${pace.hoursPerStep} hours a step. At that pace the remaining ${o.total - o.accepted} steps would take about ${pace.remainingHoursOneLane} hours. ${data.paceNote}`;
+      : `Since the build began, ${pace.hours} hours ago, ${o.accepted} steps have been accepted: about ${pace.hoursPerStep} hours of the clock for each step, with every lane counted together. At that rate the remaining ${o.total - o.accepted} steps, the ones after go-live included, would take about ${pace.remainingHoursOneLane} more hours. It is a rate, not a date.`;
 
   const laneRows = data.lanes
     .map(
@@ -499,37 +557,45 @@ export function render(data, version, snapshot = false) {
   const sliceRows = data.slices
     .map((s) =>
       s.total
-        ? `<tr><th scope="row"><a href="#slice-${esc(s.id)}">${esc(s.id)}</a></th><td data-label="What">${esc(s.title)}</td><td class="num" data-label="State">${esc(s.state)}</td><td class="num" data-label="Accepted">${s.accepted} of ${s.total}</td><td class="num" data-label="In work">${s.inReview}</td><td class="num" data-label="Percent">${s.percent}%</td><td class="barcell">${bar(s.accepted, s.inReview, s.total)}</td></tr>`
-        : `<tr><th scope="row">${esc(s.id)}</th><td data-label="What">${esc(s.note || s.title)}</td><td data-label="State">${esc(s.state)}</td><td class="num" data-label="Accepted">not counted</td><td class="num"></td><td class="num"></td><td class="barcell"></td></tr>`,
+        ? `<tr><th scope="row"><a href="#slice-${esc(s.id)}">${esc(s.id)}</a></th><td data-label="What">${esc(s.title)}</td><td data-label="State"><span class="state">${mark(SLICE_MARK[s.state])}${esc(s.state)}</span></td><td class="num" data-label="Accepted">${s.accepted} of ${s.total}</td><td class="num" data-label="In work">${s.inReview}</td><td class="num" data-label="Percent">${s.percent}%</td><td class="barcell">${bar(s.accepted, s.inReview, s.total)}</td></tr>`
+        : `<tr><th scope="row">${esc(s.id)}</th><td data-label="What">${esc(s.note || s.title)}</td><td data-label="State"><span class="state">${mark(SLICE_MARK[s.state])}${esc(s.state)}</span></td><td class="num" data-label="Accepted">not counted</td><td class="num"></td><td class="num"></td><td class="barcell"></td></tr>`,
     )
     .join("\n");
   const details = data.slices
     .filter((s) => s.total)
     .map(
       (s) =>
-        `<details id="slice-${esc(s.id)}"><summary>${esc(s.id)}, ${esc(s.title)}: ${s.accepted} of ${s.total} steps accepted, ${s.percent}%</summary><ol class="steps">${s.steps
-          .map(
-            (step) =>
-              `<li class="${step.state.replace(" ", "-")}"><strong>Step ${esc(step.id)}, ${esc(step.state)}${step.state === "accepted" && !step.checked ? " by the reviewer, the orchestrator's re-run is pending" : ""}${step.waiting ? ", has a part that waits on an outside account" : ""}.</strong> ${esc(step.text)}</li>`,
-          )
+        `<details id="slice-${esc(s.id)}"><summary><span class="sum-id">${esc(s.id)}</span><span class="sum-title">${esc(s.title)}</span><span class="sum-count">${s.accepted} of ${s.total} accepted</span><span class="sum-pct">${s.percent}%</span><span class="chev" aria-hidden="true"></span><span class="sum-bar">${bar(s.accepted, s.inReview, s.total)}</span></summary><ol class="steps">${s.steps
+          .map((step) => {
+            const notes = [
+              step.state === "accepted" && !step.checked ? "Accepted by the reviewer; the orchestrator's re-run is pending." : "",
+              step.waiting ? "Has a part that waits on an outside account." : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return `<li class="${step.state.replaceAll(" ", "-")}"><span class="step-state">${mark(STEP_MARK[step.state])}<span class="sr">Step ${esc(step.id)}, </span>${esc(STEP_WORDS[step.state] ?? step.state)}</span><span class="step-id" aria-hidden="true">${esc(step.id)}</span><span class="step-text">${esc(step.text)}${notes ? `<em class="step-note">${esc(notes)}</em>` : ""}</span></li>`;
+          })
           .join("")}</ol></details>`,
     )
     .join("\n");
   const events = data.runs
     .map(
       (run) =>
-        `<h3>${esc(run.title)}, newest first</h3><p class="meta">Its journal was last written ${esc(ago(run.lastActivity, now.getTime()))}.</p><ol class="events">${run.events
-          .map((e) => `<li${e.running ? ' class="running"' : ""}>${esc(e.text)}: <strong>${esc(e.outcome)}</strong>.</li>`)
-          .join("")}</ol>`,
+        `<section class="run"><h2>${esc(run.title)}</h2><p class="meta">Newest first. Its journal was last written ${esc(ago(run.lastActivity, now.getTime()))}.</p><ol class="timeline">${run.events
+          .map(
+            (e) =>
+              `<li${e.running ? ' class="running"' : ""}>${mark(outcomeMark(e.outcome))}<span class="ev-text">${esc(e.text)}</span><strong class="ev-outcome">${esc(e.outcome)}</strong></li>`,
+          )
+          .join("")}</ol></section>`,
     )
     .join("");
   const worktrees = data.worktrees.length
     ? data.worktrees
         .map(
           (w) =>
-            `<h3>Latest commits in the build lane <code>${esc(w.branch)}</code></h3><ul>${w.commits
-              .map((c) => `<li>${esc(ago(c.at, now.getTime()))}: ${esc(c.subject)}</li>`)
-              .join("")}</ul>`,
+            `<section class="run"><h3>Latest commits in the build lane <code>${esc(w.branch)}</code></h3><ol class="commits">${w.commits
+              .map((c) => `<li><span class="when">${esc(ago(c.at, now.getTime()))}</span><span class="what">${esc(c.subject)}</span></li>`)
+              .join("")}</ol></section>`,
         )
         .join("")
     : "<p>No build lane is open.</p>";
@@ -539,234 +605,321 @@ export function render(data, version, snapshot = false) {
   const errors = data.errors.length
     ? `<section class="errors" role="alert"><h2>The ledger has ${data.errors.length} error${data.errors.length === 1 ? "" : "s"}</h2><ul>${data.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></section>`
     : "";
+  const waitingSteps = data.slices.some((s) => s.steps.some((st) => st.state === "waiting on you"))
+    ? `<h3>Steps recorded as waiting on you</h3><ol class="check">${data.slices
+        .flatMap((s) => s.steps.filter((st) => st.state === "waiting on you").map((st) => `<li><span class="box" aria-hidden="true"></span><div><strong><a href="#slice-${esc(s.id)}">${esc(s.id)}</a>, step ${esc(st.id)}.</strong><p>${esc(st.text)}</p></div></li>`))
+        .join("")}</ol>`
+    : "";
+  const nav = VIEWS.map(
+    ([key, label], i) =>
+      `<button type="button" data-view="${key}" title="${esc(label)}"${i === 0 ? ' aria-current="page"' : ""}><svg class="ico" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="square" aria-hidden="true" focusable="false">${ICONS[key]}</svg><span class="lbl">${esc(label)}</span>${key === "waiting" && data.waiting.length ? `<span class="count lbl" aria-label="${data.waiting.length} items">${data.waiting.length}</span>` : ""}</button>`,
+  ).join("\n");
 
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${snapshot ? "Build Progress Board" : `${o.percent}% · Matter of Place build`}</title>
-${snapshot ? '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500&display=swap">' : ""}
-<style>
-${snapshot ? "" : '@font-face { font-family: "Jost"; src: url("/fonts/jost.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }\n@font-face { font-family: "Cormorant Garamond"; src: url("/fonts/cormorant.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }'}
-:root { --bg: #F5F2EB; --ink: #11110F; --line: #C9C0B2; --soft: #575751; --mid: #8B877F; --panel: #EEEAE1; }
+  const css = `
+:root { --bg: #F5F2EB; --ink: #11110F; --line: #C9C0B2; --soft: #575751; --mid: #8B877F; --panel: #EEEAE1; --side-w: 248px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #11110F; --ink: #EEEAE1; --line: #575751; --soft: #C9C0B2; --mid: #8B877F; --panel: #1b1b18; } }
 :root[data-theme="dark"] { --bg: #11110F; --ink: #EEEAE1; --line: #575751; --soft: #C9C0B2; --mid: #8B877F; --panel: #1b1b18; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 "Jost", "Segoe UI", system-ui, sans-serif; }
-.shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
-.side { border-right: 1px solid var(--line); padding: 28px 16px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 24px; }
-.brand { font-family: "Cormorant Garamond", Georgia, serif; font-size: 24px; line-height: 1.1; }
-.brand span { display: block; font: 13px/1.4 "Jost", system-ui, sans-serif; color: var(--soft); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 6px; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "Jost", "Segoe UI", system-ui, sans-serif; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+button { font: inherit; color: inherit; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mk { flex: none; vertical-align: -1px; }
+
+/* Shell: sidebar and page */
+.shell { display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); min-height: 100vh; transition: grid-template-columns 0.2s ease; }
+html[data-rail="1"] { --side-w: 72px; }
+.side { border-right: 1px solid var(--line); padding: 24px 12px 16px; position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 24px; min-width: 0; overflow: hidden; background: var(--bg); }
+.brand { display: flex; align-items: center; gap: 12px; padding: 0 8px; min-height: 44px; }
+.emblem { flex: none; }
+.brand-name { font-family: "Cormorant Garamond", Georgia, serif; font-size: 23px; line-height: 1.05; white-space: nowrap; }
+.brand-name small { display: block; font: 12px/1.4 "Jost", system-ui, sans-serif; color: var(--soft); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+.side-top { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.drawer-close { display: none; }
 nav { display: flex; flex-direction: column; gap: 2px; }
-nav button { font: inherit; color: var(--soft); background: none; border: 0; border-left: 2px solid transparent; text-align: left; padding: 8px 12px; cursor: pointer; }
-nav button:hover { color: var(--ink); }
-nav button[aria-current="page"] { color: var(--ink); border-left-color: var(--ink); }
-nav button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.side-meta { margin-top: auto; color: var(--soft); font-size: 13px; }
-main { padding: 32px 32px 80px; max-width: 1180px; }
-h1 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 34px; line-height: 1.1; margin: 0 0 4px; }
-h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 22px; line-height: 1.2; margin: 0 0 8px; }
-h3 { font-size: 15px; font-weight: 500; margin: 24px 0 6px; }
+nav button { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 44px; padding: 8px 10px; background: none; border: 0; border-left: 2px solid transparent; text-align: left; cursor: pointer; color: var(--soft); }
+nav button:hover { color: var(--ink); background: var(--panel); }
+nav button[aria-current="page"] { color: var(--ink); border-left-color: var(--ink); background: var(--panel); }
+.ico { flex: none; }
+.lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.count { margin-left: auto; font-size: 13px; font-variant-numeric: tabular-nums; border: 1px solid var(--line); min-width: 24px; text-align: center; padding: 0 6px; line-height: 20px; color: var(--ink); }
+.side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.rail-toggle { display: flex; align-items: center; gap: 14px; min-height: 44px; padding: 8px 10px; background: none; border: 1px solid var(--line); cursor: pointer; color: var(--soft); width: 100%; text-align: left; }
+.rail-toggle:hover { color: var(--ink); }
+.rail-toggle .ico { transition: transform 0.2s ease; }
+html[data-rail="1"] .rail-toggle .ico { transform: rotate(180deg); }
+.side-meta { margin: 0; padding: 0 8px; color: var(--soft); font-size: 12.5px; line-height: 1.45; }
+.topbar, .scrim { display: none; }
+main { padding: 36px 40px 96px; max-width: 1180px; min-width: 0; }
+@media (min-width: 821px) {
+  html[data-rail="1"] .side { padding-left: 8px; padding-right: 8px; }
+  html[data-rail="1"] .brand { justify-content: center; padding: 0; }
+  html[data-rail="1"] .brand-name, html[data-rail="1"] .lbl, html[data-rail="1"] .side-meta { display: none; }
+  html[data-rail="1"] nav button, html[data-rail="1"] .rail-toggle { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
+}
+
+/* Type */
+h1 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 44px; line-height: 1.05; margin: 0 0 6px; letter-spacing: -0.005em; }
+h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 24px; line-height: 1.2; margin: 0 0 8px; }
+h3 { font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); margin: 36px 0 10px; }
 p { margin: 8px 0; }
-.meta { color: var(--soft); font-size: 14px; }
-.hero { display: grid; grid-template-columns: auto 1fr; gap: 8px 32px; align-items: end; margin: 28px 0 8px; }
-.figure { font-family: "Cormorant Garamond", Georgia, serif; font-size: 96px; line-height: 0.9; margin: 0; }
-.lead { font-size: 19px; margin: 0 0 10px; }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 20px; }
-.tile { border: 1px solid var(--line); padding: 16px 18px 14px; min-width: 0; }
-.tile .big { font-family: "Cormorant Garamond", Georgia, serif; font-size: 44px; line-height: 1; margin: 6px 0 4px; }
-.tile .meta { margin: 0; }
-.tile.wide { grid-column: 1 / -1; }
-.tiles.arms { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
-@media (min-width: 1100px) { .tiles.arms { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
-.figures { display: flex; flex-direction: column; }
-.figure-label { margin: 6px 0 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); }
-.figure-second { margin: 10px 0 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 30px; line-height: 1; color: var(--soft); }
-.bar { display: flex; width: 160px; height: 8px; background: var(--line); margin-top: 9px; }
+.meta { color: var(--soft); font-size: 14.5px; }
+.eyebrow { margin: 0 0 10px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); }
+.view-head { padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.view-head .meta { margin: 6px 0 0; max-width: 70ch; }
+.view[hidden] { display: none; }
+ul { padding-left: 20px; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 0.88em; text-transform: none; letter-spacing: 0; }
+
+/* Overview */
+.hero { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 20px 56px; align-items: center; padding: 36px 0 32px; border-bottom: 1px solid var(--line); }
+.figure { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 400; font-size: 136px; line-height: 0.85; margin: 0; letter-spacing: -0.02em; font-variant-numeric: lining-nums; }
+.figure-label { margin: 14px 0 0; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); }
+.hero-side { min-width: 0; }
+.lead { font-size: 18.5px; line-height: 1.5; margin: 0 0 16px; max-width: 62ch; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 20px 0 0; border-top: 1px solid var(--line); }
+.fact { padding: 14px 16px 0 0; }
+.fact + .fact { padding-left: 16px; border-left: 1px solid var(--line); }
+.fact dt { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); }
+.fact dd { margin: 4px 0 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 34px; line-height: 1.05; font-variant-numeric: lining-nums; }
+.fact dd small { font: 14px/1.3 "Jost", system-ui, sans-serif; color: var(--soft); display: block; margin-top: 2px; }
+.sec { margin-top: 36px; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.sec-head h2 { margin: 0; }
+.sec-head a { font-size: 14.5px; color: var(--soft); display: inline-flex; align-items: center; min-height: 44px; }
+.arm-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--line); }
+.arm { padding: 16px 16px 18px; min-width: 0; }
+.arm + .arm { border-left: 1px solid var(--line); }
+.arm h3 { margin: 0; text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 500; color: var(--ink); min-height: 2.9em; line-height: 1.45; }
+.arm .big { font-family: "Cormorant Garamond", Georgia, serif; font-size: 48px; line-height: 1; margin: 6px 0 4px; font-variant-numeric: lining-nums; }
+.arm .meta { margin: 0 0 12px; font-size: 13.5px; }
+.now { border-top: 1px solid var(--ink); padding-top: 14px; }
+.now p { font-family: "Cormorant Garamond", Georgia, serif; font-size: 21px; line-height: 1.45; margin: 0 0 8px; max-width: 72ch; }
+.now .meta { font-family: "Jost", system-ui, sans-serif; font-size: 13.5px; }
+.strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.strip > * { padding: 18px 20px 18px 0; min-width: 0; color: inherit; text-decoration: none; display: block; }
+.strip > * + * { padding-left: 20px; border-left: 1px solid var(--line); }
+.strip a:hover .big { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; }
+.strip h2 { font-size: 13px; font-family: "Jost", system-ui, sans-serif; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); margin: 0; }
+.strip .big { font-family: "Cormorant Garamond", Georgia, serif; font-size: 46px; line-height: 1; margin: 8px 0 4px; font-variant-numeric: lining-nums; }
+.strip .meta { margin: 0; font-size: 14px; }
+
+/* Bars: a hairline track, ink for accepted, warm grey for in work. The percent beside every bar is the real reading. */
+.bar { display: flex; width: 140px; height: 6px; background: var(--line); }
 .bar .done { background: var(--ink); }
 .bar .review { background: var(--mid); }
-.bar.big { width: 100%; height: 10px; margin: 8px 0 0; }
+.bar.big { width: 100%; height: 8px; margin: 8px 0 0; }
 .bar.full { width: 100%; }
-.wrap { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 15px; }
-caption { text-align: left; color: var(--soft); font-size: 14px; padding-bottom: 8px; }
-th, td { text-align: left; padding: 9px 14px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-thead th { font-weight: 500; color: var(--soft); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
-tbody th { font-weight: 500; white-space: nowrap; }
+
+/* Tables */
+.wrap { overflow-x: auto; margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; margin-top: 4px; font-size: 15px; }
+th, td { text-align: left; padding: 12px 16px 12px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+thead th { font-weight: 500; color: var(--soft); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: bottom; border-bottom-color: var(--ink); }
+tbody th { font-weight: 500; }
 .num { white-space: nowrap; font-variant-numeric: tabular-nums; }
-details { border-bottom: 1px solid var(--line); padding: 10px 0; }
-summary { cursor: pointer; font-weight: 500; }
-.steps { margin: 10px 0 4px; padding-left: 24px; list-style: none; }
-.steps li { margin: 6px 0; color: var(--soft); font-size: 15px; }
-.steps li.accepted { color: var(--ink); }
-.steps li.waiting-on-you { color: var(--ink); font-style: italic; }
-.steps li strong { font-weight: 500; color: var(--ink); }
-.events { padding-left: 20px; margin: 4px 0; }
-.events li { margin: 5px 0; color: var(--soft); font-size: 15px; }
-.events li.running, .events li strong { color: var(--ink); }
-.events li strong { font-weight: 500; }
+.state { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+td a, th a { display: inline-block; padding: 6px 0; }
+
+/* Every step */
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; margin: 16px 0 4px; }
+.tools button { min-height: 44px; padding: 0 16px; background: none; border: 1px solid var(--line); cursor: pointer; }
+.tools button:hover { border-color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--soft); }
+.legend li { display: inline-flex; align-items: center; gap: 7px; }
+details { border-bottom: 1px solid var(--line); scroll-margin-top: 24px; }
+summary { list-style: none; cursor: pointer; min-height: 56px; padding: 10px 0; display: grid; grid-template-columns: 52px minmax(0, 1fr) auto 52px 20px; align-items: center; column-gap: 14px; row-gap: 6px; }
+summary::-webkit-details-marker { display: none; }
+.sum-id { font-weight: 500; }
+.sum-title { min-width: 0; }
+.sum-count, .sum-pct { color: var(--soft); font-size: 14.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sum-pct { text-align: right; }
+.sum-bar { display: none; grid-column: 2 / -1; }
+.sum-bar .bar { width: 100%; }
+.chev { width: 8px; height: 8px; border-right: 1.3px solid currentColor; border-bottom: 1.3px solid currentColor; transform: rotate(45deg); justify-self: center; transition: transform 0.2s ease; margin-top: -3px; }
+details[open] > summary .chev { transform: rotate(225deg); margin-top: 3px; }
+.steps { margin: 0 0 14px 20px; padding: 0 0 0 20px; list-style: none; border-left: 1px solid var(--line); }
+.steps li { display: grid; grid-template-columns: 150px 44px minmax(0, 1fr); column-gap: 14px; align-items: baseline; padding: 9px 0; font-size: 15px; color: var(--soft); }
+.steps li + li { border-top: 1px solid var(--line); }
+.steps li.accepted .step-text { color: var(--ink); }
+.steps li.in-review, .steps li.waiting-on-you { color: var(--ink); }
+.steps li.in-review .step-text, .steps li.waiting-on-you .step-text { color: var(--ink); }
+.step-state { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+.step-id { font-variant-numeric: tabular-nums; color: var(--soft); font-size: 13.5px; }
+.step-note { display: block; font-style: normal; font-size: 13.5px; color: var(--soft); margin-top: 3px; }
+
+/* Activity */
+.run { margin-top: 32px; }
+.run h2 { font-size: 22px; margin: 0; }
+.run h3 { margin-top: 0; }
+.timeline { list-style: none; margin: 14px 0 0 6px; padding: 0; border-left: 1px solid var(--line); }
+.timeline li { position: relative; padding: 0 0 18px 26px; color: var(--soft); }
+.timeline li .mk { position: absolute; left: -6.5px; top: 6px; background: var(--bg); color: var(--ink); }
+.timeline li.running { color: var(--ink); }
+.ev-text, .ev-outcome { display: block; }
+.ev-outcome { font-weight: 500; color: var(--ink); font-size: 14.5px; }
+.commits { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.commits li { display: grid; grid-template-columns: 150px minmax(0, 1fr); column-gap: 20px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.commits .when { color: var(--soft); white-space: nowrap; }
+.callout { border-top: 1px solid var(--ink); padding-top: 12px; margin-top: 12px; max-width: 70ch; }
+
+/* Waiting on you */
+.check { list-style: none; margin: 8px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.check li { display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 12px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.check .box { width: 18px; height: 18px; border: 1.3px solid var(--ink); margin-top: 4px; }
+.check strong { font-weight: 500; font-size: 17px; }
+.check p { margin: 4px 0 0; color: var(--soft); max-width: 66ch; }
+
+/* How it is counted */
+.prose { max-width: 66ch; }
+.prose p { font-size: 17px; line-height: 1.65; margin: 0 0 14px; }
+.prose h2 { margin-top: 28px; }
+.prose p:first-of-type { font-family: "Cormorant Garamond", Georgia, serif; font-size: 23px; line-height: 1.45; }
 .errors { border: 1px solid var(--ink); padding: 4px 18px 10px; margin: 20px 0; background: var(--panel); }
-ul { padding-left: 20px; }
-code { font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; }
-.view[hidden] { display: none; }
-summary { padding: 6px 0; min-height: 44px; display: flex; align-items: center; }
-details[open] > summary { margin-bottom: 4px; }
-details { scroll-margin-top: 120px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Tablet and narrow desktop */
+@media (max-width: 1100px) {
+  main { padding: 28px 28px 80px; }
+  .arm-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .arm:nth-child(odd) { border-left: 0; }
+  .arm:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .arm + .arm { border-left: 1px solid var(--line); }
+  .arm:nth-child(odd) { border-left: 0; }
+  .hero { grid-template-columns: 1fr; }
+}
+
+/* Phone */
 @media (max-width: 820px) {
-  /* Phone (operator, 2026-10-07 and 2026-10-11). The sidebar becomes a header that stays on top: the title and a
-     wrapping row of view buttons, so all eight views show and each is a 44px target. Every table turns into a list of
-     cards, one per row, each cell labelled with its column name, so nothing is squeezed into letter-per-line columns and
-     nothing scrolls sideways. */
-  .shell { grid-template-columns: 1fr; }
-  .side { position: sticky; top: 0; z-index: 2; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 16px 8px; gap: 8px; min-width: 0; background: var(--bg); }
-  .brand { font-size: 20px; }
-  .brand span { display: inline; margin: 0 0 0 10px; font-size: 12px; }
-  nav { flex-direction: row; flex-wrap: wrap; gap: 0 4px; min-width: 0; margin: 0 -8px; }
-  nav button { white-space: nowrap; border-left: 0; border-bottom: 2px solid transparent; padding: 10px 8px; min-height: 44px; font-size: 15px; }
-  nav button[aria-current="page"] { border-bottom-color: var(--ink); }
-  .side-meta { display: none; }
-  main { padding: 20px 16px 60px; min-width: 0; }
-  .view { min-width: 0; }
-  .hero { grid-template-columns: 1fr; margin-top: 20px; }
-  .figure { font-size: 72px; }
-  .tiles { grid-template-columns: 1fr; gap: 12px; }
-  .tile .big { font-size: 40px; }
+  /* Phone (operator, 2026-10-07 and 2026-10-11). A top bar with the mark and a menu button; the views live in a drawer
+     that slides from the left over a dimmed page. Every table turns into a list of labelled cards, one per row, so
+     nothing is squeezed and nothing scrolls sideways. */
+  .shell { display: block; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: 0; z-index: 20; height: 60px; padding: 0 8px 0 16px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .topbar .brand { padding: 0; }
+  .topbar .brand-name { font-size: 21px; }
+  .menu-btn { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; min-width: 44px; padding: 0 12px; background: none; border: 1px solid var(--line); cursor: pointer; }
+  .side { position: fixed; z-index: 40; top: 0; left: 0; bottom: 0; width: min(86vw, 320px); height: auto; padding: 16px 12px 16px; transform: translateX(-100%); visibility: hidden; transition: transform 0.25s ease, visibility 0s linear 0.25s; border-right: 1px solid var(--line); overflow-y: auto; }
+  .drawer-open .side { transform: none; visibility: visible; transition: transform 0.25s ease, visibility 0s; }
+  .scrim { position: fixed; z-index: 30; inset: 0; background: rgba(17, 17, 15, 0.55); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; border: 0; padding: 0; width: 100%; display: block; }
+  .drawer-open .scrim { opacity: 1; pointer-events: auto; }
+  .drawer-open { overflow: hidden; }
+  .drawer-close { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: none; border: 1px solid var(--line); cursor: pointer; flex: none; }
+  .rail-toggle { display: none; }
+  nav button { min-height: 48px; font-size: 17px; }
+  main { padding: 20px 16px 64px; }
+  h1 { font-size: 34px; }
+  h2 { font-size: 22px; }
+  .view-head { padding-bottom: 14px; }
+  .hero { padding: 24px 0 22px; gap: 16px; }
+  .figure { font-size: 108px; }
+  .lead { font-size: 17px; }
+  .facts { grid-template-columns: 1fr; border-top: 0; }
+  .fact, .fact + .fact { padding: 12px 0; border-left: 0; border-top: 1px solid var(--line); display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .fact dd { margin: 0; text-align: right; font-size: 30px; }
+  .fact dd small { display: inline; margin-left: 8px; }
+  .arm-row { grid-template-columns: 1fr; border: 0; border-top: 1px solid var(--line); }
+  .arm, .arm + .arm, .arm:nth-child(n) { border: 0; border-bottom: 1px solid var(--line); padding: 14px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: center; }
+  .arm h3 { min-height: 0; }
+  .arm .big { grid-row: 1 / span 2; grid-column: 2; margin: 0; font-size: 40px; }
+  .arm .meta { margin: 2px 0 8px; }
+  .arm .bar { grid-column: 1 / -1; }
+  .now p { font-size: 19px; }
+  .strip { grid-template-columns: 1fr; border-top: 0; }
+  .strip > *, .strip > * + * { padding: 14px 0; border-left: 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; min-height: 64px; }
+  .strip h2 { grid-column: 1; }
+  .strip .big { grid-column: 2; grid-row: 1 / span 2; margin: 0; font-size: 36px; }
+  .strip .meta { grid-column: 1; }
   .wrap { overflow: visible; }
   .wrap table { display: block; font-size: 15px; margin-top: 4px; }
-  .wrap caption { display: block; }
   .wrap thead { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .wrap tbody { display: block; }
   .wrap tr { display: block; border: 1px solid var(--line); padding: 12px 14px 14px; margin-top: 12px; }
-  .wrap tbody th { display: block; padding: 0 0 6px; border: 0; font-size: 17px; white-space: normal; overflow-wrap: anywhere; }
-  .wrap td { display: flex; gap: 12px; padding: 3px 0; border: 0; overflow-wrap: anywhere; }
+  .wrap tbody th { display: block; padding: 0 0 8px; margin-bottom: 4px; border: 0; border-bottom: 1px solid var(--line); font-size: 17px; white-space: normal; overflow-wrap: anywhere; }
+  .wrap td { display: flex; gap: 12px; padding: 4px 0; border: 0; overflow-wrap: anywhere; }
   .wrap td::before { content: attr(data-label); color: var(--soft); flex: 0 0 38%; }
-  .wrap tbody th a { display: inline-block; padding: 10px 0; margin: -10px 0; }
+  .wrap tbody th a { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; margin: -12px 0 -12px; }
+  .check a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; margin: -10px 0; }
   .wrap td:not([data-label]):not(.barcell):not(.meta), .wrap td:empty { display: none; }
   .wrap td.barcell { display: block; padding-top: 8px; }
   .wrap td.barcell::before { display: none; }
-  .wrap td.barcell .bar { width: 100%; margin-top: 0; }
-  .wrap td.num { white-space: nowrap; }
+  .wrap td.barcell .bar { width: 100%; }
   .wrap td.meta { display: block; }
-  .steps li, .events li, p, summary { overflow-wrap: anywhere; }
-  .steps li { margin: 10px 0; }
-  .events, .steps { padding-left: 16px; }
-  h1 { font-size: 28px; }
-  h2 { font-size: 20px; }
-  .lead { font-size: 17px; }
+  .tools button { flex: 1 1 140px; }
+  summary { grid-template-columns: 40px minmax(0, 1fr) 20px; min-height: 60px; column-gap: 10px; }
+  .sum-title { grid-column: 2; }
+  .sum-count { grid-column: 2; grid-row: 2; font-size: 13.5px; }
+  .sum-pct { display: none; }
+  .chev { grid-column: 3; grid-row: 1 / span 2; }
+  .sum-bar { display: block; grid-column: 2 / -1; grid-row: 3; }
+  details { scroll-margin-top: 76px; }
+  .steps { margin-left: 4px; padding-left: 14px; }
+  .steps li { grid-template-columns: minmax(0, 1fr); row-gap: 4px; padding: 12px 0; }
+  .step-id { display: none; }
+  .commits li { grid-template-columns: 1fr; row-gap: 2px; }
+  .timeline li { padding-bottom: 16px; }
+  .check li { padding: 16px 0; }
+  .steps li, .timeline li, p, summary, .commits li { overflow-wrap: anywhere; }
   .errors { padding: 4px 14px 10px; }
   code { overflow-wrap: anywhere; }
 }
-</style>
-</head>
-<body>
-<div class="shell">
-<aside class="side">
-<div class="brand">Matter of Place<span>Build board</span></div>
-<nav aria-label="Views">
-<button type="button" data-view="overview" aria-current="page">Overview</button>
-<button type="button" data-view="arms">Arms</button>
-<button type="button" data-view="lanes">Lanes</button>
-<button type="button" data-view="slices">Slices</button>
-<button type="button" data-view="steps">Every step</button>
-<button type="button" data-view="activity">Activity</button>
-<button type="button" data-view="waiting">Waiting on you</button>
-<button type="button" data-view="method">How it is counted</button>
-</nav>
-<p class="side-meta">${snapshot ? `Snapshot, ${esc(clock)}` : `Live. ${esc(clock)}`}</p>
-</aside>
-<main>
-<section class="view" id="view-overview" aria-labelledby="h-overview">
-<h1 id="h-overview">Overview</h1>
-<p class="meta" role="status">${snapshot ? `Snapshot taken ${esc(clock)}.` : `Reloads by itself when anything changes. ${esc(clock)}.`}</p>
-${errors}
-<div class="hero">
-<div class="figures"><p class="figure" aria-hidden="true">${o.launchPercent}%</p><p class="figure-label">to launch</p><p class="figure-second" aria-hidden="true">${o.percent}% overall</p></div>
-<div><p class="lead">${o.launchPercent} percent of the way to launch: ${o.launchAccepted} of ${o.launchTotal} launch steps accepted, ${o.launchTotal - o.launchAccepted} to go, ${o.inReview} in work. Overall ${o.percent} percent of ${o.total} steps, counting the ${o.total - o.launchTotal} that can only happen after go-live.${pending}</p>
-<span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.launchAccepted, o.launchTotal)}%"></span><span class="review" style="width:${pct(o.inReview, o.launchTotal)}%"></span></span></div>
-</div>
-<div class="tiles arms">
-${data.arms.map((arm) => `<div class="tile"><h2>${esc(arm.label)}</h2><p class="big">${arm.percent}%</p><p class="meta">to launch · own ${arm.ownPercent}% · ${arm.remaining} pieces to go</p><span class="bar full" aria-hidden="true"><span class="done" style="width:${arm.percent}%"></span></span></div>`).join("\n")}
-</div>
-<div class="tiles">
-<div class="tile wide"><h2>Now</h2><p>${esc(data.now)}</p><p class="meta">Orchestrator's note, ${esc(data.updated)}.</p></div>
-<div class="tile"><h2>Finish line</h2><p class="big">${o.launchTotal - o.launchAccepted}</p><p class="meta">steps to launch · ${o.total - o.launchTotal} more after go-live</p></div>
-<div class="tile"><h2>Slices</h2><p class="big">${o.slicesClosed} of ${o.slices}</p><p class="meta">closed</p></div>
-<div class="tile"><h2>Lanes</h2><p class="big">${data.worktrees.length}</p><p class="meta">open on the build laptop</p></div>
-</div>
-</section>
+`;
 
-<section class="view" id="view-arms" aria-labelledby="h-arms" hidden>
-<h1 id="h-arms">Arms</h1>
-<p class="meta">"Own" is the arm's pieces built. "To launch" adds the arms it cannot work without: the database counts toward the website and the admin portal, the backend toward both, deployment toward all.</p>
-<div class="wrap"><table>
-<thead><tr><th scope="col">Arm</th><th scope="col">Covers</th><th scope="col">Pieces</th><th scope="col">Own</th><th scope="col">Needs</th><th scope="col">To go</th><th scope="col">To launch</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
-<tbody>
-${armRows}
-</tbody></table></div>
-</section>
-
-<section class="view" id="view-lanes" aria-labelledby="h-lanes" hidden>
-<h1 id="h-lanes">Lanes</h1>
-<p class="meta">Phase 0 runs two lanes, then one. Phase 1 opens three. Phase 2 hardens and launches.</p>
-<div class="wrap"><table>
-<thead><tr><th scope="col">Lane</th><th scope="col">Slices</th><th scope="col">Accepted</th><th scope="col">In work</th><th scope="col">Percent</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
-<tbody>
-${laneRows}
-</tbody></table></div>
-</section>
-
-<section class="view" id="view-slices" aria-labelledby="h-slices" hidden>
-<h1 id="h-slices">Slices</h1>
-<p class="meta">One slice is one plan file, built in step order.</p>
-<div class="wrap"><table>
-<thead><tr><th scope="col">Slice</th><th scope="col">What</th><th scope="col">State</th><th scope="col">Accepted</th><th scope="col">In work</th><th scope="col">Percent</th><th scope="col"><span aria-hidden="true">Bar</span></th></tr></thead>
-<tbody>
-${sliceRows}
-</tbody></table></div>
-</section>
-
-<section class="view" id="view-steps" aria-labelledby="h-steps" hidden>
-<h1 id="h-steps">Every step</h1>
-<p class="meta">Open a slice to read its steps and their state.</p>
-${details}
-</section>
-
-<section class="view" id="view-activity" aria-labelledby="h-activity" hidden>
-<h1 id="h-activity">Activity</h1>
-${events || '<p class="meta">No build run in the last two hours.</p>'}
-${worktrees}
-<h3>Cost per accepted step, by run (newest first)</h3>
-<div class="wrap"><table>
-<thead><tr><th scope="col">Run</th><th scope="col">Slice</th><th scope="col">Steps</th><th scope="col">Tokens re-read per step</th><th scope="col">Calls per step</th><th scope="col">Agent minutes per step</th><th scope="col">Context per call</th></tr></thead>
-<tbody>
-${data.costs.map((c) => `<tr><th scope="row">${esc(c.run.slice(3, 11))}</th><td data-label="Slice">${esc(c.slice)}</td><td class="num" data-label="Steps">${c.stepsAccepted}</td><td class="num" data-label="Tokens re-read per step">${(c.total.cacheRead / c.stepsAccepted / 1e6).toFixed(1)}M</td><td class="num" data-label="Calls per step">${Math.round(c.total.calls / c.stepsAccepted)}</td><td class="num" data-label="Agent minutes per step">${Math.round(c.total.min / c.stepsAccepted)}</td><td class="num" data-label="Context per call">${c.total.calls ? Math.round(c.total.cacheRead / c.total.calls / 1000) : 0}k</td></tr>`).join("\n") || '<tr><td colspan="7" class="meta">No finished run with an accepted step in the last two weeks.</td></tr>'}
-</tbody></table></div>
-<p class="meta">Baseline of 2026-10-02: 121.4M tokens, 499 calls and 119 agent minutes per step, 243k per call.</p>
-<h3>Pace</h3>
-<p>${esc(paceLine)}</p>
-</section>
-
-<section class="view" id="view-waiting" aria-labelledby="h-waiting" hidden>
-<h1 id="h-waiting">Waiting on you</h1>
-<p class="meta">None of these holds the build back today.</p>
-<ul>
-${data.waiting.map((w) => `<li><strong>${esc(w.what)}.</strong> ${esc(w.why)}</li>`).join("\n")}
-</ul>
-</section>
-
-<section class="view" id="view-method" aria-labelledby="h-method" hidden>
-<h1 id="h-method">How it is counted</h1>
-<p>A step counts once a second model, in a fresh context, tried to refute it and accepted it. The board reads that from the build's own journal. The orchestrator then re-runs the step's proofs; a step still waiting for that is marked. Built or in review is not done.</p>
-<p>Every planned piece of the product belongs to one arm. An arm's own percentage weighs its pieces by how far the slice building each one is accepted. Its percentage to launch adds the pieces of the arms it cannot work without.</p>
-<p>The finish line is every step accepted, hardened (H1) and switched on (L1). Steps differ in size, so percentages count steps and pieces, not hours. Sources: the plan files, PLAN.md, trace.json, progress.json and the build journals.${snapshot ? "" : ' Data: <a href="/data.json">data.json</a>.'}</p>
-</section>
-</main>
-</div>
-<script>
-// One view at a time; the choice lives in the address and, when the browser allows it, in local storage.
+  const script = `
+// Remembered choices (view, rail) go through local storage when the browser allows it; a refusal changes nothing else.
+const root = document.documentElement;
 const views = [...document.querySelectorAll(".view")];
-const buttons = [...document.querySelectorAll("nav button")];
+const buttons = [...document.querySelectorAll("nav button[data-view]")];
+const side = document.getElementById("side");
+const railToggle = document.getElementById("rail-toggle");
+const menuBtn = document.getElementById("menu-btn");
+const closeBtn = document.getElementById("drawer-close");
+const scrim = document.getElementById("scrim");
+const mainEl = document.getElementById("main");
+const phone = window.matchMedia("(max-width: 820px)");
+
+function setRail(on, save) {
+  root.dataset.rail = on ? "1" : "0";
+  railToggle.setAttribute("aria-expanded", String(!on));
+  railToggle.setAttribute("aria-label", on ? "Expand the sidebar" : "Collapse the sidebar");
+  railToggle.title = on ? "Expand the sidebar" : "Collapse the sidebar";
+  if (save) { try { localStorage.setItem("board-rail", on ? "1" : "0"); } catch {} }
+}
+railToggle.addEventListener("click", () => setRail(root.dataset.rail !== "1", true));
+setRail(root.dataset.rail === "1", false);
+
+let drawerOpen = false;
+function setDrawer(open, restore) {
+  drawerOpen = open;
+  document.body.classList.toggle("drawer-open", open);
+  menuBtn.setAttribute("aria-expanded", String(open));
+  mainEl.inert = open;
+  if (open) {
+    const current = side.querySelector('nav button[aria-current="page"]') || buttons[0];
+    current.focus();
+  } else if (restore) {
+    menuBtn.focus();
+  }
+}
+menuBtn.addEventListener("click", () => setDrawer(!drawerOpen, true));
+closeBtn.addEventListener("click", () => setDrawer(false, true));
+scrim.addEventListener("click", () => setDrawer(false, true));
+document.addEventListener("keydown", (event) => {
+  if (!drawerOpen) return;
+  if (event.key === "Escape") { event.preventDefault(); setDrawer(false, true); return; }
+  if (event.key !== "Tab") return;
+  const items = [closeBtn, ...buttons];
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  else if (!side.contains(document.activeElement)) { event.preventDefault(); first.focus(); }
+});
+phone.addEventListener("change", () => { if (!phone.matches && drawerOpen) setDrawer(false, false); });
+
+// One view at a time; the choice lives in the address and, when the browser allows it, in local storage.
 function show(name, hash) {
   if (!views.some((v) => v.id === "view-" + name)) name = "overview";
   for (const v of views) v.hidden = v.id !== "view-" + name;
@@ -775,8 +928,7 @@ function show(name, hash) {
   const want = hash || "#" + name;
   if (location.hash !== want) history.replaceState(null, "", want);
 }
-// A slice link (#slice-B7, from the Slices table) opens that slice in Every step and scrolls to it; before 2026-10-11 it
-// fell back to Overview because the hash was not a view name.
+// A slice link (#slice-B7, from the Slices table) opens that slice in Every step and scrolls to it.
 function route() {
   const hash = location.hash.slice(1);
   if (hash.startsWith("slice-")) {
@@ -790,7 +942,8 @@ function route() {
   show(name || "overview");
   window.scrollTo(0, 0);
 }
-for (const b of buttons) b.addEventListener("click", () => { show(b.dataset.view); window.scrollTo(0, 0); });
+for (const b of buttons) b.addEventListener("click", () => { show(b.dataset.view); window.scrollTo(0, 0); if (drawerOpen) setDrawer(false, true); });
+for (const b of document.querySelectorAll("[data-fold]")) b.addEventListener("click", () => { for (const d of document.querySelectorAll("#view-steps details")) d.open = b.dataset.fold === "open"; });
 window.addEventListener("hashchange", route);
 route();
 ${snapshot ? "" : `const shown = ${JSON.stringify(version)};
@@ -800,6 +953,147 @@ setInterval(async () => {
     if (answer.ok && (await answer.text()) !== shown) location.reload();
   } catch {}
 }, 15000);`}
+`;
+
+  const statusLine = snapshot ? `Snapshot taken ${esc(clock)}.` : `Reloads by itself when anything changes. ${esc(clock)}.`;
+  const head = (id, title, meta) =>
+    `<header class="view-head"><p class="eyebrow">Build board</p><h1 id="h-${id}">${title}</h1>${meta ? `<p class="meta">${meta}</p>` : ""}</header>`;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${snapshot ? "Build Progress Board" : `${o.percent}% · Matter of Place build`}</title>
+<script>try { document.documentElement.dataset.rail = localStorage.getItem("board-rail") === "1" ? "1" : "0"; } catch { document.documentElement.dataset.rail = "0"; }</script>
+<style>
+${snapshot ? embeddedFonts() : '@font-face { font-family: "Jost"; src: url("/fonts/jost.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }\n@font-face { font-family: "Cormorant Garamond"; src: url("/fonts/cormorant.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }'}
+${css}
+</style>
+</head>
+<body>
+<header class="topbar">
+<div class="brand">${EMBLEM}<div class="brand-name">Matter of Place</div></div>
+<button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="side"><svg class="ico" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="square" aria-hidden="true" focusable="false"><path d="M3 6h14M3 10h14M3 14h14"/></svg><span>Menu</span></button>
+</header>
+<button type="button" class="scrim" id="scrim" tabindex="-1" aria-label="Close the menu"></button>
+<div class="shell">
+<aside class="side" id="side" aria-label="Build board">
+<div class="side-top">
+<div class="brand">${EMBLEM}<div class="brand-name">Matter of Place<small>Build board</small></div></div>
+<button type="button" class="drawer-close" id="drawer-close" aria-label="Close the menu"><svg class="ico" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="square" aria-hidden="true" focusable="false"><path d="M4 4l12 12M16 4L4 16"/></svg></button>
+</div>
+<nav aria-label="Views">
+${nav}
+</nav>
+<div class="side-foot">
+<button type="button" class="rail-toggle" id="rail-toggle" aria-controls="side" aria-expanded="true" aria-label="Collapse the sidebar" title="Collapse the sidebar"><svg class="ico" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="square" aria-hidden="true" focusable="false"><path d="M12 4l-6 6 6 6"/></svg><span class="lbl">Collapse</span></button>
+<p class="side-meta">${snapshot ? `Snapshot, ${esc(clock)}` : `Live. ${esc(clock)}`}</p>
+</div>
+</aside>
+<main id="main">
+<section class="view" id="view-overview" aria-labelledby="h-overview">
+${head("overview", "Overview", statusLine)}
+${errors}
+<div class="hero">
+<div class="figures"><p class="figure" aria-hidden="true">${o.launchPercent}%</p><p class="figure-label">to launch</p></div>
+<div class="hero-side"><p class="lead">${o.launchPercent} percent of the way to launch: ${o.launchAccepted} of ${o.launchTotal} launch steps accepted, ${o.launchTotal - o.launchAccepted} to go, ${o.inReview} in work. Overall ${o.percent} percent of ${o.total} steps, counting the ${o.total - o.launchTotal} that can only happen after go-live.${pending}</p>
+<span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.launchAccepted, o.launchTotal)}%"></span><span class="review" style="width:${pct(o.inReview, o.launchTotal)}%"></span></span>
+<dl class="facts">
+<div class="fact"><dt>Overall</dt><dd>${o.percent}%<small>${o.accepted} of ${o.total} steps</small></dd></div>
+<div class="fact"><dt>To go to launch</dt><dd>${o.launchTotal - o.launchAccepted}<small>steps</small></dd></div>
+<div class="fact"><dt>In work</dt><dd>${o.inReview}<small>steps</small></dd></div>
+</dl></div>
+</div>
+<div class="sec"><div class="sec-head"><h2>The five arms</h2><a href="#arms">All arm detail</a></div>
+<div class="arm-row">
+${data.arms.map((arm) => `<div class="arm"><h3>${esc(arm.label)}</h3><p class="big">${arm.percent}%</p><p class="meta">to launch · own ${arm.ownPercent}% · ${arm.remaining} pieces to go</p><span class="bar full" aria-hidden="true"><span class="done" style="width:${arm.percent}%"></span></span></div>`).join("\n")}
+</div></div>
+<div class="sec now"><h2>Now</h2><p>${esc(data.now)}</p><p class="meta">Orchestrator's note, ${esc(data.updated)}.</p></div>
+<div class="sec strip">
+<div><h2>Finish line</h2><p class="big">${o.launchTotal - o.launchAccepted}</p><p class="meta">steps to launch · ${o.total - o.launchTotal} more after go-live</p></div>
+<a href="#slices"><h2>Slices</h2><p class="big">${o.slicesClosed} of ${o.slices}</p><p class="meta">closed</p></a>
+<a href="#activity"><h2>Lanes</h2><p class="big">${data.worktrees.length}</p><p class="meta">build lanes open on the laptop</p></a>
+</div>
+</section>
+
+<section class="view" id="view-arms" aria-labelledby="h-arms" hidden>
+${head("arms", "Arms", 'Five arms make the product. "Own" is the arm\'s pieces built. "To launch" adds the arms it cannot work without: the database counts toward the website and the admin portal, the backend toward both, deployment toward all.')}
+<div class="wrap"><table>
+<thead><tr><th scope="col">Arm</th><th scope="col">Covers</th><th scope="col">Pieces</th><th scope="col">Own</th><th scope="col">Needs</th><th scope="col">To go</th><th scope="col">To launch</th><th scope="col"><span class="sr">Bar</span></th></tr></thead>
+<tbody>
+${armRows}
+</tbody></table></div>
+</section>
+
+<section class="view" id="view-lanes" aria-labelledby="h-lanes" hidden>
+${head("lanes", "Lanes", "Phase 0 is the spine: delivery and the database side by side, then the API and tests. Phase 1 runs three lanes at once: public, operations and content. Phase 2 is one lane: hardening, the acceptance panel, then the launch switch.")}
+<div class="wrap"><table>
+<thead><tr><th scope="col">Lane</th><th scope="col">Slices</th><th scope="col">Accepted</th><th scope="col">In work</th><th scope="col">Percent</th><th scope="col"><span class="sr">Bar</span></th></tr></thead>
+<tbody>
+${laneRows}
+</tbody></table></div>
+</section>
+
+<section class="view" id="view-slices" aria-labelledby="h-slices" hidden>
+${head("slices", "Slices", "One slice is one plan file, built in step order. Choose a slice to read its steps.")}
+<div class="wrap"><table>
+<thead><tr><th scope="col">Slice</th><th scope="col">What</th><th scope="col">State</th><th scope="col">Accepted</th><th scope="col">In work</th><th scope="col">Percent</th><th scope="col"><span class="sr">Bar</span></th></tr></thead>
+<tbody>
+${sliceRows}
+</tbody></table></div>
+</section>
+
+<section class="view" id="view-steps" aria-labelledby="h-steps" hidden>
+${head("steps", "Every step", "Open a slice to read its steps and their state.")}
+<div class="tools"><button type="button" data-fold="open">Open all</button><button type="button" data-fold="close">Close all</button>
+<ul class="legend" aria-label="Marks">
+<li>${mark("accepted")}Accepted</li><li>${mark("work")}In work</li><li>${mark("waiting")}Waiting on you</li><li>${mark("none")}Not started</li>
+</ul></div>
+${details}
+</section>
+
+<section class="view" id="view-activity" aria-labelledby="h-activity" hidden>
+${head("activity", "Activity", "What the build agents did, what landed in each lane, and what a step costs.")}
+${events || '<p class="meta">No build run in the last two hours.</p>'}
+${worktrees}
+<h3>Cost per accepted step, by run (newest first)</h3>
+<div class="wrap"><table>
+<thead><tr><th scope="col">Run</th><th scope="col">Slice</th><th scope="col">Steps</th><th scope="col">Tokens re-read per step</th><th scope="col">Calls per step</th><th scope="col">Agent minutes per step</th><th scope="col">Context per call</th></tr></thead>
+<tbody>
+${data.costs.map((c) => `<tr><th scope="row">${esc(c.run.slice(3, 11))}</th><td data-label="Slice">${esc(c.slice)}</td><td class="num" data-label="Steps">${c.stepsAccepted}</td><td class="num" data-label="Tokens re-read per step">${(c.total.cacheRead / c.stepsAccepted / 1e6).toFixed(1)}M</td><td class="num" data-label="Calls per step">${Math.round(c.total.calls / c.stepsAccepted)}</td><td class="num" data-label="Agent minutes per step">${Math.round(c.total.min / c.stepsAccepted)}</td><td class="num" data-label="Context per call">${c.total.calls ? Math.round(c.total.cacheRead / c.total.calls / 1000) : 0}k</td></tr>`).join("\n") || '<tr><td colspan="7" class="meta">No finished run with an accepted step in the last two weeks.</td></tr>'}
+</tbody></table></div>
+<p class="meta">Baseline of 2026-10-02: 121.4M tokens, 499 calls and 119 agent minutes per step, 243k per call.</p>
+<h3>Pace</h3>
+<p class="callout">${esc(paceLine)}</p>${data.paceNote ? `<p class="meta">Calibration note kept in the ledger: ${esc(data.paceNote)}</p>` : ""}
+</section>
+
+<section class="view" id="view-waiting" aria-labelledby="h-waiting" hidden>
+${head("waiting", "Waiting on you", "Only you can do these. The orchestrator does everything else, and a step that waits on one of them is marked below.")}
+<ol class="check">
+${data.waiting.map((w) => `<li><span class="box" aria-hidden="true"></span><div><strong>${esc(w.what)}.</strong><p>${esc(w.why)}</p></div></li>`).join("\n")}
+</ol>
+${waitingSteps}
+</section>
+
+<section class="view" id="view-method" aria-labelledby="h-method" hidden>
+${head("method", "How it is counted", "")}
+<div class="prose">
+<p>A step counts once a second model, in a fresh context, tried to refute it and accepted it. The board reads that from the build's own journal. The orchestrator then re-runs the step's proofs; a step still waiting for that is marked. Built or in review is not done.</p>
+<h2>Two figures</h2>
+<p>The large figure is the way to launch: every step that has to happen before the site goes live. ${o.total - o.launchTotal} steps can only happen after go-live, such as the first paying property, the week-one watch, the iterate loop, the HSTS preload, the social channels and the audit robot's first Saturday. They are left out of that figure and kept in the overall figure, which counts every planned step.</p>
+<h2>Arms</h2>
+<p>Every planned piece of the product belongs to one arm. An arm's own percentage weighs its pieces by how far the slice building each one is accepted. Its percentage to launch adds the pieces of the arms it cannot work without.</p>
+<h2>States</h2>
+<p>A step is accepted, in work, waiting on you, or not started. Waiting on you means the step needs an account or an app only the operator can create. A slice is closed when every one of its steps is accepted.</p>
+<h2>The finish line and the sources</h2>
+<p>The finish line is every launch step accepted, the hardening and acceptance panel done, and the launch switch run. Steps differ in size, so percentages count steps and pieces, not hours. Sources: the plan files, PLAN.md, trace.json, progress.json and the build journals.${snapshot ? "" : ' Data: <a href="/data.json">data.json</a>.'}</p>
+</div>
+</section>
+</main>
+</div>
+<script>
+${script}
 </script>
 </body>
 </html>`;
@@ -865,6 +1159,19 @@ function main() {
   }
   const at = args.indexOf("--port");
   const port = at >= 0 ? Number(args[at + 1]) : 8790;
+  // Read the files once in the background and serve every request from that reading (2026-10-11: each page load and
+  // the 15 s version poll re-read every plan and journal synchronously, so requests queued behind each other).
+  let current = collect();
+  let currentVersion = versionOf(current);
+  let page = { version: "", html: "" };
+  setInterval(() => {
+    try {
+      current = collect();
+      currentVersion = versionOf(current);
+    } catch {
+      // keep the last good reading
+    }
+  }, 20_000).unref?.();
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     try {
@@ -874,14 +1181,14 @@ function main() {
         response.end(body);
       } else if (url.pathname === "/data.json") {
         response.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
-        response.end(JSON.stringify(collect(), null, 1));
+        response.end(JSON.stringify(current, null, 1));
       } else if (url.pathname === "/version") {
         response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
-        response.end(versionOf(collect()));
+        response.end(currentVersion);
       } else if (url.pathname === "/") {
-        const data = collect();
+        if (page.version !== currentVersion) page = { version: currentVersion, html: render(current, currentVersion) };
         response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
-        response.end(render(data, versionOf(data)));
+        response.end(page.html);
       } else {
         response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
         response.end("Not found");
