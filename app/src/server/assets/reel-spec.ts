@@ -1,3 +1,4 @@
+import { parentCompany } from "../../config/legal-identity.ts";
 import type { Enums, Tables } from "../../db/index.ts";
 import type { MarketSlug } from "../../domain/market.ts";
 import { NonRetryableError } from "../jobs/types.ts";
@@ -58,7 +59,7 @@ const CAMERA_SHOTS = 4;
 const GRID_TILES = 6;
 
 const SITE = "matterofplace.com";
-const CREDIT = "A product of Omnikom";
+const CREDIT = `A product of ${parentCompany}`;
 
 const INDOORS: Record<MarketSlug, ReelBed> = {
   california: "room",

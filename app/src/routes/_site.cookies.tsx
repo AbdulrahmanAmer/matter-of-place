@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { cookieInventory, type CookieCategory } from "../config/cookies";
+import { siteConfig } from "../config/site";
 import { breadcrumbLd } from "../lib/jsonld";
+import { legalIdentity } from "../lib/legal-identity";
+import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
@@ -23,10 +26,17 @@ const categoryLabel: Record<CookieCategory, string> = {
 };
 
 function CookiesPage() {
+  const identity = legalIdentity(useSite().legal);
   return (
     <main>
       <PageIntro eyebrow="PRIVACY" title={t.cookies.title} text={t.cookies.intro} />
       <div className="copy-page">
+        <h2>Who we are</h2>
+        <p>
+          Matter of Place is a product of {siteConfig.parentCompany}. The party responsible for
+          these cookies is {identity.entity}, {identity.address}.
+        </p>
+
         <table className="cookie-table">
           <thead>
             <tr>

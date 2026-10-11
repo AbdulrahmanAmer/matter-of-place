@@ -13,6 +13,8 @@ import { formatMoney, pluralize } from "../../../lib/format";
 import { t } from "../../../lib/strings";
 import { ChoiceGroup } from "../choice-group";
 import { Field } from "../field";
+import { FieldError } from "../field-error";
+import { issueLine, type FieldIssue, type Problems } from "./issues";
 import {
   isOutsideMarkets,
   maxFiles,
@@ -27,6 +29,8 @@ import {
 type StepProps = {
   draft: SubmitDraft;
   update: <K extends keyof SubmitDraft>(key: K, value: SubmitDraft[K]) => void;
+  /** The marks for the fields the API or the contract refused (empty until a send is refused). */
+  problems: Problems;
 };
 
 type TextKey = {
@@ -39,6 +43,7 @@ function Input({
   name,
   draft,
   update,
+  problems,
   type = "text",
   ...rest
 }: StepProps & {
@@ -52,30 +57,32 @@ function Input({
   step?: number;
 }) {
   return (
-    <Field label={label}>
+    <Field label={label} {...problems.field(name)}>
       <input
         type={type}
         value={draft[name]}
         onChange={(e) => update(name, e.target.value)}
+        {...problems.control(name)}
         {...rest}
       />
     </Field>
   );
 }
 
-export function PropertyStep({ draft, update }: StepProps) {
+export function PropertyStep({ draft, update, problems }: StepProps) {
   const price = Number(draft.price);
-  const bound = { draft, update };
+  const bound = { draft, update, problems };
   return (
     <>
       <h2>The property</h2>
       <div className="field-grid">
         <Input label="Property address" name="address" autoComplete="street-address" {...bound} />
         <Input label="City" name="city" {...bound} />
-        <Field label="State">
+        <Field label="State" {...problems.field("state")}>
           <select
             value={draft.state}
             onChange={(e) => update("state", toStateOption(e.target.value))}
+            {...problems.control("state")}
           >
             <option value="">Select state</option>
             {acceptedStates.map((state) => (
@@ -96,10 +103,11 @@ export function PropertyStep({ draft, update }: StepProps) {
       )}
 
       <div className="field-grid">
-        <Field label="Property type">
+        <Field label="Property type" {...problems.field("propertyType")}>
           <select
             value={draft.propertyType}
             onChange={(e) => update("propertyType", toTypeOption(e.target.value))}
+            {...problems.control("propertyType")}
           >
             <option value="">Select type</option>
             {propertyTypes.map((type) => (
@@ -126,8 +134,8 @@ export function PropertyStep({ draft, update }: StepProps) {
   );
 }
 
-export function StoryStep({ draft, update }: StepProps) {
-  const bound = { draft, update };
+export function StoryStep({ draft, update, problems }: StepProps) {
+  const bound = { draft, update, problems };
   return (
     <>
       <h2>The story</h2>
@@ -137,14 +145,20 @@ export function StoryStep({ draft, update }: StepProps) {
         <Input label="Year built" name="yearBuilt" type="number" min={1600} {...bound} />
         <Input label="Year renovated" name="yearRenovated" type="number" min={1600} {...bound} />
       </div>
-      <Field label="The property story">
-        <textarea rows={5} value={draft.story} onChange={(e) => update("story", e.target.value)} />
+      <Field label="The property story" {...problems.field("story")}>
+        <textarea
+          rows={5}
+          value={draft.story}
+          onChange={(e) => update("story", e.target.value)}
+          {...problems.control("story")}
+        />
       </Field>
-      <Field label="What makes this property significant?">
+      <Field label="What makes this property significant?" {...problems.field("significance")}>
         <textarea
           rows={4}
           value={draft.significance}
           onChange={(e) => update("significance", e.target.value)}
+          {...problems.control("significance")}
         />
       </Field>
       <div className="field-grid">
@@ -157,7 +171,11 @@ export function StoryStep({ draft, update }: StepProps) {
         />
         <Input label="Video link" name="videoUrl" type="url" placeholder="https://" {...bound} />
       </div>
-      <PhotographyPicker files={draft.files} onChange={(files) => update("files", files)} />
+      <PhotographyPicker
+        files={draft.files}
+        onChange={(files) => update("files", files)}
+        problems={problems}
+      />
     </>
   );
 }
@@ -165,9 +183,11 @@ export function StoryStep({ draft, update }: StepProps) {
 function PhotographyPicker({
   files,
   onChange,
+  problems,
 }: {
   files: File[];
   onChange: (files: File[]) => void;
+  problems: Problems;
 }) {
   return (
     <div className="upload">
@@ -179,9 +199,11 @@ function PhotographyPicker({
           accept={uploadLimits.types.join(",")}
           multiple
           onChange={(e) => onChange(Array.from(e.target.files ?? []).slice(0, maxFiles))}
+          {...problems.control("media")}
         />
         {files.length ? "Change selection" : "Choose files"}
       </label>
+      <FieldError {...problems.field("media")} />
       {files.length > 0 && (
         <ul className="file-list">
           {files.map((file) => (
@@ -196,15 +218,16 @@ function PhotographyPicker({
   );
 }
 
-export function AboutYouStep({ draft, update }: StepProps) {
-  const bound = { draft, update };
+export function AboutYouStep({ draft, update, problems }: StepProps) {
+  const bound = { draft, update, problems };
   return (
     <>
       <h2>About you</h2>
-      <Field label="I am">
+      <Field label="I am" {...problems.field("submitterKind")}>
         <select
           value={draft.submitterKind}
           onChange={(e) => update("submitterKind", toKindOption(e.target.value))}
+          {...problems.control("submitterKind")}
         >
           <option value="">Select one</option>
           {submitterKinds.map((kind) => (
@@ -247,9 +270,11 @@ export function AboutYouStep({ draft, update }: StepProps) {
               type="checkbox"
               checked={draft.listedWithAgent}
               onChange={(e) => update("listedWithAgent", e.target.checked)}
+              {...problems.control("listedWithAgent")}
             />
             This home is currently listed with an agent
           </label>
+          <FieldError {...problems.field("listedWithAgent")} />
           {draft.listedWithAgent && (
             <div className="field-grid">
               <Input label="Listing agent name" name="listingAgentName" {...bound} />
@@ -262,7 +287,7 @@ export function AboutYouStep({ draft, update }: StepProps) {
   );
 }
 
-export function ExposureStep({ draft, update }: StepProps) {
+export function ExposureStep({ draft, update, problems }: StepProps) {
   return (
     <>
       <h2>Preferred exposure</h2>
@@ -272,7 +297,10 @@ export function ExposureStep({ draft, update }: StepProps) {
         options={exposurePackages}
         value={draft.package}
         onChange={(value) => update("package", value)}
+        invalid={problems.control("package")["aria-invalid"]}
+        describedBy={problems.control("package")["aria-describedby"]}
       />
+      <FieldError {...problems.field("package")} />
       <Input
         label="Optional media budget (USD)"
         name="mediaBudget"
@@ -280,12 +308,14 @@ export function ExposureStep({ draft, update }: StepProps) {
         min={0}
         draft={draft}
         update={update}
+        problems={problems}
       />
       <label className="check">
         <input
           type="checkbox"
           checked={draft.rightsConfirmed}
           onChange={(e) => update("rightsConfirmed", e.target.checked)}
+          {...problems.control("rightsConfirmed")}
         />
         I confirm I have the rights to share this property's photography and media, under the{" "}
         <Link to="/terms" hash="rights-to-photographs" className="text-link">
@@ -293,6 +323,7 @@ export function ExposureStep({ draft, update }: StepProps) {
         </Link>
         .
       </label>
+      <FieldError {...problems.field("rightsConfirmed")} />
       <Link
         to="/exposure"
         className="text-link"
@@ -304,7 +335,14 @@ export function ExposureStep({ draft, update }: StepProps) {
   );
 }
 
-export function ReviewStep({ draft }: { draft: SubmitDraft }) {
+export function ReviewStep({
+  draft,
+  issues,
+}: {
+  draft: SubmitDraft;
+  /** The fields still refused, in the order of the steps; each is a line before the summary. */
+  issues: readonly FieldIssue[];
+}) {
   const price = Number(draft.price);
   const budget = Number(draft.mediaBudget);
   const rows: [label: string, value: ReactNode][] = [
@@ -325,6 +363,16 @@ export function ReviewStep({ draft }: { draft: SubmitDraft }) {
   return (
     <>
       <h2>Review</h2>
+      {issues.length > 0 && (
+        <div className="review-issues">
+          <h3>{t.forms.reviewIssues}</h3>
+          <ul>
+            {issues.map((issue) => (
+              <li key={issue.field}>{issueLine(issue)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <dl className="review-list">
         {rows.map(([label, value]) => (
           <div key={label}>

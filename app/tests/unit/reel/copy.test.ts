@@ -65,7 +65,7 @@ describe("reelCopy", () => {
       facts: "5 BED · 4.5 BATH · 4,320 SF",
       price: "$8,950,000",
       site: "matterofplace.com",
-      credit: "A product of Omnikom",
+      credit: "A product of Omnikom LLC",
     });
   });
 

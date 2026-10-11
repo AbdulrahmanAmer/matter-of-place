@@ -85,10 +85,16 @@ function HomePage() {
       )}
       <IllustrativeNotice properties={preview} />
 
-      <section className="section-wrap editorial-statement">
-        <p className="eyebrow">MATTER OF PLACE</p>
+      <section
+        className={
+          hero.length > 0
+            ? "section-wrap editorial-statement"
+            : "section-wrap editorial-statement statement-plain"
+        }
+      >
+        {hero.length > 0 && <p className="eyebrow">MATTER OF PLACE</p>}
         <div>
-          <h2>Exceptional property. Properly considered.</h2>
+          {hero.length > 0 && <h2>Exceptional property. Properly considered.</h2>}
           <p>
             An editorial real-estate media platform for exceptional residential property across
             California, New York and Florida. We select, present and distribute places worth
