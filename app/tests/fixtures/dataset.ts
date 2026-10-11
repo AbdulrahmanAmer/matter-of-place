@@ -1,6 +1,7 @@
 // The named deterministic data set the admin and e2e specs load (B4 step 8, GQ-03): one submission per workflow state.
 // B6 adds three invoices and B8 seven jobs through their own factories (G24); the counts print in that order.
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { submissionTransitions, type WorkflowState } from "../../src/domain/workflow";
 import { dbNow, type Db } from "./db";
 import { createInvoice, createSubmission, removeFixtureRows } from "./factories";
@@ -76,7 +77,7 @@ export function formatCounts(counts: TableCount[]): string {
 export async function commitDataset({ reset }: { reset: boolean }): Promise<TableCount[]> {
   const url = process.env["DEV_DB_URL"];
   if (url === undefined || url === "") throw new Error("refusing: DEV_DB_URL is not set");
-  const db = new pg.Client({ connectionString: url });
+  const db = new pg.Client(pgClientConfig(url));
   await db.connect();
   try {
     await db.query("begin");
