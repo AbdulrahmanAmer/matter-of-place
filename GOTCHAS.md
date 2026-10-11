@@ -7351,11 +7351,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b18-g1-price-zero` → `WATCHED-FAIL OK B18:b18-g1-price-zero`, then `git status --short` lists only the files you edited (measured 2026-10-11, B18 g1 rework).
 - added: 2026-10-11
 
-## P-3305 · A mutant that narrows a `z.unknown().nullish()` to `.nullable()` stays green: in Zod 4 an `unknown` field is already optional
+## P-3305 · A mutant that narrows a `z.unknown().nullish()` to `.nullable()` stays green: a `z.unknown()` object key is already optional
 - symptom: B18 g1 repair added the registry entry `b18-g1-state-optional` (`products: z.unknown().nullish()` to `.nullable()`) after widening the `products` field of the public state schema; `watchfail.mjs` printed `WATCHED-FAIL BAD: stayed green`. A replay of a db mutant without the dev profile loaded also died in the vitest setup, and `--only s` replayed three entries (B2:s, B8:s and one more), because ids are matched across registries.
-- cause: Zod 4 does not mark an object key required when its schema is `z.unknown()`, so no `.nullable()` or `.nullish()` change can make a missing key fail. `--only` selects by id in every registry file.
+- cause: Zod (the app runs 3.25.76 with the classic v3 API, not Zod 4; corrected by P-3306) does not mark an object key required when its schema is `z.unknown()`, because `unknown` accepts `undefined`, so no `.nullable()` or `.nullish()` change can make a missing key fail. `--only` selects by id in every registry file.
 - rule: to prove a missing key is accepted on an `unknown` field, the mutant makes it required (`z.unknown().refine((value) => value !== undefined)`); a db mutant replays after `eval "$(node scripts/load-env.mjs --profile dev)"` and under `env -u CLOUDFLARE_API_TOKEN`; name a registry id with the slice prefix so `--only` selects one entry.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b18-g1-state-optional` → `WATCHED-FAIL OK B18:b18-g1-state-optional`
+- added: 2026-10-11
+
+## P-3306 · A gotcha that names a library major version as the cause is checked against the installed version first: P-3305 blamed Zod 4 and the app runs Zod 3.25.76
+- symptom: the B18 g1 review found that P-3305 and the repair block of `workspace/05-plans/logs/B18.md` explained a green mutant by "in Zod 4 an `unknown` field is already optional", while `app/` resolves `zod` 3.25.76 and `src/domain/exposure.ts` uses the v3-only `errorMap` and `z.ZodTypeDef`. The rule and proof of P-3305 held, because the behaviour is the same in v3, but a reader who trusted the cause could write Zod 4 API into this codebase.
+- cause: the author attributed the behaviour to the version he expected instead of the one installed; the 3.25 package also ships a `zod/v4` entry, so "Zod 4" reads plausible until the version is printed.
+- rule: before an entry, log or comment says "in <library> N", print the installed version from `app/` (`node -e "console.log(require('<library>/package.json').version)"`) and show the behaviour with a one-line call against that version; write the version number, never a guessed major.
+- proof: `cd app && node -e "console.log(require('zod/package.json').version)"` → `3.25.76`; `cd app && node -e "const {z}=require('zod');console.log(z.object({p:z.unknown()}).safeParse({}).success, z.object({p:z.unknown().refine(v=>v!==undefined)}).safeParse({}).success)"` → `true false` (measured 2026-10-11, B18 g1 follow-ups).
 - added: 2026-10-11
 
 ## P-3180 · The Agent tool's `haiku` is Haiku 4.5, not 5.5, and its proof-command extraction for the rerun was too thin to trust as written: one command per step, plan Proof lines only, every writes flag false, one command copied across eight steps
