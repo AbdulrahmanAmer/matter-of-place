@@ -895,6 +895,31 @@ describe.skipIf(backup === undefined)("backup.yml (skipped until step 8 writes i
     });
   });
 
+  it("runs nightly at 03:17 UTC and a scheduled run reads the backup switch first (B1b step 8, H35)", () => {
+    const on = z
+      .object({
+        schedule: z.array(z.object({ cron: z.string() })),
+        workflow_dispatch: z.unknown(),
+      })
+      .parse(backup?.data.on);
+    const steps = Object.values(backup?.data.jobs ?? {}).flatMap((job) => job.steps);
+    const switchStep = steps.find((step) => step.id === "switch");
+    const dumpStep = steps.find((step) => step.name === "dump and encrypt");
+    expect({
+      crons: on.schedule.map((entry) => entry.cron),
+      dispatch: on.workflow_dispatch !== undefined,
+      switchOnlyOnSchedule: switchStep?.if,
+      switchReadsRow: switchStep?.run?.includes("from schedule_settings where key = 'backup'"),
+      dumpHonoursSwitch: dumpStep?.if,
+    }).toEqual({
+      crons: ["17 3 * * *"],
+      dispatch: true,
+      switchOnlyOnSchedule: "github.event_name == 'schedule'",
+      switchReadsRow: true,
+      dumpHonoursSwitch: "steps.switch.outputs.skip != 'true'",
+    });
+  });
+
   it("offers only the dev target and keeps the artifact 14 or 30 days (H35, DB-11)", () => {
     const options = z
       .object({
