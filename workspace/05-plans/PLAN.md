@@ -143,4 +143,4 @@ B13.md · B14.md · B15.md · B16.md · B17.md · B18.md · H1.md · L1.md · AS
 | B18 | not started | | planned 2026-10-11 under ruling H80 (the exposure products as a `products` setting): lane Phase 1 Operations; 3 steps (the setting and its seed, the admin write with its dry run, public rendering and the invoice line), steps 2 and 3 critical; plan on `slice/b18`, no build lane open. |
 | H1 | in progress | | started 2026-10-08 in the lane `E:/mop-build/harden` (branch `slice/h1`, port 8878, bank numbers from P-2800 and G-1300); steps 1 to 3 accepted, step 4 in review (2026-10-10); H1-09 (security scan) and H1-18 (reset and reseed) are the orchestrator's, rulings H75 and the PAUSED block of `.claude/POSITION.md`. |
 | H2 | not started | | added 2026-10-04 (S66): the acceptance panel, after every B slice and H1 steps 1 to 5, before L1. |
-| L1 | not started | | |
+| L1 | in progress | | launched 2026-10-11 14:18 +0300 (logs/LAUNCH-LOG.md); steps 0, 3 and 4 re-proven 19:35 by verify-production; step 5 waits on a real signup in a browser |
