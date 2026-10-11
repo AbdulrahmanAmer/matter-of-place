@@ -29,17 +29,8 @@ export type CheckResult = { name: string; problems: string[] };
 // Ruling H64: a finding on a page another slice ships is printed as `warn <check>: <problem> (until <slice>)` and
 // does not fail the run until that slice is on main; then its line is removed here and the finding fails again.
 // Each line names the slice and step that removes it. Empty list means every finding fails.
-export const ALLOWED_UNTIL: readonly { pattern: RegExp; until: string }[] = [
-  {
-    pattern: /^status: \/(?:privacy|terms|accessibility) answered 404$/,
-    until: "B16 steps 5 to 7 ship the privacy, terms and accessibility pages",
-  },
-  { pattern: /^status: \/cookies answered 404$/, until: "B17 step 2 ships the cookies page" },
-  {
-    pattern: /^head: \/(?:cookies|place-notes): .*og:image/,
-    until: "B17 step 2 (cookies) and B11 step 9 (Place Notes) give their pages an og:image",
-  },
-];
+// Emptied 2026-10-12: the legal pages and /cookies ship, and /cookies and /place-notes carry the default og:image.
+export const ALLOWED_UNTIL: readonly { pattern: RegExp; until: string }[] = [];
 
 /** The reason a finding is allowed for now, or undefined when it fails the run. */
 export function allowedUntil(name: string, problem: string): string | undefined {

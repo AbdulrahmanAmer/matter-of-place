@@ -3,16 +3,18 @@ import { useEffect, useState } from "react";
 import { NewsletterForm } from "../components/forms/newsletter-form";
 import { PageIntro } from "../components/site/page-intro";
 import { track } from "../lib/analytics";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/place-notes")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: "Place Notes",
       description: pageDescription("place-notes"),
       path: "/place-notes",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
     }),
   component: PlaceNotesPage,
 });
