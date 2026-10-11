@@ -147,7 +147,6 @@
     transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-
 /* Buttons: on hover the inverse colour sweeps across from the left and leaves to the right (flat colour, no glow). */
 .button {
   position: relative;
