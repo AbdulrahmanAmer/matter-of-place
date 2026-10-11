@@ -1,0 +1,17 @@
+{
+  "source": "https://rdap.verisign.com/com/v1/domain/matterofplace.com, expiration moved to 30 days after recording",
+  "recorded_at": "2026-10-11T01:02:53Z",
+  "objectClassName": "domain",
+  "ldhName": "MATTEROFPLACE.COM",
+  "status": ["client transfer prohibited"],
+  "events": [
+    { "eventAction": "registration", "eventDate": "2026-09-27T02:48:38Z" },
+    { "eventAction": "expiration", "eventDate": "2026-11-10T02:48:38Z" },
+    { "eventAction": "last changed", "eventDate": "2026-09-30T22:53:23Z" },
+    { "eventAction": "last update of RDAP database", "eventDate": "2026-10-11T01:02:53Z" }
+  ],
+  "nameservers": [
+    { "objectClassName": "nameserver", "ldhName": "ABDULLAH.NS.CLOUDFLARE.COM" },
+    { "objectClassName": "nameserver", "ldhName": "LAILA.NS.CLOUDFLARE.COM" }
+  ]
+}

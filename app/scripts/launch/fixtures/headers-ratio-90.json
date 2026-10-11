@@ -1,0 +1,708 @@
+{
+  "source": "hand-made: 100 answers of the ratio pass, one in ten a miss (watched-fail j)",
+  "recorded_at": "2026-10-11T12:00:00Z",
+  "answers": {
+    "ratio": [
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "hit"
+        },
+        "body": ""
+      },
+      {
+        "status": 200,
+        "headers": {
+          "x-mop-cache": "miss"
+        },
+        "body": ""
+      }
+    ]
+  }
+}

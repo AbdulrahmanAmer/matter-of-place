@@ -1,0 +1,38 @@
+{
+  "source": "hand-made from a local wrangler dev answer of /: the hit carries Set-Cookie (watched-fail i)",
+  "recorded_at": "2026-10-11T12:00:00Z",
+  "answers": {
+    "page /": [
+      {
+        "status": 200,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "x-mop-cache": "miss",
+          "x-catalog-version": "1813",
+          "content-security-policy-report-only": "default-src 'self'; script-src 'self' 'sha256-no8C67rfjQ/K2AfixEPeZ1sPKdl/8M3f4oo6FN7mDYM='"
+        },
+        "body": "<!doctype html><html><head><link rel=\"stylesheet\" href=\"/assets/app-1.css\"><script class=\"$tsr\">window.__mop=1</script></head><body><p>Home</p></body></html>"
+      },
+      {
+        "status": 200,
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "x-mop-cache": "hit",
+          "x-catalog-version": "1813",
+          "content-security-policy-report-only": "default-src 'self'; script-src 'self' 'sha256-no8C67rfjQ/K2AfixEPeZ1sPKdl/8M3f4oo6FN7mDYM='",
+          "set-cookie": "mop_session=1; Path=/"
+        },
+        "body": "<!doctype html><html><head><link rel=\"stylesheet\" href=\"/assets/app-1.css\"><script class=\"$tsr\">window.__mop=1</script></head><body><p>Home</p></body></html>"
+      }
+    ],
+    "asset /assets/app-1.css": [
+      {
+        "status": 200,
+        "headers": {
+          "cache-control": "public, max-age=31536000, immutable"
+        },
+        "body": ""
+      }
+    ]
+  }
+}

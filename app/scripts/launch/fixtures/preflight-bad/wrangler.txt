@@ -1,0 +1,15 @@
+matter-of-place CONFIRM_TOKEN_SECRET
+matter-of-place CSRF_SECRET
+matter-of-place OPS_HEALTH_TOKEN
+matter-of-place PREVIEW_TOKEN_SECRET
+matter-of-place RATE_LIMIT_SALT
+matter-of-place RENDER_CALLBACK_SECRET
+matter-of-place RESEND_WEBHOOK_SECRET
+matter-of-place SENTRY_DSN
+matter-of-place SUPABASE_SERVICE_ROLE_KEY
+matter-of-place SUPABASE_URL
+matter-of-place TURNSTILE_SECRET
+matter-of-place-dev CONFIRM_TOKEN_SECRET
+matter-of-place-dev CSRF_SECRET
+matter-of-place-dev RATE_LIMIT_SALT
+matter-of-place-dev SUPABASE_URL
