@@ -15367,7 +15367,7 @@
  {
   "dimension": "data",
   "kind": "setting",
-  "id": "settings.products (plans: id, name, price in whole dollars, line, note, items, cta, recommended; 1 to 6 plans, at most one recommended)",
+  "id": "settings.products (plans: id, name, price in whole dollars, line, note, items, cta, recommended; exactly four plans bound to the four exposure_package ids, at most one recommended; adding or removing a plan is refused)",
   "plan": "B18",
   "files": [
    "supabase/migrations/<ts>_settings_products.sql",
@@ -15554,7 +15554,6 @@
   "plan": "B18",
   "files": [
    "src/routes/_site.exposure.tsx",
-   "src/components/site/offer-card.tsx",
    "tests/unit/products-render.test.tsx"
   ],
   "hasProof": true
@@ -15633,6 +15632,16 @@
   "files": [
    "docs/runbooks/api.md",
    "docs/runbooks/admin.md"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "extension path",
+  "id": "tech-stack section 5 gains the row: a setting (key row, schema, SQL function, trigger key, actions, screen section)",
+  "plan": "B18",
+  "files": [
+   "workspace/02-tech-stack/tech-stack.md"
   ],
   "hasProof": true
  }
