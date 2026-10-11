@@ -1,0 +1,24 @@
+{
+  "charter": 5,
+  "viewports": ["phone"],
+  "needs": ["coming-soon"],
+  "writes": "one subscriber row (source interest:california) for acceptance+<stamp>@fixtures.invalid",
+  "steps": [
+    { "do": "goto", "path": "/" },
+    { "do": "expectSelector", "selector": ".market-card" },
+    { "do": "expectNoSelector", "selector": ".property-card" },
+    { "do": "goto", "path": "/properties" },
+    { "do": "expectText", "text": "No property is listed yet." },
+    { "do": "expectNoSelector", "selector": ".property-card" },
+    { "do": "goto", "path": "/california" },
+    { "do": "expectText", "text": "No property is listed in California yet." },
+    { "do": "expectNoSelector", "selector": "main img:not(.story-card img)" },
+    { "do": "goto", "path": "/california/bay-area" },
+    { "do": "expectText", "text": "No property is listed in Bay Area yet." },
+    { "do": "expectNoSelector", "selector": "main img:not(.story-card img)" },
+    { "do": "goto", "path": "/california" },
+    { "do": "fill", "selector": ".interest-email", "value": "acceptance+{stamp}@fixtures.invalid" },
+    { "do": "click", "selector": ".interest-submit" },
+    { "do": "expectSelector", "selector": ".interest-sent" }
+  ]
+}

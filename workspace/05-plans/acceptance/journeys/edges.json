@@ -1,0 +1,245 @@
+{
+  "charter": 9,
+  "viewports": ["desktop"],
+  "steps": [
+    {
+      "do": "goto",
+      "path": "/nope-xyz",
+      "status": 404
+    },
+    {
+      "do": "expectText",
+      "text": "This place is not on our map."
+    },
+    {
+      "do": "goto",
+      "path": "/property/no-such-house",
+      "status": 404
+    },
+    {
+      "do": "expectText",
+      "text": "This place is not on our map."
+    },
+    {
+      "do": "goto",
+      "path": "/"
+    },
+    {
+      "do": "expectSelector",
+      "selector": ".consent-notice"
+    },
+    {
+      "do": "click",
+      "selector": ".consent-decline"
+    },
+    {
+      "do": "expectNoSelector",
+      "selector": ".consent-notice"
+    },
+    {
+      "do": "click",
+      "selector": "::-p-aria(Search properties)"
+    },
+    {
+      "do": "fill",
+      "selector": "[aria-label='Search location or property']",
+      "value": "zzzzqqqq"
+    },
+    {
+      "do": "press",
+      "key": "Enter"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/properties?q=zzzzqqqq"
+    },
+    {
+      "do": "expectText",
+      "text": "No properties match."
+    },
+    {
+      "do": "goto",
+      "path": "/privacy-request"
+    },
+    {
+      "do": "expectText",
+      "text": "Ask about your information"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "input[type=email]"
+    },
+    {
+      "do": "goto",
+      "path": "/privacy-choices"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "goto",
+      "path": "/"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/stories']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/stories"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/editorial-standard']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/editorial-standard"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/about']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/about"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/exposure']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/exposure"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/submit']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/submit"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/faq']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/faq"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/contact']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/contact"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/privacy']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/privacy"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/terms']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/terms"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer a[href='/accessibility']"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/accessibility"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "footer #consent-change"
+    },
+    {
+      "do": "expectSelector",
+      "selector": ".consent-notice"
+    },
+    {
+      "do": "goto",
+      "path": "/legal"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "goto",
+      "path": "/cookies"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "goto",
+      "path": "/pricing"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "goto",
+      "path": "/markets"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    }
+  ]
+}

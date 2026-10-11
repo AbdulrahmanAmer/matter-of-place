@@ -1,0 +1,25 @@
+{
+  "charter": 3,
+  "viewports": ["desktop"],
+  "writes": "one inquiry row (intent general, source /contact) from acceptance+<stamp>@fixtures.invalid",
+  "steps": [
+    { "do": "goto", "path": "/contact" },
+    { "do": "press", "key": "Tab" },
+    { "do": "expectFocus", "selector": "a[href='#content']" },
+    { "do": "press", "key": "Tab", "times": 10 },
+    { "do": "expectFocus", "selector": "::-p-aria(Search properties)" },
+    { "do": "press", "key": "Tab", "times": 6 },
+    { "do": "expectFocus", "selector": "input[name=name]" },
+    { "do": "type", "text": "Acceptance walk" },
+    { "do": "press", "key": "Tab" },
+    { "do": "expectFocus", "selector": "input[name=email]" },
+    { "do": "type", "text": "acceptance+{stamp}@fixtures.invalid" },
+    { "do": "press", "key": "Tab", "times": 3 },
+    { "do": "expectFocus", "selector": "textarea[name=message]" },
+    { "do": "type", "text": "A note written without a pointer." },
+    { "do": "press", "key": "Tab" },
+    { "do": "expectFocus", "selector": "button[type=submit]" },
+    { "do": "press", "key": "Enter" },
+    { "do": "expectText", "text": "A person will reply within one working day." }
+  ]
+}

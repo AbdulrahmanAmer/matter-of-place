@@ -1,0 +1,23 @@
+{
+  "charter": 3,
+  "viewports": ["phone"],
+  "writes": "one inquiry row (intent general, topic Selling or presenting a property, source /contact) from acceptance+<stamp>@fixtures.invalid",
+  "steps": [
+    { "do": "goto", "path": "/contact" },
+    { "do": "expectSelector", "selector": "h1" },
+    { "do": "click", "selector": "::-p-text(Selling or presenting a property)" },
+    { "do": "fill", "selector": "input[name=name]", "value": "Acceptance walk" },
+    {
+      "do": "fill",
+      "selector": "input[name=email]",
+      "value": "acceptance+{stamp}@fixtures.invalid"
+    },
+    {
+      "do": "fill",
+      "selector": "textarea[name=message]",
+      "value": "A note from the acceptance walk."
+    },
+    { "do": "click", "selector": "button[type=submit]" },
+    { "do": "expectText", "text": "A person will reply within one working day." }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "charter": 4,
+  "viewports": ["phone"],
+  "needs": ["env:ACCEPTANCE_CONFIRM_PATH"],
+  "writes": "confirms the subscriber the link was mailed to; the second use changes nothing",
+  "steps": [
+    { "do": "goto", "path": "{env:ACCEPTANCE_CONFIRM_PATH}" },
+    { "do": "expectUrl", "contains": "/place-notes?confirmed=1" },
+    { "do": "expectText", "text": "Thank you. Your address is confirmed." },
+    { "do": "goto", "path": "{env:ACCEPTANCE_CONFIRM_PATH}" },
+    { "do": "expectUrl", "contains": "/place-notes?confirmed=0" },
+    {
+      "do": "expectText",
+      "text": "This link has expired or was already used. Subscribe again below."
+    }
+  ]
+}

@@ -17,7 +17,7 @@ The three tests of the project: a $15M owner is comfortable here; a non-buyer wo
 
 ## The journeys
 
-Walk each on a phone width and on a desktop width, and once by keyboard alone (tab order, visible focus, no trap, every control reachable and named). `journey <name>` replays the scripted ones from `workspace/05-plans/acceptance/journeys/` (step 2 of plan H2 writes them); walk what a script cannot judge with `page` and your own eyes.
+Walk each on a phone width and on a desktop width, and once by keyboard alone (tab order, visible focus, no trap, every control reachable and named). `journey <name>` replays the scripted ones from `workspace/05-plans/acceptance/journeys/`; walk what a script cannot judge with `page` and your own eyes.
 
 1. A visitor on each market (California, New York, Florida): home, market page, a region, a property, its photographs and facts. Is every fact true to the data, and does a visitor know where they are and what to do next?
 2. A submission from start to end with photographs: the form, validation messages, uploading, the confirmation, and what the database holds afterwards (`db`). Break it on purpose: a wrong file, a missing field, a lost connection.
@@ -28,6 +28,24 @@ Walk each on a phone width and on a desktop width, and once by keyboard alone (t
 7. An invoice: create it from the admin, send it, mark it paid, and read what the owner sees.
 8. A takedown: unpublish a property with the rights takedown reason and check that its address answers as the product promises, that its photographs are gone, and that the audit log says who did it and why.
 9. The edges any visitor meets: a wrong address (the not-found page), search with no result, the privacy request and privacy choices pages, the cookie notice, the footer links, and each of the legal pages. Does every link go somewhere?
+
+### What is scripted
+
+`journey <name>` prints each step, then `journey <name> [viewport]: ok` with the console errors it saw, or `FAIL step N` with the step and a screenshot path and exit 1. A journey that needs something the shell or the deploy does not give prints `BLOCKED` and exits 3. The header of `probe.mjs` lists the step vocabulary. A replay that writes says what in its `writes` line: the rows carry an address `acceptance+<stamp>@fixtures.invalid`, which you read back with `db`.
+
+| Journey | File | Viewport | Needs |
+| --- | --- | --- | --- |
+| 1 | `visitor-california`, `visitor-new-york`, `visitor-florida` | desktop, phone | |
+| 2 | `submission`, `submission-breaks` (missing field, wrong file), `submission-offline` (lost connection) | desktop | |
+| 3 | `inquiry-contact`, `inquiry-property`, `keyboard-contact` (keyboard only) | phone, desktop, desktop | |
+| 4 | `place-notes`, `place-notes-confirm` (the link, then the same link again) | phone | `ACCEPTANCE_CONFIRM_PATH`, from the mail |
+| 5 | `coming-soon` | phone | the coming-soon flag on |
+| 6 | `admin-request-to-publish` | desktop | `ACCEPTANCE_STAFF_TOKEN_HASH`, a request from `submission` |
+| 7 | `admin-invoice` | desktop | the same |
+| 8 | `admin-takedown` | desktop | the same |
+| 9 | `edges` | desktop | |
+
+Not scripted, so walk them: the facts against the data and the copy against the guardrails, the email that follows an inquiry or a signup and the unsubscribe link, what the owner reads on an invoice, whether a taken-down address answers 410 and its photographs are gone, the visible focus ring, and each journey on the width the file does not cover. The staff hash is the token of a magic link for a staff address, minted outside the panel because a panelist writes nothing to `mop-dev` (a link is spent once, so each admin journey needs its own).
 
 ## What you look for on every page
 

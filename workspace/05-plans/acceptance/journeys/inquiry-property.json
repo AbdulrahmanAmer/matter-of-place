@@ -1,0 +1,23 @@
+{
+  "charter": 3,
+  "viewports": ["desktop"],
+  "writes": "one inquiry row (intent ask, subject oak-hill-residence) from acceptance+<stamp>@fixtures.invalid",
+  "steps": [
+    { "do": "goto", "path": "/property/oak-hill-residence" },
+    { "do": "click", "selector": "::-p-text(Ask about this property)" },
+    { "do": "expectSelector", "selector": "[role=dialog]" },
+    { "do": "fill", "selector": "[role=dialog] input[name=name]", "value": "Acceptance walk" },
+    {
+      "do": "fill",
+      "selector": "[role=dialog] input[name=email]",
+      "value": "acceptance+{stamp}@fixtures.invalid"
+    },
+    {
+      "do": "fill",
+      "selector": "[role=dialog] textarea[name=message]",
+      "value": "Is it still available?"
+    },
+    { "do": "click", "selector": "[role=dialog] button[type=submit]" },
+    { "do": "expectText", "text": "A person will reply within one working day." }
+  ]
+}

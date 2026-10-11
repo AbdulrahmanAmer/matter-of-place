@@ -1,0 +1,22 @@
+{
+  "charter": 1,
+  "viewports": ["desktop", "phone"],
+  "steps": [
+    { "do": "goto", "path": "/" },
+    { "do": "expectSelector", "selector": "h1" },
+    { "do": "click", "selector": "main a[href='/california']" },
+    { "do": "expectUrl", "contains": "/california" },
+    { "do": "expectText", "text": "Within California" },
+    { "do": "click", "selector": "main a[href='/california/bay-area']" },
+    { "do": "expectUrl", "contains": "/california/bay-area" },
+    { "do": "expectSelector", "selector": "h1" },
+    { "do": "click", "selector": "main a[href^='/property/']" },
+    { "do": "expectUrl", "contains": "/property/" },
+    { "do": "expectSelector", "selector": "h1" },
+    { "do": "expectText", "text": "The property" },
+    { "do": "expectText", "text": "Represented by" },
+    { "do": "expectText", "text": "Begin a conversation." },
+    { "do": "expectImageLoaded", "selector": "main img" },
+    { "do": "expectText", "text": "More in California" }
+  ]
+}

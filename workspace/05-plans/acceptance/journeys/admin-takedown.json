@@ -1,0 +1,210 @@
+{
+  "charter": 8,
+  "viewports": ["desktop"],
+  "needs": ["env:ACCEPTANCE_STAFF_TOKEN_HASH"],
+  "after": "submission",
+  "writes": "takes the property of the newest 1 Acceptance Way request through publish and a rights takedown",
+  "steps": [
+    {
+      "do": "goto",
+      "path": "/admin/auth/confirm?token_hash={env:ACCEPTANCE_STAFF_TOKEN_HASH}&type=email"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Continue to Matter of Place)"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "a[href='/admin/requests']"
+    },
+    {
+      "do": "goto",
+      "path": "/admin/requests?search=1%20Acceptance%20Way&workflow_state=Submitted"
+    },
+    {
+      "do": "click",
+      "selector": "tbody tr:first-child td:nth-child(3)"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/admin/requests/"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "[aria-label=Status]"
+    },
+    {
+      "do": "expectText",
+      "text": "Acceptance Agent"
+    },
+    {
+      "do": "click",
+      "selector": "[aria-label=Status] button::-p-text(Start review)"
+    },
+    {
+      "do": "expectText",
+      "text": "Under Review"
+    },
+    {
+      "do": "click",
+      "selector": "[aria-label=Status] button::-p-text(Accept)"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "dialog[open]"
+    },
+    {
+      "do": "click",
+      "selector": "dialog[open] button::-p-text(Accept)"
+    },
+    {
+      "do": "expectText",
+      "text": "Request accepted."
+    },
+    {
+      "do": "goto",
+      "path": "/admin/invoices/new"
+    },
+    {
+      "do": "click",
+      "selector": "::-p-xpath(//ul[@aria-label='Accepted requests']//li[contains(., '1 Acceptance Way')]//a)"
+    },
+    {
+      "do": "expectText",
+      "text": "New invoice"
+    },
+    {
+      "do": "fill",
+      "selector": "main input",
+      "value": "bank_transfer"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Issue and email)"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "dialog[open]"
+    },
+    {
+      "do": "click",
+      "selector": "dialog[open] button::-p-text(Issue and email)"
+    },
+    {
+      "do": "expectText",
+      "text": "Invoice issued."
+    },
+    {
+      "do": "click",
+      "selector": "[aria-label=Recorded] a::-p-text(Open it)"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/admin/invoices/"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Mark paid)"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "dialog[open]"
+    },
+    {
+      "do": "fill",
+      "selector": "dialog[open] input[type=date]",
+      "value": "{yesterday}"
+    },
+    {
+      "do": "fill",
+      "selector": "dialog[open] input[type=text]",
+      "value": "Bank transfer"
+    },
+    {
+      "do": "click",
+      "selector": "dialog[open] button::-p-text(Mark paid)"
+    },
+    {
+      "do": "expectSelector",
+      "selector": ".admin-invoice-page__state ::-p-text(Paid)"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Activate)"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "dialog[open]"
+    },
+    {
+      "do": "click",
+      "selector": "dialog[open] button::-p-text(Activate)"
+    },
+    {
+      "do": "expectText",
+      "text": "Activated"
+    },
+    {
+      "do": "click",
+      "selector": "a::-p-text(Open property)"
+    },
+    {
+      "do": "expectUrl",
+      "contains": "/admin/properties/"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "[aria-label=Publication]"
+    },
+    {
+      "do": "click",
+      "selector": "[aria-label=Publication] button::-p-text(Send to review)"
+    },
+    {
+      "do": "click",
+      "selector": "[aria-label=Publication] button::-p-text(Publish)"
+    },
+    {
+      "do": "expectText",
+      "text": "Published"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Unpublish)"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "dialog[open]"
+    },
+    {
+      "do": "fill",
+      "selector": "dialog[open] select",
+      "value": "rights_takedown"
+    },
+    {
+      "do": "click",
+      "selector": "dialog[open] input[type=checkbox]"
+    },
+    {
+      "do": "fill",
+      "selector": "dialog[open] textarea",
+      "value": "Acceptance walk: rights takedown."
+    },
+    {
+      "do": "click",
+      "selector": "dialog[open] button::-p-text(Take down)"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "[aria-label=Publication]"
+    },
+    {
+      "do": "goto",
+      "path": "/admin/audit"
+    },
+    {
+      "do": "expectText",
+      "text": "takedown"
+    }
+  ]
+}

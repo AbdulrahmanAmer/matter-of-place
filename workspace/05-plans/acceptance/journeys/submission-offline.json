@@ -1,0 +1,115 @@
+{
+  "charter": 2,
+  "viewports": ["desktop"],
+  "writes": "nothing: the connection is cut before Send for review, so the Worker sees no request",
+  "steps": [
+    {
+      "do": "goto",
+      "path": "/submit"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(Property address)",
+      "value": "1 Acceptance Way"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(City)",
+      "value": "Ojai"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(State)",
+      "value": "California"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(ZIP)",
+      "value": "93023"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(Property type)",
+      "value": "Residence"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Continue)"
+    },
+    {
+      "do": "expectText",
+      "text": "The property story"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(The property story)",
+      "value": "A house built for the light."
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(What makes this property significant?)",
+      "value": "Its plan follows the sun."
+    },
+    {
+      "do": "upload",
+      "selector": "input[type=file]",
+      "file": "app/tests/fixtures/tiny.jpg"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Continue)"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(I am)",
+      "value": "agent"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(Your name)",
+      "value": "Acceptance Agent"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(Brokerage)",
+      "value": "Acceptance Realty"
+    },
+    {
+      "do": "fill",
+      "selector": "::-p-aria(Email)",
+      "value": "acceptance+{stamp}@fixtures.invalid"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Continue)"
+    },
+    {
+      "do": "click",
+      "selector": "::-p-aria(The Feature)"
+    },
+    {
+      "do": "click",
+      "selector": "input[type=checkbox]"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Continue)"
+    },
+    {
+      "do": "offline",
+      "value": "on"
+    },
+    {
+      "do": "click",
+      "selector": "button::-p-text(Send for review)"
+    },
+    {
+      "do": "expectText",
+      "text": "This did not go through. Please try once more."
+    },
+    {
+      "do": "offline",
+      "value": "off"
+    }
+  ]
+}
