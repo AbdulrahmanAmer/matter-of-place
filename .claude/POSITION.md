@@ -1668,3 +1668,8 @@ first day of the new usage week; no step was cut from any plan.
 - In the gate: 315 (missing pages edge-cached a minute; test watched red on main's code), 316 (slice/l1 launch scripts onto main, verify-production pattern fixed and watched red with the old one), this records PR.
 - Health alert `retention_stalled` (13:00 UTC): the launch reset left every retention policy with no run; the nightly retention job (03:45 UTC) is its first run. Check `select key, last_run_at from retention_policies` after 03:45 UTC on 2026-10-12.
 - The ten failing re-run proofs need `E2E_DATASET=1` against a database; the only database is production now, so they wait for a throwaway local Postgres run. CSP's one unmatched script is Cloudflare's JavaScript Detections (P-3433), same unblock as the edge rules.
+
+## 2026-10-11 23:05 ALL QUEUED PRS MERGED
+- Merged and deployed after the design: 315 (missing pages cached a minute; live 23:04 `miss` then `hit`), 316 (slice/l1 launch scripts on main), 314 (records, board ledger: L1 steps 0, 3, 4 accepted). Board artifact republished (version 18). Board server serves http://localhost:8790/ from E:/mop-build/records.
+- H2 workflow is paused (task wqxa0dba5, run wf_efcedca0-2e7); its lane E:/mop-build/h2 has uncommitted edits from an interrupted builder (GOTCHAS.md, acceptance charters and journeys, probe.mjs), kept as is. Operator order: no workflows; H2 resumes only by the orchestrator's own hand.
+- Still open: Cloudflare edge rules and JavaScript Detections (zone token, operator); a real signup in a browser for L1 step 5 (operator); rehearsal upload confirmation (P-3413); retention's first run tonight 03:45 UTC; ten re-run proofs need a throwaway database; H1 steps 4, 6, 7, 10; social accounts.
