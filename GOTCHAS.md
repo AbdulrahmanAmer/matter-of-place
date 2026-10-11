@@ -7408,6 +7408,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run --project unit tests/unit/products-render.test.tsx` → `No test files found`; `bunx vitest run --project component tests/unit/products-render.test.tsx` → `Tests  5 passed (5)` (measured 2026-10-11, B18 g3).
 - added: 2026-10-11
 
+## P-3311 · A native radio or checkbox is 13px and fails axe `target-size` only in the e2e checkpoint, never in `bun run check`
+- symptom: CI job `e2e` on PR 304 (run 38121752017) failed `exposure-products.spec.ts` with `axe: new violations on /admin/settings products preview` and `target-size` on `.admin-plans > .admin-plan__flag > input[type="radio"][name="products-recommended"]`; unit tests, lint and build were green.
+- cause: `.admin-plan__flag` styled the label only, so the radio kept its browser size (about 13px), under the 24 by 24 CSS px of WCAG 2.2 2.5.8, and the lone "No plan is recommended" radio sits close to the fieldsets' targets so the spacing exemption did not apply. Only the browser sees it.
+- rule: a new bare `input[type=radio|checkbox]` in an admin screen gets a 24px `inline-size` and `block-size` in its stylesheet, and its screen gets a `checkpoint()` in a spec; never an `axe-baseline.json` entry for it. Locally the spec reaches its axe checkpoint against mop-dev (`E2E_TARGET=built E2E_PORT=8868 E2E_MODE=live bunx playwright test --project=admin tests/e2e/exposure-products.spec.ts --retries=0`) but fails later at "Plans saved." until main pushes the B18 migration, so read the first error. Also `python3 -` in a Bash heredoc spun for 120 s again (P-094): use the Edit tool.
+- proof: `cd app && bunx vitest run --project unit tests/unit/admin-plan-flag-target.test.ts` passes; `node scripts/watchfail.mjs --registry tests/mutations --only b18-fix-plan-flag-target-size` prints `WATCHED-FAIL OK B18:b18-fix-plan-flag-target-size` (measured 2026-10-11).
+- added: 2026-10-11
+
 ## P-3310 · `ApiClient.get(path, schema)` typed `z.ZodType<T>` infers `unknown` for a schema whose input differs from its output
 - symptom: B18 g3 added `products: z.array(productPlanSchema)` to `publicSiteSchema` in `src/services/http/index.ts`; tsc printed `TS2322: Type 'Promise<unknown>' is not assignable to type 'Promise<PublicSite>'` at `site.get`, although the schema's output is `PublicSite`.
 - cause: `z.ZodType<T>` means `ZodType<T, ZodTypeDef, T>`, so T is inferred from the input type as well; `productPlanSchema` has a `preprocess` and defaults, so its input is not `ProductPlan` and T fell back to `unknown`. The admin clients already take `z.ZodType<T, z.ZodTypeDef, unknown>`.

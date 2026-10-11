@@ -27,6 +27,14 @@
   align-items: center;
 }
 
+/* WCAG 2.2 target size (2.5.8): a native radio is about 13px and fails axe target-size, so the control itself is 24 by 24. */
+.admin-plan__flag > input[type="radio"] {
+  flex: none;
+  inline-size: 24px;
+  block-size: 24px;
+  margin: 0;
+}
+
 .admin-plans__preview {
   display: grid;
   gap: var(--admin-space-3);

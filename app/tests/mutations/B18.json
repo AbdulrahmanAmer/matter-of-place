@@ -735,5 +735,14 @@
     "run": "node scripts/dev-vars.mjs && bun run build && E2E_TARGET=built E2E_PORT=8868 E2E_MODE=live bunx playwright test --project=admin tests/e2e/exposure-products.spec.ts --reporter=line",
     "expect": "expect\\(received\\)\\.toBe\\(expected\\)[\\s\\S]*Expected: [0-9]+",
     "what": "by hand against mop-dev (a built Worker, a browser and the dev profile): the site read always serves the seed, so the poll ends after 40 seconds with the old price. Not replayed: steps 1 and 2 (the products row and settings_put_products) are not pushed to mop-dev until main merges B18, so the spec itself is UNPROVEN until then."
+  },
+  {
+    "id": "b18-fix-plan-flag-target-size",
+    "test": "tests/unit/admin-plan-flag-target.test.ts",
+    "file": "src/styles/admin/settings.css",
+    "find": "  inline-size: 24px;\n  block-size: 24px;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/admin-plan-flag-target.test.ts",
+    "expect": "FAIL .*> the Settings products editor > sizes the recommended radio to a 24 by 24 target"
   }
 ]
