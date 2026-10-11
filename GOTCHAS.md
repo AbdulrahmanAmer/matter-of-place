@@ -7726,3 +7726,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: write `{ line(...); return; }` (eslint `--fix` does it); type a parse helper by its output, `<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T>`.
 - proof: `cd app && node node_modules/eslint/bin/eslint.js --max-warnings 0 scripts/launch scripts/rehearsal.ts` → no output, exit 0 (2026-10-11, after the two fixes).
 - added: 2026-10-11
+
+## P-3435 · A probe a few minutes after a production deploy can still reach the old Worker: the 404 cache fix read as broken
+- symptom: 2026-10-11 20:01 to 20:03 +0300, after PR 315's production deploy finished (17:00:42 UTC), every new missing path on https://matterofplace.com answered `x-mop-cache: bypass`; the same main build served locally answered `miss` then `hit`. At 23:04 the live site answered `miss` then `hit`.
+- cause: UNPROVEN which layer (Worker version rollout across Cloudflare locations is the likely one); the code was right, the probe was early.
+- rule: before calling a deploy's behaviour red, confirm the live Worker is the new one (a header or text only the new build has), or probe again after 10 minutes; compare with the same build served locally before touching the code.
+- proof: `P=https://matterofplace.com/no-such-page-$(date +%s); curl -sI $P | grep -i x-mop-cache; curl -sI $P | grep -i x-mop-cache` → `miss` then `hit`.
+- added: 2026-10-11
