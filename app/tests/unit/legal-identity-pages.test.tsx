@@ -114,7 +114,7 @@ describe("the surfaces that name the company (findings 1 and 19)", () => {
   it("the footer reads A product of Omnikom LLC and the legal line carries the entity and address", async () => {
     await show(Footer, EMPTY);
     const bottom = document.querySelector(".footer-bottom")?.textContent ?? "";
-    expect(bottom).toContain("Matter of Place · A product of Omnikom LLC.");
+    expect(bottom).toContain("Matter of Place is a product of Omnikom LLC.");
     expect(bottom).toMatch(/© \d{4}\s*Omnikom LLC/);
     expect(bottom).toContain("30 N Gould St Ste R, Sheridan, WY 82801, USA");
   });
@@ -159,7 +159,7 @@ describe("the home headline (finding 9)", () => {
     await home([]);
     expect(said().map((heading) => heading.tagName)).toEqual(["H1"]);
     expect(screen.getAllByText("MATTER OF PLACE")).toHaveLength(1);
-    expect(screen.getByText(/An editorial real-estate media platform/)).toBeTruthy();
+    expect(screen.getByText(/is an editorial publication for exceptional existing/)).toBeTruthy();
   });
 
   it("with a hero, the editorial statement keeps its headline and eyebrow", async () => {

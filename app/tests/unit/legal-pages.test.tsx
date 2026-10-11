@@ -169,7 +169,7 @@ describe("the parent company", () => {
   it("t.footer.line names siteConfig.parentCompany and /legal says Matter of Place is a product of Omnikom LLC.", async () => {
     expect(t.footer.line).toBe(`A product of ${siteConfig.parentCompany}.`);
     await renderPage(Footer, UNSET);
-    expect(screen.getByText(new RegExp(`${t.footer.line}$`))).toBeTruthy();
+    expect(screen.getByText("Matter of Place is a product of Omnikom LLC.")).toBeTruthy();
     cleanup();
     await renderPage(pageOf(legalRoute), UNSET);
     expect(screen.getByText("Matter of Place is a product of Omnikom LLC.")).toBeTruthy();

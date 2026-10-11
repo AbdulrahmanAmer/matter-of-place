@@ -73,11 +73,21 @@ function HomePage() {
         <Hero properties={hero} />
       ) : (
         <>
-          <section className="hero-text">
-            <div className="section-wrap">
+          <section className="hero-text" aria-labelledby="home-title">
+            <div className="section-wrap hero-text-inner">
               <p className="eyebrow">MATTER OF PLACE</p>
-              <h1>{siteConfig.tagline}</h1>
-              <p>{t.comingSoon.what}</p>
+              <h1 id="home-title">
+                <span>Exceptional property.</span> <span>Properly considered.</span>
+              </h1>
+              <p className="hero-text-lede">{t.comingSoon.what}</p>
+              <div className="hero-text-actions">
+                <Link to="/markets" className="button">
+                  Explore Properties
+                </Link>
+                <Link to="/submit" className="button ghost">
+                  Submit a Property
+                </Link>
+              </div>
             </div>
           </section>
           <ComingSoon scope="home" />
@@ -85,27 +95,23 @@ function HomePage() {
       )}
       <IllustrativeNotice properties={preview} />
 
-      <section
-        className={
-          hero.length > 0
-            ? "section-wrap editorial-statement"
-            : "section-wrap editorial-statement statement-plain"
-        }
-      >
-        {hero.length > 0 && <p className="eyebrow">MATTER OF PLACE</p>}
-        <div>
-          {hero.length > 0 && <h2>Exceptional property. Properly considered.</h2>}
-          <p>
-            An editorial real-estate media platform for exceptional residential property across
-            California, New York and Florida. We select, present and distribute places worth
-            attention.
-          </p>
-          <div className="home-actions">
-            <TextLink to="/properties">Explore Properties</TextLink>
-            <TextLink to="/submit">Submit a Property</TextLink>
+      {hero.length > 0 && (
+        <section className="section-wrap editorial-statement">
+          <p className="eyebrow">MATTER OF PLACE</p>
+          <div>
+            <h2>Exceptional property. Properly considered.</h2>
+            <p>
+              An editorial real-estate media platform for exceptional residential property across
+              California, New York and Florida. We select, present and distribute places worth
+              attention.
+            </p>
+            <div className="home-actions">
+              <TextLink to="/properties">Explore Properties</TextLink>
+              <TextLink to="/submit">Submit a Property</TextLink>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {featured.length > 0 && (
         <section className="section-wrap featured">

@@ -60,7 +60,7 @@
   /* Page grid: every section, the header and the footer share these two. */
   --container: 1500px;
   --container-pad: clamp(24px, 5vw, 86px);
-  --header-h: 84px;
+  --header-h: 92px;
 
   /* social: the cover, carousel and story templates (workspace/08-creative/DIRECTION.md). Offsets are measured
      from the top of the band, which begins where the photograph ends. */
@@ -124,6 +124,6 @@
 
 @media (max-width: 700px) {
   :root {
-    --header-h: 70px;
+    --header-h: 72px;
   }
 }
