@@ -494,5 +494,27 @@
       "what": "Your word to register the captions task on this laptop",
       "why": "Asked for at launch."
     }
-  ]
+  ],
+  "postLaunch": {
+    "L1": [
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "B10": [
+      "1",
+      "2",
+      "3a",
+      "3b",
+      "7",
+      "7a",
+      "7b"
+    ],
+    "B14": [
+      "7",
+      "8",
+      "9"
+    ]
+  }
 }
