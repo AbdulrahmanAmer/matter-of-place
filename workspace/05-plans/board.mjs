@@ -9,7 +9,6 @@
 // What counts: a step is accepted once a fresh reviewer accepted it. The page reads that from the
 // journals of the build runs, so it moves without anyone typing. progress.json is the orchestrator's
 // ledger: the steps whose proofs it re-ran itself. Built is not accepted.
-import { createServer } from "node:http";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -159,7 +158,7 @@ function readRuns(ledger, byId, now) {
   const auto = new Map();
   const runsSeen = [];
   try {
-    const project = join(homedir(), ".claude", "projects", ROOT.replace(/[^A-Za-z0-9]/g, "-"));
+    const project = join(homedir(), ".claude", "projects", (process.env["BOARD_PROJECT_ROOT"] ?? ROOT).replace(/[^A-Za-z0-9]/g, "-"));
     const since = new Date(ledger.started).getTime();
     const journals = [];
     for (const session of readdirSync(project)) {
@@ -1158,71 +1157,11 @@ function main() {
     return;
   }
   const at = args.indexOf("--port");
-  const port = at >= 0 ? Number(args[at + 1]) : 8790;
-  // Read the files once in the background and serve every request from that reading (2026-10-11: each page load and
-  // the 15 s version poll re-read every plan and journal synchronously, so requests queued behind each other).
-  let current = collect();
-  let currentVersion = versionOf(current);
-  let page = { version: "", html: "" };
-  setInterval(() => {
-    try {
-      current = collect();
-      currentVersion = versionOf(current);
-    } catch {
-      // keep the last good reading
-    }
-  }, 20_000).unref?.();
-  const server = createServer((request, response) => {
-    const url = new URL(request.url ?? "/", "http://127.0.0.1");
-    try {
-      if (url.pathname in FONTS) {
-        const body = readFileSync(join(ROOT, FONTS[url.pathname]));
-        response.writeHead(200, { "Content-Type": "font/woff2", "Cache-Control": "max-age=86400" });
-        response.end(body);
-      } else if (url.pathname === "/data.json") {
-        response.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
-        response.end(JSON.stringify(current, null, 1));
-      } else if (url.pathname === "/version") {
-        response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
-        response.end(currentVersion);
-      } else if (url.pathname === "/") {
-        if (page.version !== currentVersion) page = { version: currentVersion, html: render(current, currentVersion) };
-        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
-        response.end(page.html);
-      } else {
-        response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-        response.end("Not found");
-      }
-    } catch (error) {
-      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
-      response.end(`The board could not read its files: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  });
-  server.listen(port, "127.0.0.1", () => {
-    console.log(`board: http://127.0.0.1:${port}`);
-  });
-  // --snapshot <file>: rewrite the shareable snapshot whenever the board version changes (checked every minute),
-  // with a .version sidecar; the orchestrator watches the sidecar and republishes the artifact from the file.
   const snapshotAt = args.indexOf("--snapshot");
-  if (snapshotAt >= 0) {
-    const file = args[snapshotAt + 1];
-    let written = existsSync(`${file}.version`) ? readFileSync(`${file}.version`, "utf8") : "";
-    const refresh = () => {
-      try {
-        const data = collect();
-        const version = versionOf(data);
-        if (version === written) return;
-        writeFileSync(file, render(data, version, true));
-        writeFileSync(`${file}.version`, version);
-        written = version;
-        console.log(`board: snapshot ${data.overall.percent}% written to ${file}`);
-      } catch (error) {
-        console.error(`board: snapshot not written: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    };
-    refresh();
-    setInterval(refresh, 60_000).unref();
-  }
+  // The web server lives in board-server.mjs (rebuilt 2026-10-11): readings in a worker thread, pages from memory.
+  void import("./board-server.mjs").then(({ serve }) =>
+    serve({ port: at >= 0 ? Number(args[at + 1]) : 8790, snapshot: snapshotAt >= 0 ? args[snapshotAt + 1] : undefined }),
+  );
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
