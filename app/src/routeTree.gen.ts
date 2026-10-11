@@ -151,6 +151,7 @@ import { Route as ApiAdminSettingsIndexRouteImport } from './routes/api/admin/se
 import { Route as ApiAdminSettingsComingSoonRouteImport } from './routes/api/admin/settings.coming-soon'
 import { Route as ApiAdminSettingsInvoiceRouteImport } from './routes/api/admin/settings.invoice'
 import { Route as ApiAdminSettingsNotificationsRouteImport } from './routes/api/admin/settings.notifications'
+import { Route as ApiAdminSettingsProductsRouteImport } from './routes/api/admin/settings.products'
 import { Route as ApiAdminSettingsRedirectsRouteImport } from './routes/api/admin/settings.redirects'
 import { Route as ApiAdminSettingsSiteRouteImport } from './routes/api/admin/settings.site'
 import { Route as ApiAdminStoriesIndexRouteImport } from './routes/api/admin/stories.index'
@@ -207,6 +208,7 @@ import { Route as ApiAdminPropertiesIdRevokePreviewsRouteImport } from './routes
 import { Route as ApiAdminPropertiesIdTimelineRouteImport } from './routes/api/admin/properties.$id.timeline'
 import { Route as ApiAdminPropertiesIdUnpublishRouteImport } from './routes/api/admin/properties.$id.unpublish'
 import { Route as ApiAdminReportsIdEmailRouteImport } from './routes/api/admin/reports.$id.email'
+import { Route as ApiAdminSettingsProductsPreviewRouteImport } from './routes/api/admin/settings.products.preview'
 import { Route as ApiAdminStoriesIdPublishRouteImport } from './routes/api/admin/stories.$id.publish'
 import { Route as ApiAdminStoriesIdUnpublishRouteImport } from './routes/api/admin/stories.$id.unpublish'
 import { Route as ApiAdminSubmissionsIdAcceptRouteImport } from './routes/api/admin/submissions.$id.accept'
@@ -998,6 +1000,12 @@ const ApiAdminSettingsNotificationsRoute =
     path: '/api/admin/settings/notifications',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminSettingsProductsRoute =
+  ApiAdminSettingsProductsRouteImport.update({
+    id: '/api/admin/settings/products',
+    path: '/api/admin/settings/products',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminSettingsRedirectsRoute =
   ApiAdminSettingsRedirectsRouteImport.update({
     id: '/api/admin/settings/redirects',
@@ -1309,6 +1317,12 @@ const ApiAdminReportsIdEmailRoute = ApiAdminReportsIdEmailRouteImport.update({
   path: '/email',
   getParentRoute: () => ApiAdminReportsIdRoute,
 } as any)
+const ApiAdminSettingsProductsPreviewRoute =
+  ApiAdminSettingsProductsPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => ApiAdminSettingsProductsRoute,
+  } as any)
 const ApiAdminStoriesIdPublishRoute =
   ApiAdminStoriesIdPublishRouteImport.update({
     id: '/publish',
@@ -1646,6 +1660,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/settings/coming-soon': typeof ApiAdminSettingsComingSoonRoute
   '/api/admin/settings/invoice': typeof ApiAdminSettingsInvoiceRoute
   '/api/admin/settings/notifications': typeof ApiAdminSettingsNotificationsRoute
+  '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
@@ -1712,6 +1727,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
   '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
+  '/api/admin/settings/products/preview': typeof ApiAdminSettingsProductsPreviewRoute
   '/api/admin/stories/$id/publish': typeof ApiAdminStoriesIdPublishRoute
   '/api/admin/stories/$id/unpublish': typeof ApiAdminStoriesIdUnpublishRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
@@ -1875,6 +1891,7 @@ export interface FileRoutesByTo {
   '/api/admin/settings/coming-soon': typeof ApiAdminSettingsComingSoonRoute
   '/api/admin/settings/invoice': typeof ApiAdminSettingsInvoiceRoute
   '/api/admin/settings/notifications': typeof ApiAdminSettingsNotificationsRoute
+  '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
@@ -1941,6 +1958,7 @@ export interface FileRoutesByTo {
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
   '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
+  '/api/admin/settings/products/preview': typeof ApiAdminSettingsProductsPreviewRoute
   '/api/admin/stories/$id/publish': typeof ApiAdminStoriesIdPublishRoute
   '/api/admin/stories/$id/unpublish': typeof ApiAdminStoriesIdUnpublishRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
@@ -2110,6 +2128,7 @@ export interface FileRoutesById {
   '/api/admin/settings/coming-soon': typeof ApiAdminSettingsComingSoonRoute
   '/api/admin/settings/invoice': typeof ApiAdminSettingsInvoiceRoute
   '/api/admin/settings/notifications': typeof ApiAdminSettingsNotificationsRoute
+  '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
@@ -2176,6 +2195,7 @@ export interface FileRoutesById {
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
   '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
+  '/api/admin/settings/products/preview': typeof ApiAdminSettingsProductsPreviewRoute
   '/api/admin/stories/$id/publish': typeof ApiAdminStoriesIdPublishRoute
   '/api/admin/stories/$id/unpublish': typeof ApiAdminStoriesIdUnpublishRoute
   '/api/admin/submissions/$id/accept': typeof ApiAdminSubmissionsIdAcceptRoute
@@ -2345,6 +2365,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/coming-soon'
     | '/api/admin/settings/invoice'
     | '/api/admin/settings/notifications'
+    | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
     | '/api/admin/stories/$id'
@@ -2411,6 +2432,7 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/properties/$id/unpublish'
     | '/api/admin/reports/$id/email'
+    | '/api/admin/settings/products/preview'
     | '/api/admin/stories/$id/publish'
     | '/api/admin/stories/$id/unpublish'
     | '/api/admin/submissions/$id/accept'
@@ -2574,6 +2596,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/coming-soon'
     | '/api/admin/settings/invoice'
     | '/api/admin/settings/notifications'
+    | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
     | '/api/admin/stories/$id'
@@ -2640,6 +2663,7 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/properties/$id/unpublish'
     | '/api/admin/reports/$id/email'
+    | '/api/admin/settings/products/preview'
     | '/api/admin/stories/$id/publish'
     | '/api/admin/stories/$id/unpublish'
     | '/api/admin/submissions/$id/accept'
@@ -2808,6 +2832,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/coming-soon'
     | '/api/admin/settings/invoice'
     | '/api/admin/settings/notifications'
+    | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
     | '/api/admin/stories/$id'
@@ -2874,6 +2899,7 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/properties/$id/unpublish'
     | '/api/admin/reports/$id/email'
+    | '/api/admin/settings/products/preview'
     | '/api/admin/stories/$id/publish'
     | '/api/admin/stories/$id/unpublish'
     | '/api/admin/submissions/$id/accept'
@@ -2982,6 +3008,7 @@ export interface RootRouteChildren {
   ApiAdminSettingsComingSoonRoute: typeof ApiAdminSettingsComingSoonRoute
   ApiAdminSettingsInvoiceRoute: typeof ApiAdminSettingsInvoiceRoute
   ApiAdminSettingsNotificationsRoute: typeof ApiAdminSettingsNotificationsRoute
+  ApiAdminSettingsProductsRoute: typeof ApiAdminSettingsProductsRouteWithChildren
   ApiAdminSettingsRedirectsRoute: typeof ApiAdminSettingsRedirectsRoute
   ApiAdminSettingsSiteRoute: typeof ApiAdminSettingsSiteRoute
   ApiAdminStoriesIdRoute: typeof ApiAdminStoriesIdRouteWithChildren
@@ -4005,6 +4032,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSettingsNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/settings/products': {
+      id: '/api/admin/settings/products'
+      path: '/api/admin/settings/products'
+      fullPath: '/api/admin/settings/products'
+      preLoaderRoute: typeof ApiAdminSettingsProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/settings/redirects': {
       id: '/api/admin/settings/redirects'
       path: '/api/admin/settings/redirects'
@@ -4396,6 +4430,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/reports/$id/email'
       preLoaderRoute: typeof ApiAdminReportsIdEmailRouteImport
       parentRoute: typeof ApiAdminReportsIdRoute
+    }
+    '/api/admin/settings/products/preview': {
+      id: '/api/admin/settings/products/preview'
+      path: '/preview'
+      fullPath: '/api/admin/settings/products/preview'
+      preLoaderRoute: typeof ApiAdminSettingsProductsPreviewRouteImport
+      parentRoute: typeof ApiAdminSettingsProductsRoute
     }
     '/api/admin/stories/$id/publish': {
       id: '/api/admin/stories/$id/publish'
@@ -5218,6 +5259,20 @@ const ApiAdminPropertiesIdRouteChildren: ApiAdminPropertiesIdRouteChildren = {
 const ApiAdminPropertiesIdRouteWithChildren =
   ApiAdminPropertiesIdRoute._addFileChildren(ApiAdminPropertiesIdRouteChildren)
 
+interface ApiAdminSettingsProductsRouteChildren {
+  ApiAdminSettingsProductsPreviewRoute: typeof ApiAdminSettingsProductsPreviewRoute
+}
+
+const ApiAdminSettingsProductsRouteChildren: ApiAdminSettingsProductsRouteChildren =
+  {
+    ApiAdminSettingsProductsPreviewRoute: ApiAdminSettingsProductsPreviewRoute,
+  }
+
+const ApiAdminSettingsProductsRouteWithChildren =
+  ApiAdminSettingsProductsRoute._addFileChildren(
+    ApiAdminSettingsProductsRouteChildren,
+  )
+
 interface ApiAdminStoriesIdRouteChildren {
   ApiAdminStoriesIdPublishRoute: typeof ApiAdminStoriesIdPublishRoute
   ApiAdminStoriesIdUnpublishRoute: typeof ApiAdminStoriesIdUnpublishRoute
@@ -5401,6 +5456,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminSettingsComingSoonRoute: ApiAdminSettingsComingSoonRoute,
   ApiAdminSettingsInvoiceRoute: ApiAdminSettingsInvoiceRoute,
   ApiAdminSettingsNotificationsRoute: ApiAdminSettingsNotificationsRoute,
+  ApiAdminSettingsProductsRoute: ApiAdminSettingsProductsRouteWithChildren,
   ApiAdminSettingsRedirectsRoute: ApiAdminSettingsRedirectsRoute,
   ApiAdminSettingsSiteRoute: ApiAdminSettingsSiteRoute,
   ApiAdminStoriesIdRoute: ApiAdminStoriesIdRouteWithChildren,

@@ -2,6 +2,7 @@
 import "../fixtures/worker-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Json } from "../../src/db";
+import { seedProducts } from "../../src/server/settings/products";
 import { countingDb } from "../fixtures/db-counter";
 import { fakeDb } from "../fixtures/fake-db";
 import { stateJson } from "../fixtures/snapshot";
@@ -59,6 +60,7 @@ describe("getPublicSite", () => {
     expect(await service.getPublicSite(db, undefined, { env: { MOP_ENV: "local" } })).toEqual({
       ...SET_SITE,
       illustrativeContent: true,
+      products: seedProducts(),
     });
     expect(db.counts.total).toBe(1);
   });

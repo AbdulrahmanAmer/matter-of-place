@@ -1,7 +1,7 @@
 // Row factories for the database tests and the e2e data set (B4 invariants 8 and 9, GQ-03, T-08). Every timestamp is
 // `atFrom(base, days)` from a `base` the caller read once with `dbNow(db)`, every id comes from `deterministicUuid`,
 // and every row carries an address on the reserved domain fixtures.invalid, the marker `removeFixtureRows` deletes by.
-import { offerings } from "../../src/data/exposure";
+import { seedOfferings } from "../../src/data/exposure";
 import type { TablesInsert } from "../../src/db/types";
 import type { WorkflowState } from "../../src/domain/workflow";
 import { atFrom, deterministicUuid } from "./clock";
@@ -131,9 +131,9 @@ export type InvoiceFactoryInput = Omit<Partial<PaymentInsert>, "submission_id" |
   n: number;
 };
 
-/** The amount of `product` from the one price source, `src/data/exposure.ts` (S3). */
+/** The amount of `product` in the seed of `settings.products` (`src/data/exposure.ts`), what a fresh database stores. */
 function priceOf(product: PaymentInsert["product"]): number {
-  const price = offerings.find((offering) => offering.name === product)?.price;
+  const price = seedOfferings.find((offering) => offering.name === product)?.price;
   if (price === undefined) throw new Error(`no offering is named ${product}`);
   return Number(price.replace(/[$,]/g, ""));
 }

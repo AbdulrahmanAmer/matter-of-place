@@ -1885,6 +1885,9 @@ isOneToOne: false
 "settings_put_invoice":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
                            },
+"settings_put_products":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
+                           },
 "settings_put_site":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
                            },

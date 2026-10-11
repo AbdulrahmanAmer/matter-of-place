@@ -213,3 +213,145 @@
   text-transform: uppercase;
   margin-bottom: 10px;
 }
+
+/* Launch upgrade of Property Exposure (operator, 2026-10-11). The page uses the container width: the four plans sit
+   side by side as tall cards, the recommended plan inverted in Obsidian, prices set large in Cormorant; every other
+   block is a two-column editorial row, its label on the left. */
+.exposure-body.fp {
+  max-width: var(--container);
+  padding: clamp(80px, 9vw, 140px) var(--container-pad) clamp(96px, 10vw, 160px);
+}
+
+.exposure-body .fp-block {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 3fr;
+  gap: 16px clamp(32px, 5vw, 80px);
+  padding-top: clamp(40px, 4vw, 64px);
+  margin-bottom: clamp(56px, 6vw, 96px);
+  border-top: 1px solid var(--border);
+}
+
+.exposure-body .fp-block > :not(.fp-label) {
+  grid-column: 2;
+}
+
+.exposure-body .fp-block {
+  grid-auto-flow: row dense;
+}
+
+.exposure-body .fp-label {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+}
+
+.exposure-body .exposure-products {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 0;
+  padding-top: 0;
+  gap: 16px;
+}
+
+.exposure-body .exposure-products > .fp-label {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.exposure-body .exposure-products > .offer-card {
+  grid-column: auto;
+}
+
+.exposure-body .fp-card {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: clamp(24px, 2.4vw, 36px);
+  min-height: 420px;
+  transition:
+    border-color 0.4s ease,
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.exposure-body .fp-card:hover {
+  border-color: var(--foreground);
+  transform: translateY(-4px);
+}
+
+.exposure-body .fp-card-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.exposure-body .fp-card-head h3 {
+  font-size: clamp(26px, 2.2vw, 32px);
+}
+
+.exposure-body .fp-card-head span {
+  order: 2;
+  font-size: clamp(44px, 4vw, 60px);
+  line-height: 1;
+  font-weight: 300;
+}
+
+.exposure-body .fp-line {
+  margin: 16px 0 20px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.exposure-body .fp-card li {
+  font-size: 0.85rem;
+}
+
+.exposure-body .fp-card .text-link {
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+.exposure-body .fp-card.fp-lead {
+  background: var(--foreground);
+  color: var(--primary-foreground);
+}
+
+.exposure-body .fp-lead .fp-line,
+.exposure-body .fp-lead li,
+.exposure-body .fp-lead .fp-offer-for,
+.exposure-body .fp-lead .offer-flag {
+  color: color-mix(in oklab, var(--primary-foreground) 76%, transparent);
+}
+
+.exposure-body .exposure-heading {
+  font-size: clamp(34px, 3.6vw, 56px);
+  line-height: 1.05;
+  max-width: 20ch;
+}
+
+.exposure-body .fp-text {
+  max-width: 60ch;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+@media (max-width: 1100px) {
+  .exposure-body .exposure-products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .exposure-body .fp-block,
+  .exposure-body .exposure-products {
+    grid-template-columns: 1fr;
+  }
+
+  .exposure-body .fp-block > :not(.fp-label),
+  .exposure-body .fp-label {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .exposure-body .fp-card {
+    min-height: 0;
+  }
+}

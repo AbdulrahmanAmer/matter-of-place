@@ -8,6 +8,7 @@ import type { AppRole } from "../../../src/server/lib/authz";
 import { invoiceSnapshotSchema } from "../../../src/server/payments/invoice-layout";
 import { buildInvoiceSnapshot } from "../../../src/server/payments/invoice-snapshot";
 import { priceFor } from "../../../src/server/payments/pricing";
+import { seedProducts } from "../../../src/server/settings/products";
 import {
   activate,
   getPayment,
@@ -194,7 +195,7 @@ describe("issueInvoice", () => {
       typeof args === "object" && args !== null && "p_amount" in args ? args.p_amount : null;
     expect({ calls: rpcCalls(db, "issue_invoice").length, amount }).toEqual({
       calls: 1,
-      amount: priceFor("The Feature"),
+      amount: priceFor(seedProducts(), "The Feature"),
     });
     expect(fanout.mock.calls.map(([, eventId]) => eventId)).toEqual([EVENT_ID]);
   });
@@ -280,7 +281,7 @@ describe("buildInvoiceSnapshot", () => {
     expect(snapshot).toMatchObject({
       entity: site.legal.entity,
       address: site.legal.address,
-      amount: priceFor("The Reach"),
+      amount: priceFor(seedProducts(), "The Reach"),
       currency: "USD",
       tax_line: invoiceSettings.tax_line,
       late_terms: invoiceSettings.late_terms,
@@ -386,7 +387,7 @@ describe("waiveWithoutInvoice (DL-01)", () => {
       {
         p_submission_id: SUBMISSION_ID,
         p_product: "The Reach",
-        p_amount: priceFor("The Reach"),
+        p_amount: priceFor(seedProducts(), "The Reach"),
         p_reason: "Five Features credit",
         p_actor: USER_ID,
         p_actor_kind: "human",

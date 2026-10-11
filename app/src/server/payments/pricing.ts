@@ -1,29 +1,22 @@
 import type { ExposurePackage } from "../../domain/rows.ts";
-import type { Offering } from "../../domain/exposure.ts";
-import { offerings } from "../../data/exposure.ts";
+import { boundPlanIds, type ProductPlan } from "../../domain/exposure.ts";
 import { AppError } from "../lib/errors.ts";
 
-const DOLLARS = /^\$(\d{1,3}(?:,\d{3})*)$/;
+const planIdOf: Partial<Record<ExposurePackage, ProductPlan["id"]>> = boundPlanIds;
 
-/** The offering named like the product. `Not sure yet` has none: it is resolved to a real product before an invoice. */
-export function offeringFor(product: ExposurePackage): Offering {
-  const offering = offerings.find((candidate) => candidate.name === product);
-  if (offering === undefined) {
+/**
+ * The plan bound to the product, found by its fixed id and never by its name, so a renamed plan still invoices.
+ * `Not sure yet` has none: it is resolved to a real product before an invoice.
+ */
+export function offeringFor(plans: readonly ProductPlan[], product: ExposurePackage): ProductPlan {
+  const plan = plans.find((candidate) => candidate.id === planIdOf[product]);
+  if (plan === undefined) {
     throw new AppError("validation", undefined, "Choose a product before issuing an invoice.");
   }
-  return offering;
+  return plan;
 }
 
-/** Whole dollars from the display price of `src/data/exposure.ts`, the only price source (S3). */
-export function priceFor(product: ExposurePackage): number {
-  const offering = offeringFor(product);
-  const dollars = DOLLARS.exec(offering.price)?.[1];
-  if (dollars === undefined) {
-    throw new AppError(
-      "server",
-      undefined,
-      `The price of ${offering.name} is not a dollar amount.`,
-    );
-  }
-  return Number(dollars.replaceAll(",", ""));
+/** The whole dollars an invoice or a waiver carries for the product: the price of its stored plan (H80). */
+export function priceFor(plans: readonly ProductPlan[], product: ExposurePackage): number {
+  return offeringFor(plans, product).price;
 }

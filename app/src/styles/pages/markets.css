@@ -180,3 +180,89 @@
     gap: 26px;
   }
 }
+
+/* A market with nothing published yet: the home page's Obsidian hero, the market's own line, and a status that says it
+   opens soon (operator, 2026-10-11). The dot breathes slowly; reduced motion holds it still. */
+.market-hero-empty h1 {
+  font-size: clamp(56px, 10vw, 152px);
+}
+
+.market-hero-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: clamp(20px, 2vw, 28px);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--primary-foreground) 72%, transparent);
+}
+
+.market-hero-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary-foreground);
+  animation: breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.market-signup {
+  scroll-margin-top: calc(var(--header-h) + 24px);
+}
+
+/* Launch upgrade of the guide (2026-10-11): more air between blocks, the region names at display size, each neighbourhood
+   a ruled entry; rows arrive one by one with the site motion. */
+.guide-block {
+  padding-top: clamp(72px, 8vw, 128px);
+}
+
+.guide-block > .eyebrow {
+  margin-bottom: 0;
+  border-bottom-color: var(--foreground);
+}
+
+.guide-region {
+  gap: clamp(24px, 4vw, 64px);
+  padding: clamp(32px, 4vw, 48px) 0;
+}
+
+.guide-region-name {
+  font-size: clamp(30px, 3vw, 44px);
+  font-weight: 300;
+  line-height: 1.05;
+  transition: color 300ms ease;
+}
+
+.guide-region-name:hover {
+  color: var(--muted-foreground);
+}
+
+.guide-region dl > div,
+.guide-cols > div {
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.guide-block dt {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.guide-block dd {
+  font-size: 15px;
+}
+
+.guide-cols {
+  margin-top: 32px;
+}

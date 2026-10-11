@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { track } from "../../lib/analytics";
 import {
@@ -8,17 +8,22 @@ import {
   readConsent,
   writeConsent,
 } from "../../lib/consent";
+import { cx } from "../../lib/cx";
 import { t } from "../../lib/strings";
 
 const decided = () => readConsent()?.version === CONSENT_VERSION;
 
 /**
- * The analytics choice (GP-02): one row at the top of the footer, in normal flow, with no dialog and no focus
- * taken. It renders nothing until the browser has read the stored choice, so the server HTML is the same for
- * every visitor, and nothing once a choice is stored until the footer's cookie settings control asks again.
+ * The analytics choice (GP-02, ruling H85, operator 2026-10-11: "like any other cookies pop up"): a card floating at the
+ * bottom of the screen on every page. No dialog and no focus taken. Necessary cookies are not a
+ * choice and are not mentioned here. It renders nothing until the browser has read the stored choice, so the server
+ * HTML is the same for every visitor, and nothing once a choice is stored until the footer's cookie settings control
+ * asks again. While the bar shows, it publishes its height as `--consent-bar-h`, which pads the page and its scroll
+ * position so the bar never covers the last content or a focused element.
  */
 export function ConsentNotice() {
   const [open, setOpen] = useState(false);
+  const bar = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setOpen(!decided());
@@ -35,6 +40,29 @@ export function ConsentNotice() {
     };
   }, []);
 
+  useEffect(() => {
+    const node = bar.current;
+    if (!open || node === null) return;
+    const root = document.documentElement;
+    // The card floats above the bottom edge, so what it covers is everything from its top to the bottom of the screen.
+    const publish = () => {
+      const covered = Math.ceil(window.innerHeight - node.getBoundingClientRect().top);
+      root.style.setProperty(
+        "--consent-bar-h",
+        `${String(Math.max(covered, node.offsetHeight))}px`,
+      );
+    };
+    publish();
+    const watch = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(publish);
+    watch?.observe(node);
+    window.addEventListener("resize", publish);
+    return () => {
+      watch?.disconnect();
+      window.removeEventListener("resize", publish);
+      root.style.removeProperty("--consent-bar-h");
+    };
+  }, [open]);
+
   if (!open) return null;
 
   const choose = (analytics: boolean) => (event: MouseEvent<HTMLButtonElement>) => {
@@ -46,7 +74,8 @@ export function ConsentNotice() {
   };
 
   return (
-    <section className="consent-notice" aria-label={t.consent.label}>
+    <section ref={bar} className={cx("consent-notice", "consent-bar")} aria-label={t.consent.label}>
+      <p className="consent-title">{t.consent.title}</p>
       <p className="consent-text">
         {t.consent.text} <Link to="/privacy">{t.consent.link}</Link>
       </p>

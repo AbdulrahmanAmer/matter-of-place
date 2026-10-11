@@ -59,6 +59,7 @@ const en = {
     statement:
       "Matter of Place is an independent real-estate media and distribution platform focused on exceptional residential property in California, New York and Florida.",
     line: productLine,
+    product: "{name} is a product of {entity}.",
   },
   common: {
     illustrative: "ILLUSTRATIVE",
@@ -176,10 +177,11 @@ const en = {
   },
   consent: {
     label: "Cookie notice",
-    text: "We would like to count which pages are read, using Google Analytics. It sets cookies. If you say no, nothing else changes.",
+    title: "Cookies",
+    text: "May we count visits with Google Analytics? It sets cookies. Saying no changes nothing.",
     accept: "Allow",
     decline: "No, thank you",
-    link: "Read our privacy policy",
+    link: "Privacy policy",
     change: "Cookie settings",
   },
   privacyRequest: {
@@ -212,7 +214,7 @@ const en = {
   cookies: {
     title: "Cookies",
     intro:
-      "These are the cookies this site can set. Analytics cookies are set only after you allow them.",
+      "These are the cookies this site can set. Necessary cookies are always on. Analytics cookies are set only after you allow them.",
   },
   errors: {
     reference: "Reference",

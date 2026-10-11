@@ -1,7 +1,9 @@
-// The cookie notice (GP-02): in the footer, in flow, never a dialog, and a choice that can be changed.
+// The cookie notice (GP-02, ruling H85): a slim bar fixed to the bottom on every page but a property page, where it
+// stays in the footer flow; never a dialog, never a question about necessary cookies, and a choice that can be changed.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import type { ComponentType } from "react";
 import {
   RouterProvider,
   createMemoryHistory,
@@ -10,6 +12,8 @@ import {
 } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Footer } from "../../src/components/layout/footer";
+import { Route as cookiesRoute } from "../../src/routes/_site.cookies";
+import { Route as privacyChoicesRoute } from "../../src/routes/_site.privacy-choices";
 import { track } from "../../src/lib/analytics";
 import { CONSENT_VERSION, consentGranted, readConsent, writeConsent } from "../../src/lib/consent";
 
@@ -17,10 +21,10 @@ vi.mock("../../src/lib/analytics", () => ({ track: vi.fn() }));
 
 const css = readFileSync(join(process.cwd(), "src/styles/components/consent.css"), "utf8");
 
-async function renderFooter() {
+async function renderFooter(path = "/") {
   const router = createRouter({
     routeTree: createRootRoute({ component: Footer }),
-    history: createMemoryHistory(),
+    history: createMemoryHistory({ initialEntries: [path] }),
   });
   render(<RouterProvider router={router} />);
   await screen.findByRole("link", { name: "Cookie settings" });
@@ -41,6 +45,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  document.documentElement.style.removeProperty("--consent-bar-h");
   Reflect.deleteProperty(navigator, "globalPrivacyControl");
   document.head.querySelectorAll("style").forEach((style) => {
     style.remove();
@@ -147,12 +152,88 @@ describe("ConsentNotice", () => {
     expect(consentGranted()).toBe(false);
   });
 
-  it("is never fixed or sticky", async () => {
+  it("is a popup fixed to the bottom of the screen on a page that is not a property page", async () => {
     const style = document.createElement("style");
     style.textContent = css;
     document.head.append(style);
-    await renderFooter();
+    await renderFooter("/about");
     const region = await screen.findByRole("region", { name: "Cookie notice" });
-    expect(["fixed", "sticky"]).not.toContain(getComputedStyle(region).position);
+    expect(region.classList.contains("consent-bar")).toBe(true);
+    expect(getComputedStyle(region).position).toBe("fixed");
+  });
+
+  it("is the same fixed popup on a property page (operator 2026-10-11: like any other cookie popup)", async () => {
+    const style = document.createElement("style");
+    style.textContent = css;
+    document.head.append(style);
+    await renderFooter("/property/oak-hill-residence");
+    const region = await screen.findByRole("region", { name: "Cookie notice" });
+    expect(region.classList.contains("consent-bar")).toBe(true);
+    expect(getComputedStyle(region).position).toBe("fixed");
+  });
+
+  it("publishes its height as --consent-bar-h only while the bar shows", async () => {
+    const root = document.documentElement;
+    await renderFooter("/about");
+    await screen.findByRole("region", { name: "Cookie notice" });
+    expect(root.style.getPropertyValue("--consent-bar-h")).not.toBe("");
+    fireEvent.click(await screen.findByRole("button", { name: "No, thank you" }));
+    expect(root.style.getPropertyValue("--consent-bar-h")).toBe("");
+  });
+
+  it("publishes its height on a property page too, where the popup also floats", async () => {
+    await renderFooter("/property/oak-hill-residence");
+    await screen.findByRole("region", { name: "Cookie notice" });
+    expect(document.documentElement.style.getPropertyValue("--consent-bar-h")).not.toBe("");
+  });
+
+  it("asks only about analytics: no toggle, checkbox or switch, and no word about necessary cookies", async () => {
+    await renderFooter("/about");
+    const region = await screen.findByRole("region", { name: "Cookie notice" });
+    expect(within(region).queryAllByRole("checkbox")).toEqual([]);
+    expect(within(region).queryAllByRole("switch")).toEqual([]);
+    expect(region.querySelectorAll('input, [role="checkbox"], [role="switch"]')).toHaveLength(0);
+    expect(
+      within(region)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["Allow", "No, thank you"]);
+    expect(region.textContent.toLowerCase()).not.toContain("necessary");
+    expect(region.textContent).toContain("Google Analytics");
+  });
+});
+
+describe("necessary cookies", () => {
+  async function renderRoute(route: { options: { component?: ComponentType | undefined } }) {
+    const Page = route.options.component;
+    if (Page === undefined) throw new Error("the route has no component");
+    const router = createRouter({
+      routeTree: createRootRoute({ component: () => <Page /> }),
+      history: createMemoryHistory(),
+    });
+    render(<RouterProvider router={router} />);
+    return await screen.findByRole("main");
+  }
+
+  it("are never offered as a choice: /privacy-choices and /cookies carry no toggle, checkbox or switch", async () => {
+    for (const route of [privacyChoicesRoute, cookiesRoute]) {
+      const main = await renderRoute(route);
+      expect(main.querySelectorAll('input, [role="checkbox"], [role="switch"]')).toHaveLength(0);
+      cleanup();
+    }
+  });
+
+  it("/cookies says they are always on, and /privacy-choices offers only the analytics answer", async () => {
+    expect((await renderRoute(cookiesRoute)).textContent).toContain(
+      "Necessary cookies are always on.",
+    );
+    cleanup();
+    const main = await renderRoute(privacyChoicesRoute);
+    expect(
+      within(main)
+        .getAllByRole("link", { name: /^(Allow|No, thank you)$/ })
+        .map((link) => link.textContent),
+    ).toEqual(["Allow", "No, thank you"]);
+    expect(main.textContent.toLowerCase()).not.toContain("necessary");
   });
 });

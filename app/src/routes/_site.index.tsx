@@ -11,10 +11,11 @@ import { PropertyGrid } from "../components/site/property-card";
 import { SectionHeading } from "../components/site/section-heading";
 import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
-import { editorialQualities, offerings, programmatic } from "../data/exposure";
+import { editorialQualities, programmatic } from "../data/exposure";
+import { toOffering, waysIn } from "../domain/exposure";
 import { emptySiteSettings } from "../domain/settings";
 import type { PropertyCard } from "../domain/property";
-import { featuredProperties, heroProperties } from "../lib/catalog";
+import { featuredProperties, heroProperties, propertiesIn } from "../lib/catalog";
 import { padIndex } from "../lib/format";
 import { websiteLd } from "../lib/jsonld";
 import { marketsQuery, propertiesQuery, siteQuery } from "../lib/queries";
@@ -35,6 +36,11 @@ export const Route = createFileRoute("/_site/")({
       featured: featuredProperties(properties).slice(0, 6),
       preview: properties.filter((property) => property.status === "Illustrative").slice(0, 1),
       markets,
+      marketIndex: markets.map((market) => ({
+        slug: market.slug,
+        name: market.name,
+        open: propertiesIn(properties, market.slug).length > 0,
+      })),
       site,
     };
   },
@@ -66,18 +72,46 @@ const howItWorks = [
 ];
 
 function HomePage() {
-  const { hero, featured, preview, markets } = Route.useLoaderData();
+  const { hero, featured, preview, markets, marketIndex, site } = Route.useLoaderData();
   return (
     <main>
       {hero.length > 0 ? (
         <Hero properties={hero} />
       ) : (
         <>
-          <section className="hero-text">
-            <div className="section-wrap">
-              <p className="eyebrow">MATTER OF PLACE</p>
-              <h1>{siteConfig.tagline}</h1>
-              <p>{t.comingSoon.what}</p>
+          <section className="hero-text" aria-labelledby="home-title">
+            <div className="section-wrap hero-text-inner hero-text-split">
+              <div>
+                <p className="eyebrow">MATTER OF PLACE</p>
+                <h1 id="home-title">
+                  <span>Exceptional property.</span> <span>Properly considered.</span>
+                </h1>
+                <p className="hero-text-lede">{t.comingSoon.what}</p>
+                <div className="hero-text-actions">
+                  <Link to="/markets" className="button">
+                    Explore Properties
+                  </Link>
+                  <Link to="/submit" className="button ghost">
+                    Submit a Property
+                  </Link>
+                </div>
+              </div>
+              {/* The three markets as an editorial index, the way a magazine's cover lists what is inside. */}
+              <nav className="hero-index" aria-label="Markets">
+                <ol>
+                  {marketIndex.map((market, index) => (
+                    <li key={market.slug}>
+                      <Link to="/$market" params={{ market: market.slug }}>
+                        <span className="hero-index-number">{padIndex(index + 1)}</span>
+                        <span className="hero-index-name">{market.name}</span>
+                        <span className="hero-index-state">
+                          {market.open ? "Open" : "Opening soon"}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
             </div>
           </section>
           <ComingSoon scope="home" />
@@ -85,27 +119,23 @@ function HomePage() {
       )}
       <IllustrativeNotice properties={preview} />
 
-      <section
-        className={
-          hero.length > 0
-            ? "section-wrap editorial-statement"
-            : "section-wrap editorial-statement statement-plain"
-        }
-      >
-        {hero.length > 0 && <p className="eyebrow">MATTER OF PLACE</p>}
-        <div>
-          {hero.length > 0 && <h2>Exceptional property. Properly considered.</h2>}
-          <p>
-            An editorial real-estate media platform for exceptional residential property across
-            California, New York and Florida. We select, present and distribute places worth
-            attention.
-          </p>
-          <div className="home-actions">
-            <TextLink to="/properties">Explore Properties</TextLink>
-            <TextLink to="/submit">Submit a Property</TextLink>
+      {hero.length > 0 && (
+        <section className="section-wrap editorial-statement">
+          <p className="eyebrow">MATTER OF PLACE</p>
+          <div>
+            <h2>Exceptional property. Properly considered.</h2>
+            <p>
+              An editorial real-estate media platform for exceptional residential property across
+              California, New York and Florida. We select, present and distribute places worth
+              attention.
+            </p>
+            <div className="home-actions">
+              <TextLink to="/properties">Explore Properties</TextLink>
+              <TextLink to="/submit">Submit a Property</TextLink>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {featured.length > 0 && (
         <section className="section-wrap featured">
@@ -155,12 +185,12 @@ function HomePage() {
         <div className="section-wrap home-exposure">
           <SectionHeading
             eyebrow="PROPERTY EXPOSURE"
-            title="Four ways in."
+            title={waysIn(site.products.length)}
             id="exposure-heading"
             action={<TextLink to="/exposure">View Property Exposure</TextLink>}
           />
           <div className="offer-row">
-            {offerings.map((offering) => (
+            {site.products.map(toOffering).map((offering) => (
               <OfferCard key={offering.id} offering={offering} compact />
             ))}
           </div>

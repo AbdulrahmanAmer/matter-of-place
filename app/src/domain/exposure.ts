@@ -93,6 +93,7 @@ export const productsSettingSchema = settingOf(productPlanSchema).strict();
 export const productsReadSchema = settingOf(planObject);
 
 export type ProductPlan = z.output<typeof planObject>;
+export type ProductsSetting = z.output<typeof productsSettingSchema>;
 
 /** "$" and the whole dollars with comma thousands separators. A regular expression, not `toLocaleString`, so the server and the browser print the same text. */
 export function formatPrice(dollars: number): string {
@@ -130,4 +131,33 @@ const NUMBER_WORDS = [
 export function waysIn(count: number): string {
   const word = NUMBER_WORDS[count - 1] ?? String(count);
   return `${word} ${count === 1 ? "way" : "ways"} in.`;
+}
+
+/** A stored plan as the public cards receive it: the price formatted, the note and the flag only when set. */
+export function toOffering(plan: ProductPlan): Offering {
+  return {
+    id: plan.id,
+    name: plan.name,
+    price: formatPrice(plan.price),
+    line: plan.line,
+    ...(plan.note === null ? {} : { note: plan.note }),
+    items: [...plan.items],
+    cta: plan.cta,
+    ...(plan.recommended ? { recommended: true } : {}),
+  };
+}
+
+/** The description an invoice carries for a plan. */
+export function invoiceLine(plan: ProductPlan): string {
+  return `${plan.name}. ${plan.line}`;
+}
+
+/** The answer to "What does it cost?", every plan with its price in display order. */
+export function costAnswer(plans: readonly ProductPlan[]): string {
+  const priced = plans.map((plan, index) =>
+    index > 0 && index === plans.length - 1
+      ? `or ${plan.name} for ${formatPrice(plan.price)}`
+      : `${plan.name} ${formatPrice(plan.price)}`,
+  );
+  return `${priced.join(", ")}. Programmatic media is billed separately.`;
 }

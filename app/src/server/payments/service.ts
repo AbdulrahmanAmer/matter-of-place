@@ -21,6 +21,7 @@ import type { Db } from "../lib/db.ts";
 import { AppError, fromZod } from "../lib/errors.ts";
 import { logLine } from "../lib/log.ts";
 import { invoiceSignedUrl } from "./invoice-pdf.ts";
+import { readInvoiceInputs } from "./invoice-settings.ts";
 import { assertInvoiceReady, buildInvoiceSnapshot } from "./invoice-snapshot.ts";
 import { priceFor } from "./pricing.ts";
 
@@ -129,7 +130,7 @@ export async function issueInvoiceCore(
     await db.rpc("issue_invoice", {
       p_submission_id: input.submissionId,
       p_product: input.product,
-      p_amount: priceFor(input.product),
+      p_amount: snapshot.amount,
       p_preferred_method: input.preferredMethod,
       p_snapshot: snapshot,
       ...audit,
@@ -212,7 +213,7 @@ export async function getPayment(actor: AdminActor, db: Db, raw: unknown): Promi
   return row;
 }
 
-/** `POST /api/admin/payments/issue-invoice`. A client `amount` is stripped by the parse: the price is `priceFor`. */
+/** `POST /api/admin/payments/issue-invoice`. A client `amount` is stripped by the parse: the price is the stored plan's. */
 export async function issueInvoice(
   actor: AdminActor,
   db: Db,
@@ -255,7 +256,10 @@ export async function waive(actor: AdminActor, db: Db, raw: unknown): Promise<Pa
   );
 }
 
-/** `POST /api/admin/submissions/:id/waive`: a credit or a comp, recorded with no invoice (DL-01, invariant 12). */
+/**
+ * `POST /api/admin/submissions/:id/waive`: a credit or a comp, recorded with no invoice (DL-01, invariant 12), at the
+ * price of the stored plan read straight from the table, as an invoice reads it.
+ */
 export async function waiveWithoutInvoice(
   actor: AdminActor,
   db: Db,
@@ -263,12 +267,13 @@ export async function waiveWithoutInvoice(
 ): Promise<PaymentAnswer> {
   authorize(actor, "payments.waive");
   const input = parse(waiveWithoutInvoiceRequest, raw);
+  const { products } = await readInvoiceInputs(db);
   return answer(
     db,
     await db.rpc("record_waiver", {
       p_submission_id: input.id,
       p_product: input.product,
-      p_amount: priceFor(input.product),
+      p_amount: priceFor(products, input.product),
       p_reason: input.reason,
       ...auditContext(actor),
     }),

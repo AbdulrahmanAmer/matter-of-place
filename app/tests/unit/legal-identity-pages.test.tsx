@@ -27,7 +27,7 @@ import { Route as termsRoute } from "../../src/routes/_site.terms";
 
 vi.mock("../../src/lib/analytics", () => ({ track: vi.fn() }));
 
-const EMPTY: PublicSite = { ...emptySiteSettings, illustrativeContent: false };
+const EMPTY: PublicSite = { ...emptySiteSettings, illustrativeContent: false, products: [] };
 const SET: PublicSite = {
   ...EMPTY,
   legal: { entity: "Example Test LLC", address: "1 Test Street, Testville, CA 90000" },
@@ -114,7 +114,7 @@ describe("the surfaces that name the company (findings 1 and 19)", () => {
   it("the footer reads A product of Omnikom LLC and the legal line carries the entity and address", async () => {
     await show(Footer, EMPTY);
     const bottom = document.querySelector(".footer-bottom")?.textContent ?? "";
-    expect(bottom).toContain("Matter of Place · A product of Omnikom LLC.");
+    expect(bottom).toContain("Matter of Place is a product of Omnikom LLC.");
     expect(bottom).toMatch(/© \d{4}\s*Omnikom LLC/);
     expect(bottom).toContain("30 N Gould St Ste R, Sheridan, WY 82801, USA");
   });
@@ -139,6 +139,7 @@ describe("the home headline (finding 9)", () => {
   const card = properties[0];
   const market = markets[0];
   if (card === undefined || market === undefined) throw new Error("no bundled data");
+  const entry = { slug: market.slug, name: market.name, open: false };
 
   function home(hero: (typeof card)[]) {
     vi.spyOn(homeRoute, "useLoaderData").mockReturnValue({
@@ -146,6 +147,7 @@ describe("the home headline (finding 9)", () => {
       featured: [],
       preview: [],
       markets: [market],
+      marketIndex: [entry],
       site: EMPTY,
     });
     return show(pageOf(homeRoute), EMPTY);
@@ -159,7 +161,7 @@ describe("the home headline (finding 9)", () => {
     await home([]);
     expect(said().map((heading) => heading.tagName)).toEqual(["H1"]);
     expect(screen.getAllByText("MATTER OF PLACE")).toHaveLength(1);
-    expect(screen.getByText(/An editorial real-estate media platform/)).toBeTruthy();
+    expect(screen.getByText(/is an editorial publication for exceptional existing/)).toBeTruthy();
   });
 
   it("with a hero, the editorial statement keeps its headline and eyebrow", async () => {

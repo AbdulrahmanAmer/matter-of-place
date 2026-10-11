@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { SiteChrome } from "../components/layout/site-chrome";
+import { SiteMotion } from "../components/layout/site-motion";
 import { Ga4Loader } from "../components/site/ga4-loader";
 import { captureAttribution } from "../lib/attribution";
 import { installClientErrorListeners } from "../lib/report-error";
@@ -40,6 +41,7 @@ function SiteLayout() {
         <Outlet />
       </SiteChrome>
       <Ga4Loader />
+      <SiteMotion />
     </>
   );
 }

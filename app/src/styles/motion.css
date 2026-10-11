@@ -32,6 +32,204 @@
   }
 }
 
+/* Site motion (components/layout/site-motion.tsx). Only after the script marks the page ready, so the server HTML and a
+   visitor without JavaScript show everything. An element rises 28px and fades in over 1.1 s on an ease that settles
+   slowly, the way an editorial page turns; its group staggers by --motion-delay. */
+.motion-ready [data-motion=""] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+.motion-ready [data-motion] {
+  transition:
+    opacity 1s cubic-bezier(0.16, 1, 0.3, 1) var(--motion-delay, 0ms),
+    transform 1.1s cubic-bezier(0.16, 1, 0.3, 1) var(--motion-delay, 0ms);
+}
+
+.motion-ready [data-motion="in"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* The hero on load: the eyebrow, each line of the title, the lede and the actions arrive in turn, lines rising out of
+   their own mask. CSS only, so it runs before any script. */
+@keyframes lineRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.5em, 0);
+    clip-path: inset(0 0 100% 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0 0 -20% 0);
+  }
+}
+
+@keyframes sheetLower {
+  from {
+    transform: translate3d(0, -24px, 0);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes softRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drawAcross {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.hero-text .eyebrow {
+  animation: softRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+.hero-text h1,
+.hero-text h1 span {
+  animation: lineRise 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+.hero-text h1 span + span {
+  animation-delay: 0.42s;
+}
+
+.hero-text .hero-text-lede {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both;
+}
+
+.hero-text .market-hero-status {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 0.85s both;
+}
+
+.hero-text-actions {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 0.95s both;
+}
+
+.hero-index li {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 1.05s both;
+}
+
+.hero-index li + li {
+  animation-delay: 1.17s;
+}
+
+.hero-index li + li + li {
+  animation-delay: 1.29s;
+}
+
+/* A hairline that draws from the left when its section arrives. */
+.motion-ready .coming-soon[data-motion],
+.motion-ready .footer-bottom[data-motion] {
+  position: relative;
+}
+
+.motion-ready .coming-soon[data-motion]::before,
+.motion-ready .footer-bottom[data-motion]::before {
+  content: "";
+  position: absolute;
+  inset: -1px 0 auto 0;
+  height: 1px;
+  background: var(--foreground);
+  opacity: 0.35;
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.motion-ready .coming-soon[data-motion="in"]::before,
+.motion-ready .footer-bottom[data-motion="in"]::before {
+  animation: drawAcross 1.4s cubic-bezier(0.65, 0, 0.35, 1) 0.2s both;
+}
+
+/* Links and buttons answer the pointer with a short, quiet move. */
+.button,
+.text-link {
+  transition:
+    opacity 0.3s ease,
+    background-color 0.3s ease,
+    color 0.3s ease,
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Buttons: on hover the inverse colour sweeps across from the left and leaves to the right (flat colour, no glow). */
+.button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--background);
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.button:hover::before,
+.button:focus-visible::before {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+.button:hover,
+.button:focus-visible {
+  color: var(--foreground);
+}
+
+.button.ghost::before {
+  background: var(--foreground);
+}
+
+.button.ghost:hover,
+.button.ghost:focus-visible {
+  color: var(--background);
+}
+
+/* On the dark bands the filled button is Ivory, so its sweep is Obsidian, and the ghost sweeps to Ivory. */
+.hero-text-actions .button::before,
+.home-submit .button::before {
+  background: var(--foreground);
+}
+
+.hero-text-actions .button:hover,
+.home-submit .button:hover {
+  opacity: 1;
+  color: var(--primary-foreground);
+  border-color: var(--primary-foreground);
+}
+
+.hero-text-actions .button.ghost::before {
+  background: var(--primary-foreground);
+}
+
+.hero-text-actions .button.ghost:hover {
+  color: var(--foreground);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -40,5 +238,10 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .motion-ready [data-motion] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

@@ -12,7 +12,7 @@ import { primaryLinks, secondaryLinks, submitLink } from "./nav-links";
 import { SearchOverlay } from "./search-overlay";
 
 /**
- * Fixed header. Over the home page photograph it is transparent with a soft
+ * Fixed header. Over the hero of the home page and the market pages it is transparent with a soft
  * scrim; once the page scrolls, or on any other route, it settles into a solid
  * bar. Other pages reserve its height with a spacer so nothing hides beneath it.
  */
@@ -23,8 +23,9 @@ export function Header() {
   const searchRef = useRef<HTMLDivElement>(null);
   const scrolled = useScrolled();
   const path = useRouterState({ select: (state) => state.location.pathname });
-  const isHome = path === "/";
-  const overlay = isHome && !menuOpen && !scrolled;
+  // Every public page opens on a full-bleed band or hero (page intro, hero, not-found), so the header floats over it
+  // and settles into a solid bar on scroll (operator, 2026-10-11).
+  const overlay = !menuOpen && !scrolled;
 
   const closeAll = useCallback(() => {
     setMenuOpen(false);
@@ -89,8 +90,6 @@ export function Header() {
           </button>
         </div>
       </header>
-
-      {!isHome && <div className="header-spacer" aria-hidden="true" data-print="hide" />}
 
       {menuOpen && (
         <MenuPanel
