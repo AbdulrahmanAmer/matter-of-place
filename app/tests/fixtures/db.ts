@@ -2,6 +2,7 @@
 // by DEV_DB_URL (mop-dev on the laptop, the ephemeral stack in CI's `db` job, T-01). B4 extends it, never replaces it.
 import { randomUUID } from "node:crypto";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs";
 
 export type Db = pg.Client;
@@ -18,7 +19,7 @@ function dbUrl(): string {
 }
 
 async function connect(): Promise<Db> {
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   return client;
 }
