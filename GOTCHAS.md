@@ -7451,6 +7451,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && grep -c "2026-10-11" tests/unit/fixtures/legal-hashes.json src/domain/contracts.ts src/config/site.ts` → `1` for each; `bunx vitest run --project component tests/unit/legal-pages.test.tsx -t "terms text matches the hash"` passes; `node scripts/watchfail.mjs --registry tests/mutations --only b16-g5-rights-version` → `WATCHED-FAIL OK B16:b16-g5-rights-version`.
 - added: 2026-10-11
 
+## P-3222 · `preview-local.mjs` on the Dell fails lighthouse in 5 s on "Chrome installation not found", and its reports then turn `bun run check` red at `format:check`
+- symptom: PR 302, 2026-10-11: `node scripts/preview-local.mjs --pr 302 --port 8878` printed `lighthouse | fail | ... exit 1 after 5 s`, every url `fail (exit 1, not a runtime error, not retried)`, the lhci healthcheck `Chrome installation not found`. After a passing re-run, `quiet.mjs -- bun run check` failed at `format:check` on `[warn] .lighthouseci-pages/6-submit/lhr-*.json` ("Code style issues found in 18 files"). Writing this entry, a stray `python3 -` heredoc hung the shell for 120 s again (P-094).
+- cause: lhci finds no Chrome on the Dell (user `ka`, no system Chrome; the H1 g8 symptom of `lhci:local`); the script leaves `.lighthouseci-pages/` and `.lighthouseci/` under `app/`, which git ignores but Prettier's check reads.
+- rule: run it with `CHROME_PATH` set to the Playwright Chromium (`node -p "require('@playwright/test').chromium.executablePath()"` from `app/`); after it, move `app/.lighthouseci-pages` and `app/.lighthouseci` out of the tree before the gate.
+- proof: `cd app && CHROME_PATH="$(node -p "require('@playwright/test').chromium.executablePath()")" node scripts/preview-local.mjs --pr <n> --port <lane port>` ends `preview-local: every hard step passed` with six `lighthouse ...: pass` lines; with `app/.lighthouseci-pages` moved out, `quiet.mjs -- bun run check` prints `quiet: ok`.
+- added: 2026-10-11
+
 ## P-3230 · `backup.yml` had no `schedule:` for nine days after it merged, and the line alone writes no dump: the `backup` row of `schedule_settings` decides
 - symptom: the acceptance panel (findings 16 and 23, 2026-10-11) found two manual dumps (2026-10-03, 2026-10-10) and no scheduled run; `restore.md` said the RPO was "the age of the newest green run".
 - cause: the plan (B1b step 8 part B1) waits for B8b's row `backup` before adding the `schedule:` line, and nothing re-opened the step after B8b merged; the hygiene test pinned `workflow_dispatch` only. The row is seeded `enabled = false` (`20261005000100_automation_seed.sql`), so a scheduled run reads it, prints `backup disabled` and ends green without a dump until L1 turns it on.
