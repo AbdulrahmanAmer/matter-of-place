@@ -2,6 +2,7 @@ import {
   comingSoonPutInput,
   invoicePutInput,
   notificationsPutInput,
+  productsPreviewSchema,
   redirectArchivedSchema,
   redirectPageSchema,
   redirectRowSchema,
@@ -10,6 +11,7 @@ import {
   type NotificationsInput,
   type RedirectPutInput,
 } from "../../domain/admin-settings";
+import { productsSettingSchema, type ProductsSetting } from "../../domain/exposure";
 import { siteSettingsSchema, type SiteSettings } from "../../domain/settings";
 import { adminFetch } from "../ui/admin-fetch";
 
@@ -43,6 +45,19 @@ export function putComingSoon(comingSoon: boolean) {
 
 export function putNotifications(input: NotificationsInput) {
   return adminFetch("/api/admin/settings/notifications", notificationsPutInput, send("PUT", input));
+}
+
+export function putProducts(products: ProductsSetting) {
+  return adminFetch("/api/admin/settings/products", productsSettingSchema, send("PUT", products));
+}
+
+/** The dry run of the plans: nothing is written. */
+export function previewProducts(products: ProductsSetting) {
+  return adminFetch(
+    "/api/admin/settings/products/preview",
+    productsPreviewSchema,
+    send("POST", products),
+  );
 }
 
 /** One page of active redirects; `cursor` is the `next_cursor` of the page before. */

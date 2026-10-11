@@ -1,5 +1,25 @@
 /* Editorial building blocks shared by several pages. */
 
+/* Every section eyebrow carries a short rule before it, the one ornament the brand allows (2026-10-11). */
+.editorial-statement > .eyebrow,
+.section-heading .eyebrow,
+.coming-soon > .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  align-self: start;
+}
+
+.editorial-statement > .eyebrow::before,
+.section-heading .eyebrow::before,
+.coming-soon > .eyebrow::before {
+  content: "";
+  width: 32px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+
 /* Two-column statement: eyebrow left, headline and copy right */
 .editorial-statement {
   padding-top: 126px;
@@ -365,4 +385,77 @@
   .newsletter .newsletter-sent {
     margin-top: 28px;
   }
+}
+
+/* Launch upgrade (2026-10-11). The FAQ reads as an editorial list: each question in Cormorant, a numbered margin, the
+   answer easing open; the plus turns into a minus. */
+.faq {
+  counter-reset: faq;
+  border-top: 1px solid var(--foreground);
+}
+
+.faq details {
+  counter-increment: faq;
+}
+
+.faq summary {
+  display: grid;
+  grid-template-columns: 56px 1fr 24px;
+  align-items: baseline;
+  gap: 16px;
+  padding: clamp(22px, 2.4vw, 32px) 0;
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 2.2vw, 32px);
+  line-height: 1.2;
+  cursor: pointer;
+  list-style: none;
+  transition: color 0.3s ease;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary::before {
+  content: counter(faq, decimal-leading-zero);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--muted-foreground);
+}
+
+.faq summary:hover {
+  color: var(--muted-foreground);
+}
+
+.faq details p {
+  padding: 0 40px clamp(24px, 2.4vw, 36px) 72px;
+  max-width: 72ch;
+  font-size: 16px;
+  line-height: 1.8;
+  animation: softRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (max-width: 600px) {
+  .faq summary {
+    grid-template-columns: 36px 1fr 20px;
+    gap: 10px;
+  }
+
+  .faq details p {
+    padding-left: 46px;
+    padding-right: 0;
+  }
+}
+
+/* Property page (2026-10-11): the place heading scales with the screen, and the feature and fact rows take a firmer
+   first rule; each row arrives on its own with the site motion. */
+.place-section h2 {
+  font-size: clamp(44px, 5vw, 70px);
+  line-height: 1;
+}
+
+.details-features,
+.details-list {
+  border-top: 1px solid var(--foreground);
 }

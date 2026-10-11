@@ -4,9 +4,11 @@ import {
   archiveRedirect,
   fetchRedirects,
   fetchSettings,
+  previewProducts,
   putComingSoon,
   putInvoice,
   putNotifications,
+  putProducts,
   putRedirect,
   putSite,
 } from "./settings-api";
@@ -28,6 +30,10 @@ export const useSaveSite = () => useSettingsWrite(putSite);
 export const useSaveInvoice = () => useSettingsWrite(putInvoice);
 export const useSaveComingSoon = () => useSettingsWrite(putComingSoon);
 export const useSaveNotifications = () => useSettingsWrite(putNotifications);
+export const useSaveProducts = () => useSettingsWrite(putProducts);
+
+/** The dry run of the plans writes nothing, so nothing is read again after it. */
+export const usePreviewProducts = () => useMutation({ mutationFn: previewProducts });
 
 /** One page of the redirects of screen 24, under the settings key so every settings write reads it again. */
 export function useRedirects(cursor: string | null) {

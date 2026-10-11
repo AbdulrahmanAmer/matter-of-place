@@ -223,3 +223,78 @@
     min-height: 44px;
   }
 }
+
+/* Launch upgrade (operator, 2026-10-11: "full upgrade"). The four steps read as a sequence: a large serif numeral on a
+   hairline of its own, the name, the line. */
+.steps-row {
+  border-top: 0;
+  padding-top: 0;
+  gap: clamp(24px, 3vw, 48px);
+}
+
+.steps-row li {
+  gap: 14px;
+  padding-top: 28px;
+  border-top: 1px solid var(--foreground);
+}
+
+.steps-row span {
+  font-family: var(--font-serif);
+  font-size: clamp(56px, 5.6vw, 88px);
+  font-weight: 300;
+  line-height: 0.9;
+  letter-spacing: 0;
+  color: var(--foreground);
+}
+
+.steps-row strong {
+  font-size: clamp(26px, 2.2vw, 32px);
+}
+
+/* The idea: a pull quote, larger than any heading around it. */
+.home-idea:first-of-type h2,
+.home-idea h2 {
+  font-size: clamp(40px, 5.4vw, 84px);
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  max-width: 18ch;
+}
+
+.home-idea {
+  padding-top: clamp(96px, 10vw, 160px);
+  padding-bottom: clamp(96px, 10vw, 160px);
+}
+
+/* The closing call: a tall band, one large line, the button outlined in Ivory. */
+.home-submit {
+  display: grid;
+  place-items: center;
+  min-height: min(78svh, 760px);
+  padding: clamp(96px, 10vw, 160px) 0;
+}
+
+.home-submit h2 {
+  font-size: clamp(52px, 8vw, 128px);
+  line-height: 0.95;
+  max-width: 14ch;
+  margin: 0 auto;
+}
+
+.home-submit p {
+  margin: 28px auto 44px;
+  font-family: var(--font-serif);
+  font-size: clamp(19px, 1.6vw, 23px);
+}
+
+.home-submit .button {
+  min-height: 52px;
+  padding: 16px 40px;
+}
+
+.markets-feature {
+  padding: clamp(96px, 10vw, 160px) 0 clamp(104px, 11vw, 176px);
+}
+
+.professionals-strip {
+  padding: clamp(96px, 9vw, 144px) 0;
+}

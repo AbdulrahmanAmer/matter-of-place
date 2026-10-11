@@ -9,8 +9,13 @@ import { ServiceError, serviceIssues, type ServiceErrorKind, type ServiceIssue }
  * the site's origin.
  */
 export type ApiClient = {
-  get<T>(path: string, shape: z.ZodType<T>, init?: RequestInit): Promise<T>;
-  post<T>(path: string, body: unknown, shape: z.ZodType<T>, init?: RequestInit): Promise<T>;
+  get<T>(path: string, shape: z.ZodType<T, z.ZodTypeDef, unknown>, init?: RequestInit): Promise<T>;
+  post<T>(
+    path: string,
+    body: unknown,
+    shape: z.ZodType<T, z.ZodTypeDef, unknown>,
+    init?: RequestInit,
+  ): Promise<T>;
 };
 
 /** A failed call, with the id the Worker logged it under so an error page can quote it (G33). */
@@ -73,7 +78,11 @@ const kindForStatus = (status: number) => {
 export type FetchImpl = (input: string, init: RequestInit) => Promise<Response>;
 
 export function createApiClient(baseUrl: string, fetchImpl: FetchImpl = fetch): ApiClient {
-  const request = async <T>(path: string, shape: z.ZodType<T>, init: RequestInit): Promise<T> => {
+  const request = async <T>(
+    path: string,
+    shape: z.ZodType<T, z.ZodTypeDef, unknown>,
+    init: RequestInit,
+  ): Promise<T> => {
     let response: Response;
     try {
       response = await fetchImpl(`${baseUrl}${path}`, {

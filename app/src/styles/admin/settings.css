@@ -1,0 +1,54 @@
+/* Screen 24, the Products section (B18): one block per plan, the fixed id, the flag and the dry run under them. */
+
+.admin-plans {
+  gap: var(--admin-space-4);
+}
+
+.admin-plan {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding: var(--admin-space-4);
+  border: 1px solid var(--border);
+}
+
+.admin-plan > legend {
+  padding: 0 var(--admin-space-2);
+  font-weight: 500;
+}
+
+.admin-plan__id {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-plan__flag {
+  display: flex;
+  gap: var(--admin-space-2);
+  align-items: center;
+}
+
+/* WCAG 2.2 target size (2.5.8): a native radio is about 13px and fails axe target-size, so the control itself is 24 by 24. */
+.admin-plan__flag > input[type="radio"] {
+  flex: none;
+  inline-size: 24px;
+  block-size: 24px;
+  margin: 0;
+}
+
+.admin-plans__preview {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding: var(--admin-space-4);
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+
+.admin-plans__preview ul {
+  display: grid;
+  gap: var(--admin-space-1);
+  padding-left: var(--admin-space-4);
+}
+
+.admin-plans__warnings {
+  color: var(--status-warning);
+}

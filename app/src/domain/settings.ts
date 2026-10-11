@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ProductPlan } from "./exposure.ts";
 
 // `settings.site`: the legal identity every surface reads (B16). The shape is the jsonb value B2 seeds; the keys and
 // the API JSON are the same names (G-004), so a leaf is added here, in the seed and in the field specs together.
@@ -56,8 +57,11 @@ export const siteSettingsSchema = z.object({
 
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;
 
-/** The body of `GET /api/public/site`: the identity and whether illustrative content may show (invariant 6). */
-export type PublicSite = SiteSettings & { illustrativeContent: boolean };
+/**
+ * The body of `GET /api/public/site`: the identity, whether illustrative content may show (invariant 6) and the four
+ * Property Exposure plans every pricing surface renders (H80).
+ */
+export type PublicSite = SiteSettings & { illustrativeContent: boolean; products: ProductPlan[] };
 
 export const emptySiteSettings: SiteSettings = siteSettingsSchema.parse({});
 

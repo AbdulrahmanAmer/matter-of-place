@@ -15,7 +15,9 @@ export function StoryCard({ story }: { story: Story }) {
         />
       )}
       <span className="eyebrow">{story.category.toUpperCase()}</span>
-      <h3>{story.title}</h3>
+      <h3>
+        <span className="card-title">{story.title}</span>
+      </h3>
       <p>{story.deck}</p>
     </Link>
   );

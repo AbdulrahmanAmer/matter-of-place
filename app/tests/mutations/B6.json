@@ -222,17 +222,17 @@
     "id": "b6-g2-offering",
     "test": "tests/unit/payments/pricing.test.ts",
     "file": "src/server/payments/pricing.ts",
-    "find": "candidate.name === product",
-    "replace": "candidate.id === product",
+    "find": "candidate.id === planIdOf[product]",
+    "replace": "candidate.id !== planIdOf[product]",
     "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
-    "expect": "FAIL .*> invoice pricing \\(S3\\) > finds the offering that carries the product name"
+    "expect": "FAIL .*> invoice pricing \\(S3\\) > finds the plan bound to the product, at the price it is given"
   },
   {
     "id": "b6-g2-not-sure",
     "test": "tests/unit/payments/pricing.test.ts",
     "file": "src/server/payments/pricing.ts",
-    "find": "if (offering === undefined) {",
-    "replace": "if (offering === undefined && product === \"never\") {",
+    "find": "  if (plan === undefined) {",
+    "replace": "  if (plan === undefined && product === \"never\") {",
     "run": "bunx vitest run --project unit tests/unit/payments/pricing.test.ts",
     "expect": "FAIL .*> invoice pricing \\(S3\\) > refuses Not sure yet, which has no price"
   },
@@ -374,9 +374,9 @@
   {
     "id": "b6-g2-price-reader",
     "test": "tests/unit/boundaries.test.ts",
-    "file": "tests/unit/boundaries.test.ts",
-    "find": "i.file === \"src/server/payments/pricing.ts\") &&",
-    "replace": "i.file === \"src/server/payments/never.ts\") &&",
+    "file": "src/server/payments/pricing.ts",
+    "find": "import { AppError } from \"../lib/errors.ts\";",
+    "replace": "import { AppError } from \"../lib/errors.ts\";\nimport \"../../data/exposure.ts\";",
     "run": "bunx vitest run --project unit tests/unit/boundaries.test.ts",
     "expect": "FAIL .*> layers \\(R06, G-005\\) > keeps server and domain code away from the browser layers[\\s\\S]*src/server/payments/pricing.ts"
   },
@@ -384,8 +384,8 @@
     "id": "b6-g3-c-amount",
     "test": "tests/unit/payments/service.test.ts",
     "file": "src/server/payments/service.ts",
-    "find": "      p_amount: priceFor(input.product),\n      p_preferred_method",
-    "replace": "      p_amount: Number(Reflect.get(Object(raw), \"amount\") ?? priceFor(input.product)),\n      p_preferred_method",
+    "find": "      p_amount: snapshot.amount,\n      p_preferred_method",
+    "replace": "      p_amount: Number(Reflect.get(Object(raw), \"amount\") ?? snapshot.amount),\n      p_preferred_method",
     "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
     "expect": "FAIL .*> issueInvoice > issues for a managing_editor at the priceFor amount, stripping a client amount, and answers the event's jobs[\\s\\S]*amount"
   },
@@ -519,7 +519,7 @@
     "id": "b6-g3-waiver-amount",
     "test": "tests/unit/payments/service.test.ts",
     "file": "src/server/payments/service.ts",
-    "find": "      p_amount: priceFor(input.product),\n      p_reason",
+    "find": "      p_amount: priceFor(products, input.product),\n      p_reason",
     "replace": "      p_amount: 1,\n      p_reason",
     "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
     "expect": "FAIL .*> waiveWithoutInvoice \\(DL-01\\) > records one waiver at the priceFor amount and issues no invoice"

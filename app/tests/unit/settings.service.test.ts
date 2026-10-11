@@ -1,6 +1,6 @@
 // B7 step 15: screen 24's service. Every function checks its matrix action first (admin, people only, recent sign-in);
 // the invoice write is B6's one `settings_put_invoice` call, the identity write B16's `settings_put_site`, and the
-// coming-soon and notification keys go through `put_setting`. `getSettings` reads the five keys in one select.
+// coming-soon and notification keys go through `put_setting`. `getSettings` reads the six keys in one select.
 import "../fixtures/worker-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import type { AdminActor } from "../../src/server/lib/admin-route";
 import { ForbiddenError } from "../../src/server/lib/authz";
 import { AppError } from "../../src/server/lib/errors";
 import { resetPublicStateMemo } from "../../src/server/public/state";
+import { seedProducts } from "../../src/server/settings/products";
 import {
   getSettings,
   putComingSoon,
@@ -113,6 +114,7 @@ describe("getSettings", () => {
         coming_soon_global: true,
         notifications: { recipients: ["ops@example.test"] },
         agent_daily_limits: { decisions_per_day: 25, publish_per_day: 5, requests_per_day: 2000 },
+        products: { current: null, defaults: { plans: seedProducts() } },
         readiness: ["legal.entity"],
       },
       tables: 1,

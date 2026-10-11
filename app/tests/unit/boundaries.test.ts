@@ -94,11 +94,9 @@ describe("layers (R06, G-005)", () => {
   it("keeps server and domain code away from the browser layers", () => {
     const banned = ["src/data", "src/components", "src/admin", "src/routes", "src/services"];
     // H80: `products.ts` is the one server reader of the seed of the plans; it reads `exposure.ts` and nothing else.
-    // `pricing.ts` (B6) still reads it until B18 step 3 moves the invoice to the stored plans and removes it here.
+    // An invoice prices from the stored plans (B18 step 3), so `pricing.ts` reads no data file.
     const priceReader = (i: Import) =>
-      (i.file === "src/server/settings/products.ts" ||
-        i.file === "src/server/payments/pricing.ts") &&
-      under(i.resolved, "src/data/exposure");
+      i.file === "src/server/settings/products.ts" && under(i.resolved, "src/data/exposure");
     // P-3410: after the launch switch a local build holds no database key, so the sitemap and llms documents read the
     // bundled catalog; `local-catalog.ts` is the one server module that imports it.
     const localDocs = (i: Import) =>

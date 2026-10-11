@@ -8,7 +8,7 @@ import {
   productsSettingSchema,
   waysIn,
 } from "../../src/domain/exposure";
-import { offerings } from "../../src/data/exposure";
+import { seedOfferings } from "../../src/data/exposure";
 
 const MIGRATION = "adding or removing a plan needs a migration";
 const EM = String.fromCharCode(0x2014);
@@ -17,7 +17,7 @@ const DASH = "Use a comma or a full stop, not a dash.";
 
 type Plan = ReturnType<typeof plansFromOfferings>[number];
 
-const seed = (): { plans: Plan[] } => ({ plans: plansFromOfferings(offerings) });
+const seed = (): { plans: Plan[] } => ({ plans: plansFromOfferings(seedOfferings) });
 
 function withPlan(index: number, change: Record<string, unknown>) {
   const body = seed();
@@ -177,6 +177,6 @@ describe("boundPlanIds", () => {
     expect(Object.keys(boundPlanIds)).toEqual(
       exposurePackages.filter((label) => label !== "Not sure yet"),
     );
-    expect(Object.values(boundPlanIds)).toEqual(offerings.map((offering) => offering.id));
+    expect(Object.values(boundPlanIds)).toEqual(seedOfferings.map((offering) => offering.id));
   });
 });

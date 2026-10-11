@@ -26,7 +26,9 @@ export function PropertyCard({ property }: { property: PropertyCardData }) {
           </span>
           <span className="price">{formatPrice(property)}</span>
         </div>
-        <h3>{property.title}</h3>
+        <h3>
+          <span className="card-title">{property.title}</span>
+        </h3>
         <span className="property-card-style">{property.style}</span>
       </div>
     </Link>

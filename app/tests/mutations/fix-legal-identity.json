@@ -174,8 +174,8 @@
     "id": "li-t-home-h2-always",
     "test": "tests/unit/legal-identity-pages.test.tsx",
     "file": "src/routes/_site.index.tsx",
-    "find": "{hero.length > 0 && <h2>Exceptional property. Properly considered.</h2>}",
-    "replace": "<h2>Exceptional property. Properly considered.</h2>",
+    "find": "{hero.length > 0 && (\n        <section className=\"section-wrap editorial-statement\">",
+    "replace": "{(\n        <section className=\"section-wrap editorial-statement\">",
     "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
     "expect": "FAIL .*with no hero, the coming-soon page says the headline once and the eyebrow once"
   },
@@ -183,8 +183,8 @@
     "id": "li-u-home-eyebrow-always",
     "test": "tests/unit/legal-identity-pages.test.tsx",
     "file": "src/routes/_site.index.tsx",
-    "find": "{hero.length > 0 && <p className=\"eyebrow\">MATTER OF PLACE</p>}",
-    "replace": "<p className=\"eyebrow\">MATTER OF PLACE</p>",
+    "find": "{hero.length > 0 && (\n        <section className=\"section-wrap editorial-statement\">",
+    "replace": "{(\n        <section className=\"section-wrap editorial-statement\">",
     "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
     "expect": "FAIL .*with no hero, the coming-soon page says the headline once and the eyebrow once"
   },
@@ -192,8 +192,8 @@
     "id": "li-v-home-h2-never",
     "test": "tests/unit/legal-identity-pages.test.tsx",
     "file": "src/routes/_site.index.tsx",
-    "find": "{hero.length > 0 && <h2>Exceptional property. Properly considered.</h2>}",
-    "replace": "{hero.length < 0 && <h2>Exceptional property. Properly considered.</h2>}",
+    "find": "<h2>Exceptional property. Properly considered.</h2>",
+    "replace": "<h2 hidden>Exceptional property. Properly considered.</h2>",
     "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
     "expect": "FAIL .*with a hero, the editorial statement keeps its headline and eyebrow"
   },

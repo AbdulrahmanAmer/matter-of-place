@@ -237,8 +237,8 @@
     "id": "b16-g2-deno-ext",
     "test": "tests/unit/settings-service.test.ts",
     "file": "src/server/settings/service.ts",
-    "find": "import { getPublicState } from \"../public/state.ts\";",
-    "replace": "import { getPublicState } from \"../public/state\";",
+    "find": "import { getPublicState, type PublicState } from \"../public/state.ts\";",
+    "replace": "import { getPublicState, type PublicState } from \"../public/state\";",
     "run": "bunx eslint --max-warnings 0 src/server/settings/service.ts",
     "expect": "Deno-loaded file: import with the \\.ts extension"
   },
@@ -295,10 +295,10 @@
     "id": "b16-g3-whole-state",
     "test": "tests/unit/site-read-path.test.ts",
     "file": "src/server/settings/service.ts",
-    "find": "  return {\n    ...siteSettingsSchema.parse(state.site),\n    illustrativeContent: state.illustrativeContent && ctx.env.MOP_ENV !== \"production\",\n  };",
+    "find": "  return {\n    ...siteSettingsSchema.parse(state.site),\n    illustrativeContent: state.illustrativeContent && ctx.env.MOP_ENV !== \"production\",\n    products: plansOf(state),\n  };",
     "replace": "  return { ...state, ...siteSettingsSchema.parse(state.site) };",
     "run": "bunx vitest run --project unit tests/unit/site-read-path.test.ts",
-    "expect": "FAIL .*> the site read path > answers with the site and illustrativeContent and no other key"
+    "expect": "FAIL .*> the site read path > answers with the site, illustrativeContent and the plans"
   },
   {
     "id": "b16-g3-production-illustrative",
@@ -934,8 +934,8 @@
     "id": "b16-g8-deno-ext",
     "test": "tests/deno/site-context.smoke.ts",
     "file": "src/server/settings/service.ts",
-    "find": "import { getPublicState } from \"../public/state.ts\";",
-    "replace": "import { getPublicState } from \"../public/state\";",
+    "find": "import { getPublicState, type PublicState } from \"../public/state.ts\";",
+    "replace": "import { getPublicState, type PublicState } from \"../public/state\";",
     "run": "deno check --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts",
     "expect": "TS2307|Module not found"
   }

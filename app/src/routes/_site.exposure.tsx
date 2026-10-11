@@ -2,25 +2,30 @@ import { createFileRoute } from "@tanstack/react-router";
 import { OfferCard } from "../components/site/offer-card";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
-import { exposureFaq, offerings, programmatic, selectionSteps } from "../data/exposure";
+import { exposureFaqFor, programmatic, selectionSteps } from "../data/exposure";
+import { toOffering } from "../domain/exposure";
 import { padIndex } from "../lib/format";
 import { ogImageFor, ogStaticOf } from "../lib/og";
+import { siteQuery } from "../lib/queries";
 import { faqJsonLd, pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/exposure")({
-  head: ({ matches }) =>
+  loader: async ({ context: { queryClient } }) =>
+    (await queryClient.ensureQueryData(siteQuery())).products,
+  head: ({ loaderData, matches }) =>
     pageHead({
       title: "Property Exposure",
       description: pageDescription("exposure"),
       path: "/exposure",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: faqJsonLd(exposureFaq),
+      jsonLd: faqJsonLd(exposureFaqFor(loaderData ?? [])),
     }),
   component: ExposurePage,
 });
 
 function ExposurePage() {
+  const plans = Route.useLoaderData();
   return (
     <main>
       <PageIntro
@@ -33,7 +38,7 @@ function ExposurePage() {
           <p className="fp-label" id="products">
             Products · USD
           </p>
-          {offerings.map((offering) => (
+          {plans.map(toOffering).map((offering) => (
             <OfferCard key={offering.id} offering={offering} />
           ))}
         </section>
@@ -93,7 +98,7 @@ function ExposurePage() {
             FAQ
           </p>
           <div className="fp-faq">
-            {exposureFaq.map((item) => (
+            {exposureFaqFor(plans).map((item) => (
               <details key={item.q}>
                 <summary>
                   {item.q} <span aria-hidden="true">+</span>

@@ -52,7 +52,7 @@ function renderHome(status: "Active" | "Illustrative") {
     featured: [card],
     preview: status === "Illustrative" ? [card] : [],
     markets: [open],
-    site: { ...emptySiteSettings, illustrativeContent: false },
+    site: { ...emptySiteSettings, illustrativeContent: false, products: [] },
   });
   const Page = HomeRoute.options.component;
   if (Page === undefined) throw new Error("home route has no component");
