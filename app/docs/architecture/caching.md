@@ -22,7 +22,7 @@ flowchart LR
 
 ## The key
 
-`https://cache.mop.internal/<release>/v<catalogVersion>/<kind>/<pathname>`: `release` is `SENTRY_RELEASE` (the commit SHA), `kind` is `html`, `json` or `doc` (sitemap, robots, llms files and feeds). The query string is dropped, and no cookie or request header ever changes the key, so a stored page is one pure function of (release, version, path). A publish, an unpublish or a change of a public setting bumps `catalog_version` in the database; the next state check sees it and every key changes within 15 seconds. Nothing is purged.
+`https://cache.mop.internal/<env>/<host>/<release>/v<catalogVersion>/<kind>/<pathname>`: `env` is `MOP_ENV` (unset reads as `production`), `host` is the request URL's host with its port, `release` is `SENTRY_RELEASE` (the commit SHA), `kind` is `html`, `json` or `doc` (sitemap, robots, llms files and feeds). The query string is dropped, and no cookie or other request header ever changes the key: a cached public read is a function of release, catalog version, environment, host and path (ruling H82). A publish, an unpublish or a change of a public setting bumps `catalog_version` in the database; the next state check sees it and every key changes within 15 seconds. Nothing is purged.
 
 ## What a stored entry keeps
 
@@ -34,7 +34,7 @@ When the database cannot be read, or does not answer within 2 seconds, the last 
 
 ## `x-mop-cache`
 
-`hit` came from the edge cache, `miss` was built and stored, `stale` is the last good copy, `bypass` was never stored (writes, errors answered before the service, `no-store`). Every public GET also carries `x-catalog-version`. The Cache API does nothing on `workers.dev` and in `vite dev`: a preview answers `miss` every time and runs on the memory layer alone.
+`hit` came from the edge cache, `miss` was built and stored, `stale` is the last good copy, `bypass` was never stored (writes, errors answered before the service, `no-store`). Every public GET also carries `x-catalog-version`. The Cache API does nothing in `vite dev`; on `workers.dev` it stores and serves, in one store shared by the dev Worker, the production Worker and every preview, which is why the key carries environment and host (P-843, P-3190).
 
 ## Rules for the API
 

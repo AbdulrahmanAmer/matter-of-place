@@ -8,6 +8,7 @@ import {
   type Page,
 } from "@playwright/test";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { z } from "zod";
 import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs";
 import { generateKey, hashAgentKey } from "../../src/server/lib/agent-keys";
@@ -92,7 +93,7 @@ test.beforeAll(async ({ playwright }) => {
   release = await holdDevLock();
   const url = process.env["DEV_DB_URL"];
   if (url === undefined || url === "") throw new Error("refusing: DEV_DB_URL is not set");
-  db = new pg.Client({ connectionString: url });
+  db = new pg.Client(pgClientConfig(url));
   await db.connect();
   expect(await stepOn(), `${STEP} starts on`).toBe(true);
   seededSteps =

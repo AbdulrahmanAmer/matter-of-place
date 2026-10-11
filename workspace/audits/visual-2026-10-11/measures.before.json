@@ -1,0 +1,4820 @@
+[
+ {
+  "route": "/",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "View property",
+    "w": 138,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Explore Properties",
+    "w": 173,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 166,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "All properties",
+    "w": 138,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "View Property Exposure",
+    "w": 211,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Explore Distribution",
+    "w": 188,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read Our Editorial Standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/markets",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/california",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read the California guide",
+    "w": 231,
+    "h": 27
+   },
+   {
+    "tag": "button",
+    "text": "More +",
+    "w": 52,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "All",
+    "w": 22,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Bay Area",
+    "w": 65,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Los Angeles",
+    "w": 88,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Orange County",
+    "w": 115,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "La Jolla",
+    "w": 57,
+    "h": 18
+   },
+   {
+    "tag": "select",
+    "text": "Property type",
+    "w": 166,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Architecture",
+    "w": 166,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Design feature",
+    "w": 342,
+    "h": 37
+   },
+   {
+    "tag": "a",
+    "text": "All stories",
+    "w": 112,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/new-york",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read the New York guide",
+    "w": 220,
+    "h": 27
+   },
+   {
+    "tag": "button",
+    "text": "More +",
+    "w": 52,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "All",
+    "w": 22,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Manhattan",
+    "w": 81,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Brooklyn",
+    "w": 69,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "The Hamptons",
+    "w": 100,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Hudson Valley",
+    "w": 106,
+    "h": 18
+   },
+   {
+    "tag": "select",
+    "text": "Property type",
+    "w": 166,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Architecture",
+    "w": 166,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Design feature",
+    "w": 342,
+    "h": 37
+   },
+   {
+    "tag": "a",
+    "text": "All stories",
+    "w": 112,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/florida",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read the Florida guide",
+    "w": 206,
+    "h": 27
+   },
+   {
+    "tag": "button",
+    "text": "More +",
+    "w": 52,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "All",
+    "w": 22,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Miami",
+    "w": 40,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Palm Beach",
+    "w": 82,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Naples",
+    "w": 48,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Fort Lauderdale",
+    "w": 120,
+    "h": 18
+   },
+   {
+    "tag": "select",
+    "text": "Property type",
+    "w": 342,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Architecture",
+    "w": 342,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Design feature",
+    "w": 342,
+    "h": 37
+   },
+   {
+    "tag": "a",
+    "text": "All stories",
+    "w": 112,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/properties",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "button",
+    "text": "A mid-century house with a gar",
+    "w": 327,
+    "h": 34
+   },
+   {
+    "tag": "button",
+    "text": "Modern home by the water with ",
+    "w": 241,
+    "h": 34
+   },
+   {
+    "tag": "button",
+    "text": "Something with original detail",
+    "w": 275,
+    "h": 34
+   },
+   {
+    "tag": "button",
+    "text": "Filter  +",
+    "w": 56,
+    "h": 27
+   },
+   {
+    "tag": "input",
+    "text": "Search properties",
+    "w": 342,
+    "h": 32
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/submit",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 158,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/contact",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 158,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Browse properties",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Submit a property",
+    "w": 166,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/place-notes",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/privacy-request",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 158,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/privacy",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "privacy choices",
+    "w": 109,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "The full list of cookies is on",
+    "w": 328,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "privacy request form",
+    "w": 147,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "contact page",
+    "w": 91,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/terms",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "contact page",
+    "w": 91,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/cookies",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/accessibility",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "contact page",
+    "w": 91,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/legal",
+  "size": "phone",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 49,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 164,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 95,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 158,
+    "h": 14
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 159,
+    "h": 42
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "View property",
+    "w": 138,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Explore Properties",
+    "w": 173,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 166,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "All properties",
+    "w": 138,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "View Property Exposure",
+    "w": 211,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Explore Distribution",
+    "w": 188,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read Our Editorial Standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/markets",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/california",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read the California guide",
+    "w": 231,
+    "h": 27
+   },
+   {
+    "tag": "button",
+    "text": "More +",
+    "w": 52,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "All",
+    "w": 22,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Bay Area",
+    "w": 65,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Los Angeles",
+    "w": 88,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Orange County",
+    "w": 115,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "La Jolla",
+    "w": 57,
+    "h": 18
+   },
+   {
+    "tag": "select",
+    "text": "Property type",
+    "w": 128,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Architecture",
+    "w": 149,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Design feature",
+    "w": 171,
+    "h": 37
+   },
+   {
+    "tag": "a",
+    "text": "All stories",
+    "w": 112,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/new-york",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read the New York guide",
+    "w": 220,
+    "h": 27
+   },
+   {
+    "tag": "button",
+    "text": "More +",
+    "w": 52,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "All",
+    "w": 22,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Manhattan",
+    "w": 81,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Brooklyn",
+    "w": 69,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "The Hamptons",
+    "w": 100,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Hudson Valley",
+    "w": 106,
+    "h": 18
+   },
+   {
+    "tag": "select",
+    "text": "Property type",
+    "w": 128,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Architecture",
+    "w": 149,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Design feature",
+    "w": 171,
+    "h": 37
+   },
+   {
+    "tag": "a",
+    "text": "All stories",
+    "w": 112,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/florida",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read the Florida guide",
+    "w": 206,
+    "h": 27
+   },
+   {
+    "tag": "button",
+    "text": "More +",
+    "w": 52,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "All",
+    "w": 22,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Miami",
+    "w": 40,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Palm Beach",
+    "w": 82,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Naples",
+    "w": 48,
+    "h": 18
+   },
+   {
+    "tag": "a",
+    "text": "Fort Lauderdale",
+    "w": 120,
+    "h": 18
+   },
+   {
+    "tag": "select",
+    "text": "Property type",
+    "w": 128,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Architecture",
+    "w": 203,
+    "h": 37
+   },
+   {
+    "tag": "select",
+    "text": "Design feature",
+    "w": 171,
+    "h": 37
+   },
+   {
+    "tag": "a",
+    "text": "All stories",
+    "w": 112,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/properties",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our editorial standard",
+    "w": 252,
+    "h": 27
+   },
+   {
+    "tag": "button",
+    "text": "A mid-century house with a gar",
+    "w": 327,
+    "h": 34
+   },
+   {
+    "tag": "button",
+    "text": "Modern home by the water with ",
+    "w": 241,
+    "h": 34
+   },
+   {
+    "tag": "button",
+    "text": "Something with original detail",
+    "w": 275,
+    "h": 34
+   },
+   {
+    "tag": "button",
+    "text": "Filter  +",
+    "w": 56,
+    "h": 27
+   },
+   {
+    "tag": "input",
+    "text": "Search properties",
+    "w": 1152,
+    "h": 32
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/submit",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 158,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/contact",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 158,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Browse properties",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Submit a property",
+    "w": 166,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/place-notes",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/privacy-request",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "tag": "input",
+    "text": "",
+    "w": 158,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/privacy",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "privacy choices",
+    "w": 109,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "The full list of cookies is on",
+    "w": 328,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "privacy request form",
+    "w": 147,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "privacy request form",
+    "w": 147,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "contact page",
+    "w": 91,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/terms",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "exposure page",
+    "w": 107,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "contact page",
+    "w": 91,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/cookies",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/accessibility",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "contact page",
+    "w": 91,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ },
+ {
+  "route": "/legal",
+  "size": "desktop",
+  "overflow": 0,
+  "small": [
+   {
+    "tag": "a",
+    "text": "Skip to content",
+    "w": 160,
+    "h": 42
+   },
+   {
+    "tag": "button",
+    "text": "Open menu",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Matter of Place home",
+    "w": 24,
+    "h": 28
+   },
+   {
+    "tag": "button",
+    "text": "Search properties",
+    "w": 40,
+    "h": 40
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 49,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 164,
+    "h": 24
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 95,
+    "h": 27
+   },
+   {
+    "tag": "a",
+    "text": "Read our privacy policy",
+    "w": 460,
+    "h": 38
+   },
+   {
+    "tag": "a",
+    "text": "Properties",
+    "w": 73,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "California",
+    "w": 63,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "New York",
+    "w": 62,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Florida",
+    "w": 45,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Stories",
+    "w": 49,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Editorial Standard",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "About",
+    "w": 40,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Property Exposure",
+    "w": 128,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Submit a Property",
+    "w": 122,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "FAQ",
+    "w": 24,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Contact",
+    "w": 56,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Privacy",
+    "w": 48,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Terms for Professionals",
+    "w": 163,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Accessibility",
+    "w": 85,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Do Not Sell or Share",
+    "w": 136,
+    "h": 21
+   },
+   {
+    "tag": "a",
+    "text": "Cookie settings",
+    "w": 106,
+    "h": 21
+   }
+  ]
+ }
+]

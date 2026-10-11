@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-11 02:20 (UTC+3)",
-  "now": "Saturday night, 11 October. 229 of 259 steps accepted. Done today: the admin portal (B7, all 16 steps), B8b, B13 search and SEO, B14 steps 4 and 5, the security scan (0 critical, 0 high; the 4 medium findings are fixed in PRs 272 to 274), and H1 hardening steps 1 to 10, all on main. Running: H2, the acceptance panel, on this laptop; the Dell is idle until its next job. Next: the database reset and reseed (H1-18), then H2 pass one, then L1 with the items that wait on you: the backup key, the legal entity and address, the uptime account, the Workers plan, DNS and the social apps.",
+  "updated": "2026-10-11 06:20 (UTC+3)",
+  "now": "Sunday 06:20. 230 of 259 steps accepted. Closed by the operator this morning: the backup key is escrowed, the domain’s nameservers are on Cloudflare, Matter of Place is a product of Omnikom LLC (the legal entity), Cloudflare stays on Free (H83). On main since 04:30: 283 (merge guard), 286, 284, 285, 289, 281 (H79 leftovers), 291 (gitleaks), 280 (tests over TLS). Merging next: 290 (cache keys carry host and environment: the production Worker had served pages rendered by the dev Worker), 282 (visual pass), 287 (re-run pass 2: 64 pass, 10 fail, 9 skipped). Running: H2 steps 2 and 3, L1 steps 0, 2, 3 (this laptop); B18 prices in the admin, the B7 person-invoice fix and the proof faults (the Dell). Left for the operator before launch: the uptime account only. After launch: the social accounts. Address given: 30 N Gould St Ste R, Sheridan, WY 82801, USA (H83).",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -428,19 +428,11 @@
   "waiting": [
     {
       "what": "Sign up at uptimerobot.com",
-      "why": "Then the orchestrator sets up the uptime monitor. Nothing is held back today."
+      "why": "Then the orchestrator sets up the uptime monitor (H1-44). Nothing else waits on it."
     },
     {
-      "what": "Store the backup private key offline",
-      "why": "Asked for when B1b step 8 creates it."
-    },
-    {
-      "what": "Legal entity, address and payment methods",
-      "why": "Needed in the last phase, for invoices and the legal pages."
-    },
-    {
-      "what": "X, LinkedIn and Meta apps",
-      "why": "Needed at the end. Posting is built and tested against stubs until then."
+      "what": "X, LinkedIn and Meta accounts",
+      "why": "After launch. X posts through a browser agent (H81); LinkedIn page through the partner’s profile; Instagram exists."
     },
     {
       "what": "Your word to register the captions task on this laptop",
