@@ -28,6 +28,7 @@
   --focus-ring: var(--foreground);
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
+  --z-consent: 40;
   --z-skip-link: 120;
 
   --font-sans: "Jost", "Jost Fallback", sans-serif;
