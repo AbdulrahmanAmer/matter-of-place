@@ -156,6 +156,7 @@ interface SavedSettings {
 }
 
 const runTag = process.env["GITHUB_RUN_ID"] ?? "local";
+const FIXTURE_CONTACT_EMAIL = "hello@example.invalid";
 const OBJECTS_WAIT_MS = 60_000;
 const OBJECTS_POLL_MS = 2000;
 
@@ -198,8 +199,13 @@ async function configureInvoicing(db: Db): Promise<SavedSettings> {
     year,
     counter: await counterLast(db, year),
   };
+  // The contact email is the third thing `invoiceReadiness` asks for, and mop-dev's stored one is whatever the last
+  // person left there (null since the settings screen was exercised on 2026-10-10): keep a set one, seed an empty one.
+  const contact = z.record(z.string(), z.unknown()).catch({}).parse(saved.site["contact"]);
+  const email = z.string().trim().min(1).catch(FIXTURE_CONTACT_EMAIL).parse(contact["email"]);
   await putSetting(db, "site", {
     ...saved.site,
+    contact: { ...contact, email },
     legal: { entity: "Example Media LLC", address: "100 Example Street, New York, NY 10001" },
   });
   const example: unknown = JSON.parse(

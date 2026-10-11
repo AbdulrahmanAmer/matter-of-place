@@ -47,11 +47,11 @@
   {
     "slice": "B6",
     "step": "6",
-    "cwd": "D:/mop-build/rerun/app",
+    "cwd": "D:/mop-build/rerun",
     "command": "grep -n \"B6 invoice approved\" .claude/POSITION.md",
     "writes": false,
     "source": "plan",
-    "note": "4 proof commands found"
+    "note": "pass 2: run from the repository root, where .claude/POSITION.md lives"
   },
   {
     "slice": "B6",
@@ -75,10 +75,10 @@
     "slice": "B6",
     "step": "9",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "E2E_TARGET=dev bunx playwright test --project admin tests/e2e/admin-invoice.spec.ts",
+    "command": "E2E_TARGET=dev bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts",
     "writes": false,
     "source": "plan",
-    "note": ""
+    "note": "pass 2: --project admin corrected to --project=admin"
   },
   {
     "slice": "B7",
@@ -156,73 +156,73 @@
     "slice": "B7",
     "step": "11",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts",
     "writes": false,
     "source": "plan",
-    "note": ""
+    "note": "pass 2: --project admin corrected to --project=admin"
   },
   {
     "slice": "B7",
     "step": "11a",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts",
     "writes": false,
     "source": "plan",
-    "note": ""
+    "note": "pass 2: --project admin corrected to --project=admin"
   },
   {
     "slice": "B7",
     "step": "12",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts",
     "writes": false,
     "source": "plan",
-    "note": ""
+    "note": "pass 2: --project admin corrected to --project=admin"
   },
   {
     "slice": "B7",
     "step": "13",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts",
     "writes": false,
     "source": "plan",
-    "note": ""
+    "note": "pass 2: --project admin corrected to --project=admin"
   },
   {
     "slice": "B7",
     "step": "14",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts",
     "writes": false,
     "source": "plan",
-    "note": ""
+    "note": "pass 2: --project admin corrected to --project=admin"
   },
   {
     "slice": "B7",
     "step": "15",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts",
     "writes": false,
     "source": "plan",
-    "note": ""
+    "note": "pass 2: --project admin corrected to --project=admin"
   },
   {
     "slice": "B7",
     "step": "15a",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts",
     "writes": false,
     "source": "plan",
-    "note": ""
+    "note": "pass 2: --project admin corrected to --project=admin"
   },
   {
     "slice": "B7",
     "step": "16",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts",
     "writes": false,
     "source": "plan",
-    "note": ""
+    "note": "pass 2: --project admin corrected to --project=admin"
   },
   {
     "slice": "B8",
@@ -327,10 +327,10 @@
     "slice": "B10",
     "step": "3",
     "cwd": "D:/mop-build/rerun/app",
-    "command": "tests/fixtures/graph/",
+    "command": "bunx vitest run tests/unit/channels/reels-limits.test.ts",
     "writes": false,
     "source": "plan",
-    "note": "8 proof commands found"
+    "note": "pass 2: the directory path replaced by the plan's step 3 proof command"
   },
   {
     "slice": "B10",
@@ -402,7 +402,8 @@
     "command": "bun run db:psql -- -c \"select count(*) from subscribers where confirmed_at is not null;\"",
     "writes": false,
     "source": "plan",
-    "note": "13 proof commands found"
+    "note": "pass 2: marked skipped",
+    "skip": "needs psql: no psql is installed on this laptop (the only psql.exe on disk, D:/mop-build/h1g7/app/.tmp/bin, is H1 step 9's stand-in, not a client)"
   },
   {
     "slice": "B11",
@@ -483,7 +484,8 @@
     "command": "select type from events where type = 'digest.due' order by at desc limit 1;",
     "writes": false,
     "source": "plan",
-    "note": "4 proof commands found"
+    "note": "pass 2: the SQL line is not a runnable command; the step's proof writes",
+    "skip": "needs quiet: the plan's step 10 proof enables the digest schedule on mop-dev, waits for the queue_digest job and restores the schedule (writes)"
   },
   {
     "slice": "B11",
