@@ -578,6 +578,11 @@ p { margin: 8px 0; }
 .tile .big { font-family: "Cormorant Garamond", Georgia, serif; font-size: 44px; line-height: 1; margin: 6px 0 4px; }
 .tile .meta { margin: 0; }
 .tile.wide { grid-column: 1 / -1; }
+.tiles.arms { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+@media (min-width: 1100px) { .tiles.arms { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.figures { display: flex; flex-direction: column; }
+.figure-label { margin: 6px 0 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); }
+.figure-second { margin: 10px 0 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 30px; line-height: 1; color: var(--soft); }
 .bar { display: flex; width: 160px; height: 8px; background: var(--line); margin-top: 9px; }
 .bar .done { background: var(--ink); }
 .bar .review { background: var(--mid); }
@@ -676,18 +681,17 @@ details { scroll-margin-top: 120px; }
 <p class="meta" role="status">${snapshot ? `Snapshot taken ${esc(clock)}.` : `Reloads by itself when anything changes. ${esc(clock)}.`}</p>
 ${errors}
 <div class="hero">
-<p class="figure" aria-hidden="true">${o.launchPercent}%</p>
-<div><p class="lead">To launch: ${o.launchPercent} percent (${o.launchAccepted} of ${o.launchTotal} steps that come before go-live). Overall, including the ${o.total - o.launchTotal} steps that can only happen after launch: ${o.percent} percent. ${o.accepted} of ${o.total} steps accepted, ${o.total - o.accepted} to go, ${o.inReview} in work.${pending}</p>
-<span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.accepted, o.total)}%"></span><span class="review" style="width:${pct(o.inReview, o.total)}%"></span></span></div>
+<div class="figures"><p class="figure" aria-hidden="true">${o.launchPercent}%</p><p class="figure-label">to launch</p><p class="figure-second" aria-hidden="true">${o.percent}% overall</p></div>
+<div><p class="lead">${o.launchPercent} percent of the way to launch: ${o.launchAccepted} of ${o.launchTotal} launch steps accepted, ${o.launchTotal - o.launchAccepted} to go, ${o.inReview} in work. Overall ${o.percent} percent of ${o.total} steps, counting the ${o.total - o.launchTotal} that can only happen after go-live.${pending}</p>
+<span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.launchAccepted, o.launchTotal)}%"></span><span class="review" style="width:${pct(o.inReview, o.launchTotal)}%"></span></span></div>
 </div>
-<div class="tiles">
+<div class="tiles arms">
 ${data.arms.map((arm) => `<div class="tile"><h2>${esc(arm.label)}</h2><p class="big">${arm.percent}%</p><p class="meta">to launch · own ${arm.ownPercent}% · ${arm.remaining} pieces to go</p><span class="bar full" aria-hidden="true"><span class="done" style="width:${arm.percent}%"></span></span></div>`).join("\n")}
 </div>
 <div class="tiles">
 <div class="tile wide"><h2>Now</h2><p>${esc(data.now)}</p><p class="meta">Orchestrator's note, ${esc(data.updated)}.</p></div>
-<div class="tile"><h2>Finish line</h2><p class="big">${o.total - o.accepted}</p><p class="meta">steps to go${remainingHours === null ? "" : ` · about ${remainingHours} hours at the measured pace of ${pace.hoursPerStep} h a step`}</p></div>
+<div class="tile"><h2>Finish line</h2><p class="big">${o.launchTotal - o.launchAccepted}</p><p class="meta">steps to launch · ${o.total - o.launchTotal} more after go-live</p></div>
 <div class="tile"><h2>Slices</h2><p class="big">${o.slicesClosed} of ${o.slices}</p><p class="meta">closed</p></div>
-${data.costs[0] ? `<div class="tile"><h2>Latest run cost</h2><p class="big">${(data.costs[0].total.cacheRead / data.costs[0].stepsAccepted / 1e6).toFixed(0)}M</p><p class="meta">tokens re-read per step · ${Math.round(data.costs[0].total.min / data.costs[0].stepsAccepted)} agent minutes per step · baseline 121M and 119</p></div>` : ""}
 <div class="tile"><h2>Lanes</h2><p class="big">${data.worktrees.length}</p><p class="meta">open on the build laptop</p></div>
 </div>
 </section>
