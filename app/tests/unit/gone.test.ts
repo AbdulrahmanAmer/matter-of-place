@@ -103,6 +103,22 @@ describe("withGoneStatus", () => {
     expect((await run(`/property/${TAKEN_DOWN}`, {}, 404)).response.status).toBe(404);
   });
 
+  it("gives a page that rendered 404 the one-minute lifetime, keeps one that names its own, never a write", async () => {
+    const missing = (await run("/no-such-page", {}, 404)).response;
+    expect(missing.status).toBe(404);
+    expect(missing.headers.get("cache-control")).toBe("public, s-maxage=60");
+    expect(await missing.text()).toBe("<p>page</p>");
+    expect(
+      (await run("/no-such-page", { method: "POST" }, 404)).response.headers.get("cache-control"),
+    ).toBeNull();
+    const { gone } = await load();
+    const named = new Response("x", { status: 404, headers: { "cache-control": "no-store" } });
+    const kept = await gone.withGoneStatus(new Request(`${BASE}/x`), named, () =>
+      Promise.resolve(snapshot),
+    );
+    expect(kept.headers.get("cache-control")).toBe("no-store");
+  });
+
   it("reads the snapshot only for a property page", async () => {
     expect((await run("/properties")).read).not.toHaveBeenCalled();
     expect((await run(`/property/${TAKEN_DOWN}`)).read).toHaveBeenCalledTimes(1);

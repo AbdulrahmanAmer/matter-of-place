@@ -1,0 +1,12 @@
+[
+  {
+    "id": "f404-lifetime",
+    "kind": "file",
+    "test": "tests/unit/gone.test.ts",
+    "file": "src/server/seo/gone.ts",
+    "find": "  if (response.status === 404 && !response.headers.has(\"cache-control\")) {",
+    "replace": "  if (response.status === 999 && !response.headers.has(\"cache-control\")) {",
+    "run": "bunx vitest run --project unit tests/unit/gone.test.ts --testTimeout=60000",
+    "expect": "× .*gives a page that rendered 404 the one-minute lifetime"
+  }
+]
