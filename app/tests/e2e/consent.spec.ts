@@ -138,7 +138,7 @@ for (const { project, width, height, lines, tallest } of sizes) {
   test.describe(`at ${String(width)}px`, () => {
     test.use({ viewport: { width, height } });
 
-    test(`${String(width)}px: the notice is a slim bar inside the first viewport`, async ({
+    test(`${String(width)}px: the notice is a cookie popup inside the first viewport`, async ({
       page,
     }) => {
       only(project);
@@ -170,9 +170,11 @@ for (const { project, width, height, lines, tallest } of sizes) {
         };
       });
       expect(bar.position).toBe("fixed");
-      expect(Math.round(bar.bottom)).toBe(height);
-      expect(bar.lines).toBeLessThanOrEqual(lines);
-      expect(bar.tall).toBeLessThanOrEqual(tallest);
+      // The popup (operator 2026-10-11): a card 24px above the bottom on a wide screen, flush on a phone; a title,
+      // up to three lines of text and the two buttons.
+      expect(Math.round(bar.bottom)).toBeGreaterThanOrEqual(height - 24);
+      expect(bar.lines).toBeLessThanOrEqual(lines + 2);
+      expect(bar.tall).toBeLessThanOrEqual(tallest + 240);
       expect({
         background: bar.background,
         color: bar.color,
@@ -192,22 +194,16 @@ for (const { project, width, height, lines, tallest } of sizes) {
       await expect(notice(page).getByRole("link", { name: t.consent.link })).toBeVisible();
     });
 
-    test(`${String(width)}px: the bar pads the page and a choice moves nothing above it`, async ({
-      page,
-    }) => {
+    test(`${String(width)}px: a choice moves nothing on the page`, async ({ page }) => {
       only(project);
       await page.goto("/", { waitUntil: "networkidle" });
       await expect(notice(page)).toBeVisible();
       const heading = page.locator("h1").first();
       const before = await heading.boundingBox();
-      const padded = await page.evaluate(() => getComputedStyle(document.body).paddingBottom);
-      const barHeight = (await box(notice(page))).bottom - (await box(notice(page))).top;
-      expect(Math.abs(parseFloat(padded) - barHeight)).toBeLessThanOrEqual(1);
       await decline(page).click();
       await expect(notice(page)).toHaveCount(0);
       const after = await heading.boundingBox();
       expect(after?.y).toBe(before?.y);
-      expect(await page.evaluate(() => getComputedStyle(document.body).paddingBottom)).toBe("0px");
     });
 
     test(`${String(width)}px: the bar does not cover the skip link`, async ({ page }) => {
@@ -250,7 +246,7 @@ for (const { project, width, height, lines, tallest } of sizes) {
       expect(covered).toEqual([]);
     });
 
-    test(`${String(width)}px: on a property page the notice stays in the footer, out of the first viewport`, async ({
+    test(`${String(width)}px: on a property page the same popup shows in the first viewport`, async ({
       page,
     }) => {
       only(project);
@@ -258,21 +254,10 @@ for (const { project, width, height, lines, tallest } of sizes) {
       const href = await page.locator("a.property-card").first().getAttribute("href");
       expect(href, "the full seed lists a property").not.toBeNull();
       await page.goto(href ?? "", { waitUntil: "networkidle" });
-      await expect(notice(page)).toBeAttached();
-      await expect(notice(page)).not.toBeInViewport();
-      await expect(
-        page.locator("footer").getByRole("region", { name: t.consent.label }),
-      ).toBeAttached();
-      const flow = await notice(page).evaluate((element) => ({
-        position: getComputedStyle(element).position,
-        top: element.getBoundingClientRect().top + window.scrollY,
-        padding: getComputedStyle(document.body).paddingBottom,
-        published: document.documentElement.style.getPropertyValue("--consent-bar-h"),
-      }));
-      expect(["fixed", "sticky"]).not.toContain(flow.position);
-      expect(flow.top).toBeGreaterThan(height);
-      expect(flow.padding).toBe("0px");
-      expect(flow.published).toBe("");
+      await expect(notice(page)).toBeVisible();
+      await expect(notice(page)).toBeInViewport();
+      const position = await notice(page).evaluate((element) => getComputedStyle(element).position);
+      expect(position).toBe("fixed");
     });
   });
 }
