@@ -16,6 +16,7 @@ import { settings } from "./settings.ts";
 import { stories } from "./stories.ts";
 import { submissions } from "./submissions.ts";
 import { team } from "./team.ts";
+import { workforce } from "./workforce.ts";
 
 // One import line per group file.
 export const permissions = [
@@ -37,4 +38,5 @@ export const permissions = [
   ...people,
   ...jobs,
   ...assets,
+  ...workforce,
 ] as const;
