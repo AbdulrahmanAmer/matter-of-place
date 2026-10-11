@@ -957,7 +957,7 @@ describe("consent-pages", () => {
     const noscript = page.slice(page.indexOf("<noscript>"), page.indexOf("</noscript>"));
     expect(noscript).toContain('href="/api/consent?set=accept"');
     expect(noscript).toContain('href="/api/consent?set=decline"');
-    expect(noscript).toContain("We would like to count which pages are read");
+    expect(noscript).toContain("May we count visits with Google Analytics");
     expect(/<a [^>]*id="consent-change"[^>]*>/.exec(page)?.[0]).toContain(
       'href="/privacy-choices"',
     );
