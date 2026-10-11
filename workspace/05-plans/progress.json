@@ -488,10 +488,6 @@
       "why": "For the site's Instagram link. Not needed for launch."
     },
     {
-      "what": "Your word to register the captions task on this laptop",
-      "why": "Asked at launch; captions run on your Claude account."
-    },
-    {
       "what": "X, LinkedIn and Meta accounts",
       "why": "After launch. X posts by a browser agent (H81); the LinkedIn page through your partner's profile; Instagram exists."
     }
