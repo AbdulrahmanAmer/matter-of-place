@@ -101,7 +101,7 @@ describe("getPublicState", () => {
     expect(rpcCalls(db, "public_state")).toBe(2);
   });
 
-  it("holds exactly the seven keys and reads the injected client", async () => {
+  it("holds exactly the eight keys and reads the injected client", async () => {
     const { state } = await load();
     const { db } = served(5);
     const current = await state.getPublicState(db);
@@ -112,6 +112,7 @@ describe("getPublicState", () => {
       "flags",
       "illustrativeContent",
       "ogStatic",
+      "products",
       "site",
     ]);
     expect(db.calls.map((call) => call.name)).toEqual(["public_state"]);
@@ -127,6 +128,17 @@ describe("getPublicState", () => {
     expect(home.home.media_key).toBe("og/static/home.png");
     const without = await (await load()).state.getPublicState(served(5).db);
     expect(without.ogStatic).toEqual({});
+  });
+
+  it("accepts a payload with and without products, an absent one reading as null", async () => {
+    const plans = { plans: [{ id: "feature", price: 295 }] };
+    const withProducts = served(5);
+    withProducts.answers.state = stateJson(5, { products: plans });
+    expect((await (await load()).state.getPublicState(withProducts.db)).products).toEqual(plans);
+    const withNull = served(5);
+    withNull.answers.state = stateJson(5, { products: null });
+    expect((await (await load()).state.getPublicState(withNull.db)).products).toBeNull();
+    expect((await (await load()).state.getPublicState(served(5).db)).products).toBeNull();
   });
 
   it("serves the last good state when the RPC fails, and says so", async () => {

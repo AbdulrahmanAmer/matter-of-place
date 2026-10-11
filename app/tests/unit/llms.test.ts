@@ -24,6 +24,7 @@ const state: PublicState = {
   site: {},
   illustrativeContent: false,
   ogStatic: {},
+  products: null,
 };
 
 const MARKETS: Json[] = [

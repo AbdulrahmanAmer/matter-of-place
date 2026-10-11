@@ -1,0 +1,269 @@
+[
+  {
+    "id": "b18-g1-price-zero",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "price: z.number().int().min(1).max(1_000_000)",
+    "replace": "price: z.number().int().min(0).max(1_000_000)",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses the price 0"
+  },
+  {
+    "id": "b18-g1-two-recommended",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "if (plans.filter((plan) => plan.recommended).length > 1) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses two recommended plans"
+  },
+  {
+    "id": "b18-g1-three-plans",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "if (plans.length !== planIds.length || ids.size !== planIds.length) {",
+    "replace": "if (plans.length > planIds.length || ids.size !== plans.length) {",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses a body with 3 plans"
+  },
+  {
+    "id": "b18-g1-five-plans",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "if (plans.length !== planIds.length || ids.size !== planIds.length) {",
+    "replace": "if (plans.length < planIds.length || ids.size !== planIds.length) {",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses a body with 5 plans"
+  },
+  {
+    "id": "b18-g1-ids-differ",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "if (plans.length !== planIds.length || ids.size !== planIds.length) {",
+    "replace": "if (plans.length !== planIds.length) {",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses a missing id, a repeated id and an unknown id"
+  },
+  {
+    "id": "b18-g1-format-comma",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "String(dollars).replace(/\\B(?=(\\d{3})+(?!\\d))/g, \",\")",
+    "replace": "String(dollars)",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*prints whole dollars with comma separators"
+  },
+  {
+    "id": "b18-g1-seed-drift",
+    "test": "tests/unit/products-seed.test.ts",
+    "file": "supabase/migrations/20261011011430_settings_products.sql",
+    "find": "\"price\": 295,",
+    "replace": "\"price\": 296,",
+    "run": "bunx vitest run --project unit tests/unit/products-seed.test.ts",
+    "expect": "× .*is the literal the migration inserts, field for field"
+  },
+  {
+    "id": "b18-g1-invalid-throws",
+    "test": "tests/unit/products-seed.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "  return seedProducts();\n}",
+    "replace": "  throw new Error(\"products_invalid\");\n}",
+    "run": "bunx vitest run --project unit tests/unit/products-seed.test.ts",
+    "expect": "× .*serves the seed with one products_invalid line"
+  },
+  {
+    "id": "b18-g1-price-ceiling",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": ".max(1_000_000)",
+    "replace": ".max(10_000_000)",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses the price 1000001"
+  },
+  {
+    "id": "b18-g1-unknown-key",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "    recommended: z.boolean().default(false),\n  })\n  .strict();",
+    "replace": "    recommended: z.boolean().default(false),\n  });",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses an unknown key on a plan and on the setting"
+  },
+  {
+    "id": "b18-g1-recommended-default",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "recommended: z.boolean().default(false)",
+    "replace": "recommended: z.boolean().default(true)",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*takes one plan on its own"
+  },
+  {
+    "id": "b18-g1-dash",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "const noDash = (value: string): boolean => !/[\\u2013\\u2014]/.test(value);",
+    "replace": "const noDash = (value: string): boolean => true;",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses an em dash and an en dash in name"
+  },
+  {
+    "id": "b18-g1-dash-items",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": ".pipe(z.array(text(1, 140)).max(12))",
+    "replace": ".pipe(z.array(z.string()).max(12))",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses a dash in a line of items"
+  },
+  {
+    "id": "b18-g1-dup-name",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "if (names.size !== plans.length) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*refuses a name another plan already has"
+  },
+  {
+    "id": "b18-g1-note-blank",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "return trimmed === \"\" ? null : trimmed;",
+    "replace": "return trimmed;",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*turns a blank or missing note into null"
+  },
+  {
+    "id": "b18-g1-items-blank",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": ".filter((line) => line !== \"\")",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*trims the items and drops the blank lines"
+  },
+  {
+    "id": "b18-g1-ways",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "count === 1 ? \"way\" : \"ways\"",
+    "replace": "\"way\"",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*reads the count of plans as a title"
+  },
+  {
+    "id": "b18-g1-bound-labels",
+    "test": "tests/unit/products-schema.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "  \"Five Features\": \"five-features\",\n",
+    "replace": "  \"Five Features\": \"five-features\",\n  \"Not sure yet\": \"feature\",\n",
+    "run": "bunx vitest run --project unit tests/unit/products-schema.test.ts",
+    "expect": "× .*has the labels of exposurePackages without Not sure yet"
+  },
+  {
+    "id": "b18-g1-dollars",
+    "test": "tests/unit/products-seed.test.ts",
+    "file": "src/domain/exposure.ts",
+    "find": "Number(offering.price.replace(/\\D/g, \"\"))",
+    "replace": "Number(offering.price.replace(/\\$/g, \"\"))",
+    "run": "bunx vitest run --project unit tests/unit/products-seed.test.ts",
+    "expect": "× .*is the four offerings with their prices in whole dollars"
+  },
+  {
+    "id": "b18-g1-seed-once",
+    "test": "tests/unit/products-seed.test.ts",
+    "file": "supabase/migrations/20261011011430_settings_products.sql",
+    "find": "on conflict (key) do nothing;",
+    "replace": "on conflict (key) do update set value = excluded.value;",
+    "run": "bunx vitest run --project unit tests/unit/products-seed.test.ts",
+    "expect": "× .*is inserted once and never overwritten"
+  },
+  {
+    "id": "b18-g1-parsed-read",
+    "test": "tests/unit/products-seed.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "if (parsed.success) return parsed.data.plans;",
+    "replace": "if (parsed.success) return seedProducts();",
+    "run": "bunx vitest run --project unit tests/unit/products-seed.test.ts",
+    "expect": "× .*reads a stored value that parses"
+  },
+  {
+    "id": "b18-g1-missing-silent",
+    "test": "tests/unit/products-seed.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "  if (state.products === null) return seedProducts();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/products-seed.test.ts",
+    "expect": "× .*serves the seed without a word when the row is missing"
+  },
+  {
+    "id": "b18-g1-invalid-log",
+    "test": "tests/unit/products-seed.test.ts",
+    "file": "src/server/settings/products.ts",
+    "find": "  logLine(\"warn\", \"products_invalid\", {\n    issues: parsed.error.issues.length,\n    first: parsed.error.issues[0]?.message ?? null,\n  });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/products-seed.test.ts",
+    "expect": "× .*serves the seed with one products_invalid line"
+  },
+  {
+    "id": "b18-g1-state-parse",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "    products: raw.products ?? null,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*accepts a payload with and without products"
+  },
+  {
+    "id": "b18-g1-boundary",
+    "test": "tests/unit/boundaries.test.ts",
+    "file": "tests/unit/boundaries.test.ts",
+    "find": "i.file === \"src/server/settings/products.ts\" ||",
+    "replace": "i.file === \"src/server/settings/products-none.ts\" ||",
+    "run": "bunx vitest run --project unit tests/unit/boundaries.test.ts",
+    "expect": "× .*keeps server and domain code away from the browser layers"
+  },
+  {
+    "id": "b18-g1-db-seed-price",
+    "test": "tests/db/settings-products.db.test.ts",
+    "file": "supabase/migrations/20261011011430_settings_products.sql",
+    "find": "\"price\": 295,",
+    "replace": "\"price\": 296,",
+    "run": "bunx vitest run --project db tests/db/settings-products.db.test.ts -t \"is written by the migration\"",
+    "expect": "× .*is written by the migration, parses with the schema"
+  },
+  {
+    "id": "b18-g1-db-replay",
+    "test": "tests/db/settings-products.db.test.ts",
+    "file": "supabase/migrations/20261011011430_settings_products.sql",
+    "find": "on conflict (key) do nothing;",
+    "replace": "on conflict (key) do update set value = excluded.value;",
+    "run": "bunx vitest run --project db tests/db/settings-products.db.test.ts -t \"is run twice\"",
+    "expect": "× .*is run twice and leaves one row"
+  },
+  {
+    "id": "b18-g1-trigger-key",
+    "kind": "sql",
+    "test": "tests/db/catalog-version.db.test.ts",
+    "sql": "-- down:\n--   delete from public.settings where key = 'products';\n--   drop trigger settings_bump_catalog_version on public.settings;\n--   drop trigger settings_bump_catalog_version_del on public.settings;\n--   create trigger settings_bump_catalog_version\n--   after insert or update on public.settings\n--   for each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\n--   execute function public.tg_bump_catalog_version();\n--   create trigger settings_bump_catalog_version_del\n--   after delete on public.settings\n--   for each row when (old.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\n--   execute function public.tg_bump_catalog_version();\n--   and the seven-key public_state() again, as supabase/sql/functions/public_state.sql held it before this file:\n--   create or replace function public.public_state()\n--   returns jsonb\n--   language sql\n--   stable\n--   security definer\n--   set search_path = ''\n--   as $$\n--     select jsonb_build_object(\n--       'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n--       'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n--       'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n--       'coming_soon_markets', coalesce(\n--         (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n--         '{}'::jsonb\n--       ),\n--       'site', (\n--         select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n--         from public.settings s\n--         where s.key = 'site'\n--       ),\n--       'illustrative_content', coalesce(\n--         (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n--         false\n--       ),\n--       'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n--     )\n--   $$;\nset lock_timeout = '5s';\n\n-- H80: the Property Exposure plans are a setting an owner edits without a deploy. `products` is a public key (a page\n-- renders it), so it joins the key list of the two triggers that raise catalog_version (P-041, G21). The triggers\n-- are dropped and created again because the `when` of a trigger cannot be altered.\ndrop trigger settings_bump_catalog_version on public.settings;\ndrop trigger settings_bump_catalog_version_del on public.settings;\ncreate trigger settings_bump_catalog_version\nafter insert or update on public.settings\nfor each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\nexecute function public.tg_bump_catalog_version();\ncreate trigger settings_bump_catalog_version_del\nafter delete on public.settings\nfor each row when (old.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\nexecute function public.tg_bump_catalog_version();\n\n-- G39 amended by H80: public_state() has eight keys; `products` is the stored value, null when the row is missing.\ncreate or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb),\n    'products', (select s.value from public.settings s where s.key = 'products')\n  )\n$$;\n\n-- The seed is the four rows of `offerings` in src/data/exposure.ts with each price in whole dollars;\n-- tests/unit/products-seed.test.ts requires this literal to equal them. A replay conflicts and changes nothing, so it\n-- never overwrites an edit. A first insert fires the trigger above once, so the plans reach the next read.\ninsert into public.settings (key, value)\nvalues (\n  'products',\n  '{\n  \"plans\": [\n    {\n      \"id\": \"feature\",\n      \"name\": \"The Feature\",\n      \"price\": 295,\n      \"line\": \"Editorial presence.\",\n      \"note\": null,\n      \"items\": [\n        \"Dedicated Matter of Place property page\",\n        \"Professionally edited editorial narrative\",\n        \"Architecture, design and location context\",\n        \"Curated image sequencing\",\n        \"Matter of Place social carousel\",\n        \"Collaborator invitation where applicable\",\n        \"Agent or brokerage attribution\",\n        \"Direct inquiry routing\",\n        \"Search-indexable permanent URL\",\n        \"Placement in the California, New York or Florida collection\"\n      ],\n      \"cta\": \"Submit a Property\",\n      \"recommended\": false\n    },\n    {\n      \"id\": \"reach\",\n      \"name\": \"The Reach\",\n      \"price\": 695,\n      \"line\": \"Editorial presence, expanded through precision distribution.\",\n      \"note\": null,\n      \"items\": [\n        \"Everything in The Feature\",\n        \"Matter of Place Stories\",\n        \"Newsletter inclusion\",\n        \"Priority editorial scheduling\",\n        \"Homepage or market-page rotation\",\n        \"Additional social distribution\",\n        \"Programmatic campaign planning\",\n        \"Audience-targeting setup\",\n        \"Campaign reporting framework\",\n        \"Option to add programmatic media spend\"\n      ],\n      \"cta\": \"Expand the Reach\",\n      \"recommended\": true\n    },\n    {\n      \"id\": \"campaign\",\n      \"name\": \"The Campaign\",\n      \"price\": 1495,\n      \"line\": \"A deeper, multi-channel property campaign.\",\n      \"note\": \"Recommended media investment: $500 to $2,500+\",\n      \"items\": [\n        \"Everything in The Reach\",\n        \"Deeper editorial research and an expanded property story\",\n        \"Multi-post editorial treatment\",\n        \"Short-form video or reel from supplied assets\",\n        \"Standalone property email\",\n        \"Priority homepage positioning\",\n        \"A 10 to 14 day campaign window\",\n        \"Multiple creative variants where appropriate\",\n        \"Programmatic media and retargeting strategy\",\n        \"Campaign optimization and post-campaign reporting\"\n      ],\n      \"cta\": \"Build a Campaign\",\n      \"recommended\": false\n    },\n    {\n      \"id\": \"five-features\",\n      \"name\": \"Five Features\",\n      \"price\": 1250,\n      \"line\": \"For agents, teams and brokerages with several qualifying properties.\",\n      \"note\": \"$250 per property\",\n      \"items\": [\n        \"Five Feature credits\",\n        \"No expiration during the initial launch period\",\n        \"Submit properties individually\",\n        \"Every property remains subject to editorial approval\",\n        \"Declined properties do not use a credit\",\n        \"Distribution upgrades available per property\"\n      ],\n      \"cta\": \"Secure Five Features\",\n      \"recommended\": false\n    }\n  ]\n}'::jsonb\n)\non conflict (key) do nothing;\n",
+    "run": "bunx vitest run --project db tests/db/catalog-version.db.test.ts -t \"public key products\"",
+    "expect": "× .*public key products: insert, update and delete each bump once"
+  },
+  {
+    "id": "b18-g1-state-key",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "-- down:\n--   delete from public.settings where key = 'products';\n--   drop trigger settings_bump_catalog_version on public.settings;\n--   drop trigger settings_bump_catalog_version_del on public.settings;\n--   create trigger settings_bump_catalog_version\n--   after insert or update on public.settings\n--   for each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\n--   execute function public.tg_bump_catalog_version();\n--   create trigger settings_bump_catalog_version_del\n--   after delete on public.settings\n--   for each row when (old.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\n--   execute function public.tg_bump_catalog_version();\n--   and the seven-key public_state() again, as supabase/sql/functions/public_state.sql held it before this file:\n--   create or replace function public.public_state()\n--   returns jsonb\n--   language sql\n--   stable\n--   security definer\n--   set search_path = ''\n--   as $$\n--     select jsonb_build_object(\n--       'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n--       'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n--       'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n--       'coming_soon_markets', coalesce(\n--         (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n--         '{}'::jsonb\n--       ),\n--       'site', (\n--         select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n--         from public.settings s\n--         where s.key = 'site'\n--       ),\n--       'illustrative_content', coalesce(\n--         (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n--         false\n--       ),\n--       'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n--     )\n--   $$;\nset lock_timeout = '5s';\n\n-- H80: the Property Exposure plans are a setting an owner edits without a deploy. `products` is a public key (a page\n-- renders it), so it joins the key list of the two triggers that raise catalog_version (P-041, G21). The triggers\n-- are dropped and created again because the `when` of a trigger cannot be altered.\ndrop trigger settings_bump_catalog_version on public.settings;\ndrop trigger settings_bump_catalog_version_del on public.settings;\ncreate trigger settings_bump_catalog_version\nafter insert or update on public.settings\nfor each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static', 'products'))\nexecute function public.tg_bump_catalog_version();\ncreate trigger settings_bump_catalog_version_del\nafter delete on public.settings\nfor each row when (old.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static', 'products'))\nexecute function public.tg_bump_catalog_version();\n\n-- G39 amended by H80: public_state() has eight keys; `products` is the stored value, null when the row is missing.\ncreate or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n\n-- The seed is the four rows of `offerings` in src/data/exposure.ts with each price in whole dollars;\n-- tests/unit/products-seed.test.ts requires this literal to equal them. A replay conflicts and changes nothing, so it\n-- never overwrites an edit. A first insert fires the trigger above once, so the plans reach the next read.\ninsert into public.settings (key, value)\nvalues (\n  'products',\n  '{\n  \"plans\": [\n    {\n      \"id\": \"feature\",\n      \"name\": \"The Feature\",\n      \"price\": 295,\n      \"line\": \"Editorial presence.\",\n      \"note\": null,\n      \"items\": [\n        \"Dedicated Matter of Place property page\",\n        \"Professionally edited editorial narrative\",\n        \"Architecture, design and location context\",\n        \"Curated image sequencing\",\n        \"Matter of Place social carousel\",\n        \"Collaborator invitation where applicable\",\n        \"Agent or brokerage attribution\",\n        \"Direct inquiry routing\",\n        \"Search-indexable permanent URL\",\n        \"Placement in the California, New York or Florida collection\"\n      ],\n      \"cta\": \"Submit a Property\",\n      \"recommended\": false\n    },\n    {\n      \"id\": \"reach\",\n      \"name\": \"The Reach\",\n      \"price\": 695,\n      \"line\": \"Editorial presence, expanded through precision distribution.\",\n      \"note\": null,\n      \"items\": [\n        \"Everything in The Feature\",\n        \"Matter of Place Stories\",\n        \"Newsletter inclusion\",\n        \"Priority editorial scheduling\",\n        \"Homepage or market-page rotation\",\n        \"Additional social distribution\",\n        \"Programmatic campaign planning\",\n        \"Audience-targeting setup\",\n        \"Campaign reporting framework\",\n        \"Option to add programmatic media spend\"\n      ],\n      \"cta\": \"Expand the Reach\",\n      \"recommended\": true\n    },\n    {\n      \"id\": \"campaign\",\n      \"name\": \"The Campaign\",\n      \"price\": 1495,\n      \"line\": \"A deeper, multi-channel property campaign.\",\n      \"note\": \"Recommended media investment: $500 to $2,500+\",\n      \"items\": [\n        \"Everything in The Reach\",\n        \"Deeper editorial research and an expanded property story\",\n        \"Multi-post editorial treatment\",\n        \"Short-form video or reel from supplied assets\",\n        \"Standalone property email\",\n        \"Priority homepage positioning\",\n        \"A 10 to 14 day campaign window\",\n        \"Multiple creative variants where appropriate\",\n        \"Programmatic media and retargeting strategy\",\n        \"Campaign optimization and post-campaign reporting\"\n      ],\n      \"cta\": \"Build a Campaign\",\n      \"recommended\": false\n    },\n    {\n      \"id\": \"five-features\",\n      \"name\": \"Five Features\",\n      \"price\": 1250,\n      \"line\": \"For agents, teams and brokerages with several qualifying properties.\",\n      \"note\": \"$250 per property\",\n      \"items\": [\n        \"Five Feature credits\",\n        \"No expiration during the initial launch period\",\n        \"Submit properties individually\",\n        \"Every property remains subject to editorial approval\",\n        \"Declined properties do not use a credit\",\n        \"Distribution upgrades available per property\"\n      ],\n      \"cta\": \"Secure Five Features\",\n      \"recommended\": false\n    }\n  ]\n}'::jsonb\n)\non conflict (key) do nothing;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"returns exactly the eight keys\"",
+    "expect": "× .*returns exactly the eight keys"
+  },
+  {
+    "id": "b18-g1-state-value",
+    "kind": "sql",
+    "test": "tests/db/public-reads.db.test.ts",
+    "sql": "-- down:\n--   delete from public.settings where key = 'products';\n--   drop trigger settings_bump_catalog_version on public.settings;\n--   drop trigger settings_bump_catalog_version_del on public.settings;\n--   create trigger settings_bump_catalog_version\n--   after insert or update on public.settings\n--   for each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\n--   execute function public.tg_bump_catalog_version();\n--   create trigger settings_bump_catalog_version_del\n--   after delete on public.settings\n--   for each row when (old.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static'))\n--   execute function public.tg_bump_catalog_version();\n--   and the seven-key public_state() again, as supabase/sql/functions/public_state.sql held it before this file:\n--   create or replace function public.public_state()\n--   returns jsonb\n--   language sql\n--   stable\n--   security definer\n--   set search_path = ''\n--   as $$\n--     select jsonb_build_object(\n--       'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n--       'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n--       'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n--       'coming_soon_markets', coalesce(\n--         (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n--         '{}'::jsonb\n--       ),\n--       'site', (\n--         select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n--         from public.settings s\n--         where s.key = 'site'\n--       ),\n--       'illustrative_content', coalesce(\n--         (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n--         false\n--       ),\n--       'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n--     )\n--   $$;\nset lock_timeout = '5s';\n\n-- H80: the Property Exposure plans are a setting an owner edits without a deploy. `products` is a public key (a page\n-- renders it), so it joins the key list of the two triggers that raise catalog_version (P-041, G21). The triggers\n-- are dropped and created again because the `when` of a trigger cannot be altered.\ndrop trigger settings_bump_catalog_version on public.settings;\ndrop trigger settings_bump_catalog_version_del on public.settings;\ncreate trigger settings_bump_catalog_version\nafter insert or update on public.settings\nfor each row when (new.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static', 'products'))\nexecute function public.tg_bump_catalog_version();\ncreate trigger settings_bump_catalog_version_del\nafter delete on public.settings\nfor each row when (old.key in ('flags', 'coming_soon_global', 'site', 'environment', 'og_static', 'products'))\nexecute function public.tg_bump_catalog_version();\n\n-- G39 amended by H80: public_state() has eight keys; `products` is the stored value, null when the row is missing.\ncreate or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb),\n    'products', null::jsonb\n  )\n$$;\n\n-- The seed is the four rows of `offerings` in src/data/exposure.ts with each price in whole dollars;\n-- tests/unit/products-seed.test.ts requires this literal to equal them. A replay conflicts and changes nothing, so it\n-- never overwrites an edit. A first insert fires the trigger above once, so the plans reach the next read.\ninsert into public.settings (key, value)\nvalues (\n  'products',\n  '{\n  \"plans\": [\n    {\n      \"id\": \"feature\",\n      \"name\": \"The Feature\",\n      \"price\": 295,\n      \"line\": \"Editorial presence.\",\n      \"note\": null,\n      \"items\": [\n        \"Dedicated Matter of Place property page\",\n        \"Professionally edited editorial narrative\",\n        \"Architecture, design and location context\",\n        \"Curated image sequencing\",\n        \"Matter of Place social carousel\",\n        \"Collaborator invitation where applicable\",\n        \"Agent or brokerage attribution\",\n        \"Direct inquiry routing\",\n        \"Search-indexable permanent URL\",\n        \"Placement in the California, New York or Florida collection\"\n      ],\n      \"cta\": \"Submit a Property\",\n      \"recommended\": false\n    },\n    {\n      \"id\": \"reach\",\n      \"name\": \"The Reach\",\n      \"price\": 695,\n      \"line\": \"Editorial presence, expanded through precision distribution.\",\n      \"note\": null,\n      \"items\": [\n        \"Everything in The Feature\",\n        \"Matter of Place Stories\",\n        \"Newsletter inclusion\",\n        \"Priority editorial scheduling\",\n        \"Homepage or market-page rotation\",\n        \"Additional social distribution\",\n        \"Programmatic campaign planning\",\n        \"Audience-targeting setup\",\n        \"Campaign reporting framework\",\n        \"Option to add programmatic media spend\"\n      ],\n      \"cta\": \"Expand the Reach\",\n      \"recommended\": true\n    },\n    {\n      \"id\": \"campaign\",\n      \"name\": \"The Campaign\",\n      \"price\": 1495,\n      \"line\": \"A deeper, multi-channel property campaign.\",\n      \"note\": \"Recommended media investment: $500 to $2,500+\",\n      \"items\": [\n        \"Everything in The Reach\",\n        \"Deeper editorial research and an expanded property story\",\n        \"Multi-post editorial treatment\",\n        \"Short-form video or reel from supplied assets\",\n        \"Standalone property email\",\n        \"Priority homepage positioning\",\n        \"A 10 to 14 day campaign window\",\n        \"Multiple creative variants where appropriate\",\n        \"Programmatic media and retargeting strategy\",\n        \"Campaign optimization and post-campaign reporting\"\n      ],\n      \"cta\": \"Build a Campaign\",\n      \"recommended\": false\n    },\n    {\n      \"id\": \"five-features\",\n      \"name\": \"Five Features\",\n      \"price\": 1250,\n      \"line\": \"For agents, teams and brokerages with several qualifying properties.\",\n      \"note\": \"$250 per property\",\n      \"items\": [\n        \"Five Feature credits\",\n        \"No expiration during the initial launch period\",\n        \"Submit properties individually\",\n        \"Every property remains subject to editorial approval\",\n        \"Declined properties do not use a credit\",\n        \"Distribution upgrades available per property\"\n      ],\n      \"cta\": \"Secure Five Features\",\n      \"recommended\": false\n    }\n  ]\n}'::jsonb\n)\non conflict (key) do nothing;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"products is the stored value\"",
+    "expect": "× .*products is the stored value as it is"
+  }
+]
