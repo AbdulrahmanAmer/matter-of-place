@@ -138,3 +138,19 @@
     flex: 1 1 calc(50% - 10px);
   }
 }
+
+/* Touch: every filter control is a 44px target. */
+@media (max-width: 700px) {
+  .filter-bar input,
+  .filter-bar select,
+  .quick-filters select {
+    min-height: 44px;
+  }
+
+  .filter-clear,
+  .region-tabs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

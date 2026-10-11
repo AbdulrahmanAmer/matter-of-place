@@ -1622,3 +1622,8 @@ first day of the new usage week; no step was cut from any plan.
   registrar, uptime account. Social accounts after launch (X account being created by the operator now).
 - Rules in force: builders Sonnet high, reviewers Opus high, extraction Haiku 5.5 via headless `claude -p`; mechanical
   runs in the background to a log; the Dell takes orders from this session only; never print env values.
+- Visual pass 2026-10-11 (lane E:/mop-build/visual, branch design/visual-pass): header breakpoint 1280 to 1199 (the 1280 laptop had
+  the phone header), brand centred absolutely from 1200, 44px targets on phone for header buttons, footer links, text links,
+  filters, choice rows, finder chips. Phone targets under 44px over 15 pages 383 to 104 (rest are inline links, WCAG 2.5.8).
+  Pictures under workspace/08-visual-pass/pairs/visual-2026-10-11/ (P-3171); dev must run with SUPABASE_* unset (P-3170).
+  REPORT.md was refused by the session's no-report-files rule: the report is in the PR body.
