@@ -870,8 +870,8 @@
     "kind": "file",
     "test": "tests/unit/cache.test.ts",
     "file": "src/server/public/cache.ts",
-    "find": "    ? `${KEY_BASE}/last-good/${release()}/html${pathname}`",
-    "replace": "    ? `${KEY_BASE}/last-good/html${pathname}`",
+    "find": "    ? `${KEY_BASE}/last-good/${scope(url)}/${release()}/html${url.pathname}`",
+    "replace": "    ? `${KEY_BASE}/last-good/${scope(url)}/html${url.pathname}`",
     "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
     "expect": "× .*answers .stale. when the state cannot be read and a copy exists"
   },
