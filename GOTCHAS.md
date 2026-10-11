@@ -428,6 +428,8 @@ Entry template
 - symptom: `gh api -X PUT repos/.../branches/main/protection` → HTTP 403 "Upgrade to GitHub Pro or make this repository public".
 - rule: protection of `main` is our own rule, not a GitHub setting: the operator declined GitHub Pro on 2026-10-02 (ASSUMED H5), so B1b step 9 stays BLOCKED. The orchestrator merges only through `node workspace/05-plans/merge-gate.mjs <pr>` once B1b step 5b has written it (it refuses a head that does not contain `origin/main` and any failing check), `deploy.yml` runs only after `ci.yml` passes on the same commit, and nobody force-pushes (G-009).
 - proof: the 403 above, observed 2026-09-30.
+- hit again: 2026-10-11, night merges: ten pull requests (258, 271 to 279) merged with `gh pr merge` and `--auto` instead of `node workspace/05-plans/merge-gate.mjs <pr>`; no `merge-gate` status on any head, so main's own `merge-gate` ci job failed on every push from 21:35 to 01:00 and the dev deploy never ran (dev site and mop-dev stayed at 9fa756e3, the F3 migration unpushed, the db suite red on mop-dev). Repaired by posting the status on each head whose latest required checks were green and re-running the failed job; 273's head keeps a failed preview (Lighthouse hang, H76) that auto-merge ignored.
+- enforced-by: `.claude/hooks/merge-guard.mjs` (PreToolUse on Bash and PowerShell) refuses any `gh pr merge`; `node .claude/hooks/merge-guard.test.mjs` → 6 ok.
 - added: 2026-09-30
 
 ## P-029 · Concurrent diagram renders collide
