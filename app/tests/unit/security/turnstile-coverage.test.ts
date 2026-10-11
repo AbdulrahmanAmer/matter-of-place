@@ -1,8 +1,9 @@
 import "../../fixtures/worker-env";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { routes } from "../../../src/server/public/routes";
+import { PUBLIC_FORMS } from "../../../../workspace/audits/tools/public-forms.mjs";
 import { fakeDb } from "../../fixtures/fake-db";
 
 // H1-01: Turnstile on every public write. Every POST row of B3's route table, the table every handler dispatches
@@ -147,4 +148,74 @@ describe("Turnstile coverage of the public writes", () => {
       expect(db.calls.map((call) => call.name)).toContain("rate_limit_check");
     },
   );
+});
+
+// H79 (6): the forms of the site are one table, `workspace/audits/tools/public-forms.mjs`, which the security collector
+// also reads. Every public form that writes carries Turnstile with no exception; a form that only reads is exempt by
+// its row. A form component no row names, or a writing row without Turnstile, fails here.
+describe("the table of public forms", () => {
+  const writing = PUBLIC_FORMS.filter((form) => form.writes);
+  const src = new URL("../../../src/", import.meta.url);
+
+  /** Files under src/components and src/routes that hold a public form: a `<form>` tag or a form action. */
+  function formFiles(folder: string): string[] {
+    const found: string[] = [];
+    const walk = (dir: URL, prefix: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory()) walk(new URL(`${entry.name}/`, dir), `${prefix}${entry.name}/`);
+        else if (/\.tsx$/.test(entry.name) && !/\.test\.tsx$/.test(entry.name)) {
+          const text = readFileSync(new URL(entry.name, dir), "utf8");
+          if (/<form\b|useAsyncAction\(/.test(text)) found.push(`${prefix}${entry.name}`);
+        }
+      }
+    };
+    walk(new URL(`${folder}/`, src), `${folder}/`);
+    return found;
+  }
+
+  it("has a row per form with its own id", () => {
+    const ids = PUBLIC_FORMS.map((form) => form.id);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("gives every form that writes Turnstile, with no exception", () => {
+    expect(writing.length).toBeGreaterThan(0);
+    expect(writing.filter((form) => !form.turnstile).map((form) => form.id)).toEqual([]);
+  });
+
+  it("exempts a form only when it reads, and says why", () => {
+    const exempt = PUBLIC_FORMS.filter((form) => !form.turnstile);
+    expect(exempt.filter((form) => form.writes).map((form) => form.id)).toEqual([]);
+    expect(
+      exempt.filter((form) => (form.reason ?? "").trim() === "").map((form) => form.id),
+    ).toEqual([]);
+  });
+
+  it("sends every writing form to a POST row of the route table that checks Turnstile", () => {
+    const apis = writing.map((form) => form.api);
+    expect(apis.every((api) => api !== null)).toBe(true);
+    const unchecked = apis.filter(
+      (api) => !posts.some((route) => route.path === api && route.turnstile),
+    );
+    expect(unchecked).toEqual([]);
+  });
+
+  it("lists as a writing form every POST row the route table marks as a form write", () => {
+    const marked = posts.filter((route) => route.form === true).map((route) => route.path);
+    expect([...new Set(writing.map((form) => form.api))].sort()).toEqual([...marked].sort());
+  });
+
+  it("names every component under src/components and src/routes that holds a form", () => {
+    const named = new Set(PUBLIC_FORMS.flatMap((form) => form.components));
+    const files = [...formFiles("components"), ...formFiles("routes")];
+    expect(files.filter((file) => !named.has(file))).toEqual([]);
+  });
+
+  it("names only components that exist and still hold a form", () => {
+    const missing = PUBLIC_FORMS.flatMap((form) => form.components).filter(
+      (file) => !/<form\b|useAsyncAction\(/.test(readFileSync(new URL(file, src), "utf8")),
+    );
+    expect(missing).toEqual([]);
+  });
 });

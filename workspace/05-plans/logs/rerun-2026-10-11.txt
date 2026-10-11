@@ -1,0 +1,1663 @@
+
+==== rerun 2026-10-11T00:34:32.989Z | 83 entries | list D:\mop-build\rerun\workspace\05-plans\rerun-2026-10-11.json | dev profile on ====
+--- [1/83] B6 step 1 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run check
+exit: 0
+seconds: 787
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  355 passed (355)
+  | 
+  |       Tests  4314 passed (4314)
+  | 
+  |    Start at  03:43:09
+  | 
+  |    Duration  269.66s (tests 39%, import 30%, environment 22%, transform 4%, setup 4%, worker 1%)
+  | 
+  | 
+--- [2/83] B6 step 2 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run check
+exit: 0
+seconds: 593
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  355 passed (355)
+  | 
+  |       Tests  4314 passed (4314)
+  | 
+  |    Start at  03:54:05
+  | 
+  |    Duration  207.88s (tests 38%, environment 26%, import 25%, setup 5%, transform 4%, worker 1%)
+  | 
+  | 
+--- [3/83] B6 step 3 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/properties.service.test.ts
+exit: 0
+seconds: 3
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  28 passed (28)
+  | 
+  |    Start at  03:57:33
+  |    Duration  1.86s (transform 57%, import 40%, tests 2%, setup 1%)
+  | 
+--- [4/83] B6 step 4 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/payments/invoice-settings.test.ts
+exit: 0
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  8 passed (8)
+  | 
+  |    Start at  03:57:36
+  | 
+  |    Duration  296ms (transform 65%, import 24%, tests 4%, setup 4%, worker 2%)
+  | 
+  | 
+--- [5/83] B6 step 5 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/payments/invoice-layout.test.ts tests/unit/payments/invoice-pdf.test.ts tests/unit/payments/invoice-attachment.test.ts tests/unit/payments/invoice-pdf-job.test.ts
+exit: 0
+seconds: 3
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  4 passed (4)
+  | 
+  |       Tests  45 passed (45)
+  | 
+  |    Start at  03:57:37
+  | 
+  |    Duration  1.93s (transform 36%, import 32%, tests 30%, setup 1%, worker 1%)
+  | 
+  | 
+--- [6/83] B6 step 6 (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -n "B6 invoice approved" .claude/POSITION.md
+exit: 2
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | grep: .claude/POSITION.md: No such file or directory
+--- [7/83] B6 step 7 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run src/admin/invoices
+exit: 0
+seconds: 4
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  4 passed (4)
+  | 
+  |       Tests  35 passed (35)
+  | 
+  |    Start at  03:57:39
+  | 
+  |    Duration  3.21s (environment 53%, tests 22%, import 9%, setup 8%, transform 7%)
+  | 
+  | 
+--- [8/83] B6 step 8 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/email/variables.test.ts
+exit: 0
+seconds: 2
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  45 passed (45)
+  | 
+  |    Start at  03:57:43
+  | 
+  |    Duration  1.13s (import 53%, transform 43%, tests 2%, setup 1%)
+  | 
+  | 
+--- [9/83] B6 step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=dev bunx playwright test --project admin tests/e2e/admin-invoice.spec.ts
+exit: 1
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | Error: Project(s) "tests/e2e/admin-invoice.spec.ts" not found. Available projects: "desktop", "phone", "live-desktop", "inquiry-forward", "edge", "seo", "coming-soon-desktop", "coming-soon-phone", "admin", "harden"
+  |     at Object.filterProjects (D:\mop-build\rerun\app\node_modules\playwright\lib\runner\index.js:2170:11)
+  |     at runTests (D:\mop-build\rerun\app\node_modules\playwright\lib\cli\testActions.js:61:30)
+  |     at _Command.<anonymous> (D:\mop-build\rerun\app\node_modules\playwright\lib\program.js:55:7)
+--- [10/83] B7 step 5 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/timeline.test.ts tests/unit/submissions.service.test.ts
+exit: 0
+seconds: 3
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  2 passed (2)
+  | 
+  |       Tests  33 passed (33)
+  | 
+  |    Start at  03:57:46
+  | 
+  |    Duration  1.95s (transform 53%, import 40%, tests 6%, setup 1%)
+  | 
+  | 
+--- [11/83] B7 step 5a (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c "audit_log" AGENTS.md
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 2
+--- [12/83] B7 step 6 (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c "audit_log" AGENTS.md
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 2
+--- [13/83] B7 step 7 (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c "audit_log" AGENTS.md
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 2
+--- [14/83] B7 step 7a (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c "audit_log" AGENTS.md
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 2
+--- [15/83] B7 step 8 (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c "audit_log" AGENTS.md
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 2
+--- [16/83] B7 step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c "audit_log" AGENTS.md
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 2
+--- [17/83] B7 step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c "audit_log" AGENTS.md
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 2
+--- [18/83] B7 step 11 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | Error: Project(s) "tests/e2e/admin-full-path.spec.ts" not found. Available projects: "desktop", "phone", "live-desktop", "inquiry-forward", "edge", "seo", "coming-soon-desktop", "coming-soon-phone", "admin", "harden"
+  |     at Object.filterProjects (D:\mop-build\rerun\app\node_modules\playwright\lib\runner\index.js:2170:11)
+  |     at runTests (D:\mop-build\rerun\app\node_modules\playwright\lib\cli\testActions.js:61:30)
+  |     at _Command.<anonymous> (D:\mop-build\rerun\app\node_modules\playwright\lib\program.js:55:7)
+--- [19/83] B7 step 11a (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | Error: Project(s) "tests/e2e/admin-full-path.spec.ts" not found. Available projects: "desktop", "phone", "live-desktop", "inquiry-forward", "edge", "seo", "coming-soon-desktop", "coming-soon-phone", "admin", "harden"
+  |     at Object.filterProjects (D:\mop-build\rerun\app\node_modules\playwright\lib\runner\index.js:2170:11)
+  |     at runTests (D:\mop-build\rerun\app\node_modules\playwright\lib\cli\testActions.js:61:30)
+  |     at _Command.<anonymous> (D:\mop-build\rerun\app\node_modules\playwright\lib\program.js:55:7)
+--- [20/83] B7 step 12 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | Error: Project(s) "tests/e2e/admin-full-path.spec.ts" not found. Available projects: "desktop", "phone", "live-desktop", "inquiry-forward", "edge", "seo", "coming-soon-desktop", "coming-soon-phone", "admin", "harden"
+  |     at Object.filterProjects (D:\mop-build\rerun\app\node_modules\playwright\lib\runner\index.js:2170:11)
+  |     at runTests (D:\mop-build\rerun\app\node_modules\playwright\lib\cli\testActions.js:61:30)
+  |     at _Command.<anonymous> (D:\mop-build\rerun\app\node_modules\playwright\lib\program.js:55:7)
+--- [21/83] B7 step 13 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | Error: Project(s) "tests/e2e/admin-full-path.spec.ts" not found. Available projects: "desktop", "phone", "live-desktop", "inquiry-forward", "edge", "seo", "coming-soon-desktop", "coming-soon-phone", "admin", "harden"
+  |     at Object.filterProjects (D:\mop-build\rerun\app\node_modules\playwright\lib\runner\index.js:2170:11)
+  |     at runTests (D:\mop-build\rerun\app\node_modules\playwright\lib\cli\testActions.js:61:30)
+  |     at _Command.<anonymous> (D:\mop-build\rerun\app\node_modules\playwright\lib\program.js:55:7)
+--- [22/83] B7 step 14 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | Error: Project(s) "tests/e2e/admin-full-path.spec.ts" not found. Available projects: "desktop", "phone", "live-desktop", "inquiry-forward", "edge", "seo", "coming-soon-desktop", "coming-soon-phone", "admin", "harden"
+  |     at Object.filterProjects (D:\mop-build\rerun\app\node_modules\playwright\lib\runner\index.js:2170:11)
+  |     at runTests (D:\mop-build\rerun\app\node_modules\playwright\lib\cli\testActions.js:61:30)
+  |     at _Command.<anonymous> (D:\mop-build\rerun\app\node_modules\playwright\lib\program.js:55:7)
+--- [23/83] B7 step 15 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | Error: Project(s) "tests/e2e/admin-full-path.spec.ts" not found. Available projects: "desktop", "phone", "live-desktop", "inquiry-forward", "edge", "seo", "coming-soon-desktop", "coming-soon-phone", "admin", "harden"
+  |     at Object.filterProjects (D:\mop-build\rerun\app\node_modules\playwright\lib\runner\index.js:2170:11)
+  |     at runTests (D:\mop-build\rerun\app\node_modules\playwright\lib\cli\testActions.js:61:30)
+  |     at _Command.<anonymous> (D:\mop-build\rerun\app\node_modules\playwright\lib\program.js:55:7)
+--- [24/83] B7 step 15a (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | Error: Project(s) "tests/e2e/admin-full-path.spec.ts" not found. Available projects: "desktop", "phone", "live-desktop", "inquiry-forward", "edge", "seo", "coming-soon-desktop", "coming-soon-phone", "admin", "harden"
+  |     at Object.filterProjects (D:\mop-build\rerun\app\node_modules\playwright\lib\runner\index.js:2170:11)
+  |     at runTests (D:\mop-build\rerun\app\node_modules\playwright\lib\cli\testActions.js:61:30)
+  |     at _Command.<anonymous> (D:\mop-build\rerun\app\node_modules\playwright\lib\program.js:55:7)
+--- [25/83] B7 step 16 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | Error: Project(s) "tests/e2e/admin-full-path.spec.ts" not found. Available projects: "desktop", "phone", "live-desktop", "inquiry-forward", "edge", "seo", "coming-soon-desktop", "coming-soon-phone", "admin", "harden"
+  |     at Object.filterProjects (D:\mop-build\rerun\app\node_modules\playwright\lib\runner\index.js:2170:11)
+  |     at runTests (D:\mop-build\rerun\app\node_modules\playwright\lib\cli\testActions.js:61:30)
+  |     at _Command.<anonymous> (D:\mop-build\rerun\app\node_modules\playwright\lib\program.js:55:7)
+--- [26/83] B8 step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run src/admin/jobs tests/unit/admin-nav.test.ts
+exit: 0
+seconds: 3
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  2 passed (2)
+  | 
+  |       Tests  29 passed (29)
+  | 
+  |    Start at  03:57:56
+  | 
+  |    Duration  2.33s (tests 40%, environment 32%, transform 14%, import 9%, setup 5%)
+  | 
+  | 
+--- [27/83] B8 step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run src/admin/jobs tests/unit/admin-nav.test.ts
+exit: 0
+seconds: 3
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  2 passed (2)
+  |       Tests  29 passed (29)
+  | 
+  |    Start at  03:57:59
+  | 
+  |    Duration  2.39s (tests 41%, environment 31%, transform 14%, import 8%, setup 5%)
+  | 
+  | 
+--- [28/83] B8 step 10a (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/jobs/takedown-media.test.ts
+exit: 0
+seconds: 2
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  7 passed (7)
+  |    Start at  03:58:02
+  | 
+  |    Duration  1.74s (transform 56%, import 41%, tests 2%)
+  | 
+  | 
+--- [29/83] B8b step 6 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run src/admin/automation/recipes
+exit: 0
+seconds: 4
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  17 passed (17)
+  | 
+  |    Start at  03:58:04
+  | 
+  |    Duration  3.70s (tests 64%, environment 21%, transform 6%, import 5%, setup 3%)
+  | 
+  | 
+--- [30/83] B8b step 7 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run src/admin/automation/recipes
+exit: 0
+seconds: 5
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  17 passed (17)
+  | 
+  |    Start at  03:58:09
+  | 
+  |    Duration  3.90s (tests 63%, environment 21%, transform 7%, import 5%, setup 3%)
+  | 
+  | 
+--- [31/83] B8b step 8 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run src/admin/automation/emails
+exit: 0
+seconds: 4
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  20 passed (20)
+  | 
+  |    Start at  03:58:13
+  | 
+  |    Duration  3.44s (tests 63%, environment 22%, transform 6%, import 5%, setup 4%)
+  | 
+  | 
+--- [32/83] B8b step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run src/admin/automation/reasons src/admin/automation/settings src/admin/settings/FlagsSection
+exit: 0
+seconds: 4
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  3 passed (3)
+  | 
+  |       Tests  29 passed (29)
+  | 
+  |    Start at  03:58:17
+  | 
+  |    Duration  3.73s (tests 44%, environment 35%, import 9%, transform 6%, setup 6%)
+  | 
+  | 
+--- [33/83] B8b step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run src/admin/automation/revisions
+exit: 0
+seconds: 3
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  8 passed (8)
+  | 
+  |    Start at  03:58:21
+  | 
+  |    Duration  2.22s (tests 41%, environment 35%, transform 11%, import 8%, setup 6%)
+  | 
+  | 
+--- [34/83] B9 step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/authz.matrix.test.ts tests/unit/admin-routes-parity.test.ts
+exit: 0
+seconds: 4
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  2 passed (2)
+  | 
+  |       Tests  24 passed (24)
+  | 
+  |    Start at  03:58:24
+  | 
+  |    Duration  3.33s (tests 82%, transform 10%, import 7%)
+  | 
+  | 
+--- [35/83] B9 step 11 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run --project component src/admin/assets src/admin/properties/RerenderAssetsButton.test.tsx
+exit: 0
+seconds: 3
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  3 passed (3)
+  | 
+  |       Tests  21 passed (21)
+  | 
+  |    Start at  03:58:28
+  | 
+  |    Duration  2.43s (environment 56%, tests 20%, transform 9%, setup 8%, import 7%)
+  | 
+  | 
+--- [36/83] B10 step 0 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run check
+exit: 0
+seconds: 330
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  355 passed (355)
+  | 
+  |       Tests  4314 passed (4314)
+  |    Start at  04:01:40
+  | 
+  |    Duration  140.52s (tests 45%, import 28%, environment 18%, transform 5%, setup 3%, worker 1%)
+  | 
+  | 
+--- [37/83] B10 step 3 (plan)
+cwd: D:/mop-build/rerun/app
+command: tests/fixtures/graph/
+exit: 126
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | /usr/bin/bash: line 2: tests/fixtures/graph/: Is a directory
+--- [38/83] B10 step 4 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/channels/window.test.ts tests/unit/channels/approval.test.ts tests/unit/channels/meta-errors.test.ts tests/unit/channels/meta-metrics.test.ts tests/unit/channels/meta-token.test.ts tests/unit/channels/enable-guard.test.ts tests/unit/assets/service.test.ts
+exit: 0
+seconds: 4
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  7 passed (7)
+  | 
+  |       Tests  54 passed (54)
+  |    Start at  04:04:02
+  | 
+  |    Duration  3.72s (tests 46%, transform 35%, import 16%, setup 2%, worker 1%)
+  | 
+  | 
+--- [39/83] B10 step 5 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/channels/meta.test.ts
+exit: 0
+seconds: 1
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  34 passed (34)
+  | 
+  |    Start at  04:04:06
+  | 
+  |    Duration  651ms (transform 52%, tests 28%, import 18%, setup 1%, worker 1%)
+  | 
+  | 
+--- [40/83] B10 step 5a (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/channels/x.test.ts tests/unit/channels/x-errors.test.ts tests/unit/channels/linkedin.test.ts tests/unit/channels/linkedin-errors.test.ts tests/unit/channels/disabled-blocks.test.ts tests/unit/channels/oauth-tokens.test.ts
+exit: 0
+seconds: 1
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  6 passed (6)
+  | 
+  |       Tests  54 passed (54)
+  | 
+  |    Start at  04:04:07
+  | 
+  |    Duration  745ms (transform 52%, import 25%, tests 17%, setup 3%, worker 2%)
+  | 
+  | 
+--- [41/83] B10 step 6 (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c 'channels.css' src/styles/admin/index.css
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 1
+--- [42/83] B10 step 8 (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c 'channels.css' src/styles/admin/index.css
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 1
+--- [43/83] B10 step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: grep -c 'reports.css' src/styles/admin/index.css
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 1
+--- [44/83] B10 step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run scripts/auto-approve-rehearsal.ts --target dev
+exit: 0
+seconds: 59
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | lock mop-dev-tests held
+  | 
+  | approved ea5dc1f5-8cf9-402c-8315-527999e99979
+  | 
+  | not_eligible 05f5df39-7ddf-45fb-b406-6a50355f23d2 tier_manual
+  | 
+  | social_posts instagram scheduled
+--- [45/83] B11 step 1 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run db:psql -- -c "select count(*) from subscribers where confirmed_at is not null;"
+exit: 1
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | $ bun scripts/psql-dev.mjs -c "select count(*) from subscribers where confirmed_at is not null;"
+  | 
+  | Executable not found in $PATH: "psql"
+  | 
+  | error: script "db:psql" exited with code 1
+--- [46/83] B11 step 2 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/newsletter/send.test.ts -t adapter
+exit: 0
+seconds: 2
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  20 passed | 18 skipped (38)
+  | 
+  |    Start at  04:05:09
+  | 
+  |    Duration  1.67s (transform 54%, import 42%, tests 4%)
+  | 
+  | 
+--- [47/83] B11 step 3 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/newsletter/assemble.test.ts tests/unit/newsletter/subject.test.ts tests/unit/newsletter/queue-digest.test.ts tests/unit/newsletter/digest-notify.test.ts && bunx vitest run tests/unit/email
+exit: 0
+seconds: 6
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  13 passed (13)
+  | 
+  |       Tests  287 passed (287)
+  | 
+  |    Start at  04:05:13
+  | 
+  |    Duration  3.31s (import 59%, transform 22%, tests 17%, setup 1%, worker 1%)
+  | 
+  | 
+--- [48/83] B11 step 4 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run check
+exit: 0
+seconds: 326
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  355 passed (355)
+  | 
+  |       Tests  4314 passed (4314)
+  | 
+  |    Start at  04:08:15
+  | 
+  |    Duration  147.01s (tests 44%, import 29%, environment 18%, transform 5%, setup 3%, worker 1%)
+  | 
+  | 
+--- [49/83] B11 step 5 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/newsletter/render.test.ts tests/unit/newsletter/utm.test.ts
+exit: 0
+seconds: 2
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  2 passed (2)
+  | 
+  |       Tests  21 passed (21)
+  | 
+  |    Start at  04:10:43
+  | 
+  |    Duration  1.15s (import 65%, transform 26%, tests 7%, setup 1%, worker 1%)
+  | 
+  | 
+--- [50/83] B11 step 6 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/newsletter/quota.test.ts tests/unit/newsletter/send.test.ts tests/unit/newsletter/service.test.ts tests/unit/newsletter/metrics.test.ts tests/unit/newsletter/audience.test.ts tests/unit/newsletter/market-open-notice.test.ts tests/unit/jobs/reconcile.test.ts
+exit: 0
+seconds: 3
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  7 passed (7)
+  | 
+  |       Tests  93 passed (93)
+  | 
+  |    Start at  04:10:45
+  | 
+  |    Duration  2.48s (import 62%, transform 33%, tests 4%, setup 1%)
+  | 
+  | 
+--- [51/83] B11 step 7 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run src/admin/newsletter
+exit: 0
+seconds: 3
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  19 passed (19)
+  | 
+  |    Start at  04:10:48
+  | 
+  |    Duration  2.42s (tests 44%, environment 39%, transform 9%, setup 6%, import 2%)
+  | 
+  | 
+--- [52/83] B11 step 8 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run scripts/newsletter-test-send.ts --make-draft --i-mean-it
+SKIPPED needs quiet (fence rollback-drill|restore-rehearsal|(retention|rotation|inciden)
+--- [53/83] B11 step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/newsletter/standalone.test.ts tests/unit/email
+exit: 0
+seconds: 5
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  14 passed (14)
+  | 
+  |       Tests  307 passed (307)
+  | 
+  |    Start at  04:10:51
+  | 
+  |    Duration  4.01s (import 59%, transform 23%, tests 17%, setup 1%, worker 1%)
+  | 
+  | 
+--- [54/83] B11 step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: select type from events where type = 'digest.due' order by at desc limit 1;
+exit: 2
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | /usr/bin/bash: -c: line 2: syntax error near unexpected token `from'
+  | /usr/bin/bash: -c: line 2: `select type from events where type = 'digest.due' order by at desc limit 1;'
+--- [55/83] B11 step 11 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/newsletter/hygiene.test.ts
+exit: 0
+seconds: 2
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  12 passed (12)
+  | 
+  |    Start at  04:10:56
+  | 
+  |    Duration  1.69s (transform 55%, import 41%, tests 3%)
+  | 
+  | 
+--- [56/83] B11 step 12 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/newsletter/preview.test.ts
+exit: 0
+seconds: 2
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  9 passed (9)
+  | 
+  |    Start at  04:10:58
+  | 
+  |    Duration  1.75s (transform 54%, import 40%, tests 5%)
+  | 
+  | 
+--- [57/83] B11 step 13 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/kpi && bunx vitest run --project db tests/db/kpi.db.test.ts
+exit: 0
+seconds: 30
+  |    Duration  1.79s (transform 53%, import 39%, tests 7%, setup 1%, worker 1%)
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  6 passed (6)
+  | 
+  |    Start at  04:11:03
+  | 
+  |    Duration  26.79s (tests 100%)
+  | 
+  | 
+--- [58/83] B13 step 8 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/check-seo.test.ts
+exit: 0
+seconds: 1
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  30 passed (30)
+  | 
+  |    Start at  04:11:30
+  | 
+  |    Duration  515ms (transform 58%, tests 21%, import 18%, setup 2%, worker 1%)
+  | 
+  | 
+--- [59/83] B13 step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/check-seo.test.ts
+exit: 0
+seconds: 1
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  30 passed (30)
+  | 
+  |    Start at  04:11:31
+  | 
+  |    Duration  523ms (transform 59%, tests 19%, import 19%, setup 2%, worker 1%)
+  | 
+  | 
+--- [60/83] B13 step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/consent.test.ts
+exit: 0
+seconds: 2
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  33 passed (33)
+  | 
+  |    Start at  04:11:33
+  | 
+  |    Duration  1.47s (environment 61%, tests 16%, import 16%, transform 7%, setup 1%)
+  | 
+  | 
+--- [61/83] B13 step 11 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/state.test.ts
+exit: 0
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  20 passed (20)
+  | 
+  |    Start at  04:11:35
+  | 
+  |    Duration  442ms (tests 64%, transform 25%, import 7%, setup 3%, worker 1%)
+  | 
+  | 
+--- [62/83] B13 step 12 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/seo-cache.test.ts
+exit: 0
+seconds: 2
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  14 passed (14)
+  | 
+  |    Start at  04:11:36
+  | 
+  |    Duration  1.20s (tests 89%, transform 8%, import 2%, setup 1%)
+  | 
+  | 
+--- [63/83] B13 step 13 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run check
+exit: 0
+seconds: 391
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  355 passed (355)
+  | 
+  |       Tests  4314 passed (4314)
+  | 
+  |    Start at  04:15:20
+  | 
+  |    Duration  167.27s (tests 44%, import 28%, environment 20%, transform 5%, setup 4%, worker 1%)
+  | 
+  | 
+--- [64/83] B14 step 4 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/audit/service.test.ts tests/unit/audit/routes.test.ts tests/unit/audit/not-found-log.test.ts tests/unit/audit/usage.test.ts tests/unit/pipeline.test.ts tests/unit/authz.matrix.test.ts tests/unit/admin-routes-parity.test.ts
+exit: 0
+seconds: 5
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  7 passed (7)
+  | 
+  |       Tests  146 passed (146)
+  | 
+  |    Start at  04:18:08
+  | 
+  |    Duration  4.72s (tests 49%, transform 27%, import 21%, setup 2%)
+  | 
+  | 
+--- [65/83] B14 step 5 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/audit/gauges.test.ts tests/unit/audit/security.test.ts
+exit: 0
+seconds: 1
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  2 passed (2)
+  | 
+  |       Tests  34 passed (34)
+  | 
+  |    Start at  04:18:14
+  | 
+  |    Duration  460ms (tests 42%, transform 37%, import 14%, setup 4%, worker 3%)
+  | 
+  | 
+--- [66/83] B16 step 3 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/settings.test.ts tests/unit/site-read-path.test.ts tests/unit/routes-parity.test.ts src/services
+exit: 0
+seconds: 3
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  3 passed (3)
+  | 
+  |       Tests  28 passed (28)
+  | 
+  |    Start at  04:18:15
+  | 
+  |    Duration  2.35s (tests 48%, transform 27%, import 23%, setup 1%)
+  | 
+  | 
+--- [67/83] B16 step 4 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/legal-pages.test.tsx tests/unit/email/site-context.test.ts
+exit: 0
+seconds: 4
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  2 passed (2)
+  | 
+  |       Tests  29 passed (29)
+  | 
+  |    Start at  04:18:18
+  | 
+  |    Duration  3.24s (transform 28%, environment 26%, tests 25%, import 17%, setup 4%)
+  | 
+  | 
+--- [68/83] B16 step 5 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/routes-covered.test.ts
+exit: 0
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  6 passed (6)
+  | 
+  |    Start at  04:18:22
+  | 
+  |    Duration  225ms (transform 49%, import 29%, tests 9%, setup 7%, worker 4%)
+  | 
+  | 
+--- [69/83] B16 step 6 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/privacy-request.test.tsx tests/unit/analytics-allowlist.test.ts
+exit: 0
+seconds: 3
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | Not implemented: Window's scrollTo() method
+  | 
+  | 
+  | 
+  |  Test Files  2 passed (2)
+  |       Tests  13 passed (13)
+  | 
+  |    Start at  04:18:23
+  | 
+  |    Duration  2.15s (environment 36%, tests 26%, transform 18%, import 14%, setup 6%)
+  | 
+  | 
+--- [70/83] B16 step 7 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/organization-jsonld.test.ts
+exit: 0
+seconds: 1
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  7 passed (7)
+  | 
+  |    Start at  04:18:26
+  | 
+  |    Duration  226ms (transform 59%, import 23%, setup 7%, tests 7%, worker 4%)
+  | 
+  | 
+--- [71/83] B16 step 8 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run check && bun run build
+exit: 0
+seconds: 478
+  | .output/server/_ssr/C2RnWDZf2.mjs                      865.07 kB │ gzip: 223.89 kB
+  | 
+  | 
+  | ✓ built in 2.38s
+  | 
+  | ℹ Generated .output/server/wrangler.json
+  | 
+  | ℹ Generated .wrangler/deploy/config.json
+  | 
+  | [nitro] ℹ Adding Nitro fallback to _headers to handle all unmatched routes.
+  | 
+  | ℹ Generated .output/public/_headers
+  | 
+  | ℹ Generated .output/nitro.json
+  | 
+  | 
+  | 
+  | [nitro] ✔ You can preview this build using npx vite preview
+  | 
+  | [nitro] ✔ You can deploy this build using npx nitro deploy --prebuilt
+--- [72/83] B17 step 8 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/essentials.test.ts -t site-layout
+exit: 0
+seconds: 9
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  2 passed | 84 skipped (86)
+  | 
+  |    Start at  04:26:25
+  | 
+  |    Duration  7.79s (transform 56%, import 39%, tests 5%)
+  | 
+  | 
+--- [73/83] B17 step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/essentials.test.ts -t site-layout
+exit: 0
+seconds: 8
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  | 
+  |       Tests  2 passed | 84 skipped (86)
+  | 
+  |    Start at  04:26:33
+  | 
+  |    Duration  7.52s (transform 55%, import 39%, tests 5%)
+  | 
+  | 
+--- [74/83] B17 step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: curl -sI <preview>/ | grep -i "content-security-policy:"
+SKIPPED needs quiet (fence <[^>\s]+>|^workflow_dispatch$)
+--- [75/83] B17 step 12 (?)
+cwd: D:/mop-build/rerun/app
+command: 
+NO COMMAND (no command found)
+--- [76/83] H1 step 4 (plan)
+cwd: D:/mop-build/rerun/app
+command: workflow_dispatch
+SKIPPED needs quiet (fence <[^>\s]+>|^workflow_dispatch$)
+--- [77/83] H1 step 5 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx playwright test --project=harden tests/e2e/states.spec.ts
+exit: 1
+seconds: 58
+  |       17 |   );
+  |         at openHome (D:\mop-build\rerun\app\tests\e2e\states.spec.ts:14:80)
+  |         at D:\mop-build\rerun\app\tests\e2e\states.spec.ts:68:3
+  | 
+  |     Error Context: test-results\states-states-a-read-that--4c118-ding-skeleton-then-the-page-harden\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\states-states-a-read-that--4c118-ding-skeleton-then-the-page-harden\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\states-states-a-read-that--4c118-ding-skeleton-then-the-page-harden\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   3 failed
+  |     [harden] › tests\e2e\states.spec.ts:44:1 › states: a failed read shows the request id of the response header, not the body's 
+  |     [harden] › tests\e2e\states.spec.ts:55:1 › states: a failed read without the header shows the request id of the body 
+  |     [harden] › tests\e2e\states.spec.ts:65:1 › states: a read that takes two seconds shows the loading skeleton, then the page 
+  |   2 passed (55.9s)
+--- [78/83] H1 step 6 (plan)
+cwd: D:/mop-build/rerun/app
+command: bash scripts/harden/restore-rehearsal.sh <key path>
+SKIPPED needs quiet (fence rollback-drill|restore-rehearsal|(retention|rotation|inciden)
+--- [79/83] H1 step 6b (plan)
+cwd: D:/mop-build/rerun/app
+command: node scripts/harden/run-all.mjs --env dev --only H1-21b
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | | ID | Item | Result | Evidence |
+  | |---|---|---|---|
+  | 
+  | | H1-21b | Restore into a Supabase project rehearsed on real Supabase (before the launch switch only) | blocked | BLOCKED until the operator gives the path of the escrowed backup key in HARDEN_RESTORE_KEY |
+  | 
+  | 
+  | blocked 1
+--- [80/83] H1 step 7 (plan)
+cwd: D:/mop-build/rerun/app
+command: bash scripts/harden/rollback-drill.sh
+SKIPPED needs quiet (fence rollback-drill|restore-rehearsal|(retention|rotation|inciden)
+--- [81/83] H1 step 8 (plan)
+cwd: D:/mop-build/rerun/app
+command: node scripts/harden/run-all.mjs --env dev --only H1-40
+exit: 0
+seconds: 117
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | | ID | Item | Result | Evidence |
+  | |---|---|---|---|
+  | 
+  | | H1-40 | Caching contract: memory layer, edge layer and database call count (local Worker) | pass | cache-control ok (9 rows) |
+  | 
+  | 
+  | pass 1
+--- [82/83] H1 step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: node scripts/harden/runbook-lint.mjs docs/runbooks
+exit: 0
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | runbooks ok
+--- [83/83] H1 step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: node scripts/harden/run-all.mjs --env prod-config --report
+SKIPPED needs quiet (fence \brun-all\.mjs\b(?![^\n]*--only))
+
+==== SUMMARY 2026-10-11T01:29:36.527Z ====
+| slice | step | result |
+| --- | --- | --- |
+| B6 | 1 | pass |
+| B6 | 2 | pass |
+| B6 | 3 | pass |
+| B6 | 4 | pass |
+| B6 | 5 | pass |
+| B6 | 6 | fail |
+| B6 | 7 | pass |
+| B6 | 8 | pass |
+| B6 | 9 | fail |
+| B7 | 5 | pass |
+| B7 | 5a | pass |
+| B7 | 6 | pass |
+| B7 | 7 | pass |
+| B7 | 7a | pass |
+| B7 | 8 | pass |
+| B7 | 9 | pass |
+| B7 | 10 | pass |
+| B7 | 11 | fail |
+| B7 | 11a | fail |
+| B7 | 12 | fail |
+| B7 | 13 | fail |
+| B7 | 14 | fail |
+| B7 | 15 | fail |
+| B7 | 15a | fail |
+| B7 | 16 | fail |
+| B8 | 9 | pass |
+| B8 | 10 | pass |
+| B8 | 10a | pass |
+| B8b | 6 | pass |
+| B8b | 7 | pass |
+| B8b | 8 | pass |
+| B8b | 9 | pass |
+| B8b | 10 | pass |
+| B9 | 10 | pass |
+| B9 | 11 | pass |
+| B10 | 0 | pass |
+| B10 | 3 | fail |
+| B10 | 4 | pass |
+| B10 | 5 | pass |
+| B10 | 5a | pass |
+| B10 | 6 | pass |
+| B10 | 8 | pass |
+| B10 | 9 | pass |
+| B10 | 10 | pass |
+| B11 | 1 | fail |
+| B11 | 2 | pass |
+| B11 | 3 | pass |
+| B11 | 4 | pass |
+| B11 | 5 | pass |
+| B11 | 6 | pass |
+| B11 | 7 | pass |
+| B11 | 8 | skipped |
+| B11 | 9 | pass |
+| B11 | 10 | fail |
+| B11 | 11 | pass |
+| B11 | 12 | pass |
+| B11 | 13 | pass |
+| B13 | 8 | pass |
+| B13 | 9 | pass |
+| B13 | 10 | pass |
+| B13 | 11 | pass |
+| B13 | 12 | pass |
+| B13 | 13 | pass |
+| B14 | 4 | pass |
+| B14 | 5 | pass |
+| B16 | 3 | pass |
+| B16 | 4 | pass |
+| B16 | 5 | pass |
+| B16 | 6 | pass |
+| B16 | 7 | pass |
+| B16 | 8 | pass |
+| B17 | 8 | pass |
+| B17 | 9 | pass |
+| B17 | 10 | skipped |
+| B17 | 12 | skipped |
+| H1 | 4 | skipped |
+| H1 | 5 | fail |
+| H1 | 6 | skipped |
+| H1 | 6b | pass |
+| H1 | 7 | skipped |
+| H1 | 8 | pass |
+| H1 | 9 | pass |
+| H1 | 10 | skipped |
+steps: 83 | pass 62 | fail 14 | skipped 7
+==== END ====
