@@ -229,7 +229,18 @@ export function describeProbe(result) {
   ];
 }
 
+/**
+ * The lines the command line prints. With no `--url` and no SITE_URL there is no base to probe, so nothing is
+ * requested and the answer is the same `Not measured` line the other tools print (it exits 0, like them).
+ * @param {import("./common.mjs").Context} ctx
+ * @returns {Promise<string[]>}
+ */
+export async function commandLines(ctx) {
+  if (ctx.siteUrl === "") return ["Not measured: cache (SITE_URL unset, pass --url)"];
+  return describeProbe(await probe(ctx));
+}
+
 if (isMain(import.meta.url)) {
-  const lines = describeProbe(await probe(contextFromArgs()));
+  const lines = await commandLines(contextFromArgs());
   process.stdout.write(`${lines.join("\n")}\n`);
 }

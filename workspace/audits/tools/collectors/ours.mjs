@@ -18,7 +18,7 @@ import {
  */
 
 /** `cf:preview` against mop-dev, the `--env dev` target (F14). */
-export const DEV_BASE_URL = "http://127.0.0.1:8788";
+const DEV_BASE_URL = "http://127.0.0.1:8788";
 const USAGE_PATH = "/api/admin/audit/usage";
 
 /**
@@ -62,7 +62,7 @@ export function agentCli(argv = process.argv.slice(2)) {
  * @param {string} path
  * @returns {Promise<{ json: unknown } | { reason: string }>}
  */
-export async function agentGet(ctx, target, path) {
+async function agentGet(ctx, target, path) {
   if (target.key === "") return { reason: `${target.keyName} unset` };
   if (target.baseUrl === "") return { reason: "SITE_URL unset" };
   const answer = await getJson(ctx.fetchImpl, `${target.baseUrl}${path}`, {

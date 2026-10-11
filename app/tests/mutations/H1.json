@@ -300,9 +300,9 @@
     "id": "h1g7-ee-no-health-event",
     "kind": "manual",
     "test": "scripts/harden/health-drill.ts",
-    "file": "scripts/harden/health-drill.ts",
-    "find": "where type = 'health.failed' and at",
-    "replace": "where type = 'health.failedx' and at",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "where e.type = 'health.failed'",
+    "replace": "where e.type = 'health.failedx'",
     "run": "with the dev profile loaded, bun run scripts/harden/health-drill.ts (a stand-in for watched-fail (ee): the deployed job runner is not mutated, so the drill reads an event type nobody emits)",
     "expect": "health drill: no health.failed event was written"
   },

@@ -12,6 +12,7 @@
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import pg from "pg";
+import { pgClientConfig } from "../lib/pg-connect.mjs";
 import { z } from "zod";
 import {
   rlsMatrix,
@@ -135,7 +136,7 @@ function listing({ tables, policies }: Review): string[] {
 }
 
 async function read(dbUrl: string): Promise<Review> {
-  const client = new pg.Client({ connectionString: dbUrl });
+  const client = new pg.Client(pgClientConfig(dbUrl));
   await client.connect();
   try {
     await client.query("begin");

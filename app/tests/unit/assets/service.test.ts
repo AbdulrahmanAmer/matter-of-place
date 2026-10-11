@@ -322,6 +322,25 @@ describe("editCaption", () => {
       rpc: ["set_asset_caption"],
     });
   });
+
+  it("answers 409 wrong_state when set_asset_caption refuses an asset that is no longer pending", async () => {
+    // F3: the SQL function raises `wrong_state` (55000) once the asset is approved; the service passes it through.
+    const refusal = Object.assign(new Error("wrong_state"), { code: "55000" });
+    const db = withTables(fakeDb({ rpc: { set_asset_caption: () => refusal } }), {
+      assets: [assetRow({ status: "approved" })],
+      properties: [propertyRow()],
+    });
+    const answer = await outcome(
+      editCaption(mediaOps, db, {
+        id: ASSET_ID,
+        captions: { instagram: "Five bedrooms on a quiet street in Los Altos Hills." },
+      }),
+    );
+    expect({ answer, rpc: rpcCalls(db).map((call) => call.name) }).toEqual({
+      answer: { status: 409, code: "wrong_state" },
+      rpc: ["set_asset_caption"],
+    });
+  });
 });
 
 describe("approveAsset and rejectAsset", () => {

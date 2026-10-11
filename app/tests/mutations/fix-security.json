@@ -1,0 +1,74 @@
+[
+  {
+    "id": "fix-sec-f1-target-desk",
+    "test": "tests/unit/legacy-markets.test.ts",
+    "file": "src/lib/legacy-markets.ts",
+    "find": "return `/${segments.join(\"/\")}`;",
+    "replace": "return `/${segments[0] ?? \"\"}`;",
+    "run": "bunx vitest run --project unit tests/unit/legacy-markets.test.ts",
+    "expect": "FAIL .*legacyMarketTarget > moves a desk address"
+  },
+  {
+    "id": "fix-sec-f1-target-origin",
+    "test": "tests/unit/legacy-markets.test.ts",
+    "file": "src/lib/legacy-markets.ts",
+    "find": ".filter((segment) => segment !== \"\")",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/legacy-markets.test.ts",
+    "expect": "FAIL .*legacyMarketTarget > never leaves the origin for the splat"
+  },
+  {
+    "id": "fix-sec-f1-target-dots",
+    "test": "tests/unit/legacy-markets.test.ts",
+    "file": "src/lib/legacy-markets.ts",
+    "find": "segment === \".\" || segment === \"..\" || CONTROL.test(segment)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/legacy-markets.test.ts",
+    "expect": "FAIL .*legacyMarketTarget > sends a dot segment or a control character"
+  },
+  {
+    "id": "fix-sec-f1-route-status",
+    "test": "tests/unit/legacy-markets.test.ts",
+    "file": "src/routes/_site.markets.$.tsx",
+    "find": "statusCode: 301",
+    "replace": "statusCode: 302",
+    "run": "bunx vitest run --project unit tests/unit/legacy-markets.test.ts",
+    "expect": "FAIL .*the /markets/\\* route > redirects a desk address permanently"
+  },
+  {
+    "id": "fix-sec-f1-route-origin",
+    "test": "tests/unit/legacy-markets.test.ts",
+    "file": "src/routes/_site.markets.$.tsx",
+    "find": "legacyMarketTarget(params._splat)",
+    "replace": "`/${params._splat ?? \"\"}`",
+    "run": "bunx vitest run --project unit tests/unit/legacy-markets.test.ts",
+    "expect": "FAIL .*the /markets/\\* route > redirects /markets/%5Cevil.example to a path on this origin"
+  },
+  {
+    "id": "fix-sec-f2-budget",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/search-match.ts",
+    "find": "amount * 1e6;",
+    "replace": "amount * 1e5;",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "FAIL .*matchProperties > reads a budget through a dollar sign"
+  },
+  {
+    "id": "fix-sec-f2-collapse",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/search-match.ts",
+    "find": "query.replace(/\\s+/g, \" \").trim()",
+    "replace": "query",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "FAIL .*matchProperties > reads runs of whitespace as one space"
+  },
+  {
+    "id": "fix-sec-f2-bounded",
+    "test": "tests/unit/search-match.test.ts",
+    "file": "src/lib/search-match.ts",
+    "find": "const text = query.replace(/\\s+/g, \" \").trim();",
+    "replace": "const text = query;\n  for (let card = 0; card < 40; card += 1) /(?:under|below|up to|max(?:imum)?|budget(?: of)?|less than)?\\s*\\$?\\s*(\\d+(?:\\.\\d+)?)\\s*(m|million|k)\\b/i.exec(text);",
+    "run": "bunx vitest run --project unit tests/unit/search-match.test.ts",
+    "expect": "FAIL .*matchProperties > answers a 500-character whitespace query in bounded time"
+  }
+]

@@ -13,8 +13,12 @@ const ALLOWED_FOLDERS = [
   "workspace/audits/",
 ];
 const ALLOWED_FILES = ["GOTCHAS.md"];
-const API_FOLDER = "app/src/routes/api";
-const API_FLAT_PREFIX = "app/src/routes/api.";
+const ROUTES = "app/src/routes/";
+/**
+ * A route file serves /api/* when any segment of its path under routes/ is the folder `api`, or a file or folder
+ * `api.x`, `api_.x` (the trailing underscore un-nests the route) or `api[.]x`, also inside a `(group)` folder.
+ */
+const API_SEGMENT = /^api(?:$|[._[])/;
 
 /**
  * @param {string} path a path as `git diff --name-only` prints it
@@ -26,8 +30,9 @@ export function isAllowed(path) {
     return false;
   }
   if ((segments.at(-1) ?? "").startsWith(".env")) return false;
-  if (path === API_FOLDER || path.startsWith(`${API_FOLDER}/`)) return false;
-  if (path.startsWith(API_FLAT_PREFIX)) return false;
+  if (path.startsWith(ROUTES) && segments.slice(3).some((segment) => API_SEGMENT.test(segment))) {
+    return false;
+  }
   return ALLOWED_FILES.includes(path) || ALLOWED_FOLDERS.some((folder) => path.startsWith(folder));
 }
 
@@ -45,7 +50,7 @@ export function refusedPaths(paths) {
  * @param {string} head
  * @returns {string[]}
  */
-export function changedPaths(base, head) {
+function changedPaths(base, head) {
   const result = spawnSync(
     "git",
     ["diff", "--name-only", "--no-renames", "-z", `${base}...${head}`],

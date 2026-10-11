@@ -1,0 +1,52 @@
+[
+  {
+    "id": "fdi-a-ids-deno",
+    "kind": "file",
+    "test": "deno check --frozen --config supabase/functions/job-runner/deno.json src/server/lib/ids.ts src/server/lib/ratelimit.ts",
+    "file": "src/server/lib/ids.ts",
+    "find": "import { randomToken, sha256Hex } from \"./crypto.ts\";",
+    "replace": "import { randomToken, sha256Hex } from \"./crypto\";",
+    "run": "deno check --frozen --config supabase/functions/job-runner/deno.json src/server/lib/ids.ts src/server/lib/ratelimit.ts",
+    "expect": "TS2307 \\[ERROR\\]: Cannot find module '[^']*lib/crypto'\\. Maybe add a '\\.ts' extension"
+  },
+  {
+    "id": "fdi-b-ratelimit-deno",
+    "kind": "file",
+    "test": "deno check --frozen --config supabase/functions/job-runner/deno.json src/server/lib/ids.ts src/server/lib/ratelimit.ts",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "import type { Db } from \"./db.ts\";",
+    "replace": "import type { Db } from \"./db\";",
+    "run": "deno check --frozen --config supabase/functions/job-runner/deno.json src/server/lib/ids.ts src/server/lib/ratelimit.ts",
+    "expect": "TS2307 \\[ERROR\\]: Cannot find module '[^']*lib/db'\\. Maybe add a '\\.ts' extension"
+  },
+  {
+    "id": "fdi-c-ids-lint",
+    "kind": "file",
+    "test": "eslint.config.js",
+    "file": "src/server/lib/ids.ts",
+    "find": "import { randomToken, sha256Hex } from \"./crypto.ts\";",
+    "replace": "import { randomToken, sha256Hex } from \"./crypto\";",
+    "run": "bunx eslint --max-warnings 0 src/server/lib/ids.ts",
+    "expect": "Deno-loaded file: import with the \\.ts extension"
+  },
+  {
+    "id": "fdi-d-ratelimit-lint",
+    "kind": "file",
+    "test": "eslint.config.js",
+    "file": "src/server/lib/ratelimit.ts",
+    "find": "import type { Db } from \"./db.ts\";",
+    "replace": "import type { Db } from \"./db\";",
+    "run": "bunx eslint --max-warnings 0 src/server/lib/ratelimit.ts",
+    "expect": "Deno-loaded file: import with the \\.ts extension"
+  },
+  {
+    "id": "fdi-e-lint-list-audit",
+    "kind": "file",
+    "test": "eslint.config.js",
+    "file": "src/server/audit/service.ts",
+    "find": "import type { AdminActor } from \"../lib/actor-types.ts\";",
+    "replace": "import type { AdminActor } from \"../lib/actor-types\";",
+    "run": "bunx eslint --max-warnings 0 src/server/audit/service.ts",
+    "expect": "Deno-loaded file: import with the \\.ts extension"
+  }
+]

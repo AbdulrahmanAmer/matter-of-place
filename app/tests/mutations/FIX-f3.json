@@ -1,0 +1,19 @@
+[
+  {
+    "id": "f3-db-caption-pending-only",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.set_asset_caption(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_captions jsonb default null,\n  p_alt_text text default null,\n  p_request_id text default null\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_job record;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Security scan F3: the social publisher reads the caption of the live row and treats a human approval of the\n  -- asset as still valid, so a caption or alt text may change only while the asset waits for that approval.\n  if false then\n    raise exception 'wrong_state' using errcode = '55000';\n  end if;\n\n  -- The caption column mirrors captions.instagram. The service has already linted every edited variant, and\n  -- caption_lint = 'edited' tells write_captions never to overwrite what an editor typed (H34 (5)).\n  update public.assets\n  set caption = coalesce(p_captions ->> 'instagram', caption),\n    alt_text = coalesce(p_alt_text, alt_text),\n    meta = meta\n      || jsonb_build_object('caption_lint', 'edited')\n      || case\n        when p_captions is null then '{}'::jsonb\n        else jsonb_build_object('captions', coalesce(meta -> 'captions', '{}'::jsonb) || p_captions)\n      end\n  where id = p_asset;\n\n  -- H34 (5): nothing downstream waits on the laptop. A queued write_captions job of this property is done; a running\n  -- one is the runner's and stays running.\n  for v_job in\n    select j.id, j.attempts, j.heavy, j.msg_id\n    from public.jobs j\n    where j.type = 'write_captions'\n      and j.status = 'queued'\n      and j.payload -> 'data' ->> 'property_id' = v_asset.property_id::text\n    for update\n  loop\n    if v_job.msg_id is not null then\n      perform public.job_queue_delete(v_job.heavy, v_job.msg_id);\n    end if;\n    update public.jobs\n    set status = 'done', result = '{\"manual\": true}'::jsonb, finished_at = now(), msg_id = null\n    where id = v_job.id;\n    insert into public.job_events (job_id, kind, from_status, to_status, attempt, actor_id)\n    values (v_job.id, 'done', 'queued', 'done', v_job.attempts, p_actor);\n  end loop;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, request_id)\n  values (p_actor, p_actor_kind, 'assets.caption', 'assets', p_asset, p_request_id);\nend;\n$$;\n\nrevoke execute on function public.set_asset_caption(uuid, uuid, public.actor_kind, jsonb, text, text)\n  from public, anon, authenticated;\ngrant execute on function public.set_asset_caption(uuid, uuid, public.actor_kind, jsonb, text, text)\n  to service_role;\n",
+    "run": "bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/assets.db.test.ts -t \"accepts an edit while the asset is pending and refuses it once a person approved it\"",
+    "expect": "\\+ +\"approved\": null,[\\s\\S]*\\+ +\"caption\": \"second\""
+  },
+  {
+    "id": "f3-unit-caption-wrong-state",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/assets/service.ts",
+    "find": "if (error !== null) throw fromRpcError(error);\n  return { asset_id: id };",
+    "replace": "return { asset_id: id };",
+    "run": "bunx vitest run --project unit tests/unit/assets/service.test.ts -t \"answers 409 wrong_state when set_asset_caption refuses an asset that is no longer pending\"",
+    "expect": "- +\"code\": \"wrong_state\",[\\s\\S]*\\+ +\"asset_id\""
+  }
+]

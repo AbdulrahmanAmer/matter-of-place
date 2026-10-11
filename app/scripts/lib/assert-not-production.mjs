@@ -1,6 +1,7 @@
 // The one production guard (B2 invariant 23, ruling H35 (5)): every destructive or test command calls
 // assertNotProduction before its first write. The stage lives in data, `settings.environment`, never in a project ref.
 import pg from "pg";
+import { pgClientConfig } from "./pg-connect.mjs";
 
 // undefined_table: a fresh or just-emptied database has no `settings` yet, which reads as not production.
 const UNDEFINED_TABLE = "42P01";
@@ -18,7 +19,7 @@ export function isProductionEnvironment(value) {
  * @returns {Promise<string | null>}
  */
 async function readSettingsEnvironment(dbUrl) {
-  const client = new pg.Client({ connectionString: dbUrl });
+  const client = new pg.Client(pgClientConfig(dbUrl));
   await client.connect();
   try {
     /** @type {import("pg").QueryResult<{ value: string | null }>} */

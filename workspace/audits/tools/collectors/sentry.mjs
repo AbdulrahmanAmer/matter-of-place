@@ -5,7 +5,7 @@ import { count, field, getJson, recordsOf } from "../common.mjs";
  * @param {unknown} json
  * @returns {number}
  */
-export const parseSentryStats = (json) =>
+const parseSentryStats = (json) =>
   recordsOf(field(json, "groups")).reduce(
     (sum, group) => sum + count(field(group["totals"], "sum(quantity)")),
     0,

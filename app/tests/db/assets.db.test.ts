@@ -580,6 +580,43 @@ describe("set_asset_caption", () => {
     });
   });
 
+  it("accepts an edit while the asset is pending and refuses it once a person approved it", async () => {
+    const result = await withRollback(async (db) => {
+      const id = await asset(
+        db,
+        await property(db, "test-b9-caption-approved"),
+        "cover",
+        COMPLETE_MEDIA,
+      );
+      const actor = await human(db);
+      const pending = await refusal(db, caption('{"instagram":"first"}'), [id, null, actor]);
+      await db.query(approve(), [id, actor]);
+      const approved = await refusal(db, caption('{"instagram":"second"}'), [
+        id,
+        "Other alt.",
+        actor,
+      ]);
+      const row = (
+        await db.query<Record<string, unknown>>(
+          "select caption, alt_text from public.assets where id = $1",
+          [id],
+        )
+      ).rows[0];
+      const audited = await scalar<number>(
+        db,
+        "select count(*)::int as v from public.audit_log where entity_id = $1 and action = 'assets.caption'",
+        [id],
+      );
+      return { pending, approved, row, audited };
+    });
+    expect(result).toEqual({
+      pending: null,
+      approved: { code: "55000", message: "wrong_state", detail: "" },
+      row: { caption: "first", alt_text: "A house." },
+      audited: 1,
+    });
+  });
+
   it("completes a queued write_captions job of the property and leaves a running one", async () => {
     const result = await withRollback(async (db) => {
       const propertyId = await property(db, "test-b9-caption-job");

@@ -19,6 +19,11 @@ begin
   if not found then
     raise exception 'not_found' using errcode = 'P0002';
   end if;
+  -- Security scan F3: the social publisher reads the caption of the live row and treats a human approval of the
+  -- asset as still valid, so a caption or alt text may change only while the asset waits for that approval.
+  if v_asset.status <> 'pending' then
+    raise exception 'wrong_state' using errcode = '55000';
+  end if;
 
   -- The caption column mirrors captions.instagram. The service has already linted every edited variant, and
   -- caption_lint = 'edited' tells write_captions never to overwrite what an editor typed (H34 (5)).

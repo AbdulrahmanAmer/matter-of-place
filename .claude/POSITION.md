@@ -1573,3 +1573,30 @@ first day of the new usage week; no step was cut from any plan.
   dev processes from 10-08 in orch/app (UNPROVEN killed); worktrees plocal, pv227, pv249, pv250, lhci, seo, b10fix removable.
 - UNPROVEN: full green `bun run check` on slice/h1 locally (PR 258 CI is the proof); restore rehearsal live; H1-40 on the
   corrected bundle in a full run.
+
+## 2026-10-11 03:00 NIGHT, second block (after the 00:35 block)
+- Merged to main since 00:35, in order: 258 (H1 steps 1 to 10, 21a7f3c4), 271 (night position), 272 (F3 caption guard
+  via migration 20261010212354_fn_set_asset_caption.sql + runner deno fix, actor-types.ts), 275 (P-072 hit again), 273 (F1
+  legacyMarketTarget in `app/src/lib/legacy-markets.ts`, F2 search-match reads budget once per request), 274 (F4:
+  `app/scripts/lib/pg-connect.mjs` pgClientConfig with the vendored Supabase CA `supabase-ca.mjs`, 13 scripts; CI deno
+  line for the runner; render.yml DEV_SUPABASE_PROJECT_REF and DEV_SUPABASE_SERVICE_ROLE_KEY), 276 (board phone layout,
+  6cfd3d95), 277 (deno extensionless imports + eslint DENO_FILES), 278 (B14 step 5 and H1 g7 follow-ups, drill-rows.ts,
+  53 watched-fails, 310dca38). All four MEDIUM scan findings are closed on main.
+- Lesson banked (P-072 hit again): a PR whose branch conflicts with main in GOTCHAS.md runs NO CI and `gh pr view` says
+  CONFLICTING; close/reopen and empty pushes do nothing. Fix = merge origin/main into the branch (bank-merge.mjs), push.
+  Every Dell brief now ends with: merge main, prove MERGEABLE, prove `gh pr checks` lists runs.
+- Board (PR 276): sticky wrapping header on phones, tables as labelled cards (`data-label`, `.barcell`), 44px targets,
+  `#slice-<id>` links route to Every step. Proof script `scratchpad/board/shoot.mjs` (Playwright from app/, copy it next
+  to node_modules: module resolution follows the script's folder). Published version 14. Board server restarted on main.
+- Board audit for the operator: B1b 15 of 16 = step 11 (edge rules) waits on L1's domain attach; B17 step 11 likewise.
+  Totals reconcile (lanes 229 of 259 = overall; 0 ledger errors; check-plans OK). Hidden by the board: 83 accepted steps
+  never re-run by the orchestrator (B7 16, B11 13, B6 9, B10 9, H1 8, B13 6, B16 6, B8b 5, B17 4, B8 3, B9 2, B14 2) and
+  open parts inside accepted steps (H1-18, H1-21, H1-24, H1-27, H1-44; B7 step 16 render legs; B14 step 4 numbers).
+  NEXT: a "Loose ends" view fed from one file, and a scripted re-run pass for the 83.
+- H2 on this laptop (wf_efcedca0-2e7, lane E:/mop-build/h2, slice/h2, port 8838, noMerge): g1 (step 1) accepted, g2
+  (step 2 journeys) building at 02:50. Dell: builder fix4 (fix/tests-pg-tls, the 25 pg.Client sites under app/tests)
+  still running; everything else idle. H1-18 reset and reseed still NOT RUN (needs every lane quiet).
+- Left for the orchestrator or the operator by the Dell's follow-up builder (PR 278 log): gsc.mjs AI-overview shape
+  (Search Console account), ci.yml paths-ignore shape (merge-gate.mjs line 54, P-3152), STANDARDS scripts row and stale
+  B14.md lines, audit_health.sql timezone cast (migration, H57), three shared analytics_events rows, CODEOWNERS handle,
+  per-form Turnstile design. Dashboard decision for the operator: Supabase "Enforce SSL" (all scripts and tests now TLS).

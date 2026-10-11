@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import pg from "pg";
+import { pgClientConfig } from "../lib/pg-connect.mjs";
 
 const ENVS = ["dev", "prod-config", "prod"];
 const AGENT_KEY_DAYS = 90;
@@ -61,7 +62,7 @@ async function main(): Promise<number> {
   }
   const dbUrl = process.env["DEV_DB_URL"];
   if (dbUrl === undefined || dbUrl === "") throw new Error("secret-ages: DEV_DB_URL is not set");
-  const client = new pg.Client({ connectionString: dbUrl });
+  const client = new pg.Client(pgClientConfig(dbUrl));
   await client.connect();
   const lines: Line[] = [];
   try {

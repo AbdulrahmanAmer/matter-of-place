@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
+import { pgClientConfig } from "./lib/pg-connect.mjs";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
 import { guardEnv } from "./lib/guard-env.mjs";
 import { oneDatabaseValue } from "./lib/one-database.mjs";
@@ -277,7 +278,7 @@ async function readRows(email, checks) {
 
 /** One locked transaction (G34); B2's hard-delete guard refuses a delete outside `mop.retention`. */
 async function cleanup() {
-  const client = new pg.Client({ connectionString: required("DEV_DB_URL") });
+  const client = new pg.Client(pgClientConfig(required("DEV_DB_URL")));
   await client.connect();
   try {
     await client.query(`select pg_advisory_lock(${LOCK})`);

@@ -4,6 +4,7 @@
 // because sign-ups are closed (E9). A second run reuses the users and issues a new key. The key is printed once.
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
+import { pgClientConfig } from "./lib/pg-connect.mjs";
 import type { Database } from "../src/db/index.ts";
 import { generateKey, hashAgentKey } from "../src/server/lib/agent-keys.ts";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
@@ -103,7 +104,7 @@ async function seed(db: pg.Client): Promise<void> {
 async function main(): Promise<void> {
   guardEnv();
   await assertNotProduction({ dbUrl: process.env["DEV_DB_URL"] });
-  const db = new pg.Client({ connectionString: requiredEnv("DEV_DB_URL") });
+  const db = new pg.Client(pgClientConfig(requiredEnv("DEV_DB_URL")));
   await db.connect();
   try {
     await db.query(`select pg_advisory_lock(${LOCK})`);

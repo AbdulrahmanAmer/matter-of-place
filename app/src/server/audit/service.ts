@@ -2,7 +2,7 @@ import { z } from "zod";
 import { auditListInputSchema, auditRetentionRowSchema } from "../../domain/admin-audit.ts";
 import { collectWeeklyKpis } from "../kpi/collect.ts";
 import { lastFullWeekStart } from "../kpi/definitions.ts";
-import type { AdminActor } from "../lib/admin-route.ts";
+import type { AdminActor } from "../lib/actor-types.ts";
 import { auditContext, listAudit } from "../lib/audit.ts";
 import { authorize } from "../lib/authz.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";

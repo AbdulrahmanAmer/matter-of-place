@@ -236,6 +236,7 @@ async function captionIssues(
 /**
  * `PUT /api/admin/assets/:id/caption`: every edited variant passes `lintCaption` first, so `set_asset_caption` only
  * ever stores passing text and marks it `edited`; it also completes the property's queued `write_captions` job.
+ * Only a pending asset can be edited: `set_asset_caption` raises `wrong_state` (409) once a person has approved it (F3).
  */
 export async function editCaption(
   actor: AdminActor,

@@ -466,7 +466,7 @@ export function render(data, version, snapshot = false) {
   const armRows = data.arms
     .map(
       (arm) =>
-        `<tr><th scope="row">${esc(arm.label)}</th><td>${esc(arm.what)}</td><td class="num">${arm.pieces}</td><td class="num">${arm.ownPercent}%</td><td>${esc(arm.needs.join(", ") || "nothing else")}</td><td class="num">${arm.remaining} of ${arm.total}</td><td class="num">${arm.percent}%</td><td>${bar(arm.accepted, 0, arm.total)}</td></tr>`,
+        `<tr><th scope="row">${esc(arm.label)}</th><td data-label="Covers">${esc(arm.what)}</td><td class="num" data-label="Pieces">${arm.pieces}</td><td class="num" data-label="Own">${arm.ownPercent}%</td><td data-label="Needs">${esc(arm.needs.join(", ") || "nothing else")}</td><td class="num" data-label="To go">${arm.remaining} of ${arm.total}</td><td class="num" data-label="To launch">${arm.percent}%</td><td class="barcell">${bar(arm.accepted, 0, arm.total)}</td></tr>`,
     )
     .join("\n");
   const remainingHours = pace.hoursPerStep === null ? null : Math.round(pace.hoursPerStep * (o.total - o.accepted));
@@ -482,14 +482,14 @@ export function render(data, version, snapshot = false) {
   const laneRows = data.lanes
     .map(
       (l) =>
-        `<tr><th scope="row">${esc(l.phase)}: ${esc(l.lane)}</th><td>${esc(l.parts.join(", "))}</td><td class="num">${l.accepted} of ${l.total}</td><td class="num">${l.inReview}</td><td class="num">${l.percent}%</td><td>${bar(l.accepted, l.inReview, l.total)}</td></tr>`,
+        `<tr><th scope="row">${esc(l.phase)}: ${esc(l.lane)}</th><td data-label="Slices">${esc(l.parts.join(", "))}</td><td class="num" data-label="Accepted">${l.accepted} of ${l.total}</td><td class="num" data-label="In work">${l.inReview}</td><td class="num" data-label="Percent">${l.percent}%</td><td class="barcell">${bar(l.accepted, l.inReview, l.total)}</td></tr>`,
     )
     .join("\n");
   const sliceRows = data.slices
     .map((s) =>
       s.total
-        ? `<tr><th scope="row"><a href="#slice-${esc(s.id)}">${esc(s.id)}</a></th><td>${esc(s.title)}</td><td class="num">${esc(s.state)}</td><td class="num">${s.accepted} of ${s.total}</td><td class="num">${s.inReview}</td><td class="num">${s.percent}%</td><td>${bar(s.accepted, s.inReview, s.total)}</td></tr>`
-        : `<tr><th scope="row">${esc(s.id)}</th><td>${esc(s.note || s.title)}</td><td>${esc(s.state)}</td><td class="num">not counted</td><td class="num"></td><td class="num"></td><td></td></tr>`,
+        ? `<tr><th scope="row"><a href="#slice-${esc(s.id)}">${esc(s.id)}</a></th><td data-label="What">${esc(s.title)}</td><td class="num" data-label="State">${esc(s.state)}</td><td class="num" data-label="Accepted">${s.accepted} of ${s.total}</td><td class="num" data-label="In work">${s.inReview}</td><td class="num" data-label="Percent">${s.percent}%</td><td class="barcell">${bar(s.accepted, s.inReview, s.total)}</td></tr>`
+        : `<tr><th scope="row">${esc(s.id)}</th><td data-label="What">${esc(s.note || s.title)}</td><td data-label="State">${esc(s.state)}</td><td class="num" data-label="Accepted">not counted</td><td class="num"></td><td class="num"></td><td class="barcell"></td></tr>`,
     )
     .join("\n");
   const details = data.slices
@@ -594,27 +594,52 @@ summary { cursor: pointer; font-weight: 500; }
 ul { padding-left: 20px; }
 code { font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; }
 .view[hidden] { display: none; }
+summary { padding: 6px 0; min-height: 44px; display: flex; align-items: center; }
+details[open] > summary { margin-bottom: 4px; }
+details { scroll-margin-top: 120px; }
 @media (max-width: 820px) {
+  /* Phone (operator, 2026-10-07 and 2026-10-11). The sidebar becomes a header that stays on top: the title and a
+     wrapping row of view buttons, so all eight views show and each is a 44px target. Every table turns into a list of
+     cards, one per row, each cell labelled with its column name, so nothing is squeezed into letter-per-line columns and
+     nothing scrolls sideways. */
   .shell { grid-template-columns: 1fr; }
-  .side { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 20px 16px 12px; gap: 12px; min-width: 0; }
-  nav { flex-direction: row; overflow-x: auto; gap: 0; min-width: 0; }
-  nav button { white-space: nowrap; border-left: 0; border-bottom: 2px solid transparent; }
+  .side { position: sticky; top: 0; z-index: 2; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 16px 8px; gap: 8px; min-width: 0; background: var(--bg); }
+  .brand { font-size: 20px; }
+  .brand span { display: inline; margin: 0 0 0 10px; font-size: 12px; }
+  nav { flex-direction: row; flex-wrap: wrap; gap: 0 4px; min-width: 0; margin: 0 -8px; }
+  nav button { white-space: nowrap; border-left: 0; border-bottom: 2px solid transparent; padding: 10px 8px; min-height: 44px; font-size: 15px; }
   nav button[aria-current="page"] { border-bottom-color: var(--ink); }
   .side-meta { display: none; }
   main { padding: 20px 16px 60px; min-width: 0; }
   .view { min-width: 0; }
-  .hero { grid-template-columns: 1fr; }
+  .hero { grid-template-columns: 1fr; margin-top: 20px; }
   .figure { font-size: 72px; }
-  /* Phone (operator, 2026-10-07): the Arms, Lanes and Slices tables and the Activity list pushed the page to 600 to
-     870 px wide, so the whole view scrolled sideways. Cells wrap, long tokens break, the table scrolls inside .wrap. */
-  table { font-size: 13px; }
-  th, td { padding: 7px 8px 7px 0; }
-  tbody th { white-space: normal; }
-  td, th, .steps li, .events li, p, summary { overflow-wrap: anywhere; }
-  .num { white-space: normal; }
+  .tiles { grid-template-columns: 1fr; gap: 12px; }
+  .tile .big { font-size: 40px; }
+  .wrap { overflow: visible; }
+  .wrap table { display: block; font-size: 15px; margin-top: 4px; }
+  .wrap caption { display: block; }
+  .wrap thead { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .wrap tbody { display: block; }
+  .wrap tr { display: block; border: 1px solid var(--line); padding: 12px 14px 14px; margin-top: 12px; }
+  .wrap tbody th { display: block; padding: 0 0 6px; border: 0; font-size: 17px; white-space: normal; overflow-wrap: anywhere; }
+  .wrap td { display: flex; gap: 12px; padding: 3px 0; border: 0; overflow-wrap: anywhere; }
+  .wrap td::before { content: attr(data-label); color: var(--soft); flex: 0 0 38%; }
+  .wrap tbody th a { display: inline-block; padding: 10px 0; margin: -10px 0; }
+  .wrap td:not([data-label]):not(.barcell):not(.meta), .wrap td:empty { display: none; }
+  .wrap td.barcell { display: block; padding-top: 8px; }
+  .wrap td.barcell::before { display: none; }
+  .wrap td.barcell .bar { width: 100%; margin-top: 0; }
+  .wrap td.num { white-space: nowrap; }
+  .wrap td.meta { display: block; }
+  .steps li, .events li, p, summary { overflow-wrap: anywhere; }
+  .steps li { margin: 10px 0; }
   .events, .steps { padding-left: 16px; }
   h1 { font-size: 28px; }
+  h2 { font-size: 20px; }
   .lead { font-size: 17px; }
+  .errors { padding: 4px 14px 10px; }
+  code { overflow-wrap: anywhere; }
 }
 </style>
 </head>
@@ -700,7 +725,7 @@ ${worktrees}
 <div class="wrap"><table>
 <thead><tr><th scope="col">Run</th><th scope="col">Slice</th><th scope="col">Steps</th><th scope="col">Tokens re-read per step</th><th scope="col">Calls per step</th><th scope="col">Agent minutes per step</th><th scope="col">Context per call</th></tr></thead>
 <tbody>
-${data.costs.map((c) => `<tr><th scope="row">${esc(c.run.slice(3, 11))}</th><td>${esc(c.slice)}</td><td class="num">${c.stepsAccepted}</td><td class="num">${(c.total.cacheRead / c.stepsAccepted / 1e6).toFixed(1)}M</td><td class="num">${Math.round(c.total.calls / c.stepsAccepted)}</td><td class="num">${Math.round(c.total.min / c.stepsAccepted)}</td><td class="num">${c.total.calls ? Math.round(c.total.cacheRead / c.total.calls / 1000) : 0}k</td></tr>`).join("\n") || '<tr><td colspan="7" class="meta">No finished run with an accepted step in the last two weeks.</td></tr>'}
+${data.costs.map((c) => `<tr><th scope="row">${esc(c.run.slice(3, 11))}</th><td data-label="Slice">${esc(c.slice)}</td><td class="num" data-label="Steps">${c.stepsAccepted}</td><td class="num" data-label="Tokens re-read per step">${(c.total.cacheRead / c.stepsAccepted / 1e6).toFixed(1)}M</td><td class="num" data-label="Calls per step">${Math.round(c.total.calls / c.stepsAccepted)}</td><td class="num" data-label="Agent minutes per step">${Math.round(c.total.min / c.stepsAccepted)}</td><td class="num" data-label="Context per call">${c.total.calls ? Math.round(c.total.cacheRead / c.total.calls / 1000) : 0}k</td></tr>`).join("\n") || '<tr><td colspan="7" class="meta">No finished run with an accepted step in the last two weeks.</td></tr>'}
 </tbody></table></div>
 <p class="meta">Baseline of 2026-10-02: 121.4M tokens, 499 calls and 119 agent minutes per step, 243k per call.</p>
 <h3>Pace</h3>
@@ -727,17 +752,32 @@ ${data.waiting.map((w) => `<li><strong>${esc(w.what)}.</strong> ${esc(w.why)}</l
 // One view at a time; the choice lives in the address and, when the browser allows it, in local storage.
 const views = [...document.querySelectorAll(".view")];
 const buttons = [...document.querySelectorAll("nav button")];
-function show(name) {
+function show(name, hash) {
   if (!views.some((v) => v.id === "view-" + name)) name = "overview";
   for (const v of views) v.hidden = v.id !== "view-" + name;
   for (const b of buttons) b.dataset.view === name ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current");
   try { localStorage.setItem("board-view", name); } catch {}
-  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+  const want = hash || "#" + name;
+  if (location.hash !== want) history.replaceState(null, "", want);
 }
-for (const b of buttons) b.addEventListener("click", () => show(b.dataset.view));
-let start = location.hash.slice(1);
-if (!start) { try { start = localStorage.getItem("board-view") || ""; } catch {} }
-show(start || "overview");
+// A slice link (#slice-B7, from the Slices table) opens that slice in Every step and scrolls to it; before 2026-10-11 it
+// fell back to Overview because the hash was not a view name.
+function route() {
+  const hash = location.hash.slice(1);
+  if (hash.startsWith("slice-")) {
+    show("steps", "#" + hash);
+    const slice = document.getElementById(hash);
+    if (slice) { slice.open = true; slice.scrollIntoView({ block: "start" }); }
+    return;
+  }
+  let name = hash;
+  if (!name) { try { name = localStorage.getItem("board-view") || ""; } catch {} }
+  show(name || "overview");
+  window.scrollTo(0, 0);
+}
+for (const b of buttons) b.addEventListener("click", () => { show(b.dataset.view); window.scrollTo(0, 0); });
+window.addEventListener("hashchange", route);
+route();
 ${snapshot ? "" : `const shown = ${JSON.stringify(version)};
 setInterval(async () => {
   try {

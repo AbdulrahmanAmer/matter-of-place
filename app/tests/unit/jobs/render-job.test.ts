@@ -32,6 +32,9 @@ function refusal(value: unknown): string | null {
 }
 
 const occurrences = (needle: string) => RENDER_YML.split(needle).length - 1;
+// Whole lines only: the DEV_ names end in the same text as the generic ones (P-3122).
+const lineCount = (line: string) =>
+  RENDER_YML.split(/\r?\n/).filter((l) => l.trim() === line).length;
 
 describe("scriptFor", () => {
   it.each([
@@ -145,8 +148,20 @@ describe("render.yml", () => {
         "MOP_ENV: ${{ fromJSON(inputs.job).env }}",
         "SUPABASE_URL: https://${{ secrets.DEV_SUPABASE_PROJECT_REF }}.supabase.co",
         "SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}",
-      ].map(occurrences),
+      ].map(lineCount),
     ).toEqual([1, 1, 1]);
+  });
+
+  // P-3122: the one-database guard (scripts/lib/one-database.mjs) reads the DEV_ pair; the reel job shares the anchor.
+  it("gives the one-database guard the DEV_ pair from the same two secrets, once, in the shared anchor", () => {
+    expect(
+      [
+        "DEV_SUPABASE_PROJECT_REF: ${{ secrets.DEV_SUPABASE_PROJECT_REF }}",
+        "DEV_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}",
+        "env: &job-env",
+        "env: *job-env",
+      ].map(lineCount),
+    ).toEqual([1, 1, 1, 1]);
   });
 
   it("names no R2 key, no variable and no repository_dispatch (H33 (1), JOB-01)", () => {

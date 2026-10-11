@@ -1,6 +1,6 @@
 import type { AuditListInput } from "../../domain/admin-audit.ts";
 import { fromRpcError } from "./admin-errors.ts";
-import type { AdminActor } from "./admin-route.ts";
+import type { AdminActor } from "./actor-types.ts";
 import type { ActorKind } from "./authz.ts";
 import type { Db } from "./db.ts";
 import { AppError } from "./errors.ts";

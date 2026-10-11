@@ -4,6 +4,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { parseArgs } from "node:util";
 import pg from "pg";
+import { pgClientConfig } from "./lib/pg-connect.mjs";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
 
 const KEY = "coming_soon_global";
@@ -70,7 +71,7 @@ async function main(): Promise<number> {
     return 2;
   }
   await assertNotProduction();
-  const db = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
+  const db = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
   await db.connect();
   try {
     await db.query(LOCK);
