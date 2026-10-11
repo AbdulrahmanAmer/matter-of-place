@@ -5,6 +5,11 @@ name: audit-scope
 # ignores workspace/**, launch/** and **/*.md, so a pull request touching only a refused path such
 # as workspace/05-plans/B2.md would run no check there (B14 invariant 1). It needs no secret and
 # no database, so it also runs for pull requests the routine opens.
+# Cost (C22), UNPROVEN for a real run: every run so far was skipped (`gh run list --workflow audit-scope.yml`), so
+# no run of the job itself has been timed. Estimate: checkout, setup-node and one node script take under a minute,
+# billed as one whole minute, drawn from the 2,000 minutes a month of GOTCHAS P-009. It runs for pull requests from
+# an audit/ branch only (one a week and each later push to it), so about 4 to 8 billed minutes a month; a run for
+# any other branch is skipped at the job `if` and starts no runner.
 on:
   pull_request:
 

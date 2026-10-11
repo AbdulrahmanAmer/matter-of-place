@@ -1,0 +1,479 @@
+[
+  {
+    "id": "chore-fu-uptime-keyword-type",
+    "test": "tests/unit/audit/uptime.test.ts",
+    "file": "../workspace/audits/tools/uptime.mjs",
+    "find": "found.keyword_type === ALERT_WHEN_MISSING",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
+    "expect": "FAIL .*monitorRows against monitoring/uptime\\.json > gives a red row for a monitor that alerts when the keyword exists"
+  },
+  {
+    "id": "chore-fu-cache-nourl-guard",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "if (ctx.siteUrl === \"\") return [\"Not measured: cache (SITE_URL unset, pass --url)\"];",
+    "replace": "if (false) return [\"Not measured: cache (SITE_URL unset, pass --url)\"];",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "FAIL .*the command line without a base URL > prints Not measured and sends no request without --url or SITE_URL"
+  },
+  {
+    "id": "chore-fu-cache-cli-wiring",
+    "test": "tests/unit/audit/cache.test.ts",
+    "file": "../workspace/audits/tools/cache.mjs",
+    "find": "const lines = await commandLines(contextFromArgs());",
+    "replace": "const lines = describeProbe(await probe(contextFromArgs()));",
+    "run": "bunx vitest run --project unit tests/unit/audit/cache.test.ts",
+    "expect": "FAIL .*the command line without a base URL > exits 0 with that line and no stderr when run alone"
+  },
+  {
+    "id": "chore-fu-compare-newest-order",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": ".reverse()",
+    "replace": ".slice()",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "FAIL .*choosing the two sidecars > takes the two newest dated files, newest first, and no other file"
+  },
+  {
+    "id": "chore-fu-compare-none",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "return current === undefined || previous === undefined ? null : { current, previous };",
+    "replace": "return current === undefined ? null : { current, previous: previous ?? current };",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "FAIL .*choosing the two sidecars > answers none for a missing folder and for a folder with one sidecar"
+  },
+  {
+    "id": "chore-fu-compare-enotdir",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "if (!existsSync(dir)) return [];",
+    "replace": "try { readdirSync(dir); } catch { return []; }",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "FAIL .*choosing the two sidecars > throws, and does not answer none, when the folder cannot be read"
+  },
+  {
+    "id": "chore-fu-compare-usage",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "if (positionals.length !== 0 && positionals.length !== 2) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "FAIL .*choosing the two sidecars > refuses one path or three paths as a usage error"
+  },
+  {
+    "id": "chore-fu-compare-exit2",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "process.exitCode = 2;",
+    "replace": "process.exitCode = 0;",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "FAIL .*choosing the two sidecars > exits 2 with the usage line on stderr for a single path"
+  },
+  {
+    "id": "chore-fu-scope-api-underscore",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "const API_SEGMENT = /^api(?:$|[._[])/;",
+    "replace": "const API_SEGMENT = /^api(?:$|[.[])/;",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "FAIL .*scope-check paths > refuses an api_ file, a group folder and an escaped dot under routes"
+  },
+  {
+    "id": "chore-fu-scope-api-bracket",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "const API_SEGMENT = /^api(?:$|[._[])/;",
+    "replace": "const API_SEGMENT = /^api(?:$|[._])/;",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "FAIL .*scope-check paths > refuses an api_ file, a group folder and an escaped dot under routes"
+  },
+  {
+    "id": "chore-fu-scope-api-group",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "segments.slice(3).some(",
+    "replace": "segments.slice(3, 4).some(",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "FAIL .*scope-check paths > refuses an api_ file, a group folder and an escaped dot under routes"
+  },
+  {
+    "id": "chore-fu-scope-api-prefix",
+    "test": "tests/unit/audit/scope-check.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "const API_SEGMENT = /^api(?:$|[._[])/;",
+    "replace": "const API_SEGMENT = /^api/;",
+    "run": "bunx vitest run --project unit tests/unit/audit/scope-check.test.ts",
+    "expect": "FAIL .*scope-check paths > refuses an api_ file, a group folder and an escaped dot under routes"
+  },
+  {
+    "id": "chore-fu-schedule-contract-disabled",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  if (row === undefined) throw notFound(\"schedule\");\n  return withNextRun(row, now);",
+    "replace": "  if (row === undefined) throw notFound(\"schedule\");\n  return { data: withNextRun(row, now) };",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "FAIL .*the schedule answer of the automation service \\(contract\\) > reads a disabled row of the service as disabled and skips the run"
+  },
+  {
+    "id": "chore-fu-schedule-contract-enabled",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "src/server/automation/service.ts",
+    "find": "  if (row === undefined) throw notFound(\"schedule\");\n  return withNextRun(row, now);",
+    "replace": "  if (row === undefined) throw notFound(\"schedule\");\n  return { data: withNextRun(row, now) };",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "FAIL .*the schedule answer of the automation service \\(contract\\) > reads an enabled row of the service as enabled and records scheduled"
+  },
+  {
+    "id": "chore-fu-exports-sumrequests",
+    "test": "tests/unit/audit/exports.test.ts",
+    "file": "../workspace/audits/tools/collectors/cloudflare.mjs",
+    "find": "const sumRequests = ",
+    "replace": "export const sumRequests = ",
+    "run": "bunx vitest run --project unit tests/unit/audit/exports.test.ts",
+    "expect": "FAIL .*the audit tools' exports > are each mentioned by another file"
+  },
+  {
+    "id": "chore-fu-exports-changedpaths",
+    "test": "tests/unit/audit/exports.test.ts",
+    "file": "../scripts/audit/scope-check.mjs",
+    "find": "function changedPaths(",
+    "replace": "export function changedPaths(",
+    "run": "bunx vitest run --project unit tests/unit/audit/exports.test.ts",
+    "expect": "FAIL .*the audit tools' exports > are each mentioned by another file"
+  },
+  {
+    "id": "chore-fu-exports-scan",
+    "test": "tests/unit/audit/exports.test.ts",
+    "file": "tests/unit/audit/exports.test.ts",
+    "find": "const EXPORTED = /^export (?:async )?",
+    "replace": "const EXPORTED = /^exportx (?:async )?",
+    "run": "bunx vitest run --project unit tests/unit/audit/exports.test.ts",
+    "expect": "FAIL .*the audit tools' exports > are found by the scan"
+  },
+  {
+    "id": "chore-fu-wd-readme-row",
+    "test": "tests/unit/audit/workflows-docs.test.ts",
+    "file": "../.github/workflows/README.md",
+    "find": "| `audit-deps.yml`  | H1",
+    "replace": "| `audit-depsx.yml`  | H1",
+    "run": "bunx vitest run --project unit tests/unit/audit/workflows-docs.test.ts",
+    "expect": "FAIL .*the workflow folder's README > has a table row for every workflow file in the folder"
+  },
+  {
+    "id": "chore-fu-wd-readme-stale",
+    "test": "tests/unit/audit/workflows-docs.test.ts",
+    "file": "../.github/workflows/README.md",
+    "find": "Every file in this folder has a row above;",
+    "replace": "These three exist. Every file in this folder has a row above;",
+    "run": "bunx vitest run --project unit tests/unit/audit/workflows-docs.test.ts",
+    "expect": "FAIL .*the workflow folder's README > does not describe audit-scope\\.yml as the weekly audit robot"
+  },
+  {
+    "id": "chore-fu-wd-cost",
+    "test": "tests/unit/audit/workflows-docs.test.ts",
+    "file": "../.github/workflows/audit-scope.yml",
+    "find": "# Cost (C22), UNPROVEN for a real run",
+    "replace": "# Cost, UNPROVEN for a real run",
+    "run": "bunx vitest run --project unit tests/unit/audit/workflows-docs.test.ts",
+    "expect": "FAIL .*audit-scope\\.yml > states its cost in Actions minutes"
+  },
+  {
+    "id": "chore-fu-al-audit-scope-persist",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/audit-scope.yml",
+    "find": "fetch-depth: 0\n          persist-credentials: false",
+    "replace": "fetch-depth: 0\n          persist-credentials: true",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "every actions/checkout sets persist-credentials: false"
+  },
+  {
+    "id": "chore-fu-dr-health-params",
+    "test": "tests/unit/harden-drill-rows.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "    [jobId, check],",
+    "replace": "    [check, jobId],",
+    "run": "bunx vitest run --project unit tests/unit/harden-drill-rows.test.ts",
+    "expect": "FAIL .*healthEventOf > asks for the events inside the job's own run window"
+  },
+  {
+    "id": "chore-fu-dr-health-none",
+    "test": "tests/unit/harden-drill-rows.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "return found[0];",
+    "replace": "return found[0] ?? \"none\";",
+    "run": "bunx vitest run --project unit tests/unit/harden-drill-rows.test.ts",
+    "expect": "FAIL .*healthEventOf > answers undefined when no event falls in the window"
+  },
+  {
+    "id": "chore-fu-dr-health-ambiguous",
+    "test": "tests/unit/harden-drill-rows.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "if (found.length > 1) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/harden-drill-rows.test.ts",
+    "expect": "FAIL .*healthEventOf > throws, and claims no event, when two events fall in the window"
+  },
+  {
+    "id": "chore-fu-dr-email-messages-param",
+    "test": "tests/unit/harden-drill-rows.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "[address, start, messages],",
+    "replace": "[address, start, []],",
+    "run": "bunx vitest run --project unit tests/unit/harden-drill-rows.test.ts",
+    "expect": "FAIL .*emailDrillRows > returns the test message, the send_email job and the job's events"
+  },
+  {
+    "id": "chore-fu-dr-email-payload",
+    "test": "tests/unit/harden-drill-rows.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "j.payload #>> '{data,actor_email}' = $1",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/harden-drill-rows.test.ts",
+    "expect": "FAIL .*emailDrillRows > finds a send_email job by the address in its payload, not only by a message"
+  },
+  {
+    "id": "chore-fu-dr-retire-delete",
+    "test": "tests/unit/harden-drill-rows.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "delete from public.agent_keys where id = $1::uuid",
+    "replace": "update public.agent_keys set revoked_at = now() where id = $1::uuid",
+    "run": "bunx vitest run --project unit tests/unit/harden-drill-rows.test.ts",
+    "expect": "FAIL .*retireDrillAgent > deletes the key row and disables the media_ops role of the agent's user"
+  },
+  {
+    "id": "chore-fu-dr-fail-email-list",
+    "test": "tests/unit/harden-drill-rows.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "email_messages: email.email_messages ?? [],",
+    "replace": "email_messages: [],",
+    "run": "bunx vitest run --project unit tests/unit/harden-drill-rows.test.ts",
+    "expect": "FAIL .*removeFailDrillRows > removes the bounce test's message and job, the retried job and its events"
+  },
+  {
+    "id": "chore-fu-dr-fail-retire-skipped",
+    "test": "tests/unit/harden-drill-rows.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "if (run.keyId !== undefined) await retireDrillAgent(db, run.keyId, run.agentEmail);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/harden-drill-rows.test.ts",
+    "expect": "FAIL .*removeFailDrillRows > deletes the agent's key and disables its role before it removes the rows"
+  },
+  {
+    "id": "chore-fu-dr-fail-limits-without-key",
+    "test": "tests/unit/harden-drill-rows.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "run.keyId === undefined",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/harden-drill-rows.test.ts",
+    "expect": "FAIL .*removeFailDrillRows > removes only the email rows when the run stopped before it made a job or an agent"
+  },
+  {
+    "id": "chore-fu-cl-h126-own-build",
+    "test": "tests/unit/harden-checklist.test.ts",
+    "file": "scripts/harden/checklist.json",
+    "find": "\"command\": \"<load-dev> && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon\"",
+    "replace": "\"command\": \"<load-dev> && bun run build && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon\"",
+    "run": "bunx vitest run --project unit tests/unit/harden-checklist.test.ts",
+    "expect": "FAIL .*rows that serve the built Worker > say build: true and never run bun run build in their own command"
+  },
+  {
+    "id": "chore-fu-cl-h126-flag",
+    "test": "tests/unit/harden-checklist.test.ts",
+    "file": "scripts/harden/checklist.json",
+    "find": "\"build\": true,\n      \"command\": \"<load-dev> && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon\"",
+    "replace": "\"command\": \"<load-dev> && E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon\"",
+    "run": "bunx vitest run --project unit tests/unit/harden-checklist.test.ts",
+    "expect": "FAIL .*rows that serve the built Worker > include H1-26 among the rows the runner builds for"
+  },
+  {
+    "id": "chore-fu-cl-h108-silent",
+    "test": "tests/unit/harden-checklist.test.ts",
+    "file": "scripts/harden/checklist.json",
+    "find": "\"command\": \"run=$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion'); echo \\\"last audit-deps.yml run on main: ${run:-none}\\\"; [ \\\"$run\\\" = success ]\"",
+    "replace": "\"command\": \"[ \\\"$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion')\\\" = success ]\"",
+    "run": "bunx vitest run --project unit tests/unit/harden-checklist.test.ts",
+    "expect": "FAIL .*the rows that read the last audit-deps run on main > H1-08 ends on the conclusion it read when that was not success"
+  },
+  {
+    "id": "chore-fu-cl-h110-silent",
+    "test": "tests/unit/harden-checklist.test.ts",
+    "file": "scripts/harden/checklist.json",
+    "find": "{ run=$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion'); echo \\\"last audit-deps.yml run on main: ${run:-none}\\\"; [ \\\"$run\\\" = success ]; }\"",
+    "replace": "[ \\\"$(gh run list --workflow audit-deps.yml --branch main --limit 1 --json conclusion --jq '.[0].conclusion')\\\" = success ]\"",
+    "run": "bunx vitest run --project unit tests/unit/harden-checklist.test.ts",
+    "expect": "FAIL .*the rows that read the last audit-deps run on main > H1-10 ends on the conclusion it read when that was not success"
+  },
+  {
+    "id": "chore-fu-cl-h108-none",
+    "test": "tests/unit/harden-checklist.test.ts",
+    "file": "scripts/harden/checklist.json",
+    "find": "${run:-none}\\\"; [ \\\"$run\\\" = success ]\"",
+    "replace": "${run}\\\"; [ \\\"$run\\\" = success ]\"",
+    "run": "bunx vitest run --project unit tests/unit/harden-checklist.test.ts",
+    "expect": "FAIL .*the rows that read the last audit-deps run on main > H1-08 says none when the run list is empty"
+  },
+  {
+    "id": "chore-fu-cl-h110-none",
+    "test": "tests/unit/harden-checklist.test.ts",
+    "file": "scripts/harden/checklist.json",
+    "find": "${run:-none}\\\"; [ \\\"$run\\\" = success ]; }\"",
+    "replace": "${run}\\\"; [ \\\"$run\\\" = success ]; }\"",
+    "run": "bunx vitest run --project unit tests/unit/harden-checklist.test.ts",
+    "expect": "FAIL .*the rows that read the last audit-deps run on main > H1-10 says none when the run list is empty"
+  },
+  {
+    "id": "chore-fu-cl-h108-success",
+    "test": "tests/unit/harden-checklist.test.ts",
+    "file": "scripts/harden/checklist.json",
+    "find": "\\\"$run\\\" = success ]\"",
+    "replace": "\\\"$run\\\" = successx ]\"",
+    "run": "bunx vitest run --project unit tests/unit/harden-checklist.test.ts",
+    "expect": "FAIL .*the rows that read the last audit-deps run on main > H1-08 passes on success"
+  },
+  {
+    "id": "chore-fu-cl-h110-success",
+    "test": "tests/unit/harden-checklist.test.ts",
+    "file": "scripts/harden/checklist.json",
+    "find": "\\\"$run\\\" = success ]; }\"",
+    "replace": "\\\"$run\\\" = successx ]; }\"",
+    "run": "bunx vitest run --project unit tests/unit/harden-checklist.test.ts",
+    "expect": "FAIL .*the rows that read the last audit-deps run on main > H1-10 passes on success"
+  },
+  {
+    "id": "chore-fu-db-health-start",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "and e.at >= j.created_at",
+    "replace": "and true",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*healthEventOf > answers undefined when the only matching event lies outside the window"
+  },
+  {
+    "id": "chore-fu-db-health-start-own",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "and e.at >= j.created_at",
+    "replace": "and true",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*healthEventOf > finds the event written inside the job's run window for the check, and no other"
+  },
+  {
+    "id": "chore-fu-db-health-end",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "and e.at <= coalesce(j.finished_at, now())",
+    "replace": "and true",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*healthEventOf > finds the event written inside the job's run window for the check, and no other"
+  },
+  {
+    "id": "chore-fu-db-health-check",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "and e.payload @> jsonb_build_object('failed', jsonb_build_array(jsonb_build_object('check', $2::text)))",
+    "replace": "and $2::text is not null",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*healthEventOf > finds the event written inside the job's run window for the check, and no other"
+  },
+  {
+    "id": "chore-fu-db-health-ambiguous",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "if (found.length > 1) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*healthEventOf > throws when two events for the check fall inside the window"
+  },
+  {
+    "id": "chore-fu-db-health-open",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "coalesce(j.finished_at, now())",
+    "replace": "j.finished_at",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*healthEventOf > reads a job with no finished_at as open until now"
+  },
+  {
+    "id": "chore-fu-db-email-job-start",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "and j.created_at >= $2::timestamptz",
+    "replace": "and true",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*emailDrillRows > finds the drill's message, its send_email job and that job's events"
+  },
+  {
+    "id": "chore-fu-db-email-message-start",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "where to_email = $1 and created_at >= $2::timestamptz",
+    "replace": "where to_email = $1",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*emailDrillRows > finds the drill's message, its send_email job and that job's events"
+  },
+  {
+    "id": "chore-fu-db-email-events",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "    [jobs],",
+    "replace": "    [[]],",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*emailDrillRows > finds the drill's message, its send_email job and that job's events"
+  },
+  {
+    "id": "chore-fu-db-email-payload",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "j.payload #>> '{data,actor_email}' = $1",
+    "replace": "false",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*emailDrillRows > finds a send_email job by the address in its payload when no message was written"
+  },
+  {
+    "id": "chore-fu-db-retire-delete",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "delete from public.agent_keys where id = $1::uuid",
+    "replace": "update public.agent_keys set revoked_at = now() where id = $1::uuid",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*retireDrillAgent > deletes the key row and disables the role of that user only"
+  },
+  {
+    "id": "chore-fu-db-retire-role-scope",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "and user_id in (select id from auth.users where lower(email) = $1)",
+    "replace": "and $1::text is not null",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*retireDrillAgent > deletes the key row and disables the role of that user only"
+  },
+  {
+    "id": "chore-fu-db-fail-limits",
+    "test": "tests/db/harden-drill-rows.db.test.ts",
+    "file": "scripts/harden/drill-rows.ts",
+    "find": "\"select id::text as id from public.rate_limits where bucket = $1\"",
+    "replace": "\"select id::text as id from public.rate_limits where bucket <> $1\"",
+    "run": "bunx vitest run --project db tests/db/harden-drill-rows.db.test.ts",
+    "expect": "FAIL .*removeFailDrillRows > lists the run's rows from the database, retires the agent, and leaves other rows out"
+  },
+  {
+    "id": "chore-fu-pp-trace-missing",
+    "test": "scripts/harden/checklist.json",
+    "file": "../workspace/05-plans/check-plans.mjs",
+    "find": "const tracePath = join(here, \"trace.json\");",
+    "replace": "const tracePath = join(here, \"trace-renamed.json\");",
+    "run": "node ../workspace/05-plans/check-plans.mjs --require-trace",
+    "expect": "trace\\.json is missing \\(S53\\)"
+  },
+  {
+    "id": "chore-fu-gg-paid-binding",
+    "test": "scripts/harden/checklist.json",
+    "file": "wrangler.toml",
+    "find": "compatibility_flags = [\"nodejs_compat\"]",
+    "replace": "compatibility_flags = [\"nodejs_compat\"]\n\n[[queues.producers]]",
+    "run": "node -e \"const t=require('fs').readFileSync('wrangler.toml','utf8');const m=/^ *[[]{1,2}(queues|browser|images|durable_objects|kv_namespaces)/m.exec(t);if(m){console.log('paid binding: '+m[0].trim());process.exit(1)}\"",
+    "expect": "paid binding: \\[\\[queues"
+  }
+]

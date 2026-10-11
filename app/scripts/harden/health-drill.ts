@@ -1,7 +1,8 @@
 // `bun run scripts/harden/health-drill.ts` (H1-34), with the dev profile loaded: the daily health job fails loudly when a
 // check is forced to fail. It enqueues a `health` system job with `params.force_fail = "dead_jobs_24h"` (B8), asks the
 // runner and waits up to 90 seconds for `done`, then asserts that the job's result lists that check as `fail`, that one
-// `health.failed` event was written after the drill started, and that B8b's recipe `notify_admin_health` made one
+// `health.failed` event was written inside that job's own run window and lists the check (a real alert from another run
+// is never claimed: two matches end the drill), and that B8b's recipe `notify_admin_health` made one
 // `notify_admin` job for it. The runner fans an event out at the start of a later tick, so it is asked a second time
 // and the job is awaited for up to 90 seconds more; a timeout prints `health drill: no notify_admin` and exits 1. With
 // `SENTRY_AUTH_TOKEN` it also finds the Sentry issue `HealthCheckFailed: dead_jobs_24h` seen after the start (INT-04).
@@ -9,6 +10,7 @@
 // removes its rows by H1's cleanup rule. Prints `health drill ok`, or the failing check and exit 1.
 import { z } from "zod";
 import { assertNotProduction } from "../lib/assert-not-production.mjs";
+import { healthEventOf } from "./drill-rows.ts";
 import { askRunner, ids, openProbeDb, type ProbeDb } from "./probe-db.ts";
 import { sentryGet, sentryToken } from "./sentry-api.ts";
 
@@ -139,11 +141,7 @@ async function main(): Promise<number> {
     if (checks.find((check) => check.name === CHECK)?.status !== "fail") {
       throw new Error(`health drill: the result does not list ${CHECK} as fail`);
     }
-    [eventId] = await ids(
-      db,
-      "select id::text as id from events where type = 'health.failed' and at > $1 order by at desc limit 1",
-      [start],
-    );
+    eventId = await healthEventOf(db, jobId, CHECK);
     if (eventId === undefined) throw new Error("health drill: no health.failed event was written");
     await notifyJobs(db, eventId);
     const token = sentryToken();

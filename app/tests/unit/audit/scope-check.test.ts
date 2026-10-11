@@ -83,6 +83,19 @@ describe("scope-check paths", () => {
     expect(refusedPaths(paths)).toEqual(paths);
   });
 
+  it("refuses an api_ file, a group folder and an escaped dot under routes", () => {
+    const paths = [
+      "app/src/routes/api_.contact.ts",
+      "app/src/routes/(site)/api.contact.ts",
+      "app/src/routes/(site)/api/health.ts",
+      "app/src/routes/_site/api_.markets.ts",
+      "app/src/routes/api[.]json.ts",
+      "app/src/routes/api.ts",
+    ];
+    expect(refusedPaths(paths)).toEqual(paths);
+    expect(refusedPaths(["app/src/routes/apiary.tsx", "app/src/routes/api-docs.tsx"])).toEqual([]);
+  });
+
   it("refuses the plans, CLAUDE.md, the agent files and the guard itself", () => {
     const paths = [
       "workspace/05-plans/B2.md",
