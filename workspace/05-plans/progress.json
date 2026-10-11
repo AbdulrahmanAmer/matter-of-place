@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-11 11:30 (UTC+3)",
-  "now": "Launch is today, target 15:00 to 16:00. 94.4 percent of the way: 234 of 248 launch steps accepted. Merging now: the legal identity on every page (Omnikom LLC, 30 N Gould St Ste R, Sheridan, WY 82801), the submit form errors, B18 prices from the admin, the board's new server. Then the launch itself: the database reset to its clean production state with the legal details and the nightly backup on, the photos uploaded to production, matterofplace.com pointed at the site, the launch checks, the uptime monitors on. The social channels follow after launch.",
+  "updated": "2026-10-11 19:55 (UTC+3)",
+  "now": "Live since 14:18 on matterofplace.com, coming-soon state. Since then merged and deployed: the full design upgrade of every page, the standard cookie popup, prices editable from the admin, the mail and Sentry readers. Checked live at 19:35: 18 pages at phone and desktop width, no errors, verify-production ok. In the merge gate: missing pages cached at the edge, the launch scripts onto main, the records.",
   "paceNote": "Pace since 2026-10-10 07:00: the B slices closed, H1 hardening, the security fixes and an acceptance panel of the whole site (26 findings) in about 28 hours on two laptops. What is left is the launch sequence, not build work.",
   "runGroups": {
     "c6": "5",
@@ -339,6 +339,18 @@
       "accepted": [],
       "inReview": [],
       "note": "Built 2026-10-11 on the Dell: the four plans editable from the admin Settings, served from the cached site state; step 1 on main (PR 297), steps 2 and 3 in PR 304."
+    },
+    "L1": {
+      "accepted": [
+        "0",
+        "3",
+        "4"
+      ],
+      "inReview": [],
+      "blocked": [
+        "5"
+      ],
+      "note": "Launched 2026-10-11 14:18 +0300 (LAUNCH-LOG.md). Proof re-run 19:35: node scripts/launch/verify-production.mjs https://matterofplace.com --expect-csp report-only, 11 ok lines, verify-production ok (pages, empty markets, sitemap, robots, llms.txt, www and https 301, report-only policy). Step 5 waits on a person submitting a real signup in a browser. Open: step 1 preflight red on the H1 report and the social names; step 2 rehearsal without the upload confirmation (P-3413); step 6 has the uptime monitors, not yet the Search Console sitemap check."
     }
   },
   "lanes": [
