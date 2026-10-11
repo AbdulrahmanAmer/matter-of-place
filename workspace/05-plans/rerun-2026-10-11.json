@@ -1,0 +1,749 @@
+[
+  {
+    "slice": "B6",
+    "step": "1",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bun run check",
+    "writes": false,
+    "source": "plan",
+    "note": "8 proof commands found"
+  },
+  {
+    "slice": "B6",
+    "step": "2",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bun run check",
+    "writes": false,
+    "source": "plan",
+    "note": "8 proof commands found"
+  },
+  {
+    "slice": "B6",
+    "step": "3",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/properties.service.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "7 proof commands found"
+  },
+  {
+    "slice": "B6",
+    "step": "4",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/payments/invoice-settings.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "6 proof commands found"
+  },
+  {
+    "slice": "B6",
+    "step": "5",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/payments/invoice-layout.test.ts tests/unit/payments/invoice-pdf.test.ts tests/unit/payments/invoice-attachment.test.ts tests/unit/payments/invoice-pdf-job.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "5 proof commands found"
+  },
+  {
+    "slice": "B6",
+    "step": "6",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -n \"B6 invoice approved\" .claude/POSITION.md",
+    "writes": false,
+    "source": "plan",
+    "note": "4 proof commands found"
+  },
+  {
+    "slice": "B6",
+    "step": "7",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run src/admin/invoices",
+    "writes": false,
+    "source": "plan",
+    "note": "3 proof commands found"
+  },
+  {
+    "slice": "B6",
+    "step": "8",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/email/variables.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B6",
+    "step": "9",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "E2E_TARGET=dev bunx playwright test --project admin tests/e2e/admin-invoice.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B7",
+    "step": "5",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/timeline.test.ts tests/unit/submissions.service.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "3 proof commands found"
+  },
+  {
+    "slice": "B7",
+    "step": "5a",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c \"audit_log\" AGENTS.md",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B7",
+    "step": "6",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c \"audit_log\" AGENTS.md",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B7",
+    "step": "7",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c \"audit_log\" AGENTS.md",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B7",
+    "step": "7a",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c \"audit_log\" AGENTS.md",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B7",
+    "step": "8",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c \"audit_log\" AGENTS.md",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B7",
+    "step": "9",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c \"audit_log\" AGENTS.md",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B7",
+    "step": "10",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c \"audit_log\" AGENTS.md",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B7",
+    "step": "11",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B7",
+    "step": "11a",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B7",
+    "step": "12",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B7",
+    "step": "13",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B7",
+    "step": "14",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B7",
+    "step": "15",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B7",
+    "step": "15a",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B7",
+    "step": "16",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project admin tests/e2e/admin-full-path.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B8",
+    "step": "9",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run src/admin/jobs tests/unit/admin-nav.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B8",
+    "step": "10",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run src/admin/jobs tests/unit/admin-nav.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B8",
+    "step": "10a",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/jobs/takedown-media.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B8b",
+    "step": "6",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run src/admin/automation/recipes",
+    "writes": false,
+    "source": "plan",
+    "note": "4 proof commands found"
+  },
+  {
+    "slice": "B8b",
+    "step": "7",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run src/admin/automation/recipes",
+    "writes": false,
+    "source": "plan",
+    "note": "4 proof commands found"
+  },
+  {
+    "slice": "B8b",
+    "step": "8",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run src/admin/automation/emails",
+    "writes": false,
+    "source": "plan",
+    "note": "3 proof commands found"
+  },
+  {
+    "slice": "B8b",
+    "step": "9",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run src/admin/automation/reasons src/admin/automation/settings src/admin/settings/FlagsSection",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B8b",
+    "step": "10",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run src/admin/automation/revisions",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B9",
+    "step": "10",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/authz.matrix.test.ts tests/unit/admin-routes-parity.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B9",
+    "step": "11",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run --project component src/admin/assets src/admin/properties/RerenderAssetsButton.test.tsx",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B10",
+    "step": "0",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bun run check",
+    "writes": false,
+    "source": "plan",
+    "note": "11 proof commands found"
+  },
+  {
+    "slice": "B10",
+    "step": "3",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "tests/fixtures/graph/",
+    "writes": false,
+    "source": "plan",
+    "note": "8 proof commands found"
+  },
+  {
+    "slice": "B10",
+    "step": "4",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/channels/window.test.ts tests/unit/channels/approval.test.ts tests/unit/channels/meta-errors.test.ts tests/unit/channels/meta-metrics.test.ts tests/unit/channels/meta-token.test.ts tests/unit/channels/enable-guard.test.ts tests/unit/assets/service.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "6 proof commands found"
+  },
+  {
+    "slice": "B10",
+    "step": "5",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/channels/meta.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "5 proof commands found"
+  },
+  {
+    "slice": "B10",
+    "step": "5a",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/channels/x.test.ts tests/unit/channels/x-errors.test.ts tests/unit/channels/linkedin.test.ts tests/unit/channels/linkedin-errors.test.ts tests/unit/channels/disabled-blocks.test.ts tests/unit/channels/oauth-tokens.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "4 proof commands found"
+  },
+  {
+    "slice": "B10",
+    "step": "6",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c 'channels.css' src/styles/admin/index.css",
+    "writes": false,
+    "source": "plan",
+    "note": "3 proof commands found"
+  },
+  {
+    "slice": "B10",
+    "step": "8",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c 'channels.css' src/styles/admin/index.css",
+    "writes": false,
+    "source": "plan",
+    "note": "3 proof commands found"
+  },
+  {
+    "slice": "B10",
+    "step": "9",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "grep -c 'reports.css' src/styles/admin/index.css",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B10",
+    "step": "10",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bun run scripts/auto-approve-rehearsal.ts --target dev",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B11",
+    "step": "1",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bun run db:psql -- -c \"select count(*) from subscribers where confirmed_at is not null;\"",
+    "writes": false,
+    "source": "plan",
+    "note": "13 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "2",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/newsletter/send.test.ts -t adapter",
+    "writes": false,
+    "source": "plan",
+    "note": "12 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "3",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/newsletter/assemble.test.ts tests/unit/newsletter/subject.test.ts tests/unit/newsletter/queue-digest.test.ts tests/unit/newsletter/digest-notify.test.ts && bunx vitest run tests/unit/email",
+    "writes": false,
+    "source": "plan",
+    "note": "11 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "4",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bun run check",
+    "writes": false,
+    "source": "plan",
+    "note": "10 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "5",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/newsletter/render.test.ts tests/unit/newsletter/utm.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "9 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "6",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/newsletter/quota.test.ts tests/unit/newsletter/send.test.ts tests/unit/newsletter/service.test.ts tests/unit/newsletter/metrics.test.ts tests/unit/newsletter/audience.test.ts tests/unit/newsletter/market-open-notice.test.ts tests/unit/jobs/reconcile.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "8 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "7",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run src/admin/newsletter",
+    "writes": false,
+    "source": "plan",
+    "note": "7 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "8",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bun run scripts/newsletter-test-send.ts --make-draft --i-mean-it",
+    "writes": false,
+    "source": "plan",
+    "note": "6 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "9",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/newsletter/standalone.test.ts tests/unit/email",
+    "writes": false,
+    "source": "plan",
+    "note": "5 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "10",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "select type from events where type = 'digest.due' order by at desc limit 1;",
+    "writes": false,
+    "source": "plan",
+    "note": "4 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "11",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/newsletter/hygiene.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "3 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "12",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/newsletter/preview.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B11",
+    "step": "13",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/kpi && bunx vitest run --project db tests/db/kpi.db.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B13",
+    "step": "8",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/check-seo.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "5 proof commands found"
+  },
+  {
+    "slice": "B13",
+    "step": "9",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/check-seo.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "5 proof commands found"
+  },
+  {
+    "slice": "B13",
+    "step": "10",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/consent.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "4 proof commands found"
+  },
+  {
+    "slice": "B13",
+    "step": "11",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/state.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "3 proof commands found"
+  },
+  {
+    "slice": "B13",
+    "step": "12",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/seo-cache.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B13",
+    "step": "13",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bun run check",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B14",
+    "step": "4",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/audit/service.test.ts tests/unit/audit/routes.test.ts tests/unit/audit/not-found-log.test.ts tests/unit/audit/usage.test.ts tests/unit/pipeline.test.ts tests/unit/authz.matrix.test.ts tests/unit/admin-routes-parity.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "5 proof commands found"
+  },
+  {
+    "slice": "B14",
+    "step": "5",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/audit/gauges.test.ts tests/unit/audit/security.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "4 proof commands found"
+  },
+  {
+    "slice": "B16",
+    "step": "3",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/settings.test.ts tests/unit/site-read-path.test.ts tests/unit/routes-parity.test.ts src/services",
+    "writes": false,
+    "source": "plan",
+    "note": "6 proof commands found"
+  },
+  {
+    "slice": "B16",
+    "step": "4",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/legal-pages.test.tsx tests/unit/email/site-context.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "5 proof commands found"
+  },
+  {
+    "slice": "B16",
+    "step": "5",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/routes-covered.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "4 proof commands found"
+  },
+  {
+    "slice": "B16",
+    "step": "6",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/privacy-request.test.tsx tests/unit/analytics-allowlist.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "3 proof commands found"
+  },
+  {
+    "slice": "B16",
+    "step": "7",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/organization-jsonld.test.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B16",
+    "step": "8",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bun run check && bun run build",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B17",
+    "step": "8",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/essentials.test.ts -t site-layout",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B17",
+    "step": "9",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx vitest run tests/unit/essentials.test.ts -t site-layout",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "B17",
+    "step": "10",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "curl -sI <preview>/ | grep -i \"content-security-policy:\"",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  },
+  {
+    "slice": "B17",
+    "step": "12",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "",
+    "writes": false,
+    "source": null,
+    "note": "no command found"
+  },
+  {
+    "slice": "H1",
+    "step": "4",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "workflow_dispatch",
+    "writes": false,
+    "source": "plan",
+    "note": "8 proof commands found"
+  },
+  {
+    "slice": "H1",
+    "step": "5",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bunx playwright test --project=harden tests/e2e/states.spec.ts",
+    "writes": false,
+    "source": "plan",
+    "note": "7 proof commands found"
+  },
+  {
+    "slice": "H1",
+    "step": "6",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bash scripts/harden/restore-rehearsal.sh <key path>",
+    "writes": false,
+    "source": "plan",
+    "note": "6 proof commands found"
+  },
+  {
+    "slice": "H1",
+    "step": "6b",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "node scripts/harden/run-all.mjs --env dev --only H1-21b",
+    "writes": false,
+    "source": "plan",
+    "note": "5 proof commands found"
+  },
+  {
+    "slice": "H1",
+    "step": "7",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "bash scripts/harden/rollback-drill.sh",
+    "writes": false,
+    "source": "plan",
+    "note": "4 proof commands found"
+  },
+  {
+    "slice": "H1",
+    "step": "8",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "node scripts/harden/run-all.mjs --env dev --only H1-40",
+    "writes": false,
+    "source": "plan",
+    "note": "3 proof commands found"
+  },
+  {
+    "slice": "H1",
+    "step": "9",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "node scripts/harden/runbook-lint.mjs docs/runbooks",
+    "writes": false,
+    "source": "plan",
+    "note": "2 proof commands found"
+  },
+  {
+    "slice": "H1",
+    "step": "10",
+    "cwd": "D:/mop-build/rerun/app",
+    "command": "node scripts/harden/run-all.mjs --env prod-config --report",
+    "writes": false,
+    "source": "plan",
+    "note": ""
+  }
+]

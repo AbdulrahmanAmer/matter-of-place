@@ -1,0 +1,294 @@
+[
+  {
+    "id": "chore-lo-mg-block",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const list = member(member(member(parseYaml(text), \"on\"), \"pull_request\"), \"paths-ignore\");",
+    "replace": "const flow = /^ {2}pull_request:\\n(?: {4}.*\\n)*? {4}paths-ignore: \\[(\"[^\"]*\"(?:, \"[^\"]*\")*)\\]$/m.exec(text)?.[1];\n  const list = flow === undefined ? undefined : [...flow.matchAll(/\"([^\"]*)\"/g)].map((match) => match[1]);",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts -t \"as a block list\"",
+    "expect": "FAIL .*gates the same with the paths-ignore of ci.yml written as a block list"
+  },
+  {
+    "id": "chore-lo-mg-bare",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const list = member(member(member(parseYaml(text), \"on\"), \"pull_request\"), \"paths-ignore\");",
+    "replace": "const flow = /^ {2}pull_request:\\n(?: {4}.*\\n)*? {4}paths-ignore: \\[(\"[^\"]*\"(?:, \"[^\"]*\")*)\\]$/m.exec(text)?.[1];\n  const list = flow === undefined ? undefined : [...flow.matchAll(/\"([^\"]*)\"/g)].map((match) => match[1]);",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts -t \"as a block list of bare strings\"",
+    "expect": "FAIL .*gates the same with the paths-ignore of ci.yml written as a block list of bare strings"
+  },
+  {
+    "id": "chore-lo-mg-multiline",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const list = member(member(member(parseYaml(text), \"on\"), \"pull_request\"), \"paths-ignore\");",
+    "replace": "const flow = /^ {2}pull_request:\\n(?: {4}.*\\n)*? {4}paths-ignore: \\[(\"[^\"]*\"(?:, \"[^\"]*\")*)\\]$/m.exec(text)?.[1];\n  const list = flow === undefined ? undefined : [...flow.matchAll(/\"([^\"]*)\"/g)].map((match) => match[1]);",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts -t \"flow list over several lines\"",
+    "expect": "FAIL .*gates the same with the paths-ignore of ci.yml written as a flow list over several lines"
+  },
+  {
+    "id": "chore-lo-mg-quotes",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "const list = member(member(member(parseYaml(text), \"on\"), \"pull_request\"), \"paths-ignore\");",
+    "replace": "const flow = /^ {2}pull_request:\\n(?: {4}.*\\n)*? {4}paths-ignore: \\[(\"[^\"]*\"(?:, \"[^\"]*\")*)\\]$/m.exec(text)?.[1];\n  const list = flow === undefined ? undefined : [...flow.matchAll(/\"([^\"]*)\"/g)].map((match) => match[1]);",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts -t \"written as single quotes\"",
+    "expect": "FAIL .*gates the same with the paths-ignore of ci.yml written as single quotes"
+  },
+  {
+    "id": "chore-lo-mg-trigger",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "\"pull_request\"), \"paths-ignore\")",
+    "replace": "\"push\"), \"paths-ignore\")",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts -t \"reads the list of pull_request\"",
+    "expect": "FAIL .*reads the list of pull_request, not the list of push"
+  },
+  {
+    "id": "chore-lo-mg-number",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "    if (typeof pattern !== \"string\") return null;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts -t \"paths-ignore that is a list that holds a number\"",
+    "expect": "FAIL .*refuses a paths-ignore that is a list that holds a number"
+  },
+  {
+    "id": "chore-lo-mg-scalar",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (!Array.isArray(list) || list.length === 0) return null;",
+    "replace": "if (list === undefined || list.length === 0) return null;",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts -t \"a bare string instead of a list\"",
+    "expect": "FAIL .*refuses a paths-ignore that is a bare string instead of a list"
+  },
+  {
+    "id": "chore-lo-mg-empty",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "if (!Array.isArray(list) || list.length === 0) return null;",
+    "replace": "if (!Array.isArray(list)) return null;",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts -t \"paths-ignore that is an empty list\"",
+    "expect": "FAIL .*refuses a paths-ignore that is an empty list"
+  },
+  {
+    "id": "chore-lo-mg-notyaml",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "  } catch {\n    return undefined;\n  }\n}",
+    "replace": "  } catch (error) {\n    throw error;\n  }\n}",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts -t \"ci.yml that is not YAML\"",
+    "expect": "FAIL .*refuses a ci.yml that is not YAML"
+  },
+  {
+    "id": "chore-lo-co-owner",
+    "test": "tests/unit/codeowners.test.ts",
+    "file": "../.github/CODEOWNERS",
+    "find": "/brand/ @AbdulrahmanAmer",
+    "replace": "/brand/ @someone-else",
+    "run": "bunx vitest run --project unit tests/unit/codeowners.test.ts -t \"names the one owner on every line\"",
+    "expect": "FAIL .*names the one owner on every line"
+  },
+  {
+    "id": "chore-lo-co-folders",
+    "test": "tests/unit/codeowners.test.ts",
+    "file": "../.github/CODEOWNERS",
+    "find": "/launch/ @AbdulrahmanAmer\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/codeowners.test.ts -t \"has exactly one line for each top folder\"",
+    "expect": "FAIL .*has exactly one line for each top folder"
+  },
+  {
+    "id": "chore-lo-fx-shared",
+    "test": "tests/unit/db-fixtures.test.ts",
+    "file": "tests/db/rls.db.test.ts",
+    "find": "values ('page_view', '/test-rls-' || v_user, now());",
+    "replace": "values ('page_view', '/b14-a', now());",
+    "run": "bunx vitest run --project unit tests/unit/db-fixtures.test.ts -t \"shares none\"",
+    "expect": "/b14-a is seeded by tests/db/audit-reads.db.test.ts and tests/db/rls.db.test.ts"
+  },
+  {
+    "id": "chore-lo-fx-read",
+    "test": "tests/unit/db-fixtures.test.ts",
+    "file": "tests/db/analytics.db.test.ts",
+    "find": "\"select id, tableoid::regclass::text as partition from public.analytics_events where id = $1\",",
+    "replace": "\"select id, tableoid::regclass::text as partition from public.analytics_events where id = $1 and path <> '/never-seeded'\",",
+    "run": "bunx vitest run --project unit tests/unit/db-fixtures.test.ts -t \"shares none\"",
+    "expect": "tests/db/analytics.db.test.ts reads /never-seeded, a row it does not seed"
+  },
+  {
+    "id": "chore-lo-fx-scans",
+    "test": "tests/unit/db-fixtures.test.ts",
+    "file": "tests/unit/db-fixtures.test.ts",
+    "find": "/insert\\s+into\\s+public\\.analytics_/i.test(text)",
+    "replace": "/insert\\s+into\\s+public\\.nothing_/i.test(text)",
+    "run": "bunx vitest run --project unit tests/unit/db-fixtures.test.ts -t \"scans the files that insert\"",
+    "expect": "FAIL .*scans the files that insert into the analytics tables"
+  },
+  {
+    "id": "chore-lo-fx-two",
+    "test": "tests/unit/db-fixtures.test.ts",
+    "file": "tests/unit/db-fixtures.test.ts",
+    "find": "if (list.length > 1) problems.push",
+    "replace": "if (list.length > 99) problems.push",
+    "run": "bunx vitest run --project unit tests/unit/db-fixtures.test.ts -t \"refuses a path two files seed\"",
+    "expect": "FAIL .*refuses a path two files seed"
+  },
+  {
+    "id": "chore-lo-fx-unseeded",
+    "test": "tests/unit/db-fixtures.test.ts",
+    "file": "tests/unit/db-fixtures.test.ts",
+    "find": ".filter((entry) => !seeded.includes(entry))",
+    "replace": ".filter(() => false)",
+    "run": "bunx vitest run --project unit tests/unit/db-fixtures.test.ts -t \"refuses a read of a literal path\"",
+    "expect": "FAIL .*refuses a read of a literal path the file does not seed"
+  },
+  {
+    "id": "chore-lo-fx-own",
+    "test": "tests/unit/db-fixtures.test.ts",
+    "file": "tests/unit/db-fixtures.test.ts",
+    "find": "(?!\\s*\\|\\|)",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/db-fixtures.test.ts -t \"lets a case read the literal path it seeds itself\"",
+    "expect": "FAIL .*lets a case read the literal path it seeds itself"
+  },
+  {
+    "id": "chore-lo-sec-table-red",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "if (unguarded.length > 0) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts -t \"is red for a writing form that the table lists\"",
+    "expect": "FAIL .*is red for a writing form that the table lists without Turnstile"
+  },
+  {
+    "id": "chore-lo-sec-table-both",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/security.mjs",
+    "find": "if (unguarded.length > 0) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts -t \"says both findings\"",
+    "expect": "FAIL .*says both findings when a page's scripts also name no Turnstile"
+  },
+  {
+    "id": "chore-lo-sec-table-reads",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/public-forms.mjs",
+    "find": "form.writes && !form.turnstile",
+    "replace": "!form.turnstile",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts -t \"exempts a form that only reads\"",
+    "expect": "FAIL .*exempts a form that only reads"
+  },
+  {
+    "id": "chore-lo-sec-pages",
+    "test": "tests/unit/audit/security.test.ts",
+    "file": "../workspace/audits/tools/public-forms.mjs",
+    "find": ".filter((route) => !route.includes(\":\"))",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/security.test.ts -t \"fetches the static routes of the table\"",
+    "expect": "FAIL .*fetches the static routes of the table and no other page"
+  },
+  {
+    "id": "chore-lo-tc-ids",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "../workspace/audits/tools/public-forms.mjs",
+    "find": "id: \"place-notes\",",
+    "replace": "id: \"interest\",",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts -t \"has a row per form with its own id\"",
+    "expect": "FAIL .*has a row per form with its own id"
+  },
+  {
+    "id": "chore-lo-tc-writes-without",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "../workspace/audits/tools/public-forms.mjs",
+    "find": "  {\n    id: \"not-found-search\",",
+    "replace": "  {\n    id: \"newsletter-copy\",\n    label: \"a second Place Notes form\",\n    routes: [\"/extra\"],\n    api: \"/api/public/inquiries\",\n    writes: true,\n    turnstile: false,\n    components: [\"components/forms/contact-form.tsx\"],\n  },\n  {\n    id: \"not-found-search\",",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts -t \"gives every form that writes Turnstile\"",
+    "expect": "FAIL .*gives every form that writes Turnstile, with no exception"
+  },
+  {
+    "id": "chore-lo-tc-reads-reason",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "../workspace/audits/tools/public-forms.mjs",
+    "find": "    reason: \"reads the catalog and writes nothing; the route has its own rate limit\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts -t \"exempts a form only when it reads\"",
+    "expect": "FAIL .*exempts a form only when it reads, and says why"
+  },
+  {
+    "id": "chore-lo-tc-post-row",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "../workspace/audits/tools/public-forms.mjs",
+    "find": "routes: [\"/contact\"],\n    api: \"/api/public/inquiries\",",
+    "replace": "routes: [\"/contact\"],\n    api: \"/api/public/events\",",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts -t \"sends every writing form to a POST row\"",
+    "expect": "FAIL .*sends every writing form to a POST row of the route table that checks Turnstile"
+  },
+  {
+    "id": "chore-lo-tc-marked",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "../workspace/audits/tools/public-forms.mjs",
+    "find": "routes: [\"/privacy-request\"],\n    api: \"/api/public/subjects/request\",\n    writes: true,",
+    "replace": "routes: [\"/privacy-request\"],\n    api: \"/api/public/subjects/request\",\n    writes: false,",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts -t \"lists as a writing form every POST row\"",
+    "expect": "FAIL .*lists as a writing form every POST row the route table marks as a form write"
+  },
+  {
+    "id": "chore-lo-tc-unnamed",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "../workspace/audits/tools/public-forms.mjs",
+    "find": "components: [\"components/forms/contact-form.tsx\"],",
+    "replace": "components: [],",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts -t \"names every component under src/components\"",
+    "expect": "FAIL .*names every component under src/components and src/routes that holds a form"
+  },
+  {
+    "id": "chore-lo-tc-stale",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "../workspace/audits/tools/public-forms.mjs",
+    "find": "components: [\"components/forms/contact-form.tsx\"],",
+    "replace": "components: [\"components/forms/contact-form.tsx\", \"components/site/newsletter.tsx\"],",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts -t \"names only components that exist\"",
+    "expect": "FAIL .*names only components that exist and still hold a form"
+  },
+  {
+    "id": "chore-lo-tz-cast-cairo",
+    "kind": "sql",
+    "test": "tests/db/audit-health-tz.db.test.ts",
+    "sql": "create or replace function public.audit_health()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month constant date := date_trunc('month', now() at time zone 'utc')::date;\n  v_sources jsonb;\nbegin\n  -- B14 invariant 4 and G11: the inquiry sources once B15's attribution column exists, null before.\n  if exists (\n    select 1 from information_schema.columns c\n    where c.table_schema = 'public' and c.table_name = 'inquiries' and c.column_name = 'attribution'\n  ) then\n    execute $q$\n      select coalesce(jsonb_agg(to_jsonb(s) order by s.source), '[]'::jsonb)\n      from (\n        select\n          coalesce(nullif(i.attribution -> 'first_touch' ->> 'utm_source', ''), '(none)') as source,\n          count(*) filter (where i.received_at >= now() - interval '7 days') as count_7d,\n          count(*) filter (where i.received_at < now() - interval '7 days') as count_prev_7d\n        from public.inquiries i\n        where i.received_at >= now() - interval '14 days'\n        group by 1\n      ) s\n    $q$ into v_sources;\n  end if;\n\n  return jsonb_build_object(\n    'assets_pending', (select count(*) from public.assets a where a.status = 'pending'),\n    'channels', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'channel', c.channel,\n        'enabled', c.enabled,\n        'last_posted_at', (select max(p.posted_at) from public.social_posts p where p.channel = c.channel),\n        'failed_7d', (\n          select count(*) from public.social_posts p\n          where p.channel = c.channel and p.status = 'failed' and p.updated_at >= now() - interval '7 days'\n        )\n      ) order by c.channel), '[]'::jsonb)\n      from public.channel_settings c\n    ),\n    'posts_7d', (\n      select count(*) from public.social_posts p where p.posted_at >= now() - interval '7 days'\n    ),\n    'newsletter', (\n      select jsonb_build_object(\n        'sent_30d', (\n          select count(*) from public.newsletter_issues i\n          where i.status = 'sent' and i.sent_at >= now() - interval '30 days'\n        ),\n        'last', (\n          select jsonb_build_object(\n            'number', i.number,\n            'sent_at', i.sent_at,\n            'recipients', (i.metrics ->> 'recipients')::int,\n            'opened', (i.metrics ->> 'opened')::int\n          )\n          from public.newsletter_issues i\n          where i.status = 'sent'\n          order by i.sent_at desc nulls last\n          limit 1\n        )\n      )\n    ),\n    -- B8 GD-03: a non-zero overdue means 30 days of runs removed nothing while rows of that age exist. A key with no\n    -- age column here is judged by last_run_at alone (overdue null).\n    'retention', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'key', r.key,\n        'last_run_at', r.last_run_at,\n        'last_count', r.last_count,\n        'overdue', case r.key\n          when 'rate_limits' then (select count(*) from public.rate_limits x where x.at < r.cutoff)\n          when 'webhook_receipts' then (\n            select count(*) from public.webhook_receipts x where x.received_at < r.cutoff\n          )\n          when 'subject_requests' then (\n            select count(*) from public.subject_requests x\n            where x.received_at < r.cutoff and x.status in ('fulfilled', 'rejected')\n          )\n          when 'jobs_done' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status in ('done', 'cancelled')\n          )\n          when 'jobs_dead' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status = 'dead'\n          )\n          when 'events_processed' then (\n            select count(*) from public.events x where x.processed_at < r.cutoff\n          )\n          when 'inquiries_anonymise' then (\n            select count(*) from public.inquiries x where x.received_at < r.cutoff and x.anonymised_at is null\n          )\n          when 'declined_submission_media' then (\n            select count(*)\n            from public.submission_media m\n            join public.submissions s on s.id = m.submission_id\n            where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff\n          )\n          when 'analytics_daily' then (\n            select count(*) from public.analytics_daily x where x.day < r.cutoff::date\n          )\n        end\n      ) order by r.key), '[]'::jsonb)\n      from (\n        select p.*, now() - (p.keep_for + interval '30 days') as cutoff\n        from public.retention_policies p\n        where p.enabled and p.action <> 'keep' and p.keep_for is not null and p.key <> 'analytics_events'\n      ) r\n    ),\n    -- G11: p75 per path and metric over 7 days.\n    'web_vitals', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'path', v.path, 'name', v.name, 'p75', v.p75, 'samples', v.samples\n      ) order by v.path, v.name), '[]'::jsonb)\n      from (\n        select\n          e.path,\n          e.data ->> 'name' as name,\n          percentile_cont(0.75) within group (order by (e.data ->> 'value')::float8) as p75,\n          count(*) as samples\n        from public.analytics_events e\n        where e.event = 'web_vitals' and e.occurred_at >= now() - interval '7 days'\n          and e.data ->> 'name' in ('LCP', 'CLS', 'INP')\n          and jsonb_typeof(e.data -> 'value') = 'number'\n        group by 1, 2\n      ) v\n    ),\n    -- Ruling H16: 13 whole months from the daily aggregates, served by analytics_daily_event_day_idx.\n    'analytics_trend', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'month', t.month, 'event', t.event, 'events', t.events\n      ) order by t.month, t.event), '[]'::jsonb)\n      from (\n        select to_char(date_trunc('month', d.day), 'YYYY-MM') as month, d.event, sum(d.events)::int as events\n        from public.analytics_daily d\n        where d.day >= (v_month - interval '13 months')::date and d.day < v_month\n        group by 1, 2\n      ) t\n    ),\n    'inquiries_by_source', v_sources\n  );\nend;\n$$;\n\nrevoke execute on function public.audit_health() from public, anon, authenticated;\ngrant execute on function public.audit_health() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-health-tz.db.test.ts -t \"in Africa/Cairo\"",
+    "expect": "FAIL .*counts the days before its UTC day, with the session in Africa/Cairo"
+  },
+  {
+    "id": "chore-lo-tz-cast-la",
+    "kind": "sql",
+    "test": "tests/db/audit-health-tz.db.test.ts",
+    "sql": "create or replace function public.audit_health()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month constant date := date_trunc('month', now() at time zone 'utc')::date;\n  v_sources jsonb;\nbegin\n  -- B14 invariant 4 and G11: the inquiry sources once B15's attribution column exists, null before.\n  if exists (\n    select 1 from information_schema.columns c\n    where c.table_schema = 'public' and c.table_name = 'inquiries' and c.column_name = 'attribution'\n  ) then\n    execute $q$\n      select coalesce(jsonb_agg(to_jsonb(s) order by s.source), '[]'::jsonb)\n      from (\n        select\n          coalesce(nullif(i.attribution -> 'first_touch' ->> 'utm_source', ''), '(none)') as source,\n          count(*) filter (where i.received_at >= now() - interval '7 days') as count_7d,\n          count(*) filter (where i.received_at < now() - interval '7 days') as count_prev_7d\n        from public.inquiries i\n        where i.received_at >= now() - interval '14 days'\n        group by 1\n      ) s\n    $q$ into v_sources;\n  end if;\n\n  return jsonb_build_object(\n    'assets_pending', (select count(*) from public.assets a where a.status = 'pending'),\n    'channels', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'channel', c.channel,\n        'enabled', c.enabled,\n        'last_posted_at', (select max(p.posted_at) from public.social_posts p where p.channel = c.channel),\n        'failed_7d', (\n          select count(*) from public.social_posts p\n          where p.channel = c.channel and p.status = 'failed' and p.updated_at >= now() - interval '7 days'\n        )\n      ) order by c.channel), '[]'::jsonb)\n      from public.channel_settings c\n    ),\n    'posts_7d', (\n      select count(*) from public.social_posts p where p.posted_at >= now() - interval '7 days'\n    ),\n    'newsletter', (\n      select jsonb_build_object(\n        'sent_30d', (\n          select count(*) from public.newsletter_issues i\n          where i.status = 'sent' and i.sent_at >= now() - interval '30 days'\n        ),\n        'last', (\n          select jsonb_build_object(\n            'number', i.number,\n            'sent_at', i.sent_at,\n            'recipients', (i.metrics ->> 'recipients')::int,\n            'opened', (i.metrics ->> 'opened')::int\n          )\n          from public.newsletter_issues i\n          where i.status = 'sent'\n          order by i.sent_at desc nulls last\n          limit 1\n        )\n      )\n    ),\n    -- B8 GD-03: a non-zero overdue means 30 days of runs removed nothing while rows of that age exist. A key with no\n    -- age column here is judged by last_run_at alone (overdue null).\n    'retention', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'key', r.key,\n        'last_run_at', r.last_run_at,\n        'last_count', r.last_count,\n        'overdue', case r.key\n          when 'rate_limits' then (select count(*) from public.rate_limits x where x.at < r.cutoff)\n          when 'webhook_receipts' then (\n            select count(*) from public.webhook_receipts x where x.received_at < r.cutoff\n          )\n          when 'subject_requests' then (\n            select count(*) from public.subject_requests x\n            where x.received_at < r.cutoff and x.status in ('fulfilled', 'rejected')\n          )\n          when 'jobs_done' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status in ('done', 'cancelled')\n          )\n          when 'jobs_dead' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status = 'dead'\n          )\n          when 'events_processed' then (\n            select count(*) from public.events x where x.processed_at < r.cutoff\n          )\n          when 'inquiries_anonymise' then (\n            select count(*) from public.inquiries x where x.received_at < r.cutoff and x.anonymised_at is null\n          )\n          when 'declined_submission_media' then (\n            select count(*)\n            from public.submission_media m\n            join public.submissions s on s.id = m.submission_id\n            where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff\n          )\n          when 'analytics_daily' then (\n            select count(*) from public.analytics_daily x where x.day < r.cutoff::date\n          )\n        end\n      ) order by r.key), '[]'::jsonb)\n      from (\n        select p.*, now() - (p.keep_for + interval '30 days') as cutoff\n        from public.retention_policies p\n        where p.enabled and p.action <> 'keep' and p.keep_for is not null and p.key <> 'analytics_events'\n      ) r\n    ),\n    -- G11: p75 per path and metric over 7 days.\n    'web_vitals', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'path', v.path, 'name', v.name, 'p75', v.p75, 'samples', v.samples\n      ) order by v.path, v.name), '[]'::jsonb)\n      from (\n        select\n          e.path,\n          e.data ->> 'name' as name,\n          percentile_cont(0.75) within group (order by (e.data ->> 'value')::float8) as p75,\n          count(*) as samples\n        from public.analytics_events e\n        where e.event = 'web_vitals' and e.occurred_at >= now() - interval '7 days'\n          and e.data ->> 'name' in ('LCP', 'CLS', 'INP')\n          and jsonb_typeof(e.data -> 'value') = 'number'\n        group by 1, 2\n      ) v\n    ),\n    -- Ruling H16: 13 whole months from the daily aggregates, served by analytics_daily_event_day_idx.\n    'analytics_trend', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'month', t.month, 'event', t.event, 'events', t.events\n      ) order by t.month, t.event), '[]'::jsonb)\n      from (\n        select to_char(date_trunc('month', d.day), 'YYYY-MM') as month, d.event, sum(d.events)::int as events\n        from public.analytics_daily d\n        where d.day >= (v_month - interval '13 months')::date and d.day < v_month\n        group by 1, 2\n      ) t\n    ),\n    'inquiries_by_source', v_sources\n  );\nend;\n$$;\n\nrevoke execute on function public.audit_health() from public, anon, authenticated;\ngrant execute on function public.audit_health() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-health-tz.db.test.ts -t \"00:30:00.00 counts the days before its UTC day, with the session in America/Los_Angeles\"",
+    "expect": "FAIL .*00:30:00.00 counts the days before its UTC day, with the session in America/Los_Angeles"
+  },
+  {
+    "id": "chore-lo-tz-cast-same",
+    "kind": "sql",
+    "test": "tests/db/audit-health-tz.db.test.ts",
+    "sql": "create or replace function public.audit_health()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month constant date := date_trunc('month', now() at time zone 'utc')::date;\n  v_sources jsonb;\nbegin\n  -- B14 invariant 4 and G11: the inquiry sources once B15's attribution column exists, null before.\n  if exists (\n    select 1 from information_schema.columns c\n    where c.table_schema = 'public' and c.table_name = 'inquiries' and c.column_name = 'attribution'\n  ) then\n    execute $q$\n      select coalesce(jsonb_agg(to_jsonb(s) order by s.source), '[]'::jsonb)\n      from (\n        select\n          coalesce(nullif(i.attribution -> 'first_touch' ->> 'utm_source', ''), '(none)') as source,\n          count(*) filter (where i.received_at >= now() - interval '7 days') as count_7d,\n          count(*) filter (where i.received_at < now() - interval '7 days') as count_prev_7d\n        from public.inquiries i\n        where i.received_at >= now() - interval '14 days'\n        group by 1\n      ) s\n    $q$ into v_sources;\n  end if;\n\n  return jsonb_build_object(\n    'assets_pending', (select count(*) from public.assets a where a.status = 'pending'),\n    'channels', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'channel', c.channel,\n        'enabled', c.enabled,\n        'last_posted_at', (select max(p.posted_at) from public.social_posts p where p.channel = c.channel),\n        'failed_7d', (\n          select count(*) from public.social_posts p\n          where p.channel = c.channel and p.status = 'failed' and p.updated_at >= now() - interval '7 days'\n        )\n      ) order by c.channel), '[]'::jsonb)\n      from public.channel_settings c\n    ),\n    'posts_7d', (\n      select count(*) from public.social_posts p where p.posted_at >= now() - interval '7 days'\n    ),\n    'newsletter', (\n      select jsonb_build_object(\n        'sent_30d', (\n          select count(*) from public.newsletter_issues i\n          where i.status = 'sent' and i.sent_at >= now() - interval '30 days'\n        ),\n        'last', (\n          select jsonb_build_object(\n            'number', i.number,\n            'sent_at', i.sent_at,\n            'recipients', (i.metrics ->> 'recipients')::int,\n            'opened', (i.metrics ->> 'opened')::int\n          )\n          from public.newsletter_issues i\n          where i.status = 'sent'\n          order by i.sent_at desc nulls last\n          limit 1\n        )\n      )\n    ),\n    -- B8 GD-03: a non-zero overdue means 30 days of runs removed nothing while rows of that age exist. A key with no\n    -- age column here is judged by last_run_at alone (overdue null).\n    'retention', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'key', r.key,\n        'last_run_at', r.last_run_at,\n        'last_count', r.last_count,\n        'overdue', case r.key\n          when 'rate_limits' then (select count(*) from public.rate_limits x where x.at < r.cutoff)\n          when 'webhook_receipts' then (\n            select count(*) from public.webhook_receipts x where x.received_at < r.cutoff\n          )\n          when 'subject_requests' then (\n            select count(*) from public.subject_requests x\n            where x.received_at < r.cutoff and x.status in ('fulfilled', 'rejected')\n          )\n          when 'jobs_done' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status in ('done', 'cancelled')\n          )\n          when 'jobs_dead' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status = 'dead'\n          )\n          when 'events_processed' then (\n            select count(*) from public.events x where x.processed_at < r.cutoff\n          )\n          when 'inquiries_anonymise' then (\n            select count(*) from public.inquiries x where x.received_at < r.cutoff and x.anonymised_at is null\n          )\n          when 'declined_submission_media' then (\n            select count(*)\n            from public.submission_media m\n            join public.submissions s on s.id = m.submission_id\n            where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff\n          )\n          when 'analytics_daily' then (\n            select count(*) from public.analytics_daily x where x.day < r.cutoff::date\n          )\n        end\n      ) order by r.key), '[]'::jsonb)\n      from (\n        select p.*, now() - (p.keep_for + interval '30 days') as cutoff\n        from public.retention_policies p\n        where p.enabled and p.action <> 'keep' and p.keep_for is not null and p.key <> 'analytics_events'\n      ) r\n    ),\n    -- G11: p75 per path and metric over 7 days.\n    'web_vitals', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'path', v.path, 'name', v.name, 'p75', v.p75, 'samples', v.samples\n      ) order by v.path, v.name), '[]'::jsonb)\n      from (\n        select\n          e.path,\n          e.data ->> 'name' as name,\n          percentile_cont(0.75) within group (order by (e.data ->> 'value')::float8) as p75,\n          count(*) as samples\n        from public.analytics_events e\n        where e.event = 'web_vitals' and e.occurred_at >= now() - interval '7 days'\n          and e.data ->> 'name' in ('LCP', 'CLS', 'INP')\n          and jsonb_typeof(e.data -> 'value') = 'number'\n        group by 1, 2\n      ) v\n    ),\n    -- Ruling H16: 13 whole months from the daily aggregates, served by analytics_daily_event_day_idx.\n    'analytics_trend', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'month', t.month, 'event', t.event, 'events', t.events\n      ) order by t.month, t.event), '[]'::jsonb)\n      from (\n        select to_char(date_trunc('month', d.day), 'YYYY-MM') as month, d.event, sum(d.events)::int as events\n        from public.analytics_daily d\n        where d.day >= (v_month - interval '13 months')::date and d.day < v_month\n        group by 1, 2\n      ) t\n    ),\n    'inquiries_by_source', v_sources\n  );\nend;\n$$;\n\nrevoke execute on function public.audit_health() from public, anon, authenticated;\ngrant execute on function public.audit_health() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-health-tz.db.test.ts -t \"answers the same count under every session zone\"",
+    "expect": "FAIL .*answers the same count under every session zone for one cutoff"
+  },
+  {
+    "id": "chore-lo-tz-offset-la",
+    "kind": "sql",
+    "test": "tests/db/audit-health-tz.db.test.ts",
+    "sql": "create or replace function public.audit_health()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month constant date := date_trunc('month', now() at time zone 'utc')::date;\n  v_sources jsonb;\nbegin\n  -- B14 invariant 4 and G11: the inquiry sources once B15's attribution column exists, null before.\n  if exists (\n    select 1 from information_schema.columns c\n    where c.table_schema = 'public' and c.table_name = 'inquiries' and c.column_name = 'attribution'\n  ) then\n    execute $q$\n      select coalesce(jsonb_agg(to_jsonb(s) order by s.source), '[]'::jsonb)\n      from (\n        select\n          coalesce(nullif(i.attribution -> 'first_touch' ->> 'utm_source', ''), '(none)') as source,\n          count(*) filter (where i.received_at >= now() - interval '7 days') as count_7d,\n          count(*) filter (where i.received_at < now() - interval '7 days') as count_prev_7d\n        from public.inquiries i\n        where i.received_at >= now() - interval '14 days'\n        group by 1\n      ) s\n    $q$ into v_sources;\n  end if;\n\n  return jsonb_build_object(\n    'assets_pending', (select count(*) from public.assets a where a.status = 'pending'),\n    'channels', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'channel', c.channel,\n        'enabled', c.enabled,\n        'last_posted_at', (select max(p.posted_at) from public.social_posts p where p.channel = c.channel),\n        'failed_7d', (\n          select count(*) from public.social_posts p\n          where p.channel = c.channel and p.status = 'failed' and p.updated_at >= now() - interval '7 days'\n        )\n      ) order by c.channel), '[]'::jsonb)\n      from public.channel_settings c\n    ),\n    'posts_7d', (\n      select count(*) from public.social_posts p where p.posted_at >= now() - interval '7 days'\n    ),\n    'newsletter', (\n      select jsonb_build_object(\n        'sent_30d', (\n          select count(*) from public.newsletter_issues i\n          where i.status = 'sent' and i.sent_at >= now() - interval '30 days'\n        ),\n        'last', (\n          select jsonb_build_object(\n            'number', i.number,\n            'sent_at', i.sent_at,\n            'recipients', (i.metrics ->> 'recipients')::int,\n            'opened', (i.metrics ->> 'opened')::int\n          )\n          from public.newsletter_issues i\n          where i.status = 'sent'\n          order by i.sent_at desc nulls last\n          limit 1\n        )\n      )\n    ),\n    -- B8 GD-03: a non-zero overdue means 30 days of runs removed nothing while rows of that age exist. A key with no\n    -- age column here is judged by last_run_at alone (overdue null).\n    'retention', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'key', r.key,\n        'last_run_at', r.last_run_at,\n        'last_count', r.last_count,\n        'overdue', case r.key\n          when 'rate_limits' then (select count(*) from public.rate_limits x where x.at < r.cutoff)\n          when 'webhook_receipts' then (\n            select count(*) from public.webhook_receipts x where x.received_at < r.cutoff\n          )\n          when 'subject_requests' then (\n            select count(*) from public.subject_requests x\n            where x.received_at < r.cutoff and x.status in ('fulfilled', 'rejected')\n          )\n          when 'jobs_done' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status in ('done', 'cancelled')\n          )\n          when 'jobs_dead' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status = 'dead'\n          )\n          when 'events_processed' then (\n            select count(*) from public.events x where x.processed_at < r.cutoff\n          )\n          when 'inquiries_anonymise' then (\n            select count(*) from public.inquiries x where x.received_at < r.cutoff and x.anonymised_at is null\n          )\n          when 'declined_submission_media' then (\n            select count(*)\n            from public.submission_media m\n            join public.submissions s on s.id = m.submission_id\n            where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff\n          )\n          when 'analytics_daily' then (\n            select count(*) from public.analytics_daily x where x.day < (r.cutoff at time zone 'utc')::date + 1\n          )\n        end\n      ) order by r.key), '[]'::jsonb)\n      from (\n        select p.*, now() - (p.keep_for + interval '30 days') as cutoff\n        from public.retention_policies p\n        where p.enabled and p.action <> 'keep' and p.keep_for is not null and p.key <> 'analytics_events'\n      ) r\n    ),\n    -- G11: p75 per path and metric over 7 days.\n    'web_vitals', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'path', v.path, 'name', v.name, 'p75', v.p75, 'samples', v.samples\n      ) order by v.path, v.name), '[]'::jsonb)\n      from (\n        select\n          e.path,\n          e.data ->> 'name' as name,\n          percentile_cont(0.75) within group (order by (e.data ->> 'value')::float8) as p75,\n          count(*) as samples\n        from public.analytics_events e\n        where e.event = 'web_vitals' and e.occurred_at >= now() - interval '7 days'\n          and e.data ->> 'name' in ('LCP', 'CLS', 'INP')\n          and jsonb_typeof(e.data -> 'value') = 'number'\n        group by 1, 2\n      ) v\n    ),\n    -- Ruling H16: 13 whole months from the daily aggregates, served by analytics_daily_event_day_idx.\n    'analytics_trend', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'month', t.month, 'event', t.event, 'events', t.events\n      ) order by t.month, t.event), '[]'::jsonb)\n      from (\n        select to_char(date_trunc('month', d.day), 'YYYY-MM') as month, d.event, sum(d.events)::int as events\n        from public.analytics_daily d\n        where d.day >= (v_month - interval '13 months')::date and d.day < v_month\n        group by 1, 2\n      ) t\n    ),\n    'inquiries_by_source', v_sources\n  );\nend;\n$$;\n\nrevoke execute on function public.audit_health() from public, anon, authenticated;\ngrant execute on function public.audit_health() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-health-tz.db.test.ts -t \"23:30:00.00 counts the days before its UTC day, with the session in America/Los_Angeles\"",
+    "expect": "FAIL .*23:30:00.00 counts the days before its UTC day, with the session in America/Los_Angeles"
+  },
+  {
+    "id": "chore-lo-tz-offset-utc",
+    "kind": "sql",
+    "test": "tests/db/audit-health-tz.db.test.ts",
+    "sql": "create or replace function public.audit_health()\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_month constant date := date_trunc('month', now() at time zone 'utc')::date;\n  v_sources jsonb;\nbegin\n  -- B14 invariant 4 and G11: the inquiry sources once B15's attribution column exists, null before.\n  if exists (\n    select 1 from information_schema.columns c\n    where c.table_schema = 'public' and c.table_name = 'inquiries' and c.column_name = 'attribution'\n  ) then\n    execute $q$\n      select coalesce(jsonb_agg(to_jsonb(s) order by s.source), '[]'::jsonb)\n      from (\n        select\n          coalesce(nullif(i.attribution -> 'first_touch' ->> 'utm_source', ''), '(none)') as source,\n          count(*) filter (where i.received_at >= now() - interval '7 days') as count_7d,\n          count(*) filter (where i.received_at < now() - interval '7 days') as count_prev_7d\n        from public.inquiries i\n        where i.received_at >= now() - interval '14 days'\n        group by 1\n      ) s\n    $q$ into v_sources;\n  end if;\n\n  return jsonb_build_object(\n    'assets_pending', (select count(*) from public.assets a where a.status = 'pending'),\n    'channels', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'channel', c.channel,\n        'enabled', c.enabled,\n        'last_posted_at', (select max(p.posted_at) from public.social_posts p where p.channel = c.channel),\n        'failed_7d', (\n          select count(*) from public.social_posts p\n          where p.channel = c.channel and p.status = 'failed' and p.updated_at >= now() - interval '7 days'\n        )\n      ) order by c.channel), '[]'::jsonb)\n      from public.channel_settings c\n    ),\n    'posts_7d', (\n      select count(*) from public.social_posts p where p.posted_at >= now() - interval '7 days'\n    ),\n    'newsletter', (\n      select jsonb_build_object(\n        'sent_30d', (\n          select count(*) from public.newsletter_issues i\n          where i.status = 'sent' and i.sent_at >= now() - interval '30 days'\n        ),\n        'last', (\n          select jsonb_build_object(\n            'number', i.number,\n            'sent_at', i.sent_at,\n            'recipients', (i.metrics ->> 'recipients')::int,\n            'opened', (i.metrics ->> 'opened')::int\n          )\n          from public.newsletter_issues i\n          where i.status = 'sent'\n          order by i.sent_at desc nulls last\n          limit 1\n        )\n      )\n    ),\n    -- B8 GD-03: a non-zero overdue means 30 days of runs removed nothing while rows of that age exist. A key with no\n    -- age column here is judged by last_run_at alone (overdue null).\n    'retention', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'key', r.key,\n        'last_run_at', r.last_run_at,\n        'last_count', r.last_count,\n        'overdue', case r.key\n          when 'rate_limits' then (select count(*) from public.rate_limits x where x.at < r.cutoff)\n          when 'webhook_receipts' then (\n            select count(*) from public.webhook_receipts x where x.received_at < r.cutoff\n          )\n          when 'subject_requests' then (\n            select count(*) from public.subject_requests x\n            where x.received_at < r.cutoff and x.status in ('fulfilled', 'rejected')\n          )\n          when 'jobs_done' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status in ('done', 'cancelled')\n          )\n          when 'jobs_dead' then (\n            select count(*) from public.jobs x where x.finished_at < r.cutoff and x.status = 'dead'\n          )\n          when 'events_processed' then (\n            select count(*) from public.events x where x.processed_at < r.cutoff\n          )\n          when 'inquiries_anonymise' then (\n            select count(*) from public.inquiries x where x.received_at < r.cutoff and x.anonymised_at is null\n          )\n          when 'declined_submission_media' then (\n            select count(*)\n            from public.submission_media m\n            join public.submissions s on s.id = m.submission_id\n            where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff\n          )\n          when 'analytics_daily' then (\n            select count(*) from public.analytics_daily x where x.day < (r.cutoff at time zone 'utc')::date + 1\n          )\n        end\n      ) order by r.key), '[]'::jsonb)\n      from (\n        select p.*, now() - (p.keep_for + interval '30 days') as cutoff\n        from public.retention_policies p\n        where p.enabled and p.action <> 'keep' and p.keep_for is not null and p.key <> 'analytics_events'\n      ) r\n    ),\n    -- G11: p75 per path and metric over 7 days.\n    'web_vitals', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'path', v.path, 'name', v.name, 'p75', v.p75, 'samples', v.samples\n      ) order by v.path, v.name), '[]'::jsonb)\n      from (\n        select\n          e.path,\n          e.data ->> 'name' as name,\n          percentile_cont(0.75) within group (order by (e.data ->> 'value')::float8) as p75,\n          count(*) as samples\n        from public.analytics_events e\n        where e.event = 'web_vitals' and e.occurred_at >= now() - interval '7 days'\n          and e.data ->> 'name' in ('LCP', 'CLS', 'INP')\n          and jsonb_typeof(e.data -> 'value') = 'number'\n        group by 1, 2\n      ) v\n    ),\n    -- Ruling H16: 13 whole months from the daily aggregates, served by analytics_daily_event_day_idx.\n    'analytics_trend', (\n      select coalesce(jsonb_agg(jsonb_build_object(\n        'month', t.month, 'event', t.event, 'events', t.events\n      ) order by t.month, t.event), '[]'::jsonb)\n      from (\n        select to_char(date_trunc('month', d.day), 'YYYY-MM') as month, d.event, sum(d.events)::int as events\n        from public.analytics_daily d\n        where d.day >= (v_month - interval '13 months')::date and d.day < v_month\n        group by 1, 2\n      ) t\n    ),\n    'inquiries_by_source', v_sources\n  );\nend;\n$$;\n\nrevoke execute on function public.audit_health() from public, anon, authenticated;\ngrant execute on function public.audit_health() to service_role;\n",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/audit-health-tz.db.test.ts -t \"with the session in UTC\"",
+    "expect": "FAIL .*counts the days before its UTC day, with the session in UTC"
+  }
+]
