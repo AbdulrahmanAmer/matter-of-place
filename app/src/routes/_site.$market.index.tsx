@@ -82,7 +82,27 @@ function MarketPage() {
 
   return (
     <main>
-      {market.comingSoon || market.image === undefined ? (
+      {pool.length === 0 ? (
+        <section className="hero-text market-hero-empty" aria-labelledby="market-title">
+          <div className="section-wrap hero-text-inner">
+            <p className="eyebrow">MATTER OF PLACE · EDITORIAL DESK</p>
+            <h1 id="market-title">{market.name}</h1>
+            <p className="hero-text-lede">{market.intro}</p>
+            <p className="market-hero-status">
+              <span aria-hidden="true" className="market-hero-dot" />
+              Opening soon. The first {market.name} properties are being considered.
+            </p>
+            <div className="hero-text-actions">
+              <a href="#market-signup" className="button">
+                Hear when it opens
+              </a>
+              <Link to="/submit" className="button ghost">
+                Submit a Property
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : market.comingSoon || market.image === undefined ? (
         <PageIntro eyebrow="MATTER OF PLACE · EDITORIAL DESK" title={market.name} />
       ) : (
         <ImageHero
@@ -98,7 +118,7 @@ function MarketPage() {
         <p className="eyebrow">THE PLACE</p>
         <div>
           <h2>Setting first.</h2>
-          <p>{market.intro}</p>
+          {pool.length > 0 && <p>{market.intro}</p>}
           <div className="market-places">
             <p className="eyebrow">PLACES WE FOLLOW</p>
             <p>{market.places.join(" · ")}</p>
@@ -134,7 +154,9 @@ function MarketPage() {
                 className="market-region-card"
               >
                 <span className="eyebrow">
-                  {count} {pluralize(count, "PROPERTY", "PROPERTIES")}
+                  {pool.length === 0
+                    ? "OPENING SOON"
+                    : `${String(count)} ${pluralize(count, "PROPERTY", "PROPERTIES")}`}
                 </span>
                 <h3>{region.name}</h3>
                 <p>{region.places.join(" · ")}</p>
@@ -145,7 +167,9 @@ function MarketPage() {
       </section>
 
       {pool.length === 0 ? (
-        <ComingSoon scope="market" market={market} />
+        <div id="market-signup" className="market-signup">
+          <ComingSoon scope="market" market={market} />
+        </div>
       ) : (
         <FilteredCollection
           eyebrow="EXPLORE THE MARKET"

@@ -6,7 +6,7 @@ import { openConsentNotice } from "../../lib/consent";
 import { legalIdentity } from "../../lib/legal-identity";
 import { useSite } from "../../lib/queries";
 import { presentLines } from "../../domain/settings";
-import { t } from "../../lib/strings";
+import { fill, t } from "../../lib/strings";
 import { ConsentNotice } from "./consent-notice";
 
 // A real link to /privacy-choices; with JavaScript the same click reopens the notice in place.
@@ -101,15 +101,19 @@ export function Footer() {
         </div>
 
         <div className="footer-bottom">
-          <span>
-            {siteConfig.name} · {t.footer.line}
-          </span>
-          <span>
-            © {new Date().getFullYear()} {identity.entity}
-          </span>
-          <span>{identity.address}</span>
+          <p className="footer-legal">
+            {fill(t.footer.product, { name: siteConfig.name, entity: identity.entity })}
+          </p>
+          <p className="footer-address">
+            <span>
+              © {new Date().getFullYear()} {identity.entity}
+            </span>
+            <span>{identity.address}</span>
+          </p>
         </div>
       </div>
+      {/* Decoration, not text: the name is drawn by CSS from data-signature, so no reader or contrast check meets it. */}
+      <div className="footer-signature" aria-hidden="true" data-signature={siteConfig.name} />
     </footer>
   );
 }
