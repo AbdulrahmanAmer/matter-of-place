@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { z } from "zod";
 import { t } from "../../src/lib/strings";
+import { runAxe } from "./fixtures/a11y";
 import { collect } from "./fixtures/page";
 import { getDynamicRoutes } from "./fixtures/routes";
 
@@ -219,8 +220,16 @@ async function stubSubmission(page: Page): Promise<Stubbed> {
 
 type Photo = { name: string; mimeType: string; buffer: Buffer };
 
-/** The five steps as a real estate agent; `files` goes to the file input of step 2. */
-async function fillWizard(page: Page, files: Photo[]): Promise<void> {
+type Filling = {
+  /** Who is sending; the default is the agent of the other cases. */
+  owner?: boolean;
+  email?: string;
+  listingUrl?: string;
+  phone?: string;
+};
+
+/** The five steps as a real estate agent (or, with `owner`, a property owner); `files` goes to the file input of step 2. */
+async function fillWizard(page: Page, files: Photo[], filling: Filling = {}): Promise<void> {
   await page.goto("/submit", { waitUntil: "networkidle" });
   const next = page.getByRole("button", { name: t.common.continue, exact: true });
 
@@ -230,6 +239,9 @@ async function fillWizard(page: Page, files: Photo[]): Promise<void> {
   await page.getByLabel(/^State/).selectOption("California");
   await page.getByLabel("ZIP", { exact: true }).fill("93023");
   await page.getByLabel(/^Property type/).selectOption({ index: 1 });
+  if (filling.listingUrl !== undefined) {
+    await page.getByLabel("Listing URL", { exact: true }).fill(filling.listingUrl);
+  }
   await next.click();
 
   await page.getByLabel("The property story", { exact: true }).fill("A house built for the light.");
@@ -239,10 +251,16 @@ async function fillWizard(page: Page, files: Photo[]): Promise<void> {
   await page.locator('input[type="file"]').setInputFiles(files);
   await next.click();
 
-  await page.getByLabel(/^I am/).selectOption({ label: "Real estate agent" });
-  await page.getByLabel("Your name", { exact: true }).fill("E2E Agent");
-  await page.getByLabel("Brokerage", { exact: true }).fill("Fixture Realty");
-  await page.getByLabel("Email", { exact: true }).fill(WIZARD_EMAIL);
+  await page
+    .getByLabel(/^I am/)
+    .selectOption({ label: filling.owner ? "Property owner" : "Real estate agent" });
+  await page
+    .getByLabel("Your name", { exact: true })
+    .fill(filling.owner ? "panel-test" : "E2E Agent");
+  if (!filling.owner) await page.getByLabel("Brokerage", { exact: true }).fill("Fixture Realty");
+  await page.getByLabel("Email", { exact: true }).fill(filling.email ?? WIZARD_EMAIL);
+  if (filling.phone !== undefined)
+    await page.getByLabel("Phone", { exact: true }).fill(filling.phone);
   await next.click();
 
   await page.getByRole("radio", { name: "The Feature" }).click();
@@ -334,5 +352,102 @@ test.describe("submission wizard", () => {
     );
     expect(edge).toBeGreaterThan(0);
     expect(edge).toBeLessThanOrEqual(MAX_UPLOAD_EDGE);
+  });
+});
+
+// Panel finding 3: a refused field used to end on "Please check the highlighted details." with nothing highlighted.
+test.describe("submission wizard: a refused field", () => {
+  const step = (page: Page) => page.locator(".wizard-steps li.on");
+  const emailInput = (page: Page) => page.getByLabel("Email", { exact: true });
+  const send = (page: Page) => page.getByRole("button", { name: "Send for review" });
+  const EMAIL_MESSAGE = "Please enter a valid email address.";
+  const LINK_MESSAGE = "Please enter a full link, starting with https://.";
+
+  test("the client refuses the email: it is marked on its step and nothing is posted", async ({
+    page,
+  }) => {
+    const stubbed = await stubSubmission(page);
+    await fillWizard(page, [], { owner: true, email: "panel-test", phone: "+1 415 555 0100" });
+
+    await expect(step(page)).toHaveText(/About you/);
+    await expect(emailInput(page)).toHaveAttribute("aria-invalid", "true");
+    const described = await emailInput(page).getAttribute("aria-describedby");
+    await expect(page.locator(`[id="${described ?? "none"}"]`)).toHaveText(EMAIL_MESSAGE);
+    await expect(emailInput(page)).toBeFocused();
+    await expect(page.getByText(t.forms.invalid)).toBeVisible();
+    expect(stubbed.posts).toHaveLength(0);
+    // The marked step has no serious axe violation: the message is text, the control names it.
+    await runAxe(page, "/submit");
+
+    // Typing a good address clears the mark; the rest of the walk sends once.
+    await emailInput(page).fill("panel-test@fixtures.invalid");
+    await expect(emailInput(page)).not.toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByText(t.forms.invalid)).toHaveCount(0);
+    await page.getByRole("button", { name: t.common.continue, exact: true }).click();
+    await page.getByRole("button", { name: t.common.continue, exact: true }).click();
+    await expect(page.locator(".review-issues")).toHaveCount(0);
+    await send(page).click();
+    await expect(received(page)).toBeVisible();
+    expect(stubbed.posts).toHaveLength(1);
+  });
+
+  test("the server refuses three fields: the first step shows its mark, Review lists all three", async ({
+    page,
+  }) => {
+    await stubSubmission(page);
+    let posted = 0;
+    await page.route("**/api/public/submissions**", async (route) => {
+      posted += 1;
+      await route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        json: {
+          error: {
+            code: "validation",
+            message: "Some of the details need another look.",
+            issues: [
+              {
+                code: "invalid_string",
+                validation: "email",
+                path: ["submitterEmail"],
+                message: "Invalid email",
+              },
+              {
+                code: "too_small",
+                type: "string",
+                minimum: 1,
+                inclusive: true,
+                path: ["story"],
+                message: "String must contain at least 1 character(s)",
+              },
+              { code: "invalid_union", path: ["listingUrl"], message: "Invalid input" },
+            ],
+            requestId: "e2e-request",
+          },
+        },
+      });
+    });
+    await fillWizard(page, []);
+
+    // The first step with an error is step 1, where the listing link sits.
+    await expect(step(page)).toHaveText(/Property/);
+    const link = page.getByLabel("Listing URL", { exact: true });
+    await expect(link).toHaveAttribute("aria-invalid", "true");
+    const described = await link.getAttribute("aria-describedby");
+    await expect(page.locator(`[id="${described ?? "none"}"]`)).toHaveText(LINK_MESSAGE);
+    await expect(page.getByText(t.forms.invalid)).toBeVisible();
+    expect(posted).toBe(1);
+
+    // Review keeps the whole list, in the order of the steps.
+    for (let at = 0; at < 4; at += 1) {
+      await page.getByRole("button", { name: t.common.continue, exact: true }).click();
+    }
+    await expect(step(page)).toHaveText(/Review/);
+    const lines = page.locator(".review-issues li");
+    await expect(lines).toHaveText([
+      `Listing URL on step 1: ${LINK_MESSAGE}`,
+      `The property story on step 2: ${t.forms.fieldRequired}`,
+      `Email on step 3: ${EMAIL_MESSAGE}`,
+    ]);
   });
 });

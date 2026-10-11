@@ -1,0 +1,242 @@
+[
+  {
+    "id": "fsre-a-field-on-wrong-step",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "  listingUrl: { step: 0, label: \"Listing URL\" },",
+    "replace": "  listingUrl: { step: 3, label: \"Listing URL\" },",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*puts each field on the step that shows its control"
+  },
+  {
+    "id": "fsre-b-contract-field-unknown",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "  videoUrl: { step: 1, label: \"Video link\" },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*knows every field of the contract the visitor can fix"
+  },
+  {
+    "id": "fsre-c-prototype-key-passes",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "typeof key === \"string\" && Object.hasOwn(fieldHome, key);",
+    "replace": "typeof key === \"string\" && key in fieldHome;",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*leaves out a path the wizard does not show"
+  },
+  {
+    "id": "fsre-d-last-issue-of-a-field-wins",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "    if (!isField(field) || found.has(field)) continue;",
+    "replace": "    if (!isField(field)) continue;",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*keeps one line per field, the first"
+  },
+  {
+    "id": "fsre-e-issues-not-in-step-order",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "  return [...found.values()].sort(\n    (a, b) => a.step - b.step || order.indexOf(a.field) - order.indexOf(b.field),\n  );",
+    "replace": "  return [...found.values()];",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*lists several refusals of the contract in the order of the steps"
+  },
+  {
+    "id": "fsre-f-custom-sentence-replaced",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "  if (issue.code === \"custom\") return issue.message;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*takes the contract's own sentence for a rule between fields"
+  },
+  {
+    "id": "fsre-g-choice-told-to-fill-in",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "  if (isMissing(issue) && !chosen.includes(field)) return t.forms.fieldRequired;",
+    "replace": "  if (isMissing(issue)) return t.forms.fieldRequired;",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*asks for what is empty and for a choice not made"
+  },
+  {
+    "id": "fsre-h-too-long-not-told",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "  if (issue.code === \"too_big\" && issue.type === \"string\") return t.forms.issue.tooLong;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*reads the API's list the same way"
+  },
+  {
+    "id": "fsre-i-missing-not-read-from-received",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "issue.received === \"undefined\"",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*reads the API's list the same way"
+  },
+  {
+    "id": "fsre-j-first-step-is-the-last",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "  issues[0]?.step;",
+    "replace": "  issues.at(-1)?.step;",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*is the earliest step with a refused field, and none without one"
+  },
+  {
+    "id": "fsre-k-step-numbered-from-zero",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "t.forms.issueLine(issue.label, issue.step + 1, issue.message);",
+    "replace": "t.forms.issueLine(issue.label, issue.step, issue.message);",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*places the panel's bad email on step 3 with a plain sentence"
+  },
+  {
+    "id": "fsre-l-describedby-points-nowhere",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "{ \"aria-invalid\": true, \"aria-describedby\": errorId(name) }",
+    "replace": "{ \"aria-invalid\": true, \"aria-describedby\": `${errorId(name)}-x` }",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*marks a refused control and points it at the visible message"
+  },
+  {
+    "id": "fsre-m-photographs-named-files",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/components/forms/submit/issues.ts",
+    "find": "(key === \"files\" ? \"media\" : key)",
+    "replace": "key",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*names the photographs of a draft by the contract's media"
+  },
+  {
+    "id": "fsre-n-email-copy",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "      email: \"Please enter a valid email address.\",",
+    "replace": "      email: \"Please check the email.\",",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*places the panel's bad email on step 3 with a plain sentence"
+  },
+  {
+    "id": "fsre-o-api-issues-not-read",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/hooks/use-async-action.ts",
+    "find": "  if (error instanceof ServiceError) return [...error.issues];",
+    "replace": "  if (error instanceof ServiceError) return [];",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*reads a Zod error, an API refusal and nothing else"
+  },
+  {
+    "id": "fsre-p-zod-issues-not-read",
+    "test": "tests/unit/submit-issues.test.ts",
+    "file": "src/hooks/use-async-action.ts",
+    "find": "  if (error instanceof ZodError) return serviceIssues(error.issues);",
+    "replace": "  if (error instanceof ZodError) return [];",
+    "run": "bunx vitest run --project unit tests/unit/submit-issues.test.ts",
+    "expect": "× .*places the panel's bad email on step 3 with a plain sentence"
+  },
+  {
+    "id": "fsre-q-refusal-not-marked-invalid",
+    "test": "tests/unit/use-async-action.test.tsx",
+    "file": "src/hooks/use-async-action.ts",
+    "find": "          invalid: isValidationError(error),",
+    "replace": "          invalid: false,",
+    "run": "bunx vitest run --project component tests/unit/use-async-action.test.tsx",
+    "expect": "× .*says the details need a look for a Zod error"
+  },
+  {
+    "id": "fsre-r-server-failure-marked-invalid",
+    "test": "tests/unit/use-async-action.test.tsx",
+    "file": "src/hooks/use-async-action.ts",
+    "find": "          invalid: isValidationError(error),",
+    "replace": "          invalid: true,",
+    "run": "bunx vitest run --project component tests/unit/use-async-action.test.tsx",
+    "expect": "× .*says it did not go through for anything else"
+  },
+  {
+    "id": "fsre-s-on-error-never-called",
+    "test": "tests/unit/use-async-action.test.tsx",
+    "file": "src/hooks/use-async-action.ts",
+    "find": "        onError?.(error);\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/use-async-action.test.tsx",
+    "expect": "× .*hands the thrown value to onError once, and only on a failure"
+  },
+  {
+    "id": "fsre-t-on-error-called-on-success",
+    "test": "tests/unit/use-async-action.test.tsx",
+    "file": "src/hooks/use-async-action.ts",
+    "find": "        setState({ status: \"success\", result });\n",
+    "replace": "        setState({ status: \"success\", result });\n        onError?.(result);\n",
+    "run": "bunx vitest run --project component tests/unit/use-async-action.test.tsx",
+    "expect": "× .*hands the thrown value to onError once, and only on a failure"
+  },
+  {
+    "id": "fsre-u-422-issues-dropped",
+    "test": "tests/unit/http-client.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "      issues: body.success ? serviceIssues(body.data.error.issues) : [],",
+    "replace": "      issues: [],",
+    "run": "bunx vitest run --project unit tests/unit/http-client.test.ts",
+    "expect": "× .*carries the refused fields of a 422 and the request id"
+  },
+  {
+    "id": "fsre-v-one-odd-issue-drops-all",
+    "test": "tests/unit/http-client.test.ts",
+    "file": "src/services/types.ts",
+    "find": "    return one.success ? [one.data] : [];",
+    "replace": "    return [{ path: [], message: \"\", code: \"\" }];",
+    "run": "bunx vitest run --project unit tests/unit/http-client.test.ts",
+    "expect": "× .*keeps the issues it can read and drops one of an unexpected shape"
+  },
+  {
+    "id": "fsre-w-non-json-answer-throws",
+    "test": "tests/unit/http-client.test.ts",
+    "file": "src/services/http/client.ts",
+    "find": "    return { requestId: header ?? undefined, issues: [] };",
+    "replace": "    throw new Error(\"not json\");",
+    "run": "bunx vitest run --project unit tests/unit/http-client.test.ts",
+    "expect": "× .*gives no issues for an answer that is not JSON"
+  },
+  {
+    "kind": "manual",
+    "test": "tests/e2e/forms.spec.ts",
+    "id": "fsre-x-no-step-change",
+    "file": "src/components/forms/submit/wizard.tsx",
+    "find": "      setStep(first);\n",
+    "replace": "",
+    "expect": "Expected pattern: /(About you|Property)/\\s+Received string:\\s+\"05 Review\"",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8888 bun run build && bunx playwright test --project=desktop tests/e2e/forms.spec.ts --grep \"a refused field\"",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build"
+  },
+  {
+    "kind": "manual",
+    "test": "tests/e2e/forms.spec.ts",
+    "id": "fsre-y-no-aria-invalid",
+    "file": "src/components/forms/submit/steps.tsx",
+    "find": "        {...problems.control(name)}\n",
+    "replace": "",
+    "expect": "toHaveAttribute\\(expected\\) failed[\\s\\S]*Expected: \"true\"[\\s\\S]*unexpected value \"null\"",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8888 bun run build && bunx playwright test --project=desktop tests/e2e/forms.spec.ts --grep \"a refused field\"",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build"
+  },
+  {
+    "kind": "manual",
+    "test": "tests/e2e/forms.spec.ts",
+    "id": "fsre-z-review-list-empty",
+    "file": "src/components/forms/submit/wizard.tsx",
+    "find": "<ReviewStep draft={draft} issues={issues} />",
+    "replace": "<ReviewStep draft={draft} issues={[]} />",
+    "expect": "waiting for locator\\('\\.review-issues li'\\)[\\s\\S]*locator resolved to 0 elements",
+    "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8888 bun run build && bunx playwright test --project=desktop tests/e2e/forms.spec.ts --grep \"a refused field\"",
+    "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build"
+  }
+]
