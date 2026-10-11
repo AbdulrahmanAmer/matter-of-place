@@ -711,13 +711,16 @@ describe("analytics aggregates", () => {
       await db.query("set local time zone 'UTC'");
       const old = await partition(db, -4);
       const kept = await partition(db, -2);
+      // H79 (4): the case seeds paths of its own, so no other case or run shares its rows.
+      const vitals = `/test-${randomUUID()}`;
+      const missing = `/test-${randomUUID()}`;
       await db.query(
         `insert into public.analytics_events (event, path, data, occurred_at)
-         select 'web_vitals', '/', jsonb_build_object('name', 'LCP', 'value', v), $1::date + interval '12 hours'
+         select 'web_vitals', $2::text, jsonb_build_object('name', 'LCP', 'value', v), $1::date + interval '12 hours'
          from unnest(array[1200, 2000]) as v
          union all
-         select 'not_found', '/x', '{}', $1::date + interval '1 day 12 hours' from generate_series(1, 3)`,
-        [old.day],
+         select 'not_found', $3::text, '{}', $1::date + interval '1 day 12 hours' from generate_series(1, 3)`,
+        [old.day, vitals, missing],
       );
       await db.query("select public.retention_drop_analytics()");
       const aggregates = await db.query<{
@@ -729,13 +732,15 @@ describe("analytics aggregates", () => {
         p75: string | null;
       }>(
         `select day::text, event, path, dim, events, p75::text from public.analytics_daily
-         where day in ($1::date, $1::date + 1) order by day, event`,
-        [old.day],
+         where day in ($1::date, $1::date + 1) and path in ($2, $3) order by day, event`,
+        [old.day, vitals, missing],
       );
       return {
         dropped: !(await exists(db, old.name)),
         kept: await exists(db, kept.name),
         day: old.day,
+        vitals,
+        missing,
         aggregates: aggregates.rows,
       };
     });
@@ -745,8 +750,15 @@ describe("analytics aggregates", () => {
       .toISOString()
       .slice(0, 10);
     expect(result.aggregates).toEqual([
-      { day: result.day, event: "web_vitals", path: "/", dim: "LCP", events: 2, p75: "1800" },
-      { day: next, event: "not_found", path: "/x", dim: "", events: 3, p75: null },
+      {
+        day: result.day,
+        event: "web_vitals",
+        path: result.vitals,
+        dim: "LCP",
+        events: 2,
+        p75: "1800",
+      },
+      { day: next, event: "not_found", path: result.missing, dim: "", events: 3, p75: null },
     ]);
   });
 
