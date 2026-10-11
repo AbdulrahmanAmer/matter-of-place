@@ -320,6 +320,14 @@ export function collect(now = new Date()) {
   const accepted = counted.reduce((sum, s) => sum + s.accepted, 0);
   const unchecked = counted.reduce((sum, s) => sum + s.unchecked, 0);
   const inReview = counted.reduce((sum, s) => sum + s.inReview, 0);
+  // Steps that can only happen after go-live (ledger.postLaunch, operator 2026-10-11): the first paying property, the
+  // week-one watch, the iterate loop, HSTS preload, the social channels and the audit robot's first Saturday. The
+  // "to launch" figure leaves them out; the overall figure keeps every step.
+  const postLaunch = ledger.postLaunch ?? {};
+  const isPost = (sliceId, stepId) => (postLaunch[sliceId] ?? []).includes(stepId);
+  const launchSteps = counted.flatMap((s) => s.steps.filter((step) => !isPost(s.id, step.id)));
+  const launchTotal = launchSteps.length;
+  const launchAccepted = launchSteps.filter((step) => step.state === "accepted").length;
 
   const seen = new Map();
   const lanes = ledger.lanes.map((lane) => {
@@ -409,6 +417,9 @@ export function collect(now = new Date()) {
       unchecked,
       inReview,
       percent: pct(accepted, total),
+      launchTotal,
+      launchAccepted,
+      launchPercent: pct(launchAccepted, launchTotal),
       slices: counted.length,
       slicesClosed: counted.filter((s) => s.state === "closed").length,
     },
@@ -665,8 +676,8 @@ details { scroll-margin-top: 120px; }
 <p class="meta" role="status">${snapshot ? `Snapshot taken ${esc(clock)}.` : `Reloads by itself when anything changes. ${esc(clock)}.`}</p>
 ${errors}
 <div class="hero">
-<p class="figure" aria-hidden="true">${o.percent}%</p>
-<div><p class="lead">${o.percent} percent done. ${o.accepted} of ${o.total} steps accepted, ${o.total - o.accepted} to go, ${o.inReview} in work.${pending}</p>
+<p class="figure" aria-hidden="true">${o.launchPercent}%</p>
+<div><p class="lead">To launch: ${o.launchPercent} percent (${o.launchAccepted} of ${o.launchTotal} steps that come before go-live). Overall, including the ${o.total - o.launchTotal} steps that can only happen after launch: ${o.percent} percent. ${o.accepted} of ${o.total} steps accepted, ${o.total - o.accepted} to go, ${o.inReview} in work.${pending}</p>
 <span class="bar big" aria-hidden="true"><span class="done" style="width:${pct(o.accepted, o.total)}%"></span><span class="review" style="width:${pct(o.inReview, o.total)}%"></span></span></div>
 </div>
 <div class="tiles">
@@ -793,7 +804,7 @@ setInterval(async () => {
 function summary(data) {
   const o = data.overall;
   return [
-    `overall: ${o.accepted} of ${o.total} steps accepted (${o.percent}%), ${o.unchecked} of them not yet re-run by the orchestrator, ${o.inReview} in review, ${o.slicesClosed} of ${o.slices} slices closed`,
+    `to launch: ${o.launchAccepted} of ${o.launchTotal} (${o.launchPercent}%); overall: ${o.accepted} of ${o.total} steps accepted (${o.percent}%), ${o.unchecked} of them not yet re-run by the orchestrator, ${o.inReview} in review, ${o.slicesClosed} of ${o.slices} slices closed`,
     ...data.runs.flatMap((run) => run.events.slice(0, 3).map((e) => `${run.title}: ${e.text}: ${e.outcome}`)),
     ...data.lanes.map((l) => `lane ${l.phase} ${l.lane}: ${l.accepted} of ${l.total} (${l.percent}%)`),
     ...data.arms.map((arm) => `arm ${arm.label}: own ${arm.ownPercent}% of ${arm.pieces} pieces; to launch ${arm.percent}% (${arm.remaining} of ${arm.total} pieces to go, counting ${arm.needs.join(", ") || "nothing else"})`),
