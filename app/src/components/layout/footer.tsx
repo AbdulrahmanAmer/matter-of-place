@@ -22,6 +22,9 @@ export function Footer() {
   const groups = t.footer.groups;
   const { legal, social } = useSite();
   const identity = legalIdentity(legal);
+  // "Exceptional property." stands upright, "Properly considered." in italic beneath it.
+  const [taglineFirst = siteConfig.tagline, ...rest] = siteConfig.tagline.split(/(?<=\.)\s+/);
+  const taglineRest = rest.join(" ");
   const profiles = [
     { label: t.nav.instagram, href: social.instagram },
     { label: t.nav.x, href: social.x },
@@ -46,16 +49,24 @@ export function Footer() {
             </div>
           </section>
         </noscript>
+        {/* Threshold (operator's pick, 2026-10-11): the tagline leads; the emblem stands on a line across the page,
+            as the brand stands between the two navigations of the header. */}
         <div className="footer-top">
-          <Link to="/" className="footer-brand" aria-label={t.header.home}>
-            <Emblem className="footer-emblem" />
-            <span className="footer-name">{siteConfig.name}</span>
-          </Link>
-          <p className="footer-statement">{t.footer.statement}</p>
+          <p className="footer-tagline">
+            <span>{taglineFirst}</span> <em>{taglineRest}</em>
+          </p>
+          <div className="footer-axis">
+            <span className="footer-axis-line" aria-hidden="true" />
+            <Link to="/" className="footer-brand" aria-label={t.header.home}>
+              <Emblem className="footer-emblem" />
+              <span className="footer-name">{siteConfig.name}</span>
+            </Link>
+            <span className="footer-axis-line" aria-hidden="true" />
+          </div>
         </div>
 
         <div className="footer-grid">
-          <nav className="footer-col" aria-label={groups.place}>
+          <nav className="footer-col footer-col-start" aria-label={groups.place}>
             <h3>{groups.place}</h3>
             <Link to="/properties">{t.nav.properties}</Link>
             <Link to="/$market" params={{ market: "california" }}>
@@ -68,19 +79,20 @@ export function Footer() {
               {t.nav.florida}
             </Link>
           </nav>
-          <nav className="footer-col" aria-label={groups.editorial}>
+          <nav className="footer-col footer-col-start" aria-label={groups.editorial}>
             <h3>{groups.editorial}</h3>
             <Link to="/stories">{t.nav.stories}</Link>
             <Link to="/editorial-standard">{t.nav.standard}</Link>
             <Link to="/about">{t.nav.about}</Link>
           </nav>
-          <nav className="footer-col" aria-label={groups.professionals}>
+          <span className="footer-gap" aria-hidden="true" />
+          <nav className="footer-col footer-col-end" aria-label={groups.professionals}>
             <h3>{groups.professionals}</h3>
             <Link to="/exposure">{t.nav.exposure}</Link>
             <Link to="/submit">{t.nav.submit}</Link>
             <Link to="/faq">{t.nav.faq}</Link>
           </nav>
-          <nav className="footer-col" aria-label={groups.company}>
+          <nav className="footer-col footer-col-end" aria-label={groups.company}>
             <h3>{groups.company}</h3>
             <Link to="/contact">{t.nav.contact}</Link>
             <Link to="/privacy">{t.nav.privacy}</Link>
@@ -112,8 +124,6 @@ export function Footer() {
           </p>
         </div>
       </div>
-      {/* Decoration, not text: the name is drawn by CSS from data-signature, so no reader or contrast check meets it. */}
-      <div className="footer-signature" aria-hidden="true" data-signature={siteConfig.name} />
     </footer>
   );
 }

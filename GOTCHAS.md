@@ -186,6 +186,7 @@ Entry template
 - cause: the Bash tool rewrites backslashes, and in a long command quotes, before the shell sees the command, so a quoted delimiter does not protect the text; when the delimiter or a quote no longer matches (an apostrophe pairs with another quote), the shell reads to the end of input or stops with a parse error and writes nothing. A `replace` whose search text does not occur changes nothing and reports nothing.
 - rule: any text that holds a backslash or an apostrophe (Markdown table escapes, regular expressions, Windows paths, JSON `\\n`, test inputs, prose) goes in with the Write or Edit tool, or is built in code (`String.fromCharCode(92)`); never through an inline argument, a heredoc or `node -e`. Write a payload to a file and pipe the file in. After a scripted rewrite, read back the changed lines (`git diff`). `unexpected EOF` or a parse error means nothing was written: do not retry with other quoting, use Write or Edit, then read `git status --short`. A mutation applied by hand prints its mutated line and refuses when the search text occurs other than exactly once or the file is unchanged, before any red or green is read; prefer a registry entry replayed by the runner (P-066). When a parser "misses" an input with a backslash, print its bytes (`od -c`) before blaming the code. A hook that fails open will hide all of this.
 - proof: `node .claude/hooks/gotcha-guard.mjs < scratchpad/payload.json` (file written by the Write tool) → deny JSON; a quoted heredoc writing `E'a\\\\'` into a file, then `od -c` → `E ' a \ \ '` (two backslashes where four were typed, 2026-10-02); `git grep -n -F '\|' -- workspace/01-site-index/content-inventory.md | grep -c 'Estate'` → 1 (the row written with the Edit tool keeps its escapes).
+- hit again: 2026-10-11, design rounds: three regexes written through `node -e` or a heredoc lost their backslashes (`(?=\s|$)` became `(?=s|$)`, `(?<=\.)\s+` became `(?<=.)s+`), and each shipped to a running preview before a check showed the wrong text; fixed each time with the Edit tool. A regex is written with Edit or Write, never inline.
 - hit again: 2026-10-04, B4 g5: a multi-line `node -e` patch with escaped quotes and backslash-s sequences printed nothing and changed nothing, twice (a spec still held `{ exact: true }` on a select label; a scratch registry kept its wrong `expect`), and each cost a full run before the file was read again. Patch with the Edit tool and check with `grep -n` that the new text is there.
 - hit again: 2026-10-03, B9 g4: backslashes were dropped from text written through a heredoc, so the file had to be rewritten with the Write tool; the author listed it as a cost but the entry was not extended (recorded by the g4 review follow-up).
 - hit again: 2026-10-03, B2 g11: registry `expect` regexes with `\[` written through a Bash heredoc lost their backslashes, so `["--target","prod"]` became a character class and three entries replayed `BAD: wrong reason`; fixed by writing `.` for the bracket in the `expect` (no backslash needed). Proof: `grep -c 'refuses .\\"--target' app/tests/mutations/B2.json` prints 1.
@@ -7616,7 +7617,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-11, PR 312's e2e sweep failed on every page (240 violations) with `color-contrast | .footer-signature`: the footer's display-size wordmark in Sandstone, marked `aria-hidden`.
 - cause: axe-core measures the text of an `aria-hidden` element; it does not measure generated content.
 - rule: a decorative word set as type is `<div aria-hidden="true" data-signature="...">` with `::before { content: attr(data-signature) }`, never a text node.
-- proof: `grep -n "data-signature" app/src/components/layout/footer.tsx` prints the div; the e2e sweep shows no `.footer-signature` violation.
+- proof: the footer signature it was proven on was removed at the operator's word (2026-10-11), so `grep -c data-signature app/src/components/layout/footer.tsx` prints 0; a future decorative word follows the rule and the e2e sweep shows no color-contrast violation on it.
 - added: 2026-10-11
 
 ## P-3433 · The page CSP can never cover one inline script: Cloudflare's JavaScript Detections injects it at the edge, after the Worker
@@ -7732,4 +7733,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: UNPROVEN which layer (Worker version rollout across Cloudflare locations is the likely one); the code was right, the probe was early.
 - rule: before calling a deploy's behaviour red, confirm the live Worker is the new one (a header or text only the new build has), or probe again after 10 minutes; compare with the same build served locally before touching the code.
 - proof: `P=https://matterofplace.com/no-such-page-$(date +%s); curl -sI $P | grep -i x-mop-cache; curl -sI $P | grep -i x-mop-cache` → `miss` then `hit`.
+- added: 2026-10-11
+
+## G-1302 · A scroll reveal with a negative bottom margin never shows the last lines of a page
+- paths: app/src/components/layout/site-motion.tsx, app/src/styles/motion.css
+- severity: warn
+- symptom: 2026-10-11, on the preview at 1440x900, `/about` scrolled to its end left `.footer-bottom` (the legal line) at `data-motion=""` and opacity 0: its top was 840 of 900 and could never rise above the observer's line.
+- cause: the IntersectionObserver uses `rootMargin: "0px 0px -8% 0px"`, so an element in the last 8% of the screen counts as unseen; at the end of a page nothing scrolls further, and a page shorter than the screen never scrolls at all.
+- rule: a reveal keeps an end-of-page check: on scroll, at load and after each navigation, when the window reaches the document's end every element still waiting is shown.
+- proof: on the preview, scroll `/about`, `/contact` and `/no-such-page` to their ends; `document.querySelectorAll('[data-motion=""]').length` is 0 and `.footer-bottom` has opacity 1 (before the fix: opacity 0).
 - added: 2026-10-11

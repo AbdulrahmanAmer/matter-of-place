@@ -71,9 +71,20 @@ export function SiteMotion() {
     );
     document.documentElement.classList.add("motion-ready");
     prepare(document, observer);
+    // The last lines of a page can never rise past the observer's margin: at the end of the page, show what waits.
+    const atEnd = () => {
+      if (window.innerHeight + window.scrollY < document.documentElement.scrollHeight - 2) return;
+      for (const node of document.querySelectorAll<HTMLElement>('[data-motion=""]')) {
+        node.dataset["motion"] = "in";
+        observer.unobserve(node);
+      }
+    };
+    window.addEventListener("scroll", atEnd, { passive: true });
+    atEnd();
     const stop = router.subscribe("onResolved", (event) => {
       requestAnimationFrame(() => {
         prepare(document, observer);
+        atEnd();
         // A page change eases the new page up and in, so moving through the site never cuts hard.
         if (event.pathChanged) {
           document.querySelector("main")?.animate(
@@ -88,6 +99,7 @@ export function SiteMotion() {
     });
     return () => {
       stop();
+      window.removeEventListener("scroll", atEnd);
       observer.disconnect();
       document.documentElement.classList.remove("motion-ready");
     };

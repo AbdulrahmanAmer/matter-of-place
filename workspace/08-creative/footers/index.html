@@ -1,0 +1,303 @@
+<title>Matter of Place Footers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500;600&family=Urbanist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --obsidian: #11110F; --bone: #EEEAE1; --ivory: #F5F2EB; --sand: #C9C0B2; --mineral: #575751; --warm: #8B877F;
+  --serif: "Cormorant Garamond", Georgia, serif; --ui: "Jost", system-ui, sans-serif; --ui2: "Urbanist", system-ui, sans-serif;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --board: #2a2a27; --board-bar: #1b1b19; --board-line: #3a3a36; --board-text: #c9c6be;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { padding-inline: 16px; background: var(--board); color: var(--ivory); font-family: var(--ui); -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+
+/* Picker bar (not part of any design) */
+.picker { position: sticky; top: env(safe-area-inset-top, 0px); margin-inline: -16px; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding: 12px 16px; background: var(--board-bar); border-bottom: 1px solid var(--board-line); font: 500 12px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; }
+.picker strong { font: 400 20px/1 var(--serif); letter-spacing: 0; text-transform: none; margin-right: 8px; }
+.picker a { padding: 8px 10px; border: 1px solid var(--board-line); }
+.picker a:hover { border-color: var(--ivory); }
+.picker .size { margin-left: auto; display: flex; gap: 0; }
+.picker button { font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--ivory); background: none; border: 1px solid var(--board-line); padding: 8px 12px; cursor: pointer; }
+.picker button[aria-pressed="true"] { background: var(--ivory); color: var(--obsidian); border-color: var(--ivory); }
+
+.option { padding: 56px 0 0; }
+.label { max-width: 1280px; margin: 0 auto 20px; padding: 0 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+.label .num { font: 300 56px/1 var(--serif); color: var(--sand); }
+.label .chosen { align-self: center; padding: 6px 10px; border: 1px solid var(--ivory); font: 500 10px/1 var(--ui); letter-spacing: .2em; text-transform: uppercase; }
+.label h2 { font: 400 30px/1.1 var(--serif); }
+.label p { flex-basis: 100%; max-width: 760px; font: 300 15px/1.6 var(--ui); color: var(--board-text); }
+
+/* The stage holds one footer; phone mode narrows it to 390px and container queries do the rest. */
+.stage { margin: 0 auto; max-width: 1440px; container-type: inline-size; box-shadow: 0 0 0 1px var(--board-line); transition: max-width .5s var(--ease); }
+body.phone .stage { max-width: 390px; }
+.ftr { width: 100%; overflow: hidden; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 64px; }
+@container (max-width: 700px) { .wrap { padding: 0 24px; } }
+
+.emblem { display: block; }
+.wordmark { font: 500 13px/1 var(--ui); letter-spacing: .4em; text-transform: uppercase; margin-right: -.4em; white-space: nowrap; }
+.eyebrow { font: 500 10.5px/1.4 var(--ui); letter-spacing: .3em; text-transform: uppercase; }
+.lnk { position: relative; display: inline-flex; align-items: center; min-height: 32px; }
+.lnk::after { content: ""; position: absolute; left: 0; right: 0; bottom: 4px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .6s var(--ease); }
+.lnk:hover::after, .lnk:focus-visible::after { transform: scaleX(1); transform-origin: left; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+@container (max-width: 700px) { .lnk { min-height: 44px; } }
+
+/* ── 1 THRESHOLD ─────────────────────────────────────────── */
+.f1 { background: var(--obsidian); color: var(--ivory); padding: 112px 0 40px; text-align: center; }
+.f1 .tag { font: 300 clamp(40px, 5.4cqi, 76px)/1.02 var(--serif); letter-spacing: -.01em; }
+.f1 .tag em { font-style: italic; color: var(--sand); }
+.f1 .axis { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 32px; margin: 88px 0 72px; }
+.f1 .axis i { height: 1px; background: color-mix(in oklab, var(--ivory) 26%, transparent); }
+.f1 .axis .mark { display: grid; justify-items: center; gap: 16px; color: var(--ivory); }
+.f1 .cols { display: grid; grid-template-columns: 1fr 1fr 120px 1fr 1fr; gap: 32px; }
+.f1 .col h3 { color: color-mix(in oklab, var(--ivory) 58%, transparent); margin-bottom: 18px; font-weight: 500; }
+.f1 .col.l { text-align: right; } .f1 .col.l ul { justify-items: end; }
+.f1 .col.r { text-align: left; } .f1 .col.r ul { justify-items: start; }
+.f1 .col ul { display: grid; gap: 4px; font: 300 15px/1.4 var(--ui2); color: color-mix(in oklab, var(--ivory) 86%, transparent); }
+.f1 .legal { margin-top: 96px; padding-top: 28px; border-top: 1px solid color-mix(in oklab, var(--ivory) 18%, transparent);
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 0; font: 400 12px/1.6 var(--ui2); letter-spacing: .04em; color: color-mix(in oklab, var(--ivory) 58%, transparent); }
+.f1 .legal span + span::before { content: ""; display: inline-block; width: 1px; height: 11px; margin: 0 16px; vertical-align: -1px; background: currentColor; opacity: .5; }
+@container (max-width: 700px) {
+  .f1 { padding-top: 80px; }
+  .f1 .axis { margin: 56px 0 40px; gap: 18px; }
+  .f1 .cols { grid-template-columns: 1fr 1fr; gap: 40px 20px; }
+  .f1 .cols .gap { display: none; }
+  .f1 .col.l, .f1 .col.r { text-align: center; } .f1 .col ul { justify-items: center !important; }
+  .f1 .legal { flex-direction: column; } .f1 .legal span + span::before { display: none; }
+}
+
+/* ── 2 COLOPHON ──────────────────────────────────────────── */
+.f2 { background: var(--ivory); color: var(--obsidian); padding: 120px 0 56px; text-align: center; border-top: 1px solid var(--sand); }
+.f2 .mark { display: grid; justify-items: center; gap: 22px; }
+.f2 .stmt { max-width: 34ch; margin: 36px auto 0; font: 300 italic clamp(22px, 2.2cqi, 30px)/1.42 var(--serif); color: var(--mineral); }
+.f2 .orn { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 64px 0; color: var(--sand); }
+.f2 .orn i { width: 64px; height: 1px; background: currentColor; }
+.f2 .orn b { width: 5px; height: 5px; transform: rotate(45deg); border: 1px solid currentColor; }
+.f2 .cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; max-width: 1040px; margin: 0 auto; }
+.f2 .col h3 { color: var(--warm); margin-bottom: 18px; font-weight: 500; }
+.f2 .col ul { display: grid; justify-items: center; gap: 2px; font: 400 21px/1.3 var(--serif); }
+.f2 .legal { margin-top: 80px; display: grid; gap: 6px; font: 500 10px/1.8 var(--ui); letter-spacing: .24em; text-transform: uppercase; color: var(--warm); }
+@container (max-width: 700px) {
+  .f2 { padding-top: 88px; }
+  .f2 .orn { margin: 48px 0; }
+  .f2 .cols { grid-template-columns: 1fr 1fr; gap: 44px 16px; }
+  .f2 .legal { letter-spacing: .16em; }
+}
+
+/* ── 3 INVITATION ────────────────────────────────────────── */
+.f3 { background: var(--obsidian); color: var(--ivory); padding: 128px 0 40px; text-align: center; }
+.f3 .eyebrow { color: color-mix(in oklab, var(--ivory) 62%, transparent); display: inline-flex; align-items: center; gap: 16px; }
+.f3 .eyebrow::before, .f3 .eyebrow::after { content: ""; width: 32px; height: 1px; background: currentColor; }
+.f3 h2 { margin: 28px auto 0; max-width: 21ch; font: 300 clamp(44px, 6.2cqi, 92px)/.98 var(--serif); letter-spacing: -.015em; }
+.f3 .lede { margin: 28px auto 0; max-width: 44ch; font: 300 clamp(18px, 1.6cqi, 22px)/1.5 var(--serif); color: color-mix(in oklab, var(--ivory) 76%, transparent); }
+.f3 .ctas { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 44px; }
+.f3 .btn { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; min-width: 240px; min-height: 52px; padding: 14px 28px;
+  font: 500 11px/1 var(--ui); letter-spacing: .2em; text-transform: uppercase; border: 1px solid var(--ivory); }
+.f3 .btn.fill { background: var(--ivory); color: var(--obsidian); }
+.f3 .btn span { position: relative; z-index: 1; }
+.f3 .btn::before { content: ""; position: absolute; inset: 0; background: var(--sand); transform: scaleX(0); transform-origin: right; transition: transform .7s var(--ease); }
+.f3 .btn:hover::before { transform: scaleX(1); transform-origin: left; }
+.f3 .btn:not(.fill):hover { color: var(--obsidian); }
+.f3 nav { margin-top: 112px; padding-top: 36px; border-top: 1px solid color-mix(in oklab, var(--ivory) 18%, transparent); }
+.f3 .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 28px; font: 500 11px/1 var(--ui); letter-spacing: .2em; text-transform: uppercase; }
+.f3 .row.small { margin-top: 14px; gap: 2px 22px; font: 400 13px/1 var(--ui2); letter-spacing: .02em; text-transform: none; color: color-mix(in oklab, var(--ivory) 66%, transparent); }
+.f3 .base { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 56px; color: color-mix(in oklab, var(--ivory) 58%, transparent); font: 400 12px/1.6 var(--ui2); letter-spacing: .04em; flex-wrap: wrap; }
+.f3 .base .emblem { color: var(--ivory); }
+@container (max-width: 700px) {
+  .f3 { padding-top: 96px; }
+  .f3 .btn { width: 100%; }
+  .f3 nav { margin-top: 80px; }
+  .f3 .row { gap: 0 20px; }
+  .f3 .base { flex-direction: column; gap: 10px; }
+}
+
+/* ── 4 THREE MARKETS ─────────────────────────────────────── */
+.f4 { background: var(--obsidian); color: var(--ivory); padding: 104px 0 40px; text-align: center; }
+.f4 .eyebrow { color: color-mix(in oklab, var(--ivory) 62%, transparent); }
+.f4 .markets { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 40px; border-top: 1px solid color-mix(in oklab, var(--ivory) 24%, transparent); border-bottom: 1px solid color-mix(in oklab, var(--ivory) 24%, transparent); }
+.f4 .mkt { display: grid; justify-items: center; gap: 14px; padding: 48px 16px 44px; }
+.f4 .mkt + .mkt { border-left: 1px solid color-mix(in oklab, var(--ivory) 24%, transparent); }
+.f4 .mkt b { font: 300 clamp(38px, 4.2cqi, 64px)/1 var(--serif); transition: letter-spacing .9s var(--ease); }
+.f4 .mkt:hover b { letter-spacing: .03em; }
+.f4 .mkt small { display: inline-flex; align-items: center; gap: 10px; font: 500 10px/1 var(--ui); letter-spacing: .24em; text-transform: uppercase; color: color-mix(in oklab, var(--ivory) 66%, transparent); }
+.f4 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ivory); animation: breathe 3.2s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+.f4 .brand { display: grid; justify-items: center; gap: 18px; margin-top: 80px; }
+.f4 .stmt { max-width: 46ch; margin: 22px auto 0; font: 300 15px/1.7 var(--ui2); color: color-mix(in oklab, var(--ivory) 72%, transparent); }
+.f4 .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 26px; margin-top: 40px; font: 400 14px/1 var(--ui2); color: color-mix(in oklab, var(--ivory) 86%, transparent); }
+.f4 .row.small { margin-top: 6px; font-size: 12.5px; color: color-mix(in oklab, var(--ivory) 62%, transparent); }
+.f4 .legal { margin-top: 64px; font: 400 12px/1.7 var(--ui2); letter-spacing: .04em; color: color-mix(in oklab, var(--ivory) 52%, transparent); }
+@container (max-width: 700px) {
+  .f4 .markets { grid-template-columns: 1fr; }
+  .f4 .mkt { padding: 32px 0; }
+  .f4 .mkt + .mkt { border-left: 0; border-top: 1px solid color-mix(in oklab, var(--ivory) 24%, transparent); }
+  .f4 .row { gap: 0 20px; }
+}
+
+/* ── 5 INDEX ─────────────────────────────────────────────── */
+.f5 { background: var(--bone); color: var(--obsidian); padding: 112px 0 48px; text-align: center; }
+.f5 .mark { display: grid; justify-items: center; gap: 20px; }
+.f5 .tag { margin-top: 16px; font: 400 italic 20px/1.3 var(--serif); color: var(--mineral); }
+.f5 .index { max-width: 980px; margin: 72px auto 0; border-top: 1px solid var(--obsidian); }
+.f5 .entry { display: grid; justify-items: center; gap: 14px; padding: 30px 0 28px; border-bottom: 1px solid var(--sand); }
+.f5 .entry h3 { color: var(--warm); font-weight: 500; }
+.f5 .entry ul { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; font: 400 clamp(22px, 2.3cqi, 30px)/1.2 var(--serif); }
+.f5 .entry li + li::before { content: ""; display: inline-block; width: 18px; height: 1px; margin: 0 18px; background: var(--sand); vertical-align: middle; }
+.f5 .entry.fine ul { font: 400 15px/1.4 var(--ui2); }
+.f5 .entry.fine li + li::before { width: 10px; margin: 0 12px; }
+.f5 .legal { margin-top: 56px; display: grid; gap: 4px; font: 400 12px/1.7 var(--ui2); letter-spacing: .04em; color: var(--mineral); }
+@container (max-width: 700px) {
+  .f5 .entry ul { flex-direction: column; gap: 0; }
+  .f5 .entry li + li::before { display: none; }
+  .f5 .entry ul .lnk { min-height: 44px; }
+}
+
+/* ── 6 MONOGRAM ──────────────────────────────────────────── */
+.f6 { background: var(--obsidian); color: var(--ivory); padding: 136px 0 44px; text-align: center; }
+.f6 .mono { display: grid; justify-items: center; gap: 26px; }
+.f6 .mono .emblem { width: 88px; height: 98px; transition: transform 1.2s var(--ease); }
+.f6 .mono:hover .emblem { transform: translateY(-4px); }
+.f6 .wordmark { font-size: 15px; }
+.f6 .tag { font: 300 italic 19px/1.3 var(--serif); color: color-mix(in oklab, var(--ivory) 66%, transparent); letter-spacing: .01em; }
+.f6 .primary { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 36px; margin-top: 88px; font: 500 11.5px/1 var(--ui); letter-spacing: .24em; text-transform: uppercase; }
+.f6 .rule { width: 48px; height: 1px; margin: 48px auto; background: color-mix(in oklab, var(--ivory) 40%, transparent); }
+.f6 .secondary { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 24px; font: 400 13px/1 var(--ui2); color: color-mix(in oklab, var(--ivory) 64%, transparent); }
+.f6 .legal { margin-top: 64px; display: grid; gap: 4px; font: 400 11.5px/1.7 var(--ui2); letter-spacing: .06em; color: color-mix(in oklab, var(--ivory) 50%, transparent); }
+@container (max-width: 700px) {
+  .f6 { padding-top: 104px; }
+  .f6 .primary { flex-direction: column; gap: 0; margin-top: 64px; }
+  .f6 .secondary { gap: 0 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+</style>
+<div class="picker">
+  <strong>Matter of Place footers</strong>
+  <a href="#o1">1 Threshold</a><a href="#o2">2 Colophon</a><a href="#o3">3 Invitation</a><a href="#o4">4 Three markets</a><a href="#o5">5 Index</a><a href="#o6">6 Monogram</a>
+  <span class="size"><button type="button" aria-pressed="true" data-size="desk">Desktop</button><button type="button" aria-pressed="false" data-size="phone">Phone</button></span>
+</div>
+
+<template id="emblem"><svg class="emblem" viewBox="0 0 68 76" width="36" height="40" fill="none" aria-hidden="true"><path d="M8 5 34 16 20 21v43L8 70V5Z" fill="currentColor" opacity=".9"/><path d="M8 5h52v65l-12-6V21L8 5Z" fill="currentColor" opacity=".4"/></svg></template>
+
+<!-- 1 -->
+<section class="option" id="o1">
+  <div class="label"><span class="num">1</span><h2>Threshold</h2><span class="chosen">On the site now</span>
+    <p>Obsidian. The footer mirrors the header: the emblem sits on a hairline that crosses the page, two link groups to its left set against it, two to its right. The tagline leads, large. Legal text on one centred line.</p></div>
+  <div class="stage"><footer class="ftr f1"><div class="wrap">
+    <p class="tag">Exceptional property.<br><em>Properly considered.</em></p>
+    <div class="axis"><i></i><a class="mark" href="#"><span data-emblem></span><span class="wordmark">Matter of Place</span></a><i></i></div>
+    <div class="cols">
+      <nav class="col l"><h3 class="eyebrow">Matter of Place</h3><ul><li><a class="lnk" href="#">Properties</a></li><li><a class="lnk" href="#">California</a></li><li><a class="lnk" href="#">New York</a></li><li><a class="lnk" href="#">Florida</a></li></ul></nav>
+      <nav class="col l"><h3 class="eyebrow">Editorial</h3><ul><li><a class="lnk" href="#">Stories</a></li><li><a class="lnk" href="#">Editorial Standard</a></li><li><a class="lnk" href="#">About</a></li></ul></nav>
+      <span class="gap"></span>
+      <nav class="col r"><h3 class="eyebrow">For Professionals</h3><ul><li><a class="lnk" href="#">Property Exposure</a></li><li><a class="lnk" href="#">Submit a Property</a></li><li><a class="lnk" href="#">FAQ</a></li></ul></nav>
+      <nav class="col r"><h3 class="eyebrow">Company</h3><ul><li><a class="lnk" href="#">Contact</a></li><li><a class="lnk" href="#">Privacy</a></li><li><a class="lnk" href="#">Terms for Professionals</a></li><li><a class="lnk" href="#">Accessibility</a></li><li><a class="lnk" href="#">Do Not Sell or Share</a></li><li><a class="lnk" href="#">Cookie settings</a></li></ul></nav>
+    </div>
+    <p class="legal"><span>Matter of Place is a product of Omnikom LLC.</span><span>© 2026 Omnikom LLC</span><span>30 N Gould St Ste R, Sheridan, WY 82801, USA</span></p>
+  </div></footer></div>
+</section>
+
+<!-- 2 -->
+<section class="option" id="o2">
+  <div class="label"><span class="num">2</span><h2>Colophon</h2>
+    <p>Warm Ivory, like the last page of a well made book. Emblem and wordmark, the statement in Cormorant italic, a small diamond ornament, then four centred columns with the links set in the serif. Legal text in spaced small capitals.</p></div>
+  <div class="stage"><footer class="ftr f2"><div class="wrap">
+    <a class="mark" href="#"><span data-emblem></span><span class="wordmark">Matter of Place</span></a>
+    <p class="stmt">An independent real-estate media and distribution platform for exceptional residential property in California, New York and Florida.</p>
+    <div class="orn" aria-hidden="true"><i></i><b></b><i></i></div>
+    <div class="cols">
+      <nav class="col"><h3 class="eyebrow">Matter of Place</h3><ul><li><a class="lnk" href="#">Properties</a></li><li><a class="lnk" href="#">California</a></li><li><a class="lnk" href="#">New York</a></li><li><a class="lnk" href="#">Florida</a></li></ul></nav>
+      <nav class="col"><h3 class="eyebrow">Editorial</h3><ul><li><a class="lnk" href="#">Stories</a></li><li><a class="lnk" href="#">Editorial Standard</a></li><li><a class="lnk" href="#">About</a></li></ul></nav>
+      <nav class="col"><h3 class="eyebrow">For Professionals</h3><ul><li><a class="lnk" href="#">Property Exposure</a></li><li><a class="lnk" href="#">Submit a Property</a></li><li><a class="lnk" href="#">FAQ</a></li></ul></nav>
+      <nav class="col"><h3 class="eyebrow">Company</h3><ul><li><a class="lnk" href="#">Contact</a></li><li><a class="lnk" href="#">Privacy</a></li><li><a class="lnk" href="#">Terms</a></li><li><a class="lnk" href="#">Accessibility</a></li><li><a class="lnk" href="#">Do Not Sell or Share</a></li><li><a class="lnk" href="#">Cookie settings</a></li></ul></nav>
+    </div>
+    <p class="legal"><span>Matter of Place is a product of Omnikom LLC</span><span>© 2026 Omnikom LLC · 30 N Gould St Ste R, Sheridan, WY 82801, USA</span></p>
+  </div></footer></div>
+</section>
+
+<!-- 3 -->
+<section class="option" id="o3">
+  <div class="label"><span class="num">3</span><h2>Invitation</h2>
+    <p>Obsidian. The footer ends every page with a reason to act: the headline, one sentence, and the two ways in, centred, with the same sweep as the site's buttons. The links follow as two quiet centred rows; emblem and legal text close it.</p></div>
+  <div class="stage"><footer class="ftr f3"><div class="wrap">
+    <p class="eyebrow">Two ways in</p>
+    <h2>Exceptional property. Properly considered.</h2>
+    <p class="lede">Present a property for review, or hear first when the first places in your market are published.</p>
+    <div class="ctas"><a class="btn fill" href="#"><span>Submit a Property</span></a><a class="btn" href="#"><span>Hear when it opens</span></a></div>
+    <nav>
+      <div class="row"><a class="lnk" href="#">Properties</a><a class="lnk" href="#">California</a><a class="lnk" href="#">New York</a><a class="lnk" href="#">Florida</a><a class="lnk" href="#">Stories</a><a class="lnk" href="#">Property Exposure</a><a class="lnk" href="#">About</a></div>
+      <div class="row small"><a class="lnk" href="#">Editorial Standard</a><a class="lnk" href="#">FAQ</a><a class="lnk" href="#">Contact</a><a class="lnk" href="#">Privacy</a><a class="lnk" href="#">Terms for Professionals</a><a class="lnk" href="#">Accessibility</a><a class="lnk" href="#">Do Not Sell or Share</a><a class="lnk" href="#">Cookie settings</a></div>
+    </nav>
+    <p class="base"><span data-emblem></span><span>Matter of Place is a product of Omnikom LLC.</span><span>© 2026 Omnikom LLC, 30 N Gould St Ste R, Sheridan, WY 82801, USA</span></p>
+  </div></footer></div>
+</section>
+
+<!-- 4 -->
+<section class="option" id="o4">
+  <div class="label"><span class="num">4</span><h2>Three markets</h2>
+    <p>Obsidian. The three markets carry the footer: large serif names in ruled columns, each with its live state (the breathing dot while it opens). Under them the brand, the statement and the links in two centred rows.</p></div>
+  <div class="stage"><footer class="ftr f4"><div class="wrap">
+    <p class="eyebrow">California · New York · Florida</p>
+    <div class="markets">
+      <a class="mkt" href="#"><b>California</b><small><span class="dot"></span>Opening soon</small></a>
+      <a class="mkt" href="#"><b>New York</b><small><span class="dot"></span>Opening soon</small></a>
+      <a class="mkt" href="#"><b>Florida</b><small><span class="dot"></span>Opening soon</small></a>
+    </div>
+    <a class="brand" href="#"><span data-emblem></span><span class="wordmark">Matter of Place</span></a>
+    <p class="stmt">An independent real-estate media and distribution platform focused on exceptional residential property in California, New York and Florida.</p>
+    <nav>
+      <div class="row"><a class="lnk" href="#">Properties</a><a class="lnk" href="#">Stories</a><a class="lnk" href="#">Editorial Standard</a><a class="lnk" href="#">About</a><a class="lnk" href="#">Property Exposure</a><a class="lnk" href="#">Submit a Property</a><a class="lnk" href="#">FAQ</a><a class="lnk" href="#">Contact</a></div>
+      <div class="row small"><a class="lnk" href="#">Privacy</a><a class="lnk" href="#">Terms for Professionals</a><a class="lnk" href="#">Accessibility</a><a class="lnk" href="#">Do Not Sell or Share</a><a class="lnk" href="#">Cookie settings</a></div>
+    </nav>
+    <p class="legal">Matter of Place is a product of Omnikom LLC.<br>© 2026 Omnikom LLC · 30 N Gould St Ste R, Sheridan, WY 82801, USA</p>
+  </div></footer></div>
+</section>
+
+<!-- 5 -->
+<section class="option" id="o5">
+  <div class="label"><span class="num">5</span><h2>Index</h2>
+    <p>Bone. The footer reads as a table of contents: each group is one centred ruled entry, its label in small capitals and its links as a serif line joined by short rules. The policies take a finer line of their own.</p></div>
+  <div class="stage"><footer class="ftr f5"><div class="wrap">
+    <a class="mark" href="#"><span data-emblem></span><span class="wordmark">Matter of Place</span></a>
+    <p class="tag">Exceptional property. Properly considered.</p>
+    <div class="index">
+      <nav class="entry"><h3 class="eyebrow">Places</h3><ul><li><a class="lnk" href="#">Properties</a></li><li><a class="lnk" href="#">California</a></li><li><a class="lnk" href="#">New York</a></li><li><a class="lnk" href="#">Florida</a></li></ul></nav>
+      <nav class="entry"><h3 class="eyebrow">Editorial</h3><ul><li><a class="lnk" href="#">Stories</a></li><li><a class="lnk" href="#">Editorial Standard</a></li><li><a class="lnk" href="#">About</a></li></ul></nav>
+      <nav class="entry"><h3 class="eyebrow">For Professionals</h3><ul><li><a class="lnk" href="#">Property Exposure</a></li><li><a class="lnk" href="#">Submit a Property</a></li><li><a class="lnk" href="#">FAQ</a></li><li><a class="lnk" href="#">Contact</a></li></ul></nav>
+      <nav class="entry fine"><h3 class="eyebrow">Company</h3><ul><li><a class="lnk" href="#">Privacy</a></li><li><a class="lnk" href="#">Terms for Professionals</a></li><li><a class="lnk" href="#">Accessibility</a></li><li><a class="lnk" href="#">Do Not Sell or Share</a></li><li><a class="lnk" href="#">Cookie settings</a></li></ul></nav>
+    </div>
+    <p class="legal"><span>Matter of Place is a product of Omnikom LLC.</span><span>© 2026 Omnikom LLC · 30 N Gould St Ste R, Sheridan, WY 82801, USA</span></p>
+  </div></footer></div>
+</section>
+
+<!-- 6 -->
+<section class="option" id="o6">
+  <div class="label"><span class="num">6</span><h2>Monogram</h2>
+    <p>Obsidian, the quietest. A large emblem alone at the centre, the wordmark and the tagline under it, then the main links on one spaced line in capitals, a short rule, the policies on a smaller line, and the legal text. Almost nothing, placed exactly.</p></div>
+  <div class="stage"><footer class="ftr f6"><div class="wrap">
+    <a class="mono" href="#"><span data-emblem></span><span class="wordmark">Matter of Place</span><span class="tag">Exceptional property. Properly considered.</span></a>
+    <nav>
+      <div class="primary"><a class="lnk" href="#">Properties</a><a class="lnk" href="#">California</a><a class="lnk" href="#">New York</a><a class="lnk" href="#">Florida</a><a class="lnk" href="#">Stories</a><a class="lnk" href="#">Exposure</a><a class="lnk" href="#">Submit</a><a class="lnk" href="#">About</a></div>
+      <div class="rule" aria-hidden="true"></div>
+      <div class="secondary"><a class="lnk" href="#">Editorial Standard</a><a class="lnk" href="#">FAQ</a><a class="lnk" href="#">Contact</a><a class="lnk" href="#">Privacy</a><a class="lnk" href="#">Terms for Professionals</a><a class="lnk" href="#">Accessibility</a><a class="lnk" href="#">Do Not Sell or Share</a><a class="lnk" href="#">Cookie settings</a></div>
+    </nav>
+    <p class="legal"><span>Matter of Place is a product of Omnikom LLC.</span><span>© 2026 Omnikom LLC · 30 N Gould St Ste R, Sheridan, WY 82801, USA</span></p>
+  </div></footer></div>
+</section>
+
+<div style="height:80px"></div>
+<script>
+  const svg = document.getElementById("emblem").innerHTML;
+  document.querySelectorAll("[data-emblem]").forEach((el) => { el.outerHTML = svg; });
+  document.querySelectorAll(".picker button").forEach((b) => b.addEventListener("click", () => {
+    document.body.classList.toggle("phone", b.dataset.size === "phone");
+    document.querySelectorAll(".picker button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  }));
+</script>
+
