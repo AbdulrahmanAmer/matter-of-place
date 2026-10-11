@@ -27,7 +27,7 @@ import { Route as termsRoute } from "../../src/routes/_site.terms";
 
 vi.mock("../../src/lib/analytics", () => ({ track: vi.fn() }));
 
-const EMPTY: PublicSite = { ...emptySiteSettings, illustrativeContent: false };
+const EMPTY: PublicSite = { ...emptySiteSettings, illustrativeContent: false, products: [] };
 const SET: PublicSite = {
   ...EMPTY,
   legal: { entity: "Example Test LLC", address: "1 Test Street, Testville, CA 90000" },

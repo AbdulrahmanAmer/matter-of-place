@@ -2,6 +2,7 @@ import { z } from "zod";
 import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 import { dailyLimitsSchema } from "./admin-team.ts";
 import type { redirectStatuses } from "./contracts.ts";
+import { productPlanSchema, productsReadSchema } from "./exposure.ts";
 import { invoiceSettingsSchema } from "./payments.ts";
 import { siteSettingsSchema } from "./settings.ts";
 
@@ -28,7 +29,7 @@ export const notificationsPutInput = z
 
 export type NotificationsInput = z.infer<typeof notificationsPutInput>;
 
-/** `GET /api/admin/settings`: the five keys of screen 24 and what still stands between the site and launch. */
+/** `GET /api/admin/settings`: the six keys of screen 24 and what still stands between the site and launch. */
 export const settingsAnswerSchema = z.object({
   site: siteSettingsSchema,
   /** Null until B6's invoice settings have been saved once, or when the stored value no longer parses. */
@@ -37,11 +38,56 @@ export const settingsAnswerSchema = z.object({
   notifications: notificationsPutInput,
   /** Null when the seeded row is missing or unreadable; screen 23 edits it. */
   agent_daily_limits: dailyLimitsSchema.nullable(),
+  /** The stored plans (null when the row is missing or no longer parses) and the seed of `src/data/exposure.ts`. */
+  products: z.object({ current: productsReadSchema.nullable(), defaults: productsReadSchema }),
   /** Dotted names of the settings still unset (B16's identity fields, then B6's invoice fields), each once. */
   readiness: z.array(z.string()),
 });
 
 export type SettingsAnswer = z.infer<typeof settingsAnswerSchema>;
+
+// Products (B18 step 2, H80). The dry run answers what every surface would show from the plans of the form, through
+// the same functions the pages and the invoice call (invariant 9), and what changes against the stored plans.
+
+const offeringSchema = z.object({
+  id: productPlanSchema.shape.id,
+  name: z.string(),
+  price: z.string(),
+  line: z.string(),
+  note: z.string().optional(),
+  items: z.array(z.string()),
+  cta: z.string(),
+  recommended: z.boolean().optional(),
+});
+
+/** `POST /api/admin/settings/products/preview`: nothing is written. */
+export const productsPreviewSchema = z.object({
+  plans: z.array(productPlanSchema),
+  surfaces: z.object({
+    exposure: z.array(offeringSchema),
+    home: z.array(offeringSchema),
+    homeHeading: z.string(),
+    /** One line per product of the request forms, as an invoice for it would carry it. */
+    invoice: z.array(
+      z.object({ product: z.string(), description: z.string(), amount: z.string() }),
+    ),
+    faq: z.string(),
+  }),
+  /** Each plan moved or edited against the stored plans, with the price before and after. */
+  changes: z.array(
+    z.object({
+      id: productPlanSchema.shape.id,
+      name: z.string(),
+      moved: z.boolean(),
+      edited: z.array(z.string()),
+      oldPrice: z.number(),
+      newPrice: z.number(),
+    }),
+  ),
+  warnings: z.array(z.string()),
+});
+
+export type ProductsPreview = z.infer<typeof productsPreviewSchema>;
 
 // Redirects (B7 step 15a, invariant 16, GG-01). Screen 24 is the one editor of `redirects`; `put_redirect` mirrors
 // every rule of `redirectSchema` in SQL, so a row refused by either answers 422 `invalid_redirect`.

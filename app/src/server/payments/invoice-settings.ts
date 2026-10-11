@@ -1,12 +1,14 @@
 import type { z } from "zod";
+import type { ProductPlan } from "../../domain/exposure.ts";
 import { invoiceSettingsSchema } from "../../domain/payments.ts";
 import { emptySiteSettings, siteSettingsSchema, type SiteSettings } from "../../domain/settings.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { ActorKind } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
 import { fromZod } from "../lib/errors.ts";
+import { productsOf } from "../settings/products.ts";
 
-// `settings.invoice` and the readiness of invoicing (B6 invariant 7): the read of the two settings rows an invoice
+// `settings.invoice` and the readiness of invoicing (B6 invariant 7): the read of the three settings rows an invoice
 // needs, the write of `settings.invoice` below a route, and the list of what is still missing.
 
 export type InvoiceSettings = z.output<typeof invoiceSettingsSchema>;
@@ -15,6 +17,8 @@ export interface InvoiceInputs {
   site: SiteSettings;
   /** Null when the stored value does not parse. */
   invoice: InvoiceSettings | null;
+  /** The stored plans (H80); the seed when the row is missing or does not parse, as the pages show it. */
+  products: ProductPlan[];
 }
 
 /** Who writes: a person or agent with an id, or the system (null id) that a script stands for. */
@@ -25,17 +29,21 @@ export interface InvoiceSettingsActor {
   note: string;
 }
 
-/** `settings.site` and `settings.invoice` straight from the table, never through the public-state memo. */
+/**
+ * `settings.site`, `settings.invoice` and `settings.products` in one select straight from the table, never through the
+ * public-state memo, so an invoice never carries a cached identity or price.
+ */
 export async function readInvoiceInputs(db: Db): Promise<InvoiceInputs> {
   const { data, error } = await db
     .from("settings")
     .select("key, value")
-    .in("key", ["site", "invoice"]);
+    .in("key", ["site", "invoice", "products"]);
   if (error !== null) throw fromRpcError(error);
   const valueOf = (key: string): unknown => data.find((row) => row.key === key)?.value;
   return {
     site: siteSettingsSchema.safeParse(valueOf("site")).data ?? emptySiteSettings,
     invoice: invoiceSettingsSchema.safeParse(valueOf("invoice")).data ?? null,
+    products: productsOf({ products: valueOf("products") ?? null }),
   };
 }
 

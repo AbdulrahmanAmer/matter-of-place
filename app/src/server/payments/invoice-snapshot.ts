@@ -1,4 +1,5 @@
 import type { ZodIssue } from "zod";
+import { invoiceLine } from "../../domain/exposure.ts";
 import {
   requiredInvoiceFields,
   sqlAssignedFields,
@@ -11,8 +12,9 @@ import { isBlank } from "./invoice-layout.ts";
 import { invoiceReadiness, readInvoiceInputs } from "./invoice-settings.ts";
 import { offeringFor, priceFor } from "./pricing.ts";
 
-// The invoice as it is frozen at issue (invariant 5, GP-06). It reads `settings.site` and `settings.invoice` straight
-// from the table, never through the public-state memo, so an invoice never carries a cached legal identity.
+// The invoice as it is frozen at issue (invariant 5, GP-06). It reads `settings.site`, `settings.invoice` and
+// `settings.products` straight from the table, never through the public-state memo, so an invoice never carries a
+// cached legal identity or price. The amount is frozen with it: a later price change never reaches an issued invoice.
 
 /** The submission fields of the bill-to block. */
 export type BillTo = Pick<
@@ -51,15 +53,14 @@ export async function buildInvoiceSnapshot(
   product: IssueInvoiceInput["product"],
   preferredMethod: string,
 ) {
-  const { site, invoice } = await readInvoiceInputs(db);
+  const { site, invoice, products } = await readInvoiceInputs(db);
   if (invoice === null) throw incomplete("invoice");
-  const offering = offeringFor(product);
   const snapshot = {
     entity: site.legal.entity ?? "",
     address: site.legal.address ?? "",
     contact: { email: site.contact.email ?? "", phone: site.contact.phone },
-    description: `${offering.name}. ${offering.line}`,
-    amount: priceFor(product),
+    description: invoiceLine(offeringFor(products, product)),
+    amount: priceFor(products, product),
     currency: "USD",
     tax_line: invoice.tax_line,
     instructions: invoice.payment_methods,

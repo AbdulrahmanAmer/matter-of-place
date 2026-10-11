@@ -7,6 +7,7 @@ import { useToast } from "../ui/use-toast";
 import { IdentitySection } from "./IdentitySection";
 import { InvoicingSection } from "./InvoicingSection";
 import { NotificationsSection } from "./NotificationsSection";
+import { ProductsSection } from "./ProductsSection";
 import { ReadinessBanner } from "./ReadinessBanner";
 import { RedirectsSection } from "./RedirectsSection";
 import {
@@ -61,6 +62,10 @@ function Sections({ settings }: { settings: SettingsAnswer }) {
           }}
         />
       </section>
+      <section aria-labelledby="settings-products">
+        <h2 id="settings-products">Products</h2>
+        <ProductsSection products={settings.products} />
+      </section>
       <section aria-labelledby="settings-site">
         <h2 id="settings-site">Site</h2>
         <SiteSection
@@ -112,7 +117,7 @@ function Sections({ settings }: { settings: SettingsAnswer }) {
   );
 }
 
-/** Screen 24: identity, invoicing, the coming-soon switch, alert recipients and redirects, with what launch still needs. */
+/** Screen 24: identity, invoicing, the four plans, the coming-soon switch, alert recipients and redirects, with what launch still needs. */
 export function SettingsPage() {
   const settings = useSettings();
   const error = settings.error;
