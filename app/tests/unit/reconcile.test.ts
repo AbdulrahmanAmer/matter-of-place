@@ -1,6 +1,6 @@
 // The upload reconcile of E2E-02 over a fake database and a fake Storage bucket: what the first bytes announce decides
 // whether a photograph is kept and marked, removed, or still awaited.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { sha256Hex } from "../../src/server/lib/crypto";
 import { reconcileUploads, sniffImageType } from "../../src/server/submissions/reconcile";
 import { fakeDb } from "../fixtures/fake-db";
@@ -107,7 +107,7 @@ describe("reconcileUploads", () => {
   it("marks a good JPEG, removes PNG bytes under a .jpg name, waits for a fresh row and counts a late one missing", async () => {
     const { db, marked, removed } = setup(fromBucket);
     const counts = await reconcileUploads(db, new Date(NOW), NOW);
-    expect(counts).toEqual({ checked: 4, uploaded: 1, deleted: 1, missing: 1 });
+    expect(counts).toEqual({ checked: 4, uploaded: 1, deleted: 1, missing: 1, deferred: 0 });
     expect(marked).toEqual([
       { p_media_id: "good", p_mime: "image/jpeg", p_sha256: await sha256Hex(JPEG) },
     ]);
@@ -122,5 +122,100 @@ describe("reconcileUploads", () => {
     await expect(reconcileUploads(db, new Date(NOW), NOW)).rejects.toMatchObject({
       code: "storage_unavailable",
     });
+  });
+});
+
+// The 15-minute job died with step_timeout on mop-dev from 2026-10-06 (113 dead rows): it read each waiting row's
+// object one after the other, about 0.17 s apiece, so 222 waiting rows took longer than the job's 40 seconds.
+describe("reconcileUploads under load", () => {
+  /** `count` waiting rows, row 0 the newest, all inside the upload window, each answered by `download`. */
+  function crowded(count: number, download: (path: string) => unknown) {
+    const rows = Array.from({ length: count }, (_unused, index) =>
+      row(`r${String(index)}`, `s1/r${String(index)}.jpg`, 10 + index),
+    );
+    const db = fakeDb({
+      tables: { submission_media: rows },
+      storage: {
+        submissions: { download: (path: unknown) => Promise.resolve(download(String(path))) },
+      },
+    });
+    return db;
+  }
+
+  it("reads waiting objects eight at a time, not one after the other", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const db = crowded(40, async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      inFlight -= 1;
+      return { data: null, error: NOT_FOUND };
+    });
+    const counts = await reconcileUploads(db, new Date(NOW), NOW);
+    expect(peak).toBe(8);
+    expect(counts).toEqual({ checked: 40, uploaded: 0, deleted: 0, missing: 0, deferred: 0 });
+  });
+
+  it("starts with the newest row, so a live upload is settled before an old empty one", async () => {
+    const order: string[] = [];
+    const rows = [
+      row("old", "s1/old.jpg", 90),
+      row("new", "s1/new.jpg", 5),
+      row("mid", "s1/mid.jpg", 30),
+    ];
+    const db = fakeDb({
+      tables: { submission_media: rows },
+      storage: {
+        submissions: {
+          download: (path: unknown) => {
+            order.push(String(path));
+            return Promise.resolve({ data: null, error: NOT_FOUND });
+          },
+        },
+      },
+    });
+    await reconcileUploads(db, new Date(NOW), NOW);
+    expect(order).toEqual(["s1/new.jpg", "s1/mid.jpg", "s1/old.jpg"]);
+  });
+
+  it("reads nothing once the deadline has passed and leaves every row for the next run", async () => {
+    const download = vi.fn(() => ({ data: null, error: NOT_FOUND }));
+    const db = crowded(5, download);
+    const counts = await reconcileUploads(db, new Date(NOW), NOW, 0);
+    expect(download).not.toHaveBeenCalled();
+    expect(counts).toEqual({ checked: 0, uploaded: 0, deleted: 0, missing: 0, deferred: 5 });
+  });
+
+  it("stops taking rows when the deadline arrives during the run", async () => {
+    let clock = 1_000;
+    const tick = vi.spyOn(Date, "now").mockImplementation(() => clock);
+    try {
+      const db = crowded(30, () => {
+        clock += 1_000;
+        return { data: null, error: NOT_FOUND };
+      });
+      const counts = await reconcileUploads(db, new Date(NOW), NOW, 6_500);
+      expect(counts.checked + counts.deferred).toBe(30);
+      expect(counts.checked).toBeGreaterThan(0);
+      expect(counts.deferred).toBeGreaterThan(0);
+    } finally {
+      tick.mockRestore();
+    }
+  });
+
+  it("takes no further row once one read has failed", async () => {
+    // The first read fails at once; the other seven are still waiting and would go on to the next rows.
+    const download = vi.fn((): unknown =>
+      download.mock.calls.length === 1
+        ? { data: null, error: { message: "Bad gateway", status: 502, code: "InternalError" } }
+        : new Promise((resolve) => setTimeout(resolve, 5, { data: null, error: NOT_FOUND })),
+    );
+    const db = crowded(40, download);
+    await expect(reconcileUploads(db, new Date(NOW), NOW)).rejects.toMatchObject({
+      code: "storage_unavailable",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(download.mock.calls.length).toBe(8);
   });
 });

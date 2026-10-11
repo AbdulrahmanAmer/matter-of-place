@@ -1627,3 +1627,10 @@ first day of the new usage week; no step was cut from any plan.
   filters, choice rows, finder chips. Phone targets under 44px over 15 pages 383 to 104 (rest are inline links, WCAG 2.5.8).
   Pictures under workspace/08-visual-pass/pairs/visual-2026-10-11/ (P-3171); dev must run with SUPABASE_* unset (P-3170).
   REPORT.md was refused by the session's no-report-files rule: the report is in the PR body.
+- fix/reconcile-timeout 2026-10-11 07:46 +0300 (lane E:/mop-build/fix11, PR to follow): the `reconcile` job's step_timeout (113 dead rows on mop-dev)
+  was `reconcileUploads` reading one Storage object per waiting row one after the other; now 8 at a time, newest first,
+  none started after a 20 s deadline (`result.uploads.deferred` counts the rest). Live: job done in 20.5 s with 1000 rows in
+  the window. Registry `fix-reconcile-timeout.json` (rt-a to rt-h). The `token_unreadable` dead send_email rows are test
+  debris (fixtures.invalid; laptop CONFIRM_TOKEN_SECRET digest differs from the Edge Function's). P-3210, P-3211.
+  The 113 old dead rows stay in `jobs`; `dead_jobs_24h` clears 24 h after the runner has the fix (deploy of the
+  job-runner function is the orchestrator's: `supabase functions deploy job-runner --use-api`).
