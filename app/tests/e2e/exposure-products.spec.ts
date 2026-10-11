@@ -89,7 +89,7 @@ test("a price saved in Settings reaches the site read, /exposure and / without a
   const { context, page: admin } = await signInAs(browser, ADMIN);
   try {
     await admin.goto("/admin/settings");
-    const feature = admin.getByRole("group", { name: start.feature.name });
+    const feature = admin.getByRole("group", { name: "The Feature", exact: true });
     await feature.getByLabel("Price", { exact: true }).fill(String(raised));
     await admin.getByRole("button", { name: "Preview", exact: true }).click();
     const preview = admin.getByRole("region", { name: "Preview" });

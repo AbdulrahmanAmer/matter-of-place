@@ -7,7 +7,7 @@ import {
   signedUploadsSchema,
   submissionReceiptSchema,
 } from "../../domain/contracts";
-import { productPlanSchema } from "../../domain/exposure";
+import { productsReadSchema } from "../../domain/exposure";
 import { marketSchema } from "../../domain/market";
 import type { PublicSite } from "../../domain/settings";
 import { propertySchema } from "../../domain/property";
@@ -60,7 +60,7 @@ const publicSiteSchema: z.ZodType<PublicSite, z.ZodTypeDef, unknown> = z.object(
   legal: z.object({ entity: text, address: text }),
   social: z.object({ instagram: text, x: text, linkedin: text }),
   illustrativeContent: z.boolean(),
-  products: z.array(productPlanSchema),
+  products: productsReadSchema.shape.plans,
 });
 
 /**

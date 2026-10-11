@@ -702,8 +702,8 @@
     "id": "b18-g3-http-plans",
     "test": "tests/unit/http-adapter.test.ts",
     "file": "src/services/http/index.ts",
-    "find": "  products: z.array(productPlanSchema),",
-    "replace": "  products: z.array(productPlanSchema).transform(() => []),",
+    "find": "  products: productsReadSchema.shape.plans,",
+    "replace": "  products: productsReadSchema.shape.plans.transform(() => []),",
     "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
     "expect": "FAIL .*> the site read > parses the plans the body carries"
   },
@@ -711,10 +711,19 @@
     "id": "b18-g3-http-refuse",
     "test": "tests/unit/http-adapter.test.ts",
     "file": "src/services/http/index.ts",
-    "find": "  products: z.array(productPlanSchema),",
-    "replace": "  products: z.array(productPlanSchema).catch([]),",
+    "find": "  products: productsReadSchema.shape.plans,",
+    "replace": "  products: productsReadSchema.shape.plans.catch([]),",
     "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
     "expect": "FAIL .*> the site read > refuses a body whose plans are missing or carry no price"
+  },
+  {
+    "id": "b18-g3-http-unknown-key",
+    "test": "tests/unit/http-adapter.test.ts",
+    "file": "src/services/http/index.ts",
+    "find": "  products: productsReadSchema.shape.plans,",
+    "replace": "  products: productsReadSchema.shape.plans.innerType().element.strict().array(),",
+    "run": "bunx vitest run --project unit tests/unit/http-adapter.test.ts",
+    "expect": "FAIL .*> the site read > keeps the plans when a plan carries a key this build does not know"
   },
   {
     "id": "b18-g3-e2e-seed-always",
@@ -724,7 +733,7 @@
     "find": "    products: plansOf(state),",
     "replace": "    products: seedProducts(),",
     "run": "node scripts/dev-vars.mjs && bun run build && E2E_TARGET=built E2E_PORT=8868 E2E_MODE=live bunx playwright test --project=admin tests/e2e/exposure-products.spec.ts --reporter=line",
-    "expect": "expect(received).toBe(expected)[sS]*Expected: [0-9]+",
+    "expect": "expect\\(received\\)\\.toBe\\(expected\\)[\\s\\S]*Expected: [0-9]+",
     "what": "by hand against mop-dev (a built Worker, a browser and the dev profile): the site read always serves the seed, so the poll ends after 40 seconds with the old price. Not replayed: steps 1 and 2 (the products row and settings_put_products) are not pushed to mop-dev until main merges B18, so the spec itself is UNPROVEN until then."
   }
 ]

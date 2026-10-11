@@ -115,6 +115,14 @@ describe("the site read", () => {
     expect(answer.products).toEqual(plans);
   });
 
+  it("keeps the plans when a plan carries a key this build does not know", async () => {
+    const plans = seedProducts();
+    reply = () =>
+      Response.json({ ...site, products: plans.map((plan) => ({ ...plan, later: 1 })) });
+    const answer = await createHttpServices("/api/public", fetchImpl).site.get();
+    expect(answer.products).toEqual(plans);
+  });
+
   it("refuses a body whose plans are missing or carry no price", async () => {
     const [first, ...rest] = seedProducts();
     const refused = (body: unknown) => {
