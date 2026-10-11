@@ -306,6 +306,7 @@ Entry template
 - rule: commit and push main work BEFORE spawning any agent that branches; while a branching worker runs in this tree, check the branch before every commit and never `git stash` or checkout under it. Workers that run side by side each get their own git worktree outside this folder (P-051); the build's lanes are exactly that.
 - proof: `git branch --show-current` → `main` before a commit on main.
 - added: 2026-09-30
+- hit again: 2026-10-11, B18 g3 fix round: two builders of the same group ran in `D:/mop-build/b18` at once (the second writer P-3304's g3 line could not name: its loop wrote `.tmp/wf-g3b.txt` and `.tmp/wf-g3c.txt` and replayed the same ids). Its replays made four of the other's `--only` replays print false `STALE`, and two `bun run build` runs that overlapped left a doubled `.output/public/assets`: `node scripts/bundle-check.mjs` printed `FAILED 30` with every route about 13 KB over (exposure 166659 gzip bytes). `rm -rf .output`, one build alone, then `bundle-check: OK 28 routes under 163840 gzip bytes` (exposure 153746). Before a build or a replay in a lane tree, list the node processes whose command line names the tree (`Get-CimInstance Win32_Process`, `CommandLine -match 'b18'`) and wait until none runs.
 
 ## P-013 · The shell's working directory drifts between calls
 - symptom: the harness reported "Primary working directory" changing five times in one session after `cd` inside Bash commands; a later relative path pointed at the wrong folder.
