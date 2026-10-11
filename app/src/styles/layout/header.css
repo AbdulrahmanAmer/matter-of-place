@@ -70,22 +70,26 @@
   transition: opacity 0.2s;
 }
 
+/* The underline draws in from the left on hover and stays drawn on the current page (2026-10-11). */
 .header-nav a::after {
   content: "";
   position: absolute;
   inset: auto 0.18em 9px 0;
   height: 1px;
   background: currentColor;
-  opacity: 0;
-  transition: opacity 0.2s;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-.header-nav a:hover {
-  opacity: 0.6;
+.header-nav a:hover::after,
+.header-nav a:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left center;
 }
 
 .header-nav a.active::after {
-  opacity: 1;
+  transform: scaleX(1);
 }
 
 .header-brand {

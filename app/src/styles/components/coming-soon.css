@@ -171,3 +171,35 @@
     margin-top: 25px;
   }
 }
+
+/* Launch upgrade (2026-10-11). The sign-up is the one action of an empty collection, so it gets a stage: the title
+   large in Cormorant, the form inside a Bone panel with a hairline, generous space around. */
+.coming-soon {
+  padding-block: clamp(96px, 10vw, 168px);
+  border-top: 1px solid var(--foreground);
+}
+
+.coming-soon h2 {
+  font-size: clamp(40px, 5.4vw, 84px);
+  line-height: 1;
+  max-width: 16ch;
+}
+
+.coming-soon-body > p {
+  font-family: var(--font-serif);
+  font-size: clamp(19px, 1.6vw, 23px);
+  line-height: 1.5;
+  max-width: 44ch;
+}
+
+.coming-soon .interest-form {
+  padding: clamp(24px, 3vw, 40px);
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  max-width: 720px;
+}
+
+.coming-soon .interest-submit {
+  min-height: 52px;
+  padding-inline: 36px;
+}

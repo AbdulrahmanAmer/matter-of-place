@@ -112,6 +112,9 @@ export function Footer() {
           </p>
         </div>
       </div>
+      <p className="footer-signature" aria-hidden="true">
+        {siteConfig.name}
+      </p>
     </footer>
   );
 }

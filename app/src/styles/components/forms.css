@@ -418,3 +418,53 @@
     flex: none;
   }
 }
+
+/* Launch upgrade (2026-10-11): the five steps of Submit read as a progress rail. Equal segments, each a hairline that
+   fills Obsidian once reached; the current one carries the full weight. */
+.wizard-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: clamp(24px, 3vw, 40px);
+  counter-reset: none;
+}
+
+.wizard-steps li {
+  position: relative;
+  padding-top: 18px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.wizard-steps li::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--border);
+  transition: background-color 0.5s ease;
+}
+
+.wizard-steps .past::before,
+.wizard-steps .on::before {
+  background: var(--foreground);
+}
+
+.wizard-steps .on {
+  border-bottom: 0;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .wizard-steps {
+    gap: 6px;
+  }
+
+  .wizard-steps li {
+    padding-top: 14px;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
+}

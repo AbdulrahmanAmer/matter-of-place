@@ -23,10 +23,9 @@ export function Header() {
   const searchRef = useRef<HTMLDivElement>(null);
   const scrolled = useScrolled();
   const path = useRouterState({ select: (state) => state.location.pathname });
-  // Pages that open on a full-bleed hero: home and the three market pages (operator, 2026-10-11). The header floats
-  // over the hero and settles into a solid bar on scroll.
-  const isHome = path === "/" || /^\/(california|new-york|florida)\/?$/.test(path);
-  const overlay = isHome && !menuOpen && !scrolled;
+  // Every public page opens on a full-bleed band or hero (page intro, hero, not-found), so the header floats over it
+  // and settles into a solid bar on scroll (operator, 2026-10-11).
+  const overlay = !menuOpen && !scrolled;
 
   const closeAll = useCallback(() => {
     setMenuOpen(false);
@@ -91,8 +90,6 @@ export function Header() {
           </button>
         </div>
       </header>
-
-      {!isHome && <div className="header-spacer" aria-hidden="true" data-print="hide" />}
 
       {menuOpen && (
         <MenuPanel

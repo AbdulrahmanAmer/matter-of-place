@@ -147,8 +147,64 @@
     transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.button:hover {
-  transform: translateY(-1px);
+
+/* Buttons: on hover the inverse colour sweeps across from the left and leaves to the right (flat colour, no glow). */
+.button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--background);
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.button:hover::before,
+.button:focus-visible::before {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+.button:hover,
+.button:focus-visible {
+  color: var(--foreground);
+}
+
+.button.ghost::before {
+  background: var(--foreground);
+}
+
+.button.ghost:hover,
+.button.ghost:focus-visible {
+  color: var(--background);
+}
+
+/* On the dark bands the filled button is Ivory, so its sweep is Obsidian, and the ghost sweeps to Ivory. */
+.hero-text-actions .button::before,
+.home-submit .button::before {
+  background: var(--foreground);
+}
+
+.hero-text-actions .button:hover,
+.home-submit .button:hover {
+  opacity: 1;
+  color: var(--primary-foreground);
+  border-color: var(--primary-foreground);
+}
+
+.hero-text-actions .button.ghost::before {
+  background: var(--primary-foreground);
+}
+
+.hero-text-actions .button.ghost:hover {
+  color: var(--foreground);
 }
 
 @media (prefers-reduced-motion: reduce) {

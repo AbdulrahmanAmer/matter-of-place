@@ -149,3 +149,20 @@
     min-height: 44px;
   }
 }
+
+/* The signature (2026-10-11): the name set across the full width at the foot of every page, in Sandstone, cut by the
+   page edge at the bottom. Decorative: hidden from assistive technology. */
+.footer-signature {
+  margin: clamp(48px, 6vw, 96px) 0 0;
+  padding: 0 var(--container-pad);
+  font-family: var(--font-serif);
+  font-weight: 300;
+  font-size: clamp(56px, 14.2vw, 232px);
+  line-height: 0.78;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-align: center;
+  color: var(--accent);
+  user-select: none;
+}
