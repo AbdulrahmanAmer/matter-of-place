@@ -7,8 +7,9 @@ import { readVar } from "../lib/runtime-env";
 import { readState, servingStale } from "./state";
 
 // The one module that stores and reads cached responses (invariant 16): the JSON routes, the HTML
-// middleware and, through `mediaCached`, the media route. The key holds the release and the catalog
-// version, so a publish changes every key within 15 seconds and nothing is ever purged.
+// middleware and, through `mediaCached`, the media route. A cached public read is a function of release,
+// catalog version, environment, host and path (H82), so a publish changes every key within 15 seconds and
+// nothing is ever purged, and no Worker answers with a page another Worker rendered (P-3190).
 
 type Kind = "html" | "json" | "doc";
 type Label = "hit" | "miss" | "stale" | "bypass";
@@ -42,20 +43,33 @@ const edgeCacheSchema = z.object({
   ),
 });
 
-/** The Worker's own edge cache; absent in `vite dev` and on workers.dev, where the edge layer is a no-op. */
+/**
+ * The Worker's own edge cache; absent in `vite dev`. It stores and serves under `wrangler dev` and on every deploy,
+ * workers.dev included, where every Worker of the account's subdomain reads the same store (P-843, P-3190).
+ */
 function edgeCache(): Cache | undefined {
   const parsed = edgeCacheSchema.safeParse(Reflect.get(globalThis, "caches"));
   return parsed.success ? parsed.data.default : undefined;
 }
 
 const release = (): string => readVar("SENTRY_RELEASE") ?? "dev";
-const versionedKey = (kind: Kind, version: number, pathname: string): string =>
-  `${KEY_BASE}/${release()}/v${String(version)}/${kind}${pathname}`;
-// An HTML page names the hashed asset files of its own build, so its copy is bound to the release (DO-09).
-const lastGoodKey = (kind: Kind, pathname: string): string =>
+/** `MOP_ENV` with `env.ts`'s default: an unset or empty value is production. */
+function environment(): string {
+  const value = readVar("MOP_ENV");
+  return value === undefined || value === "" ? "production" : value;
+}
+// The dev Worker, the production Worker and every preview share one store on workers.dev (H82): the environment and
+// the host the request named come first, so one never answers with another's illustrative or coming-soon render.
+const scope = (url: URL): string => `${environment()}/${url.host}`;
+
+/** The key of a stored read: environment, host, release, catalog version, kind and path, never the query (rule 3). */
+export const versionedKey = (kind: Kind, version: number, url: URL): string =>
+  `${KEY_BASE}/${scope(url)}/${release()}/v${String(version)}/${kind}${url.pathname}`;
+/** The key of the last good copy. An HTML page names the hashed asset files of its own build, so its copy is bound to the release (DO-09). */
+export const lastGoodKey = (kind: Kind, url: URL): string =>
   kind === "html"
-    ? `${KEY_BASE}/last-good/${release()}/html${pathname}`
-    : `${KEY_BASE}/last-good/${kind}${pathname}`;
+    ? `${KEY_BASE}/last-good/${scope(url)}/${release()}/html${url.pathname}`
+    : `${KEY_BASE}/last-good/${scope(url)}/${kind}${url.pathname}`;
 
 // Per isolate: the catalog version at which each last-good key was written.
 const lastGoodWritten = new Map<string, number>();
@@ -133,11 +147,11 @@ function bypass(response: Response, version: number | undefined): Response {
 async function writeLastGood(
   cache: Cache,
   kind: Kind,
-  pathname: string,
+  url: URL,
   version: number,
   stored: Response,
 ): Promise<void> {
-  const key = lastGoodKey(kind, pathname);
+  const key = lastGoodKey(kind, url);
   if (lastGoodWritten.get(key) === version) return;
   const copy = new Response(stored.body, stored);
   copy.headers.set("cache-control", `public, s-maxage=${String(LAST_GOOD_MAX_AGE)}`);
@@ -148,12 +162,12 @@ async function writeLastGood(
 async function serveLastGood(
   request: Request,
   kind: Kind,
-  pathname: string,
+  url: URL,
   failure: unknown,
 ): Promise<Response> {
   const kept =
     failure instanceof AppError && failure.code === "unavailable"
-      ? await edgeCache()?.match(lastGoodKey(kind, pathname))
+      ? await edgeCache()?.match(lastGoodKey(kind, url))
       : undefined;
   if (kept === undefined) throw failure;
   return answer(request, kept, kind, "stale");
@@ -162,7 +176,7 @@ async function serveLastGood(
 /**
  * Answers a read from the edge cache under the versioned key, or builds it, stores it and answers.
  * When the database cannot be read, a last good copy answers `stale`; with none, the failure stands (503).
- * A render is a pure function of (release, version, path), so a stored copy is never stale.
+ * A render is a pure function of (release, version, environment, host, path), so a stored copy is never stale.
  */
 export async function cachedResponse(
   request: Request,
@@ -174,7 +188,7 @@ export async function cachedResponse(
   if (isPreviewRequest(request.url) || !isReadRequest(request)) {
     return bypass(await build(), undefined);
   }
-  const { pathname } = new URL(request.url);
+  const url = new URL(request.url);
   const cache = edgeCache();
   let version: number;
   let stateStale: boolean;
@@ -183,23 +197,23 @@ export async function cachedResponse(
     version = read.state.catalogVersion;
     stateStale = read.stale;
   } catch (error) {
-    return serveLastGood(request, kind, pathname, error);
+    return serveLastGood(request, kind, url, error);
   }
-  const key = versionedKey(kind, version, pathname);
+  const key = versionedKey(kind, version, url);
   const hit = await cache?.match(key);
   if (hit !== undefined) return answer(request, hit, kind, stateStale ? "stale" : "hit");
   let built: Response;
   try {
     built = await build();
   } catch (error) {
-    return serveLastGood(request, kind, pathname, error);
+    return serveLastGood(request, kind, url, error);
   }
   if (!storable(built)) return bypass(built, version);
   const stored = await toStored(built, kind, version, edge);
   const stale = stateStale || servingStale();
   if (cache !== undefined && !stale) {
     await cache.put(key, stored.clone());
-    await writeLastGood(cache, kind, pathname, version, stored.clone());
+    await writeLastGood(cache, kind, url, version, stored.clone());
   }
   return answer(request, stored, kind, stale ? "stale" : "miss");
 }
