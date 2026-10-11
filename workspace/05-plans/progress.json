@@ -484,10 +484,6 @@
   ],
   "waiting": [
     {
-      "what": "Activate the UptimeRobot account",
-      "why": "The \"Activate my account\" button in the 06:39 email. The browser extension is disconnected, so it waits for a click from you or for the extension."
-    },
-    {
       "what": "Your Instagram handle",
       "why": "For the site's Instagram link. Not needed for launch."
     },
