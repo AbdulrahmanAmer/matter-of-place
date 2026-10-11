@@ -4,17 +4,19 @@ import { cookieInventory, type CookieCategory } from "../config/cookies";
 import { siteConfig } from "../config/site";
 import { breadcrumbLd } from "../lib/jsonld";
 import { legalIdentity } from "../lib/legal-identity";
+import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/cookies")({
-  head: () =>
+  head: ({ matches }) =>
     pageHead({
       title: t.cookies.title,
       description: pageDescription("cookies"),
       path: "/cookies",
+      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
       jsonLd: [breadcrumbLd([{ name: t.cookies.title, path: "/cookies" }])],
     }),
   component: CookiesPage,

@@ -48,16 +48,15 @@ function page(path: string, fields: Fields = {}): string {
 }
 
 describe("allowedUntil (ruling H64)", () => {
-  it("allows the legal pages' 404 and the two og:image gaps, each naming the slice that removes it", () => {
+  it("allows none of the old gaps any more: the legal pages and /cookies ship, every page has an og:image", () => {
     expect(
       [
         ["status", "/privacy answered 404"],
-        ["status", "/terms answered 404"],
-        ["status", "/accessibility answered 404"],
         ["status", "/cookies answered 404"],
+        ["head", "/cookies: og:image is missing"],
         ["head", "/place-notes: og:image is missing"],
-      ].map(([name, problem]) => allowedUntil(name ?? "", problem ?? "")?.slice(0, 3)),
-    ).toEqual(["B16", "B16", "B16", "B17", "B17"]);
+      ].map(([name, problem]) => allowedUntil(name ?? "", problem ?? "")),
+    ).toEqual([undefined, undefined, undefined, undefined]);
   });
 
   it("allows nothing else: a 404 on another page, a 500 on a legal page, or any other check", () => {
