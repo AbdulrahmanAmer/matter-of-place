@@ -1,0 +1,74 @@
+[
+  {
+    "id": "rt-a-one-at-a-time",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "const CONCURRENCY = 8;",
+    "replace": "const CONCURRENCY = 1;",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*reads waiting objects eight at a time, not one after the other"
+  },
+  {
+    "id": "rt-b-oldest-first",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "    .sort((a, b) => Date.parse(b.submissions.received_at) - Date.parse(a.submissions.received_at));",
+    "replace": "    .sort((a, b) => Date.parse(a.submissions.received_at) - Date.parse(b.submissions.received_at));",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*starts with the newest row, so a live upload is settled before an old empty one"
+  },
+  {
+    "id": "rt-c-no-deadline",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "      if (failed || row === undefined || Date.now() >= deadline) return;",
+    "replace": "      if (failed || row === undefined) return;",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*reads nothing once the deadline has passed and leaves every row for the next run"
+  },
+  {
+    "id": "rt-d-deadline-read-once",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "      if (failed || row === undefined || Date.now() >= deadline) return;",
+    "replace": "      if (failed || row === undefined || now >= deadline) return;",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*stops taking rows when the deadline arrives during the run"
+  },
+  {
+    "id": "rt-e-failure-does-not-stop-the-others",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "      if (failed || row === undefined || Date.now() >= deadline) return;",
+    "replace": "      if (row === undefined || Date.now() >= deadline) return;",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*takes no further row once one read has failed"
+  },
+  {
+    "id": "rt-f-deferred-not-counted",
+    "test": "tests/unit/reconcile.test.ts",
+    "file": "src/server/submissions/reconcile.ts",
+    "find": "  counts.deferred = rows.length - next;",
+    "replace": "  counts.deferred = 0;",
+    "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
+    "expect": "× .*reads nothing once the deadline has passed and leaves every row for the next run"
+  },
+  {
+    "id": "rt-g-job-gives-no-deadline",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "      const uploads = await reconcileUploads(ctx.db, since, started, started + UPLOADS_BUDGET_MS);",
+    "replace": "      const uploads = await reconcileUploads(ctx.db, since);",
+    "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts",
+    "expect": "× .*hands the uploads part a deadline that leaves the other parts ten seconds of the job's timeout"
+  },
+  {
+    "id": "rt-h-job-budget-too-long",
+    "test": "tests/unit/jobs/reconcile.test.ts",
+    "file": "src/server/jobs/system/reconcile.ts",
+    "find": "const UPLOADS_BUDGET_MS = 20_000;",
+    "replace": "const UPLOADS_BUDGET_MS = 38_000;",
+    "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts",
+    "expect": "× .*hands the uploads part a deadline that leaves the other parts ten seconds of the job's timeout"
+  }
+]

@@ -13,6 +13,8 @@ export type ImageType = "image/jpeg" | "image/png" | "image/webp" | "image/heic"
 const BUCKET = "submissions";
 // The signed upload URL lives two hours; a row still empty after that will not be filled.
 const UPLOAD_WINDOW_MS = 2 * 60 * 60 * 1000;
+// Objects read at once: eight keeps a crowd of waiting rows inside the job budget without opening a flood of requests.
+const CONCURRENCY = 8;
 // B7 stages admin originals here for B9's render_variants (G42); they have no submission row to settle.
 const STAGING = "staging/";
 // GQ-07: the brands an iPhone writes, plus `heim` and `msf1` (ASSUMED until a real sample is measured).
@@ -57,10 +59,13 @@ const databaseUnavailable = () =>
   new AppError("unavailable", undefined, "The database did not answer the upload reconcile.");
 
 export interface ReconcileCounts {
+  /** Rows read this run (the deferred ones excluded). */
   checked: number;
   uploaded: number;
   deleted: number;
   missing: number;
+  /** Rows the run did not reach before its deadline; they stay without `uploaded_at` and the next run reads them. */
+  deferred: number;
 }
 
 /**
@@ -68,11 +73,16 @@ export interface ReconcileCounts {
  * whose bytes match the declared type is marked uploaded, any other found object is removed, and a row whose window
  * has passed with no object counts as missing. A Storage or database error other than not-found throws, so the job
  * retries; a row already settled is skipped on the retry.
+ *
+ * The rows are read newest first, CONCURRENCY at a time, and no row is started after `deadline` (epoch milliseconds):
+ * one Storage round trip costs about 0.2 s, so a crowd of waiting rows read one after the other outran the job's
+ * 40 seconds and the job died with step_timeout (113 dead rows on mop-dev, 2026-10-06 to 2026-10-11).
  */
 export async function reconcileUploads(
   db: Db,
   since: Date,
   now = Date.now(),
+  deadline = Number.POSITIVE_INFINITY,
 ): Promise<ReconcileCounts> {
   const { data, error } = await db
     .from("submission_media")
@@ -80,15 +90,19 @@ export async function reconcileUploads(
     .is("uploaded_at", null)
     .gt("submissions.received_at", new Date(since.getTime() - UPLOAD_WINDOW_MS).toISOString());
   if (error !== null) throw databaseUnavailable();
-  const rows = rowsSchema.parse(data).filter((row) => !row.storage_path.startsWith(STAGING));
-  const counts: ReconcileCounts = { checked: rows.length, uploaded: 0, deleted: 0, missing: 0 };
+  const rows = rowsSchema
+    .parse(data)
+    .filter((row) => !row.storage_path.startsWith(STAGING))
+    .sort((a, b) => Date.parse(b.submissions.received_at) - Date.parse(a.submissions.received_at));
+  const counts: ReconcileCounts = { checked: 0, uploaded: 0, deleted: 0, missing: 0, deferred: 0 };
   const store = db.storage.from(BUCKET);
-  for (const row of rows) {
+
+  async function settle(row: (typeof rows)[number]): Promise<void> {
     const download = await store.download(row.storage_path);
     if (download.error !== null) {
       if (!isNotFound(download.error)) throw storageUnavailable();
       if (now - Date.parse(row.submissions.received_at) > UPLOAD_WINDOW_MS) counts.missing += 1;
-      continue;
+      return;
     }
     const bytes = new Uint8Array(await download.data.arrayBuffer());
     const declared = DECLARED[row.storage_path.split(".").pop() ?? ""];
@@ -107,5 +121,24 @@ export async function reconcileUploads(
       counts.deleted += 1;
     }
   }
+
+  let next = 0;
+  let failed = false;
+  async function worker(): Promise<void> {
+    for (;;) {
+      const row = rows[next];
+      if (failed || row === undefined || Date.now() >= deadline) return;
+      next += 1;
+      counts.checked += 1;
+      try {
+        await settle(row);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, rows.length) }, worker));
+  counts.deferred = rows.length - next;
   return counts;
 }
