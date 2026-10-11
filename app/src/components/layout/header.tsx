@@ -12,7 +12,7 @@ import { primaryLinks, secondaryLinks, submitLink } from "./nav-links";
 import { SearchOverlay } from "./search-overlay";
 
 /**
- * Fixed header. Over the home page photograph it is transparent with a soft
+ * Fixed header. Over the hero of the home page and the market pages it is transparent with a soft
  * scrim; once the page scrolls, or on any other route, it settles into a solid
  * bar. Other pages reserve its height with a spacer so nothing hides beneath it.
  */
@@ -23,7 +23,9 @@ export function Header() {
   const searchRef = useRef<HTMLDivElement>(null);
   const scrolled = useScrolled();
   const path = useRouterState({ select: (state) => state.location.pathname });
-  const isHome = path === "/";
+  // Pages that open on a full-bleed hero: home and the three market pages (operator, 2026-10-11). The header floats
+  // over the hero and settles into a solid bar on scroll.
+  const isHome = path === "/" || /^\/(california|new-york|florida)\/?$/.test(path);
   const overlay = isHome && !menuOpen && !scrolled;
 
   const closeAll = useCallback(() => {

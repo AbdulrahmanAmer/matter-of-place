@@ -32,6 +32,125 @@
   }
 }
 
+/* Site motion (components/layout/site-motion.tsx). Only after the script marks the page ready, so the server HTML and a
+   visitor without JavaScript show everything. An element rises 28px and fades in over 1.1 s on an ease that settles
+   slowly, the way an editorial page turns; its group staggers by --motion-delay. */
+.motion-ready [data-motion=""] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+.motion-ready [data-motion] {
+  transition:
+    opacity 1s cubic-bezier(0.16, 1, 0.3, 1) var(--motion-delay, 0ms),
+    transform 1.1s cubic-bezier(0.16, 1, 0.3, 1) var(--motion-delay, 0ms);
+}
+
+.motion-ready [data-motion="in"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* The hero on load: the eyebrow, each line of the title, the lede and the actions arrive in turn, lines rising out of
+   their own mask. CSS only, so it runs before any script. */
+@keyframes lineRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.5em, 0);
+    clip-path: inset(0 0 100% 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0 0 -20% 0);
+  }
+}
+
+@keyframes softRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drawAcross {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.hero-text .eyebrow {
+  animation: softRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+.hero-text h1,
+.hero-text h1 span {
+  animation: lineRise 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+.hero-text h1 span + span {
+  animation-delay: 0.42s;
+}
+
+.hero-text .hero-text-lede {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both;
+}
+
+.hero-text .market-hero-status {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 0.85s both;
+}
+
+.hero-text-actions {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 0.95s both;
+}
+
+/* A hairline that draws from the left when its section arrives. */
+.motion-ready .coming-soon[data-motion],
+.motion-ready .footer-bottom[data-motion] {
+  position: relative;
+}
+
+.motion-ready .coming-soon[data-motion]::before,
+.motion-ready .footer-bottom[data-motion]::before {
+  content: "";
+  position: absolute;
+  inset: -1px 0 auto 0;
+  height: 1px;
+  background: var(--foreground);
+  opacity: 0.35;
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.motion-ready .coming-soon[data-motion="in"]::before,
+.motion-ready .footer-bottom[data-motion="in"]::before {
+  animation: drawAcross 1.4s cubic-bezier(0.65, 0, 0.35, 1) 0.2s both;
+}
+
+/* Links and buttons answer the pointer with a short, quiet move. */
+.button,
+.text-link {
+  transition:
+    opacity 0.3s ease,
+    background-color 0.3s ease,
+    color 0.3s ease,
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -40,5 +159,10 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .motion-ready [data-motion] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
