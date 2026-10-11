@@ -2,7 +2,7 @@
 // Re-runs the recorded proof commands of accepted plan steps and writes one log (orchestrator job, 2026-10-11).
 // Usage, from the repository root: node workspace/05-plans/rerun.mjs [list.json] [log]
 //   list.json defaults to workspace/05-plans/rerun-2026-10-11.json: [{slice, step, cwd, command, writes, source?, note?}]
-//   log defaults to workspace/05-plans/logs/rerun-2026-10-11.log (appended, never truncated)
+//   log defaults to workspace/05-plans/logs/rerun-2026-10-11.txt (appended, never truncated)
 // Every entry with writes=false runs once, in order, through Git Bash, with a 15-minute timeout; the dev profile of
 // app/scripts/load-env.mjs is exported first (the proofs were recorded under it; RERUN_DEV_PROFILE=0 turns that off).
 // Entries with writes=true are not run: their block says "SKIPPED needs quiet". The run ends with a summary table.
@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const LIST = resolve(ROOT, process.argv[2] ?? "workspace/05-plans/rerun-2026-10-11.json");
-const LOG = resolve(ROOT, process.argv[3] ?? "workspace/05-plans/logs/rerun-2026-10-11.log");
+const LOG = resolve(ROOT, process.argv[3] ?? "workspace/05-plans/logs/rerun-2026-10-11.txt");
 const TIMEOUT_MS = 15 * 60 * 1000;
 const TAIL = 20;
 const DEV_PROFILE = process.env.RERUN_DEV_PROFILE !== "0";
