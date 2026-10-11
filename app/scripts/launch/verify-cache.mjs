@@ -360,6 +360,16 @@ function checkAll(answers, { local, ratio }) {
     },
     "one header per page, identical on both answers, every inline script hashed",
   );
+  if (local) {
+    const compared = pages.filter((key) => label(answers[key]?.[0]) === "miss");
+    line(
+      "policy miss and hit",
+      compared.length > 0,
+      compared.length > 0
+        ? `${String(compared.length)} of ${String(pages.length)} pages compared a miss with a hit`
+        : "no page answered miss first (start wrangler with a fresh --persist-to and probe readiness on /robots.txt)",
+    );
+  }
   verifyEach(
     answers,
     "never cached",

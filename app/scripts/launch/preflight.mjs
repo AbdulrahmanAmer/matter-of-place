@@ -302,7 +302,8 @@ function checkHarden() {
     return;
   }
   const days = (Date.now() - Date.parse(newest.slice(7, 17))) / DAY_MS;
-  const results = rows(readFileSync(join(AUDITS, newest), "utf8"))
+  const report = readFileSync(join(AUDITS, newest), "utf8");
+  const results = rows(report)
     .filter(([cell, id]) => cell === "|" && /^H1-\d+$/.test(id ?? ""))
     .map((words) => {
       const cells = words
@@ -313,6 +314,7 @@ function checkHarden() {
     });
   const faults = [
     ...(days < 7 ? [] : [`${newest} is ${String(Math.floor(days))} days old`]),
+    ...(/^Env: .*Selection: .*\(partial\)/m.test(report) ? [`${newest} is a partial run`] : []),
     ...results
       .filter(({ id, result }) => {
         if (result === "pass" || result === "signed") return false;

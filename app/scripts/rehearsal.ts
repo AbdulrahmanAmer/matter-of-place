@@ -28,6 +28,7 @@ import {
 import { inquirySchema, receiptSchema, submissionSchema } from "../src/domain/contracts.ts";
 import { holdDevLock } from "../tests/fixtures/dev-lock.ts";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
+import { guardEnv } from "./lib/guard-env.mjs";
 import { pgClientConfig } from "./lib/pg-connect.mjs";
 import { readSecret, runScript } from "./lib/social-script.ts";
 
@@ -791,6 +792,7 @@ async function main(argv: readonly string[]): Promise<number> {
   }
   const dbUrl = process.env["DEV_DB_URL"];
   await assertNotProduction({ dbUrl });
+  guardEnv();
   const fixture = fixtureSchema.parse(JSON.parse(readFileSync(values.property, "utf8")));
   const b9 = b9FixtureSchema.parse(
     JSON.parse(readFileSync(new URL(fixture.propertyFixture, APP), "utf8")),
