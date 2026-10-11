@@ -1593,10 +1593,10 @@
     "id": "b8b-g5-sam-refuses",
     "test": "tests/unit/automation/sample-payloads.test.ts",
     "file": "src/server/automation/sample-payloads.ts",
-    "find": "  if (entityId === undefined && !systemEvents.includes(type)) {",
-    "replace": "  if (false) {",
+    "find": "  if (entityId === undefined && placeholder !== undefined) return { ...placeholder };",
+    "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
-    "expect": "× .*refuses an unknown trigger"
+    "expect": "× .*builds every event from placeholders when no record is named"
   },
   {
     "id": "b8b-g5-db-processed-check",
