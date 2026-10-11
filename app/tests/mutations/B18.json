@@ -225,6 +225,24 @@
     "expect": "× .*accepts a payload with and without products"
   },
   {
+    "id": "b18-g1-state-optional",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "    products: z.unknown().nullish(),\n",
+    "replace": "    products: z.unknown().refine((value) => value !== undefined),\n",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*accepts a payload with and without products"
+  },
+  {
+    "id": "b18-g1-state-shape",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "    products: z.unknown().nullish(),\n",
+    "replace": "    products: looseObject.nullish(),\n",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*accepts a payload with and without products"
+  },
+  {
     "id": "b18-g1-boundary",
     "test": "tests/unit/boundaries.test.ts",
     "file": "tests/unit/boundaries.test.ts",

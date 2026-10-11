@@ -138,7 +138,15 @@ describe("getPublicState", () => {
     const withNull = served(5);
     withNull.answers.state = stateJson(5, { products: null });
     expect((await (await load()).state.getPublicState(withNull.db)).products).toBeNull();
-    expect((await (await load()).state.getPublicState(served(5).db)).products).toBeNull();
+    // served() builds the seven-key payload mop-dev returns before the H80 migration: no products key at all.
+    const sevenKeys = served(5);
+    expect("products" in z.record(z.string(), z.unknown()).parse(sevenKeys.answers.state)).toBe(
+      false,
+    );
+    expect((await (await load()).state.getPublicState(sevenKeys.db)).products).toBeNull();
+    const malformed = served(5);
+    malformed.answers.state = stateJson(5, { products: [] });
+    expect((await (await load()).state.getPublicState(malformed.db)).products).toEqual([]);
   });
 
   it("serves the last good state when the RPC fails, and says so", async () => {

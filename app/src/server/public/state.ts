@@ -18,7 +18,8 @@ const DEFAULT_TTL_MS = 15_000;
 const looseObject = z.record(z.string(), z.unknown());
 
 // The eight keys of G39 as H80 amended it, and no others. A missing `coming_soon_global`, `site`, `og_static` or
-// `products` reads as empty (`products` as null: the caller falls back to the seed).
+// `products` reads as empty (`products` as null: the caller falls back to the seed). `products` is the stored value as it is, whatever
+// its shape: `productsOf` judges it, so a malformed row costs one line and the seed, never the whole state.
 const publicStateSchema = z
   .object({
     catalog_version: z.number(),
@@ -28,7 +29,7 @@ const publicStateSchema = z
     site: looseObject.nullable(),
     illustrative_content: z.boolean(),
     og_static: looseObject.nullish(),
-    products: looseObject.nullish(),
+    products: z.unknown().nullish(),
   })
   .transform((raw) => ({
     catalogVersion: raw.catalog_version,
