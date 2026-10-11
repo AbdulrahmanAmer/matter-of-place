@@ -1,0 +1,47 @@
+[
+  {
+    "id": "lu-a-never-local",
+    "test": "tests/unit/local-docs.test.ts",
+    "file": "src/server/seo/doc-route.ts",
+    "find": "const local = localWithoutDatabase() ? await readLocalCatalog() : undefined;",
+    "replace": "const local = undefined;",
+    "run": "bunx vitest run --project unit tests/unit/local-docs.test.ts",
+    "expect": "× .*answers the sitemap 200 with valid XML"
+  },
+  {
+    "id": "lu-b-production-too",
+    "test": "tests/unit/local-docs.test.ts",
+    "file": "src/server/seo/doc-route.ts",
+    "find": "return env.MOP_ENV === \"local\";",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit tests/unit/local-docs.test.ts",
+    "expect": "× .*keeps the 503 in every other environment"
+  },
+  {
+    "id": "lu-c-key-ignored",
+    "test": "tests/unit/local-docs.test.ts",
+    "file": "src/server/seo/doc-route.ts",
+    "find": "    getDb();\n    return false;\n",
+    "replace": "    return true;\n",
+    "run": "bunx vitest run --project unit tests/unit/local-docs.test.ts",
+    "expect": "× .*keeps the database path when a client exists"
+  },
+  {
+    "id": "lu-d-live-build-local",
+    "test": "tests/unit/local-docs.test.ts",
+    "file": "src/server/public/local-catalog.ts",
+    "find": "  if (import.meta.env.VITE_API_BASE_URL) return undefined;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/local-docs.test.ts",
+    "expect": "× .*keeps the 503 in a live build without a key"
+  },
+  {
+    "id": "lu-e-no-properties",
+    "test": "tests/unit/local-docs.test.ts",
+    "file": "src/server/public/local-catalog.ts",
+    "find": "const properties = found.filter(isProperty);",
+    "replace": "const properties: Property[] = [];",
+    "run": "bunx vitest run --project unit tests/unit/local-docs.test.ts",
+    "expect": "× .*answers llms.txt 200 as plain text naming the bundled properties"
+  }
+]
