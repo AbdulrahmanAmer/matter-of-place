@@ -73,7 +73,7 @@ Before the first write it checks that the linked project, `DEV_SUPABASE_PROJECT_
 
 A public page or catalog JSON never queries a table (architecture 13, S52). Two functions are the only public database reads, both `security definer` with an empty `search_path`, executable by the service role only:
 
-- `public.public_state()`: the seven keys of the public state (catalog version, flags, coming-soon flags, site settings, `og_static`, `illustrative_content`). The Worker memoises it for 15 seconds per isolate.
+- `public.public_state()`: the eight keys of the public state (catalog version, flags, coming-soon flags, site settings, `og_static`, `illustrative_content`, `products`). The Worker memoises it for 15 seconds per isolate.
 - `public.public_catalog_snapshot()`: the whole published catalog in one JSON value, asked at most once per catalog version per isolate. Its size is measured by `tests/db/snapshot-budget.db.test.ts`; the budget is 1,500,000 bytes.
 
 A warm read costs zero queries. A new public read is a new function in `supabase/sql/functions/`, never a table grant to `anon`. Both functions' text is in `supabase/sql/functions/<name>.sql`; the version of the catalog is `settings.catalog_version`, bumped by trigger on every catalog write.

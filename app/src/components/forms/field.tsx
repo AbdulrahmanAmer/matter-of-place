@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cx } from "../../lib/cx";
+import { FieldError } from "./field-error";
 
 /** Label-above-control wrapper shared by every form; `error` shows beneath the label, outside it so it stays out of the control's name, and the control's `aria-describedby` is `errorId`. */
 export function Field({
@@ -21,11 +22,7 @@ export function Field({
         <span>{label}</span>
         {children}
       </label>
-      {error !== undefined && (
-        <span className="field-error" id={errorId}>
-          {error}
-        </span>
-      )}
+      <FieldError error={error} errorId={errorId} />
     </div>
   );
 }

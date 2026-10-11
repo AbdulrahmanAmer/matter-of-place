@@ -15,9 +15,10 @@ the workflow artifact `mop-dev-dump`, kept 30 days (14 if the Actions storage qu
 the only copy (ruling H33 (7)); there is no second target (ruling H35 (1)). The workflow only reads, so it is the same
 before and after the launch switch. Details of the job: `docs/runbooks/delivery.md`, section "Backup".
 
-On 2026-10-10 `backup.yml` has only a `workflow_dispatch` trigger: the nightly `schedule:` line arrives with B1b step 8
-part B1. Until it does, a dump exists only when someone runs `gh workflow run backup.yml -f target=dev`, and the RPO is
-the age of the newest green run, not 24 hours.
+`backup.yml` carries the nightly `schedule:` line (`17 3 * * *`, UTC) since 2026-10-11, and a scheduled run first reads the
+`schedule_settings` row `backup`: while it is `enabled = false` the run ends green with `backup disabled` and writes no
+dump. Until L1 turns the row on, a dump exists only when someone runs `gh workflow run backup.yml -f target=dev`, and the
+RPO is the age of the newest green dump run, not 24 hours.
 
 Find and fetch the newest dump:
 

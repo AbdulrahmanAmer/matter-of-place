@@ -1,12 +1,14 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { z } from "zod";
 import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs";
 import { createSubmission } from "../fixtures/factories";
 import { dbNow } from "../fixtures/db";
 import { holdDevLock } from "../fixtures/dev-lock";
 import { checkpoint } from "./fixtures/a11y";
+import { withInvoiceIdentity } from "./fixtures/admin-data";
 import { adminClient, signInAs } from "./helpers/session";
 
 // B6 step 9, the observed exit of the slice: an admin issues an invoice and activates a test submission. It commits
@@ -56,7 +58,7 @@ function dbUrl(): string {
 
 /** One short connection per call, so a long wait never holds a socket the pooler may drop. */
 async function sql<Row extends pg.QueryResultRow>(text: string, params: unknown[] = []) {
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   try {
     return (await client.query<Row>(text, params)).rows;
@@ -106,7 +108,7 @@ async function settingValue(key: string): Promise<unknown> {
 }
 
 async function createRequests(): Promise<void> {
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   try {
     const base = await dbNow(client);
@@ -163,7 +165,7 @@ async function removeRequests(): Promise<void> {
     "select invoice_file_key from public.payments where submission_id = any($1::uuid[])",
     [ids],
   );
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   try {
     await client.query("begin");
@@ -238,7 +240,14 @@ async function issueThroughUi(page: Page, role: Role, label: string): Promise<st
      where e.type = 'invoice.issued' and e.entity_id = $1 order by j.type`,
     [row.id],
   );
-  expect(planned.map((job) => job.type)).toEqual(expect.arrayContaining(["invoice_pdf"]));
+  // `issue_invoice` enqueues the PDF job itself, under its own key and with no event (invariant 6), so the event's jobs
+  // are the recipe's (the mail) and the PDF job is found by that key.
+  expect(planned.map((job) => job.type)).toEqual(expect.arrayContaining(["send_email"]));
+  const pdfJobs = await sql<{ id: string }>(
+    "select id from public.jobs where idempotency_key = $1",
+    [`invoice_pdf:${row.id}`],
+  );
+  expect(pdfJobs).toHaveLength(1);
   const watcher = recorded.getByRole("list", { name: "Jobs started" });
   await expect(watcher.getByRole("listitem")).toHaveCount(planned.length);
   for (const type of new Set(planned.map((job) => job.type))) {
@@ -264,10 +273,7 @@ test.beforeAll(async () => {
     year,
   };
   const site = z.record(z.string(), z.unknown()).parse(before.site);
-  await putSetting("site", {
-    ...site,
-    legal: { entity: "Example Media LLC", address: "100 Example Street, New York, NY 10001" },
-  });
+  await putSetting("site", withInvoiceIdentity(site));
   await putSetting(
     "invoice",
     JSON.parse(
@@ -539,7 +545,7 @@ test("a request that is not accepted cannot be invoiced from the screen, the API
     await context.close();
   }
 
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   try {
     await client.query("begin");

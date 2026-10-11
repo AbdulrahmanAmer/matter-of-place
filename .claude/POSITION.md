@@ -1600,3 +1600,43 @@ first day of the new usage week; no step was cut from any plan.
   (Search Console account), ci.yml paths-ignore shape (merge-gate.mjs line 54, P-3152), STANDARDS scripts row and stale
   B14.md lines, audit_health.sql timezone cast (migration, H57), three shared analytics_events rows, CODEOWNERS handle,
   per-form Turnstile design. Dashboard decision for the operator: Supabase "Enforce SSL" (all scripts and tests now TLS).
+
+## 2026-10-11 05:30 STATE BEFORE MODEL SWITCH (orchestrator Fable 5.1 → Opus 5.5, operator's order; the Dell runner is on Opus 5.5 since 03:25)
+- Main 5dea8a70+: PRs 280 (open, red db check, Dell fixing), 282 (visual pass, in gate loop b7s90kf16), 287 (rerun pass 2,
+  same loop) are the open PRs. Merge ONLY with `bash <scratchpad>/gate-loop.sh <log> <pr>...` or
+  `node workspace/05-plans/merge-gate.mjs <pr>` from E:/mop-build/records (needs app/node_modules there); the hook
+  `.claude/hooks/merge-guard.mjs` refuses a merge typed by hand through gh.
+- Running here: H2 wf_efcedca0-2e7 (lane E:/mop-build/h2, g1 accepted, g2 step 2 building), L1 steps 0/2/3
+  wf_5a4d586e-ef4 (lane E:/mop-build/l1, port 8878). Board server bid7hcdam (port 8790, snapshot). Dell mirror b1zujzcxx.
+- Running on the Dell (session c8fd54ed, Opus; owner = this session, rules in D:\mop\desktop\runner-report.md OWNERSHIP):
+  B18 build-slice (products setting, plan 4da952e9), fix8 cache-key-host (Opus, critical, H82), 280 fix (tests TLS).
+- Findings tonight: production Worker served the dev Worker's HTML (cache key lacks host and MOP_ENV, H82, fix8);
+  re-run pass PASS 64 FAIL 10 SKIPPED 9 (PR 287 has the list; H1-5 was interference); Google side done and re-proven
+  (GA4 property reachable, Search Console domain property verified, no traffic yet); X API is pay-per-use since
+  2026-02-06 → X posts by a browser-driving agent on this laptop (ruling H81, to be written in ASSUMED.md); LinkedIn page
+  via the partner's profile, operator added as Super admin.
+- Owed next, in order: merge 282, 287, 280 (when green), B18 PRs, fix8; coming-soon flip on the dev Worker for the
+  operator to look at (set illustrative_content false when H2 g2 and L1 are between groups); H1-18 reset and reseed from
+  main under G34 when every lane is quiet; Supabase Enforce SSL via `supabase ssl-enforcement update` after 280 merges;
+  "Loose ends" board view; the launch gate list for the operator: legal entity and address, backup key, DNS at the
+  registrar, uptime account. Social accounts after launch (X account being created by the operator now).
+- Rules in force: builders Sonnet high, reviewers Opus high, extraction Haiku 5.5 via headless `claude -p`; mechanical
+  runs in the background to a log; the Dell takes orders from this session only; never print env values.
+- Visual pass 2026-10-11 (lane E:/mop-build/visual, branch design/visual-pass): header breakpoint 1280 to 1199 (the 1280 laptop had
+  the phone header), brand centred absolutely from 1200, 44px targets on phone for header buttons, footer links, text links,
+  filters, choice rows, finder chips. Phone targets under 44px over 15 pages 383 to 104 (rest are inline links, WCAG 2.5.8).
+  Pictures under workspace/08-visual-pass/pairs/visual-2026-10-11/ (P-3171); dev must run with SUPABASE_* unset (P-3170).
+  REPORT.md was refused by the session's no-report-files rule: the report is in the PR body.
+- fix/reconcile-timeout 2026-10-11 07:46 +0300 (lane E:/mop-build/fix11, PR to follow): the `reconcile` job's step_timeout (113 dead rows on mop-dev)
+  was `reconcileUploads` reading one Storage object per waiting row one after the other; now 8 at a time, newest first,
+  none started after a 20 s deadline (`result.uploads.deferred` counts the rest). Live: job done in 20.5 s with 1000 rows in
+  the window. Registry `fix-reconcile-timeout.json` (rt-a to rt-h). The `token_unreadable` dead send_email rows are test
+  debris (fixtures.invalid; laptop CONFIRM_TOKEN_SECRET digest differs from the Edge Function's). P-3210, P-3211.
+  The 113 old dead rows stay in `jobs`; `dead_jobs_24h` clears 24 h after the runner has the fix (deploy of the
+  job-runner function is the orchestrator's: `supabase functions deploy job-runner --use-api`).
+- fix/submit-review-errors 2026-10-11 10:17 +0300 (lane D:/mop-build/fix13, PR to follow): panel finding 3. A refused field of /submit (the contract's ZodError at send,
+  or the 422 `error.issues` the API client used to drop) now maps to its step and control: the wizard goes back to the first step
+  with a refused field, marks it aria-invalid with aria-describedby to a visible message, focuses it, and the Review step
+  lists "<Field> on step <n>: <message>". Typing in a field clears its mark. Registry `fix-submit-review-errors.json`
+  (fsre-a to fsre-w unit, fsre-x to fsre-z manual e2e). Not changed: Continue still checks only that fields are filled
+  (panel's smallest-fix suggestion of format checks per step is left open). P-3225, P-3226, P-042 hit again.

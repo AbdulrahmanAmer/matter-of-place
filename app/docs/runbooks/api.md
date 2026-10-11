@@ -72,7 +72,7 @@ A warm public read costs zero database queries (S52). Three layers answer before
 
 1. The browser's TanStack Query cache. The server render dehydrates what the loaders fetched and the browser hydrates it, so a page load makes no second catalog request; `staleTime` is 5 minutes.
 2. A memory layer per isolate: the state (`catalogVersion`, flags, coming-soon, site settings) is checked at most every 15 seconds, the catalog snapshot is read only when the version changes.
-3. The Worker's Cache API under the key `https://cache.mop.internal/<release>/v<catalogVersion>/<kind>/<pathname>`, where `kind` is `html`, `json` or `doc`. The query string is dropped and no cookie or request header changes the key. A publish changes `catalog_version`, so every key changes within 15 seconds and nothing is purged.
+3. The Worker's Cache API under the key `https://cache.mop.internal/<env>/<host>/<release>/v<catalogVersion>/<kind>/<pathname>`, where `env` is `MOP_ENV`, `host` is the request URL's host and `kind` is `html`, `json` or `doc` (ruling H82: every Worker on `workers.dev` shares one store). The query string is dropped and no cookie or other request header changes the key. A publish changes `catalog_version`, so every key changes within 15 seconds and nothing is purged.
 
 Every public response carries `x-mop-cache`:
 
@@ -83,7 +83,7 @@ Every public response carries `x-mop-cache`:
 | `stale`  | the database could not be read and the last good copy answered: the smoke test fails on it (DO-09) |
 | `bypass` | never stored: writes, errors answered before the service, `no-store` responses                     |
 
-A public GET also carries `x-catalog-version`. The Cache API stores and serves on `workers.dev` hostnames (on `pr-100` two requests in a row of `/api/public/properties` printed `x-mop-cache: hit`), so a preview answers `miss` for a page or JSON address that its data center does not hold: the first request after a deploy and the first after a catalog change (the key holds the release and the catalog version), the first in a data center that has not stored it (the Cache API is per data center), and the first after a stored 404 expires (a cacheable 404 is kept 60 seconds). A `/media` address is not keyed by release or version, only by origin and path. There is no Worker in `vite dev`, so no edge layer there. With no last good copy and no database the answer is 503 `unavailable`.
+A public GET also carries `x-catalog-version`. The Cache API stores and serves on `workers.dev` hostnames (on `pr-100` two requests in a row of `/api/public/properties` printed `x-mop-cache: hit`), so a preview answers `miss` for a page or JSON address that its data center does not hold: the first request after a deploy and the first after a catalog change (the key holds the environment, the host, the release and the catalog version), the first in a data center that has not stored it (the Cache API is per data center), and the first after a stored 404 expires (a cacheable 404 is kept 60 seconds). A `/media` address is not keyed by release or version, only by origin and path. There is no Worker in `vite dev`, so no edge layer there. With no last good copy and no database the answer is 503 `unavailable`.
 
 ### Purging
 

@@ -507,7 +507,8 @@
     "find": "      await client.query(\"rollback\");",
     "replace": "      await client.query(\"commit\");",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts -t \"leaves no row behind|withMutation\"",
-    "expect": "× .*leaves no row behind"
+    "expect": "× .*leaves no row behind",
+    "after": "node --input-type=module -e \"import pg from 'pg'; import { pgClientConfig } from './scripts/lib/pg-connect.mjs'; const c = new pg.Client(pgClientConfig(process.env.DEV_DB_URL)); await c.connect(); await c.query('drop function if exists public.__wf_probe()'); await c.end();\""
   },
   {
     "id": "o-commit-probe",
@@ -517,7 +518,8 @@
     "find": "      await client.query(\"rollback\");",
     "replace": "      await client.query(\"commit\");",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts -t \"leaves no row behind|withMutation\"",
-    "expect": "× .*withMutation: a probe function is callable inside"
+    "expect": "× .*withMutation: a probe function is callable inside",
+    "after": "node --input-type=module -e \"import pg from 'pg'; import { pgClientConfig } from './scripts/lib/pg-connect.mjs'; const c = new pg.Client(pgClientConfig(process.env.DEV_DB_URL)); await c.connect(); await c.query('drop function if exists public.__wf_probe()'); await c.end();\""
   },
   {
     "id": "h-with-mutation",
@@ -535,7 +537,7 @@
     "test": "tests/db/harness.db.test.ts",
     "file": "tests/fixtures/db.ts",
     "find": "\"select now() as now\"",
-    "replace": "\"select clock_timestamp() as now\"",
+    "replace": "\"select pg_sleep(0.02), clock_timestamp() as now\"",
     "run": "bunx vitest run --project db tests/db/harness.db.test.ts",
     "expect": "× .*dbNow equals now\\(\\) read in the same transaction"
   },
@@ -1921,25 +1923,25 @@
     "id": "s",
     "kind": "sql",
     "test": "tests/db/public-reads.db.test.ts",
-    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
-    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"seven keys\"",
-    "expect": "× returns exactly the seven keys"
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb),\n    'products', (select s.value from public.settings s where s.key = 'products')\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"eight keys\"",
+    "expect": "× returns exactly the eight keys"
   },
   {
     "id": "t-og-static",
     "kind": "sql",
     "test": "tests/db/public-reads.db.test.ts",
-    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    )\n  )\n$$;\n",
-    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"seven keys\"",
-    "expect": "× returns exactly the seven keys"
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', coalesce((select s.value from public.settings s where s.key = 'flags'), '{}'::jsonb),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'products', (select s.value from public.settings s where s.key = 'products')\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"eight keys\"",
+    "expect": "× returns exactly the eight keys"
   },
   {
     "id": "g8-flags-default",
     "kind": "sql",
     "test": "tests/db/public-reads.db.test.ts",
-    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', (select s.value from public.settings s where s.key = 'flags'),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)\n  )\n$$;\n",
-    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"seven keys\"",
-    "expect": "× returns exactly the seven keys"
+    "sql": "create or replace function public.public_state()\nreturns jsonb\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  select jsonb_build_object(\n    'catalog_version', (select s.value from public.settings s where s.key = 'catalog_version'),\n    'flags', (select s.value from public.settings s where s.key = 'flags'),\n    'coming_soon_global', (select s.value from public.settings s where s.key = 'coming_soon_global'),\n    'coming_soon_markets', coalesce(\n      (select jsonb_object_agg(m.slug, m.coming_soon) from public.markets m),\n      '{}'::jsonb\n    ),\n    'site', (\n      select jsonb_build_object('contact', s.value -> 'contact', 'legal', s.value -> 'legal', 'social', s.value -> 'social')\n      from public.settings s\n      where s.key = 'site'\n    ),\n    'illustrative_content', coalesce(\n      (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),\n      false\n    ),\n    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb),\n    'products', (select s.value from public.settings s where s.key = 'products')\n  )\n$$;\n",
+    "run": "bunx vitest run --project db tests/db/public-reads.db.test.ts -t \"eight keys\"",
+    "expect": "× returns exactly the eight keys"
   },
   {
     "id": "g8-site",
@@ -2333,7 +2335,7 @@
     "id": "g9-check-bytes",
     "kind": "sql",
     "test": "tests/db/uploads.db.test.ts",
-    "sql": "alter table public.submission_media drop constraint submission_media_bytes_range; alter table public.submission_media add constraint submission_media_bytes_range check (bytes between 1 and 1000);",
+    "sql": "alter table public.submission_media drop constraint submission_media_bytes_range; alter table public.submission_media add constraint submission_media_bytes_range check (bytes between 1 and 1000) not valid;",
     "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
     "expect": "\\+\\s+\"maxBytes\": false"
   },
@@ -2430,8 +2432,8 @@
     "kind": "file",
     "test": "tests/unit/rows.test.ts",
     "file": "scripts/lib/rows.ts",
-    "find": "      campaign_tier: property.campaignTier,\n",
-    "replace": "      campaign_tier: property.campaignTier,\n      editorial_state: \"published\",\n",
+    "find": "      campaign_tier: property.campaignTier ?? \"Editorial\",\n",
+    "replace": "      campaign_tier: property.campaignTier ?? \"Editorial\",\n      editorial_state: \"published\",\n",
     "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
     "expect": "× .*puts the hero first"
   },

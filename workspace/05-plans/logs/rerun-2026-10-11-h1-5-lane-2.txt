@@ -1,0 +1,35 @@
+H1 step 5 isolation lane-2: E2E_TARGET=built E2E_MODE=live E2E_PORT=8898 bunx playwright test --project=harden tests/e2e/states.spec.ts (2026-10-11T04:55:28+03:00)
+[WebServer] ▲ [WARNING] Scheduled Workers are not automatically triggered during local development.
+[WebServer] 
+[WebServer]   To manually trigger a scheduled event, run:
+[WebServer]     curl "http://127.0.0.1:8898/cdn-cgi/local/scheduled"
+[WebServer]   For more details, see https://developers.cloudflare.com/workers/configuration/cron-triggers/#test-cron-triggers-locally
+[WebServer] 
+[WebServer] 
+
+
+Running 5 tests using 4 workers
+
+(node:14056) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:15076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:3484) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:15516) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/5] [harden] › tests\e2e\states.spec.ts:32:1 › states: an unknown route answers HTTP 404 and shows the not-found page
+[2/5] [harden] › tests\e2e\states.spec.ts:38:1 › states: an unknown property slug answers HTTP 404 through notFound()
+[3/5] [harden] › tests\e2e\states.spec.ts:44:1 › states: a failed read shows the request id of the response header, not the body's
+[4/5] [harden] › tests\e2e\states.spec.ts:55:1 › states: a failed read without the header shows the request id of the body
+[5/5] [harden] › tests\e2e\states.spec.ts:65:1 › states: a read that takes two seconds shows the loading skeleton, then the page
+  5 passed (9.9s)
+exit 0

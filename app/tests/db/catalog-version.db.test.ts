@@ -1,5 +1,5 @@
 // Invariant 8 (G21, F25 a): settings.catalog_version rises by one on every change to published catalog content, to
-// slug_history and redirects, to markets.coming_soon and to the five public settings keys, and on nothing else.
+// slug_history and redirects, to markets.coming_soon and to the six public settings keys, and on nothing else.
 import { readFileSync } from "node:fs";
 import pg from "pg";
 import { describe, expect, it } from "vitest";
@@ -194,7 +194,7 @@ describe("catalog_version: settings by key", () => {
     };
   }
 
-  it.each(["flags", "coming_soon_global", "site", "environment", "og_static"])(
+  it.each(["flags", "coming_soon_global", "site", "environment", "og_static", "products"])(
     "public key %s: insert, update and delete each bump once",
     async (key) => {
       const bumps = await withRollback((db) => cycle(db, key));

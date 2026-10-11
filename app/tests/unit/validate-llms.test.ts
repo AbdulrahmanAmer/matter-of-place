@@ -16,6 +16,7 @@ const state: PublicState = {
   site: {},
   illustrativeContent: false,
   ogStatic: {},
+  products: null,
 };
 
 function built(

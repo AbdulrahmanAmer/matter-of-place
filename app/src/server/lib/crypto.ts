@@ -34,7 +34,7 @@ export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 /** @public */
-// STUB(B8): first used by src/server/lib/hmac.ts (signBody, verifyBody)
+// Used by src/server/lib/hmac.ts (signBody, verifyBody).
 export function toHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }

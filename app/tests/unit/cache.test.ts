@@ -4,8 +4,10 @@ import type { Json } from "../../src/db";
 import { fakeDb } from "../fixtures/fake-db";
 
 const BASE = "https://matterofplace.com";
+// `worker-env` sets `MOP_ENV=local`; every request below names the host of BASE (H82).
+const SCOPE = "local/matterofplace.com";
 const JSON_KEY = (release: string, version: number, path: string) =>
-  `https://cache.mop.internal/${release}/v${String(version)}/json${path}`;
+  `https://cache.mop.internal/${SCOPE}/${release}/v${String(version)}/json${path}`;
 
 function stateJson(version: number): Json {
   return {
@@ -285,7 +287,7 @@ describe("an HTML page", () => {
     edge.install();
     await cache.cachedResponse(get("/california"), "html", page, undefined, served(7));
     const hit = await cache.cachedResponse(get("/california"), "html", page, undefined, served(7));
-    const stored = edge.store.get("https://cache.mop.internal/r1/v7/html/california");
+    const stored = edge.store.get(`https://cache.mop.internal/${SCOPE}/r1/v7/html/california`);
     expect(stored?.headers.get("content-security-policy-report-only")).toBe(
       "default-src 'none'; script-src 'sha256-abc'",
     );
@@ -313,8 +315,8 @@ describe("the last good copy", () => {
       served(7),
     );
     await cache.edgeCached(get("/api/public/properties"), served(7), build, EDGE);
-    const htmlKey = "https://cache.mop.internal/last-good/r1/html/california";
-    const jsonKey = "https://cache.mop.internal/last-good/json/api/public/properties";
+    const htmlKey = `https://cache.mop.internal/last-good/${SCOPE}/r1/html/california`;
+    const jsonKey = `https://cache.mop.internal/last-good/${SCOPE}/json/api/public/properties`;
     expect(edge.store.get(htmlKey)?.headers.get("cache-control")).toMatch(/s-maxage=604800$/);
     expect(edge.store.has(jsonKey)).toBe(true);
     edge.store.delete(JSON_KEY("r1", 7, "/api/public/properties"));
@@ -446,5 +448,67 @@ describe("mediaCached", () => {
     expect(first.headers.get("cache-control")).toBe("no-store");
     expect(edge.puts).toEqual([]);
     expect(build).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("the key (H82)", () => {
+  const KINDS = ["html", "json", "doc"] as const;
+  const PROD = "https://matter-of-place.holy-meadow-4327.workers.dev";
+  const DEV = "https://matter-of-place-dev.holy-meadow-4327.workers.dev";
+
+  it("never gives two hosts or two environments one key, for any kind", async () => {
+    const { cache } = await load();
+    const keysOf = (mopEnv: string, origin: string) => {
+      vi.stubEnv("MOP_ENV", mopEnv);
+      const url = new URL(`${origin}/california`);
+      return KINDS.flatMap((kind) => [
+        cache.versionedKey(kind, 7, url),
+        cache.lastGoodKey(kind, url),
+      ]);
+    };
+    const prod = keysOf("production", PROD);
+    const others = [
+      keysOf("production", DEV),
+      keysOf("local", PROD),
+      keysOf("preview", PROD),
+      keysOf("production", "http://127.0.0.1:8888"),
+    ];
+    expect(new Set(prod).size).toBe(prod.length);
+    for (const other of others) {
+      prod.forEach((key, index) => {
+        expect(key).not.toBe(other[index]);
+      });
+    }
+    expect(prod.every((key) => key.startsWith("https://cache.mop.internal/"))).toBe(true);
+    expect(prod.every((key) => key.includes("/production/matter-of-place.holy-meadow"))).toBe(true);
+  });
+
+  it("answers a read stored for another host or environment as a miss", async () => {
+    const { cache } = await load();
+    const edge = fakeCache();
+    edge.install();
+    const page = (text: string) => () =>
+      Promise.resolve(new Response(text, { headers: { "content-type": "text/html" } }));
+    vi.stubEnv("MOP_ENV", "local");
+    await cache.cachedResponse(new Request(`${DEV}/`), "html", page("dev"), undefined, served(7));
+    vi.stubEnv("MOP_ENV", "production");
+    const otherHost = await cache.cachedResponse(
+      new Request(`${PROD}/`),
+      "html",
+      page("prod"),
+      undefined,
+      served(7),
+    );
+    const otherEnv = await cache.cachedResponse(
+      new Request(`${DEV}/`),
+      "html",
+      page("dev-as-prod"),
+      undefined,
+      served(7),
+    );
+    expect(otherHost.headers.get("x-mop-cache")).toBe("miss");
+    expect(await otherHost.text()).toBe("prod");
+    expect(otherEnv.headers.get("x-mop-cache")).toBe("miss");
+    expect(await otherEnv.text()).toBe("dev-as-prod");
   });
 });

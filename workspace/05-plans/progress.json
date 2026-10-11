@@ -1,8 +1,8 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-11 02:20 (UTC+3)",
-  "now": "Saturday night, 11 October. 229 of 259 steps accepted. Done today: the admin portal (B7, all 16 steps), B8b, B13 search and SEO, B14 steps 4 and 5, the security scan (0 critical, 0 high; the 4 medium findings are fixed in PRs 272 to 274), and H1 hardening steps 1 to 10, all on main. Running: H2, the acceptance panel, on this laptop; the Dell is idle until its next job. Next: the database reset and reseed (H1-18), then H2 pass one, then L1 with the items that wait on you: the backup key, the legal entity and address, the uptime account, the Workers plan, DNS and the social apps.",
-  "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
+  "updated": "2026-10-11 11:30 (UTC+3)",
+  "now": "Launch is today, target 15:00 to 16:00. 94.4 percent of the way: 234 of 248 launch steps accepted. Merging now: the legal identity on every page (Omnikom LLC, 30 N Gould St Ste R, Sheridan, WY 82801), the submit form errors, B18 prices from the admin, the board's new server. Then the launch itself: the database reset to its clean production state with the legal details and the nightly backup on, the photos uploaded to production, matterofplace.com pointed at the site, the launch checks, the uptime monitors on. The social channels follow after launch.",
+  "paceNote": "Pace since 2026-10-10 07:00: the B slices closed, H1 hardening, the security fixes and an acceptance panel of the whole site (26 findings) in about 28 hours on two laptops. What is left is the launch sequence, not build work.",
   "runGroups": {
     "c6": "5",
     "c7": "5b"
@@ -33,7 +33,7 @@
         "10"
       ],
       "inReview": [],
-      "note": "Steps 1 to 10 and 7b accepted and on main (PR 43 merged 2026-10-03, e6f05e9; 7b, the rollback rehearsal, reviewed in g8 with no blocking defect, ledger corrected 2026-10-08); step 9 is recorded BLOCKED on GitHub Pro (H5) with the merge gate as the substitute; step 11 (edge rules on the custom domain) waits on L1 by design."
+      "note": "Closed except step 11, the edge rules, which run on the domain at launch (L1 step 4)."
     },
     "B2": {
       "accepted": [
@@ -82,10 +82,12 @@
         "6",
         "7",
         "8",
-        "9"
+        "9",
+        "10",
+        "11"
       ],
       "inReview": [],
-      "note": "Steps 1 to 9 on main (PRs 92, 99, 117) with the seed image upload (c6u) and the assets migrations renamed past main's newest (c9m); 10 and 11 wait on B7. Close-out c5n (2026-10-07 05:50, run wf_e0dc4410-89b here): the NewsletterBlock half of step 5 never landed (no NewsletterBlock.tsx, standalone.tsx untouched, render.ts min(1) blocks and string-only variables); B11 step 4 is PARTIAL on it."
+      "note": "Closed 2026-10-11: every step on main, proofs re-run."
     },
     "B3": {
       "accepted": [
@@ -123,27 +125,39 @@
         "6a",
         "7",
         "8",
-        "8a"
+        "8a",
+        "9",
+        "10",
+        "10a"
       ],
       "inReview": [],
-      "note": "Steps 1 to 8a and 2a on main (PRs 101, 109, 113, 116, 123); the two B3 leftovers wired (c8w); the schedule_settings cases read the real table (c8db). 9 to 10a wait on B7 and B8b."
+      "note": "Closed 2026-10-11: every step on main, proofs re-run."
     },
     "B14": {
       "accepted": [
         "2",
         "3",
-        "6"
+        "6",
+        "4",
+        "5",
+        "1"
       ],
       "inReview": [],
-      "note": "Steps 2, 3 and 6 merged (PR 103); 1 (credentials) and 4 to 9 wait on B7, the Google side and L1."
+      "note": "Step 1 done 2026-10-11 (Google side proven, uptime account and monitors). Steps 7 to 9, the audit robot's first runs, come after launch."
     },
     "B16": {
       "accepted": [
         "1",
-        "2"
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
       ],
       "inReview": [],
-      "note": "Steps 1 and 2 merged in part (PR 98: domain and migration); the service part of step 2 and steps 3 to 8 wait on B3, B3b, B5 and B17. Steps 2 to 8 launched 2026-10-07 07:00 on this laptop (run wf_ac5c1968-444, lane E:/mop-build/legal) after B17 merged."
+      "note": "Closed 2026-10-11: the legal pages on main; the legal identity text lands with PR 302."
     },
     "B5": {
       "accepted": [
@@ -164,7 +178,7 @@
     "H2": {
       "accepted": [],
       "inReview": [],
-      "note": "Acceptance panel, added 2026-10-04 (S66): runs after the B slices close."
+      "note": "Parked after step 1 (operator, 2026-10-11): an acceptance panel walked the whole site instead (26 findings, 0 refuted, fixes merging); steps 2 to 6 resume after launch from run wf_efcedca0-2e7."
     },
     "B3b": {
       "accepted": [
@@ -189,10 +203,15 @@
         "3",
         "4",
         "4a",
-        "5"
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10"
       ],
       "inReview": [],
-      "note": "Steps 1 to 5 on main (PRs 115, 133; 446ff04). 6 to 10 wait on B7 and B5."
+      "note": "Closed 2026-10-11: every step on main, proofs re-run."
     },
     "B15": {
       "accepted": [
@@ -215,10 +234,16 @@
         "4",
         "5",
         "6",
-        "7"
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13"
       ],
       "inReview": [],
-      "note": "1 to 4 on main (PR 141); 5, 6, 7 accepted on slice/b13 in PR 163, red only on bundle-check (property route 153,708 against 153,600; main 153,238). Close-out c7b in lanes/B13.json shrinks step 7 on the property page, then 8 to 13."
+      "note": "Closed 2026-10-11: search and SEO on main, proofs re-run."
     },
     "B17": {
       "accepted": [
@@ -228,24 +253,40 @@
         "4",
         "5",
         "6",
-        "7"
+        "7",
+        "8",
+        "9"
       ],
       "inReview": [
-        "8",
-        "9",
         "10"
       ],
-      "note": "1 to 7 accepted on slice/b17 (head febc1a6; step 1 in PR 142, which merges with the slice). 8 built and rejected once (fix round not run), 9-10 built partial and unreviewed; run wf_df526cfb-c3b paused 16:55 (operator, 10:40). The lane is 2.7 KB over the bundle budget on the property route (P-1924); close-outs c8 and c9 in lanes/B17.json, then 11 and 12. Run wf_691c6d5a-d34 merged slice/b17 as PR 142 (27a0165, 2026-10-07 06:58): c8 (step 8), c9 (steps 9 to 10) and step 12 accepted by the reviewer (step 12 after three fix rounds; the deploy run of its commit green, essentials 49 passed); step 11 blocked on B1b step 11. Orchestrator re-run pending. Lighthouse local stays red on perf, LCP and script transfer (H61, warn until H1)."
+      "note": "Closed except step 11, the DNS and mail checklist, which runs with the domain at launch."
     },
     "B7": {
       "accepted": [
         "1",
         "2",
         "3",
-        "4"
+        "4",
+        "5",
+        "5a",
+        "6",
+        "7",
+        "7a",
+        "8",
+        "9",
+        "10",
+        "11",
+        "11a",
+        "12",
+        "13",
+        "14",
+        "15",
+        "15a",
+        "16"
       ],
       "inReview": [],
-      "note": "Steps 1 to 4 on main (PRs 138, 158; 158 merged 2026-10-06 13:20 after the H62 line, the CI seed and the CI-only Worker keys). Run wf_635ac60b-161 paused after step 4 banked (operator, 10:40). 5 to 16 relaunch from lanes/B7.json, planned for the Dell."
+      "note": "Closed 2026-10-11: all 16 steps on main and their proofs re-run (the person-invoice fix in PR 294)."
     },
     "B12": {
       "accepted": [
@@ -268,15 +309,36 @@
         "2",
         "3a",
         "3b"
-      ]
+      ],
+      "accepted": [
+        "0",
+        "3",
+        "4",
+        "5",
+        "5a",
+        "6",
+        "8",
+        "9",
+        "10"
+      ],
+      "note": "Posting built and tested against stubs. The accounts and apps come after launch."
     },
     "H1": {
       "accepted": [
         "1",
         "2",
-        "3"
+        "3",
+        "6b",
+        "8",
+        "9",
+        "5"
       ],
-      "note": "Steps 1 and 2 accepted in run wf_fc8dc497-ba0; step 3 accepted 2026-10-09 by a fresh Opus review outside the workflow (ruling H75; records on slice/h1 5d5253ca). Steps 4 to 10 in run wf_513cba57-d17."
+      "note": "Hardening steps 1 to 10 on main (PR 258); the database reset (H1-18) runs at the launch switch."
+    },
+    "B18": {
+      "accepted": [],
+      "inReview": [],
+      "note": "Built 2026-10-11 on the Dell: the four plans editable from the admin Settings, served from the cached site state; step 1 on main (PR 297), steps 2 and 3 in PR 304."
     }
   },
   "lanes": [
@@ -377,6 +439,9 @@
           "slice": "B8b",
           "from": 6,
           "to": 10
+        },
+        {
+          "slice": "B18"
         }
       ]
     },
@@ -419,24 +484,34 @@
   ],
   "waiting": [
     {
-      "what": "Sign up at uptimerobot.com",
-      "why": "Then the orchestrator sets up the uptime monitor. Nothing is held back today."
+      "what": "Your Instagram handle",
+      "why": "For the site's Instagram link. Not needed for launch."
     },
     {
-      "what": "Store the backup private key offline",
-      "why": "Asked for when B1b step 8 creates it."
-    },
-    {
-      "what": "Legal entity, address and payment methods",
-      "why": "Needed in the last phase, for invoices and the legal pages."
-    },
-    {
-      "what": "X, LinkedIn and Meta apps",
-      "why": "Needed at the end. Posting is built and tested against stubs until then."
-    },
-    {
-      "what": "Your word to register the captions task on this laptop",
-      "why": "Asked for at launch."
+      "what": "X, LinkedIn and Meta accounts",
+      "why": "After launch. X posts by a browser agent (H81); the LinkedIn page through your partner's profile; Instagram exists."
     }
-  ]
+  ],
+  "postLaunch": {
+    "L1": [
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "B10": [
+      "1",
+      "2",
+      "3a",
+      "3b",
+      "7",
+      "7a",
+      "7b"
+    ],
+    "B14": [
+      "7",
+      "8",
+      "9"
+    ]
+  }
 }

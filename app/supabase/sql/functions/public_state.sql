@@ -22,6 +22,7 @@ as $$
       (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment'),
       false
     ),
-    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb)
+    'og_static', coalesce((select s.value from public.settings s where s.key = 'og_static'), '{}'::jsonb),
+    'products', (select s.value from public.settings s where s.key = 'products')
   )
 $$;

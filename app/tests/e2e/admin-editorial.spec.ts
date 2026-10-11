@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { z } from "zod";
 import { seedEditorialFixtures } from "./fixtures/admin-data";
 import { checkpoint } from "./fixtures/a11y";
@@ -27,7 +28,7 @@ function dbUrl(): string {
 
 /** One short connection per call, so a long wait never holds a socket the pooler may drop. */
 async function sql<Row extends pg.QueryResultRow>(text: string, params: unknown[] = []) {
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   try {
     return (await client.query<Row>(text, params)).rows;

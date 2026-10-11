@@ -1,6 +1,7 @@
 import { randomInt } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { z } from "zod";
 import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs";
 import { hashKey } from "../../src/server/lib/ids";
@@ -36,7 +37,7 @@ test.afterAll(async () => {
   const keys = await Promise.all(
     created.flatMap(({ email, ip }) => [hashKey(salt, ip), hashKey(salt, email)]),
   );
-  const client = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
+  const client = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
   try {
     await client.connect();
     await client.query("begin");
@@ -151,7 +152,7 @@ test("an interest signup creates one subscriber row for its market", async ({ pa
   await expect(page.locator(".interest-sent")).toBeVisible();
 
   await assertNotProduction();
-  const client = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
+  const client = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
   await client.connect();
   try {
     const rows = await client.query(
