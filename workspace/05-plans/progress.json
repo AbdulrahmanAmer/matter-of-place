@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-11 02:20 (UTC+3)",
-  "now": "Saturday night, 11 October. 229 of 259 steps accepted. Done today: the admin portal (B7, all 16 steps), B8b, B13 search and SEO, B14 steps 4 and 5, the security scan (0 critical, 0 high; the 4 medium findings are fixed in PRs 272 to 274), and H1 hardening steps 1 to 10, all on main. Running: H2, the acceptance panel, on this laptop; the Dell is idle until its next job. Next: the database reset and reseed (H1-18), then H2 pass one, then L1 with the items that wait on you: the backup key, the legal entity and address, the uptime account, the Workers plan, DNS and the social apps.",
+  "updated": "2026-10-11 04:30 (UTC+3)",
+  "now": "Sunday 04:30, 11 October. 230 of 259 steps accepted. On main tonight: H1 hardening 1 to 10, the four medium security findings fixed, the deno fixes, the board phone layout, the B14 and H1 follow-ups, and the merge guard hook (a night of merges had skipped the gate; main is deployed again since 01:00). Running: H2 acceptance panel step 2 on this laptop; on the Dell, the proof re-run pass for the 84 reviewer-only steps, B18 (plan prices editable from the admin portal, 3 steps), and the fix for PR 280 (tests over TLS). Waiting to merge: 281 (leftovers, H79), 282 (visual pass: header, footer, tap sizes). Next: the coming-soon flip on the dev site for the operator to look at, H1-18 reset and reseed, then L1 with the operator items: backup key, legal entity and address, uptime account, Workers plan, DNS, the social apps.",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
