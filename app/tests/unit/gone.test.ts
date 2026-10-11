@@ -101,6 +101,7 @@ describe("withGoneStatus", () => {
     expect((await run("/properties")).response.status).toBe(200);
     expect((await run(`/property/${TAKEN_DOWN}`, { method: "POST" })).response.status).toBe(200);
     expect((await run(`/property/${TAKEN_DOWN}`, {}, 404)).response.status).toBe(404);
+    expect((await run(`/property/${TAKEN_DOWN}`, {}, 500)).response.status).toBe(500);
   });
 
   it("gives a page that rendered 404 the one-minute lifetime, keeps one that names its own, never a write", async () => {
