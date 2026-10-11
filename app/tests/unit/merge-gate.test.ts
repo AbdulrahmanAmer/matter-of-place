@@ -655,6 +655,74 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
       });
     });
 
+    // H79 (1): the gate reads ci.yml as YAML, so the layout of the list never changes the answer (P-3152).
+    const FLOW = '    paths-ignore: ["workspace/**", "launch/**", "**/*.md"]';
+    const REFORMATTED: Record<string, string> = {
+      "a block list":
+        '    paths-ignore:\n      - "workspace/**"\n      - "launch/**"\n      - "**/*.md"',
+      "a block list of bare strings":
+        "    paths-ignore:\n      - workspace/**\n      - launch/**\n      - '**/*.md'",
+      "a flow list over several lines":
+        '    paths-ignore: [\n      "workspace/**",\n      "launch/**",\n      "**/*.md",\n    ]',
+      "single quotes": "    paths-ignore: ['workspace/**', 'launch/**', '**/*.md']",
+    };
+
+    it.each(Object.keys(REFORMATTED))(
+      "gates the same with the paths-ignore of ci.yml written as %s",
+      (name) => {
+        expect(CI_TEXT).toContain(FLOW);
+        const out = CI_TEXT.replace(FLOW, REFORMATTED[name] ?? "");
+        const documents = gate({ checks: NONE, ci: { status: 0, out } });
+        expect({ code: documents.code, lines: documents.lines }).toEqual({
+          code: 0,
+          lines: ["documents only: no check expected", ""],
+        });
+        const code = gate({
+          checks: NONE,
+          ci: { status: 0, out },
+          files: listed([...DOCS, "app/src/start.ts"]),
+        });
+        expect({ code: code.code, lines: code.lines, writes: code.writes }).toEqual({
+          code: 1,
+          lines: ["merge-gate: no checks reported and app/src/start.ts is not a document"],
+          writes: [],
+        });
+      },
+    );
+
+    it("reads the list of pull_request, not the list of push", () => {
+      const out = CI_TEXT.replace(FLOW, '    paths-ignore: ["workspace/**"]');
+      const { lines, writes } = gate({ checks: NONE, ci: { status: 0, out } });
+      expect({ lines, writes }).toEqual({
+        lines: ["merge-gate: no checks reported and .claude/POSITION.md is not a document"],
+        writes: [],
+      });
+    });
+
+    it.each([
+      ["a list that holds a number", "    paths-ignore: [1, 2]"],
+      ["a bare string instead of a list", "    paths-ignore: workspace/**"],
+      ["an empty list", "    paths-ignore: []"],
+    ])("refuses a paths-ignore that is %s", (_name, replacement) => {
+      const out = CI_TEXT.replace(FLOW, replacement);
+      const { lines, writes } = gate({ checks: NONE, ci: { status: 0, out } });
+      expect({ lines, writes }).toEqual({
+        lines: ["merge-gate: no checks, and the paths-ignore of ci.yml is unread"],
+        writes: [],
+      });
+    });
+
+    it("refuses a ci.yml that is not YAML", () => {
+      const { lines, writes } = gate({
+        checks: NONE,
+        ci: { status: 0, out: "on:\n  pull_request: [\n    paths-ignore: {" },
+      });
+      expect({ lines, writes }).toEqual({
+        lines: ["merge-gate: no checks, and the paths-ignore of ci.yml is unread"],
+        writes: [],
+      });
+    });
+
     it("refuses when gh lists fewer files than the pull request changes", () => {
       const { lines, writes } = gate({ checks: NONE, files: listed(DOCS, 101) });
       expect({ lines, writes }).toEqual({

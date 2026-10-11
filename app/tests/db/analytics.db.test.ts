@@ -1,5 +1,6 @@
 // Ruling H16 (invariant 9): analytics_events is partitioned by month, raw rows are kept 90 days, and the two
 // functions of migration 6 keep the partitions. Every case runs in UTC, the zone the functions work in.
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { dbNow, withRollback, type Db } from "../fixtures/db";
 
@@ -33,10 +34,14 @@ async function partitions(db: Db): Promise<string[]> {
 }
 
 const EVENT = `insert into public.analytics_events (event, path, occurred_at)
-  values ('page_view', '/', $1) returning id, tableoid::regclass::text as partition`;
+  values ('page_view', $2, $1) returning id, tableoid::regclass::text as partition`;
 
 async function insertAt(db: Db, occurredAt: string | Date) {
-  const result = await db.query<{ id: string; partition: string }>(EVENT, [occurredAt]);
+  const result = await db.query<{ id: string; partition: string }>(EVENT, [
+    occurredAt,
+    // H79 (4): every row has a path of its own, so no other case or file shares it.
+    `/test-${randomUUID()}`,
+  ]);
   const row = result.rows[0];
   if (row === undefined) throw new Error("the insert returned no row");
   return row;
