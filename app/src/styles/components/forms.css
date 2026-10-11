@@ -382,3 +382,16 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Touch: a choice row is a 44px target, its control centred on the first line. */
+@media (max-width: 700px) {
+  .check {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .check input {
+    margin-top: 0;
+    flex: none;
+  }
+}
