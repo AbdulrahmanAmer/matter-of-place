@@ -15363,5 +15363,286 @@
    ".claude/workflows/build-slice.js"
   ],
   "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "setting",
+  "id": "settings.products (plans: id, name, price in whole dollars, line, note, items, cta, recommended; exactly four plans bound to the four exposure_package ids, at most one recommended; adding or removing a plan is refused)",
+  "plan": "B18",
+  "files": [
+   "supabase/migrations/<ts>_settings_products.sql",
+   "src/domain/exposure.ts",
+   "tests/unit/products-schema.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "seed row",
+  "id": "settings.products seed from src/data/exposure.ts (four plans), on conflict do nothing",
+  "plan": "B18",
+  "files": [
+   "supabase/migrations/<ts>_settings_products.sql",
+   "tests/unit/products-seed.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "trigger",
+  "id": "settings trigger key list gains products (six public keys, one catalog_version bump per save)",
+  "plan": "B18",
+  "files": [
+   "supabase/migrations/<ts>_settings_products.sql",
+   "tests/db/catalog-version.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "function (create or replace)",
+  "id": "public_state() returns products as its eighth key",
+  "plan": "B18",
+  "files": [
+   "supabase/sql/functions/public_state.sql",
+   "tests/db/public-reads.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "sql-function",
+  "id": "settings_put_products (shape check, write_audit settings.products_put, service_role only)",
+  "plan": "B18",
+  "files": [
+   "supabase/sql/functions/settings_put_products.sql",
+   "supabase/migrations/<ts>_settings_put_products.sql",
+   "tests/db/settings-products.db.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "data",
+  "kind": "migration",
+  "id": "action_roles rows for settings.products_put and settings.products_preview",
+  "plan": "B18",
+  "files": [
+   "supabase/migrations/<ts>_action_roles.sql",
+   "tests/unit/action-roles.sync.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "permission-group",
+  "id": "settings.products_put and settings.products_preview: admin, human only, recent sign-in",
+  "plan": "B18",
+  "files": [
+   "src/server/lib/permissions/settings.ts",
+   "tests/unit/authz.matrix.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "action",
+  "id": "settings products put (validate, settings_put_products, audit settings.products_put)",
+  "plan": "B18",
+  "files": [
+   "src/server/settings/service.ts",
+   "src/server/settings/products.ts",
+   "tests/unit/settings-products.service.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "PUT /api/admin/settings/products",
+  "plan": "B18",
+  "files": [
+   "src/routes/api/admin/settings.products.ts",
+   "tests/unit/settings-products.service.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "POST /api/admin/settings/products/preview (dry run, writes nothing)",
+  "plan": "B18",
+  "files": [
+   "src/routes/api/admin/settings.products.preview.ts",
+   "src/server/settings/products.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-route",
+  "id": "GET /api/admin/settings answer gains products { current, defaults }",
+  "plan": "B18",
+  "files": [
+   "src/server/settings/service.ts",
+   "src/domain/admin-settings.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "admin-screen",
+  "id": "Settings screen, Products section (plan rows, preview, save)",
+  "plan": "B18",
+  "files": [
+   "src/admin/settings/ProductsSection.tsx",
+   "src/admin/settings/ProductsSection.test.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "admin",
+  "kind": "function",
+  "id": "invoice line and amount from the stored plan (priceFor, offeringFor, buildInvoiceSnapshot, waiver amount)",
+  "plan": "B18",
+  "files": [
+   "src/server/payments/pricing.ts",
+   "src/server/payments/invoice-settings.ts",
+   "src/server/payments/invoice-snapshot.ts",
+   "src/server/payments/service.ts",
+   "tests/unit/payments/invoice-snapshot.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "public-route",
+  "id": "GET /api/public/site carries products (parsed plans, or the seed when absent)",
+  "plan": "B18",
+  "files": [
+   "src/server/settings/service.ts",
+   "src/domain/settings.ts",
+   "tests/unit/products-read-path.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "mechanism",
+  "id": "plans fall back to the seed when the setting is absent or invalid (log products_invalid)",
+  "plan": "B18",
+  "files": [
+   "src/server/settings/products.ts",
+   "src/server/lib/log-events.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "mechanism",
+  "id": "a warm read of the plans costs zero database queries",
+  "plan": "B18",
+  "files": [
+   "tests/unit/products-read-path.test.ts",
+   "scripts/harden/cache-probe.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "page",
+  "id": "/exposure renders the plans from the site state",
+  "plan": "B18",
+  "files": [
+   "src/routes/_site.exposure.tsx",
+   "tests/unit/products-render.test.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "page",
+  "id": "home pricing block renders the plans, its title from the plan count",
+  "plan": "B18",
+  "files": [
+   "src/routes/_site.index.tsx",
+   "tests/unit/products-render.test.tsx"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-site",
+  "kind": "page",
+  "id": "/faq cost answer built from the plans",
+  "plan": "B18",
+  "files": [
+   "src/routes/_site.faq.tsx",
+   "src/data/faq.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "producers",
+  "kind": "tests",
+  "id": "end to end: a price changed in Settings appears on /exposure and / after the version bump",
+  "plan": "B18",
+  "files": [
+   "tests/e2e/exposure-products.spec.ts",
+   "playwright.config.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "producers",
+  "kind": "tests",
+  "id": "B18 watched-fail registry",
+  "plan": "B18",
+  "files": [
+   "tests/mutations/B18.json"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "decisions",
+  "kind": "decision",
+  "id": "H80 the exposure products are a database setting edited from the admin portal",
+  "plan": "B18",
+  "files": [
+   "src/domain/exposure.ts",
+   "AGENTS.md"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "decisions",
+  "kind": "completion-map",
+  "id": "B18 exposure products as a database setting",
+  "plan": "B18",
+  "files": [
+   "src/domain/exposure.ts",
+   "src/server/settings/products.ts",
+   "tests/e2e/exposure-products.spec.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "runbook",
+  "id": "runbooks: how to change a price and how to restore the original plans",
+  "plan": "B18",
+  "files": [
+   "docs/runbooks/api.md",
+   "docs/runbooks/admin.md"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "delivery-ops",
+  "kind": "extension path",
+  "id": "tech-stack section 5 gains the row: a setting (key row, schema, SQL function, trigger key, actions, screen section)",
+  "plan": "B18",
+  "files": [
+   "workspace/02-tech-stack/tech-stack.md"
+  ],
+  "hasProof": true
  }
 ]

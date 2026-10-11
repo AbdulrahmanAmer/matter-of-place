@@ -11,6 +11,7 @@ export function stateJson(version = 7, extra: Record<string, Json> = {}): Json {
     coming_soon_markets: { california: false },
     site: null,
     illustrative_content: false,
+    products: null,
     ...extra,
   };
 }

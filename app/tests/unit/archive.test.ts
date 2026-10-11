@@ -22,6 +22,7 @@ const stateWith = (flags: Record<string, unknown>): PublicState => ({
   site: {},
   illustrativeContent: false,
   ogStatic: {},
+  products: null,
 });
 const on = stateWith({ archive_pages: true });
 const off = stateWith({ archive_pages: false });
