@@ -48,8 +48,9 @@ const INDEXABLE_ROBOTS = [
 ].join("\n");
 const CLOSED_ROBOTS = "User-agent: *\nDisallow: /\n";
 
+// `worker-env` sets `MOP_ENV=local`, and every request names the host of BASE (H82).
 const keyOf = (kind: "doc" | "html", version: number, path: string) =>
-  `https://cache.mop.internal/r1/v${String(version)}/${kind}${path}`;
+  `https://cache.mop.internal/local/matterofplace.com/r1/v${String(version)}/${kind}${path}`;
 
 interface World {
   version: number;
@@ -378,7 +379,7 @@ describe("the cache key and the stored copy", () => {
     );
     expect([...store.keys()].filter((key) => key.includes("sitemap"))).toEqual([
       keyOf("doc", 7, SITEMAP),
-      "https://cache.mop.internal/last-good/doc/sitemap.xml",
+      "https://cache.mop.internal/last-good/local/matterofplace.com/doc/sitemap.xml",
     ]);
     expect(booted.db.counts.rpc["public_catalog_snapshot"]).toBe(1);
   });

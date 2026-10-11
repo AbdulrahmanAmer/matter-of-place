@@ -2,6 +2,7 @@
 // `invoicing`). Every case runs in one rolled-back transaction except the parallel numbering case and the concurrent
 // activate case, which commit through `committed()` and remove what they made (audit_log rows stay: it is append-only).
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { describe, expect, it } from "vitest";
 import { atFrom, deterministicUuid } from "../fixtures/clock";
 import { asRole, committed, createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
@@ -251,7 +252,7 @@ describe("invoice numbers", () => {
               `select last from public.invoice_counters where year = ${YEAR}`,
             )
           ).rows[0]?.last ?? null;
-        const b = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
+        const b = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
         await b.connect();
         try {
           await a.query("begin");
@@ -933,7 +934,7 @@ describe("audit rows and events", () => {
           "select * from public.mark_payment_paid($1, now(), 'wire', null, null, 'human', 'req')",
           [payment_id],
         );
-        const b = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
+        const b = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
         await b.connect();
         try {
           await a.query("begin");

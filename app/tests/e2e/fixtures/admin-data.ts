@@ -156,6 +156,7 @@ interface SavedSettings {
 }
 
 const runTag = process.env["GITHUB_RUN_ID"] ?? "local";
+const FIXTURE_CONTACT_EMAIL = "hello@example.invalid";
 const OBJECTS_WAIT_MS = 60_000;
 const OBJECTS_POLL_MS = 2000;
 
@@ -184,6 +185,22 @@ async function counterLast(db: Db, year: number): Promise<number> {
 }
 
 /**
+ * `settings.site` as an invoice needs it: the legal identity and the contact email, the first three things
+ * `invoiceReadiness` asks for. mop-dev's stored contact email is whatever the last person left there (null since the
+ * settings screen was exercised on 2026-10-10), so a set one is kept and an empty one is seeded. Every spec that issues
+ * an invoice writes its site setting through this (admin-full-path and admin-invoice).
+ */
+export function withInvoiceIdentity(site: Record<string, unknown>): Record<string, unknown> {
+  const contact = z.record(z.string(), z.unknown()).catch({}).parse(site["contact"]);
+  const email = z.string().trim().min(1).catch(FIXTURE_CONTACT_EMAIL).parse(contact["email"]);
+  return {
+    ...site,
+    contact: { ...contact, email },
+    legal: { entity: "Example Media LLC", address: "100 Example Street, New York, NY 10001" },
+  };
+}
+
+/**
  * An invoice is refused until the legal identity and the payment instructions are set (B6 invariant 7): this writes
  * the example ones and answers what it replaced.
  */
@@ -198,10 +215,7 @@ async function configureInvoicing(db: Db): Promise<SavedSettings> {
     year,
     counter: await counterLast(db, year),
   };
-  await putSetting(db, "site", {
-    ...saved.site,
-    legal: { entity: "Example Media LLC", address: "100 Example Street, New York, NY 10001" },
-  });
+  await putSetting(db, "site", withInvoiceIdentity(saved.site));
   const example: unknown = JSON.parse(
     readFileSync(
       new URL("../../../scripts/fixtures/invoice.example.json", import.meta.url),

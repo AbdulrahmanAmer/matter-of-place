@@ -290,3 +290,10 @@ h3 {
   letter-spacing: 0.16em;
   font-weight: 500;
 }
+
+/* Touch: the quiet text link keeps its underline and gains a 44px target above it. */
+@media (max-width: 700px) {
+  .text-link {
+    padding-top: 17px;
+  }
+}

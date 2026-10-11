@@ -1,7 +1,7 @@
 {
   "started": "2026-10-02T07:15:00+03:00",
-  "updated": "2026-10-11 04:30 (UTC+3)",
-  "now": "Sunday 04:30, 11 October. 230 of 259 steps accepted. On main tonight: H1 hardening 1 to 10, the four medium security findings fixed, the deno fixes, the board phone layout, the B14 and H1 follow-ups, and the merge guard hook (a night of merges had skipped the gate; main is deployed again since 01:00). Running: H2 acceptance panel step 2 on this laptop; on the Dell, the proof re-run pass for the 84 reviewer-only steps, B18 (plan prices editable from the admin portal, 3 steps), and the fix for PR 280 (tests over TLS). Waiting to merge: 281 (leftovers, H79), 282 (visual pass: header, footer, tap sizes). Next: the coming-soon flip on the dev site for the operator to look at, H1-18 reset and reseed, then L1 with the operator items: backup key, legal entity and address, uptime account, Workers plan, DNS, the social apps.",
+  "updated": "2026-10-11 06:20 (UTC+3)",
+  "now": "Sunday 06:20. 230 of 259 steps accepted. Closed by the operator this morning: the backup key is escrowed, the domain’s nameservers are on Cloudflare, Matter of Place is a product of Omnikom LLC (the legal entity), Cloudflare stays on Free (H83). On main since 04:30: 283 (merge guard), 286, 284, 285, 289, 281 (H79 leftovers), 291 (gitleaks), 280 (tests over TLS). Merging next: 290 (cache keys carry host and environment: the production Worker had served pages rendered by the dev Worker), 282 (visual pass), 287 (re-run pass 2: 64 pass, 10 fail, 9 skipped). Running: H2 steps 2 and 3, L1 steps 0, 2, 3 (this laptop); B18 prices in the admin, the B7 person-invoice fix and the proof faults (the Dell). Left for the operator before launch: the uptime account only. After launch: the social accounts. Address given: 30 N Gould St Ste R, Sheridan, WY 82801, USA (H83).",
   "paceNote": "Calibration runs of 2026-10-03: with the context diet and premade sizing a step cost 24 to 29 million re-read tokens, 100 to 126 calls and 37 to 50 agent minutes, against 121 million, 499 calls and 119 minutes the day before. The overlap and four lanes are unproven until the restart.",
   "runGroups": {
     "c6": "5",
@@ -82,7 +82,9 @@
         "6",
         "7",
         "8",
-        "9"
+        "9",
+        "10",
+        "11"
       ],
       "inReview": [],
       "note": "Steps 1 to 9 on main (PRs 92, 99, 117) with the seed image upload (c6u) and the assets migrations renamed past main's newest (c9m); 10 and 11 wait on B7. Close-out c5n (2026-10-07 05:50, run wf_e0dc4410-89b here): the NewsletterBlock half of step 5 never landed (no NewsletterBlock.tsx, standalone.tsx untouched, render.ts min(1) blocks and string-only variables); B11 step 4 is PARTIAL on it."
@@ -123,7 +125,10 @@
         "6a",
         "7",
         "8",
-        "8a"
+        "8a",
+        "9",
+        "10",
+        "10a"
       ],
       "inReview": [],
       "note": "Steps 1 to 8a and 2a on main (PRs 101, 109, 113, 116, 123); the two B3 leftovers wired (c8w); the schedule_settings cases read the real table (c8db). 9 to 10a wait on B7 and B8b."
@@ -132,15 +137,24 @@
       "accepted": [
         "2",
         "3",
-        "6"
+        "6",
+        "4",
+        "5",
+        "1"
       ],
       "inReview": [],
-      "note": "Steps 2, 3 and 6 merged (PR 103); 1 (credentials) and 4 to 9 wait on B7, the Google side and L1."
+      "note": "Step 1 done 2026-10-11: Google side proven (GA4, Search Console, PageSpeed, service account), uptime account with API key and two paused monitors (H83). Steps 2 to 6 accepted; 7 to 9 wait on the audit key mint and L1."
     },
     "B16": {
       "accepted": [
         "1",
-        "2"
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
       ],
       "inReview": [],
       "note": "Steps 1 and 2 merged in part (PR 98: domain and migration); the service part of step 2 and steps 3 to 8 wait on B3, B3b, B5 and B17. Steps 2 to 8 launched 2026-10-07 07:00 on this laptop (run wf_ac5c1968-444, lane E:/mop-build/legal) after B17 merged."
@@ -189,7 +203,12 @@
         "3",
         "4",
         "4a",
-        "5"
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10"
       ],
       "inReview": [],
       "note": "Steps 1 to 5 on main (PRs 115, 133; 446ff04). 6 to 10 wait on B7 and B5."
@@ -215,7 +234,13 @@
         "4",
         "5",
         "6",
-        "7"
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13"
       ],
       "inReview": [],
       "note": "1 to 4 on main (PR 141); 5, 6, 7 accepted on slice/b13 in PR 163, red only on bundle-check (property route 153,708 against 153,600; main 153,238). Close-out c7b in lanes/B13.json shrinks step 7 on the property page, then 8 to 13."
@@ -228,11 +253,11 @@
         "4",
         "5",
         "6",
-        "7"
+        "7",
+        "8",
+        "9"
       ],
       "inReview": [
-        "8",
-        "9",
         "10"
       ],
       "note": "1 to 7 accepted on slice/b17 (head febc1a6; step 1 in PR 142, which merges with the slice). 8 built and rejected once (fix round not run), 9-10 built partial and unreviewed; run wf_df526cfb-c3b paused 16:55 (operator, 10:40). The lane is 2.7 KB over the bundle budget on the property route (P-1924); close-outs c8 and c9 in lanes/B17.json, then 11 and 12. Run wf_691c6d5a-d34 merged slice/b17 as PR 142 (27a0165, 2026-10-07 06:58): c8 (step 8), c9 (steps 9 to 10) and step 12 accepted by the reviewer (step 12 after three fix rounds; the deploy run of its commit green, essentials 49 passed); step 11 blocked on B1b step 11. Orchestrator re-run pending. Lighthouse local stays red on perf, LCP and script transfer (H61, warn until H1)."
@@ -242,7 +267,23 @@
         "1",
         "2",
         "3",
-        "4"
+        "4",
+        "5",
+        "5a",
+        "6",
+        "7",
+        "7a",
+        "8",
+        "9",
+        "10",
+        "11",
+        "11a",
+        "12",
+        "13",
+        "14",
+        "15",
+        "15a",
+        "16"
       ],
       "inReview": [],
       "note": "Steps 1 to 4 on main (PRs 138, 158; 158 merged 2026-10-06 13:20 after the H62 line, the CI seed and the CI-only Worker keys). Run wf_635ac60b-161 paused after step 4 banked (operator, 10:40). 5 to 16 relaunch from lanes/B7.json, planned for the Dell."
@@ -268,13 +309,28 @@
         "2",
         "3a",
         "3b"
+      ],
+      "accepted": [
+        "0",
+        "3",
+        "4",
+        "5",
+        "5a",
+        "6",
+        "8",
+        "9",
+        "10"
       ]
     },
     "H1": {
       "accepted": [
         "1",
         "2",
-        "3"
+        "3",
+        "6b",
+        "8",
+        "9",
+        "5"
       ],
       "note": "Steps 1 and 2 accepted in run wf_fc8dc497-ba0; step 3 accepted 2026-10-09 by a fresh Opus review outside the workflow (ruling H75; records on slice/h1 5d5253ca). Steps 4 to 10 in run wf_513cba57-d17."
     }
@@ -420,19 +476,11 @@
   "waiting": [
     {
       "what": "Sign up at uptimerobot.com",
-      "why": "Then the orchestrator sets up the uptime monitor. Nothing is held back today."
+      "why": "Then the orchestrator sets up the uptime monitor (H1-44). Nothing else waits on it."
     },
     {
-      "what": "Store the backup private key offline",
-      "why": "Asked for when B1b step 8 creates it."
-    },
-    {
-      "what": "Legal entity, address and payment methods",
-      "why": "Needed in the last phase, for invoices and the legal pages."
-    },
-    {
-      "what": "X, LinkedIn and Meta apps",
-      "why": "Needed at the end. Posting is built and tested against stubs until then."
+      "what": "X, LinkedIn and Meta accounts",
+      "why": "After launch. X posts through a browser agent (H81); LinkedIn page through the partner’s profile; Instagram exists."
     },
     {
       "what": "Your word to register the captions task on this laptop",

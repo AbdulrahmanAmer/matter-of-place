@@ -1,0 +1,42 @@
+[
+  {
+    "id": "fix-ckh-no-host",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "const scope = (url: URL): string => `${environment()}/${url.host}`;",
+    "replace": "const scope = (url: URL): string => `${environment()}/${url.protocol}`;",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*never gives two hosts or two environments one key"
+  },
+  {
+    "id": "fix-ckh-no-env",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "const scope = (url: URL): string => `${environment()}/${url.host}`;",
+    "replace": "const scope = (url: URL): string => `local/${url.host}`;",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*never gives two hosts or two environments one key"
+  },
+  {
+    "id": "fix-ckh-versioned-unscoped",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  `${KEY_BASE}/${scope(url)}/${release()}/v${String(version)}/${kind}${url.pathname}`;",
+    "replace": "  `${KEY_BASE}/local/matterofplace.com/${release()}/v${String(version)}/${kind}${url.pathname}`;",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*answers a read stored for another host or environment as a miss"
+  },
+  {
+    "id": "fix-ckh-lastgood-unscoped",
+    "kind": "file",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "    : `${KEY_BASE}/last-good/${scope(url)}/${kind}${url.pathname}`;",
+    "replace": "    : `${KEY_BASE}/last-good/local/matterofplace.com/${kind}${url.pathname}`;",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*never gives two hosts or two environments one key"
+  }
+]

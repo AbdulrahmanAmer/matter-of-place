@@ -114,3 +114,20 @@
     margin-top: 56px;
   }
 }
+
+/* Touch: each footer link is a 44px row; the rows replace the gap. */
+@media (max-width: 800px) {
+  .footer-col {
+    gap: 0;
+  }
+
+  .footer-col h3 {
+    margin-bottom: 4px;
+  }
+
+  .footer-col a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}

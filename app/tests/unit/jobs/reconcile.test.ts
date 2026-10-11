@@ -17,7 +17,7 @@ import { logLine } from "../../../src/server/lib/log";
 import { fakeDb } from "../../fixtures/fake-db";
 
 const NOW = new Date("2026-10-04T13:00:00.000Z");
-const COUNTS: UploadCounts = { checked: 3, uploaded: 2, deleted: 1, missing: 0 };
+const COUNTS: UploadCounts = { checked: 3, uploaded: 2, deleted: 1, missing: 0, deferred: 0 };
 const SOCIAL: ReconcileSocial = () => Promise.resolve({ social: "not_due" });
 const noIssues: AggregateIssues = () => Promise.resolve({ issues: 0 });
 
@@ -154,13 +154,25 @@ describe("reconcile", () => {
     expect(result).toEqual({
       status: "done",
       result: {
-        uploads: { checked: 0, uploaded: 0, deleted: 0, missing: 0 },
+        uploads: { checked: 0, uploaded: 0, deleted: 0, missing: 0, deferred: 0 },
         social: "daily_enqueued",
         newsletter: { issues: 0 },
       },
     });
     expect(client.calls).toContainEqual({ kind: "from", name: "submission_media", args: [] });
     expect(client.calls.filter((call) => call.name === "enqueue_job")).toHaveLength(1);
+  });
+
+  it("hands the uploads part a deadline that leaves the other parts ten seconds of the job's timeout", async () => {
+    const uploads = vi.fn<ReconcileUploads>(() => Promise.resolve(COUNTS));
+    const job = reconcileJob(uploads, SOCIAL, noIssues);
+    const before = Date.now();
+    await job.run(context(null), {}, {});
+    const [, , now, deadline] = uploads.mock.calls[0] ?? [];
+    if (now === undefined || deadline === undefined) throw new Error("no clock or deadline given");
+    expect(now).toBeGreaterThanOrEqual(before);
+    expect(deadline - now).toBeGreaterThan(0);
+    expect(deadline - now).toBeLessThanOrEqual((job.timeoutMs ?? 0) - 10_000);
   });
 
   it("refuses an unreadable data.since without retrying", async () => {

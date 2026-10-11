@@ -15,11 +15,19 @@ const MENTIONS = /\bpg\.(?:Client|Pool)\b|\bnew (?:Client|Pool)\(/;
 const IMPORTS_HELPER = /^import\s[^;]*\bfrom\s+["'][^"']*\/pg-connect\.mjs["'];?$/m;
 const BARE_CONSTRUCTION = /\bnew (?:pg\.)?(?:Client|Pool)\((?!pgClientConfig\()/;
 
-function sources(): string[] {
-  return readdirSync(SCRIPTS, { recursive: true, encoding: "utf8" })
+const TESTS = fileURLToPath(new URL("..", import.meta.url));
+// This file spells the patterns out in its own regular expressions and a mutation registry holds them as strings.
+const TESTS_SKIP = new Set(["unit/pg-connect.test.ts"]);
+
+function sourcesIn(dir: string, skip: ReadonlySet<string>): string[] {
+  return readdirSync(dir, { recursive: true, encoding: "utf8" })
     .map((name) => name.replaceAll("\\", "/"))
-    .filter((name) => SOURCE.test(name) && !name.includes("node_modules/") && name !== HELPER)
+    .filter((name) => SOURCE.test(name) && !name.includes("node_modules/") && !skip.has(name))
     .sort();
+}
+
+function sources(): string[] {
+  return sourcesIn(SCRIPTS, new Set([HELPER]));
 }
 
 const REMOTE =
@@ -46,6 +54,36 @@ describe("every script database client uses the TLS helper", () => {
   it("builds every client from pgClientConfig, never from a bare options object", () => {
     const bare = mentioning.filter((name) =>
       BARE_CONSTRUCTION.test(readFileSync(join(SCRIPTS, name), "utf8")),
+    );
+    expect(bare).toEqual([]);
+  });
+});
+
+// The same rule for the tests (P-3130): a db test, an e2e spec or a fixture that opens a client builds it from the
+// helper, so a pooler that enforces SSL, or a man in the middle, meets verified TLS from every test as well.
+describe("every test database client uses the TLS helper", () => {
+  const mentioning = sourcesIn(TESTS, TESTS_SKIP).filter((name) =>
+    MENTIONS.test(readFileSync(join(TESTS, name), "utf8")),
+  );
+
+  it("finds the tests and fixtures that open a client", () => {
+    expect(mentioning).toContain("fixtures/db.ts");
+    expect(mentioning).toContain("fixtures/dev-lock.ts");
+    expect(mentioning).toContain("db/render-claim.db.test.ts");
+    expect(mentioning).toContain("e2e/admin-invoice.spec.ts");
+    expect(mentioning.length).toBeGreaterThanOrEqual(15);
+  });
+
+  it("imports the helper in each test and fixture", () => {
+    const without = mentioning.filter(
+      (name) => !IMPORTS_HELPER.test(readFileSync(join(TESTS, name), "utf8")),
+    );
+    expect(without).toEqual([]);
+  });
+
+  it("builds every test client from pgClientConfig, never from a bare options object", () => {
+    const bare = mentioning.filter((name) =>
+      BARE_CONSTRUCTION.test(readFileSync(join(TESTS, name), "utf8")),
     );
     expect(bare).toEqual([]);
   });

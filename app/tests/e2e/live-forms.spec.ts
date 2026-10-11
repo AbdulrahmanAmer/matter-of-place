@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs";
 import { t } from "../../src/lib/strings";
 import { deterministicUuid } from "../fixtures/clock";
@@ -32,7 +33,7 @@ test.beforeAll(async () => {
   release = await holdDevLock();
   const url = process.env["DEV_DB_URL"];
   if (url === undefined || url === "") throw new Error("refusing: DEV_DB_URL is not set");
-  db = new pg.Client({ connectionString: url });
+  db = new pg.Client(pgClientConfig(url));
   await db.connect();
 });
 

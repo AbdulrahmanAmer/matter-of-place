@@ -16,9 +16,16 @@ export interface UploadCounts {
   uploaded: number;
   deleted: number;
   missing: number;
+  deferred: number;
 }
 
-export type ReconcileUploads = (db: Db, since: Date) => Promise<UploadCounts>;
+/** `now` and `deadline` are epoch milliseconds: the clock of the missing-row test and the last moment a row may start. */
+export type ReconcileUploads = (
+  db: Db,
+  since: Date,
+  now?: number,
+  deadline?: number,
+) => Promise<UploadCounts>;
 
 export type ReconcileSocial = (
   ctx: StepContext,
@@ -31,6 +38,8 @@ export type AggregateIssues = (db: Db, now: Date) => Promise<{ issues: number }>
 
 const OVERLAP_MS = 15 * 60 * 1000;
 const FIRST_RUN_MS = 24 * 60 * 60 * 1000;
+// The upload part starts no row after this; the social and newsletter parts keep the rest of the job's 40 seconds.
+const UPLOADS_BUDGET_MS = 20_000;
 
 /** `data.since` when the job carries it, else the last done run minus 15 minutes, else 24 hours ago. */
 async function sinceOf(ctx: StepContext, data: JsonObject): Promise<Date> {
@@ -65,7 +74,9 @@ export function reconcileJob(
     sideEffect: "none",
     timeoutMs: 40_000,
     async run(ctx, params, data) {
-      const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data));
+      const started = Date.now();
+      const since = await sinceOf(ctx, data);
+      const uploads = await reconcileUploads(ctx.db, since, started, started + UPLOADS_BUDGET_MS);
       const { social } = await socialPart(ctx, params, ctx.now);
       const newsletter = await aggregateIssues(ctx.db, ctx.now);
       return {
