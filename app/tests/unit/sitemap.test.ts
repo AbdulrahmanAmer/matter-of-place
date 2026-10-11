@@ -20,6 +20,7 @@ const state: PublicState = {
   site: {},
   illustrativeContent: false,
   ogStatic: {},
+  products: null,
 };
 
 const market = (slug: string, name: string): Json => ({

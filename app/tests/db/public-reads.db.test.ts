@@ -23,6 +23,7 @@ interface State {
   og_static: unknown;
   site: Row;
   illustrative_content: boolean;
+  products: unknown;
 }
 
 const sortedKeys = (row: object) => Object.keys(row).sort();
@@ -147,12 +148,17 @@ const slugs = (rows: Row[]) =>
   rows.map((row) => row["slug"]).filter((slug) => typeof slug === "string");
 
 describe("public_state()", () => {
-  it("returns exactly the seven keys, flags and og_static {} when their rows are absent", async () => {
+  it("returns exactly the eight keys, flags and og_static {} and products null when their rows are absent", async () => {
     const read = await withRollback(async (db) => {
-      await db.query("delete from public.settings where key in ('flags', 'og_static')");
+      await db.query("delete from public.settings where key in ('flags', 'og_static', 'products')");
       return state(db);
     });
-    expect({ keys: sortedKeys(read), flags: read.flags, og_static: read.og_static }).toEqual({
+    expect({
+      keys: sortedKeys(read),
+      flags: read.flags,
+      og_static: read.og_static,
+      products: read.products,
+    }).toEqual({
       keys: [
         "catalog_version",
         "coming_soon_global",
@@ -160,11 +166,30 @@ describe("public_state()", () => {
         "flags",
         "illustrative_content",
         "og_static",
+        "products",
         "site",
       ],
       flags: {},
       og_static: {},
+      products: null,
     });
+  });
+
+  it("products is the stored value as it is, and saving it changes no other key but the version", async () => {
+    const stored = { plans: [{ id: "feature", price: 295 }] };
+    const { before, after } = await withRollback(async (db) => {
+      await db.query("delete from public.settings where key = 'products'");
+      const first = await state(db);
+      await setting(db, "products", stored);
+      return { before: first, after: await state(db) };
+    });
+    expect(after.products).toEqual(stored);
+    expect({ ...after, products: null, catalog_version: 0 }).toEqual({
+      ...before,
+      products: null,
+      catalog_version: 0,
+    });
+    expect(after.catalog_version).toBe(before.catalog_version + 1);
   });
 
   it("site holds exactly contact, legal and social", async () => {
