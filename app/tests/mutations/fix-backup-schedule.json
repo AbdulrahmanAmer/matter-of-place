@@ -1,0 +1,38 @@
+[
+  {
+    "id": "bs-a-no-schedule",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/backup.yml",
+    "find": "  schedule:\n    - cron: \"17 3 * * *\"\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/hygiene.test.ts -t \"nightly at 03:17\"",
+    "expect": "× .*runs nightly at 03:17 UTC and a scheduled run reads the backup switch first"
+  },
+  {
+    "id": "bs-b-other-time",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/backup.yml",
+    "find": "    - cron: \"17 3 * * *\"",
+    "replace": "    - cron: \"17 4 * * *\"",
+    "run": "bunx vitest run --project unit tests/unit/hygiene.test.ts -t \"nightly at 03:17\"",
+    "expect": "× .*runs nightly at 03:17 UTC and a scheduled run reads the backup switch first"
+  },
+  {
+    "id": "bs-c-dump-ignores-switch",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/backup.yml",
+    "find": "      - name: dump and encrypt\n        if: steps.switch.outputs.skip != 'true'\n",
+    "replace": "      - name: dump and encrypt\n",
+    "run": "bunx vitest run --project unit tests/unit/hygiene.test.ts -t \"nightly at 03:17\"",
+    "expect": "× .*runs nightly at 03:17 UTC and a scheduled run reads the backup switch first"
+  },
+  {
+    "id": "bs-d-switch-not-read",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "../.github/workflows/backup.yml",
+    "find": "from schedule_settings where key = 'backup'",
+    "replace": "from schedule_settings where key = 'digest'",
+    "run": "bunx vitest run --project unit tests/unit/hygiene.test.ts -t \"nightly at 03:17\"",
+    "expect": "× .*runs nightly at 03:17 UTC and a scheduled run reads the backup switch first"
+  }
+]
