@@ -827,7 +827,7 @@
     "find": ".consent-notice {\n  padding-block: 24px;",
     "replace": ".consent-notice {\n  position: fixed;\n  bottom: 0;\n  padding-block: 24px;",
     "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
-    "expect": "× .*is never fixed or sticky"
+    "expect": "× .*stays in the footer flow on a property page"
   },
   {
     "id": "b3b-dd",
@@ -1137,7 +1137,7 @@
     "find": ".consent-notice {\n  padding-block: 24px;",
     "replace": ".consent-notice {\n  position: fixed;\n  bottom: 0;\n  padding-block: 24px;",
     "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone",
-    "expect": "the notice sits in the footer and is not fixed[\\s\\S]*Expected value: not \"fixed\""
+    "expect": "on a property page the notice stays in the footer, out of the first viewport[\\s\\S]*(Expected|Received)"
   },
   {
     "id": "b3b-v-e2e",

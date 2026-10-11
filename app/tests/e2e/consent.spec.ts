@@ -83,14 +83,203 @@ test("a first visit makes no request to a Google host", async ({ page }) => {
   expect(scripts.filter((script) => /googletagmanager|google-analytics/.test(script))).toEqual([]);
 });
 
-test("the notice sits in the footer and is not fixed", async ({ page }) => {
-  await page.goto("/", { waitUntil: "networkidle" });
-  await expect(page.locator("footer").getByRole("region", { name: t.consent.label })).toBeVisible();
-  const position = await notice(page).evaluate((element) => getComputedStyle(element).position);
-  expect(["fixed", "sticky"]).not.toContain(position);
-});
+// Ruling H85: the notice is a slim bar fixed to the bottom of the screen on every page but a property page. These
+// run once per project, at the width the operator named: the phone project is 390px, the desktop project is set to 1280px.
+const sizes = [
+  { project: "phone", width: 390, height: 844, lines: 2, tallest: 120 },
+  { project: "desktop", width: 1280, height: 800, lines: 1, tallest: 72 },
+] as const;
 
-test("Allow stores the choice and a reload keeps it", async ({ page }) => {
+function only(project: string): void {
+  test.skip(test.info().project.name !== project, `this case runs in the ${project} project`);
+}
+
+/** Waits until the page has stopped scrolling: the site scrolls smoothly, so a focus move lands later. */
+async function still(page: Page): Promise<void> {
+  let last = -1;
+  await expect
+    .poll(
+      async () => {
+        const y = await page.evaluate(() => window.scrollY);
+        const same = y === last;
+        last = y;
+        return same;
+      },
+      { intervals: [150] },
+    )
+    .toBe(true);
+}
+
+/** The focused element, and whether it shows below the top of the bar; undefined when nothing is focused. */
+async function focusedUnderBar(
+  page: Page,
+): Promise<{ label: string; covered: boolean } | undefined> {
+  return page.evaluate(() => {
+    const element = document.activeElement;
+    const bar = document.querySelector(".consent-bar");
+    if (element === null || bar === null || element === document.body) return undefined;
+    const rect = element.getBoundingClientRect();
+    const barTop = bar.getBoundingClientRect().top;
+    const showing =
+      rect.width > 0 &&
+      rect.height > 0 &&
+      rect.top < innerHeight &&
+      rect.bottom > 0 &&
+      rect.left < innerWidth &&
+      rect.right > 0;
+    return {
+      label: `${element.tagName} ${element.textContent.trim().slice(0, 30)}: bottom ${String(rect.bottom)} under bar top ${String(barTop)}`,
+      covered: !bar.contains(element) && showing && rect.bottom > barTop + 0.5,
+    };
+  });
+}
+
+for (const { project, width, height, lines, tallest } of sizes) {
+  test.describe(`at ${String(width)}px`, () => {
+    test.use({ viewport: { width, height } });
+
+    test(`${String(width)}px: the notice is a slim bar inside the first viewport`, async ({
+      page,
+    }) => {
+      only(project);
+      await page.goto("/", { waitUntil: "networkidle" });
+      await expect(notice(page)).toBeVisible();
+      await expect(notice(page)).toBeInViewport({ ratio: 1 });
+      const bar = await notice(page).evaluate((element) => {
+        const style = getComputedStyle(element);
+        const text = element.querySelector(".consent-text");
+        const { top, bottom, height: tall } = element.getBoundingClientRect();
+        return {
+          position: style.position,
+          top,
+          bottom,
+          tall,
+          lines: Math.round(
+            (text?.getBoundingClientRect().height ?? 0) /
+              parseFloat(text === null ? "1" : getComputedStyle(text).lineHeight),
+          ),
+          background: style.backgroundColor,
+          color: style.color,
+          shadow: style.boxShadow,
+          image: style.backgroundImage,
+          borderTop: style.borderTopWidth,
+          buttons: [...element.querySelectorAll("button")].map(
+            (button) => button.getBoundingClientRect().height,
+          ),
+          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+      expect(bar.position).toBe("fixed");
+      expect(Math.round(bar.bottom)).toBe(height);
+      expect(bar.lines).toBeLessThanOrEqual(lines);
+      expect(bar.tall).toBeLessThanOrEqual(tallest);
+      expect({
+        background: bar.background,
+        color: bar.color,
+        shadow: bar.shadow,
+        image: bar.image,
+        borderTop: bar.borderTop,
+      }).toEqual({
+        background: "rgb(245, 242, 235)",
+        color: "rgb(17, 17, 15)",
+        shadow: "none",
+        image: "none",
+        borderTop: "1px",
+      });
+      expect(bar.buttons).toHaveLength(2);
+      expect(Math.min(...bar.buttons)).toBeGreaterThanOrEqual(44);
+      expect(bar.overflow).toBeLessThanOrEqual(0);
+      await expect(notice(page).getByRole("link", { name: t.consent.link })).toBeVisible();
+    });
+
+    test(`${String(width)}px: the bar pads the page and a choice moves nothing above it`, async ({
+      page,
+    }) => {
+      only(project);
+      await page.goto("/", { waitUntil: "networkidle" });
+      await expect(notice(page)).toBeVisible();
+      const heading = page.locator("h1").first();
+      const before = await heading.boundingBox();
+      const padded = await page.evaluate(() => getComputedStyle(document.body).paddingBottom);
+      const barHeight = (await box(notice(page))).bottom - (await box(notice(page))).top;
+      expect(Math.abs(parseFloat(padded) - barHeight)).toBeLessThanOrEqual(1);
+      await decline(page).click();
+      await expect(notice(page)).toHaveCount(0);
+      const after = await heading.boundingBox();
+      expect(after?.y).toBe(before?.y);
+      expect(await page.evaluate(() => getComputedStyle(document.body).paddingBottom)).toBe("0px");
+    });
+
+    test(`${String(width)}px: the bar does not cover the skip link`, async ({ page }) => {
+      only(project);
+      await page.goto("/", { waitUntil: "networkidle" });
+      await expect(notice(page)).toBeVisible();
+      await page.keyboard.press("Tab");
+      const skip = page.getByRole("link", { name: t.header.skipToContent });
+      await expect(skip).toBeFocused();
+      const link = await box(skip);
+      const bar = await box(notice(page));
+      expect(link.bottom).toBeGreaterThan(link.top);
+      expect(link.bottom).toBeLessThanOrEqual(bar.top);
+    });
+
+    test(`${String(width)}px: tabbing through the page never leaves a focused element under the bar`, async ({
+      page,
+    }) => {
+      only(project);
+      // 45 Tab presses, each waiting for the smooth scroll to end: long on a machine shared with other lanes.
+      test.setTimeout(120_000);
+      await page.goto("/", { waitUntil: "networkidle" });
+      await expect(notice(page)).toBeVisible();
+      const covered: string[] = [];
+      let focusedSomething = 0;
+      for (let step = 0; step < 45; step += 1) {
+        await page.keyboard.press("Tab");
+        await still(page);
+        let seen = await focusedUnderBar(page);
+        // A smooth scroll can pause for a frame on a loaded machine: look again before calling it covered.
+        for (let again = 0; again < 10 && seen?.covered === true; again += 1) {
+          await page.waitForTimeout(200);
+          seen = await focusedUnderBar(page);
+        }
+        if (seen === undefined) continue;
+        focusedSomething += 1;
+        if (seen.covered) covered.push(seen.label);
+      }
+      expect(focusedSomething).toBeGreaterThan(30);
+      expect(covered).toEqual([]);
+    });
+
+    test(`${String(width)}px: on a property page the notice stays in the footer, out of the first viewport`, async ({
+      page,
+    }) => {
+      only(project);
+      await page.goto("/properties", { waitUntil: "networkidle" });
+      const href = await page.locator("a.property-card").first().getAttribute("href");
+      expect(href, "the full seed lists a property").not.toBeNull();
+      await page.goto(href ?? "", { waitUntil: "networkidle" });
+      await expect(notice(page)).toBeAttached();
+      await expect(notice(page)).not.toBeInViewport();
+      await expect(
+        page.locator("footer").getByRole("region", { name: t.consent.label }),
+      ).toBeAttached();
+      const flow = await notice(page).evaluate((element) => ({
+        position: getComputedStyle(element).position,
+        top: element.getBoundingClientRect().top + window.scrollY,
+        padding: getComputedStyle(document.body).paddingBottom,
+        published: document.documentElement.style.getPropertyValue("--consent-bar-h"),
+      }));
+      expect(["fixed", "sticky"]).not.toContain(flow.position);
+      expect(flow.top).toBeGreaterThan(height);
+      expect(flow.padding).toBe("0px");
+      expect(flow.published).toBe("");
+    });
+  });
+}
+
+test("Allow stores the choice, a reload keeps it and the bar never returns on another page", async ({
+  page,
+}) => {
   await page.goto("/", { waitUntil: "networkidle" });
   await allow(page).click();
   await expect(notice(page)).toHaveCount(0);
@@ -98,13 +287,21 @@ test("Allow stores the choice and a reload keeps it", async ({ page }) => {
   await page.reload({ waitUntil: "networkidle" });
   expect(await stored(page)).toEqual({ version: CONSENT_VERSION, analytics: true });
   await expect(notice(page)).toHaveCount(0);
+  await page.goto("/about", { waitUntil: "networkidle" });
+  await expect(notice(page)).toHaveCount(0);
 });
 
-test("No thank you stores analytics false", async ({ page }) => {
+test("No thank you stores analytics false, and the bar never returns on another page", async ({
+  page,
+}) => {
   await page.goto("/", { waitUntil: "networkidle" });
   await decline(page).click();
   await expect(notice(page)).toHaveCount(0);
   expect(await stored(page)).toEqual({ version: CONSENT_VERSION, analytics: false });
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(notice(page)).toHaveCount(0);
+  await page.goto("/about", { waitUntil: "networkidle" });
+  await expect(notice(page)).toHaveCount(0);
 });
 
 test("an allowed choice sends the campaign attribution", async ({ page }) => {

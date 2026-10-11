@@ -1,0 +1,202 @@
+[
+  {
+    "id": "fix-cb-bar-fixed",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/styles/components/consent.css",
+    "find": "  position: fixed;\n  inset: auto 0 0 0;",
+    "replace": "  position: static;\n  inset: auto 0 0 0;",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*is a bar fixed to the bottom"
+  },
+  {
+    "id": "fix-cb-property-flow",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "const inFlow = (pathname: string) => pathname.startsWith(\"/property/\");",
+    "replace": "const inFlow = (pathname: string) => pathname.startsWith(\"/propertyx/\");",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*stays in the footer flow on a property page"
+  },
+  {
+    "id": "fix-cb-height-cleanup",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "      root.style.removeProperty(\"--consent-bar-h\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*publishes its height as --consent-bar-h only while"
+  },
+  {
+    "id": "fix-cb-height-property",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    if (!open || !fixed || node === null) return;",
+    "replace": "    if (!open || node === null) return;",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*publishes no height on a property page"
+  },
+  {
+    "id": "fix-cb-no-toggle",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "      <div className=\"consent-actions\">\n",
+    "replace": "      <div className=\"consent-actions\">\n        <input type=\"checkbox\" defaultChecked aria-label=\"Necessary\" />\n",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*asks only about analytics"
+  },
+  {
+    "id": "fix-cb-no-toggle-cookies-page",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/routes/_site.cookies.tsx",
+    "find": "      <div className=\"copy-page\">\n",
+    "replace": "      <div className=\"copy-page\">\n        <input type=\"checkbox\" defaultChecked aria-label=\"Necessary\" />\n",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*are never offered as a choice"
+  },
+  {
+    "id": "fix-cb-cookies-always-on",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/lib/strings.ts",
+    "find": " Necessary cookies are always on.",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*says they are always on"
+  },
+  {
+    "id": "fix-cb-choices-only-analytics",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": "text={t.consent.text} />",
+    "replace": "text={t.cookies.intro} />",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*says they are always on"
+  },
+  {
+    "id": "fix-cb-choices-extra-link",
+    "kind": "file",
+    "test": "tests/unit/consent-notice.test.tsx",
+    "file": "src/routes/_site.privacy-choices.tsx",
+    "find": "            {t.consent.accept}\n          </a>\n",
+    "replace": "            {t.consent.accept}\n          </a>\n          <a className=\"consent-allow\" href=\"/x\">\n            {t.consent.accept}\n          </a>\n",
+    "run": "bunx vitest run --project component tests/unit/consent-notice.test.tsx",
+    "expect": "× .*says they are always on"
+  },
+  {
+    "id": "fix-cb-noscript-text",
+    "kind": "file",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "\"May we count visits with Google Analytics? It sets",
+    "replace": "\"Shall we count visits with Google Analytics? It sets",
+    "run": "bunx vitest run --project unit tests/unit/essentials.test.ts -t consent-pages",
+    "expect": "× .*consent-pages: every page carries the same noscript notice"
+  },
+  {
+    "id": "fix-cb-e2e-fixed",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": "  position: fixed;\n  inset: auto 0 0 0;",
+    "replace": "  position: static;\n  inset: auto 0 0 0;",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"slim bar inside the first viewport\"",
+    "expect": "slim bar inside the first viewport[\\s\\S]*(Expected|Received)"
+  },
+  {
+    "id": "fix-cb-e2e-one-line",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": ".consent-bar .consent-text {\n  max-width: none;\n}",
+    "replace": ".consent-bar .consent-text {\n  max-width: 30ch;\n}",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"slim bar inside the first viewport\"",
+    "expect": "slim bar inside the first viewport[\\s\\S]*toBeLessThanOrEqual"
+  },
+  {
+    "id": "fix-cb-e2e-tap-target",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": "  min-height: 44px;\n  padding: 12px 28px;",
+    "replace": "  min-height: 0;\n  padding: 12px 28px;",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"slim bar inside the first viewport\"",
+    "expect": "slim bar inside the first viewport[\\s\\S]*toBeGreaterThanOrEqual"
+  },
+  {
+    "id": "fix-cb-e2e-no-shadow",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": "  border-top: 1px solid var(--border);\n  border-bottom: 0;",
+    "replace": "  border-top: 1px solid var(--border);\n  border-bottom: 0;\n  box-shadow: 0 0 8px var(--foreground);",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"slim bar inside the first viewport\"",
+    "expect": "slim bar inside the first viewport[\\s\\S]*shadow"
+  },
+  {
+    "id": "fix-cb-e2e-page-padding",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": "body {\n  padding-bottom: var(--consent-bar-h, 0px);\n}",
+    "replace": "body {\n  padding-bottom: 0;\n}",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"the bar pads the page\"",
+    "expect": "the bar pads the page[\\s\\S]*toBeLessThanOrEqual"
+  },
+  {
+    "id": "fix-cb-e2e-no-shift",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": "body {\n  padding-bottom: var(--consent-bar-h, 0px);\n}",
+    "replace": "body {\n  padding-bottom: var(--consent-bar-h, 0px);\n  padding-top: var(--consent-bar-h, 0px);\n}",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"the bar pads the page\"",
+    "expect": "the bar pads the page[\\s\\S]*Expected"
+  },
+  {
+    "id": "fix-cb-e2e-skip-link",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": "  position: fixed;\n  inset: auto 0 0 0;",
+    "replace": "  position: fixed;\n  inset: 0 0 auto 0;",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"does not cover the skip link\"",
+    "expect": "does not cover the skip link[\\s\\S]*toBeLessThanOrEqual"
+  },
+  {
+    "id": "fix-cb-e2e-scroll-padding",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/styles/components/consent.css",
+    "find": "  scroll-padding-bottom: var(--consent-bar-h, 0px);",
+    "replace": "  scroll-padding-bottom: 0px;",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"tabbing through the page\"",
+    "expect": "tabbing through the page[\\s\\S]*under bar top"
+  },
+  {
+    "id": "fix-cb-e2e-property",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "const inFlow = (pathname: string) => pathname.startsWith(\"/property/\");",
+    "replace": "const inFlow = (pathname: string) => pathname.startsWith(\"/propertyx/\");",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"on a property page the notice stays\"",
+    "expect": "on a property page the notice stays[\\s\\S]*(Expected|Received)"
+  },
+  {
+    "id": "fix-cb-e2e-persist",
+    "kind": "manual",
+    "test": "tests/e2e/consent.spec.ts",
+    "file": "src/components/layout/consent-notice.tsx",
+    "find": "    setOpen(!decided());",
+    "replace": "    setOpen(true);",
+    "run": "E2E_PORT=8888 E2E_TARGET=dev bunx playwright test tests/e2e/consent.spec.ts --project=desktop --project=phone --reporter=line -g \"stores the choice|stores analytics false\"",
+    "expect": "(Allow stores the choice|No thank you stores analytics false)[\\s\\S]*toHaveCount"
+  }
+]

@@ -1,5 +1,15 @@
-/* The analytics choice (GP-02): one row at the top of the footer, in normal flow. Never fixed or sticky, so it
-   cannot cover the sticky action bar of a property page. */
+/* The analytics choice (GP-02, ruling H85). On a property page it is one row at the top of the footer, in normal
+   flow, so it cannot cover the sticky action bar. Everywhere else it is `.consent-bar`, fixed to the bottom of the
+   screen; the component publishes its height as --consent-bar-h while it shows. */
+
+/* The page ends above the bar, and a focused element scrolls into view above it. */
+html {
+  scroll-padding-bottom: var(--consent-bar-h, 0px);
+}
+
+body {
+  padding-bottom: var(--consent-bar-h, 0px);
+}
 
 .consent-notice {
   padding-block: 24px;
@@ -69,5 +79,55 @@ a.consent-decline {
     align-items: stretch;
     width: 100%;
     gap: 8px;
+  }
+}
+
+/* The slim bar: Warm Ivory with a hairline above, no shadow. One line from 701px up, two lines of text on a phone. */
+.consent-bar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: var(--z-consent);
+  margin: 0;
+  padding: 8px var(--container-pad);
+  flex-wrap: nowrap;
+  gap: 8px 24px;
+  background: var(--background);
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.consent-bar .consent-text {
+  max-width: none;
+}
+
+.consent-bar .consent-actions {
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.consent-bar .consent-allow,
+.consent-bar .consent-decline {
+  padding: 10px 20px;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .consent-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding-block: 8px;
+  }
+
+  .consent-bar .consent-actions {
+    flex-direction: row;
+  }
+
+  .consent-bar .consent-allow,
+  .consent-bar .consent-decline {
+    flex: 1;
+    padding-inline: 12px;
   }
 }
