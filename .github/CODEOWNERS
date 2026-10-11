@@ -1,8 +1,12 @@
-# Paths are repository-root relative; the app is one folder down, so a bare src/server/ would match
-# nothing (G-012). Documentation until branch protection exists (P-028): GitHub requests a review
-# from the owner but cannot yet refuse a merge without it.
+# One line per top folder, one owner for every path (ruling H79 (5)). Paths are repository-root relative; the app is
+# one folder down, so a bare src/server/ would match nothing (G-012). Documentation until branch protection exists
+# (P-028): GitHub requests a review from the owner but cannot yet refuse a merge without it.
+# The last line owns the files in the root itself (CLAUDE.md, GOTCHAS.md, PROJECT-STATE.md, README.md and the dotfiles).
+/.claude/ @AbdulrahmanAmer
 /.github/ @AbdulrahmanAmer
-/app/supabase/migrations/ @AbdulrahmanAmer
-/app/supabase/sql/functions/ @AbdulrahmanAmer
-/app/wrangler.toml @AbdulrahmanAmer
-/app/src/server/ @AbdulrahmanAmer
+/app/ @AbdulrahmanAmer
+/brand/ @AbdulrahmanAmer
+/launch/ @AbdulrahmanAmer
+/scripts/ @AbdulrahmanAmer
+/workspace/ @AbdulrahmanAmer
+/* @AbdulrahmanAmer

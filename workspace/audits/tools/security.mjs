@@ -1,10 +1,10 @@
 import { field, getText, measured, messageOf, notMeasured, recordsOf, runCli } from "./common.mjs";
+import { PUBLIC_FORMS, formPages, writingFormsWithoutTurnstile } from "./public-forms.mjs";
 
 // The security collector (B14 step 5). It reads response headers and the served JavaScript, sends no cookie, and
 // sends 61 requests to the search route to see the per-IP limit answer 429. It exits 0 whatever it finds: the rows
 // are the report's job. Statuses: `ok`, `watch` (look at it, not a failure) and `red`.
 const TIMEOUT_MS = 30_000;
-const FORM_PAGES = ["/", "/contact", "/submit", "/privacy-request"];
 const MAX_SCRIPTS = 300;
 const TURNSTILE_HOST = "challenges.cloudflare.com";
 const PROBE_PATH = "/api/public/search";
@@ -155,12 +155,14 @@ export const secretsIn = (text) =>
   SECRET_PATTERNS.filter(({ pattern }) => pattern.test(text)).map(({ name }) => name);
 
 /**
- * The secret row and the Turnstile row from what the probed pages served.
+ * The secret row and the Turnstile row from what the probed pages served. The Turnstile row is also red for a writing
+ * form that the shared table of public forms (`public-forms.mjs`, ruling H79 (6)) lists without Turnstile.
  * @param {{ path: string, hasForm: boolean, scripts: string[] }[]} pages
  * @param {Map<string, string | null>} bodies script URL to its text, null when it could not be read
+ * @param {readonly import("./public-forms.mjs").PublicForm[]} [table]
  * @returns {SecurityRow[]}
  */
-export function judgeScripts(pages, bodies) {
+export function judgeScripts(pages, bodies, table = PUBLIC_FORMS) {
   const hits = [];
   let unreadable = 0;
   for (const [url, text] of bodies) {
@@ -198,6 +200,15 @@ export function judgeScripts(pages, bodies) {
       "forms_turnstile",
       "red",
       `no script that ${bare.map((page) => page.path).join(", ")} loads or imports names Turnstile`,
+    );
+  }
+  const unguarded = writingFormsWithoutTurnstile(table);
+  if (unguarded.length > 0) {
+    const listed = `writing forms listed without Turnstile: ${unguarded.map((form) => form.id).join(", ")}`;
+    forms = row(
+      "forms_turnstile",
+      "red",
+      forms.status === "red" ? `${listed}; ${forms.detail}` : listed,
     );
   }
   return [secrets, forms];
@@ -252,7 +263,7 @@ export async function probe(ctx) {
   const home = await getPage(ctx, `${base}/`);
   if (home.headers === null) return { reason: `${base}/ ${home.reason}` };
   const pages = [];
-  for (const path of FORM_PAGES) {
+  for (const path of formPages()) {
     const page = path === "/" ? home : await getPage(ctx, `${base}${path}`);
     if (page.status === 200) {
       pages.push({
