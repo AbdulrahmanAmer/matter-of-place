@@ -1,16 +1,28 @@
 {
   "charter": 4,
   "viewports": ["phone"],
-  "writes": "one subscriber row (unconfirmed) for acceptance+<stamp>@fixtures.invalid; the confirmation mail goes out only if the dev recipient list admits the address",
+  "writes": "one subscriber row (unconfirmed) for acceptance+<stamp>@fixtures.invalid; whether a confirmation mail follows is not checked here; the route answers 429 after five signups an hour from one address",
   "steps": [
-    { "do": "goto", "path": "/place-notes" },
-    { "do": "expectSelector", "selector": "h1" },
+    {
+      "do": "goto",
+      "path": "/place-notes"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
     {
       "do": "fill",
       "selector": "input[type=email]",
       "value": "acceptance+{stamp}@fixtures.invalid"
     },
-    { "do": "click", "selector": "button[type=submit]" },
-    { "do": "expectText", "text": "Check your inbox to confirm." }
+    {
+      "do": "click",
+      "selector": "button[type=submit]"
+    },
+    {
+      "do": "expectText",
+      "text": "Check your inbox to confirm."
+    }
   ]
 }

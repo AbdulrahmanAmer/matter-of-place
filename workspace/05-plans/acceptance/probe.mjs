@@ -252,9 +252,23 @@ async function runStep(page, step) {
         waitUntil: "domcontentloaded",
         timeout: NAVIGATION_TIMEOUT_MS,
       });
-      // Hydration follows the load event; analytics can keep the network busy for good, so the wait is bounded and
-      // a busy network is not a failure of the step.
-      await page.waitForNetworkIdle({ idleTime: 500, timeout: 5000 }).catch(() => undefined);
+      // A field filled before React has taken over the page is reset when it does, so the step waits for the
+      // marker React leaves on the elements it has hydrated (the dev Worker sometimes holds a script back).
+      await page
+        .waitForFunction(
+          () => {
+            const root = document.querySelector("main");
+            return (
+              root === null || Object.keys(root).some((key) => key.startsWith("__reactFiber$"))
+            );
+          },
+          { timeout: NAVIGATION_TIMEOUT_MS },
+        )
+        .catch(() => {
+          throw new Error(
+            `${written} did not hydrate in ${String(NAVIGATION_TIMEOUT_MS / 1000)} s`,
+          );
+        });
       const status = response?.status() ?? 0;
       const wanted = Number(step["status"] ?? 0);
       if (wanted === 0 ? status >= 400 : status !== wanted)
@@ -290,10 +304,10 @@ async function runStep(page, step) {
     case "expectText":
       await page.waitForFunction(
         (/** @type {string} */ text) =>
-          document.body.innerText.replace(/s+/g, " ").toLowerCase().includes(text),
+          document.body.innerText.replace(/\s+/g, " ").toLowerCase().includes(text),
         { timeout },
         filled(String(step["text"] ?? ""))
-          .replace(/s+/g, " ")
+          .replace(/\s+/g, " ")
           .toLowerCase(),
       );
       return;
@@ -459,13 +473,10 @@ async function journeyProbe(args) {
           await context.close();
           continue;
         }
-        if (failed) {
-          await context.close();
-          break;
-        }
-        console.log(
-          `journey ${name} [${viewport.name}]: ok, ${String(steps.length)} steps, console errors ${String(consoleErrors.length)}`,
-        );
+        if (!failed)
+          console.log(
+            `journey ${name} [${viewport.name}]: ok, ${String(steps.length)} steps, console errors ${String(consoleErrors.length)}`,
+          );
         const counts = new Map();
         for (const line of consoleErrors) counts.set(line, (counts.get(line) ?? 0) + 1);
         for (const [line, count] of counts)

@@ -1,12 +1,25 @@
 {
   "charter": 3,
   "viewports": ["desktop"],
-  "writes": "one inquiry row (intent ask, subject oak-hill-residence) from acceptance+<stamp>@fixtures.invalid",
+  "writes": "one inquiry row (intent ask, subject oak-hill-residence) from acceptance+<stamp>@fixtures.invalid; the route answers 429 after ten inquiries an hour from one address, and the final step then fails",
   "steps": [
-    { "do": "goto", "path": "/property/oak-hill-residence" },
-    { "do": "click", "selector": "::-p-text(Ask about this property)" },
-    { "do": "expectSelector", "selector": "[role=dialog]" },
-    { "do": "fill", "selector": "[role=dialog] input[name=name]", "value": "Acceptance walk" },
+    {
+      "do": "goto",
+      "path": "/property/oak-hill-residence"
+    },
+    {
+      "do": "click",
+      "selector": "::-p-text(Ask about this property)"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "[role=dialog]"
+    },
+    {
+      "do": "fill",
+      "selector": "[role=dialog] input[name=name]",
+      "value": "Acceptance walk"
+    },
     {
       "do": "fill",
       "selector": "[role=dialog] input[name=email]",
@@ -17,7 +30,13 @@
       "selector": "[role=dialog] textarea[name=message]",
       "value": "Is it still available?"
     },
-    { "do": "click", "selector": "[role=dialog] button[type=submit]" },
-    { "do": "expectText", "text": "A person will reply within one working day." }
+    {
+      "do": "click",
+      "selector": "[role=dialog] button[type=submit]"
+    },
+    {
+      "do": "expectText",
+      "text": "A person will reply within one working day."
+    }
   ]
 }

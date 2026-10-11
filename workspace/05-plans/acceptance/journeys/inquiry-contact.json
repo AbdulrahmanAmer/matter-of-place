@@ -1,12 +1,25 @@
 {
   "charter": 3,
   "viewports": ["phone"],
-  "writes": "one inquiry row (intent general, topic Selling or presenting a property, source /contact) from acceptance+<stamp>@fixtures.invalid",
+  "writes": "one inquiry row (intent general, topic Selling or presenting a property, source /contact) from acceptance+<stamp>@fixtures.invalid; the route answers 429 after ten inquiries an hour from one address, and the final step then fails",
   "steps": [
-    { "do": "goto", "path": "/contact" },
-    { "do": "expectSelector", "selector": "h1" },
-    { "do": "click", "selector": "::-p-text(Selling or presenting a property)" },
-    { "do": "fill", "selector": "input[name=name]", "value": "Acceptance walk" },
+    {
+      "do": "goto",
+      "path": "/contact"
+    },
+    {
+      "do": "expectSelector",
+      "selector": "h1"
+    },
+    {
+      "do": "click",
+      "selector": "::-p-text(Selling or presenting a property)"
+    },
+    {
+      "do": "fill",
+      "selector": "input[name=name]",
+      "value": "Acceptance walk"
+    },
     {
       "do": "fill",
       "selector": "input[name=email]",
@@ -17,7 +30,13 @@
       "selector": "textarea[name=message]",
       "value": "A note from the acceptance walk."
     },
-    { "do": "click", "selector": "button[type=submit]" },
-    { "do": "expectText", "text": "A person will reply within one working day." }
+    {
+      "do": "click",
+      "selector": "button[type=submit]"
+    },
+    {
+      "do": "expectText",
+      "text": "A person will reply within one working day."
+    }
   ]
 }
