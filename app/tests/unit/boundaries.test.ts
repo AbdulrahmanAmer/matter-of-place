@@ -93,9 +93,12 @@ function matches(pattern: RegExp, allowed: (file: string) => boolean = () => fal
 describe("layers (R06, G-005)", () => {
   it("keeps server and domain code away from the browser layers", () => {
     const banned = ["src/data", "src/components", "src/admin", "src/routes", "src/services"];
-    // B6: `pricing.ts` is the one server reader of the price schedule (S3); it reads `exposure.ts` and nothing else.
+    // H80: `products.ts` is the one server reader of the seed of the plans; it reads `exposure.ts` and nothing else.
+    // `pricing.ts` (B6) still reads it until B18 step 3 moves the invoice to the stored plans and removes it here.
     const priceReader = (i: Import) =>
-      i.file === "src/server/payments/pricing.ts" && under(i.resolved, "src/data/exposure");
+      (i.file === "src/server/settings/products.ts" ||
+        i.file === "src/server/payments/pricing.ts") &&
+      under(i.resolved, "src/data/exposure");
     const found = imports.filter(
       (i) => isServerSide(i.file) && under(i.resolved, ...banned) && !priceReader(i),
     );

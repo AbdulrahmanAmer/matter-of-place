@@ -16,6 +16,7 @@ function stateOf(overrides: Partial<PublicState> = {}): PublicState {
     site: {},
     illustrativeContent: false,
     ogStatic: {},
+    products: null,
     ...overrides,
   };
 }

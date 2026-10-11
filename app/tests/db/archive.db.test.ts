@@ -72,6 +72,7 @@ describe("archive_facets", () => {
         site: {},
         illustrativeContent: true,
         ogStatic: {},
+        products: null,
       };
       const mapped = mapSnapshot(snapshot, state);
       const catalog = { ...mapped, cards: mapped.properties.map(toPropertyCard) };
