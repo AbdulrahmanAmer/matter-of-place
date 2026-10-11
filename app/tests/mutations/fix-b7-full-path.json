@@ -8,5 +8,25 @@
     "replace": "",
     "run": "E2E_TARGET=built E2E_MODE=live E2E_DATASET=1 E2E_PORT=8878 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts -g \"a person takes a request\" --reporter=line",
     "expect": "Invoice issued"
+  },
+  {
+    "id": "fix-b7-full-path-invoice-contact-email",
+    "kind": "manual",
+    "test": "tests/e2e/admin-invoice.spec.ts",
+    "file": "tests/e2e/fixtures/admin-data.ts",
+    "find": "contact: { ...contact, email },",
+    "replace": "",
+    "run": "E2E_FULL_STACK=1 E2E_TARGET=built E2E_MODE=live E2E_PORT=8878 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts -g \"issues the next invoice number\" --reporter=line",
+    "expect": "Invoice issued"
+  },
+  {
+    "id": "fix-b7-full-path-invoice-pdf-job",
+    "kind": "manual",
+    "test": "tests/e2e/admin-invoice.spec.ts",
+    "file": "tests/e2e/admin-invoice.spec.ts",
+    "find": "invoice_pdf:${row.id}",
+    "replace": "invoice_pdf-none:${row.id}",
+    "run": "E2E_FULL_STACK=1 E2E_TARGET=built E2E_MODE=live E2E_PORT=8878 bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts -g \"issues the next invoice number\" --reporter=line",
+    "expect": "Expected length: 1"
   }
 ]
