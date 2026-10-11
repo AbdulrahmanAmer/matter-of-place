@@ -1653,3 +1653,11 @@ first day of the new usage week; no step was cut from any plan.
   cf-edge.mjs never built (WAF, Bot Fight, rate limit, MTA-STS, DMARC not applied); 18 build accounts in auth.users;
   the H1 report and the stub/secret reds in preflight; H2 steps 2 to 6 parked; the request-timeout investigation; the
   unblock and consent lanes' leftovers; X, LinkedIn, Meta accounts after launch.
+
+## 2026-10-11 18:25 AFTER LAUNCH: design upgrade and merge queue
+- Live since 14:18 (see 15:30 block). Merged after launch: 313 (launch records), 288 (auth record), 299 (mail and Sentry readers, Zoho keys as local-only names in runbook-lint).
+- In the gate (scratchpad `gate-loop.sh`, log `gate-merges-39.log`): 311 cookie popup (card on every page, publishes the height it covers, sits on the phone action bar), 304 B18 prices from the admin, 312 full design upgrade (worktree E:/mop-build/polish, branch design/launch-polish, rounds 1 to 4). 312 merging deploys the design to production; verify every page on https://matterofplace.com after.
+- Operator order (2026-10-11): a real full design upgrade of every page, component and motion; never stop while work remains; no workflows, the orchestrator edits directly; background commands only via run_in_background.
+- Stopped: `cancel-previews.sh` (P-3430), orphaned greps and esbuild (P-3431). Previews hold no database key; Lighthouse picker falls back to /california (P-3432).
+- Design still owed after 312: property page and cards for when properties exist, stories and story pages, place-notes, privacy-request, markets index; r4 screenshots under workspace/08-visual-pass/pairs/launch-polish-2026-10-11/ (not committed).
+- NOT DONE (unchanged): Cloudflare edge rules BLOCKED on a zone-permission token; CSP inline hash per page; 404 edge cache; verify-production on slice/l1; rehearsal upload confirmation; Worker timeouts; Sentry environment tags; 10 failing re-run proofs; Lighthouse 0.85 vs 0.95; H2 steps 2 to 6 (wf_efcedca0-2e7); 18 build accounts in auth.users need the operator's word.

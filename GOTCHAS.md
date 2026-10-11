@@ -7571,3 +7571,33 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before a launch step runs a script, `git ls-files | grep <script>` proves it exists. The www rule alone was put in by hand (rulesets API, phase `http_request_dynamic_redirect`); WAF, Bot Fight Mode, the rate-limit rule, MTA-STS and DMARC parts are still missing.
 - proof: `curl -s -o /dev/null -w "%{http_code} %{redirect_url}" https://www.matterofplace.com/x?y=1` → `301 https://matterofplace.com/x?y=1` (after the hand rule); `git ls-files | grep -c cf-edge` → `0`.
 - added: 2026-10-11
+
+## P-3430 · A loop started for one launch window outlived it: `cancel-previews.sh` cancelled every PR preview for three hours after its reason was gone
+- symptom: 2026-10-11 15:07 to 18:00 +0300, every `deploy` run on a PR branch ended `cancelled` ten seconds after it started ("The run was canceled by @AbdulrahmanAmer"); the merge gate refused 311, 312, 313, 288 and 304 with "checks are not all green".
+- cause: during the launch the orchestrator started `scratchpad/cancel-previews.sh` (a `while true` loop calling `gh run cancel`) so no preview e2e wrote into the production database until step 1b took the database key from previews. Step 1b landed at 15:07; the loop had no end condition and eight copies were still running.
+- rule: a loop started for a window carries its own end condition (it exits when the thing it waits for is true) and is stopped at the window's end; at every resume, list the scratchpad loops still alive.
+- proof: `powershell -c "(Get-CimInstance Win32_Process -Filter \"Name='bash.exe'\" | Where-Object { \.CommandLine -match 'cancel-previews' }).Count"` → `0`; `gh run list --workflow deploy.yml --limit 5 --json conclusion` shows no new `cancelled` after 18:00.
+- added: 2026-10-11
+
+## P-3431 · An orphaned `grep --line-buffered` from a Monitor pipe spins at full CPU for days on Git Bash
+- symptom: 2026-10-11 18:15 +0300, the laptop crawled (lint did not finish in 20 minutes); five `grep.exe -E --line-buffered ...` started 2026-10-02 had each used about 8,900 CPU seconds, plus four `esbuild --service` from parked lanes.
+- cause: when the producer of a `... | grep --line-buffered` monitor dies on Windows, the grep is not always ended with it and busy-waits on the broken pipe.
+- rule: at a resume or when the laptop is slow, list long-lived `grep.exe` and `esbuild.exe` processes with their start dates and stop any older than the session.
+- proof: `powershell -c "Get-CimInstance Win32_Process -Filter \"Name='grep.exe' OR Name='esbuild.exe'\" | Select ProcessId,CreationDate"` → nothing older than today.
+- added: 2026-10-11
+
+## P-3432 · After previews lost the database (H35(7)), `lhci-urls.mjs` failed every preview Lighthouse run on `/api/public/markets answered 503`
+- symptom: 2026-10-11 18:05 +0300, the `preview` job of PRs 304 and 311 failed at the lighthouse step: `lighthouse: the url list failed twice: lhci-urls: /api/public/markets answered 503`.
+- cause: the picker took `market:first` from the preview's markets API; PR 310 had given the property template a fallback but not the market one.
+- rule: every template the picker reads from an API has a fixed fallback; the markets are the fixed three, so it measures `/california`.
+- proof: `cd app && node scripts/lhci-urls.mjs http://127.0.0.1:1` → six lines including `/california`, exit 0.
+- added: 2026-10-11
+
+## G-1301 · axe's color-contrast checks decorative text even under `aria-hidden`: draw display-size decoration with CSS `content`
+- paths: app/src/components/layout/**, app/src/styles/layout/**
+- severity: warn
+- symptom: 2026-10-11, PR 312's e2e sweep failed on every page (240 violations) with `color-contrast | .footer-signature`: the footer's display-size wordmark in Sandstone, marked `aria-hidden`.
+- cause: axe-core measures the text of an `aria-hidden` element; it does not measure generated content.
+- rule: a decorative word set as type is `<div aria-hidden="true" data-signature="...">` with `::before { content: attr(data-signature) }`, never a text node.
+- proof: `grep -n "data-signature" app/src/components/layout/footer.tsx` prints the div; the e2e sweep shows no `.footer-signature` violation.
+- added: 2026-10-11
