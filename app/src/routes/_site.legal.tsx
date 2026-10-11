@@ -3,8 +3,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
-import { presentLines } from "../domain/settings";
 import { breadcrumbLd } from "../lib/jsonld";
+import { legalIdentity } from "../lib/legal-identity";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/_site/legal")({
 
 function LegalPage() {
   const { legal, illustrativeContent } = useSite();
+  const identity = legalIdentity(legal);
   const navigate = useNavigate();
   // A fragment never reaches the server, so the old /legal#privacy and /legal#terms links move here, in the browser.
   useEffect(() => {
@@ -78,9 +79,8 @@ function LegalPage() {
           <p>
             {siteConfig.name} is a product of {siteConfig.parentCompany}.
           </p>
-          {presentLines(legal.entity, legal.address).map((line) => (
-            <p key={line}>{line}</p>
-          ))}
+          <p>{identity.entity}</p>
+          <p>{identity.address}</p>
           <TextLink to="/contact">Contact</TextLink>
         </div>
       </div>

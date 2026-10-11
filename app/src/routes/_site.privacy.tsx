@@ -2,9 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { legalVersions, siteConfig } from "../config/site";
 import { retentionPeriods } from "../domain/retention";
-import { presentLines, privacyLines } from "../domain/settings";
+import { privacyLines } from "../domain/settings";
 import { pluralize } from "../lib/format";
 import { breadcrumbLd } from "../lib/jsonld";
+import { legalIdentity } from "../lib/legal-identity";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
@@ -101,7 +102,7 @@ const categories: readonly {
 
 function PrivacyPage() {
   const site = useSite();
-  const responsible = presentLines(site.legal.entity)[0] ?? siteConfig.parentCompany;
+  const identity = legalIdentity(site.legal);
   const mailbox = privacyLines(site)[0];
   return (
     <main>
@@ -113,8 +114,9 @@ function PrivacyPage() {
       <div className="copy-page">
         <h2>Who is responsible</h2>
         <p>
-          {responsible} is responsible for the personal information described on this page. Matter
-          of Place is a product of {siteConfig.parentCompany}.
+          {identity.entity} is responsible for the personal information described on this page. Its
+          postal address is {identity.address}. Matter of Place is a product of{" "}
+          {siteConfig.parentCompany}.
         </p>
         {mailbox !== undefined && (
           <p>

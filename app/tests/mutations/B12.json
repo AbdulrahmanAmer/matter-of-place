@@ -336,7 +336,7 @@
     "id": "b12g2-p-credit",
     "test": "tests/unit/reel/copy.test.ts",
     "file": "src/lib/strings.ts",
-    "find": "line: \"A product of Omnikom.\",",
+    "find": "line: productLine,",
     "replace": "line: \"Part of Omnikom.\",",
     "run": "bunx vitest run --project unit tests/unit/reel/copy.test.ts",
     "expect": "FAIL .*starts the credit of B16's footer line"

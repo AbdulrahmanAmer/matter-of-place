@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Emblem } from "../brand/emblem";
 import { siteConfig } from "../../config/site";
 import { openConsentNotice } from "../../lib/consent";
+import { legalIdentity } from "../../lib/legal-identity";
 import { useSite } from "../../lib/queries";
 import { presentLines } from "../../domain/settings";
 import { t } from "../../lib/strings";
@@ -20,6 +21,7 @@ function reopenNotice(event: MouseEvent) {
 export function Footer() {
   const groups = t.footer.groups;
   const { legal, social } = useSite();
+  const identity = legalIdentity(legal);
   const profiles = [
     { label: t.nav.instagram, href: social.instagram },
     { label: t.nav.x, href: social.x },
@@ -103,8 +105,9 @@ export function Footer() {
             {siteConfig.name} · {t.footer.line}
           </span>
           <span>
-            © {new Date().getFullYear()} {presentLines(legal.entity)[0] ?? siteConfig.name}
+            © {new Date().getFullYear()} {identity.entity}
           </span>
+          <span>{identity.address}</span>
         </div>
       </div>
     </footer>
