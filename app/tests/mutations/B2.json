@@ -2333,7 +2333,7 @@
     "id": "g9-check-bytes",
     "kind": "sql",
     "test": "tests/db/uploads.db.test.ts",
-    "sql": "alter table public.submission_media drop constraint submission_media_bytes_range; alter table public.submission_media add constraint submission_media_bytes_range check (bytes between 1 and 1000);",
+    "sql": "alter table public.submission_media drop constraint submission_media_bytes_range; alter table public.submission_media add constraint submission_media_bytes_range check (bytes between 1 and 1000) not valid;",
     "run": "bunx vitest run --project db tests/db/uploads.db.test.ts -t limits",
     "expect": "\\+\\s+\"maxBytes\": false"
   },
@@ -2430,8 +2430,8 @@
     "kind": "file",
     "test": "tests/unit/rows.test.ts",
     "file": "scripts/lib/rows.ts",
-    "find": "      campaign_tier: property.campaignTier,\n",
-    "replace": "      campaign_tier: property.campaignTier,\n      editorial_state: \"published\",\n",
+    "find": "      campaign_tier: property.campaignTier ?? \"Editorial\",\n",
+    "replace": "      campaign_tier: property.campaignTier ?? \"Editorial\",\n      editorial_state: \"published\",\n",
     "run": "bunx vitest run --project unit tests/unit/rows.test.ts",
     "expect": "× .*puts the hero first"
   },
