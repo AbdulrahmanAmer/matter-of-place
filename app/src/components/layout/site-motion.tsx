@@ -64,9 +64,19 @@ export function SiteMotion() {
     );
     document.documentElement.classList.add("motion-ready");
     prepare(document, observer);
-    const stop = router.subscribe("onResolved", () => {
+    const stop = router.subscribe("onResolved", (event) => {
       requestAnimationFrame(() => {
         prepare(document, observer);
+        // A page change eases the new page up and in, so moving through the site never cuts hard.
+        if (event.pathChanged) {
+          document.querySelector("main")?.animate(
+            [
+              { opacity: 0, transform: "translate3d(0, 14px, 0)" },
+              { opacity: 1, transform: "none" },
+            ],
+            { duration: 700, easing: "cubic-bezier(0.16, 1, 0.3, 1)" },
+          );
+        }
       });
     });
     return () => {

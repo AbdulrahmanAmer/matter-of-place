@@ -357,3 +357,8 @@
 .copy-page a:not(.button):hover {
   text-decoration-color: var(--muted-foreground);
 }
+
+/* The FAQ list opens below the band with the same breathing room as every other first section (2026-10-11). */
+.faq-page {
+  padding-top: clamp(64px, 7vw, 112px);
+}
