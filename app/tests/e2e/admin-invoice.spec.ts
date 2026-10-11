@@ -8,6 +8,7 @@ import { createSubmission } from "../fixtures/factories";
 import { dbNow } from "../fixtures/db";
 import { holdDevLock } from "../fixtures/dev-lock";
 import { checkpoint } from "./fixtures/a11y";
+import { withInvoiceIdentity } from "./fixtures/admin-data";
 import { adminClient, signInAs } from "./helpers/session";
 
 // B6 step 9, the observed exit of the slice: an admin issues an invoice and activates a test submission. It commits
@@ -239,7 +240,14 @@ async function issueThroughUi(page: Page, role: Role, label: string): Promise<st
      where e.type = 'invoice.issued' and e.entity_id = $1 order by j.type`,
     [row.id],
   );
-  expect(planned.map((job) => job.type)).toEqual(expect.arrayContaining(["invoice_pdf"]));
+  // `issue_invoice` enqueues the PDF job itself, under its own key and with no event (invariant 6), so the event's jobs
+  // are the recipe's (the mail) and the PDF job is found by that key.
+  expect(planned.map((job) => job.type)).toEqual(expect.arrayContaining(["send_email"]));
+  const pdfJobs = await sql<{ id: string }>(
+    "select id from public.jobs where idempotency_key = $1",
+    [`invoice_pdf:${row.id}`],
+  );
+  expect(pdfJobs).toHaveLength(1);
   const watcher = recorded.getByRole("list", { name: "Jobs started" });
   await expect(watcher.getByRole("listitem")).toHaveCount(planned.length);
   for (const type of new Set(planned.map((job) => job.type))) {
@@ -265,10 +273,7 @@ test.beforeAll(async () => {
     year,
   };
   const site = z.record(z.string(), z.unknown()).parse(before.site);
-  await putSetting("site", {
-    ...site,
-    legal: { entity: "Example Media LLC", address: "100 Example Street, New York, NY 10001" },
-  });
+  await putSetting("site", withInvoiceIdentity(site));
   await putSetting(
     "invoice",
     JSON.parse(
