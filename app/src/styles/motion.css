@@ -114,6 +114,18 @@
   animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 0.95s both;
 }
 
+.hero-index li {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 1.05s both;
+}
+
+.hero-index li + li {
+  animation-delay: 1.17s;
+}
+
+.hero-index li + li + li {
+  animation-delay: 1.29s;
+}
+
 /* A hairline that draws from the left when its section arrives. */
 .motion-ready .coming-soon[data-motion],
 .motion-ready .footer-bottom[data-motion] {

@@ -74,20 +74,38 @@ function HomePage() {
       ) : (
         <>
           <section className="hero-text" aria-labelledby="home-title">
-            <div className="section-wrap hero-text-inner">
-              <p className="eyebrow">MATTER OF PLACE</p>
-              <h1 id="home-title">
-                <span>Exceptional property.</span> <span>Properly considered.</span>
-              </h1>
-              <p className="hero-text-lede">{t.comingSoon.what}</p>
-              <div className="hero-text-actions">
-                <Link to="/markets" className="button">
-                  Explore Properties
-                </Link>
-                <Link to="/submit" className="button ghost">
-                  Submit a Property
-                </Link>
+            <div className="section-wrap hero-text-inner hero-text-split">
+              <div>
+                <p className="eyebrow">MATTER OF PLACE</p>
+                <h1 id="home-title">
+                  <span>Exceptional property.</span> <span>Properly considered.</span>
+                </h1>
+                <p className="hero-text-lede">{t.comingSoon.what}</p>
+                <div className="hero-text-actions">
+                  <Link to="/markets" className="button">
+                    Explore Properties
+                  </Link>
+                  <Link to="/submit" className="button ghost">
+                    Submit a Property
+                  </Link>
+                </div>
               </div>
+              {/* The three markets as an editorial index, the way a magazine's cover lists what is inside. */}
+              <nav className="hero-index" aria-label="Markets">
+                <ol>
+                  {markets.map((market, index) => (
+                    <li key={market.slug}>
+                      <Link to="/$market" params={{ market: market.slug }}>
+                        <span className="hero-index-number">{padIndex(index + 1)}</span>
+                        <span className="hero-index-name">{market.name}</span>
+                        <span className="hero-index-state">
+                          {market.comingSoon ? "Opening soon" : "Open"}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
             </div>
           </section>
           <ComingSoon scope="home" />
