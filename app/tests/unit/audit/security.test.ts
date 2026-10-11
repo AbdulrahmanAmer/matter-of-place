@@ -15,9 +15,12 @@ import {
   scriptUrls,
   secretsIn,
 } from "../../../../workspace/audits/tools/security.mjs";
+import { formPages, PUBLIC_FORMS } from "../../../../workspace/audits/tools/public-forms.mjs";
 
 // B14 step 5: the security collector against recorded header sets (fixtures/security-*.json) and a stub `fetch`.
 // No test reaches a network.
+// The pages the collector fetches come from the shared table of public forms (H79 (6)).
+const PAGES = formPages();
 const headerSet = (name: string): Headers =>
   new Headers(
     z
@@ -223,6 +226,68 @@ describe("the served JavaScript", () => {
   });
 });
 
+describe("the shared table of public forms (H79 (6))", () => {
+  const url = "https://example.test/assets/form-b2.js";
+  const pages = [{ path: "/contact", hasForm: true, scripts: [url] }];
+  const named = new Map([[url, 'load("https://challenges.cloudflare.com/turnstile")']]);
+  const form = {
+    id: "extra",
+    label: "an extra form",
+    routes: ["/extra"],
+    api: "/api/public/extra",
+    components: [],
+    reason: "test",
+  };
+
+  it("is red for a writing form that the table lists without Turnstile, even when every script names it", () => {
+    const table = [...PUBLIC_FORMS, { ...form, writes: true, turnstile: false }];
+    expect(judgeScripts(pages, named, table)[1]).toEqual({
+      check: "forms_turnstile",
+      status: "red",
+      detail: "writing forms listed without Turnstile: extra",
+    });
+  });
+
+  it("says both findings when a page's scripts also name no Turnstile", () => {
+    const table = [...PUBLIC_FORMS, { ...form, writes: true, turnstile: false }];
+    expect(judgeScripts(pages, new Map([[url, "console.log(1)"]]), table)[1]?.detail).toBe(
+      "writing forms listed without Turnstile: extra; no script that /contact loads or imports names Turnstile",
+    );
+  });
+
+  it("exempts a form that only reads", () => {
+    const table = [...PUBLIC_FORMS, { ...form, writes: false, turnstile: false }];
+    expect(judgeScripts(pages, named, table)[1]?.status).toBe("ok");
+  });
+
+  it("fetches the static routes of the table and no other page", async () => {
+    const asked: string[] = [];
+    await collect(
+      makeContext({
+        env: {},
+        siteUrl: "http://127.0.0.1:8858",
+        fetchImpl: (url) => {
+          const { pathname } = new URL(url);
+          if (!pathname.startsWith("/api/") && !pathname.startsWith("/assets/")) {
+            asked.push(pathname);
+          }
+          return Promise.resolve(new Response("{}", { status: 429 }));
+        },
+      }),
+    );
+    expect([...new Set(asked)]).toEqual(PAGES);
+    expect(PAGES).toEqual([
+      "/",
+      "/properties",
+      "/place-notes",
+      "/stories",
+      "/contact",
+      "/submit",
+      "/privacy-request",
+    ]);
+  });
+});
+
 describe("collect", () => {
   it("is not measured without a site URL and when the site does not answer", async () => {
     expect(await collect(makeContext({ env: {}, siteUrl: "" }))).toEqual({
@@ -260,7 +325,7 @@ describe("collect", () => {
       "ok  x-frame-options  X-Frame-Options: DENY",
       "ok  referrer-policy  Referrer-Policy: strict-origin-when-cross-origin",
       "ok  secrets_in_js  scripts read: 1, none holds a secret pattern",
-      "ok  forms_turnstile  4 pages with a form load a script that names Turnstile",
+      `ok  forms_turnstile  ${String(PAGES.length)} pages with a form load a script that names Turnstile`,
       "ok  rate_limit_search  429 on request 1 of 61",
     ]);
   });
@@ -293,10 +358,10 @@ describe("collect", () => {
       "ok  secrets_in_js  scripts read: 2, none holds a secret pattern",
     );
     expect(withTurnstile).toContain(
-      "ok  forms_turnstile  4 pages with a form load a script that names Turnstile",
+      `ok  forms_turnstile  ${String(PAGES.length)} pages with a form load a script that names Turnstile`,
     );
     expect(describeSecurity(await run("console.log(1)"))).toContain(
-      "red  forms_turnstile  no script that /, /contact, /submit, /privacy-request loads or imports names Turnstile",
+      `red  forms_turnstile  no script that ${PAGES.join(", ")} loads or imports names Turnstile`,
     );
   });
 

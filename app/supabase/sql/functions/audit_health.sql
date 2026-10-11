@@ -100,7 +100,7 @@ begin
             where s.workflow_state = 'Declined' and s.reviewed_at < r.cutoff
           )
           when 'analytics_daily' then (
-            select count(*) from public.analytics_daily x where x.day < r.cutoff::date
+            select count(*) from public.analytics_daily x where x.day < (r.cutoff at time zone 'utc')::date
           )
         end
       ) order by r.key), '[]'::jsonb)

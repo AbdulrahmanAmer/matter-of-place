@@ -14,6 +14,7 @@
 // read as without the flag.
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { devNull } from "node:os";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,10 +49,40 @@ const BOOKKEEPING = /^(Set up job|Complete job|Post )/;
 // What gh 2.92.0 writes to stderr, with exit 1, for a pull request no workflow ran on.
 const NO_CHECKS = /^no checks reported/;
 
-// ci.yml writes the patterns as one flow list of double-quoted strings; any other form is not
-// read, so the gate refuses rather than guesses.
-const PATHS_IGNORE =
-  /^ {2}pull_request:\n(?: {4}.*\n)*? {4}paths-ignore: \[("[^"]*"(?:, "[^"]*")*)\]$/m;
+// ci.yml is read as YAML (ruling H79 (1)), so a flow list, a block list, quoted or bare strings and a reformatted file
+// all give the same patterns. The `yaml` package is the app's dependency: this folder has no node_modules of its own,
+// so it is loaded relative to app/package.json. A file that does not parse, or a list that is not strings, is not
+// read, and the gate refuses rather than guesses.
+/** @type {unknown} */
+const yamlPackage = createRequire(resolve(root, "app", "package.json"))("yaml");
+
+/**
+ * @param {string} text
+ * @returns {unknown} the parsed document, or undefined when the text is not YAML
+ */
+function parseYaml(text) {
+  if (typeof yamlPackage !== "object" || yamlPackage === null) return undefined;
+  /** @type {unknown} */
+  const parse = Reflect.get(yamlPackage, "parse");
+  if (typeof parse !== "function") return undefined;
+  try {
+    /** @type {unknown} */
+    const parsed = Reflect.apply(parse, yamlPackage, [text]);
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * @param {unknown} value
+ * @param {string} key
+ * @returns {unknown} the member of a plain object, undefined for anything else
+ */
+function member(value, key) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+  return Reflect.get(value, key);
+}
 
 const WILDCARDS = new Map([
   ["**/", "(?:.*/)?"],
@@ -80,11 +111,12 @@ function globToRegExp(pattern) {
  * @returns {RegExp[] | null}
  */
 function pathsIgnore(text) {
-  const list = PATHS_IGNORE.exec(text)?.[1];
-  if (list === undefined) return null;
+  const list = member(member(member(parseYaml(text), "on"), "pull_request"), "paths-ignore");
+  if (!Array.isArray(list) || list.length === 0) return null;
   /** @type {RegExp[]} */
   const patterns = [];
-  for (const [, pattern = ""] of list.matchAll(/"([^"]*)"/g)) {
+  for (const pattern of list) {
+    if (typeof pattern !== "string") return null;
     const regex = globToRegExp(pattern);
     if (regex === null) return null;
     patterns.push(regex);
