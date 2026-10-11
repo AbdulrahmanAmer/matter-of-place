@@ -431,10 +431,12 @@ The issue appears within about 20 seconds. On production, set the secret only fo
 ## Backup
 
 `.github/workflows/backup.yml` dumps the one database (H35 (1)): before the launch switch it is the build database, after
-it production, and the workflow does not change, because the dump only reads. It runs by hand today
-(`gh workflow run backup.yml -f target=dev`; `dev` is the only target) and nightly at 03:17 UTC once B8b has created the
-`schedule_settings` row `backup` (step 8 part B1 adds the `schedule:` line then). A scheduled run first reads that row:
-`t` continues, `f` or no row ends green with `backup disabled`. A manual run ignores the switch.
+it production, and the workflow does not change, because the dump only reads. It runs by hand
+(`gh workflow run backup.yml -f target=dev`; `dev` is the only target) and nightly at 03:17 UTC from the `schedule:` line
+(`17 3 * * *`, the cron of the `schedule_settings` row `backup`). A scheduled run first reads that row:
+`t` continues, `f` or no row ends green with `backup disabled`, so the schedule dumps nothing until L1 turns the row on
+(screen 20). A manual run ignores the switch. Prove the schedule with
+`gh run list --workflow backup.yml --event schedule --limit 5`.
 
 The job connects through the pooler (GitHub runners have no IPv6, E4) with the password percent-encoded, installs
 `postgresql-client-17` from the PGDG apt repository (the runner ships 16; the server is 17.11), runs

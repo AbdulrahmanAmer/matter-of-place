@@ -7,7 +7,13 @@ name: backup
 # Cost (C22): about 1 Actions minute a run (estimated; UNPROVEN until the first run is measured), so
 # about 30 a month nightly from the 2,000 of GOTCHAS P-009, plus one dump's size of Actions storage
 # per retained day.
+# The nightly run is 03:17 UTC (B1b step 8 part B1, the cron of the schedule_settings row backup). A
+# scheduled run reads that row first and ends green with "backup disabled" until L1 turns it on, so the
+# schedule never dumps ahead of the launch plan; the dump only reads, so it is the same before and after
+# the switch (H35 (1)). A scheduled run has no inputs, so TARGET falls back to dev, the one project.
 on:
+  schedule:
+    - cron: "17 3 * * *"
   workflow_dispatch:
     inputs:
       target:
