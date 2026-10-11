@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { z } from "zod";
 import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs";
 import { createSubmission } from "../fixtures/factories";
@@ -56,7 +57,7 @@ function dbUrl(): string {
 
 /** One short connection per call, so a long wait never holds a socket the pooler may drop. */
 async function sql<Row extends pg.QueryResultRow>(text: string, params: unknown[] = []) {
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   try {
     return (await client.query<Row>(text, params)).rows;
@@ -106,7 +107,7 @@ async function settingValue(key: string): Promise<unknown> {
 }
 
 async function createRequests(): Promise<void> {
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   try {
     const base = await dbNow(client);
@@ -163,7 +164,7 @@ async function removeRequests(): Promise<void> {
     "select invoice_file_key from public.payments where submission_id = any($1::uuid[])",
     [ids],
   );
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   try {
     await client.query("begin");
@@ -539,7 +540,7 @@ test("a request that is not accepted cannot be invoiced from the screen, the API
     await context.close();
   }
 
-  const client = new pg.Client({ connectionString: dbUrl() });
+  const client = new pg.Client(pgClientConfig(dbUrl()));
   await client.connect();
   try {
     await client.query("begin");

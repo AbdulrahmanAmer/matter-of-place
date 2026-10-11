@@ -3,6 +3,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { assertNotProduction } from "../../scripts/lib/assert-not-production.mjs";
 import type { TablesInsert } from "../../src/db";
 import { publishedPropertyRow } from "../fixtures/factories";
@@ -125,7 +126,7 @@ async function query<Row extends pg.QueryResultRow>(
   sql: string,
   params: unknown[],
 ): Promise<Row[]> {
-  const client = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
+  const client = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
   await client.connect();
   try {
     return (await client.query<Row>(sql, params)).rows;
@@ -139,7 +140,7 @@ async function query<Row extends pg.QueryResultRow>(
  * property without `mop.retention` (B2's `refuse_hard_delete`), so this never goes through `serviceClient()`.
  */
 async function removeRows(): Promise<void> {
-  const client = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
+  const client = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
   await client.connect();
   try {
     await client.query("begin");

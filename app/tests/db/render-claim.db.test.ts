@@ -3,6 +3,7 @@
 // removes them in its cleanup.
 import { randomUUID } from "node:crypto";
 import pg from "pg";
+import { pgClientConfig } from "../../scripts/lib/pg-connect.mjs";
 import { describe, expect, it } from "vitest";
 import { committed, withRollback, type Db } from "../fixtures/db";
 
@@ -82,8 +83,8 @@ describe("claim_media_for_render", () => {
       async (setup) => {
         const propertyId = await property(setup, slug);
         await stage(setup, propertyId, 40);
-        const a = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
-        const b = new pg.Client({ connectionString: process.env["DEV_DB_URL"] });
+        const a = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
+        const b = new pg.Client(pgClientConfig(process.env["DEV_DB_URL"]));
         await Promise.all([a.connect(), b.connect()]);
         try {
           await a.query("begin");
