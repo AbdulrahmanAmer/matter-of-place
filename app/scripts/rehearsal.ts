@@ -29,7 +29,7 @@ import { inquirySchema, receiptSchema, submissionSchema } from "../src/domain/co
 import { holdDevLock } from "../tests/fixtures/dev-lock.ts";
 import { assertNotProduction } from "./lib/assert-not-production.mjs";
 import { pgClientConfig } from "./lib/pg-connect.mjs";
-import { requireSecret, runScript } from "./lib/social-script.ts";
+import { readSecret, runScript } from "./lib/social-script.ts";
 
 const USAGE =
   "usage: bun run scripts/rehearsal.ts --env dev [--base <url>] --property scripts/fixtures/first-property.json";
@@ -684,9 +684,16 @@ async function row11(run: Run): Promise<Outcome> {
     : fail(`${String(failed?.n)} dead or failed jobs`);
 }
 
+/** An input step 0 guarantees (G32): a missing one makes the run red, never BLOCKED. */
+function input(name: string): string {
+  const value = readSecret(name);
+  if (value === undefined) throw new Error(`red: ${name} is missing from the shell and .env`);
+  return value;
+}
+
 /** The function secret names of the one project with their digests; the CLI needs the account token from `.env`. */
 function functionSecrets(): Map<string, string> {
-  const token = requireSecret("SUPABASE_ACCESS_TOKEN");
+  const token = input("SUPABASE_ACCESS_TOKEN");
   const listed = spawnSync(
     "bunx",
     [
@@ -694,7 +701,7 @@ function functionSecrets(): Map<string, string> {
       "secrets",
       "list",
       "--project-ref",
-      requireSecret("DEV_SUPABASE_PROJECT_REF"),
+      input("DEV_SUPABASE_PROJECT_REF"),
       "--output-format",
       "json",
       "--agent",
@@ -796,7 +803,7 @@ async function main(argv: readonly string[]): Promise<number> {
     await db.connect();
     return await rehearse({
       base: new URL(values.base),
-      agentKey: requireSecret("REHEARSAL_AGENT_KEY"),
+      agentKey: input("REHEARSAL_AGENT_KEY"),
       db,
       start,
       fixture,

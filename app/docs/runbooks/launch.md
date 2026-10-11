@@ -15,11 +15,11 @@ Step 0a built the tools below. Step 0b is the operator-input gate: from the repo
 | `scripts/launch/verify-cache.mjs`         | 4h         | The edge cache on the domain: hits, the key, no cookie, the stored policy, `no-store`, hit ratio |
 | Pull request 288 (`slice/l1-auth`, draft) | 1c         | The launch values of `[auth]` in `supabase/config.toml`, merged inside the switch and not before |
 
-Each script prints one line per check, `ok` or `red` (`verify-cache.mjs` also prints `skip`), and exits 1 on any red line.
+Each launch script prints one line per check, `ok` or `red`, and exits 1 on any red line. `verify-cache.mjs` also prints `skip` lines, and `preflight.mjs` prints one `BLOCKED linkedin application pending` line while LinkedIn's tokens are absent, which does not change its exit code.
 
 ### Preflight
 
-From `app/`, in the owner's shell: `eval "$(node scripts/load-env.mjs --profile dev)"` for `DEV_DB_URL`, then the admin tokens `CLOUDFLARE_API_TOKEN` and `SUPABASE_ACCESS_TOKEN` (the ops profile), then `node scripts/launch/preflight.mjs`. Check 7 reads `RESEND_API_KEY` and `RESEND_WEBHOOK_SECRET` from the root `.env` and the two `PROD_RESEND_` names from the root `.env.ops`, and compares SHA-256 digests in memory. Before the switch the function, variable and database lines are red with `database not production yet`; that is expected. `--fixture-dir scripts/launch/fixtures/preflight-bad` replays recorded name lists instead of the CLIs (watched-fails k and o).
+From `app/`, in the owner's shell: `eval "$(node scripts/load-env.mjs --profile dev)"` for `DEV_DB_URL`, then the admin tokens `CLOUDFLARE_API_TOKEN` and `SUPABASE_ACCESS_TOKEN` (the ops profile), then `node scripts/launch/preflight.mjs`. Check 7 reads `RESEND_API_KEY` and `RESEND_WEBHOOK_SECRET` from the root `.env` and the two `PROD_RESEND_` names from the root `.env.ops`, and compares SHA-256 digests in memory. Before the switch the function, variable and database lines are red with `database not production yet`; that is expected. `--fixture-dir scripts/launch/fixtures/preflight-bad` reads recorded name lists instead of asking `wrangler`, `supabase secrets list` and `gh` (watched-fails k and o); the H1, database and stub lines still run live.
 
 Measured on 2026-10-11 against the build stage: check 6 is red with five markers other than `post-v1` (`src/server/jobs/steps/render-specs.ts`, `src/server/jobs/steps/render-variants.ts`, `src/server/lib/crypto.ts`, `scripts/lib/oauth-consent.ts`, `scripts/meta-check.ts`). Each must be resolved by its owning slice before step 1h can pass.
 
@@ -31,7 +31,7 @@ Measured on 2026-10-11 against the build stage: check 6 is red with five markers
 
 From `app/`: `bun run build`, then `bun run cf:preview` in the background, wait for `http://127.0.0.1:8788/`, then `node scripts/launch/verify-cache.mjs http://127.0.0.1:8788 --local`. Under `--local` three lines print `skip`: HSTS and the HTTPS redirect (plain http), and `robots.txt` (B13 stores it only for the indexable host, so a local Worker answers it uncached on purpose). Stop the server by its parent process (GOTCHAS P-042) and confirm the port has no listener.
 
-Measured on 2026-10-11 on a lane preview of the build: every other line `ok` except `missing page cached 60 s`, which is red. A missing page answers 404 with `public, max-age=0, must-revalidate` and `x-mop-cache: bypass` on every request, so it is not stored at the edge; architecture 13 stores a 404 for 60 seconds. The owning slice of the cache hook fixes it, and this step stays red until then.
+Measured on 2026-10-11 on a lane preview of the build: every other line `ok` except `missing page cached 60 s`, which is red. A missing page answered 404 with `public, max-age=0, must-revalidate` and `x-mop-cache: bypass` on two requests in a row, so it is not stored at the edge, while architecture 13 says a 404 is stored for 60 seconds (only the JSON 404 of `/api/public/*` is). The slice that owns the cache hook (`src/server/public/cache.ts`) decides the fix, and this line stays red until then (GOTCHAS P-3400).
 
 ## Launch log
 
