@@ -97,8 +97,14 @@ describe("layers (R06, G-005)", () => {
     // An invoice prices from the stored plans (B18 step 3), so `pricing.ts` reads no data file.
     const priceReader = (i: Import) =>
       i.file === "src/server/settings/products.ts" && under(i.resolved, "src/data/exposure");
+    // P-3410: after the launch switch a local build holds no database key, so the sitemap and llms documents read the
+    // bundled catalog; `local-catalog.ts` is the one server module that imports it.
+    const localDocs = (i: Import) =>
+      i.file === "src/server/public/local-catalog.ts" &&
+      under(i.resolved, "src/services/local/catalog");
     const found = imports.filter(
-      (i) => isServerSide(i.file) && under(i.resolved, ...banned) && !priceReader(i),
+      (i) =>
+        isServerSide(i.file) && under(i.resolved, ...banned) && !priceReader(i) && !localDocs(i),
     );
     expect(report(found)).toEqual([]);
   });
