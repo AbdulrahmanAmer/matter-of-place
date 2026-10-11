@@ -6,8 +6,8 @@ import { localSearch } from "./local/search";
 import { localSite } from "./local/site";
 import type { Services } from "./types";
 
-export type { ConciergeAnswer, SearchMatch, Services, UploadProgress } from "./types";
-export { ServiceError } from "./types";
+export type { ConciergeAnswer, SearchMatch, Services, ServiceIssue, UploadProgress } from "./types";
+export { ServiceError, serviceIssues } from "./types";
 
 const localServices: Services = {
   mode: "local",

@@ -1634,3 +1634,9 @@ first day of the new usage week; no step was cut from any plan.
   debris (fixtures.invalid; laptop CONFIRM_TOKEN_SECRET digest differs from the Edge Function's). P-3210, P-3211.
   The 113 old dead rows stay in `jobs`; `dead_jobs_24h` clears 24 h after the runner has the fix (deploy of the
   job-runner function is the orchestrator's: `supabase functions deploy job-runner --use-api`).
+- fix/submit-review-errors 2026-10-11 10:17 +0300 (lane D:/mop-build/fix13, PR to follow): panel finding 3. A refused field of /submit (the contract's ZodError at send,
+  or the 422 `error.issues` the API client used to drop) now maps to its step and control: the wizard goes back to the first step
+  with a refused field, marks it aria-invalid with aria-describedby to a visible message, focuses it, and the Review step
+  lists "<Field> on step <n>: <message>". Typing in a field clears its mark. Registry `fix-submit-review-errors.json`
+  (fsre-a to fsre-w unit, fsre-x to fsre-z manual e2e). Not changed: Continue still checks only that fields are filled
+  (panel's smallest-fix suggestion of format checks per step is left open). P-3225, P-3226, P-042 hit again.
