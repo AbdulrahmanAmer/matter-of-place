@@ -106,8 +106,14 @@ const RETIRED = new Set([
   "PROD_DB_URL",
 ]);
 const RETIRED_PATTERNS = [/^R2_/];
-/** Values that live only in the local .env: agent keys and mock receivers of the rehearsals, not section 4 inventory. */
-const LOCAL_ONLY = new Set(["ADMIN_SMOKE_KEY", "OMNIKOM_MOCK_SECRET"]);
+/** Values that live only in the local .env: agent keys, mock receivers of the rehearsals and the operator mailbox reader (zoho-mail.mjs), not section 4 inventory. */
+const LOCAL_ONLY = new Set([
+  "ADMIN_SMOKE_KEY",
+  "OMNIKOM_MOCK_SECRET",
+  "ZOHO_CLIENT_ID",
+  "ZOHO_CLIENT_SECRET",
+  "ZOHO_REFRESH_TOKEN",
+]);
 
 /** @param {string} name */
 const isConstant = (name) =>
