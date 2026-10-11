@@ -59,6 +59,7 @@ const en = {
     statement:
       "Matter of Place is an independent real-estate media and distribution platform focused on exceptional residential property in California, New York and Florida.",
     line: productLine,
+    product: "{name} is a product of {entity}.",
   },
   common: {
     illustrative: "ILLUSTRATIVE",

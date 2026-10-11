@@ -190,23 +190,175 @@
   }
 }
 
-/* Home without a published property: type on Obsidian, so the see-through header keeps its light text. */
+/* Home without a published property: a hero of its own on Obsidian, so the see-through header keeps its light text. No image, no controls; the type carries it. */
 .hero-text {
-  padding-top: calc(var(--header-h) + clamp(56px, 8vw, 110px));
-  padding-bottom: clamp(64px, 8vw, 110px);
+  display: flex;
+  align-items: flex-end;
+  min-height: min(84svh, 840px);
+  padding-top: calc(var(--header-h) + clamp(56px, 8vw, 120px));
+  padding-bottom: clamp(56px, 7vw, 104px);
   color: var(--primary-foreground);
   background: var(--foreground);
 }
 
-.hero-text h1 {
-  font-size: clamp(48px, 6vw, 94px);
-  line-height: 0.98;
-  margin: 18px 0 24px;
+.hero-text-inner {
+  width: 100%;
 }
 
-.hero-text p:not(.eyebrow) {
-  max-width: 560px;
+.hero-text h1 {
+  font-size: clamp(46px, 8.2vw, 124px);
+  line-height: 0.96;
+  margin: 24px 0 clamp(28px, 3vw, 44px);
+}
+
+.hero-text h1 span {
+  display: block;
+}
+
+.hero-text .hero-text-lede {
+  max-width: 46ch;
+  font-family: var(--font-serif);
+  font-size: clamp(21px, 1.9vw, 27px);
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--primary-foreground) 78%, transparent);
+}
+
+.hero-text-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: clamp(32px, 4vw, 48px);
+}
+
+.hero-text-actions .button {
+  min-height: 48px;
+  min-width: 212px;
+  padding: 14px 28px;
+  background: var(--primary-foreground);
+  color: var(--foreground);
+  border-color: var(--primary-foreground);
+}
+
+.hero-text-actions .button.ghost {
+  background: none;
+  color: var(--primary-foreground);
+}
+
+.hero-text-actions .button:hover {
+  opacity: 0.82;
+}
+
+@media (max-width: 600px) {
+  .hero-text {
+    min-height: 0;
+  }
+
+  .hero-text h1 span {
+    display: inline;
+  }
+
+  .hero-text-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-text-actions .button {
+    width: 100%;
+  }
+}
+
+/* Home hero, wide screens (2026-10-11): the statement on the left, the three markets as an editorial index on the right,
+   each a ruled row with its number, name and state; a row's name slides right on hover. */
+.hero-text-split {
+  display: grid;
+  gap: clamp(48px, 6vw, 96px);
+  align-items: end;
+}
+
+.hero-index ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid color-mix(in oklab, var(--primary-foreground) 28%, transparent);
+}
+
+.hero-index li {
+  border-bottom: 1px solid color-mix(in oklab, var(--primary-foreground) 28%, transparent);
+}
+
+.hero-index a {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: baseline;
+  gap: 16px;
+  min-height: 44px;
+  padding: 20px 0;
+  color: var(--primary-foreground);
+}
+
+.hero-index-number {
+  font-family: var(--font-serif);
   font-size: 16px;
-  line-height: 1.8;
-  color: color-mix(in oklab, var(--primary-foreground) 75%, transparent);
+  color: color-mix(in oklab, var(--primary-foreground) 60%, transparent);
+}
+
+.hero-index-name {
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 2.6vw, 40px);
+  font-weight: 300;
+  line-height: 1;
+  transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-index-state {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--primary-foreground) 72%, transparent);
+}
+
+.hero-index a:hover .hero-index-name,
+.hero-index a:focus-visible .hero-index-name {
+  transform: translateX(10px);
+}
+
+@media (min-width: 1100px) {
+  .hero-text-split {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-index a:hover .hero-index-name,
+  .hero-index a:focus-visible .hero-index-name {
+    transform: none;
+  }
+}
+
+/* The headline keeps the full width; below it the lede and actions sit left and the index right. */
+@media (min-width: 1100px) {
+  .hero-text-split > div {
+    display: contents;
+  }
+
+  .hero-text-split {
+    column-gap: clamp(48px, 6vw, 96px);
+    row-gap: 0;
+  }
+
+  .hero-text-split .eyebrow,
+  .hero-text-split h1 {
+    grid-column: 1 / -1;
+  }
+
+  .hero-text-split .hero-text-lede,
+  .hero-text-split .hero-text-actions {
+    grid-column: 1;
+  }
+
+  .hero-text-split .hero-index {
+    grid-column: 2;
+    grid-row: 3 / span 2;
+    align-self: end;
+  }
 }

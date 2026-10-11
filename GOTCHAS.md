@@ -7675,3 +7675,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: read the whole list, or filter it for the topic of the work (`node workspace/05-plans/check-gotchas.mjs --for <files> | grep -i "<topic>"`), before running a baseline.
 - proof: `node workspace/05-plans/check-gotchas.mjs --for app/src/styles/components/consent.css | grep -c "P-1911"` → `1`.
 - added: 2026-10-11
+
+## P-3425 · The empty home page has no local flag: `bun run dev` always shows the illustrative catalog, and moving a JSX block breaks the mutation registry `find` strings
+- symptom: the coming-soon home (hero without a carousel) could not be rendered locally without the database: dev with SUPABASE_* unset serves the bundled illustrative adapter, so `/` showed "ILLUSTRATIVE PROPERTY". After the home hero was restructured, `legal-identity-pages` failed on a copy assertion and the registry entries li-t, li-u, li-v of `fix-legal-identity.json` had stale `find` strings.
+- cause: the local services (`src/services/local/catalog.ts`) always return every bundled property; and the registry finds exact source lines of `_site.index.tsx`.
+- rule: to look at the empty state, change `listProperties` in `src/services/local/catalog.ts` to `properties.filter(() => false).map(pickCard)` for the shoot and `git checkout` it before the commit (never touch mop-dev); after editing a block of `src/routes/_site.index.tsx` or `footer.tsx` run `grep -n '"file": "src/routes/_site.index.tsx"' -r tests/mutations` and re-point each `find`. A JSON string with `\n` goes in through a file written with Write, never `node -e` (P-008).
+- proof: `cd app && bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx` → 18 passed.
+- added: 2026-10-11

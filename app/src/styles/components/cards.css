@@ -216,3 +216,83 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Launch upgrade of the cards (2026-10-11): the photograph drifts in slowly on hover, as a camera settles, and a hairline
+   settles under the title. The image frame clips, so nothing grows past its edge. */
+.property-card-image img,
+.market-card img,
+.story-card img {
+  transition: transform 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.property-card:hover img,
+.market-card:hover img {
+  transform: scale(1.045);
+}
+
+.story-card {
+  display: block;
+  min-width: 0;
+}
+
+.story-card picture {
+  display: block;
+  overflow: hidden;
+  background: var(--muted);
+}
+
+.story-card:hover img {
+  opacity: 1;
+  transform: scale(1.045);
+}
+
+.property-card-info {
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+  margin-top: 18px;
+}
+
+.property-card-info h3,
+.story-card h3 {
+  font-weight: 400;
+}
+
+.card-title {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: transparent;
+  text-underline-offset: 14px;
+  transition:
+    text-decoration-color 700ms ease,
+    text-underline-offset 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.property-card:hover .card-title,
+.story-card:hover .card-title,
+.property-card:focus-visible .card-title,
+.story-card:focus-visible .card-title {
+  text-decoration-color: currentColor;
+  text-underline-offset: 6px;
+}
+
+.market-card h3 {
+  font-weight: 300;
+  transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.market-card:hover h3 {
+  transform: translateY(-6px);
+}
+
+.section-heading {
+  margin-bottom: clamp(32px, 4vw, 56px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .property-card:hover img,
+  .market-card:hover img,
+  .story-card:hover img,
+  .market-card:hover h3 {
+    transform: none;
+  }
+}

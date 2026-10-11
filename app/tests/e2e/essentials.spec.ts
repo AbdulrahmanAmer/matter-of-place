@@ -389,11 +389,19 @@ test.describe("a11y-keyboard", () => {
     expect(unringed).toEqual([]);
   });
 
-  test("a11y-keyboard: the ring is Obsidian on the page and Bone over the home photograph", async ({
+  // Every page opens on a dark band with the header floating over it (operator, 2026-10-11); scrolled, the header is a
+  // solid light bar.
+  test("a11y-keyboard: the ring is Bone over the opening band and Obsidian on the scrolled header", async ({
     page,
   }) => {
-    const ringOfBrand = async (path: string) => {
+    const ringOfBrand = async (path: string, scrolled = false) => {
       await page.goto(path, { waitUntil: "networkidle" });
+      if (scrolled) {
+        await page.evaluate(() => {
+          window.scrollTo(0, 600);
+        });
+        await expect(page.locator(".site-header")).not.toHaveClass(/site-header-overlay/);
+      }
       for (let press = 0; press < 20; press += 1) {
         await page.keyboard.press("Tab");
         if (await page.evaluate(() => document.activeElement?.classList.contains("header-brand"))) {
@@ -405,7 +413,8 @@ test.describe("a11y-keyboard", () => {
       );
     };
     expect(await ringOfBrand("/")).toBe("rgb(245, 242, 235)");
-    expect(await ringOfBrand("/contact")).toBe("rgb(17, 17, 15)");
+    expect(await ringOfBrand("/contact")).toBe("rgb(245, 242, 235)");
+    expect(await ringOfBrand("/contact", true)).toBe("rgb(17, 17, 15)");
   });
 
   test("a11y-keyboard: a submitted empty required field is invalid and described by visible error text", async ({
