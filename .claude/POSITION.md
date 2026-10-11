@@ -1600,3 +1600,9 @@ first day of the new usage week; no step was cut from any plan.
   (Search Console account), ci.yml paths-ignore shape (merge-gate.mjs line 54, P-3152), STANDARDS scripts row and stale
   B14.md lines, audit_health.sql timezone cast (migration, H57), three shared analytics_events rows, CODEOWNERS handle,
   per-form Turnstile design. Dashboard decision for the operator: Supabase "Enforce SSL" (all scripts and tests now TLS).
+
+- Visual pass 2026-10-11 (lane E:/mop-build/visual, branch design/visual-pass): header breakpoint 1280 to 1199 (the 1280 laptop had
+  the phone header), brand centred absolutely from 1200, 44px targets on phone for header buttons, footer links, text links,
+  filters, choice rows, finder chips. Phone targets under 44px over 15 pages 383 to 104 (rest are inline links, WCAG 2.5.8).
+  Pictures under workspace/08-visual-pass/pairs/visual-2026-10-11/ (P-3171); dev must run with SUPABASE_* unset (P-3170).
+  REPORT.md was refused by the session's no-report-files rule: the report is in the PR body.
