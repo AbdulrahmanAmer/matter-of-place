@@ -7371,3 +7371,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: finish and format every file first (`cd app && ./node_modules/.bin/prettier --config .prettierrc --check <files>`, P-3163), list the entries by comparing each entry's `file`, `test` and `sql` with `git status --short`, replay them one `--only <id>` at a time into a file, read the `exit=` of each, and leave the tree alone until `FINISHED`. An entry whose `run` needs a local stack (`B2:g11-rls-own-row` seeds `--target local`, which refuses a host other than 127.0.0.1) cannot replay here: say so, CI replays it (P-1203).
 - proof: the loop `for id in <ids>; do env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry tests/mutations --only $id; done` printed `WATCHED-FAIL OK` for 161 of the 163 on 2026-10-11 (03:19 to 03:33 +0300); the two others were `B1b:mg-gate-lint` (red for 12 prettier errors of my own files, then `WATCHED-FAIL OK B1b:mg-gate-lint` after the fix) and `B2:g11-rls-own-row` (local stack).
 - added: 2026-10-11
+
+## P-3170 · `bun run dev` from this shell inherits the OmniSkipX `SUPABASE_URL`: every page answered 503 "The service is busy", and the dev server pointed at another business's database
+- symptom: `curl localhost:8858/` returned `{"error":{"code":"unavailable","message":"The service is busy..."}}` and the log said `public_read_stale rpc public_state`; the lane's visual pass could not render a page.
+- cause: `src/start.ts` sets `hasDatabase` from `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the process environment, and on this laptop those two names are Windows user variables of OmniSkipX (G-901, P-331). Vite dev therefore ran the live path against a foreign project instead of the bundled illustrative adapter.
+- rule: for any visual or e2e run against `bun run dev`, start it as `env -u SUPABASE_URL -u SUPABASE_SERVICE_ROLE_KEY -u SUPABASE_ANON_KEY bun run dev -- --port <lane port> --strictPort`; Playwright's own `E2E_PORT=<port>` run needs the same prefix. Then `curl -s -o /dev/null -w "%{http_code}" localhost:<port>/` prints 200.
+- proof: `cd app && grep -n "hasDatabase" src/start.ts | head -2` → the line reading `env.SUPABASE_URL !== undefined`; with the prefix the home page answers 200 and shows "ILLUSTRATIVE PROPERTY".
+- added: 2026-10-11
+
+## P-3171 · Screenshots saved under `workspace/audits/` fail `bun run check` at the `layout` step ("banned: screenshot or render"), and a full-page set of 126 pictures is 73 MB
+- symptom: `node ../workspace/05-plans/quiet.mjs -- bun run check` exit 1 with `layout: workspace/audits/visual-2026-10-11/before-terms-phone-top.png: banned: screenshot or render`.
+- cause: `scripts/check-layout.mjs` allows pictures only under `MEDIA_HOMES` (`workspace/08-visual-pass/pairs/` among them); the brief named `workspace/audits/...`.
+- rule: a render script writes its pictures to `workspace/08-visual-pass/pairs/<pass>/` and keeps only the pairs the report cites (a 2x phone full page is about 1 MB); its JSON and the report stay in `workspace/audits/<pass>/`.
+- proof: `cd app && node scripts/check-layout.mjs; echo $?` → 0 with the pictures under `workspace/08-visual-pass/pairs/visual-2026-10-11/`.
+- added: 2026-10-11

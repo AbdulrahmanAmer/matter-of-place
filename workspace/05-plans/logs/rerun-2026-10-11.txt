@@ -1661,3 +1661,290 @@ SKIPPED needs quiet (fence \brun-all\.mjs\b(?![^\n]*--only))
 | H1 | 10 | skipped |
 steps: 83 | pass 62 | fail 14 | skipped 7
 ==== END ====
+
+==== rerun 2026-10-11T01:38:33.123Z | 13 entries | list D:\mop-build\rerun\workspace\05-plans\rerun-2026-10-11.json | dev profile on ====
+--- [1/13] B6 step 6 (plan)
+cwd: D:/mop-build/rerun
+command: grep -n "B6 invoice approved" .claude/POSITION.md
+exit: 1
+seconds: 0
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+--- [2/13] B6 step 9 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=dev bunx playwright test --project=admin tests/e2e/admin-invoice.spec.ts
+exit: 0
+seconds: 16
+  | 
+  |   -  1 [admin] › tests\e2e\admin-invoice.spec.ts:295:1 › the managing editor issues the next invoice number and its PDF is served by a signed link
+  | 
+  |   -  2 [admin] › tests\e2e\admin-invoice.spec.ts:363:1 › print: the invoice page hides the admin navigation, shows the preview and fits one Letter page
+  | 
+  | 
+  |   -  3 [admin] › tests\e2e\admin-invoice.spec.ts:385:1 › mark paid, then activate: the request is Scheduled with a property draft, one campaign and the copy job
+  | 
+  | 
+  |   -  4 [admin] › tests\e2e\admin-invoice.spec.ts:439:1 › a second accepted request is waived without an invoice and then activates
+  | 
+  |   -  5 [admin] › tests\e2e\admin-invoice.spec.ts:485:1 › the admin voids a second test invoice with a reason
+  | 
+  |   -  6 [admin] › tests\e2e\admin-invoice.spec.ts:506:1 › a request that is not accepted cannot be invoiced from the screen, the API or SQL
+  | 
+  |   -  7 [admin] › tests\e2e\admin-invoice.spec.ts:563:1 › the invoice email reaches the submitter once its PDF is stored (E2E_RESEND=1, after EMAIL_LIVE=1)
+  | 
+  | 
+  | 
+  |   7 skipped
+--- [3/13] B7 step 11 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 122
+  |         at invoiceAndActivate (D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:259:5)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:413:27
+  |         at committed.rows.rows (D:\mop-build\rerun\app\tests\e2e\fixtures\admin-data.ts:353:7)
+  |         at committed (D:\mop-build\rerun\app\tests\fixtures\db.ts:75:14)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:394:5
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted 
+  |   1 passed (2.0m)
+--- [4/13] B7 step 11a (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 114
+  |         at invoiceAndActivate (D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:259:5)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:413:27
+  |         at committed.rows.rows (D:\mop-build\rerun\app\tests\e2e\fixtures\admin-data.ts:353:7)
+  |         at committed (D:\mop-build\rerun\app\tests\fixtures\db.ts:75:14)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:394:5
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted 
+  |   1 passed (1.9m)
+--- [5/13] B7 step 12 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 120
+  |         at invoiceAndActivate (D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:259:5)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:413:27
+  |         at committed.rows.rows (D:\mop-build\rerun\app\tests\e2e\fixtures\admin-data.ts:353:7)
+  |         at committed (D:\mop-build\rerun\app\tests\fixtures\db.ts:75:14)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:394:5
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted 
+  |   1 passed (2.0m)
+--- [6/13] B7 step 13 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 121
+  |         at invoiceAndActivate (D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:259:5)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:413:27
+  |         at committed.rows.rows (D:\mop-build\rerun\app\tests\e2e\fixtures\admin-data.ts:353:7)
+  |         at committed (D:\mop-build\rerun\app\tests\fixtures\db.ts:75:14)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:394:5
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted 
+  |   1 passed (2.0m)
+--- [7/13] B7 step 14 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 108
+  |         at invoiceAndActivate (D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:259:5)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:413:27
+  |         at committed.rows.rows (D:\mop-build\rerun\app\tests\e2e\fixtures\admin-data.ts:353:7)
+  |         at committed (D:\mop-build\rerun\app\tests\fixtures\db.ts:75:14)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:394:5
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted 
+  |   1 passed (1.8m)
+--- [8/13] B7 step 15 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 108
+  |         at invoiceAndActivate (D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:259:5)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:413:27
+  |         at committed.rows.rows (D:\mop-build\rerun\app\tests\e2e\fixtures\admin-data.ts:353:7)
+  |         at committed (D:\mop-build\rerun\app\tests\fixtures\db.ts:75:14)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:394:5
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted 
+  |   1 passed (1.8m)
+--- [9/13] B7 step 15a (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 141
+  |         at invoiceAndActivate (D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:259:5)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:413:27
+  |         at committed.rows.rows (D:\mop-build\rerun\app\tests\e2e\fixtures\admin-data.ts:353:7)
+  |         at committed (D:\mop-build\rerun\app\tests\fixtures\db.ts:75:14)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:394:5
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted 
+  |   1 passed (2.3m)
+--- [10/13] B7 step 16 (plan)
+cwd: D:/mop-build/rerun/app
+command: E2E_TARGET=built E2E_DATASET=1 bunx playwright test --project=admin tests/e2e/admin-full-path.spec.ts
+exit: 1
+seconds: 152
+  |         at invoiceAndActivate (D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:259:5)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:413:27
+  |         at committed.rows.rows (D:\mop-build\rerun\app\tests\e2e\fixtures\admin-data.ts:353:7)
+  |         at committed (D:\mop-build\rerun\app\tests\fixtures\db.ts:75:14)
+  |         at D:\mop-build\rerun\app\tests\e2e\admin-full-path.spec.ts:394:5
+  | 
+  |     Error Context: test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\error-context.md
+  | 
+  |     attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+  |     test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  |     Usage:
+  | 
+  |         npx playwright show-trace test-results\admin-full-path-admin-full-57bbb-story-entry-names-who-acted-admin\trace.zip
+  | 
+  |     ────────────────────────────────────────────────────────────────────────────────────────────────
+  | 
+  | 
+  |   1 failed
+  |     [admin] › tests\e2e\admin-full-path.spec.ts:390:3 › admin full path (B7 step 16) › a person takes a request from /submit to an activated property, and every history entry names who acted 
+  |   1 passed (2.5m)
+--- [11/13] B10 step 3 (plan)
+cwd: D:/mop-build/rerun/app
+command: bunx vitest run tests/unit/channels/reels-limits.test.ts
+exit: 0
+seconds: 2
+  | load-env: .env has no OMNIKOM_MOCK_SECRET
+  | 
+  | load-env: .env has no UPTIME_API_KEY
+  | 
+  | 
+  | 
+  |  RUN  v5.0.2 D:/mop-build/rerun/app
+  | 
+  | 
+  | 
+  | 
+  | 
+  |  Test Files  1 passed (1)
+  |       Tests  4 passed (4)
+  | 
+  |    Start at  04:55:16
+  | 
+  |    Duration  653ms (transform 36%, worker 35%, import 18%, setup 7%, tests 4%)
+  | 
+  | 
+--- [12/13] B11 step 1 (plan)
+cwd: D:/mop-build/rerun/app
+command: bun run db:psql -- -c "select count(*) from subscribers where confirmed_at is not null;"
+SKIPPED needs psql: no psql is installed on this laptop (the only psql.exe on disk, D:/mop-build/h1g7/app/.tmp/bin, is H1 step 9's stand-in, not a client)
+--- [13/13] B11 step 10 (plan)
+cwd: D:/mop-build/rerun/app
+command: select type from events where type = 'digest.due' order by at desc limit 1;
+SKIPPED needs quiet: the plan's step 10 proof enables the digest schedule on mop-dev, waits for the queue_digest job and restores the schedule (writes)
+
+==== SUMMARY 2026-10-11T01:55:17.001Z ====
+| slice | step | result |
+| --- | --- | --- |
+| B6 | 6 | fail |
+| B6 | 9 | pass |
+| B7 | 11 | fail |
+| B7 | 11a | fail |
+| B7 | 12 | fail |
+| B7 | 13 | fail |
+| B7 | 14 | fail |
+| B7 | 15 | fail |
+| B7 | 15a | fail |
+| B7 | 16 | fail |
+| B10 | 3 | pass |
+| B11 | 1 | skipped |
+| B11 | 10 | skipped |
+steps: 13 | pass 2 | fail 9 | skipped 2
+==== END ====
