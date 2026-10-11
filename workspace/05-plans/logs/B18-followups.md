@@ -51,3 +51,17 @@
 7. `workspace/05-plans/logs/B18.md` (not blocking)
    - what: The group touched files outside its named list beyond the H46 gate-config exception: tests/unit/settings.service.test.ts (getSettings shape), src/data/exposure.ts (a step 3 file, .ts import for Deno), src/domain/exposure.ts (toOffering, invoiceLine and costAnswer, which the Contract names) and src/styles/admin/index.css. Each is needed and is disclosed in the log. The orchestrator should fold them into the plan's step 2 Files line.
    - evidence: git show --stat a8a34ff9; log g2 block 'Files beyond the brief's list'
+
+## g3 · steps 3
+
+1. `tests/e2e/exposure-products.spec.ts` (not blocking)
+   - what: The slice's observed exit is still UNPROVEN: a price saved in Settings reaching /exposure, / and /faq. Only the e2e spec covers the route loaders of _site.exposure.tsx and _site.faq.tsx, which return (await ensureQueryData(siteQuery())).products. products-render.test.tsx mocks useLoaderData, so a loader that returned the seed would stay green in every unit test. My live SSR check on wrangler confirms the loaders are wired, but with seed values only (mop-dev has no products row yet).
+   - evidence: products-render.test.tsx uses vi.spyOn(ExposureRoute, 'useLoaderData').mockReturnValue(plans). No unit entry mutates the loader lines. The author lists the e2e as NOT DONE until main pushes steps 1 and 2.
+
+2. `tests/unit/products-source.test.ts` (not blocking)
+   - what: Invariant 1 (seedOfferings has only three readers) is enforced under src only. launch/shared/extract-exposure.mjs now reads X.seedOfferings as a fourth reader, outside the test's view. Because of that, the partner deck and video quote launch prices, not the stored plans. G-1450 and the extractor's header record it; the orchestrator rules on whether the deck must follow settings.products.
+   - evidence: git grep -n seedOfferings -- launch shows launch/shared/extract-exposure.mjs. filesMatching(['src'], ...) is the only scan
+
+3. `workspace/05-plans/B18.md` (not blocking)
+   - what: Stale proof lines in the plan (the orchestrator's to fold). Step 3's unit command lists products-render.test.tsx after --project unit, which never runs it (P-3309); the component run is the real proof. The log also says a plain local-mode `bun run build` makes bundle-check print FAILED 30, and only the live build (VITE_API_BASE_URL=/api/public) passes. So the plan line '`bun run build` exits 0 and bundle-check stays inside its budget' should name the live build. I did not check whether the local-mode FAILED 30 also happens on main.
+   - evidence: vitest.config.ts: unit include ['tests/unit/**/*.test.ts', ...]. Log B18.md fix round, Proof 2: 'bun run build exit 0, then node scripts/bundle-check.mjs: FAILED 30'
