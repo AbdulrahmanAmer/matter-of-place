@@ -1658,8 +1658,8 @@
     "id": "rc-throws",
     "test": "tests/unit/jobs/reconcile.test.ts",
     "file": "src/server/jobs/system/reconcile.ts",
-    "find": "const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data));",
-    "replace": "const uploads = await reconcileUploads(ctx.db, await sinceOf(ctx, data)).catch(() => ({ checked: 0, uploaded: 0, deleted: 0, missing: 0 }));",
+    "find": "const uploads = await reconcileUploads(ctx.db, since, started, started + UPLOADS_BUDGET_MS);",
+    "replace": "const uploads = await reconcileUploads(ctx.db, since, started, started + UPLOADS_BUDGET_MS).catch(() => ({ checked: 0, uploaded: 0, deleted: 0, missing: 0, deferred: 0 }));",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/reconcile.test.ts -t \"throws when reconcileUploads throws\"",
     "expect": "× .*throws when reconcileUploads throws"
   },
@@ -2280,7 +2280,7 @@
     "test": "tests/unit/jobs/reconcile.test.ts",
     "file": "src/server/jobs/system/reconcile.ts",
     "find": "reconcileJob(settleUploads, settleSocial, aggregateRecentIssues)",
-    "replace": "reconcileJob(() => Promise.resolve({ checked: 0, uploaded: 0, deleted: 0, missing: 0 }), settleSocial, aggregateRecentIssues)",
+    "replace": "reconcileJob(() => Promise.resolve({ checked: 0, uploaded: 0, deleted: 0, missing: 0, deferred: 0 }), settleSocial, aggregateRecentIssues)",
     "run": "bunx vitest run --project unit tests/unit/jobs/reconcile.test.ts -t \"runs the real parts\"",
     "expect": "to deep equally contain"
   },
