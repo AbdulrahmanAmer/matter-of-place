@@ -133,5 +133,104 @@
     "replace": "\"findings\": [{}]",
     "run": "bunx vitest run --project unit tests/unit/acceptance-ledger.test.ts",
     "expect": "run.mjs on the command line > holds a ledger.json on disk that the schema accepts"
+  },
+  {
+    "id": "h2-team-one-vote-decides",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "(candidate) => row.votes.filter((vote) => vote.severity === candidate).length >= 2,",
+    "replace": "(candidate) => row.votes.filter((vote) => vote.severity === candidate).length >= 1,",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "the two of three rule in the team loop > keeps a proven finding a question until a second panelist votes the same severity"
+  },
+  {
+    "id": "h2-team-split-left-waiting",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "return row.votes.length >= PANELISTS.length ? \"split\" : \"waiting\";",
+    "replace": "return \"waiting\";",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "the two of three rule in the team loop > leaves three votes with no two alike for the orchestrator"
+  },
+  {
+    "id": "h2-team-double-vote",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "else if (row.votes.some((vote) => vote.panelist === panelist)) {",
+    "replace": "else if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "the two of three rule in the team loop > counts a panelist once and refuses a vote on a decided row"
+  },
+  {
+    "id": "h2-team-slice-unchecked",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "if (!/^(B|H|L)[0-9a-z]+$/i.test(text(item[\"slice\"]))) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "what a panelist may hand in > refuses a row that cannot become a fix group and keeps a proofless claim a question"
+  },
+  {
+    "id": "h2-team-new-row-in-vote-round",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "if (!allowNew) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "what a panelist may hand in > numbers rows after the highest id and takes no new row when the round forbids it"
+  },
+  {
+    "id": "h2-team-low-votes-ignored",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "? f.votes.some((vote) => ABOVE_LOW.includes(vote.severity))",
+    "replace": "? false",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "a pass and its stop rule > calls a pass clean only when nothing above low is open or voted above low"
+  },
+  {
+    "id": "h2-team-same-day-passes",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "first.date !== second.date",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "a pass and its stop rule > stops after two clean numbered passes on different days"
+  },
+  {
+    "id": "h2-team-charter-every-round",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "if (input.round === 1) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "the message loop > shows each panelist the others' messages and the rows waiting for its vote"
+  },
+  {
+    "id": "h2-team-no-relay-to-others",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "if (message !== \"\") inbox[other]?.push(`${panelist}: ${message}`);",
+    "replace": "if (message === \"\") inbox[other]?.push(`${panelist}: ${message}`);",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "the message loop > relays three panelists answering each other to the log and keeps the ledger valid"
+  },
+  {
+    "id": "h2-team-no-correction-turn",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "if (taken.result.rejected > 0) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "the message loop > asks a panelist to correct a refused row once, in the same round"
+  },
+  {
+    "id": "h2-team-no-early-end",
+    "test": "tests/unit/acceptance-team.test.ts",
+    "file": "../workspace/05-plans/acceptance/team.mjs",
+    "find": "if (!options.smoke && done.length === PANELISTS.length) break;",
+    "replace": "if (false) break;",
+    "run": "bunx vitest run --project unit tests/unit/acceptance-team.test.ts",
+    "expect": "the message loop > ends a numbered pass when all three are done and records its verdict"
   }
 ]
