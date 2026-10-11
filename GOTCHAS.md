@@ -7601,3 +7601,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a decorative word set as type is `<div aria-hidden="true" data-signature="...">` with `::before { content: attr(data-signature) }`, never a text node.
 - proof: `grep -n "data-signature" app/src/components/layout/footer.tsx` prints the div; the e2e sweep shows no `.footer-signature` violation.
 - added: 2026-10-11
+
+## P-3433 · The page CSP can never cover one inline script: Cloudflare's JavaScript Detections injects it at the edge, after the Worker
+- symptom: 2026-10-11 19:20 +0300, on https://matterofplace.com/about the report-only policy listed the hashes of TanStack's scripts, and one 921-character inline script matched none: it starts `(function(){function c(){var b=a.contentDocument` and loads `/cdn-cgi/challenge-platform/scripts/jsd/main.js` with a per-request `r` value.
+- cause: Cloudflare Bot Management's JavaScript Detections rewrites the HTML on the way out; its text changes every request, so no hash computed by `withPageCsp` (src/server/lib/headers.ts) can match. It is not our code and not a missing hash.
+- rule: do not chase it in `headers.ts`. Turn JavaScript Detections off for the zone (Security, Bots), or allow it by the nonce Cloudflare adds when the policy carries one; both need the zone-permission token or the operator's dashboard click (same unblock as the edge rules, P-3414).
+- proof: `curl -s https://matterofplace.com/about | grep -c "challenge-platform/scripts/jsd"` → `1` while it is on, `0` after.
+- added: 2026-10-11
+
+## P-3434 · CI's typecheck refused a narrowing inside a test helper that the laptop's `tsc` accepted
+- symptom: 2026-10-11 18:56 +0300, PR 312's `check` job: `tests/unit/legal-identity-pages.test.tsx(149,29): error TS18048: 'market' is possibly 'undefined'.`; `bunx tsc --noEmit -p tsconfig.json` on the laptop printed nothing for the same file.
+- cause: UNPROVEN; the use was inside a nested function, after a top-level `throw` guard.
+- rule: use a guarded value inside a nested function only through a const built at the guard (`const entry = { ... }` right after the throw); a laptop typecheck that passes is not evidence for this shape.
+- proof: PR 312's `check` job on dadbb035 passes.
+- added: 2026-10-11
