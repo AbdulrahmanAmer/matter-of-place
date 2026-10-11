@@ -56,6 +56,7 @@ export default defineConfig({
         "**/consent.spec.ts",
         "**/essentials.spec.ts",
         "**/a11y-settle.spec.ts",
+        "**/legal-identity.spec.ts",
       ],
       ...skipOverflow,
       use: desktop,

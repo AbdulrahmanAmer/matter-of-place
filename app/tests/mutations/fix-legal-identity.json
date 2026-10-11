@@ -1,0 +1,237 @@
+[
+  {
+    "id": "li-a-address-constant",
+    "test": "tests/unit/legal-identity.test.ts",
+    "file": "src/config/legal-identity.ts",
+    "find": "export const legalAddress = \"30 N Gould St Ste R, Sheridan, WY 82801, USA\";",
+    "replace": "export const legalAddress = \"\";",
+    "run": "bunx vitest run --project unit tests/unit/legal-identity.test.ts",
+    "expect": "FAIL .*is Omnikom LLC at the Sheridan address of ruling H83"
+  },
+  {
+    "id": "li-b-company-in-site-config",
+    "test": "tests/unit/legal-identity.test.ts",
+    "file": "src/config/site.ts",
+    "find": "  parentCompany,",
+    "replace": "  parentCompany: \"Omnikom\",",
+    "run": "bunx vitest run --project unit tests/unit/legal-identity.test.ts",
+    "expect": "FAIL .*is Omnikom LLC at the Sheridan address of ruling H83"
+  },
+  {
+    "id": "li-c-footer-line-literal",
+    "test": "tests/unit/legal-identity.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "line: productLine,",
+    "replace": "line: \"A product of Omnikom.\",",
+    "run": "bunx vitest run --project unit tests/unit/legal-identity.test.ts",
+    "expect": "FAIL .*is the one source of the footer line, the credit line and the about description"
+  },
+  {
+    "id": "li-d-about-description-literal",
+    "test": "tests/unit/legal-identity.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "A product of ${siteConfig.parentCompany}.`,",
+    "replace": "A product of Omnikom.`,",
+    "run": "bunx vitest run --project unit tests/unit/legal-identity.test.ts",
+    "expect": "FAIL .*is the one source of the footer line, the credit line and the about description"
+  },
+  {
+    "id": "li-e-reel-credit-literal",
+    "test": "tests/unit/legal-identity.test.ts",
+    "file": "src/server/assets/reel-spec.ts",
+    "find": "const CREDIT = `A product of ${parentCompany}`;",
+    "replace": "const CREDIT = \"A product of Omnikom\";",
+    "run": "bunx vitest run --project unit tests/unit/legal-identity.test.ts",
+    "expect": "FAIL .*is the credit the reel draws, without the final full stop"
+  },
+  {
+    "id": "li-f-invoice-line-literal",
+    "test": "tests/unit/legal-identity.test.ts",
+    "file": "src/server/payments/invoice-layout.ts",
+    "find": "put(productLine, note,",
+    "replace": "put(\"A product of Omnikom.\", note,",
+    "run": "bunx vitest run --project unit tests/unit/legal-identity.test.ts",
+    "expect": "FAIL .*is the line under the wordmark on an invoice"
+  },
+  {
+    "id": "li-g-no-address-fallback",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/lib/legal-identity.ts",
+    "find": "?? siteConfig.legalAddress,",
+    "replace": "?? \"\",",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*names Omnikom LLC and its Sheridan address with empty settings"
+  },
+  {
+    "id": "li-h-no-entity-fallback",
+    "test": "tests/unit/legal-identity.test.ts",
+    "file": "src/lib/legal-identity.ts",
+    "find": "?? siteConfig.parentCompany,",
+    "replace": "?? \"\",",
+    "run": "bunx vitest run --project unit tests/unit/legal-identity.test.ts",
+    "expect": "FAIL .*fills only what the settings leave empty"
+  },
+  {
+    "id": "li-i-settings-ignored",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/lib/legal-identity.ts",
+    "find": "address: presentLines(legal.address)[0] ?? siteConfig.legalAddress,",
+    "replace": "address: siteConfig.legalAddress,",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*prints the saved entity and address instead when they are set"
+  },
+  {
+    "id": "li-j-site-config-address-empty",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/config/site.ts",
+    "find": "  legalAddress,",
+    "replace": "  legalAddress: \"\",",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*names Omnikom LLC and its Sheridan address with empty settings"
+  },
+  {
+    "id": "li-k-footer-address-gone",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<span>{identity.address}</span>",
+    "replace": "<span />",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*the footer reads A product of Omnikom LLC and the legal line carries the entity and address"
+  },
+  {
+    "id": "li-l-terms-heading",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "<h2>Who we are</h2>",
+    "replace": "<h2>About us</h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*open with a Who we are section that names both"
+  },
+  {
+    "id": "li-m-terms-address-gone",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "{identity.entity}, {identity.address}. Matter of Place is",
+    "replace": "{identity.entity}. Matter of Place is",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*open with a Who we are section that names both"
+  },
+  {
+    "id": "li-n-cookies-heading",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.cookies.tsx",
+    "find": "<h2>Who we are</h2>",
+    "replace": "<h2>About us</h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*open with a Who we are section that names both"
+  },
+  {
+    "id": "li-o-cookies-address-gone",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.cookies.tsx",
+    "find": "these cookies is {identity.entity}, {identity.address}.",
+    "replace": "these cookies is {identity.entity}.",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*open with a Who we are section that names both"
+  },
+  {
+    "id": "li-p-privacy-party",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "{identity.entity} is responsible for the personal information described on this page. Its",
+    "replace": "{siteConfig.name} is responsible for the personal information described on this page. Its",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*says in Who is responsible that Omnikom LLC is the party and gives its address"
+  },
+  {
+    "id": "li-q-privacy-address-gone",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "postal address is {identity.address}. Matter of Place is a product of{\" \"}",
+    "replace": "postal address is on file. Matter of Place is a product of{\" \"}",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*says in Who is responsible that Omnikom LLC is the party and gives its address"
+  },
+  {
+    "id": "li-r-legal-entity-gone",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.legal.tsx",
+    "find": "<p>{identity.address}</p>",
+    "replace": "<p>{identity.entity}</p>",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*names Omnikom LLC and its Sheridan address with empty settings"
+  },
+  {
+    "id": "li-s-terms-dash",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "These terms are between you and",
+    "replace": "These terms — are between you and",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*the words added for it have no dash, no exclamation mark and no hyperbole"
+  },
+  {
+    "id": "li-t-home-h2-always",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.index.tsx",
+    "find": "{hero.length > 0 && <h2>Exceptional property. Properly considered.</h2>}",
+    "replace": "<h2>Exceptional property. Properly considered.</h2>",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*with no hero, the coming-soon page says the headline once and the eyebrow once"
+  },
+  {
+    "id": "li-u-home-eyebrow-always",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.index.tsx",
+    "find": "{hero.length > 0 && <p className=\"eyebrow\">MATTER OF PLACE</p>}",
+    "replace": "<p className=\"eyebrow\">MATTER OF PLACE</p>",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*with no hero, the coming-soon page says the headline once and the eyebrow once"
+  },
+  {
+    "id": "li-v-home-h2-never",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.index.tsx",
+    "find": "{hero.length > 0 && <h2>Exceptional property. Properly considered.</h2>}",
+    "replace": "{hero.length < 0 && <h2>Exceptional property. Properly considered.</h2>}",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*with a hero, the editorial statement keeps its headline and eyebrow"
+  },
+  {
+    "id": "li-w-terms-review-old-sentence",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "Editorial review usually takes up to five business days.",
+    "replace": "The review time is the one stated on the exposure page.",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*is stated in the Submitting a property section, with no link to /exposure"
+  },
+  {
+    "id": "li-x-terms-review-link",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.terms.tsx",
+    "find": "Editorial review usually takes up to five business days.",
+    "replace": "Editorial review usually takes up to five business days, see the <Link to=\"/exposure\">exposure page</Link>.",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*is stated in the Submitting a property section, with no link to /exposure"
+  },
+  {
+    "id": "li-y-contact-developers",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.contact.tsx",
+    "find": "OWNERS AND AGENTS",
+    "replace": "OWNERS, AGENTS & DEVELOPERS",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*says owners and agents and never developers"
+  },
+  {
+    "id": "li-z-e2e-built-address",
+    "kind": "manual",
+    "test": "tests/e2e/legal-identity.spec.ts",
+    "file": "src/config/legal-identity.ts",
+    "find": "export const legalAddress = \"30 N Gould St Ste R, Sheridan, WY 82801, USA\";",
+    "replace": "export const legalAddress = \"\";",
+    "run": "E2E_TARGET=built E2E_PORT=8878 bun run build && bunx playwright test tests/e2e/legal-identity.spec.ts --project=desktop --reporter=line",
+    "expect": "Expected substring: .30 N Gould St Ste R, Sheridan, WY 82801, USA."
+  }
+]

@@ -211,7 +211,7 @@ export const uploadLimits = {
  * `tests/unit/legal-pages.test.tsx` asserts the two are equal.
  * @public
  */
-export const currentRightsVersion = "2026-10-08";
+export const currentRightsVersion = "2026-10-11";
 
 /**
  * What a visitor may ask of their personal data: the values of the check on `subject_requests.kind` (G29).
