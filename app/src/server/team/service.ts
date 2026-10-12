@@ -156,7 +156,7 @@ export async function sendSignInLink(
   if (staff.error !== null) throw fromRpcError(staff.error);
   if (!staff.data) return SENT;
   // No redirect option: B5's template builds the token-hash link to the confirm page itself.
-  const { error } = await authClient(request).auth.signInWithOtp({
+  const { error } = await authClient(request).signInWithOtp({
     email: input.email,
     options: { shouldCreateUser: false },
   });
@@ -175,7 +175,7 @@ export async function verifySignIn(
     throw new AppError("csrf", undefined, "Please open the sign-in link again.");
   }
   const client = authClient(request);
-  const { data, error } = await client.auth.verifyOtp({
+  const { data, error } = await client.verifyOtp({
     type: input.type,
     token_hash: input.token_hash,
   });
@@ -184,7 +184,7 @@ export async function verifySignIn(
   if (session === null) return seeOther("/admin/sign-in?state=expired");
   const roles = await enabledRoles(db, session.user.id);
   if (roles.length === 0) {
-    await client.auth.signOut();
+    await client.signOut();
     // The session is signed out again, so none of its cookies leave the Worker.
     takeIssuedCookies(request);
     return seeOther("/admin/sign-in?state=disabled");
@@ -222,7 +222,7 @@ export async function signInWithPassword(
     );
   }
   const client = authClient(request);
-  const { data, error } = await client.auth.signInWithPassword({
+  const { data, error } = await client.signInWithPassword({
     email: input.email,
     password: input.password,
   });
@@ -233,7 +233,7 @@ export async function signInWithPassword(
   }
   const roles = await enabledRoles(db, session.user.id);
   if (roles.length === 0) {
-    await client.auth.signOut();
+    await client.signOut();
     // The session is signed out again, so none of its cookies leave the Worker.
     takeIssuedCookies(request);
     throw new AppError(
@@ -269,7 +269,7 @@ export async function setOwnPassword(
       "This password has appeared in a data breach elsewhere. Please choose a different one.",
     );
   }
-  const { error } = await authClient(request).auth.updateUser({ password: input.password });
+  const { error } = await authClient(request).updateUser({ password: input.password });
   if (error !== null) {
     if (isAuthRetryableFetchError(error)) throw unavailable();
     // Supabase Auth refuses a weak or reused password with a message meant for the person.
@@ -290,7 +290,7 @@ export async function setOwnPassword(
 /** Ends the session at Supabase Auth and expires its cookies and `mop_csrf`. */
 export async function signOut(actor: AdminActor, request: Request): Promise<Response> {
   authorize(actor, "me");
-  const { error } = await authClient(request).auth.signOut();
+  const { error } = await authClient(request).signOut();
   if (error !== null && isAuthRetryableFetchError(error)) throw unavailable();
   const response = new Response(null, { status: 204 });
   response.headers.append("set-cookie", expireCsrfCookie());

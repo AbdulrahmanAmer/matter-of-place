@@ -145,10 +145,16 @@ const authFetch: typeof fetch = Object.assign(
 );
 
 /**
- * The `@supabase/ssr` client of one request: it reads the session cookies of `request` and records the
- * cookies it writes (sign-in, refresh, sign-out) for `takeIssuedCookies`.
+ * The Auth half of the `@supabase/ssr` client of one request: it reads the session cookies of `request` and records
+ * the cookies it writes (sign-in, refresh, sign-out) for `takeIssuedCookies`. Gap audit item 8 (2026-10-12): it is
+ * built with the service-role key, so only `.auth` leaves this file and no caller can read or write a table through
+ * it; table access goes through `db.ts`.
  */
 export function authClient(request: Request) {
+  return cookieClient(request).auth;
+}
+
+function cookieClient(request: Request) {
   const { url, key } = project();
   return createServerClient<Database>(url, key, {
     cookieOptions: COOKIE_OPTIONS,
@@ -180,7 +186,7 @@ export async function getSessionUser(
 ): Promise<SessionUser | null> {
   const { url } = project();
   if (!hasSessionCookie(request, url)) return null;
-  const { data, error } = await authClient(request).auth.getSession();
+  const { data, error } = await authClient(request).getSession();
   if (error !== null && isAuthRetryableFetchError(error)) throw unavailable();
   const token = data.session?.access_token;
   return token === undefined ? null : verifyAccessToken(token, now);
