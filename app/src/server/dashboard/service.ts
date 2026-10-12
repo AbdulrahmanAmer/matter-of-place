@@ -4,6 +4,9 @@ import type { AdminActor } from "../lib/admin-route";
 import { authorize } from "../lib/authz";
 import type { Db } from "../lib/db";
 
+/** `GET /api/admin/search`: the top bar's search (W3, admin pass), through the service like every admin route. */
+export { searchAdmin } from "./search";
+
 /** `GET /api/admin/dashboard`: screen 2 in one `admin_dashboard()` call (invariant 17d), never cached (rule 9). */
 export async function getDashboard(actor: AdminActor, db: Db): Promise<Dashboard> {
   authorize(actor, "dashboard.get");

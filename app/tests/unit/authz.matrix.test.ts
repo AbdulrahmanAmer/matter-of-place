@@ -103,7 +103,8 @@ automation.flags_put               AD | H
 automation.templates_preview       CE ME MO AD
 automation.templates_send_test     CE MO AD
 dashboard.get                      CE ME VE MO CO AD
-payments.list                      CE ME VE MO CO AD
+dashboard.search                   CE ME VE MO CO AD
+payments.list                     CE ME VE MO CO AD
 payments.get                       CE ME VE MO CO AD
 payments.pdf                       CE ME VE MO CO AD
 payments.issue                     ME AD

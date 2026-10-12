@@ -60,5 +60,14 @@
     "replace": "      if (copy.success || !copy.success) throw unavailable();",
     "run": "bunx vitest run --project unit tests/unit/state.test.ts",
     "expect": "× .*answers a cold isolate from the copy an earlier one kept"
+  },
+  {
+    "id": "ge-h-page-copy-first",
+    "test": "tests/unit/cache.test.ts",
+    "file": "src/server/public/cache.ts",
+    "find": "  const kept = stateStale ? await cache?.match(lastGoodKey(kind, url)) : undefined;",
+    "replace": "  const kept = undefined;",
+    "run": "bunx vitest run --project unit tests/unit/cache.test.ts",
+    "expect": "× .*answers `stale` when the state cannot be read and a copy exists"
   }
 ]

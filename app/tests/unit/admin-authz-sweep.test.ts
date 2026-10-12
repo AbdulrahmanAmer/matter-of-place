@@ -119,7 +119,8 @@ describe("admin services", () => {
       }
     }
     expect(leaks).toEqual([]);
-  });
+    // It imports every service file cold: 5.6 s on the laptop with nothing else running (2026-10-13).
+  }, 30_000);
 
   it("the probe tells a guarded service from one that touches the database first", async () => {
     type Client = { rpc: (name: string) => Promise<unknown> };

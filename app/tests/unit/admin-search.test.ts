@@ -62,7 +62,8 @@ describe("searchAdmin", () => {
     const answer = await searchAdmin(agent, db, { q: "point" });
     expect({
       kinds: answer.groups.map((group) => group.kind),
-      read: db.calls.map((call) => call.name),
+      // One read per searched column (R44: no free text inside a built `.or()`), all of the one table.
+      read: [...new Set(db.calls.map((call) => call.name))],
     }).toEqual({ kinds: ["properties"], read: ["properties"] });
   });
 
