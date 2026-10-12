@@ -7,14 +7,43 @@
   margin-bottom: var(--admin-space-6);
 }
 
-.admin-channel,
-.admin-channel-tile li {
+.admin-channel {
   display: grid;
   align-content: start;
   gap: var(--admin-space-3);
   min-width: 0;
   padding: var(--admin-space-4);
   border: 1px solid var(--border);
+}
+
+/* On the dashboard a channel is a block of facts under a hairline, not a card. */
+.admin-channel-tile {
+  padding-top: var(--admin-space-5);
+  border-top: 1px solid var(--foreground);
+}
+
+.admin-channel-tile > h2 {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-channel-tile li {
+  display: grid;
+  align-content: start;
+  gap: var(--admin-space-2);
+  min-width: 0;
+  padding-block: var(--admin-space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-channel-tile > a {
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .admin-channel header,
@@ -83,7 +112,7 @@
 
 .admin-channel-tile ul {
   display: grid;
-  gap: var(--admin-space-3);
+  gap: 0;
   margin-block: var(--admin-space-3);
   list-style: none;
   padding: 0;

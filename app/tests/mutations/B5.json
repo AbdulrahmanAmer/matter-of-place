@@ -439,10 +439,10 @@
     "id": "b5-r-colour",
     "test": "tests/unit/email/render.test.ts",
     "file": "src/templates/email/layout.tsx",
-    "find": "borderTop: `1px solid ${themeHex.accent}`,",
+    "find": "borderTop: `1px solid ${themeHex.mutedForeground}`,",
     "replace": "borderTop: \"1px solid #ff0000\",",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
-    "expect": "× .*received renders with its sample variables"
+    "expect": "× .*renders with its sample variables, with nothing unreplaced and no stray colour"
   },
   {
     "id": "b5-r-empty",

@@ -360,6 +360,7 @@
 /* Motion: every transition and animation is here, behind the one preference, or switched off below. */
 @media (prefers-reduced-motion: no-preference) {
   .admin-nav__link,
+  .admin-icon,
   .admin-button,
   .admin-view {
     transition:

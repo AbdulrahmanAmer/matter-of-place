@@ -107,6 +107,8 @@ begin
   insert into public.agent_runs (agent_id, cause) select id, 'message' from public.agents where slug = 'chief';
   insert into public.agent_approvals (agent_id, action, summary, content, content_hash)
   select id, 'post', 'test-rls', '{}'::jsonb, repeat('a', 64) from public.agents where slug = 'chief';
+  insert into public.vendor_usage (line, used, measured_at) values ('sentry_errors', 1, now())
+  on conflict (line) do nothing;
 end
 $$`;
 

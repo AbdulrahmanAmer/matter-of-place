@@ -1,4 +1,4 @@
-import { Button, Heading, Text } from "@react-email/components";
+import { Button, Heading, Hr, Text } from "@react-email/components";
 import type { CSSProperties } from "react";
 import type { EmailBlock } from "../../domain/email.ts";
 import { themeHex } from "../theme.gen.ts";
@@ -11,16 +11,16 @@ import { fonts, Layout, type EmailProps } from "./layout.tsx";
 export const SIGNATURE = "Matter of Place";
 
 const HEADINGS = [
-  { as: "h1", size: "34px" },
-  { as: "h2", size: "26px" },
-  { as: "h3", size: "21px" },
+  { as: "h1", size: "38px" },
+  { as: "h2", size: "28px" },
+  { as: "h3", size: "22px" },
 ] as const;
 
 const paragraph: CSSProperties = {
-  margin: "0 0 18px",
+  margin: "0 0 20px",
   fontFamily: fonts.body,
-  fontSize: "15px",
-  lineHeight: "1.7",
+  fontSize: "16px",
+  lineHeight: "1.75",
   color: themeHex.foreground,
 };
 
@@ -59,10 +59,18 @@ const factValue: CSSProperties = {
   color: themeHex.foreground,
 };
 
+// A short Sandstone rule above the signature, the way a letter is signed off under a line.
+const signatureRule: CSSProperties = {
+  width: "40px",
+  margin: "36px 0 16px",
+  border: 0,
+  borderTop: `1px solid ${themeHex.accent}`,
+};
+
 const signature: CSSProperties = {
-  margin: "28px 0 0",
+  margin: 0,
   fontFamily: fonts.display,
-  fontSize: "21px",
+  fontSize: "24px",
   fontStyle: "italic",
   color: themeHex.foreground,
 };
@@ -75,11 +83,12 @@ function BlockView({ block }: { block: EmailBlock }) {
         <Heading
           as={level.as}
           style={{
-            margin: "0 0 22px",
+            margin: "0 0 24px",
             fontFamily: fonts.display,
             fontSize: level.size,
             fontWeight: 400,
-            lineHeight: "1.18",
+            lineHeight: "1.15",
+            letterSpacing: "-0.005em",
             color: themeHex.foreground,
           }}
         >
@@ -111,7 +120,12 @@ function BlockView({ block }: { block: EmailBlock }) {
         </table>
       );
     case "signature":
-      return <Text style={signature}>{block.text ?? SIGNATURE}</Text>;
+      return (
+        <>
+          <Hr style={signatureRule} />
+          <Text style={signature}>{block.text ?? SIGNATURE}</Text>
+        </>
+      );
   }
 }
 

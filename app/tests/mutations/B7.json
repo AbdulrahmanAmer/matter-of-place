@@ -696,8 +696,8 @@
   {
     "id": "b7-g2-verify-csrf-cookie",
     "file": "src/server/team/service.ts",
-    "find": "    response.headers.append(\"set-cookie\", csrfCookie(token));",
-    "replace": "",
+    "find": "  const response = seeOther(safeNext(input.next));\n  const key = environment.CSRF_SECRET;\n  if (key !== undefined) {\n    const token = await csrfTokenFor(sessionIdOf(session.access_token), key);\n    response.headers.append(\"set-cookie\", csrfCookie(token));",
+    "replace": "  const response = seeOther(safeNext(input.next));\n  const key = environment.CSRF_SECRET;\n  if (key !== undefined) {\n    const token = await csrfTokenFor(sessionIdOf(session.access_token), key);",
     "test": "tests/unit/auth-verify.test.ts",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
     "expect": "× .*sets the session cookies and mop_csrf"
@@ -723,8 +723,8 @@
   {
     "id": "b7-g2-verify-origin",
     "file": "src/server/team/service.ts",
-    "find": "  if (!sameOrigin(request)) {",
-    "replace": "  if (sameOrigin(request) && false) {",
+    "find": "  if (!sameOrigin(request)) {\n    throw new AppError(\"csrf\", undefined, \"Please open the sign-in link again.\");",
+    "replace": "  if (sameOrigin(request) && false) {\n    throw new AppError(\"csrf\", undefined, \"Please open the sign-in link again.\");",
     "test": "tests/unit/auth-verify.test.ts",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
     "expect": "× .*answers a foreign Origin 403 csrf"
@@ -732,8 +732,8 @@
   {
     "id": "b7-g2-verify-disabled",
     "file": "src/server/team/service.ts",
-    "find": "    takeIssuedCookies(request);\n",
-    "replace": "",
+    "find": "    takeIssuedCookies(request);\n    return seeOther(\"/admin/sign-in?state=disabled\");",
+    "replace": "    return seeOther(\"/admin/sign-in?state=disabled\");",
     "test": "tests/unit/auth-verify.test.ts",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
     "expect": "× .*sends a user whose rows are all disabled"
@@ -786,7 +786,7 @@
   {
     "id": "b7-g2-send-email-limit",
     "file": "src/server/team/service.ts",
-    "find": "  return limits.ok ? null : \"limit\";",
+    "find": "  return checked.ok ? null : \"limit\";",
     "replace": "  return null;",
     "test": "tests/unit/auth-send-link.test.ts",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-send-link.test.ts",
@@ -3913,7 +3913,7 @@
     "id": "b7-g9-ui-vendor-lines",
     "test": "src/admin/dashboard/dashboard.test.tsx",
     "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "<span>Not measured, of {line.of}</span>",
+    "find": "<span>Not measured yet, of {line.of}</span>",
     "replace": "<span>Of {line.of}</span>",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*renders without the B14 route"

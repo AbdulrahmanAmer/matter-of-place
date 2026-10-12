@@ -1,6 +1,8 @@
 import {
   agentPreviewAnswerSchema,
   createFromSubmissionAnswerSchema,
+  createPropertyAnswerSchema,
+  type CreatePropertyInput,
   previewTokenAnswerSchema,
   propertyDetailSchema,
   propertyListSchema,
@@ -36,6 +38,11 @@ export function fetchProperties(query: Readonly<Record<string, string>>) {
 
 export function fetchProperty(id: string) {
   return adminFetch(propertyPath(id), propertyDetailSchema);
+}
+
+/** A property entered by hand; answers its id. */
+export function createProperty(input: CreatePropertyInput) {
+  return adminFetch("/api/admin/properties", createPropertyAnswerSchema, send("POST", input));
 }
 
 export function createFromSubmission(submissionId: string) {

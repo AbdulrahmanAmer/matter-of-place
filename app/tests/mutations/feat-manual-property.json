@@ -1,0 +1,37 @@
+[
+  {
+    "id": "mp-a-price-commas",
+    "test": "src/admin/properties/new-property.test.tsx",
+    "file": "src/admin/properties/NewPropertyDialog.tsx",
+    "find": "          const digits = price.replace(/[^0-9.]/g, \"\");",
+    "replace": "          const digits = price;",
+    "run": "bunx vitest run --project component src/admin/properties/new-property.test.tsx",
+    "expect": "× .*hands on the trimmed facts, the market and the price in dollars without its commas"
+  },
+  {
+    "id": "mp-b-empty-price-null",
+    "test": "src/admin/properties/new-property.test.tsx",
+    "file": "src/admin/properties/NewPropertyDialog.tsx",
+    "find": "            price: digits === \"\" ? null : Number(digits),",
+    "replace": "            price: Number(digits),",
+    "run": "bunx vitest run --project component src/admin/properties/new-property.test.tsx",
+    "expect": "× .*leaves the price null when it is not given"
+  },
+  {
+    "id": "mp-c-names-fields",
+    "test": "src/admin/properties/new-property.test.tsx",
+    "file": "src/domain/admin-properties.ts",
+    "find": "  city: z.string().trim().min(1, \"Name the city.\").max(120),",
+    "replace": "  city: z.string().trim().max(120),",
+    "run": "bunx vitest run --project component src/admin/properties/new-property.test.tsx",
+    "expect": "× .*names each empty required field and creates nothing"
+  },
+  {
+    "id": "mp-d-editorial-active",
+    "kind": "sql",
+    "test": "tests/db/property-editorial.db.test.ts",
+    "sql": "create or replace function public.create_property_editorial(p_title text, p_market_slug text, p_city text, p_address text, p_type public.property_type, p_actor uuid, p_actor_kind public.actor_kind, p_request_id text, p_price numeric default null) returns jsonb language sql as $$ select jsonb_build_object('property_id', null::uuid) $$",
+    "run": "bunx vitest run --project db tests/db/property-editorial.db.test.ts",
+    "expect": "× .*makes a draft: Editorial, Active"
+  }
+]

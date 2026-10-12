@@ -1,15 +1,16 @@
-import { Body, Container, Head, Hr, Html, Preview } from "@react-email/components";
+import { Hr } from "@react-email/components";
 import type { CSSProperties } from "react";
 import type { SiteContext } from "../../server/email/context.ts";
 import { NewsletterBlock, type NewsletterBlockProps } from "../social/NewsletterBlock.tsx";
 import { themeHex } from "../theme.gen.ts";
-import { Footer } from "./blocks/footer.tsx";
+import { Unsubscribe } from "./blocks/footer.tsx";
 import { Intro } from "./blocks/intro.tsx";
 import { Masthead } from "./blocks/masthead.tsx";
 import { Story } from "./blocks/story.tsx";
-import { fonts } from "./layout.tsx";
+import { Layout } from "./layout.tsx";
 
-// The Place Notes issue: masthead, the blocks in reading order, the footer. Colours come from `theme.gen.ts` (G-007).
+// The Place Notes issue, in the shell every email shares (`Layout`): the issue head, the blocks in reading order, and
+// the unsubscribe link on the footer band. Colours come from `theme.gen.ts` (G-007).
 // Every address arrives finished, with its UTM set (`render.ts`); a component only draws.
 
 /** One block of an issue, ready to draw. A property block is B9's `NewsletterBlock` under the line a person wrote. */
@@ -33,23 +34,8 @@ export interface PlaceNotesProps {
   site: SiteContext;
 }
 
-const page: CSSProperties = {
-  margin: 0,
-  padding: "32px 12px",
-  backgroundColor: themeHex.secondary,
-  fontFamily: fonts.body,
-  color: themeHex.foreground,
-};
-
-const column: CSSProperties = {
-  maxWidth: "600px",
-  margin: "0 auto",
-  padding: "40px 32px",
-  backgroundColor: themeHex.background,
-};
-
 const rule: CSSProperties = {
-  margin: "28px 0",
+  margin: "36px 0",
   border: 0,
   borderTop: `1px solid ${themeHex.accent}`,
 };
@@ -79,26 +65,14 @@ function BlockView({ block }: { block: IssueBlockView }) {
 
 export function PlaceNotes({ title, preheader, number, blocks, site }: PlaceNotesProps) {
   return (
-    <Html lang="en">
-      <Head>
-        <title>{title}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="color-scheme" content="light" />
-      </Head>
-      <Body style={page}>
-        <Container style={column}>
-          {preheader === "" ? null : <Preview>{preheader}</Preview>}
-          <Masthead number={number} />
-          {blocks.map((block) => (
-            <div key={block.id}>
-              <Hr style={rule} />
-              <BlockView block={block} />
-            </div>
-          ))}
+    <Layout title={title} preheader={preheader} site={site} afterFooter={<Unsubscribe />}>
+      <Masthead number={number} />
+      {blocks.map((block) => (
+        <div key={block.id}>
           <Hr style={rule} />
-          <Footer site={site} />
-        </Container>
-      </Body>
-    </Html>
+          <BlockView block={block} />
+        </div>
+      ))}
+    </Layout>
   );
 }

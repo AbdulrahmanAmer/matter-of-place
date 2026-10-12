@@ -17,6 +17,15 @@ Register-ScheduledTask -TaskName "MOP Workforce" -Action $action -Trigger $trigg
   -Description "Matter of Place AI colleagues: one pass a minute (scripts/workforce/daemon.ts)." -Force | Out-Null
 Write-Output "task: MOP Workforce registered (every minute, hidden)"
 
+# 3. The scheduled task "MOP Usage": the dashboard's vendor gauges measured once a day (scripts/usage-push.ts).
+$usageAction = New-ScheduledTaskAction -Execute "wscript.exe" `
+  -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\usage-push.ts usage")
+$usageTrigger = New-ScheduledTaskTrigger -Daily -At "06:00"
+Register-ScheduledTask -TaskName "MOP Usage" -Action $usageAction -Trigger $usageTrigger -Settings $settings `
+  -Description "Matter of Place: Workers requests, Sentry errors and Actions minutes for the dashboard." -Force | Out-Null
+Start-ScheduledTask -TaskName "MOP Usage"
+Write-Output "task: MOP Usage registered (daily at 06:00, run once now)"
+
 $chrome = @(
   (Join-Path $env:ProgramFiles "Google\Chrome\Application\chrome.exe"),
   (Join-Path ${env:ProgramFiles(x86)} "Google\Chrome\Application\chrome.exe"),

@@ -36,6 +36,18 @@ export const dashboardSchema = z.object({
   /** Live posts a takedown left to withdraw by hand, and when the oldest was flagged. */
   withdraw: z.object({ open: count, oldest_at: z.string().nullable() }),
   today: z.array(todayEntrySchema),
+  /** The vendor lines the operator's laptop measures (`scripts/usage-push.ts`); absent before the first push. */
+  vendor: z
+    .array(
+      z.object({
+        line: z.string(),
+        used: z.number(),
+        limit: z.number().nullable(),
+        note: z.string().nullable(),
+        measured_at: z.string(),
+      }),
+    )
+    .default([]),
 });
 
 export type Dashboard = z.infer<typeof dashboardSchema>;

@@ -31,6 +31,8 @@ export const LogEvent = [
   "keepwarm_tick",
   "keepwarm_env_missing",
   "send_link_limited",
+  "password_limited",
+  "password_audit_failed",
   "auth_send_failed",
   "jwks_fetch_failed",
   "confirm_secret_missing",
