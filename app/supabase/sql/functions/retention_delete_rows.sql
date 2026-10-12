@@ -34,6 +34,13 @@ begin
       $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1
         and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))
         and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$
+    -- Gap audit item 17: the AI staff's records. A run's approvals keep their row (run_id is set null), a message's
+    -- runs keep theirs (message_id is set null); a pending approval and an unfinished run are never removed.
+    when 'agent_approvals_decided' then
+      $r$public.agent_approvals where state <> 'pending' and coalesce(decided_at, created_at) < now() - $1$r$
+    when 'agent_runs_finished' then
+      $r$public.agent_runs where state in ('done', 'failed') and finished_at < now() - $1$r$
+    when 'agent_messages' then 'public.agent_messages where created_at < now() - $1'
   end;
   if v_rows is null then
     raise exception 'bad_request';

@@ -352,6 +352,26 @@ describe("retention media", () => {
 });
 
 describe("retention rows", () => {
+  it("deletes an AI staff approval decided 91 days ago and keeps a pending one as old (gap item 17)", async () => {
+    const result = await withRollback(async (db) => {
+      const { id: agent } = await one<{ id: string }>(db, "select id from public.agents limit 1");
+      const insert = `insert into public.agent_approvals (agent_id, action, summary, content, content_hash, state,
+          decided_at, created_at)
+        values ($1, 'test.action', 'Test', '{}', repeat('a', 64), $2,
+          case when $2 = 'pending' then null else now() - interval '91 days' end, now() - interval '91 days')
+        returning id`;
+      const { id: decided } = await one<{ id: string }>(db, insert, [agent, "approved"]);
+      const { id: pending } = await one<{ id: string }>(db, insert, [agent, "pending"]);
+      await deleteRows(db, "agent_approvals_decided");
+      const left = await db.query<{ id: string }>(
+        "select id from public.agent_approvals where id = any($1::uuid[])",
+        [[decided, pending]],
+      );
+      return left.rows.map((row) => (row.id === pending ? "pending" : "decided"));
+    });
+    expect(result).toEqual(["pending"]);
+  });
+
   it("deletes a cron.job_run_details row whose end_time is 8 days old and keeps one 6 days old", async () => {
     const result = await withRollback(async (db) => {
       // postgres may not use runid_seq on mop-dev, so each row brings its own negative runid, which no real run has.
