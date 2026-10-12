@@ -55,13 +55,13 @@ describe("the admin stylesheet", () => {
     expect(ui.reduced.join("")).toMatch(/animation:\s*none/);
   });
 
-  it("takes the tokens and its own files only, and draws no gradient, shadow or hex", () => {
+  it("takes the font faces, the tokens and its own files only, and draws no gradient, shadow or hex", () => {
     const index = sheets.find((sheet) => sheet.name === "index.css")?.css ?? "";
     const imports = [...index.matchAll(/@import "([^"]+)"/g)].map((match) => match[1]);
     const own = sheets
       .filter((sheet) => sheet.name !== "index.css")
       .map((sheet) => `./${sheet.name}`);
-    expect(imports).toEqual(["../tokens.css", ...own]);
+    expect(imports).toEqual(["../fonts.css", "../tokens.css", ...own]);
     const drawn = sheets.filter(({ css }) =>
       /gradient|box-shadow|text-shadow|filter:\s*drop-shadow|#[0-9a-fA-F]{3,8}\b/.test(css),
     );

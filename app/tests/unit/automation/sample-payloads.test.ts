@@ -136,11 +136,19 @@ describe("samplePayloadFor", () => {
     expect(db.calls).toEqual([]);
   });
 
-  it("refuses an unknown trigger, a missing record and a row that does not exist", async () => {
+  it("builds every event from placeholders when no record is named, each passing its schema, with no read", async () => {
+    const db = fakeDb();
+    const failing: string[] = [];
+    for (const type of eventTypes) {
+      const payload = await samplePayloadFor(db, type, undefined, NOW);
+      if (!eventPayloadSchemas[type].safeParse(payload).success) failing.push(type);
+    }
+    expect(failing).toEqual([]);
+    expect(db.calls).toEqual([]);
+  });
+
+  it("refuses an unknown trigger and a row that does not exist", async () => {
     await expect(sample("nope.event")).rejects.toMatchObject({ code: "unknown_trigger" });
-    await expect(
-      samplePayloadFor(fakeDb(tables()), "submission.received", undefined, NOW),
-    ).rejects.toMatchObject({ code: "validation" });
     await expect(sample("submission.received", tables({ submissions: [] }))).rejects.toMatchObject({
       code: "not_found",
     });

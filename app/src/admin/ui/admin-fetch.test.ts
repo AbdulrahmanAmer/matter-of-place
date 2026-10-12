@@ -66,8 +66,9 @@ describe("adminFetch", () => {
       await expect(adminFetch("/api/admin/x", anything)).rejects.toMatchObject({ code });
       expect(queryClient.getQueryData(["admin", "requests"])).toBeUndefined();
       expect(queryClient.getQueryData(["public", "catalog"])).toEqual([2]);
+      // A recent-sign-in refusal says so on the sign-in page (state=recent); an ended session does not.
       expect(navigate).toHaveBeenCalledExactlyOnceWith(
-        "/admin/sign-in?next=%2Fadmin%2Frequests%3Fstate%3Dnew",
+        `/admin/sign-in?next=%2Fadmin%2Frequests%3Fstate%3Dnew${code === "reauth_required" ? "&state=recent" : ""}`,
       );
     }
   });

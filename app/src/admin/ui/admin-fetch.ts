@@ -118,7 +118,9 @@ export async function adminFetch<T>(
     const error = await failure(response);
     if (response.status === 401 && SESSION_ENDED.has(error.code) && host !== null) {
       host.queryClient.removeQueries({ queryKey: ["admin"] });
-      host.navigate(`/admin/sign-in?next=${encodeURIComponent(host.currentPath())}`);
+      // A sensitive page asks for a recent sign-in: the sign-in page says why instead of looking like a sign-out.
+      const reason = error.code === "reauth_required" ? "&state=recent" : "";
+      host.navigate(`/admin/sign-in?next=${encodeURIComponent(host.currentPath())}${reason}`);
     }
     throw error;
   }
