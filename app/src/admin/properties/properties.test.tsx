@@ -181,7 +181,9 @@ describe("PropertyEditor", () => {
   });
 
   it("opens the property's own visuals in a tab of its page (W3 stage 6)", async () => {
-    const requested = serve({ [`GET /api/admin/assets?property_id=${ID}`]: { items: [], total: 0 } });
+    const requested = serve({
+      [`GET /api/admin/assets?property_id=${ID}`]: { items: [], total: 0 },
+    });
     mountEditor(() => Promise.resolve(detail()));
     fireEvent.click(await screen.findByRole("tab", { name: "Visuals" }));
     expect(await screen.findByText("No visuals yet")).toBeTruthy();

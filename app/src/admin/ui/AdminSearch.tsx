@@ -73,7 +73,12 @@ export function AdminSearch() {
         }}
       />
       {shown ? (
-        <div id={listId} className="admin-search__results" role="region" aria-label="Search results">
+        <div
+          id={listId}
+          className="admin-search__results"
+          role="region"
+          aria-label="Search results"
+        >
           {search.isFetching && groups.length === 0 ? (
             <p className="admin-search__note">Searching.</p>
           ) : null}

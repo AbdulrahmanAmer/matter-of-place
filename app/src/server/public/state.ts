@@ -117,13 +117,19 @@ async function readRpc(db: Db, name: ReadName): Promise<unknown> {
   return data;
 }
 
+/** The two calls of the Worker's cache store this file makes; the job runner's type set has no `Cache`. */
+interface KeptStore {
+  match(key: string): Promise<Response | undefined>;
+  put(key: string, response: Response): Promise<void>;
+}
+
 const keptCacheSchema = z.object({
-  default: z.custom<Cache>(
+  default: z.custom<KeptStore>(
     (value) => typeof value === "object" && value !== null && "match" in value && "put" in value,
   ),
 });
 
-function keptCache(): Cache | undefined {
+function keptCache(): KeptStore | undefined {
   const parsed = keptCacheSchema.safeParse(Reflect.get(globalThis, "caches"));
   return parsed.success ? parsed.data.default : undefined;
 }

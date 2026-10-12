@@ -572,7 +572,11 @@ describe("newsletter_send", () => {
     const calls = provider(SEND_ROUTES);
     const { db, issue } = sendWorld({ recipients: 0 });
     expect(await runSend(db)).toEqual({ status: "done", result: { skipped: "no_subscribers" } });
-    expect(issue).toMatchObject({ status: "approved", send_error: "no_subscribers", sent_at: null });
+    expect(issue).toMatchObject({
+      status: "approved",
+      send_error: "no_subscribers",
+      sent_at: null,
+    });
     expect(calls).toEqual([]);
   });
 

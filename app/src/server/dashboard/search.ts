@@ -125,9 +125,7 @@ export async function searchAdmin(
   input: { q: string },
 ): Promise<AdminSearchAnswer> {
   authorize(actor, "dashboard.search");
-  const kinds = adminSearchKinds.filter((kind) =>
-    can(actor, listAction[kind]),
-  );
+  const kinds = adminSearchKinds.filter((kind) => can(actor, listAction[kind]));
   const groups = await Promise.all(
     kinds.map(async (kind) => ({ kind, items: await hitsFor(kind, actor, db, input.q) })),
   );
