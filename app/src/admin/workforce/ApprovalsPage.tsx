@@ -11,6 +11,7 @@ const actionLabel: Record<string, string> = {
   social_post: "Social post",
   newsletter_issue: "Place Notes issue",
   instructions_change: "Change to a colleague's instructions",
+  campaign_plan: "Paid campaign plan",
 };
 
 type Mode = "view" | "decline" | "edit";

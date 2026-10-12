@@ -7811,3 +7811,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - enforced-by: `.claude/hooks/inline-script-guard.mjs` (refuses inline scripts with a backslash; it refused three of the orchestrator's own commands on 2026-10-12, each then written with Write and run as a file).
 - proof: `node .claude/hooks/inline-script-guard.test.mjs` → `inline-script-guard: 8 ok`; with the backslash check disabled → `AssertionError: node -e with a backslash is refused` (measured 2026-10-12).
 - added: 2026-10-12
+
+## G-1306 · A class removed from the admin styles leaves the screens that still use it unstyled, and nothing goes red
+- paths: app/src/styles/admin/*.css, app/src/admin/**/*.tsx
+- severity: block
+- symptom: 2026-10-12, admin pass: W3 replaced `.admin-recipes` for the Flows list while the Emails screen still drew with it; subject, key and pill ran together on one line for a day. Separately, a phone rule `.admin-actor { display: none }` meant for the top bar hid every "who" badge in every table.
+- rule: an admin class a screen names has a rule in `src/styles/admin/`; a rule that hides a shared class is scoped to its container (`.admin-bar .admin-actor`).
+- enforced-by: `app/tests/unit/admin-classes.test.ts` (registry `ap-g-class-guard`, `ap-h-badge-on-phone`).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only ap-g-class-guard` → `WATCHED-FAIL OK` (measured 2026-10-12).
+- added: 2026-10-12
+
+## P-3441 · Pushed without the full check twice in one PR (folder map, then copy-paste detector)
+- paths: (process)
+- severity: block
+- symptom: 2026-10-12, PR 346: CI failed on `check-layout` (new scripts outside the folder map) and then on jscpd (`childEnv` copied into the daemon and the review); each cost a 20 minute CI round. The operator: run the full `bun run check` before every push.
+- rule: `bun run check` runs to its end before every push; a test that fails only under load is rerun alone and named in the PR body, never skipped.
+- proof: PR 346 merged on its fourth CI run after the full check passed locally (gate-346.log, 17:05); PR 347 merged on its first (18:21).
+- added: 2026-10-12

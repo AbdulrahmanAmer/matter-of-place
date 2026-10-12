@@ -45,6 +45,25 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"agent_decisions": {
+                  Row: {
+                    "checked_at": string | null,"created_at": string,"decision": string,"due_on": string,"id": string,"meeting_on": string,"metric": string,"owner_id": string,"status": string
+                  }
+                  Insert: {
+                    "checked_at"?: string | null,"created_at"?: string,"decision": string,"due_on": string,"id"?: string,"meeting_on": string,"metric": string,"owner_id": string,"status"?: string
+                  }
+                  Update: {
+                    "checked_at"?: string | null,"created_at"?: string,"decision"?: string,"due_on"?: string,"id"?: string,"meeting_on"?: string,"metric"?: string,"owner_id"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "agent_decisions_owner_id_fkey"
+      columns: ["owner_id"]
+isOneToOne: false
+      referencedRelation: "agents"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"agent_instruction_versions": {
                   Row: {
                     "agent_id": string,"approval_id": string | null,"created_at": string,"id": string,"instructions": string,"reason": string,"version": number
