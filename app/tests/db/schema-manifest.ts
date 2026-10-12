@@ -762,6 +762,17 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     approval_id: "uuid?",
     created_at: "timestamptz",
   },
+  agent_decisions: {
+    id: "uuid",
+    meeting_on: "date",
+    owner_id: "uuid",
+    decision: "text",
+    due_on: "date",
+    metric: "text",
+    status: "text",
+    checked_at: "timestamptz?",
+    created_at: "timestamptz",
+  },
   vendor_usage: {
     line: "text",
     used: "bigint",
