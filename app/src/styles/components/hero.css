@@ -253,9 +253,8 @@
     min-height: 0;
   }
 
-  .hero-text h1 span {
-    display: inline;
-  }
+  /* Each phrase stays a block on a phone too: the reveal's clip-path on an inline phrase that wraps clips every line
+     after its first (operator, 2026-10-12, Pixel 9: "property." and "considered." were missing). */
 
   .hero-text-actions {
     flex-direction: column;

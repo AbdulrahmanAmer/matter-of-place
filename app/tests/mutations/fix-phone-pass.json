@@ -1,0 +1,11 @@
+[
+  {
+    "id": "pp-a-hero-inline",
+    "test": "tests/unit/hero-headline.test.ts",
+    "file": "src/styles/components/hero.css",
+    "find": "  .hero-text-actions {\n    flex-direction: column;",
+    "replace": "  .hero-text h1 span {\n    display: inline;\n  }\n\n  .hero-text-actions {\n    flex-direction: column;",
+    "run": "bunx vitest run --project unit tests/unit/hero-headline.test.ts",
+    "expect": "× .*never makes a revealed phrase inline, at any width"
+  }
+]
