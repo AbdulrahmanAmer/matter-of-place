@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { channelSettingsSchema, type Channel } from "../../domain/automation";
 import { SettingsPage } from "./SettingsPage";
+import { cronOf } from "./schedule-words";
 import { mountAdminPage } from "./test-mount";
 
 const BASE = "/api/admin/automation";
@@ -330,36 +331,39 @@ describe("a token the daily check marked dead", () => {
 });
 
 describe("the clocks", () => {
-  it("shows the next run in UTC and in the market zone, with the cron labelled UTC", async () => {
+  it("says when each clock runs in words and Cairo time, with its next run", async () => {
     open();
-    const digest = within(await screen.findByRole("article", { name: "digest" }));
-    expect(digest.getByText("Oct 13, 2026, 2:00 PM UTC")).toBeTruthy();
-    expect(digest.getByText("Oct 13, 2026, 10:00 AM ET")).toBeTruthy();
-    expect(digest.getByLabelText("Cron (UTC)")).toHaveProperty("value", "0 14 * * 2");
-    expect(digest.getByText("Cadence: every 14 days")).toBeTruthy();
+    const digest = within(await screen.findByRole("article", { name: "Place Notes sending" }));
+    expect(digest.getByText(/^Every 14 days, on a Tuesday at 1[67]:00, Cairo time$/)).toBeTruthy();
+    // It is switched off, so it shows no next run even though the row holds one.
+    expect(digest.getByText("Not scheduled")).toBeTruthy();
+    expect(digest.queryByText("Oct 13, 2026, 10:00 AM ET")).toBeNull();
+    expect(digest.getByText("Sends the newsletter issue to everyone signed up.")).toBeTruthy();
   });
 
-  it("says that a clock moves against local time twice a year", async () => {
+  it("shows no cron for a clock of a common shape, and says times are Cairo time", async () => {
     open();
     await ready();
-    expect(screen.getByText(/twice a year/)).toBeTruthy();
+    expect(screen.getByText(/Times are Cairo time/)).toBeTruthy();
+    expect(screen.queryByText(/0 14 \* \* 2/)).toBeNull();
+    expect(screen.queryByLabelText("Timetable (cron, UTC)")).toBeNull();
   });
 
-  it("shows an external clock's cron read only, with its badge", async () => {
+  it("says an external clock's time is set outside the site and offers only on and off", async () => {
     open();
-    const keepwarm = within(await screen.findByRole("article", { name: "keepwarm" }));
-    expect(keepwarm.getByText("External clock")).toBeTruthy();
-    expect(keepwarm.getByText("*/10 * * * *").tagName).toBe("CODE");
-    expect(keepwarm.queryByLabelText("Cron (UTC)")).toBeNull();
+    const keepwarm = within(await screen.findByRole("article", { name: "Keep the site quick" }));
+    expect(keepwarm.getByText("Every 10 minutes")).toBeTruthy();
+    expect(keepwarm.getByText(/set outside the site/)).toBeTruthy();
+    expect(keepwarm.queryByLabelText("How often")).toBeNull();
   });
 
   it("saves a switched clock with its own cron and interval", async () => {
     const api = open();
-    const digest = within(await screen.findByRole("article", { name: "digest" }));
-    fireEvent.click(digest.getByLabelText("Clock on"));
+    const digest = within(await screen.findByRole("article", { name: "Place Notes sending" }));
+    fireEvent.click(digest.getByLabelText("Place Notes sending runs"));
     fireEvent.change(digest.getByLabelText("Days between runs"), { target: { value: "7" } });
-    fireEvent.click(digest.getByRole("button", { name: "Save digest" }));
-    await screen.findByText("digest saved.");
+    fireEvent.click(digest.getByRole("button", { name: "Save Place Notes sending" }));
+    await screen.findByText("Place Notes sending saved.");
     expect(api.last(`PUT ${BASE}/schedule-settings/digest`)).toEqual({
       enabled: true,
       cron: "0 14 * * 2",
@@ -367,20 +371,35 @@ describe("the clocks", () => {
     });
   });
 
+  it("moves a weekly clock by day and Cairo time and sends the UTC cron", async () => {
+    const api = open();
+    const digest = within(await screen.findByRole("article", { name: "Place Notes sending" }));
+    fireEvent.change(digest.getByLabelText("Day"), { target: { value: "6" } });
+    fireEvent.change(digest.getByLabelText("Time, Cairo"), { target: { value: "09:00" } });
+    fireEvent.click(digest.getByRole("button", { name: "Save Place Notes sending" }));
+    await screen.findByText("Place Notes sending saved.");
+    expect(api.last(`PUT ${BASE}/schedule-settings/digest`)).toMatchObject({
+      cron: cronOf({ kind: "weekly", day: 6, hour: 9, minute: 0 }),
+    });
+  });
+
   it("sends no cron for an external clock", async () => {
     const api = open();
-    const keepwarm = within(await screen.findByRole("article", { name: "keepwarm" }));
-    fireEvent.click(keepwarm.getByLabelText("Clock on"));
-    fireEvent.click(keepwarm.getByRole("button", { name: "Save keepwarm" }));
-    await screen.findByText("keepwarm saved.");
+    const keepwarm = within(await screen.findByRole("article", { name: "Keep the site quick" }));
+    fireEvent.click(keepwarm.getByLabelText("Keep the site quick runs"));
+    fireEvent.click(keepwarm.getByRole("button", { name: "Save Keep the site quick" }));
+    await screen.findByText("Keep the site quick saved.");
     expect(api.last(`PUT ${BASE}/schedule-settings/keepwarm`)).toEqual({ enabled: false });
   });
 
-  it("refuses a cron that has not five fields", async () => {
+  it("refuses a custom timetable that has not five fields", async () => {
     const api = open();
-    const digest = within(await screen.findByRole("article", { name: "digest" }));
-    fireEvent.change(digest.getByLabelText("Cron (UTC)"), { target: { value: "0 14 *" } });
-    fireEvent.click(digest.getByRole("button", { name: "Save digest" }));
+    const digest = within(await screen.findByRole("article", { name: "Place Notes sending" }));
+    fireEvent.change(digest.getByLabelText("How often"), { target: { value: "other" } });
+    fireEvent.change(digest.getByLabelText("Timetable (cron, UTC)"), {
+      target: { value: "0 14 *" },
+    });
+    fireEvent.click(digest.getByRole("button", { name: "Save Place Notes sending" }));
     expect(await screen.findByText("Use five cron fields")).toBeTruthy();
     expect(api.count(`PUT ${BASE}/schedule-settings/digest`)).toBe(0);
   });

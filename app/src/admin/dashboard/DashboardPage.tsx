@@ -25,7 +25,7 @@ export function DashboardPage() {
     <>
       <header className="admin-dash-head">
         <p className="admin-eyebrow">{formatWeekday(now)}</p>
-        <h1>Dashboard</h1>
+        <h1>Today</h1>
       </header>
       {failure === null ? null : (
         <p role="alert">

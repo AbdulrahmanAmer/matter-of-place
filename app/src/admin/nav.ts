@@ -1,15 +1,30 @@
-// The admin navigation, written once with all 27 screens (admin-screens). A screen of a later slice shows the
-// moment its route file exists, so no later slice edits this file: an entry renders only when its `routeId`
-// is in the router's route table and, when `requiresAction` is set, the actor's `me.actions` holds it.
+// The admin navigation, written once with every screen. An entry renders only when its `routeId` is in the router's
+// route table and, when `requiresAction` is set, the actor's `me.actions` holds it.
+// W3 (2026-10-12): the rail shows eight areas, one link each, named for the work rather than the tables; the screens
+// of an area are its tabs across the top of the page (`areaTabs`), in the order they are written here.
 
 export const navGroups = [
-  "Work",
-  "Distribution",
-  "Money",
-  "Editorial",
+  "Today",
+  "Inbox",
+  "Listings",
+  "Publishing",
+  "Clients",
   "Automation",
+  "Settings",
   "System",
 ] as const;
+
+/** What the rail calls each area, where a longer name reads better than the key. */
+export const areaLabels: Record<NavGroup, string> = {
+  Today: "Today",
+  Inbox: "Inbox",
+  Listings: "Listings",
+  Publishing: "Publishing",
+  Clients: "Clients and money",
+  Automation: "Automation",
+  Settings: "Settings",
+  System: "System",
+};
 
 type NavGroup = (typeof navGroups)[number];
 
@@ -27,13 +42,13 @@ export interface NavEntry {
 
 export const navEntries: readonly NavEntry[] = [
   { screen: 1, path: "/admin/sign-in", routeId: "/admin/sign-in", label: "Sign in", hidden: true },
-  { screen: 2, path: "/admin", routeId: "/admin/", group: "Work", label: "Dashboard" },
+  { screen: 2, path: "/admin", routeId: "/admin/", group: "Today", label: "Overview" },
   // W1 (2026-10-12): the AI employees' office and what they propose for a person to approve.
   {
     screen: 28,
     path: "/admin/office",
     routeId: "/admin/office",
-    group: "Work",
+    group: "Today",
     label: "Office",
     requiresAction: "workforce.office",
   },
@@ -41,7 +56,7 @@ export const navEntries: readonly NavEntry[] = [
     screen: 29,
     path: "/admin/approvals",
     routeId: "/admin/approvals",
-    group: "Work",
+    group: "Inbox",
     label: "Approvals",
     requiresAction: "workforce.approvals",
   },
@@ -49,7 +64,7 @@ export const navEntries: readonly NavEntry[] = [
     screen: 3,
     path: "/admin/requests",
     routeId: "/admin/requests/",
-    group: "Work",
+    group: "Inbox",
     label: "Requests",
   },
   {
@@ -64,7 +79,7 @@ export const navEntries: readonly NavEntry[] = [
     screen: 26,
     path: "/admin/people",
     routeId: "/admin/people/",
-    group: "Work",
+    group: "Clients",
     label: "People",
     requiresAction: "people.list",
   },
@@ -80,7 +95,7 @@ export const navEntries: readonly NavEntry[] = [
     screen: 7,
     path: "/admin/properties",
     routeId: "/admin/properties/",
-    group: "Work",
+    group: "Listings",
     label: "Properties",
   },
   {
@@ -91,34 +106,46 @@ export const navEntries: readonly NavEntry[] = [
     hidden: true,
     parent: 7,
   },
-  { screen: 9, path: "/admin/media", routeId: "/admin/media/", group: "Work", label: "Media" },
-  { screen: 10, path: "/admin/assets", routeId: "/admin/assets/", group: "Work", label: "Assets" },
+  {
+    screen: 9,
+    path: "/admin/media",
+    routeId: "/admin/media/",
+    group: "Listings",
+    label: "Photographs",
+  },
+  {
+    screen: 10,
+    path: "/admin/assets",
+    routeId: "/admin/assets/",
+    group: "Listings",
+    label: "Visuals",
+  },
   {
     screen: 11,
     path: "/admin/inquiries",
     routeId: "/admin/inquiries/",
-    group: "Work",
+    group: "Inbox",
     label: "Inquiries",
   },
   {
     screen: 12,
     path: "/admin/channels",
     routeId: "/admin/channels/",
-    group: "Distribution",
-    label: "Channels",
+    group: "Publishing",
+    label: "Social posts",
   },
   {
     screen: 13,
     path: "/admin/newsletter",
     routeId: "/admin/newsletter/",
-    group: "Distribution",
-    label: "Newsletter",
+    group: "Publishing",
+    label: "Place Notes",
   },
   {
     screen: 5,
     path: "/admin/invoices",
     routeId: "/admin/invoices/",
-    group: "Money",
+    group: "Clients",
     label: "Invoices",
   },
   {
@@ -133,21 +160,21 @@ export const navEntries: readonly NavEntry[] = [
     screen: 22,
     path: "/admin/reports",
     routeId: "/admin/reports/",
-    group: "Money",
+    group: "Clients",
     label: "Reports",
   },
   {
     screen: 14,
     path: "/admin/stories",
     routeId: "/admin/stories/",
-    group: "Editorial",
+    group: "Publishing",
     label: "Stories",
   },
   {
     screen: 15,
     path: "/admin/markets",
     routeId: "/admin/markets/",
-    group: "Editorial",
+    group: "Publishing",
     label: "Markets",
   },
   {
@@ -155,14 +182,14 @@ export const navEntries: readonly NavEntry[] = [
     path: "/admin/automation/recipes",
     routeId: "/admin/automation/recipes",
     group: "Automation",
-    label: "Recipes",
+    label: "Flows",
   },
   {
     screen: 18,
     path: "/admin/automation/emails",
     routeId: "/admin/automation/emails",
     group: "Automation",
-    label: "Email templates",
+    label: "Emails",
   },
   {
     screen: 19,
@@ -172,42 +199,42 @@ export const navEntries: readonly NavEntry[] = [
     label: "Decline reasons",
   },
   {
-    screen: 20,
-    path: "/admin/automation/settings",
-    routeId: "/admin/automation/settings",
-    group: "Automation",
-    label: "Channels & schedules",
-  },
-  {
     screen: 21,
     path: "/admin/automation/revisions",
     routeId: "/admin/automation/revisions",
     group: "Automation",
-    label: "Revisions",
-  },
-  { screen: 16, path: "/admin/jobs", routeId: "/admin/jobs/", group: "System", label: "Jobs" },
-  {
-    screen: 23,
-    path: "/admin/team",
-    routeId: "/admin/team/",
-    group: "System",
-    label: "Team",
-    requiresAction: "team.users_list",
+    label: "History",
   },
   {
     screen: 24,
     path: "/admin/settings",
     routeId: "/admin/settings/",
-    group: "System",
-    label: "Settings",
+    group: "Settings",
+    label: "Business",
     requiresAction: "settings.get",
   },
+  {
+    screen: 20,
+    path: "/admin/automation/settings",
+    routeId: "/admin/automation/settings",
+    group: "Settings",
+    label: "Channels and schedules",
+  },
+  {
+    screen: 23,
+    path: "/admin/team",
+    routeId: "/admin/team/",
+    group: "Settings",
+    label: "Team and access",
+    requiresAction: "team.users_list",
+  },
+  { screen: 16, path: "/admin/jobs", routeId: "/admin/jobs/", group: "System", label: "Jobs" },
   {
     screen: 25,
     path: "/admin/audit",
     routeId: "/admin/audit/",
     group: "System",
-    label: "Audit log",
+    label: "Activity log",
     requiresAction: "audit.list",
   },
 ];
@@ -238,6 +265,24 @@ export function visibleNav({ hasRoute, actions }: NavVisibility): NavSection[] {
       ),
     }))
     .filter((section) => section.entries.length > 0);
+}
+
+/** The area of a screen: its own group, or its parent's when it is a detail screen. */
+export function areaOf(screen: number | null): NavGroup | null {
+  const entry = navEntries.find((candidate) => candidate.screen === screen);
+  if (entry === undefined) return null;
+  if (entry.group !== undefined) return entry.group;
+  return navEntries.find((candidate) => candidate.screen === entry.parent)?.group ?? null;
+}
+
+/** The tabs of the open screen's area, from the visible links; none when the area has a single screen. */
+export function areaTabs(
+  sections: readonly NavSection[],
+  screen: number | null,
+): readonly NavEntry[] {
+  const area = areaOf(screen);
+  const entries = sections.find((section) => section.group === area)?.entries ?? [];
+  return entries.length > 1 ? entries : [];
 }
 
 /**

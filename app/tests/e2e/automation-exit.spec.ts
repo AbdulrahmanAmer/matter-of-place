@@ -155,7 +155,7 @@ const newestRevision = (page: Page) => page.getByRole("row").nth(1);
 async function openRecipe(page: Page): Promise<void> {
   await page
     .getByRole("navigation", { name: "Events" })
-    .getByRole("button", { name: /submission\.received/ })
+    .getByRole("button", { name: /^Submission received/ })
     .click();
   await expect(page.getByRole("article", { name: "Submission received" })).toBeVisible();
 }
@@ -214,7 +214,7 @@ test("a session switches the step off on screen 17 and the dry run lists it skip
         response.request().method() === "GET" &&
         isPath(response.url(), "/api/admin/automation/recipes"),
     );
-    await page.getByRole("button", { name: "Save recipe" }).click();
+    await page.getByRole("button", { name: "Save flow" }).click();
     expect((await saved).status()).toBe(200);
     await refetched;
     expect(await stepOn()).toBe(false);
@@ -229,7 +229,7 @@ test("a session switches the step off on screen 17 and the dry run lists it skip
       "select id from public.submissions order by received_at desc limit 1",
     );
     await page.getByLabel("Record id").fill(sample.rows[0]?.id ?? "");
-    await page.getByRole("button", { name: "Run dry run" }).click();
+    await page.getByRole("button", { name: "Try it now" }).click();
     const answer = await planned;
     expect(answer.status(), await answer.text()).toBe(200);
     expect(answer.headers()["cache-control"]).toBe("no-store");

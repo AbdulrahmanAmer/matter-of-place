@@ -30,7 +30,7 @@ export function DryRunPanel({
   return (
     <RoleGate action="automation.dry_run">
       <section className="admin-dryrun" aria-labelledby="dry-run-title">
-        <h3 id="dry-run-title">Dry run</h3>
+        <h3 id="dry-run-title">Try it safely</h3>
         <p className="admin-field__hint">
           Shows which steps the next event would queue and which it would skip. Nothing is sent.
           {unsaved ? " It reads the saved recipe, not your unsaved changes." : ""}
@@ -69,7 +69,7 @@ export function DryRunPanel({
             className="admin-button admin-button--quiet"
             disabled={dryRun.isPending}
           >
-            Run dry run
+            Try it now
           </button>
         </form>
         {dryRun.isError ? (

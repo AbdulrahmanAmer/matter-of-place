@@ -209,10 +209,10 @@ test.afterAll(async () => {
 
 const card = (name: string) => page.getByRole("article", { name });
 
-test("the Work group of the navigation links Assets for a media_ops session", async () => {
-  await page.goto("/admin");
-  const work = page.locator(".admin-nav__group", { has: page.getByText("Work", { exact: true }) });
-  await expect(work.getByRole("link", { name: "Assets", exact: true })).toHaveAttribute(
+test("the Listings area links its Visuals tab for a media_ops session (W3)", async () => {
+  await page.goto("/admin/media");
+  const tabs = page.getByRole("navigation", { name: "In this area" });
+  await expect(tabs.getByRole("link", { name: /^Visuals/ })).toHaveAttribute(
     "href",
     "/admin/assets",
   );

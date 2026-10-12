@@ -44,7 +44,7 @@ describe("Matter's run", () => {
   it("maps every admin screen, every permission and the admin API in its atlas", () => {
     const text = atlas(new Date("2026-10-12T00:00:00Z"));
     expect([
-      text.includes("Work / Office: https://matterofplace.com/admin/office"),
+      text.includes("Today / Office: https://matterofplace.com/admin/office"),
       text.includes("workforce.hire"),
       text.includes("POST /api/admin/workforce/messages") ||
         text.includes("GET,POST /api/admin/workforce/messages"),

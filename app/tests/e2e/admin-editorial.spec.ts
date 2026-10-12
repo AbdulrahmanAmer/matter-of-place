@@ -80,7 +80,7 @@ test.describe("admin editorial (B7 step 10)", () => {
       if (started === undefined) throw new Error("admin-editorial: no database time");
       const { context, page } = await signInAs(browser, MANAGING_EDITOR);
       try {
-        await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
         await checkpoint(page, "admin: dashboard");
 
         await page.goto("/admin/requests?workflow_state=Submitted");

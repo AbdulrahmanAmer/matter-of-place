@@ -65,7 +65,8 @@ test("System, Jobs lands on screen 16 with the dead job pinned in red, and Retry
   const { context, page } = await signInAs(browser, MEDIA_OPS);
   await page
     .getByRole("navigation", { name: "Admin" })
-    .getByRole("link", { name: "Jobs", exact: true })
+    // W3: the rail links the System area, which opens on Jobs.
+    .getByRole("link", { name: /^System/ })
     .click();
   await page.waitForURL((url) => url.pathname === "/admin/jobs");
   await expect(jobsTable(page)).toBeVisible();

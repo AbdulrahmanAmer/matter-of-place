@@ -25,9 +25,9 @@ async function load(key: Signer) {
   const { setDbForTests } = await import("../../src/server/lib/db");
   setDbForTests(rolesDb([{ role: "admin", disabled: false }]));
   const handler = vi.fn(() => Promise.resolve([]));
-  const route = (action: "submissions.list" | "team.users_list") =>
+  const route = (action: "submissions.list" | "team.invite") =>
     defineAdminRoute({ method: "GET", action, input: z.object({}), handler });
-  const send = async (action: "submissions.list" | "team.users_list", signedInAt: number) => {
+  const send = async (action: "submissions.list" | "team.invite", signedInAt: number) => {
     const response = await route(action)({
       request: new Request(`${SITE}/api/admin/x`, {
         headers: {
@@ -66,11 +66,11 @@ describe("session policy", () => {
 
   it("answers a team call 20 minutes after sign-in 401 reauth_required, and 10 minutes after 200", async () => {
     const { send } = await load(await signer("kid-a"));
-    expect(await send("team.users_list", NOW - 20 * 60_000)).toMatchObject({
+    expect(await send("team.invite", NOW - 20 * 60_000)).toMatchObject({
       status: 401,
       body: { error: { code: "reauth_required" } },
     });
-    expect((await send("team.users_list", NOW - 10 * 60_000)).status).toBe(200);
+    expect((await send("team.invite", NOW - 10 * 60_000)).status).toBe(200);
     expect((await send("submissions.list", NOW - 20 * 60_000)).status).toBe(200);
   });
 });

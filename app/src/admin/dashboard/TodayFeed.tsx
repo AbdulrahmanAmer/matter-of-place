@@ -2,8 +2,7 @@ import type { TodayEntry } from "../../domain/admin-dashboard";
 import { EmptyState } from "../ui/EmptyState";
 import { Timeline, type TimelineEntry } from "../ui/Timeline";
 
-/** An audit action id in words: `submissions.start_review` reads "submissions: start review". */
-const actionText = (action: string) => action.replace(".", ": ").replaceAll("_", " ");
+import { actionWords } from "./today-words";
 
 function entryOf(row: TodayEntry): TimelineEntry {
   const kind = row.actor_kind === "agent" ? "agent" : row.actor_id === null ? "system" : "human";
@@ -11,7 +10,7 @@ function entryOf(row: TodayEntry): TimelineEntry {
   return {
     id: String(row.id),
     at: row.at,
-    text: actionText(row.action),
+    text: actionWords(row.action),
     actorName: row.actor_name ?? fallback,
     actorKind: kind,
   };

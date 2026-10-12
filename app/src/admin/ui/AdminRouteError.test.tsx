@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet } from "@tanstack/react-router";
 import { fireEvent, screen, within } from "@testing-library/react";
 import { createRoute } from "@tanstack/react-router";
@@ -20,11 +21,16 @@ const me: AdminMe = {
   environment: "production",
 };
 
+const client = new QueryClient();
+
 function Layout() {
+  // The shell reads the waiting counts through react-query (W3 stage 5).
   return (
-    <AdminShell me={me}>
-      <Outlet />
-    </AdminShell>
+    <QueryClientProvider client={client}>
+      <AdminShell me={me}>
+        <Outlet />
+      </AdminShell>
+    </QueryClientProvider>
   );
 }
 
