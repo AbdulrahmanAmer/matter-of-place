@@ -7876,3 +7876,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, feat/matter-actions: ESLint on the changed files was clean, then two full `bun run check` runs failed in turn on knip (`fetchSearch` exported, never imported) and on jscpd (the `jsonValue` schema copied from `src/server/channels/meta.ts` into `scripts/matter/actions.ts`).
 - rule: before a full check, run the three fast whole-repo gates once: `bun run knip && bun run jscpd && bun run format:check`; a schema two files need lives once in `src/domain/` (here `json-value.ts`).
 - proof: `cd app && bun run jscpd` → `Found 0 clones.` with `src/domain/json-value.ts` (measured 2026-10-13 02:40 Cairo); with the copy back in `actions.ts` it prints `Clone found (typescript)` naming `actions.ts [20:1 - 29:3]` and `meta.ts [60:1 - 69:3]`.
+
+## P-3448 · Keeping both sides of a CSS conflict can leave a rule unclosed
+- paths: app/src/styles/**
+- severity: warn
+- symptom: 2026-10-13, feat/matter-actions: the merge of origin/main into the branch conflicted in `app/src/styles/admin/automation.css` (both added a block at the end); the keep-both script joined the sides inside the conflict lines, so `.admin-email-head p {` lost its `}` and swallowed `.admin-ask-matter`. ESLint and the tests do not read CSS; only `format:check` (prettier) said `CssSyntaxError: Unclosed block (1003:1)`, a full check later.
+- rule: after resolving any conflict in a `.css` file by keeping both sides, run `bunx prettier --check <file>` before the merge commit, and `git diff origin/main -- <file>` must show additions only.
+- proof: `cd app && bunx prettier --check src/styles/admin/automation.css` → `All matched files use Prettier code style!` at 991cedbc; at 835b9cb8 it prints the `Unclosed block` error (measured 2026-10-13 02:55 Cairo).
