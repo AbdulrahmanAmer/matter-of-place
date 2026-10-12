@@ -10,8 +10,7 @@ import { readFileSync } from "node:fs";
 const WIDE = 600;
 const NARROW = 375;
 const VIEW_HEIGHT = 900;
-const EMBLEM_URL = "https://matterofplace.com/apple-touch-icon.png";
-const EMBLEM = readFileSync(new URL("../../public/apple-touch-icon.png", import.meta.url));
+const ART_PREFIX = "https://matterofplace.com/email/";
 
 /**
  * Sets the page to `width` and returns how wide its content is and how tall the whole page is.
@@ -43,11 +42,20 @@ const keys = process.argv.slice(2);
 const browser = await chromium.launch();
 try {
   const page = await browser.newPage();
-  // The emblem is drawn from the site's own address, which not every machine can reach: serve the file the site
-  // serves, so the picture shows what a reader sees.
-  await page.route(EMBLEM_URL, (route) =>
-    route.fulfill({ body: EMBLEM, contentType: "image/png" }),
-  );
+  // The email's artwork (masthead, ornament, emblem) is drawn from the site's own address, which not every machine
+  // can reach: serve the files the site serves, so the picture shows what a reader sees. Any other outside request
+  // (a sample property photograph) is refused, so a page never waits on the network (PR 328: one did, for 30 s).
+  await page.route("**/*", (route) => {
+    const url = route.request().url();
+    if (url.startsWith(ART_PREFIX)) {
+      const name = url.slice(ART_PREFIX.length).split(/[?#]/)[0] ?? "";
+      return route.fulfill({
+        body: readFileSync(new URL(`../../public/email/${name}`, import.meta.url)),
+        contentType: "image/png",
+      });
+    }
+    return url.startsWith("data:") ? route.continue() : route.abort();
+  });
   for (const key of keys) {
     await page.setContent(readFileSync(`out/email-${key}.html`, "utf8"), { waitUntil: "load" });
     const wide = await measure(page, WIDE);

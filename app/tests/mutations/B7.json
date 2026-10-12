@@ -3913,7 +3913,7 @@
     "id": "b7-g9-ui-vendor-lines",
     "test": "src/admin/dashboard/dashboard.test.tsx",
     "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "<span>Not measured, of {line.of}</span>",
+    "find": "<span>Not measured yet, of {line.of}</span>",
     "replace": "<span>Of {line.of}</span>",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*renders without the B14 route"
