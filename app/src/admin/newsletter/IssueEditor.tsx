@@ -152,6 +152,17 @@ function Blocks({
   );
 }
 
+/** Why the last send stopped, in words; a code without words here is shown as it is. */
+function sendErrorWords(code: string): string {
+  if (code === "no_subscribers")
+    return "Not sent: no reader has confirmed yet. The issue stays approved; approve it again once readers have signed up.";
+  if (code === "footer_incomplete")
+    return "Not sent: the footer needs the company name and postal address (Settings, Business).";
+  if (code.startsWith("block_unpublished"))
+    return "Not sent: an item in this issue is no longer published. Remove it, or publish it again.";
+  return `The last send did not finish: ${code}`;
+}
+
 const METRIC_LABELS = [
   ["delivered", "Delivered"],
   ["opened", "Opened"],
@@ -261,9 +272,7 @@ export function IssueEditor({
           </span>
         )}
       </div>
-      {issue.send_error === null ? null : (
-        <p role="alert">The last send did not finish: {issue.send_error}</p>
-      )}
+      {issue.send_error === null ? null : <p role="alert">{sendErrorWords(issue.send_error)}</p>}
       <Metrics metrics={issue.metrics} />
       {failure === null ? null : <p role="alert">{failure}</p>}
 

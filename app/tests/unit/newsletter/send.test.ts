@@ -568,6 +568,14 @@ describe("newsletter_send", () => {
     expect(calls).toEqual([]);
   });
 
+  it("sends nothing to an audience of nobody: the issue stays approved with no_subscribers (gap item 23)", async () => {
+    const calls = provider(SEND_ROUTES);
+    const { db, issue } = sendWorld({ recipients: 0 });
+    expect(await runSend(db)).toEqual({ status: "done", result: { skipped: "no_subscribers" } });
+    expect(issue).toMatchObject({ status: "approved", send_error: "no_subscribers", sent_at: null });
+    expect(calls).toEqual([]);
+  });
+
   it("skips a job whose approval_count is stale", async () => {
     const calls = provider(SEND_ROUTES);
     const { db, issue } = sendWorld();

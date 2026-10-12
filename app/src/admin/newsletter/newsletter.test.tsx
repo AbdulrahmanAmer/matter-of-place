@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { Issue, SubscriberCountsView } from "../../domain/admin-newsletter";
 import { AdminApiError } from "../ui/admin-fetch";
@@ -143,6 +143,17 @@ describe("IssueEditor", () => {
     fireEvent.click(button("Remove: The long view"));
     expect(button("Approve").hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("Add a block before approving.")).toBeTruthy();
+  });
+
+  it("says in words why the last send stopped, and shows an unknown code as it is (gap item 23)", () => {
+    mountEditor({ status: "approved", send_error: "no_subscribers" });
+    const nobody = screen.getByRole("alert").textContent;
+    cleanup();
+    mountEditor({ status: "approved", send_error: "provider_refused" });
+    expect([nobody, screen.getByRole("alert").textContent]).toEqual([
+      "Not sent: no reader has confirmed yet. The issue stays approved; approve it again once readers have signed up.",
+      "The last send did not finish: provider_refused",
+    ]);
   });
 
   it("keeps Approve off while a change is not saved", () => {

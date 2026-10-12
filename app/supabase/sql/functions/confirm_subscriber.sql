@@ -17,6 +17,8 @@ begin
     unsubscribed_at = null,
     archived_at = null
   where confirm_token_hash = p_token_hash
+    -- Gap audit item 24: a link older than 7 days matches nothing; signing up again sends a fresh one.
+    and confirm_token_at > now() - interval '7 days'
   returning id into v_id;
   if v_id is not null then
     perform public.emit_event(

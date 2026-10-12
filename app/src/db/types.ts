@@ -1112,13 +1112,13 @@ isOneToOne: false
                   ]
                 },"subscribers": {
                   Row: {
-                    "archived_at": string | null,"confirm_token_hash": string | null,"confirmed_at": string | null,"created_at": string,"email": string,"id": string,"last_engaged_at": string | null,"markets": (string)[],"pending_source": string | null,"repermission_sent_at": string | null,"resend_contact_id": string | null,"source": string,"unsubscribed_at": string | null,"updated_at": string
+                    "archived_at": string | null,"confirm_token_at": string | null,"confirm_token_hash": string | null,"confirmed_at": string | null,"created_at": string,"email": string,"id": string,"last_engaged_at": string | null,"markets": (string)[],"pending_source": string | null,"repermission_sent_at": string | null,"resend_contact_id": string | null,"source": string,"unsubscribed_at": string | null,"updated_at": string
                   }
                   Insert: {
-                    "archived_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email": string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source": string,"unsubscribed_at"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"confirm_token_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email": string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source": string,"unsubscribed_at"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "archived_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email"?: string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source"?: string,"unsubscribed_at"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"confirm_token_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email"?: string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source"?: string,"unsubscribed_at"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     
