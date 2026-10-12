@@ -7794,3 +7794,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: db-fn spawns the CLI with stdin ignored (fixed on feat/matter, 3602ff47); until that is on main, run `bun run db:fn ... < /dev/null`. A migration file is never committed without `wc -l` showing its body.
 - proof: `cd app && timeout 120 bun run db:fn --name probe claim_agent_run` from the agent shell → `wrote ...probe.sql` in seconds, 32 lines (measured 2026-10-12); before the fix the same command outlived 600 s.
 - added: 2026-10-12
+
+## G-1305 · A test that expects NO Sentry report passes for the wrong reason: `captureException` drops a repeat fingerprint for a minute
+- paths: app/tests/unit/email/notify-admin.test.ts, app/src/server/lib/sentry.ts
+- severity: warn
+- symptom: 2026-10-12, gap item 10: "makes no Sentry report when the mail carries the alert" stayed green with the report put back (registry sn-a BAD, stayed green): an earlier case in the file had sent the same `["alert", "submission.received"]` fingerprint, and the module-level `lastSent` map swallowed the second one.
+- rule: a test that counts Sentry reports to prove there are none passes a `vi.fn<Reporter>()` spy as the reporter, never `sentryReporter`; the real sender is only for a test that proves a report's envelope, with a fingerprint no other case in the file uses.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only sn-a-no-report-on-delivery` → `WATCHED-FAIL OK` with the spy (measured 2026-10-12, PR 341).
+- added: 2026-10-12
+
+## P-3440 · An inline fix script for a "known" shell trap was written again after the trap was banked
+- paths: (process)
+- severity: block
+- symptom: 2026-10-12, W3: a `node -e` rewrite with `\\.` in a RegExp threw after half its edits landed, though P-008 had been in the bank since 2026-10-01. The operator: "if it is known make sure that you write it properly and make that something that you don't need memory for".
+- rule: a banked trap that a hook can see becomes a hook the same day; a rule that needs memory is not a fix.
+- enforced-by: `.claude/hooks/inline-script-guard.mjs` (refuses inline scripts with a backslash; it refused three of the orchestrator's own commands on 2026-10-12, each then written with Write and run as a file).
+- added: 2026-10-12
