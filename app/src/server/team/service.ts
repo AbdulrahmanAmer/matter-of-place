@@ -46,6 +46,7 @@ import { clientIp, hashKey } from "../lib/ids.ts";
 import { logLine } from "../lib/log.ts";
 import { checkDb, checkMemory } from "../lib/ratelimit.ts";
 import { authClient, sessionIdOf, takeIssuedCookies } from "../lib/session.ts";
+import { passwordWasPwned } from "../lib/pwned.ts";
 import { verifyTurnstile } from "../lib/turnstile.ts";
 
 // Staff sign-in (invariant 19, API-01) and `GET me` (invariants 2 and 11). A sign-in link is mailed only to
@@ -261,6 +262,13 @@ export async function setOwnPassword(
   input: z.output<typeof setPasswordInput>,
 ): Promise<{ status: "set" }> {
   authorize(actor, "dashboard.password");
+  if (await passwordWasPwned(input.password)) {
+    throw new AppError(
+      "validation",
+      undefined,
+      "This password has appeared in a data breach elsewhere. Please choose a different one.",
+    );
+  }
   const { error } = await authClient(request).updateUser({ password: input.password });
   if (error !== null) {
     if (isAuthRetryableFetchError(error)) throw unavailable();

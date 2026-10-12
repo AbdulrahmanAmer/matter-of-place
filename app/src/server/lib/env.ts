@@ -36,9 +36,14 @@ const shape = z.object({
 });
 
 // After the launch switch a preview holds no Supabase key (H35 (7)), so only production needs them.
-const REQUIRED_IN_PRODUCTION = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
+// Gap audit item 14: the Resend webhook is refused without its secret, so production must hold it (set, 2026-10-12).
+const REQUIRED_IN_PRODUCTION = [
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "RESEND_WEBHOOK_SECRET",
+] as const;
 const REQUIRED_OUTSIDE_LOCAL = ["TURNSTILE_SECRET", "SENTRY_DSN"] as const;
-const OPTIONAL_AND_NOTED = ["MEDIA_PUBLIC_BASE", "RESEND_WEBHOOK_SECRET"] as const;
+const OPTIONAL_AND_NOTED = ["MEDIA_PUBLIC_BASE"] as const;
 
 const schema = shape.superRefine((value, ctx) => {
   const required: readonly (keyof typeof value)[] = [
