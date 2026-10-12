@@ -107,6 +107,14 @@ begin
   insert into public.agent_runs (agent_id, cause) select id, 'message' from public.agents where slug = 'chief';
   insert into public.agent_approvals (agent_id, action, summary, content, content_hash)
   select id, 'post', 'test-rls', '{}'::jsonb, repeat('a', 64) from public.agents where slug = 'chief';
+  -- W2 step 6: a lesson and an instructions version.
+  insert into public.agent_lessons (agent_id, trigger, action, evidence_ref, source)
+  select id, 'When you post', 'test-rls lesson', 'approval:test-rls', 'decline' from public.agents where slug = 'chief';
+  insert into public.agent_instruction_versions (agent_id, version, instructions, reason)
+  select id, 1000 + floor(random() * 1e6)::int, 'test-rls', 'test-rls' from public.agents where slug = 'chief';
+  -- W2 step 7: a meeting decision.
+  insert into public.agent_decisions (meeting_on, owner_id, decision, due_on, metric)
+  select current_date, id, 'test-rls decision', current_date, 'test-rls' from public.agents where slug = 'chief';
   insert into public.vendor_usage (line, used, measured_at) values ('sentry_errors', 1, now())
   on conflict (line) do nothing;
 end

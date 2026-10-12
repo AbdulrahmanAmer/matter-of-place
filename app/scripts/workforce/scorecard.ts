@@ -113,9 +113,7 @@ async function windowLines(db: Db, from: Date, to: Date): Promise<Line[]> {
           .reduce((sum, row) => sum + row.events, 0)
       : null;
   const revenue =
-    payments.error === null
-      ? payments.data.reduce((sum, row) => sum + row.amount, 0)
-      : null;
+    payments.error === null ? payments.data.reduce((sum, row) => sum + row.amount, 0) : null;
   return [
     { name: "Visits (page views)", now: views, before: null },
     { name: "Property requests received", now: requests, before: null },

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "w2b-a-charter-waits-for-yes",
+    "test": "tests/unit/brain.test.ts",
+    "file": "scripts/workforce/charter.ts",
+    "find": "  if (!/^Approved by the operator: yes\\b/m.test(section)) return \"\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/brain.test.ts",
+    "expect": "× .*opens an employee's prompt only once the operator has approved it"
+  },
+  {
+    "id": "w2b-b-decisions-due-today-or-later",
+    "test": "tests/unit/brain.test.ts",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "slugs.includes(item.owner) && item.due_on >= today",
+    "replace": "slugs.includes(item.owner)",
+    "run": "bunx vitest run --project unit tests/unit/brain.test.ts",
+    "expect": "× .*keeps at most five decisions"
+  },
+  {
+    "id": "w2b-c-knowledge-relevant-only",
+    "test": "tests/unit/brain.test.ts",
+    "file": "scripts/workforce/knowledge.ts",
+    "find": "    .filter((file) => file.score > 0)",
+    "replace": "    .filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/brain.test.ts",
+    "expect": "× .*keeps dated entries per subject"
+  },
+  {
+    "id": "w2b-d-meeting-in-cairo",
+    "test": "tests/unit/brain.test.ts",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "timeZone: \"Africa/Cairo\"",
+    "replace": "timeZone: \"UTC\"",
+    "run": "bunx vitest run --project unit tests/unit/brain.test.ts",
+    "expect": "× .*dates the meeting in Cairo"
+  }
+]

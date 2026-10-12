@@ -10,22 +10,21 @@
 //    and sends the operator a ten-line digest in his side chat.
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
-import { createClient } from "@supabase/supabase-js";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import type { Database } from "../../src/db/index.ts";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, fenced, matterInputs } from "../matter/run.ts";
 import { staffCharterFrom } from "./charter.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
-import { loadEnvFile } from "./env.ts";
+import { childEnv, serviceDb as client } from "./env.ts";
 import { costMicroUsd, inputTokens } from "./growth.ts";
 import { knowledgeBlock, remember } from "./knowledge.ts";
 import { scorecard, scorecardText } from "./scorecard.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
-const PLAN = resolve(import.meta.dir, "../../../workspace/05-plans/W2.md");
+const PLAN = resolve(dirname(fileURLToPath(import.meta.url)), "../../../workspace/05-plans/W2.md");
 const models: Record<string, string> = {
   opus: "claude-opus-5-5",
   sonnet: "claude-sonnet-5-5",
@@ -91,28 +90,6 @@ export function keptDecisions<T extends { owner: string; due_on: string }>(
 /** Today's date where the operator is (Cairo). */
 export function cairoDate(now: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(now);
-}
-
-function client(): Db {
-  loadEnvFile();
-  const ref = process.env["DEV_SUPABASE_PROJECT_REF"];
-  const key = process.env["DEV_SUPABASE_SERVICE_ROLE_KEY"];
-  if (ref === undefined || key === undefined)
-    throw new Error("meeting: the .env names are missing");
-  return createClient<Database>(`https://${ref}.supabase.co`, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-function childEnv(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = {};
-  for (const [name, value] of Object.entries(process.env)) {
-    if (name.startsWith("CLAUDE") || name.startsWith("DEV_SUPABASE") || name.includes("SECRET"))
-      continue;
-    if (name.endsWith("_KEY") || name.endsWith("_TOKEN")) continue;
-    env[name] = value;
-  }
-  return env;
 }
 
 async function ask(

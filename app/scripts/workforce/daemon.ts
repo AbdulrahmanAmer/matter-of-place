@@ -9,13 +9,14 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { join, resolve } from "node:path";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "../../src/db/index.ts";
 import { agentTools, hireInputSchema, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, keepNote, matterInputs, matterPrompt } from "../matter/run.ts";
-import { loadEnvFile } from "./env.ts";
+import { staffCharterFrom } from "./charter.ts";
+import { childEnv, serviceDb as db } from "./env.ts";
+import { knowledgeBlock } from "./knowledge.ts";
+import { makeVoiceover, mediaRequestSchema } from "./media.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 
@@ -34,30 +35,6 @@ const models: Record<string, string> = {
 
 // ---------- the database ----------
 
-function db(): Db {
-  loadEnvFile();
-  const ref = process.env["DEV_SUPABASE_PROJECT_REF"];
-  const key = process.env["DEV_SUPABASE_SERVICE_ROLE_KEY"];
-  if (ref === undefined || key === undefined)
-    throw new Error("workforce: the .env names of the project are missing");
-  return createClient<Database>(`https://${ref}.supabase.co`, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-// ---------- the CLI (Jay's lessons: stdin, no inherited CLAUDE* variables, no MCP, tree kill) ----------
-
-function childEnv(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = {};
-  for (const [name, value] of Object.entries(process.env)) {
-    if (name.startsWith("CLAUDE") || name.startsWith("DEV_SUPABASE") || name.includes("SECRET"))
-      continue;
-    if (name.endsWith("_KEY") || name.endsWith("_TOKEN")) continue;
-    env[name] = value;
-  }
-  return env;
-}
-
 /** Matter's environment: the employees' one. Its admin key never reaches its process (gap audit item 2). */
 function matterEnv(): NodeJS.ProcessEnv {
   return childEnv();
@@ -73,6 +50,7 @@ function askClaude(
   prompt: string,
   model: string,
   cwd: string,
+  research = false,
 ): Promise<{ text: string; session?: string; usage?: CliUsage }> {
   return runClaude({
     args: [
@@ -84,6 +62,8 @@ function askClaude(
       "--strict-mcp-config",
       "--mcp-config",
       emptyMcpConfig(),
+      // W2 step 7: a colleague with the research tool may search the web, and nothing more.
+      ...(research ? ["--allowedTools", "WebSearch"] : []),
     ],
     cwd,
     env: childEnv(),
@@ -150,7 +130,7 @@ const outcome = z.object({
   proposals: z
     .array(
       z.object({
-        action: z.enum(["reply_inquiry", "social_post", "newsletter_issue"]),
+        action: z.enum(["reply_inquiry", "social_post", "newsletter_issue", "campaign_plan"]),
         summary: z.string().min(1).max(500),
         content: z.object({
           body: z.string().min(1).max(20000),
@@ -162,12 +142,15 @@ const outcome = z.object({
   hire: z.array(hireInputSchema).default([]),
   // Matter only: one line it keeps in its capped notes.
   note: z.string().default(""),
+  // Matter only (W2 step 5): media the daemon makes with the installed skills.
+  media: z.array(mediaRequestSchema).default([]),
 });
 
 const allowedProposal: Record<string, string> = {
   reply_inquiry: "draft_reply",
   social_post: "draft_post",
   newsletter_issue: "draft_newsletter",
+  campaign_plan: "draft_campaign",
 };
 
 function readJsonAnswer(text: string): z.infer<typeof outcome> {
@@ -180,12 +163,12 @@ function readJsonAnswer(text: string): z.infer<typeof outcome> {
       // fall through: a plain answer is still a reply
     }
   }
-  return { reply: text.trim(), task: "", proposals: [], hire: [], note: "" };
+  return { reply: text.trim(), task: "", proposals: [], hire: [], note: "", media: [] };
 }
 
 async function context(
   client: Db,
-  run: { cause: string; event_id: string | null; message_id: string | null },
+  run: { agent_id: string; cause: string; event_id: string | null; message_id: string | null },
   thread: string,
 ) {
   const parts: string[] = [];
@@ -215,6 +198,19 @@ async function context(
           .join("\n"),
     );
   }
+  const { data: decisions } = await client
+    .from("agent_decisions")
+    .select("decision, due_on, metric")
+    .eq("owner_id", run.agent_id)
+    .eq("status", "open")
+    .order("due_on");
+  if (decisions !== null && decisions.length > 0)
+    parts.push(
+      `Your open decisions from the daily meeting (work them; the next meeting marks each done or missed):\n` +
+        decisions
+          .map((item) => `- ${item.decision} (due ${item.due_on}; proven by ${item.metric})`)
+          .join("\n"),
+    );
   const [requests, inquiries, properties] = await Promise.all([
     client
       .from("submissions")
@@ -237,17 +233,21 @@ function promptFor(
   team: { name: string; slug: string; role: string }[],
   situation: string,
   lessons = "",
+  charter = "",
+  knowledge = "",
 ): string {
   const may = agentTools.filter((tool) => agent.tools.includes(tool));
   return [
+    ...(charter === "" ? [] : [charter]),
     `You are ${agent.name} (@${agent.slug}), ${agent.role}, at Matter of Place: a selective editorial and distribution platform for exceptional existing residential property in California, New York and Florida, a product of Omnikom LLC.`,
     "House voice for everything you write: calm, brief, specific; no em dashes, no hyperbole, no guarantees of buyers, leads or sales; price never equals merit.",
     `Your brief: ${agent.instructions}`,
+    ...(knowledge === "" ? [] : [knowledge]),
     ...(lessons === "" ? [] : [lessons]),
     `Your colleagues: ${team.map((member) => `@${member.slug} (${member.name}, ${member.role})`).join("; ")}. Mention a colleague with @handle to hand them work.`,
     `You may: ${may.join(", ")}. Anything that leaves the company (a reply, a post, a newsletter) is a proposal a person approves; you never send it yourself.`,
     situation,
-    'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
+    'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
   ].join("\n\n");
 }
 
@@ -312,12 +312,22 @@ async function runOnce(client: Db): Promise<boolean> {
           matterEnv(),
         )
       : await askClaude(
-          promptFor(agent, team, situation, lessons),
+          promptFor(
+            agent,
+            team,
+            situation,
+            lessons,
+            staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
+            knowledgeBlock(situation),
+          ),
           models[agent.model] ?? models["sonnet"] ?? "claude-sonnet-5-5",
           cwd,
+          agent.tools.includes("research"),
         );
     const result = readJsonAnswer(answer.text);
     if (isMatter) keepNote(result.note);
+    // W2 step 5: Matter cannot run a skill in its safe mode; the daemon runs it, one at a time, and says where it is.
+    const media = isMatter ? result.media.slice(0, 2) : [];
 
     if (result.reply !== "") {
       await client.from("agent_messages").insert({
@@ -347,6 +357,23 @@ async function runOnce(client: Db): Promise<boolean> {
               targets.map((row) => ({ agent_id: row.id, cause: "message", message_id: last.id })),
             );
       }
+    }
+    for (const request of media) {
+      await client
+        .from("agents")
+        .update({ current_task: `Making the voice-over "${request.name}"` })
+        .eq("id", agent.id);
+      const made = makeVoiceover(request);
+      await client.from("agent_messages").insert({
+        thread,
+        author_kind: "agent",
+        author_id: agent.slug,
+        author_name: agent.name,
+        body:
+          made.path === undefined
+            ? `The voice-over "${request.name}" could not be made: ${made.error ?? "no reason"}.`
+            : `The voice-over "${request.name}" is ready: ${made.path}`,
+      });
     }
     for (const proposal of result.proposals) {
       if (!agent.tools.includes(allowedProposal[proposal.action] ?? "")) continue;
@@ -437,6 +464,29 @@ async function runOnce(client: Db): Promise<boolean> {
   return true;
 }
 
+/** One backlog run: the colleague with an open decision whose last scheduled run is the oldest, at most every 3 hours. */
+async function wakeBacklog(client: Db): Promise<void> {
+  const { data: open } = await client
+    .from("agent_decisions")
+    .select("owner_id")
+    .eq("status", "open");
+  const owners = [...new Set((open ?? []).map((row) => row.owner_id))];
+  if (owners.length === 0) return;
+  const { data: agents } = await client.from("agents").select("id, state").in("id", owners);
+  const idle = (agents ?? []).filter((agent) => agent.state === "idle").map((agent) => agent.id);
+  const since = new Date(Date.now() - 3 * 3_600_000).toISOString();
+  const { data: recent } = await client
+    .from("agent_runs")
+    .select("agent_id")
+    .in("agent_id", idle)
+    .gte("created_at", since);
+  const busy = new Set((recent ?? []).map((row) => row.agent_id));
+  const next = idle.find((id) => !busy.has(id));
+  if (next === undefined) return;
+  await client.from("agent_runs").insert({ agent_id: next, cause: "schedule" });
+  console.log(`${new Date().toISOString()} backlog run for ${next}`);
+}
+
 async function pass(client: Db): Promise<void> {
   // W2: Matter's side chat says "online" while this runner passes; one touch of Matter's row per pass.
   await client
@@ -455,9 +505,13 @@ async function pass(client: Db): Promise<void> {
   const woke = await wakeOnEvents(client);
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
   // Up to five runs a pass, one after another; the scheduled task starts the next pass a minute later.
+  let ran = 0;
   for (let index = 0; index < 5; index += 1) {
     if (!(await runOnce(client))) break;
+    ran += 1;
   }
+  // W2 contract 12: with nothing waiting, one colleague works its open decisions (its backlog).
+  if (ran === 0) await wakeBacklog(client);
 }
 
 async function main(): Promise<void> {
