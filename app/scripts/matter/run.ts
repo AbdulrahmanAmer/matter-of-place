@@ -3,12 +3,12 @@
 // repository (never the live runner folder), under the deny list of `settings.json` (the operator's standing rules).
 // It has no session: each run reads the charter (the operator's words, verbatim), the atlas, its capped notes and the
 // recent thread, and ends with one JSON object the daemon acts on.
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { z } from "zod";
+import { runClaude } from "../workforce/cli.ts";
 import { atlas } from "./atlas.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -80,9 +80,6 @@ export function matterPrompt(input: {
   ].join("\n\n");
 }
 
-const cliAnswer = z.object({ is_error: z.boolean().optional(), result: z.string() });
-
-/** Runs the Claude CLI as Matter: full tools in the desk, the deny list in settings.json, the prompt on stdin. */
 /** Matter's desk exists before its first run: a worktree of the repository at main, never the runner's folder. */
 function ensureDesk(): void {
   if (existsSync(DESK)) return;
@@ -98,57 +95,29 @@ function ensureDesk(): void {
   if (made.status !== 0) throw new Error("Matter's desk could not be made");
 }
 
-export function askMatter(prompt: string, env: NodeJS.ProcessEnv): Promise<string> {
+export async function askMatter(prompt: string, env: NodeJS.ProcessEnv): Promise<string> {
   ensureDesk();
-  const program = env["WORKFORCE_CLI"]?.trim() || "claude";
-  const args = [
-    "-p",
-    "--model",
-    MODEL,
-    "--output-format",
-    "json",
-    "--settings",
-    join(here, "settings.json"),
-    "--permission-mode",
-    "acceptEdits",
-    "--add-dir",
-    HOME,
-  ];
-  return new Promise((done, fail) => {
-    const child = spawn(program, args, {
-      cwd: DESK,
-      env,
-      windowsHide: true,
-      stdio: ["pipe", "pipe", "ignore"],
-    });
-    const timer = setTimeout(() => {
-      if (child.pid !== undefined) spawnSync("taskkill", ["/T", "/F", "/PID", String(child.pid)]);
-      fail(new Error("Matter took longer than fifteen minutes"));
-    }, RUN_TIMEOUT_MS);
-    let out = "";
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => {
-      out += chunk;
-    });
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      fail(new Error(`the Claude CLI did not start: ${error.message}`));
-    });
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      try {
-        const answer = cliAnswer.parse(JSON.parse(out));
-        if (code !== 0 || answer.is_error === true) {
-          fail(new Error(`the Claude CLI answered an error (exit ${String(code)})`));
-          return;
-        }
-        done(answer.result);
-      } catch {
-        fail(new Error(`the Claude CLI answer was not readable (exit ${String(code)})`));
-      }
-    });
-    child.stdin.end(prompt);
+  const answer = await runClaude({
+    args: [
+      "-p",
+      "--model",
+      MODEL,
+      "--output-format",
+      "json",
+      "--settings",
+      join(here, "settings.json"),
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      HOME,
+    ],
+    cwd: DESK,
+    env,
+    prompt,
+    timeoutMs: RUN_TIMEOUT_MS,
+    who: "Matter",
   });
+  return answer.text;
 }
 
 /** Keeps the note Matter chose to keep, under the cap. */

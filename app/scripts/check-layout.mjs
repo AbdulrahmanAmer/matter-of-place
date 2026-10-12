@@ -134,7 +134,7 @@ export const APP_ROWS = [
       "scripts/lib/*.{ts,mjs}",
       "scripts/{audit,harden,launch}/**/*.{ts,mjs}",
       // W1: the laptop runner of the AI colleagues, its hidden launcher and its installer.
-      "scripts/workforce/{daemon.ts,hidden-run.vbs,install.ps1}",
+      "scripts/workforce/{cli.ts,daemon.ts,hidden-run.vbs,install.ps1}",
       "scripts/matter/{atlas.ts,key.ts,run.ts,settings.json}",
       "scripts/harden/checklist.json",
       "scripts/harden/rls-review.sql",

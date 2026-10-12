@@ -5,7 +5,6 @@
 // No model key exists anywhere (H34): the CLI is the operator's own account. It prints no secret and no prompt.
 //   bun scripts/workforce/daemon.ts          one pass, then exit (the scheduled task runs it every minute)
 //   bun scripts/workforce/daemon.ts --loop   pass after pass until stopped (for watching it live)
-import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
@@ -16,6 +15,7 @@ import type { Database } from "../../src/db/index.ts";
 import { agentTools, hireInputSchema, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, keepNote, matterInputs, matterPrompt } from "../matter/run.ts";
+import { runClaude } from "./cli.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -81,82 +81,33 @@ function matterEnv(): NodeJS.ProcessEnv {
   return key === undefined ? childEnv() : { ...childEnv(), MATTER_AGENT_KEY: key };
 }
 
-function killTree(pid: number | undefined): void {
-  if (pid === undefined) return;
-  if (process.platform === "win32")
-    spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true });
-  else process.kill(-pid, "SIGKILL");
-}
-
-const cliAnswer = z.object({
-  is_error: z.boolean().optional(),
-  result: z.string(),
-  session_id: z.string().optional(),
-});
-
 function emptyMcpConfig(): string {
   const file = join(HOME, "no-mcp.json");
   if (!existsSync(file)) writeFileSync(file, JSON.stringify({ mcpServers: {} }));
   return file;
 }
 
-async function askClaude(
+function askClaude(
   prompt: string,
   model: string,
   cwd: string,
 ): Promise<{ text: string; session?: string }> {
-  const program = process.env["WORKFORCE_CLI"]?.trim() || "claude";
-  const args = [
-    "-p",
-    "--model",
-    model,
-    "--output-format",
-    "json",
-    "--strict-mcp-config",
-    "--mcp-config",
-    emptyMcpConfig(),
-  ];
-  return new Promise((done, fail) => {
-    const child = spawn(program, args, {
-      cwd,
-      env: childEnv(),
-      windowsHide: true,
-      stdio: ["pipe", "pipe", "ignore"],
-    });
-    const timer = setTimeout(() => {
-      killTree(child.pid);
-      fail(new Error("the colleague took longer than six minutes"));
-    }, CLI_TIMEOUT_MS);
-    let out = "";
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => {
-      out += chunk;
-    });
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      fail(new Error(`the Claude CLI did not start: ${error.message}`));
-    });
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      if (code !== 0) {
-        fail(new Error(`the Claude CLI exited with code ${String(code)}`));
-        return;
-      }
-      try {
-        const answer = cliAnswer.parse(JSON.parse(out));
-        if (answer.is_error === true) {
-          fail(new Error("the Claude CLI answered an error"));
-          return;
-        }
-        done({
-          text: answer.result,
-          ...(answer.session_id === undefined ? {} : { session: answer.session_id }),
-        });
-      } catch {
-        fail(new Error("the Claude CLI answer was not readable"));
-      }
-    });
-    child.stdin.end(prompt);
+  return runClaude({
+    args: [
+      "-p",
+      "--model",
+      model,
+      "--output-format",
+      "json",
+      "--strict-mcp-config",
+      "--mcp-config",
+      emptyMcpConfig(),
+    ],
+    cwd,
+    env: childEnv(),
+    prompt,
+    timeoutMs: CLI_TIMEOUT_MS,
+    who: "the colleague",
   });
 }
 
