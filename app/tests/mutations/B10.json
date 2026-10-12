@@ -2667,7 +2667,7 @@
     "find": "  red: \"danger\",\n",
     "replace": "  red: \"warning\",\n",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
-    "expect": "× .*draws a card per live channel"
+    "expect": "× .*asks to reconnect a connected channel whose token died"
   },
   {
     "id": "b10g8-cards-disabled",
@@ -2684,8 +2684,8 @@
     "kind": "file",
     "test": "src/admin/channels/channels.test.tsx",
     "file": "src/admin/channels/ChannelCards.tsx",
-    "find": "{health === undefined || !isLive(channel) ? null : (",
-    "replace": "{health === undefined ? null : (",
+    "find": "{health === undefined || !isLive(channel) ? null : health.connected ? (",
+    "replace": "{health === undefined ? null : health.connected ? (",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/channels/channels.test.tsx",
     "expect": "× .*shows Facebook and YouTube as not enabled yet"
   },

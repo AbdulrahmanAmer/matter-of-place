@@ -1,6 +1,14 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, join, relative, resolve, sep } from "node:path";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
 // Watched-fail (RULE 2): break the code a test covers, see the test go red for the right reason, put the code back.
@@ -174,9 +182,34 @@ function execute(command, extraEnv) {
  */
 const mutatedNow = new Map();
 
+// P-3444: a replay killed hard (Stop-Process, a closed terminal) runs no exit handler, so the mutated file stays.
+// Before each mutation the original is written here; the next replay in the folder puts it back before anything else.
+const PENDING = "node_modules/.cache/watchfail.pending.json";
+
 function restoreAll() {
   for (const [path, bytes] of mutatedNow) writeFileSync(path, bytes);
   mutatedNow.clear();
+  if (existsSync(PENDING)) unlinkSync(PENDING);
+}
+
+/** Puts back what a replay that died mid-mutation left. Answers the path it restored, or null. */
+function restorePending() {
+  if (!existsSync(PENDING)) return null;
+  /** @type {unknown} */
+  const pending = JSON.parse(readFileSync(PENDING, "utf8"));
+  unlinkSync(PENDING);
+  if (
+    typeof pending !== "object" ||
+    pending === null ||
+    !("path" in pending) ||
+    !("original" in pending) ||
+    typeof pending.path !== "string" ||
+    typeof pending.original !== "string"
+  ) {
+    return null;
+  }
+  writeFileSync(pending.path, Buffer.from(pending.original, "base64"));
+  return pending.path;
 }
 
 /**
@@ -231,6 +264,10 @@ async function runMutated(entry, label) {
   const changed = text.slice(0, start) + replace + text.slice(start + find.length);
   const line = text.slice(0, start).split("\n").length;
   mutatedNow.set(path, original);
+  writeFileSync(
+    PENDING,
+    JSON.stringify({ path, original: Buffer.from(original).toString("base64") }),
+  );
   writeFileSync(path, changed);
   const shown = changed.split("\n")[line - 1]?.trim().slice(0, 100) ?? "";
   console.log(`  mutated ${file}:${String(line)}  ${shown}`);
@@ -406,7 +443,46 @@ async function main(argv) {
   return outcome === "ok" ? 0 : outcome === "bad" ? 1 : 2;
 }
 
+// P-3444: two replays in one folder mutate the same files and each restores what the other left, so a mutation
+// survives into the next commit (JobWatcher, 2026-10-12). One replay per folder: the second refuses while the first
+// lives. The lock sits under node_modules, which git and lint ignore.
+const LOCK = "node_modules/.cache/watchfail.lock";
+
+function takeLock() {
+  mkdirSync(dirname(LOCK), { recursive: true });
+  try {
+    writeFileSync(LOCK, String(process.pid), { flag: "wx" });
+  } catch {
+    const holder = Number.parseInt(readFileSync(LOCK, "utf8"), 10);
+    let alive = false;
+    try {
+      process.kill(holder, 0);
+      alive = holder !== process.pid;
+    } catch {
+      alive = false;
+    }
+    if (alive) {
+      console.error(
+        `watchfail: another replay (pid ${String(holder)}) is mutating files in this folder; wait for it (P-3444)`,
+      );
+      process.exit(3);
+    }
+    writeFileSync(LOCK, String(process.pid));
+  }
+  process.on("exit", () => {
+    try {
+      if (readFileSync(LOCK, "utf8") === String(process.pid)) unlinkSync(LOCK);
+    } catch {
+      // Already gone.
+    }
+  });
+}
+
 if (import.meta.main) {
+  takeLock();
+  const left = restorePending();
+  if (left !== null)
+    console.log(`watchfail: restored ${left}, left mutated by a replay that died (P-3444)`);
   process.on("exit", restoreAll);
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(130));
   main(process.argv.slice(2)).then(

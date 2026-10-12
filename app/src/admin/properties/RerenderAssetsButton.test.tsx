@@ -88,15 +88,15 @@ describe("RerenderAssetsButton", () => {
     const dialog = within(screen.getByRole("dialog", { name: "Request re-render of assets" }));
     const before = requested.filter((line) => line.startsWith("POST"));
     fireEvent.click(dialog.getByRole("button", { name: "Re-render" }));
-    expect(await screen.findByText("render cover")).toBeTruthy();
+    expect(await screen.findByText("Render cover")).toBeTruthy();
     expect(before).toEqual([]);
     expect(requested.filter((line) => line.startsWith("POST")).sort()).toEqual([
       `POST /api/admin/assets/${idOf(2)}/rerender`,
       `POST /api/admin/assets/${idOf(4)}/rerender`,
     ]);
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "render coverQueued",
-      "render storyQueued",
+      "Render coverQueued",
+      "Render storyQueued",
     ]);
   });
 

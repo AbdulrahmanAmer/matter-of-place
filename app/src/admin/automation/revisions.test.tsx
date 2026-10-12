@@ -118,7 +118,7 @@ const column = (index: number) =>
   bodyRows().map((row) => within(row).getAllByRole("cell")[index]?.textContent);
 
 /** The first page has drawn: the table shows skeleton rows until then. */
-const ready = () => screen.findByText("Recipe · submission.received");
+const ready = () => screen.findByText("Flow · When a property request arrives");
 
 const openRow = async (index: number) => {
   await ready();
@@ -131,7 +131,10 @@ describe("the list", () => {
   it("shows the newest changes first and marks the agent's with the Agent pill", async () => {
     open();
     await ready();
-    expect(column(1)).toEqual(["Recipe · submission.received", "Email · request_declined"]);
+    expect(column(1)).toEqual([
+      "Flow · When a property request arrives",
+      "Email · request_declined",
+    ]);
     expect(column(2)).toEqual(["Edited", "Created"]);
     expect(within(bodyRows()[0] ?? document.body).getByText("Agent")).toBeTruthy();
     expect(within(bodyRows()[1] ?? document.body).queryByText("Agent")).toBeNull();
@@ -140,9 +143,11 @@ describe("the list", () => {
   it("asks for one table when it is chosen and lists only its changes", async () => {
     const api = open();
     await ready();
-    fireEvent.change(screen.getByLabelText("Table"), { target: { value: "channel_settings" } });
+    fireEvent.change(screen.getByLabelText("What changed"), {
+      target: { value: "channel_settings" },
+    });
     await waitFor(() => {
-      expect(column(1)).toEqual(["Channel · instagram"]);
+      expect(column(1)).toEqual(["Channel · Instagram"]);
     });
     expect(api.count(`GET ${REVISIONS}?table_name=channel_settings`)).toBe(1);
   });
@@ -152,14 +157,14 @@ describe("the list", () => {
     await ready();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await waitFor(() => {
-      expect(column(1)).toEqual(["Channel · instagram", "Schedule · digest"]);
+      expect(column(1)).toEqual(["Channel · Instagram", "Schedule · Place Notes sending"]);
     });
     expect(
       api.count(
         `GET ${REVISIONS}?${new URLSearchParams({ cursor: FIRST_PAGE_CURSOR }).toString()}`,
       ),
     ).toBe(1);
-    expect(column(3)).toEqual(["Team member", "Direct edit"]);
+    expect(column(3)).toEqual(["Team member", "The system"]);
   });
 });
 
@@ -167,7 +172,9 @@ describe("one revision", () => {
   it("shows what changed as the value before and the value after", async () => {
     open();
     await openRow(0);
-    const drawer = await screen.findByRole("dialog", { name: "Recipe · submission.received" });
+    const drawer = await screen.findByRole("dialog", {
+      name: "Flow · When a property request arrives",
+    });
     const field = within(drawer).getByRole("rowheader", { name: "name" });
     const values = within(field.closest("tr") ?? drawer).getAllByRole("cell");
     expect(values.map((cell) => cell.textContent)).toEqual(["Submission received", "Received"]);
@@ -184,7 +191,7 @@ describe("one revision", () => {
   it("offers no restore to a role the matrix leaves out", async () => {
     open({ actions: ["automation.get"] });
     await openRow(0);
-    await screen.findByRole("dialog", { name: "Recipe · submission.received" });
+    await screen.findByRole("dialog", { name: "Flow · When a property request arrives" });
     expect(screen.queryByRole("button", { name: RESTORE_BUTTON })).toBeNull();
   });
 });
@@ -210,7 +217,9 @@ describe("restoring", () => {
       expect(column(2)[0]).toBe("Restored");
     });
     expect(api.count(`POST ${REVISIONS}/v1/restore`)).toBe(1);
-    expect(screen.queryByRole("dialog", { name: "Recipe · submission.received" })).toBeNull();
+    expect(
+      screen.queryByRole("dialog", { name: "Flow · When a property request arrives" }),
+    ).toBeNull();
   });
 
   it("shows the server's words when the restore is refused and keeps the question open", async () => {

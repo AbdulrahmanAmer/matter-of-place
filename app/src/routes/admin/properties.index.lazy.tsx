@@ -50,7 +50,12 @@ function PropertiesPage() {
   return (
     <>
       <header className="admin-page-head">
-        <h1>Properties</h1>
+        <div>
+          <h1>Properties</h1>
+          <p className="admin-lead">
+            Every property we hold, draft or published. Open one to edit, publish or take it down.
+          </p>
+        </div>
         {actions.includes("properties.create") ? (
           <button
             type="button"

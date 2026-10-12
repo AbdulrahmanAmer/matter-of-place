@@ -41,7 +41,7 @@ async function unapprove(): Promise<void> {
 
 async function openIssuesList(): Promise<void> {
   await page.goto("/admin/newsletter");
-  await expect(page.getByRole("heading", { name: "Newsletter", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Place Notes", level: 1 })).toBeVisible();
   // The list is drawn when the table stops being busy: a list with no issue has an empty state, not a table.
   await expect(page.getByRole("tabpanel").locator('[aria-busy="false"]')).toBeVisible();
 }

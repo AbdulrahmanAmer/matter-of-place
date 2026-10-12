@@ -32,6 +32,9 @@ export function MarketsPage() {
   return (
     <>
       <h1>Markets</h1>
+      <p className="admin-lead">
+        What each market page says, its regions and guide, and whether the market is open.
+      </p>
       <Tabs
         label="Markets"
         tabs={items.map((row) => ({ id: row.slug, label: row.name }))}

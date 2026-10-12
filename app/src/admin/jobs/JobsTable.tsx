@@ -3,6 +3,7 @@ import { DataTable, type Column } from "../ui/DataTable";
 import { EmptyState } from "../ui/EmptyState";
 import { Field } from "../ui/Field";
 import { LocalTime } from "../ui/LocalTime";
+import { jobName, jobNames } from "./job-words";
 import { JobStatus } from "./JobStatus";
 import {
   jobEntity,
@@ -30,7 +31,7 @@ const ID_PREFIX = 8;
 
 function EntityCell({ job }: { job: Job }) {
   const entity = jobEntity(job);
-  if (entity === null) return "system";
+  if (entity === null) return "The site";
   return (
     <a
       href={`/admin/jobs?entity=${entity.id}`}
@@ -44,8 +45,8 @@ function EntityCell({ job }: { job: Job }) {
 }
 
 const columns: Column<Job>[] = [
-  { key: "type", header: "Type", render: (row) => words(row.type) },
-  { key: "entity", header: "Entity", render: (row) => <EntityCell job={row} /> },
+  { key: "type", header: "Job", render: (row) => jobName(row.type) },
+  { key: "entity", header: "For", render: (row) => <EntityCell job={row} /> },
   { key: "status", header: "Status", render: (row) => <JobStatus job={row} /> },
   {
     key: "attempts",
@@ -104,8 +105,22 @@ function JobFilterForm({
           </select>
         )}
       </Field>
-      <Field label="Type">
-        {(control) => <input {...control} name="type" defaultValue={values.type ?? ""} />}
+      <Field label="Job">
+        {(control) => (
+          <select {...control} name="type" defaultValue={values.type ?? ""}>
+            <option value="">All</option>
+            {Object.entries(jobNames)
+              .sort(([, a], [, b]) => a.localeCompare(b))
+              .map(([type, name]) => (
+                <option key={type} value={type}>
+                  {name}
+                </option>
+              ))}
+            {values.type === undefined || values.type in jobNames ? null : (
+              <option value={values.type}>{jobName(values.type)}</option>
+            )}
+          </select>
+        )}
       </Field>
       <Field label="Error contains">
         {(control) => <input {...control} name="q" defaultValue={values.q ?? ""} />}

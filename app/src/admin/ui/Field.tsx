@@ -6,14 +6,20 @@ interface ControlProps {
   "aria-invalid": boolean;
 }
 
-/** A label, a hint and an error around one control; the control takes the wiring from the render function. */
+/**
+ * A label, a hint and an error around one control; the control takes the wiring from the render function. `context`
+ * is read before the label but not shown, for a field inside an item that already names it on screen ("Bay Area",
+ * then "Intro").
+ */
 export function Field({
   label,
+  context,
   hint,
   error,
   children,
 }: {
   label: string;
+  context?: string;
   hint?: string;
   error?: string;
   children: (control: ControlProps) => ReactNode;
@@ -23,7 +29,12 @@ export function Field({
   const hasNotes = hint !== undefined || error !== undefined;
   return (
     <div className="admin-field">
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id}>
+        {context === undefined ? null : (
+          <span className="admin-visually-hidden">{`${context} `}</span>
+        )}
+        {label}
+      </label>
       {children({
         id,
         "aria-describedby": hasNotes ? notes : undefined,

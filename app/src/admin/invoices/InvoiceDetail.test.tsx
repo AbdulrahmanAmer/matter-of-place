@@ -286,7 +286,7 @@ describe("InvoiceDetail states", () => {
         .map((item) => item.textContent),
       posts: requested.filter((line) => line.startsWith("POST")),
     }).toEqual({
-      jobs: ["render propertyQueued", "copy submission mediaQueued"],
+      jobs: ["render propertyQueued", "Copy a request's photographsQueued"],
       posts: [`POST ${REQUEST_PATH}/activate {}`],
     });
   });

@@ -106,7 +106,7 @@ test.describe("admin editorial (B7 step 10)", () => {
         await decline.getByRole("button", { name: "Decline", exact: true }).click();
         await expect(page.getByText("Request declined.")).toBeVisible();
         const watched = page.getByRole("list", { name: "Jobs started" });
-        await expect(watched.getByText("send email")).toBeVisible();
+        await expect(watched.getByText("Send email")).toBeVisible();
         const declineJobs = await jobsOf("submission.declined", declined.id, started.now);
         expect(declineJobs.map((job) => job.type)).toContain("send_email");
 

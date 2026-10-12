@@ -49,7 +49,8 @@ function NewsletterPage() {
 
   return (
     <>
-      <h1>Newsletter</h1>
+      <h1>Place Notes</h1>
+      <p className="admin-lead">Each issue of Place Notes, and the readers who receive it.</p>
       <Tabs
         label="Newsletter"
         tabs={TABS}

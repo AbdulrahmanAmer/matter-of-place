@@ -43,6 +43,7 @@ const ROUTE_IDS: Record<number, string> = {
   // W1 (2026-10-12): the office of the AI employees and their approvals.
   28: "/admin/office",
   29: "/admin/approvals",
+  30: "/admin/invoices/new",
 };
 
 const everyRoute = () => true;
@@ -53,8 +54,8 @@ const screensShown = (sections: ReturnType<typeof visibleNav>) =>
   sections.flatMap((section) => section.entries.map((entry) => entry.screen));
 
 describe("the nav registry", () => {
-  it("holds 29 entries, one per screen, with the routeId list of the plan and W1", () => {
-    expect(navEntries).toHaveLength(29);
+  it("holds 30 entries, one per screen, with the routeId list of the plan, W1 and the new-invoice form", () => {
+    expect(navEntries).toHaveLength(30);
     expect(Object.fromEntries(navEntries.map((entry) => [entry.screen, entry.routeId]))).toEqual(
       ROUTE_IDS,
     );
@@ -98,10 +99,10 @@ describe("the nav registry", () => {
     expect(areaTabs(editor, 20)).toEqual([]);
   });
 
-  it("renders no link for screens 1, 4, 6, 8 and 27, and gives four of them a parent", () => {
+  it("renders no link for screens 1, 4, 6, 8, 27 and 30, and gives five of them a parent", () => {
     const shown = screensShown(visibleNav({ hasRoute: everyRoute, actions: everyAction() }));
     const hidden = navEntries.filter((entry) => entry.hidden === true);
-    expect(hidden.map((entry) => entry.screen).sort((a, b) => a - b)).toEqual([1, 4, 6, 8, 27]);
+    expect(hidden.map((entry) => entry.screen).sort((a, b) => a - b)).toEqual([1, 4, 6, 8, 27, 30]);
     expect(hidden.some((entry) => shown.includes(entry.screen))).toBe(false);
     expect(Object.fromEntries(hidden.map((entry) => [entry.screen, entry.parent]))).toEqual({
       1: undefined,
@@ -109,6 +110,7 @@ describe("the nav registry", () => {
       6: 5,
       8: 7,
       27: 26,
+      30: 5,
     });
   });
 

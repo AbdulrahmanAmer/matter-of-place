@@ -85,8 +85,9 @@ export function MarketEditor({ market }: { market: MarketDetail }) {
   return (
     <div className="admin-editor">
       <div className="admin-editor__main">
-        <h1>{saved.name}</h1>
-        <ComingSoonToggle market={market} />
+        <h2 id="market-main" className="admin-editor__title">
+          {saved.name}
+        </h2>
         <div className="admin-editor__fields">
           <Field label="Name">
             {(control) => (
@@ -196,13 +197,13 @@ export function MarketEditor({ market }: { market: MarketDetail }) {
         />
         <GuideEntriesEditor
           entries={values.guide}
-          regions={values.regions.map((region) => region.slug)}
+          regions={values.regions.map((region) => ({ slug: region.slug, name: region.name }))}
           onChange={(guide) => {
             edit({ guide });
           }}
         />
       </div>
-      <aside className="admin-publish" aria-label="Save" data-print="hide">
+      <aside className="admin-publish admin-publish--sticky" aria-label="Save" data-print="hide">
         <div className="admin-actions">
           <RoleGate action="markets.edit">
             <button
@@ -217,7 +218,20 @@ export function MarketEditor({ market }: { market: MarketDetail }) {
             </button>
           </RoleGate>
         </div>
-        {dirty ? null : <p>No changes to save.</p>}
+        <p className="admin-field__hint">
+          {dirty
+            ? isValid(values)
+              ? "Unsaved changes."
+              : "Something above needs a fix before Save."
+            : "No changes to save."}
+        </p>
+        <nav aria-label="On this page" className="admin-jump">
+          <a href="#market-main">The market</a>
+          <a href="#market-regions">{`Regions (${String(values.regions.length)})`}</a>
+          <a href="#market-notes">{`Notes (${String(values.notes.length)})`}</a>
+          <a href="#market-guide">{`Guide (${String(values.guide.length)})`}</a>
+        </nav>
+        <ComingSoonToggle market={market} />
       </aside>
     </div>
   );

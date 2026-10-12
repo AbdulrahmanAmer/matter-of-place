@@ -2235,8 +2235,8 @@
     "id": "b8b-g8-list-current",
     "test": "src/admin/automation/emails.test.tsx",
     "file": "src/admin/automation/EmailsPage.tsx",
-    "find": "aria-current={template.key === open?.key ? \"true\" : undefined}",
-    "replace": "aria-current={undefined}",
+    "find": "label={template.enabled ? \"On\" : \"Off\"}",
+    "replace": "label=\"On\"",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
     "expect": "FAIL .*EmailsPage > lists a template per key"
   },
@@ -2244,10 +2244,10 @@
     "id": "b8b-g8-choose",
     "test": "src/admin/automation/emails.test.tsx",
     "file": "src/admin/automation/EmailsPage.tsx",
-    "find": "<EmptyState title=\"Choose a template\">",
-    "replace": "<EmptyState title=\"Pick a template\">",
+    "find": "filters.setFilters({ key: template.key });",
+    "replace": "filters.setFilters({});",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/emails.test.tsx",
-    "expect": "FAIL .*EmailsPage > asks to choose a template"
+    "expect": "FAIL .*EmailsPage > opens a template from the list"
   },
   {
     "id": "b8b-g8-used",
@@ -2828,8 +2828,8 @@
     "id": "b8b-g10-agent-pill",
     "test": "src/admin/automation/revisions.test.tsx",
     "file": "src/admin/automation/RevisionsTable.tsx",
-    "find": "ActorBadge name=\"Automation key\" kind=\"agent\"",
-    "replace": "ActorBadge name=\"Automation key\" kind=\"human\"",
+    "find": "ActorBadge name=\"A colleague (AI)\" kind=\"agent\"",
+    "replace": "ActorBadge name=\"A colleague (AI)\" kind=\"human\"",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/revisions.test.tsx",
     "expect": "FAIL .*the list > shows the newest changes first"
   },

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "ap-a-job-name",
+    "test": "tests/unit/admin-words.test.ts",
+    "file": "src/admin/jobs/job-words.ts",
+    "find": "  reconcile: \"Upload check\",",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/admin-words.test.ts",
+    "expect": "× .*names every step and every system job the runner knows"
+  },
+  {
+    "id": "ap-b-email-name",
+    "test": "tests/unit/admin-words.test.ts",
+    "file": "src/admin/automation/email-words.ts",
+    "find": "  invoice: { name: \"Invoice\", to: \"the client being invoiced\", topic: \"Clients and money\" },",
+    "replace": "  invoice: { name: \"Invoice\", to: \"\", topic: \"Clients and money\" },",
+    "run": "bunx vitest run --project unit tests/unit/admin-words.test.ts",
+    "expect": "× .*names every email template, with who receives it"
+  },
+  {
+    "id": "ap-c-email-list",
+    "test": "src/admin/automation/emails.test.tsx",
+    "file": "src/admin/automation/EmailsPage.tsx",
+    "find": "                      <span className=\"admin-flows__name\">{emailWords[template.key].name}</span>",
+    "replace": "                      <span className=\"admin-flows__name\">{template.key}</span>",
+    "run": "bunx vitest run --project component src/admin/automation/emails.test.tsx",
+    "expect": "× .*lists a template per key by its plain name"
+  },
+  {
+    "id": "ap-d-history-words",
+    "test": "src/admin/automation/revisions.test.tsx",
+    "file": "src/admin/automation/RevisionsTable.tsx",
+    "find": "  if (tableName === \"schedule_settings\") return scheduleName(value);",
+    "replace": "  if (tableName === \"schedule_settings\") return value;",
+    "run": "bunx vitest run --project component src/admin/automation/revisions.test.tsx",
+    "expect": "× "
+  },
+  {
+    "id": "ap-e-audit-words",
+    "test": "src/admin/audit/audit.test.tsx",
+    "file": "src/admin/audit/AuditPage.tsx",
+    "find": "    <Drawer open onClose={onClose} title={actionWords(row.action)}>",
+    "replace": "    <Drawer open onClose={onClose} title={row.action}>",
+    "run": "bunx vitest run --project component src/admin/audit/audit.test.tsx",
+    "expect": "× .*opens a row's before and after"
+  },
+  {
+    "id": "ap-f-new-invoice-tab",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "    label: \"New invoice\",\n    hidden: true,\n    parent: 5,",
+    "replace": "    label: \"New invoice\",\n    hidden: true,",
+    "run": "bunx vitest run --project unit tests/unit/admin-nav.test.ts",
+    "expect": "× .*renders no link for screens 1, 4, 6, 8, 27 and 30"
+  },
+  {
+    "id": "ap-g-class-guard",
+    "test": "tests/unit/admin-classes.test.ts",
+    "file": "src/styles/admin/ui.css",
+    "find": ".admin-link {",
+    "replace": ".admin-link-gone {",
+    "run": "bunx vitest run --project unit tests/unit/admin-classes.test.ts",
+    "expect": "× .*has a style rule for every admin class a screen names"
+  },
+  {
+    "id": "ap-h-badge-on-phone",
+    "test": "tests/unit/admin-classes.test.ts",
+    "file": "src/styles/admin/admin.css",
+    "find": "  .admin-bar .admin-actor {",
+    "replace": "  .admin-actor {",
+    "run": "bunx vitest run --project unit tests/unit/admin-classes.test.ts",
+    "expect": "× .*keeps every name badge visible on a phone"
+  },
+  {
+    "id": "ap-i-one-replay",
+    "kind": "manual",
+    "test": "tests/unit/watchfail-lock.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/watchfail-lock.test.ts",
+    "expect": "× .*refuses a second replay while the first lives",
+    "procedure": "The lock under test is the replay tool's own: a replay of this entry would hold the lock the test checks for. By hand: in scripts/watchfail.mjs set `alive = holder !== process.pid;` to `alive = false;`, run the command above (red: exit 0, not 3), put it back (green). Measured 2026-10-12."
+  }
+]

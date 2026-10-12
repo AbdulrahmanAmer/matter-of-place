@@ -1520,7 +1520,7 @@
     "find": "routeId: \"/admin/team/\",",
     "replace": "routeId: \"/admin/teams/\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*holds 29 entries, one per screen"
+    "expect": "× .*holds 30 entries, one per screen"
   },
   {
     "id": "b7-g3-nav-groups",

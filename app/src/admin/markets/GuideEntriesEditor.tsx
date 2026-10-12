@@ -11,9 +11,12 @@ const blankEntry = (): GuideValues => ({
   text: "",
 });
 
+const sectionLabel = (section: string) =>
+  Object.entries(guideSectionLabels).find(([key]) => key === section)?.[1] ?? section;
+
 /**
  * The market guide: neighborhoods (each in a region), what clients ask and how we work, in the order they are shown.
- * `regions` are the slugs of the regions the market has.
+ * `regions` are the regions the market has, by slug and by the name a person reads.
  */
 export function GuideEntriesEditor({
   entries,
@@ -21,20 +24,29 @@ export function GuideEntriesEditor({
   onChange,
 }: {
   entries: readonly GuideValues[];
-  regions: readonly string[];
+  regions: readonly { slug: string; name: string }[];
   onChange: (entries: GuideValues[]) => void;
 }) {
+  const regionName = (slug: string) =>
+    slug === ""
+      ? "the whole market"
+      : (regions.find((region) => region.slug === slug)?.name ?? slug);
   return (
     <RowsEditor
-      heading="Guide entries"
+      id="market-guide"
+      heading="Guide"
+      lead="Neighborhoods, what clients ask and how we work, in the order the market page shows them."
       noun="Guide entry"
       rows={entries}
       blank={blankEntry}
+      title={(entry) => entry.label}
+      meta={(entry) => `${sectionLabel(entry.section)} · ${regionName(entry.region_slug)}`}
+      invalid={(entry) => entry.section === "neighborhood" && entry.region_slug === ""}
       onChange={onChange}
     >
       {(entry, n, update) => (
         <>
-          <Field label={`Guide entry ${String(n)} section`}>
+          <Field label="Section" context={`Guide entry ${String(n)}`}>
             {(control) => (
               <select
                 {...control}
@@ -52,7 +64,8 @@ export function GuideEntriesEditor({
             )}
           </Field>
           <Field
-            label={`Guide entry ${String(n)} region`}
+            label="Region"
+            context={`Guide entry ${String(n)}`}
             {...(entry.section === "neighborhood" && entry.region_slug === ""
               ? { error: "A neighborhood belongs to a region." }
               : {})}
@@ -67,14 +80,14 @@ export function GuideEntriesEditor({
               >
                 <option value="">The whole market</option>
                 {regions.map((region) => (
-                  <option key={region} value={region}>
-                    {region}
+                  <option key={region.slug} value={region.slug}>
+                    {region.name}
                   </option>
                 ))}
               </select>
             )}
           </Field>
-          <Field label={`Guide entry ${String(n)} label`}>
+          <Field label="Label" context={`Guide entry ${String(n)}`}>
             {(control) => (
               <input
                 {...control}
@@ -86,7 +99,7 @@ export function GuideEntriesEditor({
               />
             )}
           </Field>
-          <Field label={`Guide entry ${String(n)} text`}>
+          <Field label="Text" context={`Guide entry ${String(n)}`}>
             {(control) => (
               <textarea
                 {...control}
