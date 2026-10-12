@@ -1017,9 +1017,9 @@
   {
     "id": "b11-g4-render-footer-no-entity",
     "test": "tests/unit/newsletter/render.test.ts",
-    "file": "src/templates/email/blocks/footer.tsx",
-    "find": "{footerLines(site).map((text) => (",
-    "replace": "{footerLines(site).slice(0, 1).map((text) => (",
+    "file": "src/templates/email/layout.tsx",
+    "find": "{legalLines.map((text) => (",
+    "replace": "{legalLines.slice(0, 0).map((text) => (",
     "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
     "expect": "FAIL.*shows the legal entity and the postal address of the site context"
   },

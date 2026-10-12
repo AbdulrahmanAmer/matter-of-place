@@ -97,10 +97,7 @@ describe("lintEmail", () => {
       key: "received",
       change: (m) => ({
         ...m,
-        html: m.html.replace(
-          "https://matterofplace.com/email/masthead.png",
-          "/email/masthead.png",
-        ),
+        html: m.html.replace("https://matterofplace.com/email/masthead.png", "/email/masthead.png"),
       }),
     },
     {

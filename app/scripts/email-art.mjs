@@ -45,7 +45,7 @@ function brandSvg(path) {
 function place(mark, centreX, top, height) {
   const scale = height / mark.height;
   const x = centreX - (mark.width * scale) / 2;
-  return `<g transform="translate(${x.toFixed(2)} ${top}) scale(${scale.toFixed(5)})">${mark.inner}</g>`;
+  return `<g transform="translate(${x.toFixed(2)} ${String(top)}) scale(${scale.toFixed(5)})">${mark.inner}</g>`;
 }
 
 /**
@@ -55,12 +55,12 @@ function place(mark, centreX, top, height) {
  * @param {string} body
  */
 async function write(name, width, height, body) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${body}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${String(width)}" height="${String(height)}" viewBox="0 0 ${String(width)} ${String(height)}">${body}</svg>`;
   await sharp(Buffer.from(svg), { density: 144 })
     .resize(width * 2, height * 2)
     .png({ compressionLevel: 9 })
     .toFile(join(out, `${name}.png`));
-  console.log(`email-art: ${name}.png ${width * 2}x${height * 2}`);
+  console.log(`email-art: ${name}.png ${String(width * 2)}x${String(height * 2)}`);
 }
 
 const stacked = brandSvg("lockup/lockup-stacked-bone.svg");
