@@ -276,6 +276,7 @@ Entry template
 - hit again: 2026-10-10, H1 g7: a Python patch script fed through a Bash heredoc lost the backslash of a newline escape in a `.split` call and left an unterminated string in `fail-drill.ts`; the Edit tool fixed it.
 - hit again: 2026-10-11, fix/security-f3-deno: a `sed -i` with a double-quoted replacement wrote a registry `expect` as `[sS]*+ +` (every backslash gone), which the generator then put into `FIX-f3.json`; the same text through the Edit tool gave `[\s\S]*\+ +`. See P-3110 for the entry the expect belongs to.
 - added: 2026-09-30
+- hit again: 2026-10-12 (three times): a registry `expect` with `\+`, a test regex `/in motion\./` and a VBScript path each lost a backslash through a bash heredoc or a Python string inside one; fixed with the Edit and Write tools. Rule kept: any text with a backslash goes through Edit or Write, never a heredoc.
 - hit again: 2026-10-04, B3 g8: a `node -e` and a heredoc patch script lost a backslash, so `"\n"` reached the file as a real line break inside a string; `node -e` with a quote or backtick inside a pattern ended in `unexpected token '('`. Patch scripts went into the scratchpad as files (Write tool), run with `node`.
 - hit again: 2026-10-04, B3 c12: four times a regular expression or a `\n` written through `node` in a heredoc lost its backslash (`replace(//+$/, ...)`, `[^>]*sdata-services`, a `join("` broken across two lines) and the next `tsc` or `prettier` failed on it; the repair went through the Edit tool.
 - hit again: 2026-10-04, B8b g1: `sed -i 's/to be 0"/to be \\\\+0"/'` on the scratch registry generator wrote `\+0` (one backslash), so the JSON `expect` became `to be +0`, a regex that cannot match the literal `+0` vitest prints, and the replay said BAD for a mutation that was red for the right reason; the Edit tool fixed it in one step.
@@ -7764,4 +7765,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the plan said security-definer functions; the build took the shorter path and the plan was bent to fit it. The project rule (G43) and its test already existed.
 - rule: when code and plan disagree, the plan is checked against the project rules first; a plan line is never edited to describe a shortcut. A new `src/server/**` write is a `supabase/sql/functions/<name>.sql` file plus `bun run db:fn`, and its migration timestamp must sort after the tables it writes (rename it if `db:fn` stamps it earlier).
 - proof: `cd app && bunx vitest run --project unit tests/unit/readpath.test.ts` → passed on slice/w1 at 7fd5876d; with one `.from("agents").update(...)` put back in the service → the G43 case fails.
+- added: 2026-10-12
+
+## G-1303 · Supabase's type generator writes an array argument as `(string)[]`, so a hand-added function type drifts
+- paths: app/src/db/types.ts
+- severity: warn
+- symptom: 2026-10-12, PR 321's `db` job failed `type drift`: the hand-added `workforce_hire` and `workforce_post_message` types said `string[]`, the generator writes `(string)[]` for a `text[]` argument.
+- cause: the generator wraps every array element type in parentheses; tables keep `string[]`.
+- rule: a function type added by hand before CI regenerates copies the generator's form: arguments in alphabetical order, `"p_x"?:` for a defaulted one, `(string)[]` for an array argument, `Returns: string` for uuid or text.
+- proof: `gh run view <run> --log-failed | grep "type drift"` shows the `-`/`+` lines; with `(string)[]` the job's diff is empty (PR 321 at 5c... merged 05:18).
+- added: 2026-10-12
+
+## P-3439 · A gate started with a detached `&` again, against the standing order to use run_in_background
+- symptom: 2026-10-12 05:35, `(bash gate-loop.sh ... 324 &)` started the records PR's gate untracked; the operator had asked on 2026-10-11 that every long command run as a tracked background task.
+- cause: habit when chaining two commands in one call.
+- rule: a long command is its own Bash call with `run_in_background: true`; never `&`, `nohup` or `( ... & )` in a command string.
+- proof: `grep -n "&)\|& *$" <the session's commands>` finds none after this entry.
 - added: 2026-10-12

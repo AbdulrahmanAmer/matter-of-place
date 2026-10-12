@@ -12,6 +12,7 @@ import {
   type AgentScope,
   type DailyLimits,
   type InviteInput,
+  passwordSignedInSchema,
 } from "../../domain/admin-team";
 import type { AppRole } from "../../domain/rows";
 import { getTurnstileToken } from "../../lib/turnstile";
@@ -40,6 +41,33 @@ export async function requestSignInLink(email: string): Promise<void> {
       ...(token === null ? {} : { "x-turnstile-token": token }),
     },
     body: JSON.stringify({ email }),
+  });
+}
+
+/** Signs in with an address and the password its owner chose; answers where to go next. */
+export async function signInWithPasswordRequest(input: {
+  email: string;
+  password: string;
+  next: string | undefined;
+}): Promise<string> {
+  const token = await getTurnstileToken("auth-password");
+  const answer = await adminFetch("/api/admin/auth/password", passwordSignedInSchema, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(token === null ? {} : { "x-turnstile-token": token }),
+    },
+    body: JSON.stringify(input),
+  });
+  return answer.next;
+}
+
+/** Sets the signed-in person's own password. */
+export async function setOwnPassword(password: string): Promise<void> {
+  await adminFetch("/api/admin/me/password", z.unknown(), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ password }),
   });
 }
 

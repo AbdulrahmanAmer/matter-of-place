@@ -5,6 +5,7 @@ import { useAdminMe } from "../ui/admin-me";
 import { useToast } from "../ui/use-toast";
 import { useSaveRecipe, type RecipeRow, type StepSpecView } from "./automation-queries";
 import { DryRunPanel } from "./DryRunPanel";
+import { FlowCanvas } from "./FlowCanvas";
 import { RequestFailure } from "./RequestFailure";
 import { checkDraft, draftOf, maxSteps, newStep, sameDraft, type Draft } from "./recipe-draft";
 import { StepCard } from "./StepCard";
@@ -27,6 +28,7 @@ export function RecipeEditor({
   const [draft, setDraft] = useState<Draft>(() => draftOf(recipe));
   const [checked, setChecked] = useState(false);
   const [adding, setAdding] = useState("");
+  const [selected, setSelected] = useState<string | null>(null);
 
   const dirty = !sameDraft(draft, draftOf(recipe));
   const problems = checkDraft(draft, specs);
@@ -43,6 +45,23 @@ export function RecipeEditor({
     if (moved === undefined) return;
     steps.splice(index + by, 0, moved);
     setDraft({ ...draft, steps });
+  };
+
+  const moveTo = (from: number, to: number) => {
+    const steps = [...draft.steps];
+    const [moved] = steps.splice(from, 1);
+    if (moved === undefined) return;
+    steps.splice(to, 0, moved);
+    setDraft({ ...draft, steps });
+  };
+
+  const insertAt = (index: number, spec: StepSpecView) => {
+    if (draft.steps.length >= maxSteps) return;
+    const step = newStep(spec, draft.steps);
+    const steps = [...draft.steps];
+    steps.splice(index, 0, step);
+    setDraft({ ...draft, steps });
+    setSelected(step.id);
   };
 
   const add = () => {
@@ -101,6 +120,19 @@ export function RecipeEditor({
             />
             Recipe on
           </label>
+          <FlowCanvas
+            event={recipe.trigger}
+            steps={draft.steps}
+            specs={specs}
+            canEdit={canEdit}
+            selected={selected}
+            onSelect={(id) => {
+              setSelected(id);
+              document.getElementById(`step-${id}`)?.scrollIntoView({ block: "nearest" });
+            }}
+            onInsert={insertAt}
+            onMoveTo={moveTo}
+          />
           <h3>Steps</h3>
           {draft.steps.length === 0 ? (
             <p>This recipe has no steps. The event happens and nothing follows.</p>
@@ -114,6 +146,7 @@ export function RecipeEditor({
                   position={index}
                   count={draft.steps.length}
                   errors={shown?.params[index] ?? {}}
+                  selected={selected === step.id}
                   onChange={(next) => {
                     replaceStep(index, next);
                   }}

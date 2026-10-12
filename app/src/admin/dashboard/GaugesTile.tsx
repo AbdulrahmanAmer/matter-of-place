@@ -22,13 +22,26 @@ function measured(data: Dashboard) {
   ];
 }
 
-/** The vendor lines only the weekly audit measures: their tokens are not Worker secrets. */
+/**
+ * The vendor lines: their tokens are not Worker secrets, so the operator's laptop measures them daily
+ * (`scripts/usage-push.ts`) and the dashboard shows what it recorded, with when.
+ */
 const vendorLines = [
-  { name: "Workers requests", of: "100,000 a day" },
-  { name: "Storage egress", of: "5 GB a month" },
-  { name: "Sentry errors", of: "5,000 a month" },
-  { name: "GitHub Actions minutes", of: "2,000 a month" },
+  { line: "workers_requests_day", name: "Workers requests", limit: 100_000, of: "100,000 a day" },
+  { line: "storage_egress", name: "Storage egress", limit: 5 * 1024 * MB, of: "5 GB a month" },
+  { line: "sentry_errors", name: "Sentry errors", limit: 5000, of: "5,000 a month" },
+  { line: "actions_minutes", name: "GitHub Actions minutes", limit: 2000, of: "2,000 a month" },
 ];
+
+const DAY_MS = 86_400_000;
+
+/** "today", "yesterday" or "N days ago", for when a vendor line was measured. */
+function measuredAgo(at: string, now: number): string {
+  const days = Math.floor((now - Date.parse(at)) / DAY_MS);
+  if (days <= 0) return "measured today";
+  if (days === 1) return "measured yesterday";
+  return `measured ${formatNumber(days)} days ago`;
+}
 
 function level(share: number): { label: string; tone: Tone } {
   if (share >= ALERT_AT) return { label: "Alert", tone: "danger" };
@@ -36,8 +49,8 @@ function level(share: number): { label: string; tone: Tone } {
   return { label: "Within limit", tone: "ok" };
 }
 
-/** The free-tier gauges of screen 2: our own numbers as a share of each limit, and the vendor lines unmeasured. */
-export function GaugesTile({ data }: { data: Dashboard }) {
+/** The free-tier gauges of screen 2: our own numbers and the laptop's vendor readings, each as a share of its limit. */
+export function GaugesTile({ data, now = Date.now() }: { data: Dashboard; now?: number }) {
   return (
     <section className="admin-gauges" aria-label="Free tier">
       <h2>Free tier</h2>
@@ -55,12 +68,40 @@ export function GaugesTile({ data }: { data: Dashboard }) {
             </li>
           );
         })}
-        {vendorLines.map((line) => (
-          <li key={line.name} aria-label={line.name}>
-            <span className="admin-gauges__name">{line.name}</span>
-            <span>Not measured, of {line.of}</span>
-          </li>
-        ))}
+        {vendorLines.map((line) => {
+          const reading = data.vendor.find((row) => row.line === line.line);
+          if (reading === undefined) {
+            return (
+              <li key={line.name} aria-label={line.name}>
+                <span className="admin-gauges__name">{line.name}</span>
+                <span>Not measured yet, of {line.of}</span>
+              </li>
+            );
+          }
+          if (reading.limit === null && reading.note !== null) {
+            return (
+              <li key={line.name} aria-label={line.name}>
+                <span className="admin-gauges__name">{line.name}</span>
+                <span>
+                  {formatNumber(Math.round(reading.used))}, {reading.note}
+                </span>
+                <span className="admin-gauges__when">{measuredAgo(reading.measured_at, now)}</span>
+              </li>
+            );
+          }
+          const share = reading.used / (reading.limit ?? line.limit);
+          const state = level(share);
+          return (
+            <li key={line.name} aria-label={line.name} data-level={state.tone}>
+              <span className="admin-gauges__name">{line.name}</span>
+              <span>
+                {formatNumber(Math.round(share * 100))}% of {line.of}
+              </span>
+              <StatusPill label={state.label} tone={state.tone} />
+              <span className="admin-gauges__when">{measuredAgo(reading.measured_at, now)}</span>
+            </li>
+          );
+        })}
       </ul>
       <a href={AUDIT_REPORTS_URL}>Weekly audit reports</a>
     </section>

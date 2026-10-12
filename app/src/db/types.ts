@@ -1073,6 +1073,19 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"vendor_usage": {
+                  Row: {
+                    "limit_value": number | null,"line": string,"measured_at": string,"note": string | null,"used": number
+                  }
+                  Insert: {
+                    "limit_value"?: number | null,"line": string,"measured_at": string,"note"?: string | null,"used": number
+                  }
+                  Update: {
+                    "limit_value"?: number | null,"line"?: string,"measured_at"?: string,"note"?: string | null,"used"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"webhook_receipts": {
                   Row: {
                     "id": string,"provider": string,"received_at": string
@@ -1361,6 +1374,9 @@ isOneToOne: false
 { Args: { "p": Json }; Returns: {
               "id": string,"received_at": string
             }[]
+                           },
+"create_property_editorial":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_address": string,"p_city": string,"p_market_slug": string,"p_price"?: number,"p_request_id": string,"p_title": string,"p_type": Database["public"]['Enums']["property_type"] }; Returns: Json
                            },
 "create_property_from_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: Json
@@ -1749,6 +1765,9 @@ isOneToOne: false
                            },
 "record_fanout_failure":
 { Args: { "p_error": string,"p_event_id": string }; Returns: undefined
+                           },
+"record_vendor_usage":
+{ Args: { "p_limit"?: number,"p_line": string,"p_note"?: string,"p_used": number }; Returns: string
                            },
 "record_waiver":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_amount": number,"p_product": Database["public"]['Enums']["exposure_package"],"p_reason": string,"p_request_id": string,"p_submission_id": string }; Returns: {

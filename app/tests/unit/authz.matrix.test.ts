@@ -29,6 +29,7 @@ properties.get                     CE ME VE MO CO AD
 properties.timeline                CE ME VE MO CO AD
 properties.representatives         CE ME VE MO CO AD
 properties.create_from_submission  CE ME VE
+properties.create                  CE ME VE
 properties.update                  CE ME VE
 properties.representative_put      CE ME VE
 properties.preview_token           CE ME VE
@@ -132,6 +133,7 @@ reports.get                        CE ME VE MO CO AD
 reports.export                     CE ME VE MO CO AD
 reports.email                      CE ME | H
 me                                 CE ME VE MO CO AD | S
+dashboard.password                 CE ME VE MO CO AD | H R
 people.list                        CE ME VE MO CO AD
 people.get                         CE ME VE MO CO AD
 people.note                        CE ME VE MO

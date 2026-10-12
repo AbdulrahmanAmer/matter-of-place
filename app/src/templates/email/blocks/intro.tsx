@@ -4,10 +4,10 @@ import { themeHex } from "../../theme.gen.ts";
 import { fonts } from "../layout.tsx";
 
 const paragraph: CSSProperties = {
-  margin: "0 0 16px",
+  margin: "0 0 20px",
   fontFamily: fonts.body,
-  fontSize: "15px",
-  lineHeight: "1.7",
+  fontSize: "16px",
+  lineHeight: "1.75",
   color: themeHex.foreground,
 };
 

@@ -7,6 +7,7 @@ import type {
 import { adminKeys, invalidateAfterWrite } from "../query";
 import {
   createFromSubmission,
+  createProperty,
   fetchProperties,
   fetchProperty,
   fetchRepresentatives,
@@ -59,6 +60,15 @@ function usePropertyWrite<Input, Answer>(id: string, write: (input: Input) => Pr
         adminKeys.properties.all(),
         adminKeys.properties.timeline(id),
       ),
+  });
+}
+
+/** A property entered by hand; the list is read again once it settles. */
+export function useCreateProperty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createProperty,
+    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.properties.all()),
   });
 }
 
