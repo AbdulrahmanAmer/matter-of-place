@@ -1002,6 +1002,8 @@
 
 .admin-email-head p {
   color: var(--muted-foreground);
+}
+
 /* Ask Matter to change a flow (gap item 31): under the open flow, a box for the change in plain words. */
 .admin-ask-matter {
   display: grid;
