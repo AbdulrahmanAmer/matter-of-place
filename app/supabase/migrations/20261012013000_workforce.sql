@@ -7,8 +7,8 @@
 set lock_timeout = '5s';
 
 -- W1 (operator, 2026-10-12): AI employees that run Matter of Place from the operator's laptop. The admin API writes
--- these rows with the service role after `authorize`; the laptop daemon claims runs through `claim_agent_run`. Staff
--- read through RLS; nobody writes directly (W1 invariant 5).
+-- these rows through the workforce_* functions (20261012013002) after `authorize`; the laptop daemon claims runs
+-- through `claim_agent_run`. Staff read through RLS; no client role writes (W1 invariant 5).
 
 create table public.agents (
   id uuid primary key default gen_random_uuid(),

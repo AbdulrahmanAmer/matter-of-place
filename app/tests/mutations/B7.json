@@ -1520,7 +1520,7 @@
     "find": "routeId: \"/admin/team/\",",
     "replace": "routeId: \"/admin/teams/\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*holds 27 entries, one per screen"
+    "expect": "× .*holds 29 entries, one per screen"
   },
   {
     "id": "b7-g3-nav-groups",
@@ -1529,7 +1529,7 @@
     "find": "{ screen: 9, path: \"/admin/media\", routeId: \"/admin/media/\", group: \"Work\", label: \"Media\" },",
     "replace": "{ screen: 9, path: \"/admin/media\", routeId: \"/admin/media/\", group: \"System\", label: \"Media\" },",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 22 links in six groups when ever"
+    "expect": "× .*shows 24 links in six groups when ever"
   },
   {
     "id": "b7-g3-nav-work",
@@ -1538,7 +1538,7 @@
     "find": "label: \"People\",",
     "replace": "label: \"Persons\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*reads Work as Dashboard, Requests,"
+    "expect": "× .*reads Work as Dashboard, Office, Approvals, Requests,"
   },
   {
     "id": "b7-g3-nav-hidden-parent",
@@ -2286,7 +2286,7 @@
     "find": "{ action: \"people.list\", group: \"people\", roles: appRoles },\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*reads Work as Dashboard, Requests, People"
+    "expect": "× .*reads Work as Dashboard, Office, Approvals, Requests, People"
   },
   {
     "id": "b7-5a-route-notes",
@@ -5433,7 +5433,7 @@
     "id": "b7-14-scopes-list",
     "test": "tests/unit/team.service.test.ts",
     "file": "src/domain/admin-team.ts",
-    "find": "  \"jobs\",\n  \"assets\",\n] as const;",
+    "find": "  \"jobs\",\n  \"assets\",\n  \"workforce\",\n] as const;",
     "replace": "  \"jobs\",\n] as const;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
     "expect": "FAIL .*> agentScopes > is every route group of the matrix but team and settings"

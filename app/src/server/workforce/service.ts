@@ -8,35 +8,20 @@ import {
 } from "../../domain/workforce.ts";
 import { z } from "zod";
 import type { agentUpdateSchema } from "../../domain/workforce.ts";
+import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
+import { auditContext } from "../lib/audit.ts";
 import { authorize } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError } from "../lib/errors.ts";
 
 // W1: the admin side of the AI employees. The laptop daemon (scripts/workforce/daemon.ts) does the work; this file
-// lists, hires, changes and talks to them, and records the decisions of people on their proposals.
+// lists, hires, changes and talks to them, and records the decisions of people on their proposals. Reads go to the
+// tables; every write is a SQL function (G43): workforce_post_message, workforce_hire, workforce_update_agent and
+// workforce_decide, each writing its own audit row.
 
 const unavailable = (what: string) =>
   new AppError("unavailable", undefined, `${what} could not be read.`);
-
-async function audit(
-  db: Db,
-  actor: AdminActor,
-  action: string,
-  entityId: string,
-  after: Record<string, string | string[]>,
-): Promise<void> {
-  await db.rpc("write_audit", {
-    p_actor: actor.userId,
-    p_actor_kind: actor.kind,
-    p_action: action,
-    p_entity: "agents",
-    p_entity_id: entityId,
-    p_before: null,
-    p_after: after,
-    p_request_id: actor.requestId,
-  });
-}
 
 /** The name a person shows in the chat: the part of their address before the @, with a capital. */
 async function personName(db: Db, actor: AdminActor): Promise<string> {
@@ -139,29 +124,16 @@ export async function postMessage(
   if (input.thread !== "team" && !bySlug.has(input.thread)) {
     throw new AppError("not_found", undefined, "That colleague is not on the team.");
   }
-  const { data: message, error } = await db
-    .from("agent_messages")
-    .insert({
-      thread: input.thread,
-      author_kind: "human",
-      author_id: actor.userId,
-      author_name: await personName(db, actor),
-      body: input.body,
-    })
-    .select("id")
-    .single();
-  if (error !== null) throw unavailable("The message");
-
-  const awake = wakeTargets(input.thread, input.body, agents)
-    .map((slug) => bySlug.get(slug))
-    .filter((row): row is NonNullable<typeof row> => row !== undefined);
-  if (awake.length > 0) {
-    const { error: wakeError } = await db
-      .from("agent_runs")
-      .insert(awake.map((row) => ({ agent_id: row.id, cause: "message", message_id: message.id })));
-    if (wakeError !== null) throw unavailable("The wake-up");
-  }
-  return { id: message.id, woke: awake.map((row) => row.slug) };
+  const woke = wakeTargets(input.thread, input.body, agents).filter((slug) => bySlug.has(slug));
+  const { data: id, error } = await db.rpc("workforce_post_message", {
+    p_thread: input.thread,
+    p_body: input.body,
+    p_author_id: actor.userId,
+    p_author_name: await personName(db, actor),
+    p_wake: woke,
+  });
+  if (error !== null) throw fromRpcError(error);
+  return { id, woke };
 }
 
 export async function hireAgent(
@@ -170,25 +142,18 @@ export async function hireAgent(
   input: HireInput,
 ): Promise<{ id: string }> {
   authorize(actor, "workforce.hire");
-  const { data, error } = await db
-    .from("agents")
-    .insert({ ...input, created_by: actor.kind === "human" ? actor.userId : null })
-    .select("id")
-    .single();
-  if (error !== null) {
-    if (error.code === "23505")
-      throw new AppError("already_exists", undefined, "A colleague already has that name.");
-    throw unavailable("The new colleague");
-  }
-  await db.from("agent_messages").insert({
-    thread: "team",
-    author_kind: "system",
-    author_id: "system",
-    author_name: "Matter of Place",
-    body: `${input.name} joined the team as ${input.role}.`,
+  const { data: id, error } = await db.rpc("workforce_hire", {
+    p_slug: input.slug,
+    p_name: input.name,
+    p_role: input.role,
+    p_instructions: input.instructions,
+    p_model: input.model,
+    p_wake_on: input.wake_on,
+    p_tools: input.tools,
+    ...auditContext(actor),
   });
-  await audit(db, actor, "workforce.hire", data.id, { slug: input.slug, role: input.role });
-  return { id: data.id };
+  if (error !== null) throw fromRpcError(error);
+  return { id };
 }
 
 export async function updateAgent(
@@ -209,16 +174,13 @@ export async function updateAgent(
     ...(tools === undefined ? {} : { tools }),
     ...(state === undefined ? {} : { state }),
   };
-  const { data, error } = await db
-    .from("agents")
-    .update(change)
-    .eq("slug", slug)
-    .select("id")
-    .single();
-  if (error !== null)
-    throw new AppError("not_found", undefined, "That colleague is not on the team.");
-  await audit(db, actor, "workforce.update", data.id, { fields: Object.keys(change) });
-  return { id: data.id };
+  const { data: id, error } = await db.rpc("workforce_update_agent", {
+    p_slug: slug,
+    p_change: change,
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return { id };
 }
 
 export async function listApprovals(
@@ -261,41 +223,12 @@ export async function decideApproval(
   input: { decision: "approved" | "rejected"; content_hash: string },
 ): Promise<{ state: string }> {
   authorize(actor, "workforce.decide");
-  const { data: row, error } = await db
-    .from("agent_approvals")
-    .select("id, agent_id, content, content_hash, state, summary")
-    .eq("id", id)
-    .single();
-  if (error !== null) throw new AppError("not_found", undefined, "That proposal does not exist.");
-  if (row.state !== "pending")
-    throw new AppError("wrong_state", undefined, "That proposal was already decided.");
-  if (input.decision === "approved" && input.content_hash !== row.content_hash) {
-    throw new AppError(
-      "version_conflict",
-      undefined,
-      "The proposal changed after you opened it. Read it again.",
-    );
-  }
-  const { error: updateError } = await db
-    .from("agent_approvals")
-    .update({
-      state: input.decision,
-      decided_by: actor.kind === "human" ? actor.userId : null,
-      decided_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .eq("state", "pending");
-  if (updateError !== null) throw unavailable("The decision");
-  await db.from("agent_messages").insert({
-    thread: "team",
-    author_kind: "system",
-    author_id: "system",
-    author_name: "Matter of Place",
-    body: `${input.decision === "approved" ? "Approved" : "Declined"}: ${row.summary}`,
+  const { data: state, error } = await db.rpc("workforce_decide", {
+    p_id: id,
+    p_decision: input.decision,
+    p_content_hash: input.content_hash,
+    ...auditContext(actor),
   });
-  await audit(db, actor, "workforce.decide", row.agent_id, {
-    approval: id,
-    decision: input.decision,
-  });
-  return { state: input.decision };
+  if (error !== null) throw fromRpcError(error);
+  return { state };
 }
