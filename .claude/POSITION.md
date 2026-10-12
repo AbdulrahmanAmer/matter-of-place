@@ -1682,3 +1682,12 @@ first day of the new usage week; no step was cut from any plan.
 - Preview of the admin with sample data: dev server on http://127.0.0.1:8082 (design branch) and the Playwright harness `scratchpad/admin-preview/shoot.mjs` (run with MSYS_NO_PATHCONV=1).
 - The operator's long-open admin tab froze (renderer busy); a fresh tab loads the dashboard in under half a second. UNPROVEN cause.
 - Still owed to the operator: purposeful redesign of every other admin screen, manual property creation, the node canvas for recipes, agents driving the browser, approvals executing outward actions; records board republish.
+
+## 2026-10-12 06:10 AI TEAM LIVE, PHONE FIX, W2 PLANNED
+- Merged and deployed: 321 (W1 office, team chat, approvals, laptop daemon; every admin write a workforce_* SQL function), 323/324 (W2 plan and the brainstorm with Jay), 325 (home headline on phones: the reveal's clip-path cut wrapped inline phrases).
+- LIVE PROOF: "MOP Workforce" scheduled task (every minute, hidden) runs from E:/mop-build/live (a detached worktree at origin/main, its own node_modules, `.env` hard-linked to the root `.env`); desktop shortcut "Matter of Place Office". "@chief" in the team chat at 02:36 UTC was answered in 50 s ("I can read the team chat. There are 0 requests waiting today ...").
+- E:/mop-build/live does not follow main by itself yet: after a merge that changes scripts/workforce, run `git -C E:/mop-build/live fetch origin && git -C E:/mop-build/live checkout --detach origin/main` (and `bun install` in app/ when the lockfile changed). W2 step: make it self-updating.
+- feat/admin-upgrade (E:/mop-build/upgrade, on main + W1): email shell, admin shell and dashboard, password sign-in, hand-entered properties, the recipe node canvas, the measured free-tier gauges (vendor_usage, record_vendor_usage, scripts/usage-push.ts, "MOP Usage" daily task in install.ps1). One action_roles migration (144 actions, 20261012013511). Full check running; then PR, gate, deploy, rerun install.ps1 from E:/mop-build/live, run usage-push once, verify the dashboard live.
+- W2 (Matter) planned in workspace/05-plans/W2.md: the operator's words verbatim; Jay's learning design and build order; charter decided (full for Matter, distilled for staff). Build after the admin upgrade is live.
+- BLOCKED: Supabase egress number (billing usage 401 for the account token; logs endpoint has no edge table). Unblock: Matter reads it from the signed-in dashboard weekly (W2 invariant 8).
+- The operator's earlier long-open admin tab froze (UNPROVEN cause); fresh tabs load fast.
