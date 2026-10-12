@@ -1,0 +1,56 @@
+[
+  {
+    "id": "w3-a-cron-utc",
+    "test": "tests/unit/schedule-words.test.ts",
+    "file": "src/admin/automation/schedule-words.ts",
+    "find": "  const utc = shift(cadence, -officeOffset(now));",
+    "replace": "  const utc = shift(cadence, officeOffset(now));",
+    "run": "bunx vitest run --project unit tests/unit/schedule-words.test.ts",
+    "expect": "× .*writes a Cairo time back as the UTC cron"
+  },
+  {
+    "id": "w3-b-area-tabs",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "  return entries.length > 1 ? entries : [];",
+    "replace": "  return entries;",
+    "run": "bunx vitest run --project unit tests/unit/admin-nav.test.ts",
+    "expect": "× .*gives a screen its area's tabs"
+  },
+  {
+    "id": "w3-c-settings-view",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/settings.ts",
+    "find": "  { action: \"settings.get\", group: \"settings\", ...viewing },",
+    "replace": "  { action: \"settings.get\", group: \"settings\", ...guarded },",
+    "run": "bunx vitest run --project unit tests/unit/authz.matrix.test.ts",
+    "expect": "× .*equals the hand-typed fixture, row for row"
+  },
+  {
+    "id": "w3-d-account-menu",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/AccountMenu.tsx",
+    "find": "            {leaving ? \"Signing out\" : \"Sign out\"}",
+    "replace": "            {leaving ? \"Signing out\" : \"Log off\"}",
+    "run": "bunx vitest run --project component src/admin/ui/shell.test.tsx",
+    "expect": "× .*puts an Account menu in the bar with Change password and Sign out"
+  },
+  {
+    "id": "w3-e-flow-sentence",
+    "test": "src/admin/automation/recipes.test.tsx",
+    "file": "src/admin/automation/flow-words.ts",
+    "find": "  \"property.published\": { when: \"a property is published\", topic: \"Listings\" },",
+    "replace": "  \"property.published\": { when: \"property.published\", topic: \"Listings\" },",
+    "run": "bunx vitest run --project component src/admin/automation/recipes.test.tsx",
+    "expect": "× .*lists every flow under its topic as a sentence"
+  },
+  {
+    "id": "w3-f-clock-words",
+    "test": "src/admin/automation/settings.test.tsx",
+    "file": "src/admin/automation/ScheduleSettingsForm.tsx",
+    "find": "        <p className=\"admin-clock__when\">{sayCadence(row.cron, row.interval_days)}</p>",
+    "replace": "        <p className=\"admin-clock__when\">{row.cron}</p>",
+    "run": "bunx vitest run --project component src/admin/automation/settings.test.tsx",
+    "expect": "× .*says when each clock runs in words and Cairo time"
+  }
+]

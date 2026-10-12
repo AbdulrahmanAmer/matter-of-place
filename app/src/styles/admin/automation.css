@@ -616,6 +616,92 @@
   border-top: 1px solid var(--border);
 }
 
+/* W3: a channel or a clock is one line of what it does; "Change" opens its form under it. */
+.admin-settings__list {
+  gap: 0;
+  max-width: 1040px;
+}
+
+.admin-settings__list > .admin-channel,
+.admin-settings__list > .admin-clock {
+  padding: var(--admin-space-4) 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.admin-channel__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--admin-space-2) var(--admin-space-4);
+}
+
+.admin-channel__name {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.admin-channel__pills {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-3);
+  white-space: nowrap;
+}
+
+.admin-channel__summary,
+.admin-clock__when {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.admin-channel__change,
+.admin-clock__change {
+  margin-top: var(--admin-space-2);
+}
+
+.admin-channel__change > summary,
+.admin-clock__change > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-channel__change[open] > summary,
+.admin-clock__change[open] > summary {
+  margin-bottom: var(--admin-space-4);
+}
+
+.admin-clock__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--admin-space-4);
+}
+
+.admin-clock__title h3 {
+  font-size: 18px;
+}
+
+.admin-clock__picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--admin-space-4);
+}
+
+@media (max-width: 720px) {
+  .admin-channel__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-channel__summary {
+    grid-column: 1 / -1;
+  }
+}
+
 .admin-channel form,
 .admin-channel__fields,
 .admin-clock form,

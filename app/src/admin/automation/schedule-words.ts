@@ -2,17 +2,26 @@
 // turns the common shapes (every N minutes, every day at a time, every week on a day at a time) into a sentence and
 // back, at the Cairo offset of the moment it is read. A cron of any other shape stays as it is and says so.
 
-export const OFFICE_ZONE = "Africa/Cairo";
+import { OFFICE_ZONE, formatInZone, offsetMinutes } from "../../domain/market-time";
 
 export const scheduleNames: Record<string, { name: string; about: string }> = {
-  digest: { name: "Place Notes sending", about: "Sends the newsletter issue to everyone signed up." },
+  digest: {
+    name: "Place Notes sending",
+    about: "Sends the newsletter issue to everyone signed up.",
+  },
   audit: {
     name: "Saturday audit",
     about: "Checks the site's speed, search health and pages, and writes a report.",
   },
   backup: { name: "Database backup", about: "Copies the whole database to safe storage." },
-  keepwarm: { name: "Keep the site quick", about: "Visits the site so the first reader never waits." },
-  kpi_weekly: { name: "Weekly numbers", about: "Collects the week's figures for the reports page." },
+  keepwarm: {
+    name: "Keep the site quick",
+    about: "Visits the site so the first reader never waits.",
+  },
+  kpi_weekly: {
+    name: "Weekly numbers",
+    about: "Collects the week's figures for the reports page.",
+  },
   newsletter_hygiene: {
     name: "Mailing list care",
     about: "Removes addresses that bounce or never confirmed.",
@@ -68,18 +77,7 @@ export function cadenceOf(cron: string): Cadence {
 
 /** Minutes Cairo is ahead of UTC at `at` (180 in summer, 120 in winter). */
 export function officeOffset(at: Date): number {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: OFFICE_ZONE,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).formatToParts(at);
-  const part = (type: string) => Number(parts.find((entry) => entry.type === type)?.value ?? "0");
-  const wall = Date.UTC(part("year"), part("month") - 1, part("day"), part("hour"), part("minute"));
-  return Math.round((wall - Math.floor(at.getTime() / 60_000) * 60_000) / 60_000);
+  return offsetMinutes(at.getTime(), OFFICE_ZONE);
 }
 
 /** Moves a daily or weekly cadence by `minutes`, carrying into the next or previous day. */
@@ -114,7 +112,11 @@ const clock = (hour: number, minute: number) =>
   `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 
 /** "Every Saturday at 15:00, Cairo time"; a cron of another shape is named as such. */
-export function sayCadence(cron: string, intervalDays: number | null, now: Date = new Date()): string {
+export function sayCadence(
+  cron: string,
+  intervalDays: number | null,
+  now: Date = new Date(),
+): string {
   const local = toOffice(cadenceOf(cron), now);
   if (local.kind === "minutes")
     return local.every === 1 ? "Every minute" : `Every ${String(local.every)} minutes`;
@@ -122,8 +124,14 @@ export function sayCadence(cron: string, intervalDays: number | null, now: Date 
   const at = `at ${clock(local.hour, local.minute)}, Cairo time`;
   if (local.kind === "daily") return `Every day ${at}`;
   const day = weekdays[local.day] ?? "";
-  if (intervalDays !== null && intervalDays > 1) return `Every ${String(intervalDays)} days, on a ${day} ${at}`;
+  if (intervalDays !== null && intervalDays > 1)
+    return `Every ${String(intervalDays)} days, on a ${day} ${at}`;
   return `Every ${day} ${at}`;
+}
+
+/** A moment as the office reads it: "Sat, Oct 17, 15:00 Cairo time". */
+export function officeTime(iso: string): string {
+  return formatInZone(iso, OFFICE_ZONE, "dayTime");
 }
 
 export { clock };

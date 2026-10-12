@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { scheduleSettingsPutSchema } from "../../domain/automation";
 import { Field } from "../ui/Field";
-import { LocalTime } from "../ui/LocalTime";
+
 import { RoleGate } from "../ui/RoleGate";
 import { StatusPill } from "../ui/StatusPill";
 import { useAdminMe } from "../ui/admin-me";
@@ -11,6 +11,7 @@ import { RequestFailure } from "./RequestFailure";
 import {
   cadenceOf,
   clock,
+  officeTime,
   cronOf,
   sayCadence,
   scheduleName,
@@ -147,11 +148,17 @@ export function ScheduleSettingsForm({ row }: { row: ScheduleRow }) {
             {row.next_run_at === null || !row.enabled ? (
               "Not scheduled"
             ) : (
-              <LocalTime value={row.next_run_at} />
+              <time dateTime={row.next_run_at}>{officeTime(row.next_run_at)}</time>
             )}
           </dd>
           <dt>Last run</dt>
-          <dd>{row.last_run_at === null ? "Never" : <LocalTime value={row.last_run_at} />}</dd>
+          <dd>
+            {row.last_run_at === null ? (
+              "Never"
+            ) : (
+              <time dateTime={row.last_run_at}>{officeTime(row.last_run_at)}</time>
+            )}
+          </dd>
         </dl>
         <details className="admin-clock__change" open={dirty || error.when !== undefined}>
           <summary>Change when it runs</summary>
