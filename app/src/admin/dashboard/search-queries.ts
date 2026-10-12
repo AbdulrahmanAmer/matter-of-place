@@ -4,7 +4,7 @@ import { adminFetch } from "../ui/admin-fetch";
 
 // The top bar's search (W3, admin pass): one request a settled query, kept a minute so going back costs nothing.
 
-export function fetchSearch(q: string) {
+function fetchSearch(q: string) {
   return adminFetch(`/api/admin/search?q=${encodeURIComponent(q)}`, adminSearchAnswerSchema);
 }
 
