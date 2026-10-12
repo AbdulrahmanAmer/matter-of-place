@@ -36,13 +36,24 @@ export function useAssignees() {
   });
 }
 
-/** The forward job, read again every two seconds until it has finished, so the drawer shows how it ended. */
+/**
+ * The forward job, read again every two seconds until it has finished, so the drawer shows how it ended. A read that
+ * still fails after react-query's retries stops the polling (gap audit item 15) instead of asking every two seconds.
+ */
 export function useForwardJob(id: string) {
   return useQuery({
     queryKey: adminKeys.jobs.detail(id),
     queryFn: () => fetchJob(id),
-    refetchInterval: (query) => (FINISHED.has(query.state.data?.status ?? "") ? false : 2000),
+    refetchInterval: (query) => forwardPollInterval(query.state),
   });
+}
+
+/** Two seconds while the forward job runs; no more polling once it has finished or its read keeps failing. */
+export function forwardPollInterval(state: {
+  status: string;
+  data?: { status?: string } | undefined;
+}): number | false {
+  return state.status === "error" || FINISHED.has(state.data?.status ?? "") ? false : 2000;
 }
 
 function useInquiryWrite<Variables extends { id: string }, Answer>(
