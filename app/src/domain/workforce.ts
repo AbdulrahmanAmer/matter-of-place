@@ -125,14 +125,34 @@ export const approvalSchema = z.object({
   content: z.record(z.unknown()),
   content_hash: z.string(),
   state: z.enum(["pending", "approved", "rejected", "void"]),
+  // W2 step 6: why it was declined, and the person's own version when it was approved with changes.
+  reason: z.string().nullable().default(null),
+  edited_content: z.record(z.unknown()).nullable().default(null),
   created_at: z.string(),
 });
 export type AgentApproval = z.infer<typeof approvalSchema>;
+
+/** W2 step 6: one colleague's last seven days; approved as is over decided is the main number. */
+export const scoreSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  runs: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+  answer_seconds: z.number().int().nonnegative().nullable(),
+  cost_microusd: z.number().int().nonnegative(),
+  decided: z.number().int().nonnegative(),
+  as_is: z.number().int().nonnegative(),
+  edited: z.number().int().nonnegative(),
+  declined: z.number().int().nonnegative(),
+  lessons: z.number().int().nonnegative(),
+});
+export type Score = z.infer<typeof scoreSchema>;
 
 export const officeSchema = z.object({
   agents: z.array(agentSchema),
   runs: z.array(runSchema),
   pending_approvals: z.number().int().nonnegative(),
+  week: z.array(scoreSchema).default([]),
 });
 export type Office = z.infer<typeof officeSchema>;
 

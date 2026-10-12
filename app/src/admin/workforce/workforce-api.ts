@@ -43,9 +43,19 @@ export const postAgentState = (slug: string, state: "idle" | "paused" | "off") =
 export const fetchApprovals = () =>
   adminFetch("/api/admin/workforce/approvals", z.object({ items: z.array(approvalSchema) }));
 
-export const postDecision = (id: string, decision: "approved" | "rejected", contentHash: string) =>
+export const postDecision = (
+  id: string,
+  decision: "approved" | "rejected",
+  contentHash: string,
+  teach: { reason?: string; editedBody?: string } = {},
+) =>
   adminFetch(
     `/api/admin/workforce/approvals/${encodeURIComponent(id)}`,
     z.object({ state: z.string() }),
-    json({ decision, content_hash: contentHash }),
+    json({
+      decision,
+      content_hash: contentHash,
+      ...(teach.reason === undefined ? {} : { reason: teach.reason }),
+      ...(teach.editedBody === undefined ? {} : { edited_body: teach.editedBody }),
+    }),
   );

@@ -15,7 +15,9 @@ import type { Database } from "../../src/db/index.ts";
 import { agentTools, hireInputSchema, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, keepNote, matterInputs, matterPrompt } from "../matter/run.ts";
-import { breakerUntil, runClaude, UsageLimitError } from "./cli.ts";
+import { loadEnvFile } from "./env.ts";
+import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
+import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -31,26 +33,6 @@ const models: Record<string, string> = {
 };
 
 // ---------- the database ----------
-
-function loadEnvFile(): void {
-  const file = resolve(import.meta.dir, "../../../.env");
-  if (!existsSync(file)) return;
-  for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
-    const match = /^([A-Z0-9_]+)=(.*)$/.exec(line);
-    if (match === null) continue;
-    const [, name = "", raw = ""] = match;
-    if (
-      ![
-        "DEV_SUPABASE_PROJECT_REF",
-        "DEV_SUPABASE_SERVICE_ROLE_KEY",
-        "WORKFORCE_CLI",
-        "MATTER_AGENT_KEY",
-      ].includes(name)
-    )
-      continue;
-    if (process.env[name] === undefined) process.env[name] = raw.replace(/^"(.*)"$/, "$1");
-  }
-}
 
 function db(): Db {
   loadEnvFile();
@@ -91,7 +73,7 @@ function askClaude(
   prompt: string,
   model: string,
   cwd: string,
-): Promise<{ text: string; session?: string }> {
+): Promise<{ text: string; session?: string; usage?: CliUsage }> {
   return runClaude({
     args: [
       "-p",
@@ -254,12 +236,14 @@ function promptFor(
   agent: { name: string; slug: string; role: string; instructions: string; tools: string[] },
   team: { name: string; slug: string; role: string }[],
   situation: string,
+  lessons = "",
 ): string {
   const may = agentTools.filter((tool) => agent.tools.includes(tool));
   return [
     `You are ${agent.name} (@${agent.slug}), ${agent.role}, at Matter of Place: a selective editorial and distribution platform for exceptional existing residential property in California, New York and Florida, a product of Omnikom LLC.`,
     "House voice for everything you write: calm, brief, specific; no em dashes, no hyperbole, no guarantees of buyers, leads or sales; price never equals merit.",
     `Your brief: ${agent.instructions}`,
+    ...(lessons === "" ? [] : [lessons]),
     `Your colleagues: ${team.map((member) => `@${member.slug} (${member.name}, ${member.role})`).join("; ")}. Mention a colleague with @handle to hand them work.`,
     `You may: ${may.join(", ")}. Anything that leaves the company (a reply, a post, a newsletter) is a proposal a person approves; you never send it yourself.`,
     situation,
@@ -306,23 +290,29 @@ async function runOnce(client: Db): Promise<boolean> {
   mkdirSync(cwd, { recursive: true });
   try {
     const situation = await context(client, run, thread);
+    // W2 step 6: the lessons this colleague has been taught, recalled for what woke it.
+    const { data: lessonRows } = await client
+      .from("agent_lessons")
+      .select("id, trigger, action, uses, last_used_at, created_at")
+      .eq("status", "active")
+      .or(`agent_id.eq.${agent.id},agent_id.is.null`);
+    const shown: Lesson[] = recallLessons(lessonRows ?? [], situation);
+    const lessons = lessonsBlock(shown);
     const team = (agents ?? [])
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
     const isMatter = agent.slug === "matter";
     const answer = isMatter
-      ? {
-          text: await askMatter(
-            matterPrompt({
-              ...matterInputs(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
-              thread: situation,
-              business: "",
-            }),
-            matterEnv(),
-          ),
-        }
+      ? await askMatter(
+          matterPrompt({
+            ...matterInputs(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
+            thread: situation,
+            business: lessons,
+          }),
+          matterEnv(),
+        )
       : await askClaude(
-          promptFor(agent, team, situation),
+          promptFor(agent, team, situation, lessons),
           models[agent.model] ?? models["sonnet"] ?? "claude-sonnet-5-5",
           cwd,
         );
@@ -390,10 +380,27 @@ async function runOnce(client: Db): Promise<boolean> {
         state: "done",
         finished_at: new Date().toISOString(),
         summary: (result.task || result.reply).slice(0, 300),
-        session_id: "session" in answer ? (answer.session ?? null) : null,
+        session_id:
+          "session" in answer && typeof answer.session === "string" ? answer.session : null,
         turns: 1,
+        lessons_used: shown.map((lesson) => lesson.id),
+        ...(answer.usage === undefined
+          ? {}
+          : {
+              input_tokens: inputTokens(answer.usage),
+              output_tokens: answer.usage.output_tokens,
+              cost_microusd: costMicroUsd(agent.model, answer.usage),
+            }),
       })
       .eq("id", run.id);
+    // A lesson shown is a lesson used: its count ranks it, and the weekly review promotes the ones used often.
+    const now = new Date().toISOString();
+    for (const lesson of shown) {
+      await client
+        .from("agent_lessons")
+        .update({ uses: lesson.uses + 1, last_used_at: now })
+        .eq("id", lesson.id);
+    }
     console.log(`${new Date().toISOString()} ${agent.slug} done`);
   } catch (failure) {
     if (failure instanceof UsageLimitError) {

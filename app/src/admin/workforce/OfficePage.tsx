@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
-import type { Agent, AgentMessage, AgentRun } from "../../domain/workforce";
+import type { Agent, AgentMessage, AgentRun, Score } from "../../domain/workforce";
 import { Avatar } from "./Avatar";
 import { HireDialog } from "./HireDialog";
 import { useAgentState, useMessages, useOffice, usePostMessage } from "./workforce-queries";
@@ -244,6 +244,63 @@ function RecentWork({ runs, agents }: { runs: readonly AgentRun[]; agents: reado
   );
 }
 
+/** W2 step 6: the week, per colleague. Approved as is over decided is the number that says the team is learning. */
+function Week({ week }: { week: readonly Score[] }) {
+  const working = week.filter((row) => row.runs > 0 || row.decided > 0);
+  return (
+    <section className="wf-week" aria-labelledby="wf-week-title">
+      <h2 id="wf-week-title">This week</h2>
+      {working.length === 0 ? (
+        <p className="wf-empty">No work in the last seven days yet.</p>
+      ) : (
+        <div className="wf-week__scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Colleague</th>
+                <th scope="col">Approved as is</th>
+                <th scope="col">Edited</th>
+                <th scope="col">Declined</th>
+                <th scope="col">Runs</th>
+                <th scope="col">Answers in</th>
+                <th scope="col">Cost</th>
+                <th scope="col">Lessons</th>
+              </tr>
+            </thead>
+            <tbody>
+              {working.map((row) => (
+                <tr key={row.slug}>
+                  <th scope="row">{row.name}</th>
+                  <td>
+                    {row.decided === 0
+                      ? "Nothing decided"
+                      : `${String(Math.round((row.as_is / row.decided) * 100))}% (${String(row.as_is)} of ${String(row.decided)})`}
+                  </td>
+                  <td>{row.edited}</td>
+                  <td>{row.declined}</td>
+                  <td>
+                    {row.runs}
+                    {row.failed > 0 ? `, ${String(row.failed)} failed` : ""}
+                  </td>
+                  <td>
+                    {row.answer_seconds === null
+                      ? "Not measured"
+                      : row.answer_seconds < 90
+                        ? `${String(row.answer_seconds)} seconds`
+                        : `${String(Math.round(row.answer_seconds / 60))} minutes`}
+                  </td>
+                  <td>{`$${(row.cost_microusd / 1_000_000).toFixed(2)}`}</td>
+                  <td>{row.lessons}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function OfficePage() {
   const office = useOffice();
   const [thread, setThread] = useState("team");
@@ -280,6 +337,7 @@ export function OfficePage() {
             ))}
             {office.isLoading ? <p className="wf-empty">Opening the office.</p> : null}
           </section>
+          <Week week={office.data?.week ?? []} />
           <RecentWork runs={office.data?.runs ?? []} agents={agents} />
         </div>
         <Conversation thread={thread} agents={agents} onThread={setThread} />

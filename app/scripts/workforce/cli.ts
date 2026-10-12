@@ -5,10 +5,20 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { z } from "zod";
 
+const usageSchema = z.object({
+  input_tokens: z.number().int().nonnegative().default(0),
+  output_tokens: z.number().int().nonnegative().default(0),
+  cache_creation_input_tokens: z.number().int().nonnegative().optional(),
+  cache_read_input_tokens: z.number().int().nonnegative().optional(),
+});
+export type CliUsage = z.infer<typeof usageSchema>;
+
 const cliAnswer = z.object({
   is_error: z.boolean().optional(),
   result: z.string(),
   session_id: z.string().optional(),
+  // W2 step 6: the CLI's own token counts; the cost is ours to compute (growth.ts).
+  usage: usageSchema.optional(),
 });
 
 /** The operator's Claude limit is spent: nothing can run until `resetAt` (gap audit item 32). */
@@ -51,7 +61,7 @@ export function runClaude(input: {
   timeoutMs: number;
   /** Who timed out, in the words the office shows: "the colleague", "Matter". */
   who: string;
-}): Promise<{ text: string; session?: string }> {
+}): Promise<{ text: string; session?: string; usage?: CliUsage }> {
   const program = input.env["WORKFORCE_CLI"]?.trim() || "claude";
   return new Promise((done, fail) => {
     const child = spawn(program, [...input.args], {
@@ -97,6 +107,7 @@ export function runClaude(input: {
         done({
           text: answer.result,
           ...(answer.session_id === undefined ? {} : { session: answer.session_id }),
+          ...(answer.usage === undefined ? {} : { usage: answer.usage }),
         });
       } catch {
         fail(new Error("the Claude CLI answer was not readable"));

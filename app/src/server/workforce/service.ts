@@ -7,7 +7,7 @@ import {
   type Office,
 } from "../../domain/workforce.ts";
 import { z } from "zod";
-import type { agentUpdateSchema } from "../../domain/workforce.ts";
+import { scoreSchema, type agentUpdateSchema } from "../../domain/workforce.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
 import { auditContext } from "../lib/audit.ts";
@@ -34,7 +34,8 @@ async function personName(db: Db, actor: AdminActor): Promise<string> {
 export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
   authorize(actor, "workforce.office");
   const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
-  const [agents, runs, today, approvals] = await Promise.all([
+  const weekAgo = new Date(Date.now() - 7 * 24 * 3_600_000).toISOString();
+  const [agents, runs, today, approvals, week] = await Promise.all([
     db.from("agents").select("*").order("created_at"),
     db
       .from("agent_runs")
@@ -43,12 +44,14 @@ export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
       .limit(30),
     db.from("agent_runs").select("agent_id").gte("created_at", since),
     db.from("agent_approvals").select("id", { count: "exact", head: true }).eq("state", "pending"),
+    db.rpc("workforce_scoreboard", { p_since: weekAgo }),
   ]);
   if (
     agents.error !== null ||
     runs.error !== null ||
     today.error !== null ||
-    approvals.error !== null
+    approvals.error !== null ||
+    week.error !== null
   ) {
     throw unavailable("The office");
   }
@@ -88,6 +91,7 @@ export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
       finished_at: row.finished_at,
     })),
     pending_approvals: approvals.count ?? 0,
+    week: z.array(scoreSchema).safeParse(week.data).data ?? [],
   };
 }
 
@@ -191,7 +195,9 @@ export async function listApprovals(
   const [{ data, error }, agents] = await Promise.all([
     db
       .from("agent_approvals")
-      .select("id, agent_id, action, summary, content, content_hash, state, created_at")
+      .select(
+        "id, agent_id, action, summary, content, content_hash, state, reason, edited_content, created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(50),
     db.from("agents").select("id, slug"),
@@ -210,6 +216,11 @@ export async function listApprovals(
         row.state === "approved" || row.state === "rejected" || row.state === "void"
           ? row.state
           : "pending",
+      reason: row.reason,
+      edited_content:
+        row.edited_content === null
+          ? null
+          : (z.record(z.unknown()).safeParse(row.edited_content).data ?? null),
       created_at: row.created_at,
     })),
   };
@@ -220,13 +231,20 @@ export async function decideApproval(
   actor: AdminActor,
   db: Db,
   id: string,
-  input: { decision: "approved" | "rejected"; content_hash: string },
+  input: {
+    decision: "approved" | "rejected";
+    content_hash: string;
+    reason?: string | undefined;
+    edited_body?: string | undefined;
+  },
 ): Promise<{ state: string }> {
   authorize(actor, "workforce.decide");
   const { data: state, error } = await db.rpc("workforce_decide", {
     p_id: id,
     p_decision: input.decision,
     p_content_hash: input.content_hash,
+    ...(input.reason === undefined ? {} : { p_reason: input.reason }),
+    ...(input.edited_body === undefined ? {} : { p_edited_body: input.edited_body }),
     ...auditContext(actor),
   });
   if (error !== null) throw fromRpcError(error);
