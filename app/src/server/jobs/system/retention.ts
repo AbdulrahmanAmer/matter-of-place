@@ -35,6 +35,9 @@ const POLICY_KEYS = [
   "unconfirmed_subscribers",
   "cron_history",
   "job_wait_events",
+  "agent_approvals_decided",
+  "agent_runs_finished",
+  "agent_messages",
 ] as const;
 
 // The plain row deletes of retention_delete_rows, in order: jobs_dead before events_processed, so a dead job's event
@@ -45,7 +48,16 @@ const ROW_KEYS_BEFORE_EMAIL = [
   "jobs_dead",
   "events_processed",
 ];
-const ROW_KEYS_AFTER_EMAIL = ["unconfirmed_subscribers", "cron_history", "job_wait_events"];
+// Gap audit item 17 (2026-10-12): the AI staff's decided approvals and finished runs after 90 days, their messages after
+// a year (ruling H95: deleted, not anonymised, because a message's body can carry a person's details).
+const ROW_KEYS_AFTER_EMAIL = [
+  "unconfirmed_subscribers",
+  "cron_history",
+  "job_wait_events",
+  "agent_approvals_decided",
+  "agent_runs_finished",
+  "agent_messages",
+];
 
 function unavailable(fn: string): AppError {
   return new AppError("unavailable", undefined, `The job system did not answer (${fn}).`);

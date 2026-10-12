@@ -1,0 +1,82 @@
+-- down: re-run bun run db:fn retention_delete_rows from the previous commit of supabase/sql/functions/retention_delete_rows.sql
+set lock_timeout = '5s';
+
+create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)
+returns int
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_rows text;
+  v_keep interval;
+  v_count int;
+begin
+  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table
+  -- such as audit_log can never be named here. $1 is the policy row's keep_for.
+  v_rows := case p_key
+    when 'rate_limits' then 'public.rate_limits where at < now() - $1'
+    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'
+    when 'subject_requests' then
+      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$
+    -- G16: a dead job goes with its job_events by the foreign key's cascade.
+    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$
+    -- G16: an event goes only once no job points at it, so jobs_dead runs first.
+    when 'events_processed' then
+      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1
+        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$
+    when 'unconfirmed_subscribers' then
+      'public.subscribers where confirmed_at is null and created_at < now() - $1'
+    -- Ruling H15, PERF-02: pg_cron's run history.
+    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'
+    -- Ruling H16: the daily aggregates, by UTC day.
+    when 'analytics_daily' then
+      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$
+    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.
+    when 'job_wait_events' then
+      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1
+        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))
+        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$
+    -- Gap audit item 17: the AI staff's records. A run's approvals keep their row (run_id is set null), a message's
+    -- runs keep theirs (message_id is set null); a pending approval and an unfinished run are never removed.
+    when 'agent_approvals_decided' then
+      $r$public.agent_approvals where state <> 'pending' and coalesce(decided_at, created_at) < now() - $1$r$
+    when 'agent_runs_finished' then
+      $r$public.agent_runs where state in ('done', 'failed') and finished_at < now() - $1$r$
+    when 'agent_messages' then 'public.agent_messages where created_at < now() - $1'
+  end;
+  if v_rows is null then
+    raise exception 'bad_request';
+  end if;
+  select keep_for into v_keep
+  from public.retention_policies
+  where key = p_key and enabled and keep_for is not null;
+  if not found then
+    return 0;
+  end if;
+  if p_dry_run then
+    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;
+    return v_count;
+  end if;
+  perform set_config('mop.retention', 'on', true);
+  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'
+    into v_count using v_keep;
+  perform set_config('mop.retention', 'off', true);
+  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;
+  return v_count;
+end;
+$$;
+
+revoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;
+grant execute on function public.retention_delete_rows(text, boolean) to service_role;
+
+-- Gap audit item 17: the policy rows that switch the three deletes on (ruling H95).
+insert into public.retention_policies (key, table_name, keep_for, action, enabled, note)
+values
+  ('agent_approvals_decided', 'agent_approvals', interval '90 days', 'delete', true,
+    'Decided AI staff approvals, after decided_at; a pending one is never removed.'),
+  ('agent_runs_finished', 'agent_runs', interval '90 days', 'delete', true,
+    'Finished AI staff runs, after finished_at.'),
+  ('agent_messages', 'agent_messages', interval '1 year', 'delete', true,
+    'AI staff chat messages, after created_at; deleted, not anonymised, as a body can name a person.')
+on conflict (key) do nothing;

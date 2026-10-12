@@ -37,7 +37,8 @@ begin
       from public.retention_policies p
       where p.enabled and p.action <> 'keep'
         and (
-          p.last_run_at is null
+          -- A policy that never ran counts as stalled two days after it was written, not on its first day (gap 17).
+          (p.last_run_at is null and p.updated_at < p_now - interval '2 days')
           or p.last_run_at < p_now - interval '2 days'
           or coalesce((v_last_run -> p.key ->> 'remaining')::int, 0) > 0
         )

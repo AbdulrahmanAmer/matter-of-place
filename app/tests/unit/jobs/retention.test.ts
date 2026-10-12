@@ -27,6 +27,9 @@ const ALL_KEYS = [
   "unconfirmed_subscribers",
   "cron_history",
   "job_wait_events",
+  "agent_approvals_decided",
+  "agent_runs_finished",
+  "agent_messages",
 ];
 
 const mediaRow = (n: number) => {
@@ -179,6 +182,9 @@ describe("retention", () => {
       "retention_delete_rows:unconfirmed_subscribers",
       "retention_delete_rows:cron_history",
       "retention_delete_rows:job_wait_events",
+      "retention_delete_rows:agent_approvals_decided",
+      "retention_delete_rows:agent_runs_finished",
+      "retention_delete_rows:agent_messages",
       "retention_log_run",
     ]);
     const logged = rpcCalls(db)
