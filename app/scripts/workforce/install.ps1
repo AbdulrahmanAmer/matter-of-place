@@ -26,6 +26,16 @@ Register-ScheduledTask -TaskName "MOP Usage" -Action $usageAction -Trigger $usag
 Start-ScheduledTask -TaskName "MOP Usage"
 Write-Output "task: MOP Usage registered (daily at 06:00, run once now)"
 
+# 4. The scheduled task "MOP Audit": the Saturday audit routine at 09:00 local time (B14, gap audit item 25).
+$auditAction = New-ScheduledTaskAction -Execute "wscript.exe" `
+  -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\audit-routine.ts audit")
+$auditTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Saturday -At "09:00"
+$auditSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries `
+  -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 100)
+Register-ScheduledTask -TaskName "MOP Audit" -Action $auditAction -Trigger $auditTrigger -Settings $auditSettings `
+  -Description "Matter of Place: the Saturday audit routine (workspace/audits/ROUTINE-PROMPT.md)." -Force | Out-Null
+Write-Output "task: MOP Audit registered (Saturday 09:00 local)"
+
 $chrome = @(
   (Join-Path $env:ProgramFiles "Google\Chrome\Application\chrome.exe"),
   (Join-Path ${env:ProgramFiles(x86)} "Google\Chrome\Application\chrome.exe"),
