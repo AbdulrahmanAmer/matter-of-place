@@ -33,6 +33,8 @@ interface FakeQuery extends Promise<{ data: unknown[]; error: null }> {
   in: () => FakeQuery;
   lte: () => FakeQuery;
   lt: () => FakeQuery;
+  ilike: () => FakeQuery;
+  or: () => FakeQuery;
   order: () => FakeQuery;
   limit: () => FakeQuery;
 }
@@ -71,6 +73,8 @@ export function fakeDb(options: FakeDbOptions = {}): FakeDb {
         in: query,
         lte: query,
         lt: query,
+        ilike: query,
+        or: query,
         order: query,
         limit: query,
       });

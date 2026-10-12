@@ -3,6 +3,8 @@ import type { PermissionEntry } from "../authz.ts";
 
 export const dashboard = [
   { action: "dashboard.get", group: "dashboard", roles: appRoles },
+  // The top bar's search; each group inside it still needs its own list action (admin pass).
+  { action: "dashboard.search", group: "dashboard", roles: appRoles },
   // Any enabled agent key may read `me`, whatever its scopes (invariant 3).
   { action: "me", group: "dashboard", roles: appRoles, scopeFree: true },
   // A person sets their own password, after a recent sign-in; an agent key has none (operator, 2026-10-12).
