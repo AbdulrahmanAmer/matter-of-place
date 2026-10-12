@@ -21,7 +21,7 @@ import {
 } from "../../fixtures/email-send";
 
 // Step `notify_admin` (invariants 4 and 14, INT-04): one row and one Idempotency-Key per admin address, and one
-// Sentry report before any send, so an alert is heard while mail is down.
+// Sentry report only when the mail cannot carry the alert (gap item 10), so an alert is still heard while mail is down.
 
 const ADMINS = ["ops@matterofplace.com", "owner@matterofplace.com"];
 const data: JsonObject = { submission_id: SUBMISSION_ID };
@@ -67,15 +67,25 @@ describe("notify_admin", () => {
   it("reports a job no event made under its key up to the second colon", async () => {
     const { run, fetch } = setup(
       { jobKey: "health:2026-10-05:checks", eventType: "unused" },
-      { report: sentryReporter, event: false },
+      { report: sentryReporter, event: false, answer: () => resendError(500, "application_error") },
     );
-    await run(
-      { headline: "Checks failed" },
-      { summary: "Two checks failed", link_path: "/admin/jobs" },
+    await failure(
+      run(
+        { headline: "Checks failed" },
+        { summary: "Two checks failed", link_path: "/admin/jobs" },
+      ),
     );
     expect(fetch.envelopes.map((envelope) => envelope.fingerprint)).toEqual([
       ["alert", "health:2026-10-05"],
     ]);
+  });
+
+  it("makes no Sentry report when the mail carries the alert (gap item 10)", async () => {
+    // A spy, not the real sender: Sentry's one-a-minute de-duplication would hide a report an earlier case made.
+    const report = vi.fn<Reporter>(() => Promise.resolve());
+    const { run, fetch } = setup({ notify: ADMINS }, { report });
+    await run();
+    expect([fetch.requests.length, report.mock.calls.length]).toEqual([2, 0]);
   });
 
   it("writes one alert row and one distinct Idempotency-Key per admin address", async () => {
@@ -119,15 +129,18 @@ describe("notify_admin", () => {
     expect([fetch.requests.length, messages.length]).toEqual([2, 2]);
   });
 
-  it("logs a failed Sentry report and still sends", async () => {
+  it("logs a failed Sentry report and still answers with the send's own failure", async () => {
     const { run, fetch, logs } = setup(
       {},
-      { report: () => Promise.reject(new Error("sentry down")) },
+      {
+        report: () => Promise.reject(new Error("sentry down")),
+        answer: () => resendError(500, "application_error"),
+      },
     );
-    expect(await run()).toEqual({ status: "done", result: { sent: "re_1" } });
+    expect(await failure(run())).toEqual({ dead: false, message: "resend_application_error" });
     expect(fetch.requests).toHaveLength(1);
-    expect(logs).toEqual([
+    expect(logs).toContain(
       JSON.stringify({ level: "warn", event: "alert_report_failed", jobId: JOB_ID }),
-    ]);
+    );
   });
 });

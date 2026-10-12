@@ -1537,8 +1537,8 @@
     "id": "b5-ac",
     "test": "tests/unit/email/notify-admin.test.ts",
     "file": "src/server/jobs/steps/notify-admin.ts",
-    "find": "  await reportAlert(\n    ctx,\n    new AlertRaised(variables[\"headline\"] ?? fingerprint.join(\":\")),\n    fingerprint,\n  );\n",
-    "replace": "",
+    "find": "    reportAlert(ctx, new AlertRaised(variables[\"headline\"] ?? fingerprint.join(\":\")), fingerprint);",
+    "replace": "    Promise.resolve();",
     "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
     "expect": "× .*makes one Sentry report with the alert fingerprint"
   },
@@ -1603,7 +1603,7 @@
     "find": "    ctx.log(\"warn\", \"alert_report_failed\", { jobId: ctx.job.id });",
     "replace": "    throw new Error(\"report failed\");",
     "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
-    "expect": "× .*logs a failed Sentry report and still sends"
+    "expect": "× .*logs a failed Sentry report and still answers with the send's own failure"
   },
   {
     "id": "b5-p-test-key",

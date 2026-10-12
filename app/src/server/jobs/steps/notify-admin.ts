@@ -62,18 +62,28 @@ async function run(ctx: StepContext, params: unknown, data: JsonObject): Promise
     throw error;
   }
   const fingerprint = ["alert", await alertKey(ctx, eventType)];
-  await reportAlert(
-    ctx,
-    new AlertRaised(variables["headline"] ?? fingerprint.join(":")),
-    fingerprint,
-  );
-  if (!row.enabled) return { status: "done", result: { skipped: "template_disabled" } };
+  // Gap audit item 10 (2026-10-12): Sentry hears an alert only when the mail cannot carry it (the template is off,
+  // the send failed, or the daily ceiling holds it), so a delivered alert is not counted twice.
+  const alert = () =>
+    reportAlert(ctx, new AlertRaised(variables["headline"] ?? fingerprint.join(":")), fingerprint);
+  if (!row.enabled) {
+    await alert();
+    return { status: "done", result: { skipped: "template_disabled" } };
+  }
   const rendered = await renderTemplate(row, variables, site);
-  return sendEach(ctx, await resolveAdminRecipients(ctx.db), {
-    templateKey: key,
-    kind: "alert",
-    rendered,
-  });
+  let result: StepResult;
+  try {
+    result = await sendEach(ctx, await resolveAdminRecipients(ctx.db), {
+      templateKey: key,
+      kind: "alert",
+      rendered,
+    });
+  } catch (error) {
+    await alert();
+    throw error;
+  }
+  if (result.status === "retry_at") await alert();
+  return result;
 }
 
 export const notifyAdmin: StepDefinition = {
