@@ -45,6 +45,15 @@
     "expect": "× .*lists every flow under its topic as a sentence"
   },
   {
+    "id": "w3-g-check-words",
+    "test": "tests/unit/today-words.test.ts",
+    "file": "src/admin/dashboard/today-words.ts",
+    "find": "  retention_stalled: \"the nightly clean-up had not run\",",
+    "replace": "  retention_stalled: \"retention_stalled\",",
+    "run": "bunx vitest run --project unit tests/unit/today-words.test.ts",
+    "expect": "× .*says a failed check in words"
+  },
+  {
     "id": "w3-f-clock-words",
     "test": "src/admin/automation/settings.test.tsx",
     "file": "src/admin/automation/ScheduleSettingsForm.tsx",

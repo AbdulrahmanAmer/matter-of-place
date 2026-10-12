@@ -5,6 +5,7 @@ import { formatNumber, pluralize } from "../../lib/format";
 import { EmptyState } from "../ui/EmptyState";
 import { LocalTime } from "../ui/LocalTime";
 import { StatusPill } from "../ui/StatusPill";
+import { checkWords } from "./today-words";
 
 /** The states a request waits in for someone's move. */
 const waitingStates: readonly SubmissionState[] = [
@@ -91,11 +92,12 @@ export function DashboardTiles({
     <>
       {data.health?.failed === true ? (
         <div className="admin-banner admin-banner--danger" role="alert">
-          The last health check failed
+          The last daily check found a problem
           {data.health.failed_checks.length === 0
             ? ""
-            : `: ${data.health.failed_checks.join(", ")}`}
-          . <LocalTime value={data.health.at} />
+            : `: ${data.health.failed_checks.map(checkWords).join("; ")}`}
+          . Checked <LocalTime value={data.health.at} />; the next check runs tomorrow and clears
+          this once it passes.
         </div>
       ) : null}
       {isQuiet(data) ? (
