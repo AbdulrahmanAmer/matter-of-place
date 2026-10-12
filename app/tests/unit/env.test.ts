@@ -14,6 +14,7 @@ const PRODUCTION = {
   SUPABASE_SERVICE_ROLE_KEY: "service-key",
   TURNSTILE_SECRET: "turnstile",
   SENTRY_DSN: "https://key@o1.ingest.sentry.io/2",
+  RESEND_WEBHOOK_SECRET: "whsec",
 };
 
 let lines: string[] = [];
@@ -45,6 +46,14 @@ describe("parseEnv", () => {
   it("names SUPABASE_URL when production lacks it", () => {
     const { SUPABASE_URL: _removed, ...without } = PRODUCTION;
     expect(() => parseEnv(without)).toThrow(/SUPABASE_URL is required when MOP_ENV is production/);
+  });
+
+  it("names RESEND_WEBHOOK_SECRET when production lacks it, and not outside production (gap item 14)", () => {
+    const { RESEND_WEBHOOK_SECRET: _secret, ...without } = PRODUCTION;
+    expect(() => parseEnv(without)).toThrow(
+      /RESEND_WEBHOOK_SECRET is required when MOP_ENV is production/,
+    );
+    expect(() => parseEnv({ ...without, MOP_ENV: "preview" })).not.toThrow();
   });
 
   it("does not need the Supabase names outside production", () => {
@@ -88,7 +97,7 @@ describe("parseEnv", () => {
   });
 
   it("logs the missing optional names once per parse, without a value", () => {
-    parseEnv({ ...PRODUCTION, RESEND_WEBHOOK_SECRET: "whsec" });
+    parseEnv(PRODUCTION);
     expect(logged()).toEqual([
       { level: "warn", event: "env_optional_missing", name: "MEDIA_PUBLIC_BASE" },
     ]);
