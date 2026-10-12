@@ -914,6 +914,20 @@ describe("health_counts", () => {
     expect(result).not.toContain("test_fresh");
   });
 
+  it("gives a policy that never ran two days from when it was written before it counts as stalled", async () => {
+    const result = await withRollback(async (db) => {
+      const insert = `insert into public.retention_policies (key, table_name, keep_for, action, updated_at)
+        values ($1, 'jobs', interval '1 day', 'delete', now() - make_interval(days => $2))`;
+      await db.query(insert, ["test_new_today", 0]);
+      await db.query(insert, ["test_never_ran", 3]);
+      return (await counts(db)).retention_stalled;
+    });
+    expect([result.includes("test_new_today"), result.includes("test_never_ran")]).toEqual([
+      false,
+      true,
+    ]);
+  });
+
   it("lists a policy whose last retention.run left rows behind", async () => {
     const result = await withRollback(async (db) => {
       await policy(db, "test_remaining", 0);
