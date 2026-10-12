@@ -32,9 +32,9 @@ function globToRegExp(glob) {
 
 const MARKET_AREAS = "{brand,filters,forms,layout,property,search,site}";
 const ADMIN_FEATURES =
-  "{assets,audit,automation,channels,dashboard,inquiries,invoices,jobs,markets,media,newsletter,people,properties,reports,requests,settings,stories,team,ui}";
+  "{assets,audit,automation,channels,dashboard,inquiries,invoices,jobs,markets,media,newsletter,people,properties,reports,requests,settings,stories,team,ui,workforce}";
 const SERVER_DOMAINS =
-  "{assets,audit,automation,catalog,channels,client-errors,concierge,dashboard,email,events,hooks,inquiries,jobs,kpi,markets,media,newsletter,nitro,omnikom,payments,people,previews,properties,public,reports,search,seo,settings,stories,subjects,submissions,subscribers,team}";
+  "{assets,audit,automation,catalog,channels,client-errors,concierge,dashboard,email,events,hooks,inquiries,jobs,kpi,markets,media,newsletter,nitro,omnikom,payments,people,previews,properties,public,reports,search,seo,settings,stories,subjects,submissions,subscribers,team,workforce}";
 const UNIT_AREAS =
   "{assets,audit,automation,channels,email,jobs,kpi,lib,newsletter,omnikom,payments,reel,reports,scripts,security}";
 
@@ -133,6 +133,8 @@ export const APP_ROWS = [
       "scripts/*.{ts,mjs,sh,ps1}",
       "scripts/lib/*.{ts,mjs}",
       "scripts/{audit,harden,launch}/**/*.{ts,mjs}",
+      // W1: the laptop runner of the AI colleagues, its hidden launcher and its installer.
+      "scripts/workforce/{daemon.ts,hidden-run.vbs,install.ps1}",
       "scripts/harden/checklist.json",
       "scripts/harden/rls-review.sql",
       "scripts/harden/{pg-shims,restore-shims,rowcounts}.sql",
@@ -161,6 +163,8 @@ export const APP_ROWS = [
       "public/{site.webmanifest,browserconfig.xml}",
       "public/*.txt",
       "public/fonts/{*.woff2,LICENSES.md}",
+      // The artwork of the emails, drawn by scripts/email-art.mjs (mail clients strip inline SVG).
+      "public/email/*.png",
       "public/media/**",
       "public/og/static/*.png",
     ],

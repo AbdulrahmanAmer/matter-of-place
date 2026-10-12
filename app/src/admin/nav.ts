@@ -28,6 +28,23 @@ export interface NavEntry {
 export const navEntries: readonly NavEntry[] = [
   { screen: 1, path: "/admin/sign-in", routeId: "/admin/sign-in", label: "Sign in", hidden: true },
   { screen: 2, path: "/admin", routeId: "/admin/", group: "Work", label: "Dashboard" },
+  // W1 (2026-10-12): the AI employees' office and what they propose for a person to approve.
+  {
+    screen: 28,
+    path: "/admin/office",
+    routeId: "/admin/office",
+    group: "Work",
+    label: "Office",
+    requiresAction: "workforce.office",
+  },
+  {
+    screen: 29,
+    path: "/admin/approvals",
+    routeId: "/admin/approvals",
+    group: "Work",
+    label: "Approvals",
+    requiresAction: "workforce.approvals",
+  },
   {
     screen: 3,
     path: "/admin/requests",

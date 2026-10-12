@@ -20,6 +20,31 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"agent_approvals": {
+                  Row: {
+                    "action": string,"agent_id": string,"content": NonNullable<Json>,"content_hash": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"id": string,"run_id": string | null,"state": string,"summary": string
+                  }
+                  Insert: {
+                    "action": string,"agent_id": string,"content": NonNullable<Json>,"content_hash": string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"id"?: string,"run_id"?: string | null,"state"?: string,"summary": string
+                  }
+                  Update: {
+                    "action"?: string,"agent_id"?: string,"content"?: NonNullable<Json>,"content_hash"?: string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"id"?: string,"run_id"?: string | null,"state"?: string,"summary"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "agent_approvals_agent_id_fkey"
+      columns: ["agent_id"]
+isOneToOne: false
+      referencedRelation: "agents"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "agent_approvals_run_id_fkey"
+      columns: ["run_id"]
+isOneToOne: false
+      referencedRelation: "agent_runs"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"agent_keys": {
                   Row: {
                     "created_at": string,"id": string,"key_hash": string,"label": string,"last_used_at": string | null,"revoked_at": string | null,"scopes": (string)[],"user_id": string
@@ -29,6 +54,57 @@ export type Database = {
                   }
                   Update: {
                     "created_at"?: string,"id"?: string,"key_hash"?: string,"label"?: string,"last_used_at"?: string | null,"revoked_at"?: string | null,"scopes"?: (string)[],"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"agent_messages": {
+                  Row: {
+                    "author_id": string,"author_kind": string,"author_name": string,"body": string,"created_at": string,"id": string,"thread": string
+                  }
+                  Insert: {
+                    "author_id": string,"author_kind": string,"author_name": string,"body": string,"created_at"?: string,"id"?: string,"thread": string
+                  }
+                  Update: {
+                    "author_id"?: string,"author_kind"?: string,"author_name"?: string,"body"?: string,"created_at"?: string,"id"?: string,"thread"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"agent_runs": {
+                  Row: {
+                    "agent_id": string,"cause": string,"created_at": string,"error": string | null,"event_id": string | null,"finished_at": string | null,"id": string,"lease_until": string | null,"message_id": string | null,"session_id": string | null,"started_at": string | null,"state": string,"summary": string | null,"turns": number,"worker": string | null
+                  }
+                  Insert: {
+                    "agent_id": string,"cause": string,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"lease_until"?: string | null,"message_id"?: string | null,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
+                  }
+                  Update: {
+                    "agent_id"?: string,"cause"?: string,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"lease_until"?: string | null,"message_id"?: string | null,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "agent_runs_agent_id_fkey"
+      columns: ["agent_id"]
+isOneToOne: false
+      referencedRelation: "agents"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "agent_runs_message_id_fkey"
+      columns: ["message_id"]
+isOneToOne: false
+      referencedRelation: "agent_messages"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"agents": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"current_task": string | null,"id": string,"instructions": string,"last_seen_at": string | null,"model": string,"name": string,"role": string,"slug": string,"state": string,"tools": (string)[],"wake_on": (string)[]
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"current_task"?: string | null,"id"?: string,"instructions"?: string,"last_seen_at"?: string | null,"model"?: string,"name": string,"role": string,"slug": string,"state"?: string,"tools"?: (string)[],"wake_on"?: (string)[]
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"current_task"?: string | null,"id"?: string,"instructions"?: string,"last_seen_at"?: string | null,"model"?: string,"name"?: string,"role"?: string,"slug"?: string,"state"?: string,"tools"?: (string)[],"wake_on"?: (string)[]
                   }
                   Relationships: [
                     
@@ -1189,6 +1265,30 @@ isOneToOne: false
 "cancel_social_post":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_request_id": string }; Returns: undefined
                            },
+"claim_agent_run":
+{ Args: { "p_lease_seconds"?: number,"p_worker": string }; Returns: {
+              "agent_id": string,
+"cause": string,
+"created_at": string,
+"error": string | null,
+"event_id": string | null,
+"finished_at": string | null,
+"id": string,
+"lease_until": string | null,
+"message_id": string | null,
+"session_id": string | null,
+"started_at": string | null,
+"state": string,
+"summary": string | null,
+"turns": number,
+"worker": string | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "agent_runs"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "claim_job":
 { Args: { "p_job_id": string }; Returns: {
               "attempts": number,
@@ -1986,6 +2086,18 @@ isOneToOne: false
                            },
 "withdraw_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_reason": string,"p_request_id": string,"p_submission_id": string }; Returns: Database["public"]['Enums']["submission_state"]
+                           },
+"workforce_decide":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_content_hash": string,"p_decision": string,"p_id": string,"p_request_id": string }; Returns: string
+                           },
+"workforce_hire":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_instructions": string,"p_model": string,"p_name": string,"p_request_id": string,"p_role": string,"p_slug": string,"p_tools": (string)[],"p_wake_on": (string)[] }; Returns: string
+                           },
+"workforce_post_message":
+{ Args: { "p_author_id": string,"p_author_name": string,"p_body": string,"p_thread": string,"p_wake": (string)[] }; Returns: string
+                           },
+"workforce_update_agent":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_change": Json,"p_request_id": string,"p_slug": string }; Returns: string
                            },
 "write_audit":
 { Args: { "p_action": string,"p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_after": Json,"p_before": Json,"p_entity": string,"p_entity_id": string,"p_note"?: string,"p_request_id": string }; Returns: number
