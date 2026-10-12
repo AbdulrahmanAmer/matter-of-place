@@ -15,6 +15,7 @@ import { z } from "zod";
 import type { Database } from "../../src/db/index.ts";
 import { agentTools, hireInputSchema, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
+import { askMatter, keepNote, matterInputs, matterPrompt } from "../matter/run.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -38,7 +39,12 @@ function loadEnvFile(): void {
     if (match === null) continue;
     const [, name = "", raw = ""] = match;
     if (
-      !["DEV_SUPABASE_PROJECT_REF", "DEV_SUPABASE_SERVICE_ROLE_KEY", "WORKFORCE_CLI"].includes(name)
+      ![
+        "DEV_SUPABASE_PROJECT_REF",
+        "DEV_SUPABASE_SERVICE_ROLE_KEY",
+        "WORKFORCE_CLI",
+        "MATTER_AGENT_KEY",
+      ].includes(name)
     )
       continue;
     if (process.env[name] === undefined) process.env[name] = raw.replace(/^"(.*)"$/, "$1");
@@ -67,6 +73,12 @@ function childEnv(): NodeJS.ProcessEnv {
     env[name] = value;
   }
   return env;
+}
+
+/** Matter's environment: the employees' one plus its own admin key, which only Matter's tools may use (W2). */
+function matterEnv(): NodeJS.ProcessEnv {
+  const key = process.env["MATTER_AGENT_KEY"];
+  return key === undefined ? childEnv() : { ...childEnv(), MATTER_AGENT_KEY: key };
 }
 
 function killTree(pid: number | undefined): void {
@@ -215,6 +227,8 @@ const outcome = z.object({
     )
     .default([]),
   hire: z.array(hireInputSchema).default([]),
+  // Matter only: one line it keeps in its capped notes.
+  note: z.string().default(""),
 });
 
 const allowedProposal: Record<string, string> = {
@@ -233,7 +247,7 @@ function readJsonAnswer(text: string): z.infer<typeof outcome> {
       // fall through: a plain answer is still a reply
     }
   }
-  return { reply: text.trim(), task: "", proposals: [], hire: [] };
+  return { reply: text.trim(), task: "", proposals: [], hire: [], note: "" };
 }
 
 async function context(
@@ -344,12 +358,25 @@ async function runOnce(client: Db): Promise<boolean> {
     const team = (agents ?? [])
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
-    const answer = await askClaude(
-      promptFor(agent, team, situation),
-      models[agent.model] ?? models["sonnet"] ?? "claude-sonnet-5-5",
-      cwd,
-    );
+    const isMatter = agent.slug === "matter";
+    const answer = isMatter
+      ? {
+          text: await askMatter(
+            matterPrompt({
+              ...matterInputs(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
+              thread: situation,
+              business: "",
+            }),
+            matterEnv(),
+          ),
+        }
+      : await askClaude(
+          promptFor(agent, team, situation),
+          models[agent.model] ?? models["sonnet"] ?? "claude-sonnet-5-5",
+          cwd,
+        );
     const result = readJsonAnswer(answer.text);
+    if (isMatter) keepNote(result.note);
 
     if (result.reply !== "") {
       await client.from("agent_messages").insert({
@@ -412,7 +439,7 @@ async function runOnce(client: Db): Promise<boolean> {
         state: "done",
         finished_at: new Date().toISOString(),
         summary: (result.task || result.reply).slice(0, 300),
-        session_id: answer.session ?? null,
+        session_id: "session" in answer ? (answer.session ?? null) : null,
         turns: 1,
       })
       .eq("id", run.id);

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "w2-a-charter-stops",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "  return start === -1 ? \"\" : planText.slice(start, end === -1 ? undefined : end).trim();",
+    "replace": "  return start === -1 ? \"\" : planText.slice(start).trim();",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*takes the operator's words section of the plan word for word"
+  },
+  {
+    "id": "w2-b-notes-cap",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "const NOTES_LINES = 150;",
+    "replace": "const NOTES_LINES = 1500;",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*keeps the newest 150 notes"
+  },
+  {
+    "id": "w2-c-fence-escape",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "${text.replaceAll(\">>>\", \"> > >\")}",
+    "replace": "${text}",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*fences the thread so a client's text cannot close the fence"
+  },
+  {
+    "id": "w2-d-atlas-api",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/atlas.ts",
+    "find": "  const routes = apiRoutes().map((path) => {",
+    "replace": "  const routes = apiRoutes().slice(0, 0).map((path) => {",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*maps every admin screen, every permission and the admin API"
+  }
+]
