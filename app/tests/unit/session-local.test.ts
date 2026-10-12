@@ -114,11 +114,25 @@ describe("the admin session", () => {
     stubAuthEnv();
     vi.resetModules();
     const { authClient } = await import("../../src/server/lib/session");
-    await authClient(new Request(`${SITE}/admin/sign-in`)).auth.signInWithOtp({
+    await authClient(new Request(`${SITE}/admin/sign-in`)).signInWithOtp({
       email: "editor@example.test",
     });
     expect(authApiCalls(auth).map((call) => call.init?.signal instanceof AbortSignal)).toEqual([
       true,
     ]);
+  });
+
+  it("hands out only the Auth half of the service-key client, so no caller can reach a table (gap item 8)", async () => {
+    fakeAuth([]);
+    stubAuthEnv();
+    vi.resetModules();
+    const { authClient } = await import("../../src/server/lib/session");
+    const client: object = authClient(new Request(`${SITE}/admin/sign-in`));
+    expect([
+      "from" in client,
+      "rpc" in client,
+      "functions" in client,
+      "signInWithOtp" in client,
+    ]).toEqual([false, false, false, true]);
   });
 });
