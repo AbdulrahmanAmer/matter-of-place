@@ -1,0 +1,20 @@
+[
+  {
+    "id": "fs-a-batches",
+    "test": "tests/unit/jobs/prune.test.ts",
+    "file": "src/server/jobs/system/prune.ts",
+    "find": "    const batch = data.slice(at, at + 100);",
+    "replace": "    const batch = data.slice(at);",
+    "run": "bunx vitest run --project unit tests/unit/jobs/prune.test.ts",
+    "expect": "× .*removes abandoned staged uploads through Storage a hundred at a time"
+  },
+  {
+    "id": "fs-b-dry-run",
+    "test": "tests/unit/jobs/prune.test.ts",
+    "file": "src/server/jobs/system/prune.ts",
+    "find": "  if (dryRun || data.length === 0) return data.length;",
+    "replace": "  if (data.length === 0) return data.length;",
+    "run": "bunx vitest run --project unit tests/unit/jobs/prune.test.ts",
+    "expect": "× .*removes abandoned staged uploads through Storage a hundred at a time"
+  }
+]

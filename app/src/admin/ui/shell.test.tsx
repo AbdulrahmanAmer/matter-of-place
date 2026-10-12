@@ -75,8 +75,8 @@ describe("AdminShell", () => {
     const asked: string[] = [];
     vi.stubGlobal(
       "fetch",
-      vi.fn((input: RequestInfo | URL) => {
-        const url = new URL(String(input), "http://admin.test");
+      vi.fn((input: string) => {
+        const url = new URL(input, "http://admin.test");
         asked.push(`${url.pathname}?${url.searchParams.toString()}`);
         const body =
           url.pathname === "/api/admin/search"

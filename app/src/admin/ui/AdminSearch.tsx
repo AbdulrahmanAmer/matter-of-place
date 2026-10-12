@@ -51,7 +51,6 @@ export function AdminSearch() {
         name="search"
         aria-label="Search everything"
         aria-controls={listId}
-        aria-expanded={shown}
         placeholder="Search requests, people, properties and more"
         autoComplete="off"
         value={text}

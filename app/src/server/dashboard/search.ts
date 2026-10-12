@@ -28,6 +28,18 @@ const listAction: Record<AdminSearchKind, ActionId> = {
 const unavailable = () =>
   new AppError("unavailable", undefined, "Search could not read the records right now.");
 
+/** Each row once, in the order found, at most PER_GROUP. */
+function firstUnique<Row extends { id: string }>(rows: readonly Row[]): Row[] {
+  const seen = new Set<string>();
+  return rows
+    .filter((row) => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    })
+    .slice(0, PER_GROUP);
+}
+
 /** The text as a `like` pattern: no `%`, `_`, backslash, comma, parenthesis, star or quote left to mean anything. */
 export function likePattern(text: string): string {
   return `%${text.replace(/[%_\\,()*"]/g, " ").trim()}%`;
@@ -60,13 +72,16 @@ async function hitsFor(
       }));
     }
     case "properties": {
-      const { data, error } = await db
-        .from("properties")
-        .select("id, title, city, state")
-        .or(`title.ilike."${pattern}",address.ilike."${pattern}"`)
-        .limit(PER_GROUP);
-      if (error !== null) throw unavailable();
-      return data.map((row) => ({
+      // R44: no free text inside a built `or` string; one `ilike` per column, merged.
+      const read = (column: "title" | "address") =>
+        db
+          .from("properties")
+          .select("id, title, city, state")
+          .ilike(column, pattern)
+          .limit(PER_GROUP);
+      const [byTitle, byAddress] = await Promise.all([read("title"), read("address")]);
+      if (byTitle.error !== null || byAddress.error !== null) throw unavailable();
+      return firstUnique([...byTitle.data, ...byAddress.data]).map((row) => ({
         id: row.id,
         title: row.title,
         detail: `${row.city}, ${row.state}`,
@@ -74,14 +89,16 @@ async function hitsFor(
       }));
     }
     case "inquiries": {
-      const { data, error } = await db
-        .from("inquiries")
-        .select("id, name, email, subject_title")
-        .or(`name.ilike."${pattern}",email.ilike."${pattern}"`)
-        .order("created_at", { ascending: false })
-        .limit(PER_GROUP);
-      if (error !== null) throw unavailable();
-      return data.map((row) => ({
+      const read = (column: "name" | "email") =>
+        db
+          .from("inquiries")
+          .select("id, name, email, subject_title")
+          .ilike(column, pattern)
+          .order("created_at", { ascending: false })
+          .limit(PER_GROUP);
+      const [byName, byEmail] = await Promise.all([read("name"), read("email")]);
+      if (byName.error !== null || byEmail.error !== null) throw unavailable();
+      return firstUnique([...byName.data, ...byEmail.data]).map((row) => ({
         id: row.id,
         title: row.name,
         detail: row.subject_title ?? row.email,
@@ -112,7 +129,7 @@ async function hitsFor(
       return data.map((row) => ({
         id: row.id,
         title: row.title,
-        detail: row.market_slug ?? "",
+        detail: row.market_slug,
         href: `/admin/stories/${row.id}`,
       }));
     }

@@ -359,11 +359,7 @@ async function main(): Promise<void> {
         })),
       );
     remember(decided.knowledge);
-    if (dry) {
-      for (const hire of decided.hire) console.log(`[dry] would route the hire of ${hire.name}`);
-    } else {
-      await applyHires(db, { slug: matter.slug, id: matter.id }, decided.hire, null);
-    }
+    await applyHires(db, { slug: matter.slug, id: matter.id }, decided.hire, null);
   }
   const closedLine =
     decided.closed.length === 0
