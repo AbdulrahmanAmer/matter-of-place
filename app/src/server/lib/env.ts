@@ -79,5 +79,8 @@ export const env = parseEnv(process.env);
 
 /** The options `captureException` takes from its caller; it reads no environment itself (R14, H39 (4)). */
 export function sentryOptions() {
-  return { dsn: env.SENTRY_DSN, env: env.MOP_ENV, release: env.SENTRY_RELEASE };
+  // Gap audit item 11 (2026-10-12): a run on the laptop (MOP_ENV local) reports nowhere, so test runs never reach the
+  // production Sentry project; preview and production report as before.
+  const dsn = env.MOP_ENV === "local" ? undefined : env.SENTRY_DSN;
+  return { dsn, env: env.MOP_ENV, release: env.SENTRY_RELEASE };
 }
