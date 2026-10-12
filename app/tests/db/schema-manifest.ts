@@ -735,6 +735,13 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     decided_at: "timestamptz?",
     created_at: "timestamptz",
   },
+  vendor_usage: {
+    line: "text",
+    used: "numeric",
+    limit_value: "numeric?",
+    note: "text?",
+    measured_at: "timestamptz",
+  },
 };
 
 /** Every money column, each `numeric(12,2)` (STANDARDS R24); a table with a currency column checks it is USD. */

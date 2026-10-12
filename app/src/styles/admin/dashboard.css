@@ -272,6 +272,13 @@
   gap: var(--admin-space-2);
 }
 
+.admin-gauges__when {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  text-align: right;
+}
+
 .admin-gauges__name {
   flex: 1 1 140px;
 }

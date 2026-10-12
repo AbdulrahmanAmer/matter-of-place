@@ -93,6 +93,8 @@ export const rlsMatrix: Record<string, Access> = {
   agent_messages: staffRead,
   agent_runs: staffRead,
   agent_approvals: staffRead,
+  // The laptop's vendor readings for the free-tier gauges, written only by record_vendor_usage.
+  vendor_usage: staffRead,
 };
 
 /**

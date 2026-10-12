@@ -21,6 +21,7 @@ function dashboard(overrides: Partial<Dashboard> = {}): Dashboard {
     storage: { bytes: 0 },
     withdraw: { open: 0, oldest_at: null },
     today: [],
+    vendor: [],
     ...overrides,
   };
 }
@@ -48,7 +49,7 @@ describe("DashboardTiles", () => {
 
   it("says in one sentence how many requests are in motion and how many things need a person", () => {
     tiles(dashboard({ counts: { Submitted: 2, "Under Review": 1 }, assets_pending: 1 }));
-    expect(screen.getByText(/in motion/).textContent).toBe(
+    expect(screen.getByText(/in motion\./).textContent).toBe(
       "3 requests in motion. 1 thing needs a person.",
     );
   });
@@ -132,6 +133,46 @@ describe("GaugesTile", () => {
       lines,
       href: screen.getByRole("link", { name: "Weekly audit reports" }).getAttribute("href"),
     }).toEqual({ lines: [true, true, true, true], href: AUDIT_REPORTS_URL });
+  });
+
+  it("shows the laptop's readings as a share of each limit with when they were measured, and a public repository unlimited", () => {
+    const today = new Date(NOW - HOUR_MS).toISOString();
+    const earlier = new Date(NOW - 3 * 24 * HOUR_MS).toISOString();
+    render(
+      <GaugesTile
+        now={NOW}
+        data={dashboard({
+          vendor: [
+            {
+              line: "workers_requests_day",
+              used: 75_000,
+              limit: 100_000,
+              note: null,
+              measured_at: today,
+            },
+            { line: "sentry_errors", used: 849, limit: 5000, note: null, measured_at: earlier },
+            {
+              line: "actions_minutes",
+              used: 10_953,
+              limit: null,
+              note: "public repository, not limited",
+              measured_at: today,
+            },
+          ],
+        })}
+      />,
+    );
+    expect({
+      workers: tile("Workers requests").textContent,
+      sentry: tile("Sentry errors").textContent,
+      actions: tile("GitHub Actions minutes").textContent,
+      egress: tile("Storage egress").textContent,
+    }).toEqual({
+      workers: "Workers requests75% of 100,000 a dayWarningmeasured today",
+      sentry: "Sentry errors17% of 5,000 a monthWithin limitmeasured 3 days ago",
+      actions: "GitHub Actions minutes10,953, public repository, not limitedmeasured today",
+      egress: "Storage egressNot measured yet, of 5 GB a month",
+    });
   });
 
   it("805306368 bytes of Storage is 75 percent of 1 GB, in the warning state", () => {

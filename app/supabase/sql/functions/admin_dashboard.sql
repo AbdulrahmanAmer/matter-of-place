@@ -88,6 +88,17 @@ begin
       where o.bucket_id in ('submissions', 'media', 'documents')
     ),
     'withdraw', v_withdraw,
+    -- The vendor lines the operator's laptop measures (record_vendor_usage), each with when it was measured.
+    'vendor', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'line', v.line,
+        'used', v.used,
+        'limit', v.limit_value,
+        'note', v.note,
+        'measured_at', v.measured_at
+      ) order by v.line), '[]'::jsonb)
+      from public.vendor_usage v
+    ),
     -- What happened today: the newest twenty audit rows, kept when they are from the current UTC day.
     'today', (
       select coalesce(jsonb_agg(jsonb_build_object(
