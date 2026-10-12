@@ -7852,4 +7852,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: one replay per folder; never run a second replay, or commit, while one runs.
 - enforced-by: the lock in `scripts/watchfail.mjs` (`node_modules/.cache/watchfail.lock`): a second replay exits 3 while the first lives; `tests/unit/watchfail-lock.test.ts` (registry `ap-i-one-replay`, manual).
 - proof: with a live process holding the lock, `node scripts/watchfail.mjs --registry tests/mutations --only ap-a-job-name` → `exit 3 watchfail: another replay ... (P-3444)`; with the holder gone → `exit 0` (measured 2026-10-12).
+- hit again: 2026-10-13 00:40, a replay stopped with Stop-Process left `RerenderAssetsButton.tsx` mutated (`if (false) continue;`). watchfail now writes the original to `node_modules/.cache/watchfail.pending.json` before each mutation and the next replay restores it: a hard kill mid-mutation, then the next replay printed `restored ...job-words.ts` and the file matched (measured 2026-10-13).
 - added: 2026-10-12
+
+## P-3445 · A long preview with Matter's agent key spends its 2,000 calls a day
+- paths: (process)
+- severity: warn
+- symptom: 2026-10-12, gap item 35: the 2-hour heap watch forwarded the Office's polling with `MATTER_AGENT_KEY`, about 4,600 calls; the key's `requests_per_day` (2,000, `settings.agent_daily_limits`) was spent, and `GET /api/admin/me` answered 429 `rate_limited`.
+- rule: a preview, screenshot or measurement harness that runs longer than a few minutes uses its own agent key (made in Team and access for the purpose), never Matter's; Matter's key is for Matter's calls.
+- proof: `node scratchpad/matter-me.mjs` → `status 429 ... rate_limited` after the watch (measured 2026-10-13 00:50 Cairo).
+- added: 2026-10-13

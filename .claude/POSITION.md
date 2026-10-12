@@ -1730,3 +1730,11 @@ first day of the new usage week; no step was cut from any plan.
 - Gap 35 measured: the Office tab open 100+ minutes in the dev build with live data, heap 18.7 to 19.6 MB, 663 nodes and 219 listeners constant, about 38 requests a minute. No leak; no fix.
 - Still open: gap 18 (held for the operator's word), 19 (needs a Cloudflare zone token from him), 30 (weekly dependency audit exists as audit-deps; confirm), Matter 1(b) (a separate Windows user: his hands), 2 (covered by childEnv stripping every _KEY name; say so), 31 (safe mode in place). Staff charter waits for his approval (W2.md).
 - Process: P-3442 (a stopped shell leaves its node child), P-3443 (temp scripts under node_modules/.mop-tmp), P-3444 (one replay per folder, now a lock in watchfail.mjs).
+
+## 2026-10-13 01:10 +0300 PR 349 RE-GATING; feat/matter-actions CARRIES EVERYTHING ELSE
+- PR 349 (admin pass) re-pushed after CI flagged six stale registry entries (fixed, each WATCHED-FAIL OK), component tests now take 60 s like `bun run test`, watchfail restores a file a hard-killed replay left mutated (P-3444, proven by a hard kill). Full check 4,571 passed.
+- feat/matter-actions (E:/mop-build/mact) = fix/evening-batch + design/admin-pass + Matter's admin calls (H99): Matter names admin calls, the runner keeps write calls to real routes its key may make (at most 10 a run), files each in Approvals as `admin_call`, and makes it once approved with MATTER_AGENT_KEY; "Ask Matter to change this flow" under every open flow. Full check running; one PR for all of it.
+- Operator, 2026-10-13: "why Matter ain't able to do full control": answered. Master keys stay off Matter (it reads untrusted text); its own key, through approvals, gives it the whole admin. Shell and code work still need gap 1(b): a Windows user "matter" he creates and signs into Claude (`claude setup-token`).
+- Gap 30 confirmed done: audit-deps.yml runs Mondays 06:00 UTC (last success 2026-10-12). Gap 35 closed: 2 hours flat.
+- Matter's key spent its 2,000 calls a day on my heap watch (P-3445): previews must use their own key.
+- Waiting on the operator: Windows user "matter" (1(b)), the staff charter's approval (W2.md), gap 18's word, gap 19's zone token.
