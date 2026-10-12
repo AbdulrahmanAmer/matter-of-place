@@ -165,6 +165,20 @@ describe("ChannelCards", () => {
     });
   });
 
+  it("asks to reconnect a connected channel whose token died, in the danger tone", async () => {
+    serve({
+      "GET /api/admin/channels/health": [
+        channelHealth("instagram", {
+          level: "red",
+          token: { expiresAt: "2026-10-01T00:00:00.000Z", daysLeft: -5, level: "red" },
+        }),
+      ],
+    });
+    mount(operatorActions, <ChannelCards />);
+    const pill = await within(card("Instagram")).findByText("Reconnect needed");
+    expect(pill.getAttribute("data-tone")).toBe("danger");
+  });
+
   it("shows Facebook and YouTube as not enabled yet, with no form, no toggle and no state", async () => {
     serve({
       "GET /api/admin/channels/health": [
