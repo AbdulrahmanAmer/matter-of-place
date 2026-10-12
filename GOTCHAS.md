@@ -7828,3 +7828,28 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: `bun run check` runs to its end before every push; a test that fails only under load is rerun alone and named in the PR body, never skipped.
 - proof: PR 346 merged on its fourth CI run after the full check passed locally (gate-346.log, 17:05); PR 347 merged on its first (18:21).
 - added: 2026-10-12
+
+## P-3442 · Stopping a background shell on Windows leaves its node child running, still writing to the same file
+- paths: (process)
+- severity: warn
+- symptom: 2026-10-12, gap item 35: a stopped 2-hour heap watcher kept running and interleaved its lines into the restarted watcher's CSV (minutes 35, 40, 45 of the old run inside the new file).
+- rule: after stopping a background task that started node or a browser, list what is left with `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*<script>*' }` and `Stop-Process` it; write each run to its own file name.
+- proof: the listing showed two `node.exe` processes for `.hw.tmp.mjs` (8:46 PM and 9:18 PM) after the first task was stopped; `Stop-Process -Id 52664` left one (measured 2026-10-12).
+- added: 2026-10-12
+
+## P-3443 · A temporary script copied into `app/scripts` is linted by the next full check
+- paths: (process)
+- severity: warn
+- symptom: 2026-10-12, admin pass: the heap watcher copied to `app/scripts/.hw.tmp.mjs` for its package imports failed `bun run check` with `parserOptions.project ... file was not found` while it ran.
+- rule: a throwaway script that needs the app's packages goes to `app/node_modules/.mop-tmp/` (packages resolve from there, and lint and git ignore it), never into `app/scripts`.
+- proof: `node app/node_modules/.mop-tmp/hw.mjs` resolves `@playwright/test` and ran the watch (measured 2026-10-12).
+- added: 2026-10-12
+
+## P-3444 · Two watched-fail replays in one folder cross, and a mutation survives into a commit
+- paths: app/scripts/watchfail.mjs
+- severity: block
+- symptom: 2026-10-12, admin pass: a `--only` replay ran while a `--changed` replay was mutating `JobWatcher.tsx`; one restored what the other had left, `if (jobs.length === 0) return null;` stayed deleted, and the next `git add -A` committed it. The full check caught it (`draws nothing when no job was started`).
+- rule: one replay per folder; never run a second replay, or commit, while one runs.
+- enforced-by: the lock in `scripts/watchfail.mjs` (`node_modules/.cache/watchfail.lock`): a second replay exits 3 while the first lives; `tests/unit/watchfail-lock.test.ts` (registry `ap-i-one-replay`, manual).
+- proof: with a live process holding the lock, `node scripts/watchfail.mjs --registry tests/mutations --only ap-a-job-name` → `exit 3 watchfail: another replay ... (P-3444)`; with the holder gone → `exit 0` (measured 2026-10-12).
+- added: 2026-10-12
