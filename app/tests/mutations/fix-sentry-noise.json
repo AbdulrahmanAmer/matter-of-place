@@ -1,0 +1,29 @@
+[
+  {
+    "id": "sn-a-no-report-on-delivery",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/jobs/steps/notify-admin.ts",
+    "find": "  const rendered = await renderTemplate(row, variables, site);",
+    "replace": "  await alert();\n  const rendered = await renderTemplate(row, variables, site);",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*makes no Sentry report when the mail carries the alert"
+  },
+  {
+    "id": "sn-b-report-on-failure",
+    "test": "tests/unit/email/notify-admin.test.ts",
+    "file": "src/server/jobs/steps/notify-admin.ts",
+    "find": "  } catch (error) {\n    await alert();\n    throw error;\n  }",
+    "replace": "  } catch (error) {\n    throw error;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/email/notify-admin.test.ts",
+    "expect": "× .*makes one Sentry report with the alert fingerprint while Resend fails"
+  },
+  {
+    "id": "sn-c-local-silent",
+    "test": "tests/unit/env.test.ts",
+    "file": "src/server/lib/env.ts",
+    "find": "  const dsn = env.MOP_ENV === \"local\" ? undefined : env.SENTRY_DSN;",
+    "replace": "  const dsn = env.SENTRY_DSN;",
+    "run": "bunx vitest run --project unit tests/unit/env.test.ts",
+    "expect": "× .*passes no DSN on a local run"
+  }
+]

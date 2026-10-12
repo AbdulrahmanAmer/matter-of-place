@@ -103,16 +103,27 @@ describe("parseEnv", () => {
 });
 
 describe("sentryOptions", () => {
-  it("passes the DSN, the environment and the release from the parsed environment", async () => {
+  it("passes no DSN on a local run, so the laptop never reports into production (gap item 11)", async () => {
     vi.resetModules();
     vi.stubEnv("MOP_ENV", "local");
     vi.stubEnv("RATE_LIMIT_SALT", "salt");
     vi.stubEnv("SENTRY_DSN", "https://key@o1.ingest.sentry.io/2");
     vi.stubEnv("SENTRY_RELEASE", "abc123");
     const { sentryOptions } = await import("../../src/server/lib/env");
+    expect(sentryOptions()).toEqual({ dsn: undefined, env: "local", release: "abc123" });
+  });
+
+  it("passes the DSN, the environment and the release from the parsed environment", async () => {
+    vi.resetModules();
+    vi.stubEnv("MOP_ENV", "preview");
+    vi.stubEnv("RATE_LIMIT_SALT", "salt");
+    vi.stubEnv("TURNSTILE_SECRET", "1x0000000000000000000000000000000AA");
+    vi.stubEnv("SENTRY_DSN", "https://key@o1.ingest.sentry.io/2");
+    vi.stubEnv("SENTRY_RELEASE", "abc123");
+    const { sentryOptions } = await import("../../src/server/lib/env");
     expect(sentryOptions()).toEqual({
       dsn: "https://key@o1.ingest.sentry.io/2",
-      env: "local",
+      env: "preview",
       release: "abc123",
     });
   });

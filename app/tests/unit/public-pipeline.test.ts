@@ -743,8 +743,9 @@ describe("client-error (FE-09)", () => {
     const [error, options] = vi.mocked(sentry.captureException).mock.calls[0] ?? [];
     expect(error).toBeInstanceOf(Error);
     expect(error).toMatchObject({ stack: "Error: x\n    at f (a.js:1:1)" });
+    // A local run reports nowhere (gap item 11): the options carry no DSN, and the rest still pass through.
     expect(options).toMatchObject({
-      dsn: "https://key@o1.ingest.sentry.io/1",
+      dsn: undefined,
       env: "local",
       release: "release-abc",
       side: "browser",
