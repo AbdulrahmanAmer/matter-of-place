@@ -1637,7 +1637,7 @@
     "find": "@import \"./ui.css\";",
     "replace": "@import \"./ui.css\";\n@import \"../base.css\";",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-motion.test.ts",
-    "expect": "× .*takes the tokens and its own files onl"
+    "expect": "× .*takes the font faces, the tokens and its own files onl"
   },
   {
     "id": "b7-g3-mot-gradient",
@@ -1646,7 +1646,7 @@
     "find": ".admin-diff__before {\n  color: var(--status-danger);",
     "replace": ".admin-diff__before {\n  background: linear-gradient(red, blue);\n  color: var(--status-danger);",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-motion.test.ts",
-    "expect": "× .*takes the tokens and its own files onl"
+    "expect": "× .*takes the font faces, the tokens and its own files onl"
   },
   {
     "id": "b7-g3-bnd-scan",

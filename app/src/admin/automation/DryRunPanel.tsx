@@ -50,7 +50,7 @@ export function DryRunPanel({
         >
           <Field
             label="Record id"
-            hint="Optional. Builds the sample event from this record."
+            hint="Optional. Empty runs on placeholder data; the id of a real record builds the event from that record."
             {...(entityError === undefined ? {} : { error: entityError })}
           >
             {(control) => (
