@@ -108,11 +108,11 @@ describe("JobWatcher", () => {
       />,
     );
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "send emailQueued",
-      "render variantsRunning",
-      "purge cacheDone",
-      "post metaFailed",
-      "post xwaiting approval",
+      "Send emailQueued",
+      "Render image sizesRunning",
+      "Purge cacheDone",
+      "Post to MetaFailed",
+      "Post to Xwaiting approval",
     ]);
   });
 

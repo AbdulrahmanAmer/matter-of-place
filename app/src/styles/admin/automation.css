@@ -993,6 +993,15 @@
   outline-offset: 2px;
 }
 
+/* One email, opened (admin pass): its plain name and who receives it above the editor. */
+.admin-email-head {
+  display: grid;
+  gap: var(--admin-space-1);
+  margin-bottom: var(--admin-space-5);
+}
+
+.admin-email-head p {
+  color: var(--muted-foreground);
 /* Ask Matter to change a flow (gap item 31): under the open flow, a box for the change in plain words. */
 .admin-ask-matter {
   display: grid;

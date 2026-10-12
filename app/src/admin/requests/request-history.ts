@@ -1,6 +1,7 @@
 import type { TimelineEntry as ApiEntry } from "../../domain/admin-submissions";
 import type { ActorKind } from "../ui/ActorBadge";
 import type { TimelineEntry } from "../ui/Timeline";
+import { jobName } from "../jobs/job-words";
 
 const actionLabels: Readonly<Record<string, string>> = {
   "submissions.start_review": "Review started",
@@ -27,7 +28,7 @@ export function historyEntry(entry: ApiEntry): TimelineEntry {
   const what =
     entry.source === "audit"
       ? (actionLabels[entry.action] ?? entry.action)
-      : `${(entry.job_type ?? "Job").replaceAll("_", " ")}: ${entry.action}`;
+      : `${jobName(entry.job_type ?? "Job")}: ${entry.action}`;
   const actor = actorOf(entry.actor_id, entry.actor_kind);
   return {
     id: entry.id,

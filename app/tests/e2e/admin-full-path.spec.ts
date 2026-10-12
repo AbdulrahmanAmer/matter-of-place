@@ -287,7 +287,7 @@ async function invoiceAndActivate(page: Page, id: string): Promise<string> {
   await activate.getByRole("button", { name: "Activate" }).click();
   await expect(page.getByText("Activated", { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("list", { name: "Jobs started" }).getByText("copy submission media"),
+    page.getByRole("list", { name: "Jobs started" }).getByText("Copy a request's photographs"),
   ).toBeVisible();
   return payment.id;
 }

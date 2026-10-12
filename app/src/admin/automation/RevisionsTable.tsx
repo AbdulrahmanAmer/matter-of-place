@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { channelLabels } from "../../domain/automation";
 import { ActorBadge } from "../ui/ActorBadge";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { DataTable, type Column } from "../ui/DataTable";
@@ -10,12 +11,32 @@ import { RoleGate } from "../ui/RoleGate";
 import { useToast } from "../ui/use-toast";
 import { useRestoreRevision, type RevisionRow } from "./automation-queries";
 import { RequestFailure } from "./RequestFailure";
+import { emailWords } from "./email-words";
+import { whenOf } from "./flow-words";
 import { revisionTables } from "./revision-tables";
+import { scheduleName } from "./schedule-words";
+
+/** The row's own name as a person says it (admin pass): "When a property is published", "Request received". */
+function plainName(tableName: string, value: string, values: Record<string, unknown>): string {
+  if (tableName === "automation_recipes") {
+    const when = whenOf({ trigger: value, name: value });
+    return `When ${when}`;
+  }
+  if (tableName === "email_templates")
+    return Object.entries(emailWords).find(([key]) => key === value)?.[1].name ?? value;
+  if (tableName === "decline_reasons" && typeof values["label"] === "string")
+    return values["label"];
+  if (tableName === "channel_settings")
+    return Object.entries(channelLabels).find(([key]) => key === value)?.[1] ?? value;
+  if (tableName === "schedule_settings") return scheduleName(value);
+  return value;
+}
 
 function subjectOf(row: RevisionRow): string {
   const table = Object.entries(revisionTables).find(([name]) => name === row.table_name)?.[1];
-  const name = table === undefined ? undefined : (row.after ?? row.before)?.[table.name];
-  return `${table?.label ?? row.table_name}${typeof name === "string" ? ` · ${name}` : ""}`;
+  const values = row.after ?? row.before ?? {};
+  const name = table === undefined ? undefined : values[table.name];
+  return `${table?.label ?? row.table_name}${typeof name === "string" ? ` · ${plainName(row.table_name, name, values)}` : ""}`;
 }
 
 function kindOf(row: RevisionRow): string {
@@ -25,9 +46,9 @@ function kindOf(row: RevisionRow): string {
 }
 
 function ActorOf({ row }: { row: RevisionRow }) {
-  if (row.actor_kind === "agent") return <ActorBadge name="Automation key" kind="agent" />;
+  if (row.actor_kind === "agent") return <ActorBadge name="A colleague (AI)" kind="agent" />;
   if (row.actor_kind === "human") return <ActorBadge name="Team member" kind="human" />;
-  return <ActorBadge name="Direct edit" kind="system" />;
+  return <ActorBadge name="The system" kind="system" />;
 }
 
 const columns: readonly Column<RevisionRow>[] = [

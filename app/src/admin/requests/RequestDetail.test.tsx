@@ -411,7 +411,7 @@ describe("DecisionPanel", () => {
         `POST ${DETAIL_PATH}/email-preview {"template":"declined","decline_reason_id":"${REASON}","note":"Not this season."}`,
         `POST ${DETAIL_PATH}/decline {"decline_reason_id":"${REASON}","note":"Not this season."}`,
       ],
-      jobs: "send emailQueued",
+      jobs: "Send emailQueued",
     });
   });
 

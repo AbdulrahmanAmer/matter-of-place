@@ -45,6 +45,9 @@ export function JobsPage() {
   return (
     <>
       <h1>Jobs</h1>
+      <p className="admin-lead">
+        The work the site does in the background. A job that failed waits here until it is retried.
+      </p>
       <DeadLetterBanner
         type={filters.values.type}
         onOpen={(job) => {

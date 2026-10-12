@@ -8,6 +8,13 @@
   align-items: start;
 }
 
+/* Admin pass: on a narrow screen the editor and its save panel stack, the panel under the form. */
+@media (max-width: 900px) {
+  .admin-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .admin-editor__main {
   display: grid;
   gap: var(--admin-space-4);
@@ -59,6 +66,38 @@
   gap: var(--admin-space-4);
   padding: var(--admin-space-4);
   border: 1px solid var(--border);
+}
+
+/* Admin pass: the save panel of a long editor follows the page down, under the bar, with the way to each part. */
+.admin-publish--sticky {
+  position: sticky;
+  inset-block-start: calc(var(--admin-bar-h) + var(--admin-space-4));
+  max-height: calc(100svh - var(--admin-bar-h) - var(--admin-space-6));
+  overflow-y: auto;
+}
+
+.admin-editor__title {
+  font-size: 30px;
+}
+
+.admin-jump {
+  display: grid;
+  gap: var(--admin-space-1);
+  padding-block: var(--admin-space-3);
+  border-block: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.admin-jump a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .admin-publish--sticky {
+    position: static;
+    max-height: none;
+  }
 }
 
 .admin-checklist {

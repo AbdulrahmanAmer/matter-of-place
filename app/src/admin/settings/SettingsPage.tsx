@@ -123,7 +123,8 @@ export function SettingsPage() {
   const error = settings.error;
   return (
     <>
-      <h1>Settings</h1>
+      <h1>Business</h1>
+      <p className="admin-lead">The company details the site and every email use.</p>
       {error !== null ? (
         <p role="alert">
           {error.message}

@@ -13,10 +13,19 @@ export function MarketNotesEditor({
   onChange: (notes: NoteValues[]) => void;
 }) {
   return (
-    <RowsEditor heading="Notes" noun="Note" rows={notes} blank={blankNote} onChange={onChange}>
+    <RowsEditor
+      id="market-notes"
+      heading="Notes"
+      lead="The short notes under How we read this market, in the order they show."
+      noun="Note"
+      rows={notes}
+      blank={blankNote}
+      title={(note) => note.label}
+      onChange={onChange}
+    >
       {(note, n, update) => (
         <>
-          <Field label={`Note ${String(n)} label`}>
+          <Field label="Label" context={`Note ${String(n)}`}>
             {(control) => (
               <input
                 {...control}
@@ -28,7 +37,7 @@ export function MarketNotesEditor({
               />
             )}
           </Field>
-          <Field label={`Note ${String(n)} text`}>
+          <Field label="Text" context={`Note ${String(n)}`}>
             {(control) => (
               <textarea
                 {...control}

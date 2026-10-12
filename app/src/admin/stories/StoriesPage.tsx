@@ -27,6 +27,9 @@ export function StoriesPage() {
   return (
     <>
       <h1>Stories</h1>
+      <p className="admin-lead">
+        The journal's stories. Start a new one, or open one to edit and publish it.
+      </p>
       <RoleGate action="stories.write">
         <div className="admin-actions">
           <button
