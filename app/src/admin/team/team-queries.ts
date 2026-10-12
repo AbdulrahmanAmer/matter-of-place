@@ -22,11 +22,23 @@ import {
   postRole,
   putDailyLimits,
   requestSignInLink,
+  setOwnPassword,
+  signInWithPasswordRequest,
 } from "./team-api";
 
 /** The sign-in form's request for a link: its pending, success and error states (components do not call `-api` modules). */
 export function useSendSignInLink() {
   return useAsyncAction(requestSignInLink);
+}
+
+/** The sign-in form's password path. */
+export function usePasswordSignIn(onError?: (error: unknown) => void) {
+  return useAsyncAction(signInWithPasswordRequest, onError);
+}
+
+/** The top bar's "set your password" form. */
+export function useSetOwnPassword(onError?: (error: unknown) => void) {
+  return useAsyncAction(setOwnPassword, onError);
 }
 
 export function useTeamUsers(cursor: string | null) {

@@ -2,6 +2,7 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { roleLabels } from "../../domain/contracts";
 import { activeScreen, navEntries } from "../nav";
+import { PasswordDialog } from "../team/PasswordDialog";
 import { ActorBadge } from "./ActorBadge";
 import { useAdminMe } from "./admin-me";
 
@@ -14,6 +15,7 @@ export function TopBar() {
   const router = useRouter();
   const me = useAdminMe();
   const [text, setText] = useState("");
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const matched = useRouterState({
     select: (state) => state.matches.map((match) => match.routeId).join("|"),
   });
@@ -51,6 +53,25 @@ export function TopBar() {
         />
       </form>
       <ActorBadge name={me.roles.map((role) => roleLabels[role]).join(", ")} kind={me.kind} />
+      {me.kind === "human" && me.actions.includes("dashboard.password") ? (
+        <>
+          <button
+            type="button"
+            className="admin-bar__password"
+            onClick={() => {
+              setPasswordOpen(true);
+            }}
+          >
+            Password
+          </button>
+          <PasswordDialog
+            open={passwordOpen}
+            onClose={() => {
+              setPasswordOpen(false);
+            }}
+          />
+        </>
+      ) : null}
     </header>
   );
 }

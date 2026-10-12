@@ -18,7 +18,9 @@ import {
   type KeyCreated,
   type KeyCreateInput,
   type meSchema,
+  type passwordSignInInput,
   type sendLinkInput,
+  type setPasswordInput,
   type teamUsersPageSchema,
   type verifyInput,
 } from "../../domain/admin-team.ts";
@@ -51,10 +53,18 @@ import { verifyTurnstile } from "../lib/turnstile.ts";
 
 type WorkerEnv = typeof env;
 
-const SEND_LINK = "auth-send-link";
 const HOUR_MS = 3_600_000;
-const PER_IP = 5;
-const PER_EMAIL = 3;
+
+/** The Turnstile action, the rate-limit buckets and the hourly limits of one open sign-in route. */
+interface OpenLimits {
+  route: string;
+  perIp: number;
+  perEmail: number;
+}
+
+const SEND_LINK: OpenLimits = { route: "auth-send-link", perIp: 5, perEmail: 3 };
+// A typo costs one try, so the password path allows a few more than the link path.
+const PASSWORD: OpenLimits = { route: "auth-password", perIp: 10, perEmail: 8 };
 const SENT = { status: "sent" } as const;
 
 const unavailable = () =>
@@ -92,39 +102,41 @@ export async function getMe(
   return adminJson(body, { headers });
 }
 
-/** Why a link is not sent, before the address is even looked up; null when every check passes. */
+/** Why an open sign-in call is refused, before the address is even looked up; null when every check passes. */
 async function refusal(
   db: Db,
   request: Request,
   environment: WorkerEnv,
   email: string,
+  limits: OpenLimits,
 ): Promise<string | null> {
   const ip = clientIp(request);
   const turnstile = await verifyTurnstile(
     request.headers.get("x-turnstile-token"),
     ip,
     environment,
-    SEND_LINK,
+    limits.route,
   );
   if (turnstile === "fail") return "turnstile";
-  if (turnstile === "unreachable") logLine("warn", "turnstile_unreachable", { route: SEND_LINK });
-  if (!checkMemory(`${SEND_LINK}:ip`, ip, PER_IP, HOUR_MS).ok) return "memory";
+  if (turnstile === "unreachable")
+    logLine("warn", "turnstile_unreachable", { route: limits.route });
+  if (!checkMemory(`${limits.route}:ip`, ip, limits.perIp, HOUR_MS).ok) return "memory";
   const salt = environment.RATE_LIMIT_SALT;
-  const limits = await checkDb(db, [
+  const checked = await checkDb(db, [
     {
-      bucket: `${SEND_LINK}:ip`,
+      bucket: `${limits.route}:ip`,
       keyHash: await hashKey(salt, ip),
-      limit: PER_IP,
+      limit: limits.perIp,
       windowSeconds: 3600,
     },
     {
-      bucket: `${SEND_LINK}:email`,
+      bucket: `${limits.route}:email`,
       keyHash: await hashKey(salt, email),
-      limit: PER_EMAIL,
+      limit: limits.perEmail,
       windowSeconds: 3600,
     },
   ]);
-  return limits.ok ? null : "limit";
+  return checked.ok ? null : "limit";
 }
 
 /** Always answers `sent`: a refusal, an unknown address and a mail failure look the same from outside. */
@@ -134,7 +146,7 @@ export async function sendSignInLink(
   environment: WorkerEnv,
   input: z.output<typeof sendLinkInput>,
 ): Promise<typeof SENT> {
-  const reason = await refusal(db, request, environment, input.email);
+  const reason = await refusal(db, request, environment, input.email, SEND_LINK);
   if (reason !== null) {
     logLine("warn", "send_link_limited", { reason });
     return SENT;
@@ -183,6 +195,88 @@ export async function verifySignIn(
     response.headers.append("set-cookie", csrfCookie(token));
   }
   return response;
+}
+
+/**
+ * The sign-in screen's password path: the same bot check and hourly limits as the link, then Supabase Auth checks the
+ * pair, the roles are read once, and the session and `mop_csrf` cookies are set. A wrong pair, an unknown address and
+ * an account without a password all answer the same 401, so the answer says nothing about who is on the team.
+ */
+export async function signInWithPassword(
+  db: Db,
+  request: Request,
+  environment: WorkerEnv,
+  input: z.output<typeof passwordSignInInput>,
+): Promise<Response> {
+  if (!sameOrigin(request)) {
+    throw new AppError("csrf", undefined, "Please reload the page and try again.");
+  }
+  const reason = await refusal(db, request, environment, input.email, PASSWORD);
+  if (reason !== null) {
+    logLine("warn", "password_limited", { reason });
+    throw new AppError(
+      "rate_limited",
+      undefined,
+      "Too many tries. Wait an hour, or ask for a sign-in link instead.",
+    );
+  }
+  const client = authClient(request);
+  const { data, error } = await client.auth.signInWithPassword({
+    email: input.email,
+    password: input.password,
+  });
+  if (error !== null && isAuthRetryableFetchError(error)) throw unavailable();
+  const session = data.session;
+  if (session === null) {
+    throw new AppError("unauthorized", undefined, "That email and password do not match.");
+  }
+  const roles = await enabledRoles(db, session.user.id);
+  if (roles.length === 0) {
+    await client.auth.signOut();
+    // The session is signed out again, so none of its cookies leave the Worker.
+    takeIssuedCookies(request);
+    throw new AppError(
+      "account_disabled",
+      undefined,
+      "This account is not active. Ask an administrator if that is unexpected.",
+    );
+  }
+  const response = adminJson({ next: safeNext(input.next) });
+  const key = environment.CSRF_SECRET;
+  if (key !== undefined) {
+    const token = await csrfTokenFor(sessionIdOf(session.access_token), key);
+    response.headers.append("set-cookie", csrfCookie(token));
+  }
+  return response;
+}
+
+/**
+ * A signed-in person sets their own password (it never passes through anyone else). The matrix makes it person-only
+ * and recent-sign-in-only; the audit row says that it changed, never what it is.
+ */
+export async function setOwnPassword(
+  actor: AdminActor,
+  db: Db,
+  request: Request,
+  input: z.output<typeof setPasswordInput>,
+): Promise<{ status: "set" }> {
+  authorize(actor, "dashboard.password");
+  const { error } = await authClient(request).auth.updateUser({ password: input.password });
+  if (error !== null) {
+    if (isAuthRetryableFetchError(error)) throw unavailable();
+    // Supabase Auth refuses a weak or reused password with a message meant for the person.
+    throw new AppError("validation", undefined, error.message);
+  }
+  const { error: auditError } = await db.rpc("write_audit", {
+    ...auditContext(actor),
+    p_action: "dashboard.password",
+    p_entity: "user",
+    p_entity_id: actor.userId,
+    p_before: null,
+    p_after: { password: "changed" },
+  });
+  if (auditError !== null) logLine("warn", "password_audit_failed", { code: auditError.code });
+  return { status: "set" };
 }
 
 /** Ends the session at Supabase Auth and expires its cookies and `mop_csrf`. */
