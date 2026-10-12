@@ -511,3 +511,204 @@
 .admin-revision .admin-diff td {
   overflow-wrap: anywhere;
 }
+
+/* The recipe as a flow (operator, 2026-10-12): the event, the steps joined by lines, "+" on each line, the end. It
+   scrolls sideways inside its own frame; the page never does. */
+.admin-flow {
+  display: grid;
+  gap: var(--admin-space-2);
+  margin-block: var(--admin-space-4) var(--admin-space-5);
+}
+
+.admin-flow__track {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  padding: var(--admin-space-5) var(--admin-space-4) var(--admin-space-6);
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  list-style: none;
+}
+
+.admin-flow__node {
+  flex: none;
+  display: grid;
+  align-content: center;
+  width: 168px;
+  min-height: 88px;
+  border: 1px solid var(--foreground);
+  background: var(--background);
+}
+
+.admin-flow__node--event,
+.admin-flow__node--end {
+  gap: var(--admin-space-1);
+  padding: var(--admin-space-3);
+  background: var(--foreground);
+  color: var(--secondary);
+}
+
+.admin-flow__node--event strong,
+.admin-flow__node--end strong {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.admin-flow__node--event .admin-eyebrow,
+.admin-flow__node--end .admin-eyebrow {
+  color: var(--accent);
+}
+
+.admin-flow__node--end {
+  width: 96px;
+}
+
+.admin-flow__node[data-off] {
+  border-style: dashed;
+  color: var(--muted-foreground);
+}
+
+.admin-flow__node[data-selected] {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+
+.admin-flow__node[data-dragging] {
+  opacity: 0.4;
+}
+
+.admin-flow__node[draggable="true"] {
+  cursor: grab;
+}
+
+.admin-flow__open {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--admin-space-1) var(--admin-space-2);
+  height: 100%;
+  padding: var(--admin-space-3);
+  text-align: left;
+}
+
+.admin-flow__index {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--muted-foreground);
+}
+
+.admin-flow__glyph {
+  justify-self: end;
+}
+
+.admin-flow__label {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.admin-flow__marks {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--admin-space-1);
+}
+
+.admin-flow__mark {
+  padding: 1px var(--admin-space-1);
+  border: 1px solid var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-flow__link {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 72px;
+}
+
+.admin-flow__wire {
+  width: 100%;
+  height: 16px;
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 1;
+}
+
+.admin-flow__link[data-dim] .admin-flow__wire {
+  stroke: var(--accent);
+  stroke-dasharray: 3 3;
+}
+
+.admin-flow__gate {
+  position: absolute;
+  inset-block-start: calc(50% + 12px);
+  inset-inline: -12px;
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+.admin-flow__insert {
+  position: absolute;
+  inset-block-start: calc(50% - 30px);
+}
+
+.admin-flow__plus {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--foreground);
+  border-radius: 50%;
+  background: var(--background);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.admin-flow__plus:hover,
+.admin-flow__plus[aria-expanded="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.admin-flow__palette {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 30px;
+  inset-inline-start: -12px;
+  display: grid;
+  width: 240px;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--foreground);
+  background: var(--background);
+  list-style: none;
+}
+
+.admin-flow__palette button {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-2);
+  width: 100%;
+  padding: var(--admin-space-2) var(--admin-space-3);
+  text-align: left;
+}
+
+.admin-flow__palette button:hover,
+.admin-flow__palette button:focus-visible {
+  background: var(--secondary);
+}
+
+.admin-step[data-selected] {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}

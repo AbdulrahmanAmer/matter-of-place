@@ -13,6 +13,7 @@ export function StepCard({
   position,
   count,
   errors,
+  selected = false,
   onChange,
   onMove,
   onRemove,
@@ -23,6 +24,8 @@ export function StepCard({
   position: number;
   count: number;
   errors: Readonly<Record<string, string>>;
+  /** Chosen on the flow above: its settings open and the card is marked. */
+  selected?: boolean;
   onChange: (next: Step) => void;
   onMove: (by: -1 | 1) => void;
   onRemove: () => void;
@@ -30,7 +33,13 @@ export function StepCard({
   const label = spec?.label ?? step.step_type;
   const invalid = Object.keys(errors).length > 0;
   return (
-    <li className="admin-step" data-enabled={step.enabled} data-invalid={invalid}>
+    <li
+      id={`step-${step.id}`}
+      className="admin-step"
+      data-enabled={step.enabled}
+      data-invalid={invalid}
+      data-selected={selected ? "" : undefined}
+    >
       <div className="admin-step__head">
         <span className="admin-step__position">{position + 1}</span>
         <div className="admin-step__name">
@@ -99,7 +108,7 @@ export function StepCard({
         </div>
       </div>
       {spec === undefined ? null : <p className="admin-step__about">{spec.description}</p>}
-      <details open={invalid}>
+      <details open={invalid || selected}>
         <summary>Settings and conditions</summary>
         {spec === undefined ? null : (
           <ParamsForm
