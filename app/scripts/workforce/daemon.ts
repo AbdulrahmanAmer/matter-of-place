@@ -5,7 +5,6 @@
 // No model key exists anywhere (H34): the CLI is the operator's own account. It prints no secret and no prompt.
 //   bun scripts/workforce/daemon.ts          one pass, then exit (the scheduled task runs it every minute)
 //   bun scripts/workforce/daemon.ts --loop   pass after pass until stopped (for watching it live)
-import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
@@ -15,6 +14,8 @@ import { z } from "zod";
 import type { Database } from "../../src/db/index.ts";
 import { agentTools, hireInputSchema, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
+import { askMatter, keepNote, matterInputs, matterPrompt } from "../matter/run.ts";
+import { runClaude } from "./cli.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -38,7 +39,12 @@ function loadEnvFile(): void {
     if (match === null) continue;
     const [, name = "", raw = ""] = match;
     if (
-      !["DEV_SUPABASE_PROJECT_REF", "DEV_SUPABASE_SERVICE_ROLE_KEY", "WORKFORCE_CLI"].includes(name)
+      ![
+        "DEV_SUPABASE_PROJECT_REF",
+        "DEV_SUPABASE_SERVICE_ROLE_KEY",
+        "WORKFORCE_CLI",
+        "MATTER_AGENT_KEY",
+      ].includes(name)
     )
       continue;
     if (process.env[name] === undefined) process.env[name] = raw.replace(/^"(.*)"$/, "$1");
@@ -69,18 +75,11 @@ function childEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
-function killTree(pid: number | undefined): void {
-  if (pid === undefined) return;
-  if (process.platform === "win32")
-    spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true });
-  else process.kill(-pid, "SIGKILL");
+/** Matter's environment: the employees' one plus its own admin key, which only Matter's tools may use (W2). */
+function matterEnv(): NodeJS.ProcessEnv {
+  const key = process.env["MATTER_AGENT_KEY"];
+  return key === undefined ? childEnv() : { ...childEnv(), MATTER_AGENT_KEY: key };
 }
-
-const cliAnswer = z.object({
-  is_error: z.boolean().optional(),
-  result: z.string(),
-  session_id: z.string().optional(),
-});
 
 function emptyMcpConfig(): string {
   const file = join(HOME, "no-mcp.json");
@@ -88,63 +87,27 @@ function emptyMcpConfig(): string {
   return file;
 }
 
-async function askClaude(
+function askClaude(
   prompt: string,
   model: string,
   cwd: string,
 ): Promise<{ text: string; session?: string }> {
-  const program = process.env["WORKFORCE_CLI"]?.trim() || "claude";
-  const args = [
-    "-p",
-    "--model",
-    model,
-    "--output-format",
-    "json",
-    "--strict-mcp-config",
-    "--mcp-config",
-    emptyMcpConfig(),
-  ];
-  return new Promise((done, fail) => {
-    const child = spawn(program, args, {
-      cwd,
-      env: childEnv(),
-      windowsHide: true,
-      stdio: ["pipe", "pipe", "ignore"],
-    });
-    const timer = setTimeout(() => {
-      killTree(child.pid);
-      fail(new Error("the colleague took longer than six minutes"));
-    }, CLI_TIMEOUT_MS);
-    let out = "";
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => {
-      out += chunk;
-    });
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      fail(new Error(`the Claude CLI did not start: ${error.message}`));
-    });
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      if (code !== 0) {
-        fail(new Error(`the Claude CLI exited with code ${String(code)}`));
-        return;
-      }
-      try {
-        const answer = cliAnswer.parse(JSON.parse(out));
-        if (answer.is_error === true) {
-          fail(new Error("the Claude CLI answered an error"));
-          return;
-        }
-        done({
-          text: answer.result,
-          ...(answer.session_id === undefined ? {} : { session: answer.session_id }),
-        });
-      } catch {
-        fail(new Error("the Claude CLI answer was not readable"));
-      }
-    });
-    child.stdin.end(prompt);
+  return runClaude({
+    args: [
+      "-p",
+      "--model",
+      model,
+      "--output-format",
+      "json",
+      "--strict-mcp-config",
+      "--mcp-config",
+      emptyMcpConfig(),
+    ],
+    cwd,
+    env: childEnv(),
+    prompt,
+    timeoutMs: CLI_TIMEOUT_MS,
+    who: "the colleague",
   });
 }
 
@@ -215,6 +178,8 @@ const outcome = z.object({
     )
     .default([]),
   hire: z.array(hireInputSchema).default([]),
+  // Matter only: one line it keeps in its capped notes.
+  note: z.string().default(""),
 });
 
 const allowedProposal: Record<string, string> = {
@@ -233,7 +198,7 @@ function readJsonAnswer(text: string): z.infer<typeof outcome> {
       // fall through: a plain answer is still a reply
     }
   }
-  return { reply: text.trim(), task: "", proposals: [], hire: [] };
+  return { reply: text.trim(), task: "", proposals: [], hire: [], note: "" };
 }
 
 async function context(
@@ -344,12 +309,25 @@ async function runOnce(client: Db): Promise<boolean> {
     const team = (agents ?? [])
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
-    const answer = await askClaude(
-      promptFor(agent, team, situation),
-      models[agent.model] ?? models["sonnet"] ?? "claude-sonnet-5-5",
-      cwd,
-    );
+    const isMatter = agent.slug === "matter";
+    const answer = isMatter
+      ? {
+          text: await askMatter(
+            matterPrompt({
+              ...matterInputs(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
+              thread: situation,
+              business: "",
+            }),
+            matterEnv(),
+          ),
+        }
+      : await askClaude(
+          promptFor(agent, team, situation),
+          models[agent.model] ?? models["sonnet"] ?? "claude-sonnet-5-5",
+          cwd,
+        );
     const result = readJsonAnswer(answer.text);
+    if (isMatter) keepNote(result.note);
 
     if (result.reply !== "") {
       await client.from("agent_messages").insert({
@@ -412,7 +390,7 @@ async function runOnce(client: Db): Promise<boolean> {
         state: "done",
         finished_at: new Date().toISOString(),
         summary: (result.task || result.reply).slice(0, 300),
-        session_id: answer.session ?? null,
+        session_id: "session" in answer ? (answer.session ?? null) : null,
         turns: 1,
       })
       .eq("id", run.id);
@@ -442,6 +420,12 @@ async function runOnce(client: Db): Promise<boolean> {
 }
 
 async function pass(client: Db): Promise<void> {
+  // W2: Matter's side chat says "online" while this runner passes; one touch of Matter's row per pass.
+  await client
+    .from("agents")
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq("slug", "matter")
+    .neq("state", "working");
   mkdirSync(HOME, { recursive: true });
   const woke = await wakeOnEvents(client);
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);

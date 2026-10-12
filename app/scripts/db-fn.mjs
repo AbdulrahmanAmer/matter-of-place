@@ -114,7 +114,9 @@ function main() {
     ["x", "supabase", "migration", "new", migrationName],
     {
       cwd: APP,
-      stdio: "inherit",
+      // `supabase migration new` reads SQL from stdin until it closes; an inherited stdin that never closes (a
+      // background shell) hung it after it had made an empty file (G-1304), so stdin is closed here.
+      stdio: ["ignore", "inherit", "inherit"],
     },
   );
   if (created.status !== 0)

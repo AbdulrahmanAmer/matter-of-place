@@ -3,6 +3,7 @@ import { useState } from "react";
 import { roleLabels } from "../../domain/contracts";
 import { activeScreen, navEntries } from "../nav";
 import { PasswordDialog } from "../team/PasswordDialog";
+import { SideChat } from "../workforce/SideChat";
 import { ActorBadge } from "./ActorBadge";
 import { useAdminMe } from "./admin-me";
 
@@ -16,6 +17,7 @@ export function TopBar() {
   const me = useAdminMe();
   const [text, setText] = useState("");
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const matched = useRouterState({
     select: (state) => state.matches.map((match) => match.routeId).join("|"),
   });
@@ -52,6 +54,25 @@ export function TopBar() {
           }}
         />
       </form>
+      {me.actions.includes("workforce.post_message") ? (
+        <>
+          <button
+            type="button"
+            className="admin-bar__matter"
+            onClick={() => {
+              setChatOpen(true);
+            }}
+          >
+            Matter
+          </button>
+          <SideChat
+            open={chatOpen}
+            onClose={() => {
+              setChatOpen(false);
+            }}
+          />
+        </>
+      ) : null}
       <ActorBadge name={me.roles.map((role) => roleLabels[role]).join(", ")} kind={me.kind} />
       {me.kind === "human" && me.actions.includes("dashboard.password") ? (
         <>
