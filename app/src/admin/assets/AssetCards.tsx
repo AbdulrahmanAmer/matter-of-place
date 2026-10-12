@@ -146,7 +146,10 @@ export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
                 <Preview asset={asset} />
                 {asset.caption !== null ? <p className="admin-prose">{asset.caption}</p> : null}
                 {asset.caption === null && asset.captions_waiting ? (
-                  <p className="admin-asset__note">Waiting for the caption runner.</p>
+                  <p className="admin-asset__note">
+                    Waiting for the caption writer on the laptop. Write it by hand with Edit
+                    caption.
+                  </p>
                 ) : null}
                 {asset.caption === null && !asset.captions_waiting ? (
                   <p className="admin-asset__note">No caption yet.</p>

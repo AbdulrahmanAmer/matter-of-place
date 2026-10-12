@@ -308,6 +308,10 @@ purge secret for B8b is a narrow token (Cache Purge on the one zone) that the or
 `mop-dev` are proved by a read-back, not by `supabase config push --dry-run` (the CLI has none): `GET https://api.supabase.com/v1/projects/<ref>/config/auth`
 with the access token shows `"disable_signup": true`.
 
+The laptop runner's own names (gap audit item 28, 2026-10-12): `MATTER_AGENT_KEY` (Matter's agent key, ruling H86, read by
+`scripts/workforce/env.ts`) and the company mailbox's `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET` and `ZOHO_REFRESH_TOKEN` (read by
+`workspace/audits/tools/zoho-mail.mjs`), all in the local `.env` only.
+
 ## 5. Extension paths (S35): how every kind of change is made, so nothing is bolted on
 
 | To add… | Touch, in this order | Proof |

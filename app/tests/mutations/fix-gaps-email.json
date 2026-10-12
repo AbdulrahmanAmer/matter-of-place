@@ -42,5 +42,14 @@
     "replace": "<p role=\"alert\">The last send did not finish: {issue.send_error}</p>",
     "run": "bunx vitest run --project component src/admin/newsletter/newsletter.test.tsx",
     "expect": "× .*says in words why the last send stopped"
+  },
+  {
+    "id": "ge-f-seeded-flows",
+    "test": "tests/db/seeded-flows.db.test.ts",
+    "file": "src/server/automation/plan.ts",
+    "find": "    if (!params.success) {",
+    "replace": "    if (!params.success || step.step_type !== '') {",
+    "run": "bunx vitest run --project db tests/db/seeded-flows.db.test.ts",
+    "expect": "× .*plan with no step whose parameters do not parse"
   }
 ]
