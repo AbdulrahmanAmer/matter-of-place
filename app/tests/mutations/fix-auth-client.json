@@ -1,0 +1,11 @@
+[
+  {
+    "id": "ak-a-auth-only",
+    "test": "tests/unit/session-local.test.ts",
+    "file": "src/server/lib/session.ts",
+    "find": "  return cookieClient(request).auth;",
+    "replace": "  return cookieClient(request);",
+    "run": "bunx vitest run --project unit tests/unit/session-local.test.ts",
+    "expect": "× .*hands out only the Auth half of the service-key client"
+  }
+]
