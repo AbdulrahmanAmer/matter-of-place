@@ -54,8 +54,8 @@ function pageOf(route: { options: { component?: ComponentType | undefined } }): 
   return Page;
 }
 
+// The legal pages give the entity and the postal address; the footer gives the entity only (ruling H90).
 const surfaces = [
-  ["the footer", Footer],
   ["/terms", pageOf(termsRoute)],
   ["/privacy", pageOf(privacyRoute)],
   ["/legal", pageOf(legalRoute)],
@@ -90,6 +90,20 @@ describe("the surfaces that name the company (findings 1 and 19)", () => {
     },
   );
 
+  it("the footer names the saved entity, or Omnikom LLC when none is set, and never a postal address", async () => {
+    await show(Footer, EMPTY);
+    const empty = document.body.textContent;
+    cleanup();
+    await show(Footer, SET);
+    const saved = document.body.textContent;
+    expect([
+      empty.includes("Omnikom LLC"),
+      empty.includes("Sheridan"),
+      saved.includes("Example Test LLC"),
+      saved.includes("1 Test Street"),
+    ]).toEqual([true, false, true, false]);
+  });
+
   it("/terms and /cookies open with a Who we are section that names both", async () => {
     for (const route of [termsRoute, cookiesRoute]) {
       await show(pageOf(route), EMPTY);
@@ -111,12 +125,12 @@ describe("the surfaces that name the company (findings 1 and 19)", () => {
     expect(text).toContain("Matter of Place is a product of Omnikom LLC.");
   });
 
-  it("the footer reads A product of Omnikom LLC and the legal line carries the entity and address", async () => {
+  it("the footer reads A product of Omnikom LLC and the legal line carries the entity, never the address (H90)", async () => {
     await show(Footer, EMPTY);
     const bottom = document.querySelector(".footer-bottom")?.textContent ?? "";
     expect(bottom).toContain("Matter of Place is a product of Omnikom LLC.");
     expect(bottom).toMatch(/© \d{4}\s*Omnikom LLC/);
-    expect(bottom).toContain("30 N Gould St Ste R, Sheridan, WY 82801, USA");
+    expect(bottom).not.toContain("Sheridan");
   });
 
   it("the words added for it have no dash, no exclamation mark and no hyperbole", async () => {
