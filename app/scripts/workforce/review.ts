@@ -11,12 +11,9 @@ import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../../src/db/index.ts";
-import type { Db } from "../../src/server/lib/db.ts";
 import { z } from "zod";
 import { runClaude } from "./cli.ts";
-import { loadEnvFile } from "./env.ts";
+import { childEnv, serviceDb as client } from "./env.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PROMOTE_AT = 3;
@@ -112,27 +109,6 @@ function bodyOf(content: unknown): string | null {
 }
 
 // ---------- the run ----------
-
-function client(): Db {
-  loadEnvFile();
-  const ref = process.env["DEV_SUPABASE_PROJECT_REF"];
-  const key = process.env["DEV_SUPABASE_SERVICE_ROLE_KEY"];
-  if (ref === undefined || key === undefined) throw new Error("review: the .env names are missing");
-  return createClient<Database>(`https://${ref}.supabase.co`, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-function childEnv(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = {};
-  for (const [name, value] of Object.entries(process.env)) {
-    if (name.startsWith("CLAUDE") || name.startsWith("DEV_SUPABASE") || name.includes("SECRET"))
-      continue;
-    if (name.endsWith("_KEY") || name.endsWith("_TOKEN")) continue;
-    env[name] = value;
-  }
-  return env;
-}
 
 async function ask(prompt: string, model: string): Promise<string> {
   const desk = join(homedir(), ".mop-workforce", "review");

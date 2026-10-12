@@ -9,13 +9,11 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { join, resolve } from "node:path";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "../../src/db/index.ts";
 import { agentTools, hireInputSchema, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, keepNote, matterInputs, matterPrompt } from "../matter/run.ts";
-import { loadEnvFile } from "./env.ts";
+import { childEnv, serviceDb as db } from "./env.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 
@@ -33,30 +31,6 @@ const models: Record<string, string> = {
 };
 
 // ---------- the database ----------
-
-function db(): Db {
-  loadEnvFile();
-  const ref = process.env["DEV_SUPABASE_PROJECT_REF"];
-  const key = process.env["DEV_SUPABASE_SERVICE_ROLE_KEY"];
-  if (ref === undefined || key === undefined)
-    throw new Error("workforce: the .env names of the project are missing");
-  return createClient<Database>(`https://${ref}.supabase.co`, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-// ---------- the CLI (Jay's lessons: stdin, no inherited CLAUDE* variables, no MCP, tree kill) ----------
-
-function childEnv(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = {};
-  for (const [name, value] of Object.entries(process.env)) {
-    if (name.startsWith("CLAUDE") || name.startsWith("DEV_SUPABASE") || name.includes("SECRET"))
-      continue;
-    if (name.endsWith("_KEY") || name.endsWith("_TOKEN")) continue;
-    env[name] = value;
-  }
-  return env;
-}
 
 /** Matter's environment: the employees' one. Its admin key never reaches its process (gap audit item 2). */
 function matterEnv(): NodeJS.ProcessEnv {
