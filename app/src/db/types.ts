@@ -2091,10 +2091,10 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_content_hash": string,"p_decision": string,"p_id": string,"p_request_id": string }; Returns: string
                            },
 "workforce_hire":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_instructions": string,"p_model": string,"p_name": string,"p_request_id": string,"p_role": string,"p_slug": string,"p_tools": string[],"p_wake_on": string[] }; Returns: string
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_instructions": string,"p_model": string,"p_name": string,"p_request_id": string,"p_role": string,"p_slug": string,"p_tools": (string)[],"p_wake_on": (string)[] }; Returns: string
                            },
 "workforce_post_message":
-{ Args: { "p_author_id": string,"p_author_name": string,"p_body": string,"p_thread": string,"p_wake": string[] }; Returns: string
+{ Args: { "p_author_id": string,"p_author_name": string,"p_body": string,"p_thread": string,"p_wake": (string)[] }; Returns: string
                            },
 "workforce_update_agent":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_change": Json,"p_request_id": string,"p_slug": string }; Returns: string
