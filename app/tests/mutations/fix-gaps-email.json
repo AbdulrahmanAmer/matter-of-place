@@ -51,5 +51,14 @@
     "replace": "    if (!params.success || step.step_type !== '') {",
     "run": "bunx vitest run --project db tests/db/seeded-flows.db.test.ts",
     "expect": "× .*plan with no step whose parameters do not parse"
+  },
+  {
+    "id": "ge-g-cold-isolate",
+    "test": "tests/unit/state.test.ts",
+    "file": "src/server/public/state.ts",
+    "find": "      if (!copy.success) throw unavailable();",
+    "replace": "      if (copy.success || !copy.success) throw unavailable();",
+    "run": "bunx vitest run --project unit tests/unit/state.test.ts",
+    "expect": "× .*answers a cold isolate from the copy an earlier one kept"
   }
 ]
