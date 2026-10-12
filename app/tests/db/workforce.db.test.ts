@@ -47,6 +47,41 @@ describe("workforce write functions", () => {
     expect(woke).toEqual(["chief"]);
   });
 
+  it("claims a person's message before an older event and the backlog (gap item 3)", async () => {
+    const claimed = await withRollback(async (db) => {
+      // Only this case's runs are waiting.
+      await db.query(
+        "update public.agent_runs set state = 'done' where state in ('queued', 'running')",
+      );
+      await db.query(
+        `insert into public.agent_runs (agent_id, cause, created_at)
+         select id, 'schedule', now() - interval '3 minutes' from public.agents where slug = 'editor'`,
+      );
+      await db.query(
+        `insert into public.agent_runs (agent_id, cause, created_at)
+         select id, 'event', now() - interval '2 minutes' from public.agents where slug = 'social'`,
+      );
+      const message = await db.query<{ id: string }>(
+        `insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
+         values ('chief', 'human', 'u1', 'Operator', 'Status?') returning id`,
+      );
+      await db.query(
+        `insert into public.agent_runs (agent_id, cause, message_id)
+         select id, 'message', $1 from public.agents where slug = 'chief'`,
+        [message.rows[0]?.id],
+      );
+      const order: string[] = [];
+      for (let index = 0; index < 3; index += 1) {
+        const run = await db.query<{ cause: string }>(
+          "select cause from public.claim_agent_run('test-worker', 60)",
+        );
+        order.push(run.rows[0]?.cause ?? "none");
+      }
+      return order;
+    });
+    expect(claimed).toEqual(["message", "event", "schedule"]);
+  });
+
   it("refuses a direct thread to a colleague who is not on the team", async () => {
     const message = await withRollback((db) =>
       failure(db, "select public.workforce_post_message('nobody', 'hi', 'u1', 'Staff', '{}')", []),
@@ -191,6 +226,31 @@ describe("learning from decisions", () => {
     });
     expect(outcome).toEqual([
       { instructions: "Lead with the place.", version: 1, status: "promoted" },
+    ]);
+  });
+
+  it("an approved hire joins the team without the hire tool, and a declined one does not (gap item 5)", async () => {
+    const outcome = await withRollback(async (db) => {
+      const propose = (slug: string) =>
+        db.query<{ id: string }>(
+          `insert into public.agent_approvals (agent_id, action, summary, content, content_hash)
+           select id, 'hire', 'Hire a scout', jsonb_build_object('body', 'Scout.', 'hire', jsonb_build_object(
+             'slug', $1::text, 'name', 'Scout', 'role', 'Finds listings', 'instructions', '', 'model', 'opus',
+             'wake_on', '[]'::jsonb, 'tools', '["read_business", "chat", "hire"]'::jsonb)), $2
+           from public.agents where slug = 'chief' returning id`,
+          [slug, HASH],
+        );
+      const yes = await propose("test-scout-yes");
+      const no = await propose("test-scout-no");
+      await db.query(decide, [yes.rows[0]?.id, "approved", HASH, null, null]);
+      await db.query(decide, [no.rows[0]?.id, "rejected", HASH, "Not now", null]);
+      const read = await db.query<{ slug: string; model: string; tools: string[] }>(
+        `select slug, model, tools from public.agents where slug like 'test-scout-%' order by slug`,
+      );
+      return read.rows;
+    });
+    expect(outcome).toEqual([
+      { slug: "test-scout-yes", model: "opus", tools: ["read_business", "chat"] },
     ]);
   });
 });

@@ -7,6 +7,8 @@ $ErrorActionPreference = "Stop"
 $app = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $home2 = Join-Path $env:USERPROFILE ".mop-workforce"
 New-Item -ItemType Directory -Force -Path $home2 | Out-Null
+# Gap audit item 6: the one folder the daemon may move to origin/main by itself (scripts/workforce/follow.ts).
+Set-Content -Path (Join-Path $home2 "runner-app") -Value $app -NoNewline
 
 $vbs = Join-Path $PSScriptRoot "hidden-run.vbs"
 $action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument ("`"" + $vbs + "`" `"" + $app + "`"")

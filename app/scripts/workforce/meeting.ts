@@ -20,6 +20,7 @@ import { staffCharterFrom } from "./charter.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { childEnv, serviceDb as client } from "./env.ts";
 import { costMicroUsd, inputTokens } from "./growth.ts";
+import { applyHires } from "./hiring.ts";
 import { knowledgeBlock, remember } from "./knowledge.ts";
 import { scorecard, scorecardText } from "./scorecard.ts";
 
@@ -358,16 +359,10 @@ async function main(): Promise<void> {
         })),
       );
     remember(decided.knowledge);
-    for (const hire of decided.hire) {
-      const { error: hireError } = await db.from("agents").insert(hire);
-      if (hireError === null)
-        await post(
-          db,
-          dry,
-          "team",
-          { slug: "system", name: SYSTEM, kind: "system" },
-          `${hire.name} joined the team as ${hire.role}.`,
-        );
+    if (dry) {
+      for (const hire of decided.hire) console.log(`[dry] would route the hire of ${hire.name}`);
+    } else {
+      await applyHires(db, { slug: matter.slug, id: matter.id }, decided.hire, null);
     }
   }
   const closedLine =

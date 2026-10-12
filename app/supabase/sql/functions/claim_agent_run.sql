@@ -15,9 +15,18 @@ begin
     select c.id
     from public.agent_runs c
     join public.agents a on a.id = c.agent_id
+    left join public.agent_messages m on m.id = c.message_id
     where a.state in ('idle', 'working')
       and (c.state = 'queued' or (c.state = 'running' and c.lease_until < now()))
-    order by c.created_at
+    -- Gap audit item 3 (Jay M5): a person's own message first, then mentions between colleagues and events, then the
+    -- scheduled backlog; oldest first within each.
+    order by
+      case
+        when c.cause = 'message' and m.author_kind = 'human' then 0
+        when c.cause in ('message', 'event') then 1
+        else 2
+      end,
+      c.created_at
     limit 1
     for update of c skip locked
   )
