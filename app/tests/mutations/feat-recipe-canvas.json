@@ -1,0 +1,29 @@
+[
+  {
+    "id": "rc-a-insert-place",
+    "test": "src/admin/automation/flow-canvas.test.tsx",
+    "file": "src/admin/automation/FlowCanvas.tsx",
+    "find": "                      onInsert(index, spec);",
+    "replace": "                      onInsert(0, spec);",
+    "run": "bunx vitest run --project component src/admin/automation/flow-canvas.test.tsx",
+    "expect": "× .*inserts the chosen step at the place of the . pressed"
+  },
+  {
+    "id": "rc-b-drop-target",
+    "test": "src/admin/automation/flow-canvas.test.tsx",
+    "file": "src/admin/automation/FlowCanvas.tsx",
+    "find": "          if (dragging !== null && dragging !== index) onMoveTo(dragging, index);",
+    "replace": "          if (dragging !== null && dragging !== index) onMoveTo(index, dragging);",
+    "run": "bunx vitest run --project component src/admin/automation/flow-canvas.test.tsx",
+    "expect": "× .*moves a dragged step to the place it is dropped on"
+  },
+  {
+    "id": "rc-c-gate-markets",
+    "test": "src/admin/automation/flow-canvas.test.tsx",
+    "file": "src/admin/automation/flow-gate.ts",
+    "find": "    ...(conditions.markets ?? []).map(",
+    "replace": "    ...([] as string[]).map(",
+    "run": "bunx vitest run --project component src/admin/automation/flow-canvas.test.tsx",
+    "expect": "× .*names the conditions on the line into a step"
+  }
+]
