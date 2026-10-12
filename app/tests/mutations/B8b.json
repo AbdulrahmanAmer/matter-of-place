@@ -2055,19 +2055,19 @@
     "id": "b8b-g7-list-current",
     "test": "src/admin/automation/recipes.test.tsx",
     "file": "src/admin/automation/RecipeList.tsx",
-    "find": "aria-current={recipe.trigger === selected ? \"true\" : undefined}",
-    "replace": "aria-current={undefined}",
+    "find": "label={recipe.enabled ? \"On\" : \"Off\"}",
+    "replace": "label=\"On\"",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
-    "expect": "FAIL .*RecipesPage > lists a recipe per event"
+    "expect": "FAIL .*RecipesPage > lists every flow under its topic"
   },
   {
     "id": "b8b-g7-choose-event",
     "test": "src/admin/automation/recipes.test.tsx",
     "file": "src/admin/automation/RecipesPage.tsx",
-    "find": "<EmptyState title=\"Choose an event\">",
-    "replace": "<EmptyState title=\"Pick an event\">",
+    "find": "            filters.setFilters({});",
+    "replace": "            void filters;",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
-    "expect": "FAIL .*RecipesPage > asks to choose an event"
+    "expect": "FAIL .*RecipesPage > opens the flow in the address at full width"
   },
   {
     "id": "b8b-g7-not-built",
@@ -2145,8 +2145,8 @@
     "id": "b8b-g7-order",
     "test": "src/admin/automation/recipes.test.tsx",
     "file": "src/admin/automation/RecipeEditor.tsx",
-    "find": "steps.splice(index + by, 0, moved);",
-    "replace": "steps.splice(index, 0, moved);",
+    "find": "moveTo(index, index + by);",
+    "replace": "moveTo(index, index);",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/recipes.test.tsx",
     "expect": "FAIL .*saving a recipe > puts steps in the order chosen"
   },
@@ -2676,19 +2676,19 @@
     "id": "b8b-g9-settings-next-run",
     "test": "src/admin/automation/settings.test.tsx",
     "file": "src/admin/automation/ScheduleSettingsForm.tsx",
-    "find": "<LocalTime value={row.next_run_at} />",
-    "replace": "{null}",
+    "find": "{row.next_run_at === null || !row.enabled ? (",
+    "replace": "{row.next_run_at === null ? (",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
-    "expect": "FAIL .*the clocks > shows the next run in UTC"
+    "expect": "FAIL .*the clocks > says when each clock runs in words"
   },
   {
     "id": "b8b-g9-settings-dst-note",
     "test": "src/admin/automation/settings.test.tsx",
     "file": "src/admin/automation/SettingsPage.tsx",
-    "find": "twice a year",
-    "replace": "now and then",
+    "find": "Times are Cairo time",
+    "replace": "Times are local",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
-    "expect": "FAIL .*the clocks > says that a clock moves"
+    "expect": "FAIL .*the clocks > shows no cron for a clock of a common shape"
   },
   {
     "id": "b8b-g9-settings-external",
@@ -2697,7 +2697,7 @@
     "find": "readonly string[] = [\"keepwarm\", \"audit\", \"backup\"];",
     "replace": "readonly string[] = [\"audit\", \"backup\"];",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
-    "expect": "FAIL .*the clocks > shows an external clock's cron read only"
+    "expect": "FAIL .*the clocks > says an external clock's time is set outside the site"
   },
   {
     "id": "b8b-g9-settings-interval",
@@ -2712,8 +2712,8 @@
     "id": "b8b-g9-settings-no-cron",
     "test": "src/admin/automation/settings.test.tsx",
     "file": "src/admin/automation/ScheduleSettingsForm.tsx",
-    "find": "if (!external) patch.cron = draft.cron.trim();",
-    "replace": "patch.cron = draft.cron.trim();",
+    "find": "    if (!external) {",
+    "replace": "    if (true) {",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
     "expect": "FAIL .*the clocks > sends no cron for an external clock"
   },
@@ -2724,7 +2724,7 @@
     "find": "if (!parsed.success) {",
     "replace": "if (!parsed.success && false) {",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/settings.test.tsx",
-    "expect": "FAIL .*the clocks > refuses a cron that has not five fields"
+    "expect": "FAIL .*the clocks > refuses a custom timetable that has not five fields"
   },
   {
     "id": "b8b-g9-settings-role",

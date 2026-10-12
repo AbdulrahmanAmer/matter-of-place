@@ -79,7 +79,7 @@ settings.notifications_put         AD | H R
 settings.redirects_get             AD | H
 settings.redirects_put             AD | H R
 settings.products_put              AD | H R
-settings.products_preview          AD | H
+settings.products_preview          AD | H R
 audit.list                         CE AD
 audit.subject_requests             CE AD
 audit.subject_export               AD | H R

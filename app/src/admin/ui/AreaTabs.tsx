@@ -1,6 +1,18 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { activeScreen, areaTabs, visibleNav } from "../nav";
 import { useAdminMe } from "./admin-me";
+import { useWaitingCounts } from "./waiting-counts";
+
+/** How many wait behind a tab or an area (W3 stage 5); nothing when none do. */
+export function WaitingCount({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="admin-count">
+      <span aria-hidden="true">{count}</span>
+      <span className="admin-visually-hidden">, {count} waiting</span>
+    </span>
+  );
+}
 
 /**
  * The screens of the open area as tabs across the top of the page (W3): Inbox reads Approvals, Requests, Inquiries;
@@ -17,6 +29,7 @@ export function AreaTabs() {
     visibleNav({ hasRoute: (routeId) => routeId in router.routesById, actions }),
     screen,
   );
+  const counts = useWaitingCounts();
   if (tabs.length === 0) return null;
   return (
     <nav className="admin-area-tabs" aria-label="In this area" data-print="hide">
@@ -33,6 +46,7 @@ export function AreaTabs() {
           }}
         >
           {tab.label}
+          <WaitingCount count={counts[tab.screen] ?? 0} />
         </a>
       ))}
     </nav>

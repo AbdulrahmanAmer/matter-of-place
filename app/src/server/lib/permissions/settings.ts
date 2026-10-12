@@ -16,5 +16,5 @@ export const settings = [
   { action: "settings.redirects_get", group: "settings", ...viewing },
   { action: "settings.redirects_put", group: "settings", ...guarded },
   { action: "settings.products_put", group: "settings", ...guarded },
-  { action: "settings.products_preview", group: "settings", ...viewing },
+  { action: "settings.products_preview", group: "settings", ...guarded },
 ] as const satisfies readonly PermissionEntry[];

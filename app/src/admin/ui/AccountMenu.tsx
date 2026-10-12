@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { roleLabels } from "../../domain/contracts";
-import { signOut } from "../team/team-api";
+import { useSignOut } from "../team/team-queries";
 import { PasswordDialog } from "../team/PasswordDialog";
 import { ActorBadge } from "./ActorBadge";
 import { useAdminMe } from "./admin-me";
@@ -14,6 +14,7 @@ export function AccountMenu() {
   const roles = me.roles.map((role) => roleLabels[role]).join(", ");
   const [open, setOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const leave = useSignOut();
   const root = useRef<HTMLDivElement>(null);
   // `?password=1` keeps the dialog open across the email-link sign-in that setting a password may ask for: the
   // sign-in returns to this address, and the dialog opens again by itself.
@@ -89,11 +90,10 @@ export function AccountMenu() {
             disabled={leaving}
             onClick={() => {
               setLeaving(true);
-              void signOut()
-                .catch(() => undefined)
-                .finally(() => {
-                  window.location.assign("/admin/sign-in");
-                });
+              // A failed sign-out still leaves for the sign-in page; the run never throws.
+              void leave.run(undefined).finally(() => {
+                window.location.assign("/admin/sign-in");
+              });
             }}
           >
             {leaving ? "Signing out" : "Sign out"}

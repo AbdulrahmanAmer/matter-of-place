@@ -5,6 +5,8 @@ import { Emblem } from "../../components/brand/emblem";
 import { Wordmark } from "../../components/brand/wordmark";
 import { useAdminMe } from "./admin-me";
 import { NavIcon } from "./NavIcon";
+import { WaitingCount } from "./AreaTabs";
+import { useWaitingCounts } from "./waiting-counts";
 
 /** The icon each area borrows from one of its screens. */
 const areaIcon: Record<(typeof navGroups)[number], string> = {
@@ -30,6 +32,7 @@ export function NavGroups() {
   });
   const area = areaOf(activeScreen(matched.split("|")));
   const sections = visibleNav({ hasRoute: (routeId) => routeId in router.routesById, actions });
+  const counts = useWaitingCounts();
   // On a phone the areas fold under a Menu button; a wide screen always shows them (admin.css).
   const [open, setOpen] = useState(false);
 
@@ -71,6 +74,9 @@ export function NavGroups() {
                 >
                   <NavIcon path={areaIcon[group]} />
                   {areaLabels[group]}
+                  <WaitingCount
+                    count={entries.reduce((sum, entry) => sum + (counts[entry.screen] ?? 0), 0)}
+                  />
                 </a>
               </li>
             );

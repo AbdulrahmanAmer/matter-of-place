@@ -54,6 +54,15 @@
     "expect": "× .*says a failed check in words"
   },
   {
+    "id": "w3-h-waiting-counts",
+    "test": "tests/unit/waiting-counts.test.ts",
+    "file": "src/admin/ui/waiting-counts.ts",
+    "find": "    counts[3] = (dashboard.counts[\"Submitted\"] ?? 0) + (dashboard.counts[\"Under Review\"] ?? 0);",
+    "replace": "    counts[3] = dashboard.counts[\"Submitted\"] ?? 0;",
+    "run": "bunx vitest run --project unit tests/unit/waiting-counts.test.ts",
+    "expect": "× .*counts requests to decide, visuals to approve"
+  },
+  {
     "id": "w3-f-clock-words",
     "test": "src/admin/automation/settings.test.tsx",
     "file": "src/admin/automation/ScheduleSettingsForm.tsx",

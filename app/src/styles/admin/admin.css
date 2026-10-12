@@ -207,6 +207,27 @@ h3 {
   background: color-mix(in srgb, var(--foreground) 6%, var(--background));
 }
 
+/* How many wait behind a tab or an area (W3 stage 5). */
+.admin-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-inline-start: var(--admin-space-2);
+  padding-inline: 6px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.admin-nav__link .admin-count {
+  margin-inline-start: auto;
+}
+
 /* The screens of the open area, as tabs across the top of the page (W3). */
 .admin-area-tabs {
   display: flex;

@@ -1,6 +1,6 @@
 import { Outlet } from "@tanstack/react-router";
 import { act, fireEvent, screen, within } from "@testing-library/react";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { AdminShell } from "./AdminShell";
@@ -20,10 +20,13 @@ const me: AdminMe = {
 
 const shell = (actor: AdminMe) =>
   function Layout() {
+    // The shell reads the waiting counts through react-query (W3 stage 5).
     return (
-      <AdminShell me={actor}>
-        <Outlet />
-      </AdminShell>
+      <QueryClientProvider client={new QueryClient()}>
+        <AdminShell me={actor}>
+          <Outlet />
+        </AdminShell>
+      </QueryClientProvider>
     );
   };
 

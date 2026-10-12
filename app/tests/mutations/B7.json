@@ -1408,7 +1408,7 @@
   {
     "id": "b7-g3-shl-agent",
     "test": "src/admin/ui/shell.test.tsx",
-    "file": "src/admin/ui/TopBar.tsx",
+    "file": "src/admin/ui/AccountMenu.tsx",
     "find": "kind={me.kind}",
     "replace": "kind=\"human\"",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
@@ -1434,12 +1434,12 @@
   },
   {
     "id": "b7-g3-shl-parent",
-    "test": "src/admin/ui/shell.test.tsx",
+    "test": "tests/unit/admin-nav.test.ts",
     "file": "src/admin/nav.ts",
-    "find": "(entry.parent ?? entry.screen)",
-    "replace": "entry.screen",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
-    "expect": "× .*keeps the People link marked while a p"
+    "find": "  return navEntries.find((candidate) => candidate.screen === entry.parent)?.group ?? null;",
+    "replace": "  return null;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*gives a screen its area's tabs, a detail screen its parent's"
   },
   {
     "id": "b7-g3-shl-banner",
@@ -1526,19 +1526,19 @@
     "id": "b7-g3-nav-groups",
     "test": "tests/unit/admin-nav.test.ts",
     "file": "src/admin/nav.ts",
-    "find": "{ screen: 9, path: \"/admin/media\", routeId: \"/admin/media/\", group: \"Work\", label: \"Media\" },",
-    "replace": "{ screen: 9, path: \"/admin/media\", routeId: \"/admin/media/\", group: \"System\", label: \"Media\" },",
+    "find": "  \"Clients\",\n",
+    "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 24 links in six groups when ever"
+    "expect": "× .*shows 24 screens in eight areas"
   },
   {
     "id": "b7-g3-nav-work",
     "test": "tests/unit/admin-nav.test.ts",
     "file": "src/admin/nav.ts",
-    "find": "label: \"People\",",
-    "replace": "label: \"Persons\",",
+    "find": "label: \"Photographs\",",
+    "replace": "label: \"Media\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*reads Work as Dashboard, Office, Approvals, Requests,"
+    "expect": "× .*names each area's screens for the work"
   },
   {
     "id": "b7-g3-nav-hidden-parent",
@@ -2286,7 +2286,7 @@
     "find": "{ action: \"people.list\", group: \"people\", roles: appRoles },\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*reads Work as Dashboard, Office, Approvals, Requests, People"
+    "expect": "× .*shows 24 screens in eight areas"
   },
   {
     "id": "b7-5a-route-notes",
