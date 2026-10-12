@@ -16,10 +16,10 @@ export function RevisionsPage() {
   const failure = list.error;
   return (
     <>
-      <h1>Revisions</h1>
+      <h1>History</h1>
       <p className="admin-recipes__intro">
-        Every change to a recipe, an email, a decline reason, a channel or a schedule. Open one to
-        see what moved and, when you may, put the earlier values back.
+        Every change to a flow, an email, a decline reason, a channel or a schedule. Open one to see
+        what moved and, when you may, put the earlier values back.
       </p>
       <RevisionsTable
         rows={page?.items ?? []}
@@ -35,7 +35,7 @@ export function RevisionsPage() {
               }
         }
         toolbar={
-          <Field label="Table">
+          <Field label="What changed">
             {(control) => (
               <select
                 {...control}

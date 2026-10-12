@@ -119,7 +119,7 @@ describe("JobsTable", () => {
 
   it("shows system for a job whose payload data is empty", () => {
     mount([system]);
-    expect(within(screen.getByRole("table")).getByText("system")).toBeTruthy();
+    expect(within(screen.getByRole("table")).getByText("The site")).toBeTruthy();
     expect(screen.queryAllByRole("link")).toEqual([]);
   });
 
@@ -145,7 +145,7 @@ describe("JobsTable", () => {
 
   it("marks a dead job red and shows its attempts, error and times", () => {
     mount([dead]);
-    const row = within(screen.getByRole("row", { name: /send email/ }));
+    const row = within(screen.getByRole("row", { name: /Send email/ }));
     expect(row.getByText("Dead").getAttribute("data-tone")).toBe("danger");
     expect(row.getByText("5 of 5")).toBeTruthy();
     expect(row.getByText("provider_down")).toBeTruthy();
@@ -275,7 +275,7 @@ describe("JobsPage", () => {
     });
     await screen.findByRole("table", { name: "Jobs" });
     fireEvent.click(await screen.findByRole("button", { name: "Next" }));
-    expect(await screen.findByText("system")).toBeTruthy();
+    expect(await screen.findByText("The site")).toBeTruthy();
     expect(requested).toContain(`GET ${LIST}?${nextQuery}`);
   });
 
@@ -311,14 +311,14 @@ describe("JobsPage", () => {
         [`GET ${LIST}/${DEAD}`]: detail({ status: "dead", payload: dead.payload }),
       });
       await screen.findByRole("link", { name: "property 3f2a9c1d" });
-      fireEvent.click(screen.getByRole("row", { name: /send email/ }));
-      const drawer = within(await screen.findByRole("dialog", { name: "send email" }));
+      fireEvent.click(screen.getByRole("row", { name: /Send email/ }));
+      const drawer = within(await screen.findByRole("dialog", { name: "Send email" }));
       expect(await drawer.findByText(/"property_id": "3f2a9c1d/)).toBeTruthy();
       expect(drawer.getByText("created")).toBeTruthy();
       expect(drawer.getByText("dead, running to dead: provider_down")).toBeTruthy();
       fireEvent.click(drawer.getByRole("button", { name: "Close" }));
       await waitFor(() => {
-        expect(screen.queryByRole("dialog", { name: "send email" })).toBeNull();
+        expect(screen.queryByRole("dialog", { name: "Send email" })).toBeNull();
       });
     });
 
@@ -328,7 +328,7 @@ describe("JobsPage", () => {
         [`GET ${DEAD_LIST}`]: page([]),
         [`GET ${LIST}/${DEAD}`]: detail({ status: "dead" }),
       });
-      expect(await screen.findByRole("dialog", { name: "send email" })).toBeTruthy();
+      expect(await screen.findByRole("dialog", { name: "Send email" })).toBeTruthy();
     });
 
     it("asks before it cancels a queued job, then posts once to its cancel route", async () => {
@@ -339,7 +339,7 @@ describe("JobsPage", () => {
         [`GET ${LIST}/${DEAD}`]: detail({ status: "queued" }),
         [cancelRoute]: { id: DEAD, status: "cancelled" },
       });
-      const drawer = within(await screen.findByRole("dialog", { name: "send email" }));
+      const drawer = within(await screen.findByRole("dialog", { name: "Send email" }));
       fireEvent.click(await drawer.findByRole("button", { name: "Cancel job" }));
       expect(writes(requested)).toEqual([]);
       const confirm = within(screen.getByRole("dialog", { name: "Cancel this job" }));
@@ -357,7 +357,7 @@ describe("JobsPage", () => {
         [`GET ${LIST}/${WAITING}`]: { ...detail({ status: "waiting_approval" }), id: WAITING },
         [approveRoute]: { id: WAITING, status: "queued" },
       });
-      const drawer = within(await screen.findByRole("dialog", { name: "send email" }));
+      const drawer = within(await screen.findByRole("dialog", { name: "Send email" }));
       fireEvent.click(await drawer.findByRole("button", { name: "Approve" }));
       expect(drawer.queryByRole("button", { name: "Retry" })).toBeNull();
       fireEvent.click(

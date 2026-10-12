@@ -64,7 +64,7 @@ describe("screen 25", () => {
       },
     });
     fireEvent.click(await screen.findByText("properties.update"));
-    const drawer = await screen.findByRole("dialog", { name: "properties.update" });
+    const drawer = await screen.findByRole("dialog", { name: "Property changed" });
     const diff = within(drawer).getByRole("table");
     expect(
       within(diff)
@@ -88,7 +88,7 @@ describe("screen 25", () => {
       },
     });
     fireEvent.click(await screen.findByText("settings.coming_soon_put"));
-    const drawer = await screen.findByRole("dialog", { name: "settings.coming_soon_put" });
+    const drawer = await screen.findByRole("dialog", { name: "Settings: coming soon changed" });
     expect(
       within(within(drawer).getByRole("table"))
         .getAllByRole("row")
@@ -111,7 +111,9 @@ describe("screen 25", () => {
         next_cursor: null,
       },
     });
-    await screen.findAllByText("req-1");
+    await waitFor(() => {
+      expect(screen.getAllByRole("row")).toHaveLength(3);
+    });
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
     await waitFor(() => {
       expect(requested.at(-1)).toBe(
@@ -120,7 +122,9 @@ describe("screen 25", () => {
     });
     fireEvent.change(screen.getByLabelText("Request id"), { target: { value: "req-9" } });
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
-    await screen.findByText("req-9");
+    await waitFor(() => {
+      expect(requested.at(-1)).toBe(`GET ${LIST}?request_id=req-9`);
+    });
     expect(requested).toEqual([
       `GET ${LIST}`,
       `GET ${LIST}?cursor=2026-10-09T14%3A00%3A00.123456%2B00%3A00%7E4`,

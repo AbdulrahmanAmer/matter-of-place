@@ -95,7 +95,10 @@ export function TeamPage() {
 
   return (
     <>
-      <h1>Team</h1>
+      <h1>Team and access</h1>
+      <p className="admin-lead">
+        Who can sign in, what each person and colleague may do, and the keys the colleagues use.
+      </p>
       <section aria-labelledby="team-users">
         <h2 id="team-users">People and agents</h2>
         <UsersTable

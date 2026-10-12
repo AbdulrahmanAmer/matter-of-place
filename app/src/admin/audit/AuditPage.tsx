@@ -10,6 +10,7 @@ import { useUrlFilters } from "../ui/use-url-filters";
 import { AuditTable } from "./AuditTable";
 import { SubjectRequestsTab } from "./SubjectRequestsTab";
 import { useAuditLog } from "./audit-queries";
+import { actionWords } from "./audit-words";
 
 const fieldsSchema = z.record(z.string(), z.unknown());
 
@@ -22,7 +23,7 @@ function fieldsOf(value: unknown): Readonly<Record<string, unknown>> | null {
 /** One audit row: who changed what and when, and the fields whose value changed. */
 function AuditDiff({ row, onClose }: { row: AuditRow; onClose: () => void }) {
   return (
-    <Drawer open onClose={onClose} title={row.action}>
+    <Drawer open onClose={onClose} title={actionWords(row.action)}>
       <dl>
         <dt>When</dt>
         <dd>
@@ -108,7 +109,10 @@ export function AuditPage() {
   const [tab, setTab] = useState<string>("log");
   return (
     <>
-      <h1>Audit log</h1>
+      <h1>Activity log</h1>
+      <p className="admin-lead">
+        Who did what and when, across the whole business, and every personal data request.
+      </p>
       <Tabs label="Audit" tabs={TABS} active={tab} onChange={setTab}>
         {tab === "requests" ? <SubjectRequestsTab /> : <AuditLogTab />}
       </Tabs>

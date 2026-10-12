@@ -29,7 +29,7 @@
 .wf-head h1 {
   margin: var(--admin-space-2) 0 var(--admin-space-2);
   font-family: var(--font-serif);
-  font-size: clamp(40px, 4vw, 56px);
+  font-size: 36px;
   font-weight: 400;
   line-height: 1;
 }
@@ -71,7 +71,7 @@
   display: grid;
   align-content: start;
   gap: var(--admin-space-3);
-  min-block-size: 220px;
+  min-block-size: 0;
   padding: var(--admin-space-5);
   border-inline-end: 1px solid var(--border);
   border-block-end: 1px solid var(--border);
@@ -245,7 +245,7 @@
 .wf-convo__threads {
   display: flex;
   gap: 0;
-  overflow-x: auto;
+  flex-wrap: wrap;
   border-block-end: 1px solid var(--border);
 }
 

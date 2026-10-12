@@ -162,7 +162,7 @@ async function openRecipe(page: Page): Promise<void> {
 
 async function restoreNewest(page: Page): Promise<void> {
   await page.goto("/admin/automation/revisions");
-  await expect(newestRevision(page)).toContainText("Recipe · submission.received");
+  await expect(newestRevision(page)).toContainText("Flow · When a property request arrives");
   await newestRevision(page).click();
   await page.getByRole("button", { name: "Restore the values before this change" }).click();
   const restored = page.waitForResponse(
@@ -399,7 +399,7 @@ test("an agent key makes the same switch, screen 21 shows it with the Agent pill
   const { context, page } = await signInAs(browser, STAFF);
   await closing(context, async () => {
     await page.goto("/admin/automation/revisions");
-    await expect(newestRevision(page)).toContainText("Recipe · submission.received");
+    await expect(newestRevision(page)).toContainText("Flow · When a property request arrives");
     await expect(newestRevision(page).getByText("Agent", { exact: true })).toBeVisible();
     await restoreNewest(page);
     expect(await stepOn()).toBe(true);

@@ -6,6 +6,8 @@ import { DataTable, type Column } from "../ui/DataTable";
 import { EmptyState } from "../ui/EmptyState";
 import { Field } from "../ui/Field";
 import { LocalTime } from "../ui/LocalTime";
+import { useAdminMe } from "../ui/admin-me";
+import { actionWords, entityWords } from "./audit-words";
 
 type FilterName = (typeof auditFilterNames)[number];
 
@@ -15,25 +17,43 @@ type TableProps = ComponentProps<typeof DataTable<AuditRow>>;
 
 const EASTERN = marketTimezone(null);
 
+/** Who did it, in words: you, a team member, a colleague of the AI team, or the system itself. */
+function ActorCell({ row }: { row: AuditRow }) {
+  const me = useAdminMe();
+  if (row.actor_id === null) return "The system";
+  const name =
+    row.actor_id === me.actor.id
+      ? "You"
+      : row.actor_kind === "agent"
+        ? "A colleague (AI)"
+        : "A team member";
+  return (
+    <span title={row.actor_id}>
+      <ActorBadge name={name} kind={row.actor_kind ?? "human"} />
+    </span>
+  );
+}
+
 const columns: Column<AuditRow>[] = [
   { key: "at", header: "When", render: (row) => <LocalTime value={row.at} /> },
+  { key: "actor", header: "Who", render: (row) => <ActorCell row={row} /> },
   {
-    key: "actor",
-    header: "Actor",
-    render: (row) =>
-      row.actor_id === null ? (
-        "System"
-      ) : (
-        <ActorBadge name={row.actor_id} kind={row.actor_kind ?? "human"} />
-      ),
+    key: "action",
+    header: "What happened",
+    render: (row) => (
+      <span className="admin-audit__action">
+        {actionWords(row.action)}
+        <code>{row.action}</code>
+      </span>
+    ),
   },
-  { key: "action", header: "Action", render: (row) => row.action },
   {
     key: "entity",
-    header: "Entity",
-    render: (row) => (row.entity_id === null ? row.entity : `${row.entity} ${row.entity_id}`),
+    header: "To what",
+    render: (row) => (
+      <span title={row.entity_id ?? row.entity}>{entityWords(row.entity, row.entity_id)}</span>
+    ),
   },
-  { key: "request", header: "Request", render: (row) => row.request_id ?? "" },
 ];
 
 const textFilters: { name: FilterName; label: string; hint?: string }[] = [
@@ -77,25 +97,6 @@ function AuditFilters({ values, onChange }: { values: Values; onChange: (next: V
           </select>
         )}
       </Field>
-      {textFilters.map((filter) => (
-        <Field
-          key={filter.name}
-          label={filter.label}
-          {...(filter.hint === undefined ? {} : { hint: filter.hint })}
-        >
-          {(control) => (
-            <input
-              {...control}
-              type="search"
-              maxLength={200}
-              value={draft[filter.name] ?? ""}
-              onChange={(event) => {
-                setDraft({ ...draft, [filter.name]: event.target.value.trim() });
-              }}
-            />
-          )}
-        </Field>
-      ))}
       <Field
         label="From (Eastern time)"
         {...(values.from === undefined ? {} : { hint: now(values.from) })}
@@ -138,6 +139,33 @@ function AuditFilters({ values, onChange }: { values: Values; onChange: (next: V
       >
         Clear
       </button>
+      <details
+        className="admin-more"
+        open={textFilters.some((filter) => values[filter.name] !== undefined)}
+      >
+        <summary>More filters</summary>
+        <div className="admin-toolbar">
+          {textFilters.map((filter) => (
+            <Field
+              key={filter.name}
+              label={filter.label}
+              {...(filter.hint === undefined ? {} : { hint: filter.hint })}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  type="search"
+                  maxLength={200}
+                  value={draft[filter.name] ?? ""}
+                  onChange={(event) => {
+                    setDraft({ ...draft, [filter.name]: event.target.value.trim() });
+                  }}
+                />
+              )}
+            </Field>
+          ))}
+        </div>
+      </details>
     </form>
   );
 }

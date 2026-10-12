@@ -1,5 +1,5 @@
 import { Outlet } from "@tanstack/react-router";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { emailBlockSchema, sampleVariables, type EmailBlock } from "../../domain/email";
@@ -178,26 +178,29 @@ const frame = async () => {
 };
 
 describe("EmailsPage", () => {
-  it("lists a template per key with its state, and opens the one in the address", async () => {
-    open("received");
+  it("lists a template per key by its plain name, with its state, and opens the one in the address full width", async () => {
+    open("");
     const list = await screen.findByRole("navigation", { name: "Templates" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(2);
     expect(within(list).getByText("Off")).toBeTruthy();
-    expect(
-      within(list)
-        .getByRole("button", { name: /We have your request/ })
-        .getAttribute("aria-current"),
-    ).toBe("true");
+    expect(within(list).getByText("Request received")).toBeTruthy();
+    cleanup();
+    open("received");
     await ready("received");
+    expect([
+      screen.queryByRole("navigation", { name: "Templates" }),
+      screen.getByRole("heading", { level: 1 }).textContent,
+      screen.getByRole("button", { name: "All emails" }) instanceof HTMLButtonElement,
+    ]).toEqual([null, "Request received", true]);
     expect(screen.getByLabelText("Subject")).toHaveProperty(
       "value",
       "We have your request, {{submitter_name}}",
     );
   });
 
-  it("asks to choose a template when none is open, and opens one from the list", async () => {
+  it("opens a template from the list", async () => {
     open("");
-    expect(await screen.findByText("Choose a template")).toBeTruthy();
+    expect(await screen.findByRole("navigation", { name: "Templates" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /A note from Matter of Place/ }));
     expect(await ready("standalone")).toBeTruthy();
     // B11 gave the standalone email three variables; `block` is the property block of the campaign asset, an object

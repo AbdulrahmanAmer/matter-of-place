@@ -3,10 +3,9 @@ import { AdminApiError } from "../ui/admin-fetch";
 import { useAdminMe } from "../ui/admin-me";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { useToast } from "../ui/use-toast";
+import { jobName } from "./job-words";
 import { JobStatus } from "./JobStatus";
 import { jobEntity, useDeadJobs, useRetryBulk, useRetryJob, type Job } from "./jobs-queries";
-
-const words = (text: string) => text.replaceAll("_", " ");
 
 function DeadRow({ job, onOpen }: { job: Job; onOpen: (job: Job) => void }) {
   const { actions } = useAdminMe();
@@ -15,7 +14,7 @@ function DeadRow({ job, onOpen }: { job: Job; onOpen: (job: Job) => void }) {
   return (
     <li>
       <span className="admin-dead__what">
-        <a href={`/admin/jobs?type=${encodeURIComponent(job.type)}`}>{words(job.type)}</a>
+        <a href={`/admin/jobs?type=${encodeURIComponent(job.type)}`}>{jobName(job.type)}</a>
         <JobStatus job={job} />
       </span>
       <span className="admin-dead__error">{job.error ?? "No error recorded"}</span>
@@ -96,7 +95,7 @@ function RetryAll({ type }: { type: string }) {
           });
         }}
       >
-        <p>Every dead {words(type)} job runs again from the start.</p>
+        <p>Every dead {jobName(type)} job runs again from the start.</p>
       </ConfirmDialog>
     </div>
   );
