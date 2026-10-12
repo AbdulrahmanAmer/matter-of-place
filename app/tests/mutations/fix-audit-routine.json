@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ar-a-fenced-only",
+    "test": "tests/unit/audit-routine.test.ts",
+    "file": "scripts/audit-routine.ts",
+    "find": "  return match[1];",
+    "replace": "  return markdown;",
+    "run": "bunx vitest run --project unit tests/unit/audit-routine.test.ts",
+    "expect": "× .*takes the fenced prompt of ROUTINE-PROMPT.md and nothing around it"
+  },
+  {
+    "id": "ar-b-refuses",
+    "test": "tests/unit/audit-routine.test.ts",
+    "file": "scripts/audit-routine.ts",
+    "find": "  if (match?.[1] === undefined)",
+    "replace": "  if (match?.[1] === \"never\")",
+    "run": "bunx vitest run --project unit tests/unit/audit-routine.test.ts",
+    "expect": "× .*refuses a file with no fenced prompt"
+  }
+]
