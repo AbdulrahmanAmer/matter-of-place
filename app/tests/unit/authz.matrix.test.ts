@@ -29,6 +29,7 @@ properties.get                     CE ME VE MO CO AD
 properties.timeline                CE ME VE MO CO AD
 properties.representatives         CE ME VE MO CO AD
 properties.create_from_submission  CE ME VE
+properties.create                  CE ME VE
 properties.update                  CE ME VE
 properties.representative_put      CE ME VE
 properties.preview_token           CE ME VE

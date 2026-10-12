@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   createFromSubmissionAnswerSchema,
+  createPropertyAnswerSchema,
+  type createPropertyInputSchema,
   propertyDetailSchema,
   propertyListRowSchema,
   publishChecklist,
@@ -134,6 +136,29 @@ export async function createFromSubmission(
   });
   if (error !== null) throw fromRpcError(error);
   return createFromSubmissionAnswerSchema.parse(data);
+}
+
+/**
+ * `POST /api/admin/properties`: a property entered by hand (`create_property_editorial`): a draft, source Editorial,
+ * status Active, with only the facts every property needs. Publishing runs the same checks as for any other.
+ */
+export async function createProperty(
+  actor: AdminActor,
+  db: Db,
+  input: z.output<typeof createPropertyInputSchema>,
+): Promise<z.infer<typeof createPropertyAnswerSchema>> {
+  authorize(actor, "properties.create");
+  const { data, error } = await db.rpc("create_property_editorial", {
+    p_title: input.title,
+    p_market_slug: input.market_slug,
+    p_city: input.city,
+    p_address: input.address,
+    p_type: input.type,
+    ...(input.price === null ? {} : { p_price: input.price }),
+    ...auditContext(actor),
+  });
+  if (error !== null) throw fromRpcError(error);
+  return createPropertyAnswerSchema.parse(data);
 }
 
 /** `PATCH /api/admin/properties/:id`: the changed fields at the version the editor read; answers the next version. */

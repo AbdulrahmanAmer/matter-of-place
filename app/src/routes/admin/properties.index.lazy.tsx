@@ -1,9 +1,12 @@
 import { createLazyFileRoute, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
 import { NewFromRequest } from "../../admin/properties/NewFromRequest";
+import { NewPropertyDialog } from "../../admin/properties/NewPropertyDialog";
 import { PropertiesTable } from "../../admin/properties/PropertiesTable";
 import {
   propertyFilterNames,
   useCreateFromSubmission,
+  useCreateProperty,
   useProperties,
 } from "../../admin/properties/properties-queries";
 import { useSubmissions } from "../../admin/requests/requests-queries";
@@ -37,6 +40,8 @@ function PropertiesPage() {
   });
   const waiting = useSubmissions({ without_property: "true" });
   const create = useCreateFromSubmission();
+  const createByHand = useCreateProperty();
+  const [newOpen, setNewOpen] = useState(false);
   const failure = list.error;
   const next = list.data?.next_cursor ?? null;
   const open = (id: string) => {
@@ -44,7 +49,37 @@ function PropertiesPage() {
   };
   return (
     <>
-      <h1>Properties</h1>
+      <header className="admin-page-head">
+        <h1>Properties</h1>
+        {actions.includes("properties.create") ? (
+          <button
+            type="button"
+            className="admin-button"
+            onClick={() => {
+              createByHand.reset();
+              setNewOpen(true);
+            }}
+          >
+            New property
+          </button>
+        ) : null}
+      </header>
+      <NewPropertyDialog
+        open={newOpen}
+        pending={createByHand.isPending}
+        refusal={createByHand.error?.message ?? null}
+        onClose={() => {
+          setNewOpen(false);
+        }}
+        onCreate={(input) => {
+          createByHand.mutate(input, {
+            onSuccess: (answer) => {
+              setNewOpen(false);
+              open(answer.property_id);
+            },
+          });
+        }}
+      />
       <PropertiesTable
         filters={{ values: filters.values, onChange: filters.setFilters }}
         rows={list.data?.items ?? []}
