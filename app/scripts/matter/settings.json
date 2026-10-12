@@ -1,38 +1,27 @@
 {
   "permissions": {
-    "allow": [
-      "Bash",
-      "Read",
-      "Edit",
-      "Write",
-      "Glob",
-      "Grep",
-      "WebFetch",
-      "WebSearch",
-      "Skill",
-      "TodoWrite"
-    ],
+    "allow": ["Read", "Grep", "Glob", "WebSearch"],
     "deny": [
+      "Bash",
+      "Write",
+      "Edit",
+      "NotebookEdit",
+      "WebFetch",
+      "Read(~/.claude/**)",
+      "Read(~/.config/**)",
+      "Read(~/.wrangler/**)",
+      "Read(~/.supabase/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.git-credentials)",
+      "Read(~/AppData/**)",
       "Read(**/creds/**)",
       "Read(**/cloudflare tokens and secrets.txt)",
       "Read(**/Claude Session.txt)",
       "Read(**/.env)",
       "Read(**/.env.*)",
       "Read(**/.dev.vars)",
-      "Edit(**/.env)",
-      "Edit(**/.env.*)",
-      "Bash(docker:*)",
-      "Bash(supabase start:*)",
-      "Bash(supabase db reset:*)",
-      "Bash(git push --force:*)",
-      "Bash(git push -f:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(git rebase:*)",
-      "Bash(gh pr merge:*)",
-      "Bash(rm -rf:*)",
-      "Bash(cat .env:*)",
-      "Bash(printenv:*)",
-      "Bash(env:*)"
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
     ]
   }
 }

@@ -11,7 +11,7 @@ const STATES = {
   expired: "That link has expired or was already used. Ask for a new one below.",
   // Team changes and other sensitive actions ask for a sign-in in the last 15 minutes (session-policy.ts).
   recent:
-    "This page changes who can sign in, so it asks you to confirm it is you. Sign in again below and you return to it.",
+    "This step asks you to confirm it is you. Send yourself a sign-in link below (or use your password if you have set one); you return to where you were.",
 } as const;
 
 /**
