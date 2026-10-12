@@ -737,8 +737,8 @@ export const schemaManifest: Record<string, Record<string, string>> = {
   },
   vendor_usage: {
     line: "text",
-    used: "numeric",
-    limit_value: "numeric?",
+    used: "bigint",
+    limit_value: "bigint?",
     note: "text?",
     measured_at: "timestamptz",
   },

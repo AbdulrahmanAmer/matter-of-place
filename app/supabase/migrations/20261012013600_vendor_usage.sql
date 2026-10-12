@@ -7,8 +7,8 @@ set lock_timeout = '5s';
 -- measured"). One row per line, written only by record_vendor_usage under the service role; staff read it.
 create table public.vendor_usage (
   line text primary key check (line in ('workers_requests_day', 'storage_egress', 'sentry_errors', 'actions_minutes')),
-  used numeric not null check (used >= 0),
-  limit_value numeric check (limit_value is null or limit_value > 0),
+  used bigint not null check (used >= 0),
+  limit_value bigint check (limit_value is null or limit_value > 0),
   note text check (note is null or char_length(note) <= 200),
   measured_at timestamptz not null
 );
