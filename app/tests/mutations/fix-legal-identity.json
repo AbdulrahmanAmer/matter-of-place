@@ -93,10 +93,10 @@
     "id": "li-k-footer-address-gone",
     "test": "tests/unit/legal-identity-pages.test.tsx",
     "file": "src/components/layout/footer.tsx",
-    "find": "<span>{identity.address}</span>",
-    "replace": "<span />",
+    "find": "              © {new Date().getFullYear()} {identity.entity}\n            </span>\n          </p>",
+    "replace": "              © {new Date().getFullYear()} {identity.entity}\n            </span>\n            <span>{identity.address}</span>\n          </p>",
     "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
-    "expect": "FAIL .*the footer reads A product of Omnikom LLC and the legal line carries the entity and address"
+    "expect": "FAIL .*the footer reads A product of Omnikom LLC and the legal line carries the entity, never the address"
   },
   {
     "id": "li-l-terms-heading",

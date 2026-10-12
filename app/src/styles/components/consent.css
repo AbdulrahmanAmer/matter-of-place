@@ -6,6 +6,11 @@ html {
   scroll-padding-bottom: var(--consent-bar-h, 0px);
 }
 
+/* Scroll padding cannot scroll past the document's end: the last footer link needs real room under it. */
+body {
+  padding-bottom: var(--consent-bar-h, 0px);
+}
+
 .consent-notice {
   padding-block: 24px;
   margin-bottom: clamp(40px, 5vw, 64px);
