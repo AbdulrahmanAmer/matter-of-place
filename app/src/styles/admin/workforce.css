@@ -515,6 +515,108 @@
   }
 }
 
+/* The side chat with Matter (W2): a drawer from every screen, the thread, the composer. */
+.admin-bar__matter {
+  padding: var(--admin-space-1) var(--admin-space-3);
+  border: 1px solid var(--foreground);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.admin-bar__matter:hover {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.side-chat {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.side-chat__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--admin-space-1) var(--admin-space-3);
+  padding-bottom: var(--admin-space-3);
+  border-bottom: 1px solid var(--foreground);
+}
+
+.side-chat__head h2 {
+  font-size: 30px;
+}
+
+.side-chat__presence {
+  grid-column: 1;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.side-chat__head button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.side-chat__list {
+  display: grid;
+  align-content: start;
+  gap: var(--admin-space-4);
+  overflow-y: auto;
+  padding-block: var(--admin-space-4);
+}
+
+.side-chat__list li {
+  display: grid;
+  gap: var(--admin-space-1);
+  max-width: 92%;
+}
+
+.side-chat__list li[data-from="human"] {
+  justify-self: end;
+  padding: var(--admin-space-2) var(--admin-space-3);
+  background: var(--secondary);
+}
+
+.side-chat__list p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.side-chat__who {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.side-chat__empty {
+  color: var(--muted-foreground);
+}
+
+.side-chat__composer {
+  display: grid;
+  gap: var(--admin-space-2);
+  padding-top: var(--admin-space-3);
+  border-top: 1px solid var(--border);
+}
+
+.side-chat__composer textarea {
+  padding: var(--admin-space-2) var(--admin-space-3);
+  border: 1px solid var(--border);
+  resize: vertical;
+}
+
+.side-chat__composer button {
+  justify-self: end;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .wf-card {
     transition: background-color 300ms ease;

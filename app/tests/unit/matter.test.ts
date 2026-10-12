@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { atlas } from "../../scripts/matter/atlas.ts";
 import { cappedNotes, charter, fenced, matterPrompt } from "../../scripts/matter/run.ts";
+import { presenceOf } from "../../src/admin/workforce/presence.ts";
 
 // W2: Matter starts every run from the operator's words, the atlas, its capped notes and the fenced thread.
 
@@ -46,5 +47,18 @@ describe("Matter's run", () => {
         text.includes("GET,POST /api/admin/workforce/messages"),
       text.includes("Generated 2026-10-12T00:00:00.000Z"),
     ]).toEqual([true, true, true, true]);
+  });
+});
+
+describe("Matter's presence in the side chat", () => {
+  const now = Date.parse("2026-10-12T06:00:00Z");
+  const at = (minutesAgo: number) => new Date(now - minutesAgo * 60_000).toISOString();
+  it("is online within three minutes of the runner's pass, working while a message waits, offline after", () => {
+    expect([
+      presenceOf({ onTeam: true, lastSeen: at(1), now, waiting: false }).kind,
+      presenceOf({ onTeam: true, lastSeen: at(1), now, waiting: true }).kind,
+      presenceOf({ onTeam: true, lastSeen: at(5), now, waiting: true }),
+      presenceOf({ onTeam: false, lastSeen: null, now, waiting: false }).kind,
+    ]).toEqual(["online", "working", { kind: "offline", since: at(5) }, "absent"]);
   });
 });

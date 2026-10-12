@@ -469,6 +469,12 @@ async function runOnce(client: Db): Promise<boolean> {
 }
 
 async function pass(client: Db): Promise<void> {
+  // W2: Matter's side chat says "online" while this runner passes; one touch of Matter's row per pass.
+  await client
+    .from("agents")
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq("slug", "matter")
+    .neq("state", "working");
   mkdirSync(HOME, { recursive: true });
   const woke = await wakeOnEvents(client);
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
