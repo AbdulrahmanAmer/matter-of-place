@@ -75,10 +75,9 @@ function childEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
-/** Matter's environment: the employees' one plus its own admin key, which only Matter's tools may use (W2). */
+/** Matter's environment: the employees' one. Its admin key never reaches its process (gap audit item 2). */
 function matterEnv(): NodeJS.ProcessEnv {
-  const key = process.env["MATTER_AGENT_KEY"];
-  return key === undefined ? childEnv() : { ...childEnv(), MATTER_AGENT_KEY: key };
+  return childEnv();
 }
 
 function emptyMcpConfig(): string {
