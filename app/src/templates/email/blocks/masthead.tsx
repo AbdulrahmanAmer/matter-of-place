@@ -6,18 +6,19 @@ import { fonts } from "../layout.tsx";
 const mark: CSSProperties = {
   margin: 0,
   fontFamily: fonts.body,
-  fontSize: "12px",
+  fontSize: "11px",
   letterSpacing: "0.32em",
   textTransform: "uppercase",
   color: themeHex.mutedForeground,
 };
 
 const title: CSSProperties = {
-  margin: "14px 0 4px",
+  margin: "12px 0 6px",
   fontFamily: fonts.display,
-  fontSize: "44px",
+  fontSize: "52px",
   fontWeight: 400,
-  lineHeight: "1.1",
+  fontStyle: "italic",
+  lineHeight: "1.05",
   color: themeHex.foreground,
 };
 

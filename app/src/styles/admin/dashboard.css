@@ -5,36 +5,148 @@
   color: var(--status-danger);
 }
 
-.admin-tiles {
+/* The head: the date, the one word title, then one sentence on the day. */
+.admin-dash-head {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: var(--admin-space-4);
-  margin-block: var(--admin-space-5) var(--admin-space-6);
+  gap: var(--admin-space-2);
+}
+
+.admin-dash-head h1 {
+  font-size: 48px;
+}
+
+.admin-dash-summary {
+  max-width: 44ch;
+  margin-top: var(--admin-space-4);
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-style: italic;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.admin-dash-section {
+  margin-top: var(--admin-space-7);
+}
+
+.admin-dash-section > h2,
+.admin-dash-section__head {
+  margin-bottom: var(--admin-space-4);
+}
+
+.admin-dash-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--admin-space-3);
+}
+
+.admin-dash-section__head a {
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The pipeline: the five waiting states as stations on one hairline, a diamond at each, the number large. */
+.admin-pipeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .admin-tile {
   min-width: 0;
-  border: 1px solid var(--border);
 }
 
-.admin-tile > a {
+.admin-tile > a,
+.admin-tile:not(:has(> a)) {
   display: grid;
   gap: var(--admin-space-2);
   height: 100%;
-  padding: var(--admin-space-4);
   color: inherit;
   text-decoration: none;
 }
 
-.admin-tile:not(:has(> a)) {
+.admin-pipeline .admin-tile {
+  position: relative;
+  padding-top: var(--admin-space-5);
+  border-top: 1px solid var(--border);
+}
+
+.admin-pipeline .admin-tile::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -5px;
+  inset-inline-start: 0;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--foreground);
+  background: var(--foreground);
+  transform: rotate(45deg);
+}
+
+.admin-pipeline .admin-tile[data-quiet]::before {
+  border-color: var(--accent);
+  background: var(--background);
+}
+
+.admin-pipeline .admin-tile__value {
+  font-size: 52px;
+  line-height: 1;
+}
+
+.admin-pipeline .admin-tile > a,
+.admin-pipeline .admin-tile:not(:has(> a)) {
+  padding-inline-end: var(--admin-space-4);
+}
+
+/* Rows: what needs a person and the rhythm, one line each, the figure at the right. */
+.admin-dash-split {
   display: grid;
-  gap: var(--admin-space-2);
-  padding: var(--admin-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  column-gap: var(--admin-space-7);
+}
+
+.admin-rows .admin-tile > a,
+.admin-rows .admin-tile:not(:has(> a)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  padding-block: var(--admin-space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-rows .admin-tile:first-child > a,
+.admin-rows .admin-tile:first-child:not(:has(> a)) {
+  border-top: 1px solid var(--foreground);
+}
+
+.admin-rows .admin-tile__label {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--foreground);
+}
+
+.admin-rows .admin-tile__value {
+  font-size: 28px;
+  text-align: right;
+}
+
+.admin-rows .admin-tile__detail {
+  grid-column: 1 / -1;
+}
+
+.admin-tile[data-quiet] .admin-tile__value,
+.admin-rows .admin-tile[data-quiet] .admin-tile__label {
+  color: var(--muted-foreground);
 }
 
 .admin-tile > a:hover .admin-tile__label,
 .admin-tile > a:focus-visible .admin-tile__label {
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .admin-tile__label,
@@ -51,6 +163,7 @@
 .admin-tile__value {
   font-family: var(--font-serif);
   font-size: 34px;
+  font-variant-numeric: lining-nums tabular-nums;
   line-height: 1.1;
 }
 
@@ -62,19 +175,88 @@
   color: var(--muted-foreground);
 }
 
+/* The team: each colleague's mark, name and task now. */
+.admin-dash-team {
+  margin-top: var(--admin-space-7);
+  padding-top: var(--admin-space-5);
+  border-top: 1px solid var(--foreground);
+}
+
+.admin-dash-team__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--admin-space-4) var(--admin-space-5);
+}
+
+.admin-dash-team__member {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--admin-space-3);
+}
+
+.admin-dash-team__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-dash-team__name {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+.admin-dash-team__task {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.admin-dash-team__member:hover .admin-dash-team__name {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-dash-team__approvals {
+  margin-top: var(--admin-space-4);
+}
+
+.admin-dash-team__approvals a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .admin-pipeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--admin-space-5);
+  }
+
+  .admin-pipeline .admin-tile__value {
+    font-size: 40px;
+  }
+
+  .admin-dash-head h1 {
+    font-size: 38px;
+  }
+}
+
 .admin-dashboard__columns {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   align-items: start;
   gap: var(--admin-space-5);
-  margin-bottom: var(--admin-space-6);
+  margin-block: var(--admin-space-7) var(--admin-space-6);
 }
 
 .admin-gauges {
   display: grid;
   gap: var(--admin-space-3);
-  padding: var(--admin-space-4);
-  border: 1px solid var(--border);
+  padding-top: var(--admin-space-5);
+  border-top: 1px solid var(--foreground);
 }
 
 .admin-gauges ul {

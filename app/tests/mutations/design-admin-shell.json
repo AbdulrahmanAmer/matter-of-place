@@ -1,0 +1,20 @@
+[
+  {
+    "id": "das-a-summary-sum",
+    "test": "src/admin/dashboard/dashboard.test.tsx",
+    "file": "src/admin/dashboard/DashboardTiles.tsx",
+    "find": "  const inMotion = waitingStates.reduce((sum, state) => sum + (data.counts[state] ?? 0), 0);",
+    "replace": "  const inMotion = data.counts[\"Submitted\"] ?? 0;",
+    "run": "bunx vitest run --project component src/admin/dashboard/dashboard.test.tsx",
+    "expect": "× .*says in one sentence how many requests are in motion"
+  },
+  {
+    "id": "das-b-summary-needs",
+    "test": "src/admin/dashboard/dashboard.test.tsx",
+    "file": "src/admin/dashboard/DashboardTiles.tsx",
+    "find": "  const needs = data.jobs.failed_24h + data.jobs.dead + data.assets_pending + data.withdraw.open;",
+    "replace": "  const needs = data.jobs.failed_24h + data.jobs.dead + data.withdraw.open;",
+    "run": "bunx vitest run --project component src/admin/dashboard/dashboard.test.tsx",
+    "expect": "× .*says in one sentence how many requests are in motion"
+  }
+]
