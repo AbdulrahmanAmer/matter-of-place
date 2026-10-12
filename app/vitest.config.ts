@@ -17,6 +17,9 @@ export default defineConfig({
       {
         test: {
           name: "component",
+          // The same limit `bun run test` gives, so a registry replay without --testTimeout reaches the assertion
+          // (components wait up to 5 s for an element, tests/setup/dom.ts).
+          testTimeout: 60_000,
           include: ["tests/unit/**/*.test.tsx", "src/**/*.test.tsx"],
           environment: "jsdom",
           setupFiles: ["tests/setup/dom.ts", "tests/setup/hermetic.ts"],

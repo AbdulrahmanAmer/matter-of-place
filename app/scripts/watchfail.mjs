@@ -182,9 +182,25 @@ function execute(command, extraEnv) {
  */
 const mutatedNow = new Map();
 
+// P-3444: a replay killed hard (Stop-Process, a closed terminal) runs no exit handler, so the mutated file stays.
+// Before each mutation the original is written here; the next replay in the folder puts it back before anything else.
+const PENDING = "node_modules/.cache/watchfail.pending.json";
+
 function restoreAll() {
   for (const [path, bytes] of mutatedNow) writeFileSync(path, bytes);
   mutatedNow.clear();
+  if (existsSync(PENDING)) unlinkSync(PENDING);
+}
+
+/** Puts back what a replay that died mid-mutation left. Answers the path it restored, or null. */
+function restorePending() {
+  if (!existsSync(PENDING)) return null;
+  const pending = /** @type {{ path: string, original: string }} */ (
+    JSON.parse(readFileSync(PENDING, "utf8"))
+  );
+  writeFileSync(pending.path, Buffer.from(pending.original, "base64"));
+  unlinkSync(PENDING);
+  return pending.path;
 }
 
 /**
@@ -239,6 +255,10 @@ async function runMutated(entry, label) {
   const changed = text.slice(0, start) + replace + text.slice(start + find.length);
   const line = text.slice(0, start).split("\n").length;
   mutatedNow.set(path, original);
+  writeFileSync(
+    PENDING,
+    JSON.stringify({ path, original: Buffer.from(original).toString("base64") }),
+  );
   writeFileSync(path, changed);
   const shown = changed.split("\n")[line - 1]?.trim().slice(0, 100) ?? "";
   console.log(`  mutated ${file}:${String(line)}  ${shown}`);
@@ -451,6 +471,9 @@ function takeLock() {
 
 if (import.meta.main) {
   takeLock();
+  const left = restorePending();
+  if (left !== null)
+    console.log(`watchfail: restored ${left}, left mutated by a replay that died (P-3444)`);
   process.on("exit", restoreAll);
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(130));
   main(process.argv.slice(2)).then(
