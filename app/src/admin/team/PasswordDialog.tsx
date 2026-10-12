@@ -49,6 +49,10 @@ export function PasswordDialog({ open, onClose }: { open: boolean; onClose: () =
         >
           <h2>Your password</h2>
           <p>Only you know it; nobody at Matter of Place can read it.</p>
+          <p>
+            For your safety this needs a sign-in in the last 15 minutes. If it sends you to sign in,
+            use the email link; you come back here and can set it straight away.
+          </p>
           <Field label="New password" hint="Twelve characters or more.">
             {(control) => (
               <input

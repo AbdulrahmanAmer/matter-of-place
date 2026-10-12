@@ -43,5 +43,14 @@
     "replace": "const ONLINE_WITHIN_MS = 60 * 60_000;",
     "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
     "expect": "× .*is online within three minutes of the runner's pass"
+  },
+  {
+    "id": "w2-f-safe-mode",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/settings.json",
+    "find": "\"allow\": [\"Read\", \"Grep\", \"Glob\", \"WebSearch\"],",
+    "replace": "\"allow\": [\"Read\", \"Grep\", \"Glob\", \"WebSearch\", \"Bash\"],",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*allows reading and searching only, and refuses rather than asks"
   }
 ]

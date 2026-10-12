@@ -116,11 +116,11 @@ export function Footer() {
           <p className="footer-legal">
             {fill(t.footer.product, { name: siteConfig.name, entity: identity.entity })}
           </p>
+          {/* The postal address lives on the legal pages, not in every footer (operator, 2026-10-12; ruling H90). */}
           <p className="footer-address">
             <span>
               © {new Date().getFullYear()} {identity.entity}
             </span>
-            <span>{identity.address}</span>
           </p>
         </div>
       </div>

@@ -16,7 +16,19 @@ export function TopBar() {
   const router = useRouter();
   const me = useAdminMe();
   const [text, setText] = useState("");
-  const [passwordOpen, setPasswordOpen] = useState(false);
+  // `?password=1` keeps the dialog open across the email-link sign-in that setting a password may ask for: the
+  // sign-in returns to this address, and the dialog opens again by itself.
+  const [passwordOpen, setPasswordOpenState] = useState(
+    () =>
+      typeof window !== "undefined" && new URLSearchParams(window.location.search).has("password"),
+  );
+  const setPasswordOpen = (open: boolean) => {
+    setPasswordOpenState(open);
+    const url = new URL(window.location.href);
+    if (open) url.searchParams.set("password", "1");
+    else url.searchParams.delete("password");
+    window.history.replaceState(window.history.state, "", url);
+  };
   const [chatOpen, setChatOpen] = useState(false);
   const matched = useRouterState({
     select: (state) => state.matches.map((match) => match.routeId).join("|"),
