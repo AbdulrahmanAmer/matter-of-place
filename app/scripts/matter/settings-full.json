@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "Bash",
+      "Write",
+      "Edit",
+      "NotebookEdit"
+    ],
+    "deny": [
+      "Read(**/creds/**)",
+      "Read(**/cloudflare tokens and secrets.txt)",
+      "Read(**/Claude Session.txt)",
+      "Read(~/.ssh/**)",
+      "Read(~/.git-credentials)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(supabase db reset*)",
+      "Bash(docker*)"
+    ]
+  }
+}

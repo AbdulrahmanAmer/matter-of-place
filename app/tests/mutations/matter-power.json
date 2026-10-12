@@ -1,0 +1,20 @@
+[
+  {
+    "id": "mp-a-outside-text",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "  return cause === \"message\" && (authorKind === \"human\" || authorKind === \"agent\")\n",
+    "replace": "  return cause === \"message\"\n",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*works at full power when a person or a colleague woke it"
+  },
+  {
+    "id": "mp-b-personal-files",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/settings-full.json",
+    "find": "      \"Read(**/creds/**)\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*keeps the operator's personal files closed even at full power"
+  }
+]

@@ -1,6 +1,7 @@
 // Matter's run (plan W2): the operator's owner-level agent. The daemon hands it every claimed run of the agent
-// `matter`. Unlike an employee, Matter works with the full Claude Code toolset, in its own working copy of the
-// repository (never the live runner folder), under the deny list of `settings.json` (the operator's standing rules).
+// `matter`. Unlike an employee, Matter works with the full Claude Code toolset (`settings-full.json`, ruling H100) when a
+// person or a colleague woke it, in its own working copy of the repository (never the live runner folder); a run woken
+// by outside text reads only (`settings.json`, gap audit items 1 and 31).
 // It has no session: each run reads the charter (the operator's words, verbatim), the atlas, its capped notes and the
 // recent thread, and ends with one JSON object the daemon acts on.
 import { spawnSync } from "node:child_process";
@@ -116,26 +117,41 @@ function ensureDesk(): void {
   if (made.status !== 0) throw new Error("Matter's desk could not be made");
 }
 
+/**
+ * Ruling H100 (operator, 2026-10-13: "it has full power access to get anything I ask for done"): Matter works with the
+ * full toolset, keys included, like the orchestrator does, when a person or a colleague woke it. A run woken by an
+ * event or a system message carries outside text (a form, an email), so it stays in the read-only mode of items 1, 31.
+ */
+export type MatterPower = "full" | "read";
+
+export function matterPower(cause: string, authorKind: string | null): MatterPower {
+  return cause === "message" && (authorKind === "human" || authorKind === "agent")
+    ? "full"
+    : "read";
+}
+
+/** The command line for one run: either mode refuses what it does not allow, never asks. */
+export function matterArgs(power: MatterPower): string[] {
+  const base = ["-p", "--model", MODEL, "--output-format", "json", "--permission-mode", "dontAsk"];
+  return power === "full"
+    ? [...base, "--settings", join(here, "settings-full.json")]
+    : [
+        ...base,
+        "--settings",
+        join(here, "settings.json"),
+        "--disallowedTools",
+        "Bash,Write,Edit,NotebookEdit,WebFetch",
+      ];
+}
+
 export async function askMatter(
   prompt: string,
   env: NodeJS.ProcessEnv,
+  power: MatterPower = "read",
 ): Promise<{ text: string; usage?: CliUsage }> {
   ensureDesk();
   const answer = await runClaude({
-    args: [
-      "-p",
-      "--model",
-      MODEL,
-      "--output-format",
-      "json",
-      "--settings",
-      join(here, "settings.json"),
-      // Safe mode (gap audit items 1, 31): reads only, inside the desk; anything not allowed is refused, never asked.
-      "--permission-mode",
-      "dontAsk",
-      "--disallowedTools",
-      "Bash,Write,Edit,NotebookEdit,WebFetch",
-    ],
+    args: matterArgs(power),
     cwd: DESK,
     env,
     prompt,

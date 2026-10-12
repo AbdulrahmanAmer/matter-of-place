@@ -9,6 +9,8 @@ import {
   cappedNotes,
   charter,
   fenced,
+  matterArgs,
+  matterPower,
   matterPrompt,
   refreshDesk,
 } from "../../scripts/matter/run.ts";
@@ -97,6 +99,50 @@ describe("Matter's safe mode (gap audit items 1 and 31)", () => {
       secrets: true,
       dontAsk: true,
     });
+  });
+
+  it("works at full power when a person or a colleague woke it, and reads only when outside text did (H100)", () => {
+    const full = matterArgs("full");
+    const read = matterArgs("read");
+    expect({
+      powers: [
+        matterPower("message", "human"),
+        matterPower("message", "agent"),
+        matterPower("message", "system"),
+        matterPower("event", null),
+        matterPower("message", null),
+      ],
+      full: [
+        full.some((arg) => arg.endsWith("settings-full.json")),
+        full.includes("--disallowedTools"),
+      ],
+      read: [read.some((arg) => arg.endsWith("settings.json")), read.includes("--disallowedTools")],
+      bothRefuse: [full, read].every(
+        (args) => args[args.indexOf("--permission-mode") + 1] === "dontAsk",
+      ),
+    }).toEqual({
+      powers: ["full", "full", "read", "read", "read"],
+      full: [true, false],
+      read: [true, true],
+      bothRefuse: true,
+    });
+  });
+
+  it("keeps the operator's personal files closed even at full power", () => {
+    const full = z
+      .object({ permissions: z.object({ allow: z.array(z.string()), deny: z.array(z.string()) }) })
+      .parse(
+        JSON.parse(readFileSync(join(process.cwd(), "scripts/matter/settings-full.json"), "utf8")),
+      ).permissions;
+    expect({
+      tools: ["Bash", "Write", "Edit", "WebFetch"].every((tool) => full.allow.includes(tool)),
+      closed: [
+        "Read(**/creds/**)",
+        "Read(**/cloudflare tokens and secrets.txt)",
+        "Read(**/Claude Session.txt)",
+        "Bash(git push --force*)",
+      ].every((rule) => full.deny.includes(rule)),
+    }).toEqual({ tools: true, closed: true });
   });
 });
 

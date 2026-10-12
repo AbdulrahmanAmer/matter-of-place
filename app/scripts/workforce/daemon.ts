@@ -22,7 +22,7 @@ import {
   checkCall,
   makeCall,
 } from "../matter/actions.ts";
-import { askMatter, keepNote, matterInputs, matterPrompt } from "../matter/run.ts";
+import { askMatter, keepNote, matterInputs, matterPower, matterPrompt } from "../matter/run.ts";
 import { staffCharterFrom } from "./charter.ts";
 import { childEnv, loadEnvFile, serviceDb as db } from "./env.ts";
 import { knowledgeBlock } from "./knowledge.ts";
@@ -295,13 +295,15 @@ async function runOnce(client: Db): Promise<boolean> {
   const agent = agents?.find((row) => row.id === run.agent_id);
   if (agent === undefined) return true;
   let thread = "team";
+  let authorKind: string | null = null;
   if (run.message_id !== null) {
     const { data: message } = await client
       .from("agent_messages")
-      .select("thread")
+      .select("thread, author_kind")
       .eq("id", run.message_id)
       .single();
     thread = message?.thread ?? "team";
+    authorKind = message?.author_kind ?? null;
   }
   await client
     .from("agents")
@@ -332,6 +334,7 @@ async function runOnce(client: Db): Promise<boolean> {
             business: lessons,
           }),
           matterEnv(),
+          matterPower(run.cause, authorKind),
         )
       : await askClaude(
           promptFor(
