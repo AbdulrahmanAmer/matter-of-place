@@ -54,6 +54,7 @@ The rehearsal, H1-21:
 
 ```
 bash scripts/harden/restore-rehearsal.sh <key path>
+bash scripts/harden/restore-rehearsal.sh --live <key path>   # after the launch switch: writes nothing to the one database
 ```
 
 Without an argument it asks for the key path. In order, it:
@@ -180,6 +181,9 @@ Gap accepted by the CEO (initials and date): not given yet on 2026-10-10.
 | 2026-10-10 | `scripts/harden/restore-rehearsal.sh` against stand-ins: `gh` replaced by a laptop `pg_dump` of the one database, encrypted to a key pair made for the run; marker found once | 2.2     | properties 17/17, submissions 1158/1158, subscribers 0/0, audit_log 559/559, payments 3/3, jobs 5471/5471 | H1 g6 builder |
 | 2026-10-10 | `scripts/harden/restore-supabase-drill.sh` against stand-ins on a native PostgreSQL 18 copy of the dump (stand-in `db:reset`, Vault and selftest)                             | 0.6     | properties 17/17, submissions 1158/1158, subscribers 0/0, audit_log 383/383, payments 3/3, jobs 5382/5382 | H1 g6 builder |
 
-NOT DONE: H1-21 with the escrowed key (the minutes of the real run go here) and H1-21b on the one project (its minutes
-go here, against the RTO of 4 hours for the public site and 8 hours for admin and jobs). Both wait on the escrowed key,
-and H1-21b on the orchestrator after the build lanes close.
+| 2026-10-12 | `scripts/harden/restore-rehearsal.sh --live` (gap audit item 27): a fresh `backup.yml` run of the one database (production since the launch switch), its artifact decrypted with the escrowed key `creds/backup-recipient.key`, restored into a throwaway native PostgreSQL 18 cluster; nothing written to the live database; `public_state()` answers on the copy | 2.1 | properties 0/0, submissions 0/0, subscribers 0/0, audit_log 11/11, payments 0/0, jobs 131/131 | orchestrator |
+
+H1-21 is done with the escrowed key (the 2026-10-12 row: 2.1 minutes against the RTO of 4 hours for the public site and
+8 hours for admin and jobs). The live form takes `--live` first: it skips the marker (a test row the production
+database refuses, ruling H35 (5)) and proves the read path on the copy instead. NOT DONE: H1-21b, the Supabase-side
+drill, which refuses the one project by design.
