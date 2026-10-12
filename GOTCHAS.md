@@ -7809,4 +7809,5 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-12, W3: a `node -e` rewrite with `\\.` in a RegExp threw after half its edits landed, though P-008 had been in the bank since 2026-10-01. The operator: "if it is known make sure that you write it properly and make that something that you don't need memory for".
 - rule: a banked trap that a hook can see becomes a hook the same day; a rule that needs memory is not a fix.
 - enforced-by: `.claude/hooks/inline-script-guard.mjs` (refuses inline scripts with a backslash; it refused three of the orchestrator's own commands on 2026-10-12, each then written with Write and run as a file).
+- proof: `node .claude/hooks/inline-script-guard.test.mjs` → `inline-script-guard: 8 ok`; with the backslash check disabled → `AssertionError: node -e with a backslash is refused` (measured 2026-10-12).
 - added: 2026-10-12
