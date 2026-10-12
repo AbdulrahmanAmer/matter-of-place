@@ -39,8 +39,11 @@ function Card({
     <article className="admin-channel" aria-label={name}>
       <header>
         <h2>{name}</h2>
-        {health === undefined || !isLive(channel) ? null : (
+        {health === undefined || !isLive(channel) ? null : health.connected ? (
           <StatusPill label={levelLabel[health.level]} tone={levelTone[health.level]} />
+        ) : (
+          // Admin pass: a channel never signed in is not one to reconnect (as on Today).
+          <StatusPill label="Not connected yet" />
         )}
       </header>
       {isLive(channel) ? (

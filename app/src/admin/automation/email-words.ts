@@ -9,7 +9,7 @@ export const emailTopics = [
   "Clients and money",
   "The team and care",
 ] as const;
-export type EmailTopic = (typeof emailTopics)[number];
+type EmailTopic = (typeof emailTopics)[number];
 
 interface EmailWords {
   name: string;

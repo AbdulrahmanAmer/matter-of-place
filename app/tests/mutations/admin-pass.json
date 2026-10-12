@@ -52,5 +52,23 @@
     "replace": "    label: \"New invoice\",\n    hidden: true,",
     "run": "bunx vitest run --project unit tests/unit/admin-nav.test.ts",
     "expect": "× .*renders no link for screens 1, 4, 6, 8, 27 and 30"
+  },
+  {
+    "id": "ap-g-class-guard",
+    "test": "tests/unit/admin-classes.test.ts",
+    "file": "src/styles/admin/ui.css",
+    "find": ".admin-link {",
+    "replace": ".admin-link-gone {",
+    "run": "bunx vitest run --project unit tests/unit/admin-classes.test.ts",
+    "expect": "× .*has a style rule for every admin class a screen names"
+  },
+  {
+    "id": "ap-h-badge-on-phone",
+    "test": "tests/unit/admin-classes.test.ts",
+    "file": "src/styles/admin/admin.css",
+    "find": "  .admin-bar .admin-actor {",
+    "replace": "  .admin-actor {",
+    "run": "bunx vitest run --project unit tests/unit/admin-classes.test.ts",
+    "expect": "× .*keeps every name badge visible on a phone"
   }
 ]

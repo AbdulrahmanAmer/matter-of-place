@@ -218,6 +218,37 @@
   vertical-align: top;
 }
 
+/* Classes the screens name that had no rule (admin pass; tests/unit/admin-classes.test.ts keeps it so). */
+.admin-recipes__name,
+.admin-letter__subject {
+  display: block;
+  font-weight: 500;
+}
+
+.admin-flow__actions,
+.admin-template__save {
+  align-items: center;
+}
+
+.admin-link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-overdue {
+  white-space: nowrap;
+}
+
+.wf-proposal__state {
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+/* A date in a table stays on one line; a narrow screen scrolls the table instead (admin pass). */
+.admin-table time {
+  white-space: nowrap;
+}
+
 .admin-table .admin-cell--end {
   text-align: end;
 }

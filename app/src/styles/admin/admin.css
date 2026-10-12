@@ -537,7 +537,7 @@ h3 {
     min-height: 44px;
   }
 
-  .admin-actor {
+  .admin-bar .admin-actor {
     display: none;
   }
 

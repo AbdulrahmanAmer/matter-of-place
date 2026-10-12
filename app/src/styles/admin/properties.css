@@ -8,6 +8,13 @@
   align-items: start;
 }
 
+/* Admin pass: on a narrow screen the editor and its save panel stack, the panel under the form. */
+@media (max-width: 900px) {
+  .admin-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .admin-editor__main {
   display: grid;
   gap: var(--admin-space-4);
