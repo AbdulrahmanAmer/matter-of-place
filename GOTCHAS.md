@@ -6507,8 +6507,8 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - severity: warn
 - symptom: B8b g10's spec pressed "Run dry run" for `submission.received` and got 422 `Name the record the event is about`; the request body was `{"trigger":"submission.received"}` although the Record id field had been filled, and the panel's hint says the field is optional.
 - cause: `samplePayloadFor` refuses an entity event without an entity id (only `digest.due` and `health.failed` need none). After Save the recipes query refetches and the editor draws again, which empties the panel's local state; a field filled before that refetch settles is lost.
-- rule: a spec that runs the dry run of an entity event types a real record id (a submission id for `submission.received`) and does it after `page.waitForResponse` of the refetch that follows the save. The panel's "Optional" hint is wrong for those events (follow-up recorded in the B8b log).
-- proof: `cd app && grep -n "Name the record the event is about" src/server/automation/sample-payloads.ts` → line 232; `E2E_TARGET=built E2E_PORT=8978 E2E_MODE=live bunx playwright test --project=admin tests/e2e/automation-exit.spec.ts --grep "a session switches"` → `1 passed` (measured 2026-10-08).
+- rule: since 2026-10-12 an empty record id runs on placeholder data for every event (`placeholders` in `src/server/automation/sample-payloads.ts`), and the panel's hint says so; a spec that wants a real record still types its id after `page.waitForResponse` of the refetch that follows the save.
+- proof: `cd app && bunx vitest run tests/unit/automation/sample-payloads.test.ts -t "builds every event from placeholders"` passes; with the placeholder return removed (registry `b8b-g5-sam-refuses`) it fails on `Name the record the event is about.`
 - added: 2026-10-08
 
 ## P-2511 · A Playwright run that is not allowed to finish leaves `wrangler dev`, workerd and the mop-dev writer lock behind

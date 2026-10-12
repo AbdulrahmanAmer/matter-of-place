@@ -3,7 +3,7 @@ import { pageHead } from "../../lib/seo";
 
 interface SignInSearch {
   next?: string;
-  state?: "disabled" | "expired";
+  state?: "disabled" | "expired" | "recent";
 }
 
 // A shell (ruling H66): the page is imported by the lazy component.
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/admin/sign-in")({
     const { next, state } = search;
     return {
       ...(typeof next === "string" && next !== "" ? { next } : {}),
-      ...(state === "disabled" || state === "expired" ? { state } : {}),
+      ...(state === "disabled" || state === "expired" || state === "recent" ? { state } : {}),
     };
   },
   head: () =>

@@ -217,6 +217,66 @@ const builders: Record<EventType, Builder> = {
 // `digest.due` and `health.failed` are written by the system, about no row.
 const systemEvents: readonly EventType[] = ["digest.due", "health.failed"];
 
+// With no record named, every other event is built from placeholder values that pass its payload schema, so a recipe
+// can be tried before the first real row exists, as the admin's dry-run panel promises ("leave this empty for sample
+// data"; operator's admin pass, 2026-10-12, found production refusing every such run).
+const SAMPLE_ID = "00000000-0000-4000-8000-000000000000";
+const SAMPLE_PROPERTY = {
+  property_id: SAMPLE_ID,
+  tier: "Feature",
+  market: "california",
+} as const satisfies JsonObject;
+const placeholders: Partial<Record<EventType, JsonObject>> = {
+  "submission.received": { submission_id: SAMPLE_ID },
+  "submission.declined": {
+    submission_id: SAMPLE_ID,
+    note: SAMPLE_NOTE,
+    tier: "Feature",
+    market: "california",
+  },
+  "submission.accepted": { submission_id: SAMPLE_ID, tier: "Feature", market: "california" },
+  "submission.awaiting_assets": {
+    submission_id: SAMPLE_ID,
+    note: SAMPLE_NOTE,
+    tier: "Feature",
+    market: "california",
+  },
+  "invoice.issued": {
+    submission_id: SAMPLE_ID,
+    payment_id: SAMPLE_ID,
+    invoice_number: "MOP-SAMPLE",
+    tier: "Feature",
+  },
+  "payment.marked": {
+    submission_id: SAMPLE_ID,
+    payment_id: SAMPLE_ID,
+    status: "paid",
+    amount: 0,
+    tier: "Feature",
+  },
+  "submission.activated": { submission_id: SAMPLE_ID, ...SAMPLE_PROPERTY },
+  "invoice.voided": {
+    submission_id: SAMPLE_ID,
+    payment_id: SAMPLE_ID,
+    invoice_number: "MOP-SAMPLE",
+    reason: "Sample",
+  },
+  "property.published": { ...SAMPLE_PROPERTY, slug: "sample-property" },
+  "property.unpublished": {
+    property_id: SAMPLE_ID,
+    slug: "sample-property",
+    market: "california",
+    reason: "Sample",
+    takedown: false,
+  },
+  "asset.approved": { asset_id: SAMPLE_ID, ...SAMPLE_PROPERTY, kind: "cover" },
+  "asset.rejected": { asset_id: SAMPLE_ID, ...SAMPLE_PROPERTY, kind: "cover", note: SAMPLE_NOTE },
+  "inquiry.received": { inquiry_id: SAMPLE_ID },
+  "subscriber.created": { subscriber_id: SAMPLE_ID, sealed_token: SAMPLE_SEALED_TOKEN },
+  "subscriber.confirmed": { subscriber_id: SAMPLE_ID },
+  "subject_request.received": { request_id: SAMPLE_ID, kind: "access" },
+};
+
 /** Builds the payload of `trigger` from the row `entityId` names; a system event needs no row. */
 export async function samplePayloadFor(
   db: Db,
@@ -228,6 +288,8 @@ export async function samplePayloadFor(
   if (type === undefined) {
     throw new AppError("unknown_trigger", undefined, `No event is called ${trigger}.`);
   }
+  const placeholder = placeholders[type];
+  if (entityId === undefined && placeholder !== undefined) return { ...placeholder };
   if (entityId === undefined && !systemEvents.includes(type)) {
     throw new AppError("validation", undefined, "Name the record the event is about.");
   }

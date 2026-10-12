@@ -8,6 +8,9 @@ const signIn = getRouteApi("/admin/sign-in");
 const STATES = {
   disabled: "This account is not active. Ask an administrator if that is unexpected.",
   expired: "That link has expired or was already used. Ask for a new one below.",
+  // Team changes and other sensitive actions ask for a sign-in in the last 15 minutes (session-policy.ts).
+  recent:
+    "This page changes who can sign in, so it asks you to confirm it is you. Sign in again below and you return to it.",
 } as const;
 
 /** The component of `src/routes/admin/sign-in.tsx`. */
