@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { atlas } from "../../scripts/matter/atlas.ts";
 import { cappedNotes, charter, fenced, matterPrompt } from "../../scripts/matter/run.ts";
 import { presenceOf } from "../../src/admin/workforce/presence.ts";
@@ -60,5 +63,31 @@ describe("Matter's presence in the side chat", () => {
       presenceOf({ onTeam: true, lastSeen: at(5), now, waiting: true }),
       presenceOf({ onTeam: false, lastSeen: null, now, waiting: false }).kind,
     ]).toEqual(["online", "working", { kind: "offline", since: at(5) }, "absent"]);
+  });
+});
+
+describe("Matter's safe mode (gap audit items 1 and 31)", () => {
+  const permissions = z
+    .object({ permissions: z.object({ allow: z.array(z.string()), deny: z.array(z.string()) }) })
+    .parse(
+      JSON.parse(readFileSync(join(process.cwd(), "scripts/matter/settings.json"), "utf8")),
+    ).permissions;
+  const runner = readFileSync(join(process.cwd(), "scripts/matter/run.ts"), "utf8");
+  it("allows reading and searching only, and refuses rather than asks", () => {
+    expect({
+      allow: [...permissions.allow].sort(),
+      denied: ["Bash", "Write", "Edit", "WebFetch"].every((tool) =>
+        permissions.deny.includes(tool),
+      ),
+      secrets: ["Read(~/.claude/**)", "Read(**/.env)", "Read(**/.env.*)"].every((rule) =>
+        permissions.deny.includes(rule),
+      ),
+      dontAsk: runner.includes('"dontAsk"'),
+    }).toEqual({
+      allow: ["Glob", "Grep", "Read", "WebSearch"],
+      denied: true,
+      secrets: true,
+      dontAsk: true,
+    });
   });
 });
