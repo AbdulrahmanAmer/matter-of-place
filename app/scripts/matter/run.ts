@@ -74,7 +74,8 @@ export function matterPrompt(input: {
       : `Your notes (yours to keep, newest last):\n${input.notes}`,
     input.business,
     fenced("THREAD", input.thread),
-    'When you are done, end with one JSON object on its own: {"reply": "what you tell the operator, plain and short", "task": "a few words for the office board", "note": "one line worth keeping for next time, or empty", "hire": [], "media": []}. A hire entry is {"slug", "name", "role", "instructions", "model", "wake_on", "tools"}. A media entry makes a voice-over in the brand\'s own voice with the qwen-voiceover skill on this laptop: {"skill": "qwen-voiceover", "name": "short name", "lines": ["each spoken line"]}; a line takes about three seconds per ten words, so a 20 second voice-over is about 60 words. Say in your reply that it is being made; the file\'s path follows in the thread.',
+    'A hire entry is {"slug", "name", "role", "instructions", "model", "wake_on", "tools"}. A media entry makes a voice-over in the brand\'s own voice with the qwen-voiceover skill on this laptop: {"skill": "qwen-voiceover", "name": "short name", "lines": ["each spoken line"]}; a line takes about three seconds per ten words, so a 20 second voice-over is about 60 words. Say in your reply that it is being made; the file\'s path follows in the thread.',
+    'When you are done, end with one JSON object on its own: {"reply": "what you tell the operator, plain and short", "task": "a few words for the office board", "note": "one line worth keeping for next time, or empty", "hire": [], "media": []}.',
   ].join("\n\n");
 }
 
