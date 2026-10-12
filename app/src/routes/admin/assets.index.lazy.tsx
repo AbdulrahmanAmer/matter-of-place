@@ -31,7 +31,11 @@ function AssetsPage() {
 
   return (
     <>
-      <h1>Assets</h1>
+      <h1>Visuals</h1>
+      <p className="admin-lead">
+        The carousels, reels and images made for each property. An approved visual can be scheduled
+        to post.
+      </p>
       <div className="admin-toolbar">
         <Field label="Status">
           {(control) => (

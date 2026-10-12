@@ -24,6 +24,9 @@ function PeoplePage() {
   return (
     <>
       <h1>People</h1>
+      <p className="admin-lead">
+        Everyone who has sent a request: owners, agents and brokerages, with what they sent.
+      </p>
       <PeopleTable
         filters={{ values: filters.values, onChange: filters.setFilters }}
         rows={page?.items ?? []}

@@ -151,17 +151,32 @@ describe("ChannelCards", () => {
       xReads: within(card("X")).getByText("80 of 100").tagName,
       xState: within(card("X")).getByText("Attention").getAttribute("data-tone"),
       linkedin: within(card("LinkedIn")).getByText("Not connected").tagName,
-      linkedinState: within(card("LinkedIn"))
-        .getByText("Reconnect needed")
-        .getAttribute("data-tone"),
+      // Never signed in: not connected yet, not a red "reconnect" (admin pass, as on Today).
+      linkedinState: within(card("LinkedIn")).getByText("Not connected yet").tagName,
+      linkedinRed: within(card("LinkedIn")).queryByText("Reconnect needed"),
     }).toEqual({
       instagram: "https://www.instagram.com/p/AAA/",
       xError: "DD",
       xReads: "DD",
       xState: "warning",
       linkedin: "DD",
-      linkedinState: "danger",
+      linkedinState: "SPAN",
+      linkedinRed: null,
     });
+  });
+
+  it("asks to reconnect a connected channel whose token died, in the danger tone", async () => {
+    serve({
+      "GET /api/admin/channels/health": [
+        channelHealth("instagram", {
+          level: "red",
+          token: { expiresAt: "2026-10-01T00:00:00.000Z", daysLeft: -5, level: "red" },
+        }),
+      ],
+    });
+    mount(operatorActions, <ChannelCards />);
+    const pill = await within(card("Instagram")).findByText("Reconnect needed");
+    expect(pill.getAttribute("data-tone")).toBe("danger");
   });
 
   it("shows Facebook and YouTube as not enabled yet, with no form, no toggle and no state", async () => {

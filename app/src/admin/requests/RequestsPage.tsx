@@ -45,6 +45,9 @@ export function RequestsPage() {
   return (
     <>
       <h1>Requests</h1>
+      <p className="admin-lead">
+        Every property sent to us. Open one to accept it, ask for more, or decline it.
+      </p>
       <RequestFilters
         key={filters.values.search ?? ""}
         values={filters.values}

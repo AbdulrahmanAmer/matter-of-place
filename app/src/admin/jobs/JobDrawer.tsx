@@ -5,6 +5,7 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Drawer } from "../ui/Drawer";
 import { LocalTime } from "../ui/LocalTime";
 import { useToast } from "../ui/use-toast";
+import { jobName } from "./job-words";
 import { JobStatus } from "./JobStatus";
 import {
   jobEntity,
@@ -185,7 +186,7 @@ export function JobDrawer({ id, onClose }: { id: string; onClose: () => void }) 
   const job = useJob(id);
   const failure = job.error;
   return (
-    <Drawer open onClose={onClose} title={job.data === undefined ? "Job" : words(job.data.type)}>
+    <Drawer open onClose={onClose} title={job.data === undefined ? "Job" : jobName(job.data.type)}>
       {failure === null ? null : (
         <p role="alert">
           {failure.message}

@@ -13,7 +13,11 @@ export function MediaPage() {
   const propertyId = filters.values.property_id;
   return (
     <>
-      <h1>Media</h1>
+      <h1>Photographs</h1>
+      <p className="admin-lead">
+        The photographs of one property and the sizes made from them. Choose a property to see or
+        add its photographs.
+      </p>
       <Field label="Property" hint="The 50 properties changed most recently.">
         {(control) => (
           <select

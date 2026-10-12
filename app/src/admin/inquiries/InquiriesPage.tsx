@@ -32,6 +32,10 @@ export function InquiriesPage() {
   return (
     <>
       <h1>Inquiries</h1>
+      <p className="admin-lead">
+        Messages from buyers and agents about a property. Each is answered or passed to the listing
+        agent.
+      </p>
       <InquiriesTable
         filters={{ values: filters.values, onChange: filters.setFilters }}
         assigneeName={(id) => names.get(id) ?? "A former editor"}

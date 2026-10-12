@@ -27,7 +27,12 @@ function InvoicesPage() {
   return (
     <>
       <header className="admin-page-head">
-        <h1>Invoices</h1>
+        <div>
+          <h1>Invoices</h1>
+          <p className="admin-lead">
+            What each client owes and has paid. Issue an invoice once a request is accepted.
+          </p>
+        </div>
         <RoleGate action="payments.issue">
           <a className="admin-button" href="/admin/invoices/new" data-print="hide">
             Issue invoice

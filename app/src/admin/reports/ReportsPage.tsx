@@ -21,6 +21,7 @@ export function ReportsPage() {
     <>
       <div data-print="hide">
         <h1>Reports</h1>
+        <p className="admin-lead">The weekly report each client receives about their property.</p>
         <ReportTable
           rows={reports.data?.items ?? []}
           loading={reports.isPending}

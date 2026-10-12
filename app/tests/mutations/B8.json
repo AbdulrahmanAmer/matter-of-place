@@ -2583,7 +2583,7 @@
     "kind": "file",
     "test": "src/admin/jobs/jobs.test.tsx",
     "file": "src/admin/jobs/JobsTable.tsx",
-    "find": "if (entity === null) return \"system\";",
+    "find": "if (entity === null) return \"The site\";",
     "replace": "if (entity === null) return \"none\";",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
     "expect": "× .*shows system for a job"

@@ -190,9 +190,9 @@ describe("MarketEditor", () => {
     mount(editorActions);
     press("Move guide entry 1 down");
     press("Add guide entry");
-    type("Guide entry 3 label", "Movers");
-    type("Guide entry 3 text", "We know two.");
-    type("Guide entry 3 section", "service");
+    type("Guide entry 3 Label", "Movers");
+    type("Guide entry 3 Text", "We know two.");
+    type("Guide entry 3 Section", "service");
     press("Save");
     await screen.findByText("Saved.");
     expect(bodyOf(requested, `PATCH ${PATH}`)).toEqual({
@@ -208,7 +208,7 @@ describe("MarketEditor", () => {
   it("keeps an existing region image on save: an edited region goes with no image key and the other regions stay out", async () => {
     const requested = serve({ [`PATCH ${PATH}`]: saved });
     mount(editorActions);
-    type("Region bay area name", "San Francisco Bay");
+    type("Bay Area Name", "San Francisco Bay");
     press("Save");
     await screen.findByText("Saved.");
     const body = bodyOf(requested, `PATCH ${PATH}`);
@@ -232,7 +232,7 @@ describe("MarketEditor", () => {
   it("stages a picked region image on the signed URL and sends its path with that region only", async () => {
     const requested = serve({ ...uploads(REGION_STAGED), [`PATCH ${PATH}`]: saved });
     mount(editorActions);
-    fireEvent.change(screen.getByLabelText("Replace image for bay area"), {
+    fireEvent.change(screen.getByLabelText("Replace image for Bay Area"), {
       target: { files: [picture()] },
     });
     await screen.findByText(
@@ -270,10 +270,10 @@ describe("MarketEditor", () => {
 
   it("keeps Save off while a note has no text or a neighborhood has no region", () => {
     mount(editorActions);
-    type("Note 1 text", "");
+    type("Note 1 Text", "");
     const noText = screen.getByRole("button", { name: "Save" }).hasAttribute("disabled");
-    type("Note 1 text", "l");
-    type("Guide entry 2 region", "");
+    type("Note 1 Text", "l");
+    type("Guide entry 2 Region", "");
     expect({
       noText,
       noRegion: screen.getByRole("button", { name: "Save" }).hasAttribute("disabled"),

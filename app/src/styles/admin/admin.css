@@ -368,6 +368,17 @@ h3 {
   padding: var(--admin-space-6) var(--admin-space-6) var(--admin-space-7);
 }
 
+/* Admin pass (2026-10-12): every screen's title at one size with room under it, a lead line close beneath it, so
+   filters and content never sit against the heading. A screen with its own head (Today, the office) sizes its own. */
+.admin-main h1 {
+  margin-bottom: var(--admin-space-5);
+  font-size: 36px;
+}
+
+.admin-main h1:has(+ p) {
+  margin-bottom: var(--admin-space-2);
+}
+
 .admin-banner {
   margin-bottom: var(--admin-space-5);
   padding: var(--admin-space-3) var(--admin-space-4);
@@ -384,7 +395,7 @@ h3 {
 }
 
 .admin-page-head h1 {
-  font-size: 40px;
+  font-size: 36px;
 }
 
 /* A failure or a wait inside the shell, in the main column. */
@@ -526,7 +537,7 @@ h3 {
     min-height: 44px;
   }
 
-  .admin-actor {
+  .admin-bar .admin-actor {
     display: none;
   }
 

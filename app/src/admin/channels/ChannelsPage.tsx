@@ -20,7 +20,10 @@ export function ChannelsPage() {
   const lastPage = Math.ceil((posts.data?.total ?? 0) / socialPostPageSize);
   return (
     <>
-      <h1>Channels</h1>
+      <h1>Social posts</h1>
+      <p className="admin-lead">
+        How each channel stands, and every post that went out or waits to go.
+      </p>
       <ChannelCards />
       <WithdrawList />
       {one ? (

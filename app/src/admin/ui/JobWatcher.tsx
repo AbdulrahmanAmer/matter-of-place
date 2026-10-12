@@ -1,3 +1,4 @@
+import { jobName } from "../jobs/job-words";
 import { StatusPill, type Tone } from "./StatusPill";
 
 export interface WatchedJob {
@@ -24,7 +25,7 @@ export function JobWatcher({ jobs }: { jobs: readonly WatchedJob[] }) {
         const status = STATUS[job.status] ?? { label: words(job.status), tone: "neutral" as const };
         return (
           <li key={job.id}>
-            <span>{words(job.type)}</span>
+            <span>{jobName(job.type)}</span>
             <StatusPill label={status.label} tone={status.tone} />
           </li>
         );

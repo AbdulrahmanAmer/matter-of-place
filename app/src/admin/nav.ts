@@ -156,6 +156,15 @@ export const navEntries: readonly NavEntry[] = [
     hidden: true,
     parent: 5,
   },
+  // Admin pass (2026-10-12): the new-invoice form keeps the Invoices tab lit and the area's tabs above it.
+  {
+    screen: 30,
+    path: "/admin/invoices/new",
+    routeId: "/admin/invoices/new",
+    label: "New invoice",
+    hidden: true,
+    parent: 5,
+  },
   {
     screen: 22,
     path: "/admin/reports",
