@@ -363,6 +363,7 @@ Entry template
 - hit again: 2026-10-07, B13 g3 review fix: the reviewer built `VITE_API_BASE_URL=/api/public bun run build` as a leading assignment under Git Bash; it baked `C:/Program Files/Git/api/public` and `/` answered 500 (Worker log: route `/Program%20Files/Git/api/public/properties` 404). MSYS also rewrites the value of a leading environment assignment, not only an argument. `export MSYS_NO_PATHCONV=1` first, as above.
 - hit again: 2026-10-10, H1 g7: `VITE_API_BASE_URL=/api/public bun run build` typed in a checklist row baked `C:/Program Files/Git/api/public` into the bundle (the Worker then answered `/` with 500); `MSYS_NO_PATHCONV=1` in front of the variable fixed it (P-3014).
 - added: 2026-09-30
+- hit again: 2026-10-12, a Playwright screenshot script given `/admin /admin/office` wrote `C:_Program Files_Git_admin-1440.png` and opened the wrong pages; rerun with `MSYS_NO_PATHCONV=1`.
 - hit again: 2026-10-05, B13 step 4: `MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public ... node ../workspace/05-plans/quiet.mjs -- bun run build` still baked `C:/Program Files/Git/api/public` (found with `grep -rl "Program Files/Git" .output`), twice, because the prefix assignment sets the switch only for the child while Git Bash reads it from its own environment before it starts the child. `export MSYS_NO_PATHCONV=1; export VITE_API_BASE_URL=/api/public` as separate statements gave a clean build, and `node -e 'console.log(process.env.VITE_API_BASE_URL)'` printed `/api/public`. The first live run of the spec timed out 120 s waiting for a server that answered 500 on every page.
 - hit again: 2026-10-05, B17 c1 review: `bunx playwright test tests/e2e/sweep.spec.ts:17 --project=desktop -g "/markets$"` printed `Error: No tests found.` twice, because Git Bash turned the `-g` value into a Windows path; `-g markets` (no slash) selected the test. P-1912 holds the same case for `/cookies`.
 - hit again: 2026-10-05, B12 g1: the rewrite also happens inside an argument after `key=`: `--query "spec=/app/x.json&cues=/app/y.json"` reached `capture.mjs` as `spec=C:/Program Files/Git/app/x.json&cues=/app/y.json` (the scene URL it prints shows it). The reel script builds that query for the Linux runner, where nothing rewrites it; any local run from Git Bash needs `MSYS_NO_PATHCONV=1` on the command. Proof: `node launch/engine/capture.mjs .tmp/standin/index.html --at 1 --query "spec=/app/x.json" --out .tmp/s` prints `scene http://127.0.0.1:<port>/.tmp/standin/index.html?spec=C:/Program Files/Git/app/x.json` without the variable and `?spec=/app/x.json` with it.
@@ -3982,7 +3983,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - severity: warn
 - symptom: B5 g1 step 3: the lint test "fires img-src on image with relative src" stayed green with `expected [] to include 'img-src'`. The fixture ran `html.replace("https://matterofplace.com/apple-touch-icon.png", "/apple-touch-icon.png")`, and the first copy of that address in the HTML was not the `<img>`: React 19 had put `<link rel="preload" as="image" href="https://matterofplace.com/apple-touch-icon.png"/>` in the `<head>` (and an email has no use for a link tag).
 - cause: React 19's server renderer emits a resource hint for the first `<img>` it renders unless the image is `loading="lazy"`; mail clients ignore the attribute, so it costs nothing there.
-- rule: keep `loading="lazy"` on the emblem `<Img>` of `layout.tsx` (a comment beside it says why), and write a fixture that edits rendered HTML with `replaceAll` or against the tag, never with a first-match `replace` of an address that appears twice.
+- rule: keep `loading="lazy"` on the first `<Img>` of `layout.tsx`, the masthead since 2026-10-12 (a comment beside it says why), and write a fixture that edits rendered HTML with `replaceAll` or against the tag, never with a first-match `replace` of an address that appears twice.
 - proof: `cd app && bun run scripts/email-test.ts render received > /dev/null && grep -c 'rel="preload"' out/email-received.html` → `0`; with the `loading="lazy"` line removed from `layout.tsx` the same two commands print `1` (measured 2026-10-05).
 - added: 2026-10-05
 
@@ -7743,3 +7744,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a reveal keeps an end-of-page check: on scroll, at load and after each navigation, when the window reaches the document's end every element still waiting is shown.
 - proof: on the preview, scroll `/about`, `/contact` and `/no-such-page` to their ends; `document.querySelectorAll('[data-motion=""]').length` is 0 and `.footer-bottom` has opacity 1 (before the fix: opacity 0).
 - added: 2026-10-11
+
+## P-3436 · A mutation replay in a worktree with uncommitted edits reports typecheck entries BAD for the wrong reason
+- symptom: 2026-10-12 01:30 +0300, `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` in E:/mop-build/polish printed `WATCHED-FAIL BAD: wrong reason (B1b:aj)`: the red run's first error was `src/services/local/catalog.ts(4,1): error TS6133`, a preview-only edit never meant to be committed, not the TS2554 the entry expects.
+- cause: the replay runs `tsc` over the whole working tree, so any uncommitted edit that breaks the typecheck answers first; the email redesign was half done in the same tree.
+- rule: replay before a push only in a clean worktree at the commit being pushed (`git worktree add --detach <dir> <sha>`, `node_modules` as a junction to an installed tree); never in a tree holding preview or unfinished edits.
+- proof: `git -C <worktree> status --short | grep -v '^??'` is empty before the replay starts.
+- added: 2026-10-12
+
+## P-3437 · Restoring after a killed replay with `git diff --name-only | xargs git checkout --` also threw away my own uncommitted test edits
+- symptom: 2026-10-12, after `taskkill` stopped a replay mid-mutation, the restore reverted `tests/unit/email/render.test.ts` and `lint.test.ts`, which held the email redesign's test changes (re-applied by hand).
+- cause: the filter excluded only the paths I remembered as mine; the replay touches only files committed in the diff, but the checkout reverted every other changed file too.
+- rule: after a killed replay, restore only the file its last `mutated <path>` line names (`grep mutated <log> | tail -1`), never a computed list.
+- proof: `tail -1` of the replay log names exactly one path; `git diff --stat` after the restore shows every other edit still there.
+- added: 2026-10-12
+
+## P-3438 · W1's service wrote its tables with `.from().insert/update`, and I edited the plan to match instead of the code
+- symptom: 2026-10-12, `bun run check` on slice/w1 failed `tests/unit/readpath.test.ts` "never go through `.from(<table>).insert|update|upsert|delete(`: a write is a SQL function (G43)" with `src/server/workforce/service.ts`; an hour earlier I had rewritten W1.md invariant 5 to say the service writes with the server key.
+- cause: the plan said security-definer functions; the build took the shorter path and the plan was bent to fit it. The project rule (G43) and its test already existed.
+- rule: when code and plan disagree, the plan is checked against the project rules first; a plan line is never edited to describe a shortcut. A new `src/server/**` write is a `supabase/sql/functions/<name>.sql` file plus `bun run db:fn`, and its migration timestamp must sort after the tables it writes (rename it if `db:fn` stamps it earlier).
+- proof: `cd app && bunx vitest run --project unit tests/unit/readpath.test.ts` → passed on slice/w1 at 7fd5876d; with one `.from("agents").update(...)` put back in the service → the G43 case fails.
+- added: 2026-10-12
