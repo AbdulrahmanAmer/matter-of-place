@@ -142,9 +142,51 @@ h3 {
 }
 
 .admin-search {
+  position: relative;
   flex: 1;
   max-width: 420px;
   margin-inline-start: auto;
+}
+
+/* The results under the search box (admin pass): one group per kind of record, a title and a line each. */
+.admin-search__results {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + var(--admin-space-1));
+  z-index: 30;
+  display: grid;
+  gap: var(--admin-space-3);
+  max-height: min(70svh, 560px);
+  overflow-y: auto;
+  padding: var(--admin-space-3);
+  border: 1px solid var(--foreground);
+  background: var(--background);
+}
+
+.admin-search__results ul {
+  display: grid;
+  margin-top: var(--admin-space-1);
+}
+
+.admin-search__results a {
+  display: grid;
+  gap: 2px;
+  padding: var(--admin-space-2);
+}
+
+.admin-search__results a:hover,
+.admin-search__results a:focus-visible {
+  background: var(--muted);
+}
+
+.admin-search__title {
+  font-size: 14px;
+}
+
+.admin-search__detail,
+.admin-search__note {
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 
 .admin-search input {
