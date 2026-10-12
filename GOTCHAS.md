@@ -7866,6 +7866,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 ## P-3446 · The project's Cloudflare token cannot see the zone; zone settings go through the dashboard
 - paths: (process)
 - severity: warn
-- symptom: 2026-10-13, gap item 19: `GET /zones?name=matterofplace.com` with `CLOUDFLARE_API_TOKEN` from `.env` returned an empty list (the token is Workers-scoped, no Zone Read), so no zone setting (email obfuscation, bot fight, WAF, DNSSEC) can be read or changed by API. The dashboard tab then signed out between two pages.
-- rule: zone settings are changed in the operator's signed-in Chrome; before starting, open the zone page once and confirm it is not the sign-in page; never ask for, or add, zone scopes to the Workers token without his word.
-- proof: `bun --env-file="/e/Matter Of Place/.env" scratchpad/cf-zone.mjs email_obfuscation` → `TypeError: undefined is not an object (evaluating 'zones.result[0].id')` (measured 2026-10-13 01:45 Cairo).
+- symptom: 2026-10-13, gap item 19: `GET /zones?name=matterofplace.com` with `CLOUDFLARE_API_TOKEN` from `.env` returned an empty list (the token is Workers-scoped, no Zone Read), so no zone setting (email obfuscation, bot fight, WAF, DNSSEC) can be read or changed by API. In Chrome, a dashboard page opened in a background tab, or in a new tab group, stayed on "Loading..." or showed the sign-in page although the operator was signed in (operator, 2026-10-13: "you have to make the browser become what is on the screen so it loads").
+- rule: zone settings are changed in the operator's signed-in Chrome, in the tab he is looking at (the existing tab of the session's group, never a new group); a "Loading..." or sign-in page there means the tab is not in front, not that he is signed out. Never ask for, or add, zone scopes to the Workers token without his word.
+- proof: `bun --env-file="/e/Matter Of Place/.env" scratchpad/cf-zone.mjs email_obfuscation` → `TypeError: undefined is not an object (evaluating 'zones.result[0].id')` (measured 2026-10-13 01:45 Cairo); the same zone settings page loaded in the front tab 600036229 a minute after the new group's tab showed the sign-in page.
+
+## P-3447 · Linting only the changed files misses knip and jscpd, and each miss costs a full check
+- paths: (process)
+- severity: warn
+- symptom: 2026-10-13, feat/matter-actions: ESLint on the changed files was clean, then two full `bun run check` runs failed in turn on knip (`fetchSearch` exported, never imported) and on jscpd (the `jsonValue` schema copied from `src/server/channels/meta.ts` into `scripts/matter/actions.ts`).
+- rule: before a full check, run the three fast whole-repo gates once: `bun run knip && bun run jscpd && bun run format:check`; a schema two files need lives once in `src/domain/` (here `json-value.ts`).
+- proof: `cd app && bun run jscpd` → `Found 0 clones.` with `src/domain/json-value.ts` (measured 2026-10-13 02:40 Cairo); with the copy back in `actions.ts` it prints `Clone found (typescript)` naming `actions.ts [20:1 - 29:3]` and `meta.ts [60:1 - 69:3]`.
