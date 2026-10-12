@@ -266,32 +266,55 @@ const card = (label: string) => {
 const ready = (name: string) => screen.findByRole("article", { name });
 
 const save = () => {
-  fireEvent.click(screen.getByRole("button", { name: "Save recipe" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save flow" }));
 };
 
 describe("RecipesPage", () => {
-  it("lists a recipe per event with its state and step count, and opens the one in the address", async () => {
-    open("property.published");
+  it("lists every flow under its topic as a sentence with its state and step count, and opens one", async () => {
+    open("");
     const list = await screen.findByRole("navigation", { name: "Events" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(2);
     expect(within(list).getByText("2 steps")).toBeTruthy();
     expect(within(list).getByText("4 steps")).toBeTruthy();
     expect(within(list).getByText("Off")).toBeTruthy();
     expect(
-      within(list)
-        .getByRole("button", { name: /Property published/ })
-        .getAttribute("aria-current"),
-    ).toBe("true");
+      within(list).getByText(
+        "When a property is published: Purge cache, Render carousel, Post to Meta and 1 more.",
+      ),
+    ).toBeTruthy();
+    expect(within(list).getByRole("region", { name: "Requests" })).toBeTruthy();
+    expect(list.textContent).not.toContain("property.published");
+    fireEvent.click(within(list).getByRole("button", { name: /Property published/ }));
     await ready("Property published");
     expect(card("Purge cache")).toBeTruthy();
     expect(card("Post to Meta")).toBeTruthy();
   });
 
-  it("asks to choose an event when none is open, and opens one from the list", async () => {
-    open("");
-    expect(await screen.findByText("Choose an event")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Submission received/ }));
-    expect(await ready("Submission received")).toBeTruthy();
+  it("opens the flow in the address at full width, says what it does, and goes back to all flows", async () => {
+    open("submission.received");
+    await ready("Submission received");
+    expect(screen.queryByRole("navigation", { name: "Events" })).toBeNull();
+    expect(
+      screen.getByText("When a property request arrives: Send email and Notify admins."),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "All flows" }));
+    expect(await screen.findByRole("navigation", { name: "Events" })).toBeTruthy();
+  });
+
+  it("adds a step at the place chosen, from a list that says what each step does", async () => {
+    const api = open("submission.received");
+    await ready("Submission received");
+    fireEvent.click(screen.getByRole("button", { name: "Add a step before Notify admins" }));
+    expect(screen.getByText("Asks the edge cache to forget pages that changed.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^Purge cache/ }));
+    save();
+    await screen.findByText("Flow saved. It applies to the next event.");
+    const body = putBody.parse(api.sent(`${RECIPES}/submission.received`));
+    expect(body.steps.map((item) => item.id)).toEqual([
+      "send_received",
+      "purge_cache",
+      "notify_admin_received",
+    ]);
   });
 
   it("says why the recipes did not load, names the request id and reports the failure once", async () => {
@@ -346,7 +369,7 @@ describe("the settings of a step", () => {
     });
     fireEvent.click(card("Post to Meta").getByLabelText("Facebook"));
     save();
-    await screen.findByText("Recipe saved. It applies to the next event.");
+    await screen.findByText("Flow saved. It applies to the next event.");
     expect(api.sent(`${RECIPES}/property.published`)).toMatchObject({
       steps: [
         { id: "purge_cache", params: { scope: "all", indexnow: true } },
@@ -403,7 +426,7 @@ describe("the conditions of a step", () => {
     fireEvent.click(notify.getByLabelText("Campaign"));
     fireEvent.click(notify.getByLabelText("Florida"));
     save();
-    await screen.findByText("Recipe saved. It applies to the next event.");
+    await screen.findByText("Flow saved. It applies to the next event.");
     expect(api.sent(`${RECIPES}/submission.received`)).toMatchObject({
       steps: [
         { id: "send_received", conditions: {} },
@@ -428,7 +451,7 @@ describe("saving a recipe", () => {
     expect(api.reads()).toBe(1);
     fireEvent.click(screen.getByRole("checkbox", { name: "Send email: on" }));
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Request received" } });
-    expect(screen.getByText("Unsaved changes")).toBeTruthy();
+    expect(screen.getByText(/You have unsaved changes/)).toBeTruthy();
     save();
     await waitFor(() => {
       expect(api.reads()).toBe(2);
@@ -441,13 +464,9 @@ describe("saving a recipe", () => {
         { id: "notify_admin_received", enabled: true },
       ],
     });
-    expect(
-      await within(screen.getByRole("navigation", { name: "Events" })).findByText(
-        "Request received",
-      ),
-    ).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Request received" })).toBeTruthy();
     await waitFor(() => {
-      expect(screen.queryByText("Unsaved changes")).toBeNull();
+      expect(screen.queryByText(/You have unsaved changes/)).toBeNull();
     });
     expect(screen.getByRole("checkbox", { name: "Send email: on" })).toHaveProperty(
       "checked",
@@ -476,10 +495,10 @@ describe("saving a recipe", () => {
     await ready("Property published");
     fireEvent.click(screen.getByRole("button", { name: "Move Purge cache down" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove Render cover" }));
-    fireEvent.change(screen.getByLabelText("Add a step"), { target: { value: "purge_cache" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add step" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add a step at the end" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Purge cache/ }));
     save();
-    await screen.findByText("Recipe saved. It applies to the next event.");
+    await screen.findByText("Flow saved. It applies to the next event.");
     const body = putBody.parse(api.sent(`${RECIPES}/property.published`));
     expect(body.steps.map((item) => item.id)).toEqual([
       "render_carousel",
@@ -501,9 +520,9 @@ describe("saving a recipe", () => {
   it("leaves a person without the recipes permission with the recipe to read and no Save", async () => {
     open("submission.received", { actions: ["automation.get"] });
     await ready("Submission received");
-    expect(screen.queryByRole("button", { name: "Save recipe" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save flow" })).toBeNull();
     expect(screen.getByLabelText("Name").matches(":disabled")).toBe(true);
-    expect(screen.queryByRole("button", { name: "Run dry run" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Try it now" })).toBeNull();
   });
 });
 
@@ -511,7 +530,7 @@ describe("the dry run", () => {
   it("plans the saved recipe for the trigger, then lists what would queue, what would skip and why", async () => {
     const api = open("submission.received");
     await ready("Submission received");
-    fireEvent.click(screen.getByRole("button", { name: "Run dry run" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try it now" }));
     const result = await screen.findByRole("heading", { name: "Would queue" });
     expect(api.requests.filter((request) => request.startsWith("POST"))).toEqual([
       `POST ${DRY_RUN} ${JSON.stringify({ trigger: "submission.received" })}`,
@@ -525,7 +544,7 @@ describe("the dry run", () => {
   it("names the request id when the dry run fails", async () => {
     open("submission.received", { failing: "dry-run" });
     await ready("Submission received");
-    fireEvent.click(screen.getByRole("button", { name: "Run dry run" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try it now" }));
     expect((await screen.findByRole("alert")).textContent).toBe(
       "The request failed. Request req-17.",
     );
@@ -535,14 +554,14 @@ describe("the dry run", () => {
     const api = open("submission.received");
     await ready("Submission received");
     fireEvent.change(screen.getByLabelText("Record id"), { target: { value: "not an id" } });
-    fireEvent.click(screen.getByRole("button", { name: "Run dry run" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try it now" }));
     expect(await screen.findByText(/Use the id of a record/)).toBeTruthy();
     expect(api.requests.filter((request) => request.startsWith("POST"))).toEqual([]);
     expect(screen.queryByText(/not your unsaved changes/)).toBeNull();
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Edited" } });
     expect(screen.getByText(/not your unsaved changes/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Record id"), { target: { value: RECORD } });
-    fireEvent.click(screen.getByRole("button", { name: "Run dry run" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try it now" }));
     await screen.findByRole("heading", { name: "Would queue" });
     expect(api.requests.filter((request) => request.startsWith("POST"))).toEqual([
       `POST ${DRY_RUN} ${JSON.stringify({ trigger: "submission.received", entity_id: RECORD })}`,

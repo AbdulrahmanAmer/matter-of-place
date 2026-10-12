@@ -1,46 +1,33 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
-import { roleLabels } from "../../domain/contracts";
-import { activeScreen, navEntries } from "../nav";
-import { PasswordDialog } from "../team/PasswordDialog";
+import { activeScreen, areaLabels, areaOf, navEntries } from "../nav";
 import { SideChat } from "../workforce/SideChat";
-import { ActorBadge } from "./ActorBadge";
+import { AccountMenu } from "./AccountMenu";
 import { useAdminMe } from "./admin-me";
 
 /**
  * The bar across the main column: where you are (the group and the screen), the environment (named on preview and
  * local, silent on production), a search that opens the request list with its text, and who is signed in. The
- * search has no route of its own; the wordmark lives at the head of the rail.
+ * search has no route of its own; the wordmark lives at the head of the rail. The account menu (W3) holds the
+ * password and sign-out.
  */
 export function TopBar() {
   const router = useRouter();
   const me = useAdminMe();
   const [text, setText] = useState("");
-  // `?password=1` keeps the dialog open across the email-link sign-in that setting a password may ask for: the
-  // sign-in returns to this address, and the dialog opens again by itself.
-  const [passwordOpen, setPasswordOpenState] = useState(
-    () =>
-      typeof window !== "undefined" && new URLSearchParams(window.location.search).has("password"),
-  );
-  const setPasswordOpen = (open: boolean) => {
-    setPasswordOpenState(open);
-    const url = new URL(window.location.href);
-    if (open) url.searchParams.set("password", "1");
-    else url.searchParams.delete("password");
-    window.history.replaceState(window.history.state, "", url);
-  };
   const [chatOpen, setChatOpen] = useState(false);
   const matched = useRouterState({
     select: (state) => state.matches.map((match) => match.routeId).join("|"),
   });
   const screen = activeScreen(matched.split("|"));
   const here = navEntries.find((entry) => entry.screen === screen);
+  const area = areaOf(screen);
 
   return (
     <header className="admin-bar" data-print="hide">
       {here === undefined ? null : (
         <p className="admin-bar__where">
-          {here.group === undefined ? null : <span className="admin-eyebrow">{here.group}</span>}
+          {area === null ? null : <span className="admin-eyebrow">{areaLabels[area]}</span>}
           <span className="admin-bar__screen">{here.label}</span>
         </p>
       )}
@@ -85,26 +72,7 @@ export function TopBar() {
           />
         </>
       ) : null}
-      <ActorBadge name={me.roles.map((role) => roleLabels[role]).join(", ")} kind={me.kind} />
-      {me.kind === "human" && me.actions.includes("dashboard.password") ? (
-        <>
-          <button
-            type="button"
-            className="admin-bar__password"
-            onClick={() => {
-              setPasswordOpen(true);
-            }}
-          >
-            Password
-          </button>
-          <PasswordDialog
-            open={passwordOpen}
-            onClose={() => {
-              setPasswordOpen(false);
-            }}
-          />
-        </>
-      ) : null}
+      <AccountMenu />
     </header>
   );
 }

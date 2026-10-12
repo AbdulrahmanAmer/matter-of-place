@@ -61,7 +61,7 @@ markets.list                       CE ME VE MO CO AD
 markets.get                        CE ME VE MO CO AD
 markets.edit                       CE ME
 markets.coming_soon                CE ME
-team.users_list                    AD | H R
+team.users_list                    AD | H
 team.invite                        AD | H R
 team.role_grant                    AD | H R
 team.role_revoke                   AD | H R
@@ -71,15 +71,15 @@ team.agent_key_create              AD | H R
 team.agent_key_revoke              AD | H R
 team.revoke_all_keys               AD | H R
 team.limits_put                    AD | H R
-settings.get                       AD | H R
+settings.get                       AD | H
 settings.site_put                  AD | H R
 settings.invoice_put               AD | H R
 settings.coming_soon_put           AD | H R
 settings.notifications_put         AD | H R
-settings.redirects_get             AD | H R
+settings.redirects_get             AD | H
 settings.redirects_put             AD | H R
 settings.products_put              AD | H R
-settings.products_preview          AD | H R
+settings.products_preview          AD | H
 audit.list                         CE AD
 audit.subject_requests             CE AD
 audit.subject_export               AD | H R

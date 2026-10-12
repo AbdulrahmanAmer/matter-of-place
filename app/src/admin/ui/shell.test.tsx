@@ -86,13 +86,29 @@ describe("AdminShell", () => {
   it("links only the screens whose route exists and the actor may open", async () => {
     await mount(me);
     const links = within(screen.getByRole("navigation", { name: "Admin" })).getAllByRole("link");
-    expect(links.map((link) => link.textContent)).toEqual(["Dashboard", "Requests", "People"]);
+    // W3: one link per area, opening the area's first screen the actor may see.
+    expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Today", "/admin"],
+      ["Inbox", "/admin/requests"],
+      ["Clients and money", "/admin/people"],
+    ]);
   });
 
-  it("keeps the People link marked while a person is open", async () => {
+  it("keeps the area of People marked while a person is open", async () => {
     await mount(me, "/admin/people/c1");
-    expect(screen.getByRole("link", { name: "People" }).getAttribute("aria-current")).toBe("page");
-    expect(screen.getByRole("link", { name: "Requests" }).hasAttribute("aria-current")).toBe(false);
+    const rail = within(screen.getByRole("navigation", { name: "Admin" }));
+    expect(rail.getByRole("link", { name: "Clients and money" }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+    expect(rail.getByRole("link", { name: "Inbox" }).hasAttribute("aria-current")).toBe(false);
+  });
+
+  it("puts an Account menu in the bar with Change password and Sign out, and no loose Password button", async () => {
+    await mount({ ...me, actions: [...me.actions, "dashboard.password"] });
+    expect(screen.queryByRole("button", { name: "Password" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Account" }));
+    expect(screen.getByRole("button", { name: "Change password" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Sign out" })).not.toBeNull();
   });
 
   it("shows the service banner after a 503 and removes it after an answer", async () => {

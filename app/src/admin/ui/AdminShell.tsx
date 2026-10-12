@@ -1,6 +1,7 @@
 import { useSyncExternalStore, type ReactNode } from "react";
 import { AdminMeContext, type AdminMe } from "./admin-me";
 import { isUnavailable, subscribeUnavailable } from "./admin-fetch";
+import { AreaTabs } from "./AreaTabs";
 import { NavGroups } from "./NavGroups";
 import { ToastProvider } from "./Toast";
 import { TopBar } from "./TopBar";
@@ -28,6 +29,7 @@ export function AdminShell({ me, children }: { me: AdminMe; children: ReactNode 
               Service unavailable, retrying
             </p>
           ) : null}
+          <AreaTabs />
           {children}
         </main>
       </ToastProvider>
