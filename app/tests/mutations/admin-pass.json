@@ -70,5 +70,13 @@
     "replace": "  .admin-actor {",
     "run": "bunx vitest run --project unit tests/unit/admin-classes.test.ts",
     "expect": "× .*keeps every name badge visible on a phone"
+  },
+  {
+    "id": "ap-i-one-replay",
+    "kind": "manual",
+    "test": "tests/unit/watchfail-lock.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/watchfail-lock.test.ts",
+    "expect": "× .*refuses a second replay while the first lives",
+    "procedure": "The lock under test is the replay tool's own: a replay of this entry would hold the lock the test checks for. By hand: in scripts/watchfail.mjs set `alive = holder !== process.pid;` to `alive = false;`, run the command above (red: exit 0, not 3), put it back (green). Measured 2026-10-12."
   }
 ]
