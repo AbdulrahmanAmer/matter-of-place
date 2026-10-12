@@ -195,11 +195,20 @@ function restoreAll() {
 /** Puts back what a replay that died mid-mutation left. Answers the path it restored, or null. */
 function restorePending() {
   if (!existsSync(PENDING)) return null;
-  const pending = /** @type {{ path: string, original: string }} */ (
-    JSON.parse(readFileSync(PENDING, "utf8"))
-  );
-  writeFileSync(pending.path, Buffer.from(pending.original, "base64"));
+  /** @type {unknown} */
+  const pending = JSON.parse(readFileSync(PENDING, "utf8"));
   unlinkSync(PENDING);
+  if (
+    typeof pending !== "object" ||
+    pending === null ||
+    !("path" in pending) ||
+    !("original" in pending) ||
+    typeof pending.path !== "string" ||
+    typeof pending.original !== "string"
+  ) {
+    return null;
+  }
+  writeFileSync(pending.path, Buffer.from(pending.original, "base64"));
   return pending.path;
 }
 
