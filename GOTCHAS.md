@@ -7782,3 +7782,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a long command is its own Bash call with `run_in_background: true`; never `&`, `nohup` or `( ... & )` in a command string.
 - proof: `grep -n "&)\|& *$" <the session's commands>` finds none after this entry.
 - added: 2026-10-12
+
+## G-1304 · `bun run db:fn` hung and left an empty migration: `supabase migration new` waits on an open stdin
+- paths: app/scripts/db-fn.mjs
+- severity: warn
+- symptom: 2026-10-12, `bun run db:fn --name dashboard_vendor admin_dashboard` from a background shell ran past 10 minutes twice and left `supabase/migrations/20261012022852_dashboard_vendor.sql` with 0 lines, which was committed; PR 328's db job then failed `migration headers` and `function source` (admin_dashboard differs).
+- cause: `supabase migration new` reads SQL from stdin until it closes; db-fn spawned it with `stdio: "inherit"`, and a background shell's stdin never closes.
+- rule: db-fn spawns the CLI with stdin ignored (fixed on feat/matter, 3602ff47); until that is on main, run `bun run db:fn ... < /dev/null`. A migration file is never committed without `wc -l` showing its body.
+- proof: `cd app && timeout 120 bun run db:fn --name probe claim_agent_run` from the agent shell → `wrote ...probe.sql` in seconds, 32 lines (measured 2026-10-12); before the fix the same command outlived 600 s.
+- added: 2026-10-12
