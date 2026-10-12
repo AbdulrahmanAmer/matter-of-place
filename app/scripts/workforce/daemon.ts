@@ -15,10 +15,11 @@ import type { Database } from "../../src/db/index.ts";
 import { agentTools, hireInputSchema, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, keepNote, matterInputs, matterPrompt } from "../matter/run.ts";
-import { runClaude } from "./cli.ts";
+import { breakerUntil, runClaude, UsageLimitError } from "./cli.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
+const BREAKER_FILE = join(HOME, "breaker.json");
 const WORKER = `${hostname()}:${String(process.pid)}`;
 const CLI_TIMEOUT_MS = 6 * 60_000;
 const RUNS_PER_HOUR = 40;
@@ -395,6 +396,17 @@ async function runOnce(client: Db): Promise<boolean> {
       .eq("id", run.id);
     console.log(`${new Date().toISOString()} ${agent.slug} done`);
   } catch (failure) {
+    if (failure instanceof UsageLimitError) {
+      // Gap audit item 32: the operator's Claude limit is spent. The run goes back to the queue untouched and the
+      // breaker stops every claim until the reset, so no work is lost and nothing fails in a loop.
+      writeFileSync(BREAKER_FILE, JSON.stringify({ until: failure.resetAt.toISOString() }));
+      await client
+        .from("agent_runs")
+        .update({ state: "queued", worker: null, lease_until: null })
+        .eq("id", run.id);
+      console.log(`${new Date().toISOString()} ${agent.slug} waits: ${failure.message}`);
+      return false;
+    }
     const message = failure instanceof Error ? failure.message : String(failure);
     await client
       .from("agent_runs")
@@ -426,6 +438,13 @@ async function pass(client: Db): Promise<void> {
     .eq("slug", "matter")
     .neq("state", "working");
   mkdirSync(HOME, { recursive: true });
+  const until = breakerUntil(BREAKER_FILE);
+  if (until !== null) {
+    console.log(
+      `${new Date().toISOString()} paused: the Claude usage limit resets at ${until.toISOString()}`,
+    );
+    return;
+  }
   const woke = await wakeOnEvents(client);
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
   // Up to five runs a pass, one after another; the scheduled task starts the next pass a minute later.
