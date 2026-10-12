@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runClaude } from "../workforce/cli.ts";
+import { runClaude, type CliUsage } from "../workforce/cli.ts";
 import { atlas } from "./atlas.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -93,7 +93,10 @@ function ensureDesk(): void {
   if (made.status !== 0) throw new Error("Matter's desk could not be made");
 }
 
-export async function askMatter(prompt: string, env: NodeJS.ProcessEnv): Promise<string> {
+export async function askMatter(
+  prompt: string,
+  env: NodeJS.ProcessEnv,
+): Promise<{ text: string; usage?: CliUsage }> {
   ensureDesk();
   const answer = await runClaude({
     args: [
@@ -116,7 +119,7 @@ export async function askMatter(prompt: string, env: NodeJS.ProcessEnv): Promise
     timeoutMs: RUN_TIMEOUT_MS,
     who: "Matter",
   });
-  return answer.text;
+  return { text: answer.text, ...(answer.usage === undefined ? {} : { usage: answer.usage }) };
 }
 
 /** Keeps the note Matter chose to keep, under the cap. */

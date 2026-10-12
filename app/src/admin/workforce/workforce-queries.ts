@@ -69,11 +69,19 @@ export function useDecide() {
       id,
       decision,
       contentHash,
+      reason,
+      editedBody,
     }: {
       id: string;
       decision: "approved" | "rejected";
       contentHash: string;
-    }) => postDecision(id, decision, contentHash),
+      reason?: string;
+      editedBody?: string;
+    }) =>
+      postDecision(id, decision, contentHash, {
+        ...(reason === undefined ? {} : { reason }),
+        ...(editedBody === undefined ? {} : { editedBody }),
+      }),
     onSuccess: () => client.invalidateQueries({ queryKey: adminKeys.workforce.all() }),
   });
 }
