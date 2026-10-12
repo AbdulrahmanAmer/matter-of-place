@@ -1691,3 +1691,9 @@ first day of the new usage week; no step was cut from any plan.
 - W2 (Matter) planned in workspace/05-plans/W2.md: the operator's words verbatim; Jay's learning design and build order; charter decided (full for Matter, distilled for staff). Build after the admin upgrade is live.
 - BLOCKED: Supabase egress number (billing usage 401 for the account token; logs endpoint has no edge table). Unblock: Matter reads it from the signed-in dashboard weekly (W2 invariant 8).
 - The operator's earlier long-open admin tab froze (UNPROVEN cause); fresh tabs load fast.
+
+## 2026-10-12 08:05 ADMIN UPGRADE AND MATTER LIVE; GAP AUDIT WITH JAY
+- Merged and deployed: 328 (email shell, admin shell and dashboard, password sign-in, hand-entered properties, recipe canvas, measured gauges), 330 (Matter: atlas, runner, side chat, key). Live check: the dashboard shows Workers 2%, Sentry 17%, Actions "public repository, not limited", each measured today; the rail, the Matter and Password buttons are on the bar.
+- Runner folder E:/mop-build/live at a5929226; install.ps1 rerun: "MOP Usage" daily 06:00 recorded three lines. Matter's key in .env (agent, admin, 66 actions, team.invite refused).
+- Matter is PAUSED in production (state paused, by workforce_update_agent at 07:55): Jay found its shell could read the runner's .env. It stays paused until gap items 1, 2, 31 and 32 ship (workspace/audits/gap-audit-2026-10-12.md).
+- Gap audit with Jay: 35 items, both sides agree it is complete; highest: Matter's secret boundary (1, 2, 31), the usage-limit breaker (32), the audit robot switched off (25), Turnstile fail-open when its secret is missing (7).
