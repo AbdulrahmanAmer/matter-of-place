@@ -366,7 +366,37 @@
   border-color: var(--foreground);
 }
 
+/* W2 step 6: the week per colleague. */
+.wf-week {
+  margin-block-end: var(--admin-space-6);
+}
+
+.wf-week__scroll {
+  overflow-x: auto;
+}
+
+.wf-week table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wf-week th,
+.wf-week td {
+  padding: var(--admin-space-2) var(--admin-space-3);
+  border-block-end: 1px solid var(--border);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.wf-week thead th {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
 /* Recent work: one line per task. */
+.wf-week h2,
 .wf-work h2,
 .wf-subhead {
   margin-block-end: var(--admin-space-4);
@@ -494,7 +524,31 @@
 
 .wf-proposal__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--admin-space-3);
+}
+
+/* W2 step 6: the person's own version, and the reason for a decline; both teach the colleague. */
+.wf-proposal__edit,
+.wf-proposal__reason {
+  display: grid;
+  gap: var(--admin-space-2);
+  font-size: 13px;
+}
+
+.wf-proposal__edit textarea,
+.wf-proposal__reason textarea {
+  inline-size: 100%;
+  padding: var(--admin-space-3);
+  border: 1px solid var(--border);
+  background: var(--background);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.wf-proposal__why {
+  color: var(--muted-foreground);
 }
 
 @media (max-width: 1100px) {

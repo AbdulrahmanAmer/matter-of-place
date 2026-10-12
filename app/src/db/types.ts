@@ -22,13 +22,13 @@ export type Database = {
                   ]
                 },"agent_approvals": {
                   Row: {
-                    "action": string,"agent_id": string,"content": NonNullable<Json>,"content_hash": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"id": string,"run_id": string | null,"state": string,"summary": string
+                    "action": string,"agent_id": string,"content": NonNullable<Json>,"content_hash": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"edited_content": Json | null,"id": string,"reason": string | null,"run_id": string | null,"state": string,"summary": string
                   }
                   Insert: {
-                    "action": string,"agent_id": string,"content": NonNullable<Json>,"content_hash": string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"id"?: string,"run_id"?: string | null,"state"?: string,"summary": string
+                    "action": string,"agent_id": string,"content": NonNullable<Json>,"content_hash": string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"edited_content"?: Json | null,"id"?: string,"reason"?: string | null,"run_id"?: string | null,"state"?: string,"summary": string
                   }
                   Update: {
-                    "action"?: string,"agent_id"?: string,"content"?: NonNullable<Json>,"content_hash"?: string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"id"?: string,"run_id"?: string | null,"state"?: string,"summary"?: string
+                    "action"?: string,"agent_id"?: string,"content"?: NonNullable<Json>,"content_hash"?: string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"edited_content"?: Json | null,"id"?: string,"reason"?: string | null,"run_id"?: string | null,"state"?: string,"summary"?: string
                   }
                   Relationships: [
                     {
@@ -45,6 +45,31 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"agent_instruction_versions": {
+                  Row: {
+                    "agent_id": string,"approval_id": string | null,"created_at": string,"id": string,"instructions": string,"reason": string,"version": number
+                  }
+                  Insert: {
+                    "agent_id": string,"approval_id"?: string | null,"created_at"?: string,"id"?: string,"instructions": string,"reason": string,"version": number
+                  }
+                  Update: {
+                    "agent_id"?: string,"approval_id"?: string | null,"created_at"?: string,"id"?: string,"instructions"?: string,"reason"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "agent_instruction_versions_agent_id_fkey"
+      columns: ["agent_id"]
+isOneToOne: false
+      referencedRelation: "agents"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "agent_instruction_versions_approval_id_fkey"
+      columns: ["approval_id"]
+isOneToOne: false
+      referencedRelation: "agent_approvals"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"agent_keys": {
                   Row: {
                     "created_at": string,"id": string,"key_hash": string,"label": string,"last_used_at": string | null,"revoked_at": string | null,"scopes": (string)[],"user_id": string
@@ -57,6 +82,25 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"agent_lessons": {
+                  Row: {
+                    "action": string,"agent_id": string | null,"created_at": string,"evidence_ref": string,"id": string,"last_used_at": string | null,"source": string,"status": string,"trigger": string,"uses": number
+                  }
+                  Insert: {
+                    "action": string,"agent_id"?: string | null,"created_at"?: string,"evidence_ref": string,"id"?: string,"last_used_at"?: string | null,"source": string,"status"?: string,"trigger": string,"uses"?: number
+                  }
+                  Update: {
+                    "action"?: string,"agent_id"?: string | null,"created_at"?: string,"evidence_ref"?: string,"id"?: string,"last_used_at"?: string | null,"source"?: string,"status"?: string,"trigger"?: string,"uses"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "agent_lessons_agent_id_fkey"
+      columns: ["agent_id"]
+isOneToOne: false
+      referencedRelation: "agents"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"agent_messages": {
                   Row: {
@@ -73,13 +117,13 @@ isOneToOne: false
                   ]
                 },"agent_runs": {
                   Row: {
-                    "agent_id": string,"cause": string,"created_at": string,"error": string | null,"event_id": string | null,"finished_at": string | null,"id": string,"lease_until": string | null,"message_id": string | null,"session_id": string | null,"started_at": string | null,"state": string,"summary": string | null,"turns": number,"worker": string | null
+                    "agent_id": string,"cause": string,"cost_microusd": number,"created_at": string,"error": string | null,"event_id": string | null,"finished_at": string | null,"id": string,"input_tokens": number,"lease_until": string | null,"lessons_used": (string)[],"message_id": string | null,"output_tokens": number,"session_id": string | null,"started_at": string | null,"state": string,"summary": string | null,"turns": number,"worker": string | null
                   }
                   Insert: {
-                    "agent_id": string,"cause": string,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"lease_until"?: string | null,"message_id"?: string | null,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
+                    "agent_id": string,"cause": string,"cost_microusd"?: number,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"input_tokens"?: number,"lease_until"?: string | null,"lessons_used"?: (string)[],"message_id"?: string | null,"output_tokens"?: number,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
                   }
                   Update: {
-                    "agent_id"?: string,"cause"?: string,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"lease_until"?: string | null,"message_id"?: string | null,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
+                    "agent_id"?: string,"cause"?: string,"cost_microusd"?: number,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"input_tokens"?: number,"lease_until"?: string | null,"lessons_used"?: (string)[],"message_id"?: string | null,"output_tokens"?: number,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
                   }
                   Relationships: [
                     {
@@ -1282,13 +1326,17 @@ isOneToOne: false
 { Args: { "p_lease_seconds"?: number,"p_worker": string }; Returns: {
               "agent_id": string,
 "cause": string,
+"cost_microusd": number,
 "created_at": string,
 "error": string | null,
 "event_id": string | null,
 "finished_at": string | null,
 "id": string,
+"input_tokens": number,
 "lease_until": string | null,
+"lessons_used": (string)[],
 "message_id": string | null,
+"output_tokens": number,
 "session_id": string | null,
 "started_at": string | null,
 "state": string,
@@ -2107,13 +2155,16 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_reason": string,"p_request_id": string,"p_submission_id": string }; Returns: Database["public"]['Enums']["submission_state"]
                            },
 "workforce_decide":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_content_hash": string,"p_decision": string,"p_id": string,"p_request_id": string }; Returns: string
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_content_hash": string,"p_decision": string,"p_edited_body"?: string,"p_id": string,"p_reason"?: string,"p_request_id": string }; Returns: string
                            },
 "workforce_hire":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_instructions": string,"p_model": string,"p_name": string,"p_request_id": string,"p_role": string,"p_slug": string,"p_tools": (string)[],"p_wake_on": (string)[] }; Returns: string
                            },
 "workforce_post_message":
 { Args: { "p_author_id": string,"p_author_name": string,"p_body": string,"p_thread": string,"p_wake": (string)[] }; Returns: string
+                           },
+"workforce_scoreboard":
+{ Args: { "p_since": string }; Returns: Json
                            },
 "workforce_update_agent":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_change": Json,"p_request_id": string,"p_slug": string }; Returns: string

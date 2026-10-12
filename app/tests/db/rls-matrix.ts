@@ -93,6 +93,9 @@ export const rlsMatrix: Record<string, Access> = {
   agent_messages: staffRead,
   agent_runs: staffRead,
   agent_approvals: staffRead,
+  // W2 step 6: lessons and instruction versions, written only by workforce_decide and the laptop runner.
+  agent_lessons: staffRead,
+  agent_instruction_versions: staffRead,
   // The laptop's vendor readings for the free-tier gauges, written only by record_vendor_usage.
   vendor_usage: staffRead,
 };

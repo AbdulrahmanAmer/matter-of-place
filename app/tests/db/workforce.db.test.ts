@@ -103,3 +103,94 @@ describe("workforce write functions", () => {
     });
   });
 });
+
+// W2 step 6: the decision teaches the colleague who drafted it.
+describe("learning from decisions", () => {
+  const decide = `select public.workforce_decide($1, $2, $3, null, 'human', 'req-6', $4, $5)`;
+
+  it("a decline with a reason writes one lesson for that colleague, and the same reason again writes none", async () => {
+    const lessons = await withRollback(async (db) => {
+      const first = await proposal(db);
+      await db.query(decide, [first, "rejected", HASH, "Too long, three sentences at most.", null]);
+      const second = await proposal(db);
+      await db.query(decide, [
+        second,
+        "rejected",
+        HASH,
+        "Too long, three sentences at most.",
+        null,
+      ]);
+      const read = await db.query<{ source: string; trigger: string; reason: string | null }>(
+        `select l.source, l.trigger, p.reason from public.agent_lessons l
+         join public.agent_approvals p on l.evidence_ref = 'approval:' || p.id::text
+         where l.agent_id = (select id from public.agents where slug = 'social')`,
+      );
+      return read.rows;
+    });
+    expect(lessons).toEqual([
+      {
+        source: "decline",
+        trigger: "When you draft a proposal (post)",
+        reason: "Too long, three sentences at most.",
+      },
+    ]);
+  });
+
+  it("an edit approves the person's own version and teaches it; a decline cannot carry an edit", async () => {
+    const outcome = await withRollback(async (db) => {
+      const id = await proposal(db);
+      await db.query(decide, [
+        id,
+        "approved",
+        HASH,
+        null,
+        "Pasadena, in the light of late October.",
+      ]);
+      const row = await db.query<{ body: string; source: string }>(
+        `select p.edited_content ->> 'body' as body, l.source from public.agent_approvals p
+         join public.agent_lessons l on l.evidence_ref = 'approval:' || p.id::text where p.id = $1`,
+        [id],
+      );
+      const other = await proposal(db);
+      const refused = await failure(db, decide, [other, "rejected", HASH, null, "my version"]);
+      return { ...row.rows[0], refused };
+    });
+    expect(outcome).toEqual({
+      body: "Pasadena, in the light of late October.",
+      source: "edit",
+      refused: "validation",
+    });
+  });
+
+  it("an approved instructions change takes effect, is versioned, and retires the lessons it promoted", async () => {
+    const outcome = await withRollback(async (db) => {
+      const lesson = await db.query<{ id: string }>(
+        `insert into public.agent_lessons (agent_id, trigger, action, evidence_ref, source, uses)
+         select id, 'When you post', 'Lead with the place.', 'approval:test', 'decline', 3
+         from public.agents where slug = 'social' returning id`,
+      );
+      const lessonId = lesson.rows[0]?.id;
+      const change = await db.query<{ id: string }>(
+        `insert into public.agent_approvals (agent_id, action, summary, content, content_hash)
+         select (select id from public.agents where slug = 'matter'), 'instructions_change', 'Promote 1 lesson',
+           jsonb_build_object('agent_id', s.id, 'instructions', 'Lead with the place.', 'reason', 'Weekly review',
+             'lessons', jsonb_build_array($1::text)),
+           $2
+         from public.agents s where s.slug = 'social' returning id`,
+        [lessonId, HASH],
+      );
+      await db.query(decide, [change.rows[0]?.id, "approved", HASH, null, null]);
+      const read = await db.query<{ instructions: string; version: number; status: string }>(
+        `select a.instructions, v.version, l.status from public.agents a
+         join public.agent_instruction_versions v on v.agent_id = a.id
+         join public.agent_lessons l on l.id = $1
+         where a.slug = 'social'`,
+        [lessonId],
+      );
+      return read.rows;
+    });
+    expect(outcome).toEqual([
+      { instructions: "Lead with the place.", version: 1, status: "promoted" },
+    ]);
+  });
+});

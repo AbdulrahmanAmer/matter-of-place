@@ -36,6 +36,14 @@ Register-ScheduledTask -TaskName "MOP Audit" -Action $auditAction -Trigger $audi
   -Description "Matter of Place: the Saturday audit routine (workspace/audits/ROUTINE-PROMPT.md)." -Force | Out-Null
 Write-Output "task: MOP Audit registered (Saturday 09:00 local)"
 
+# 5. The scheduled task "MOP Review": the staff's weekly review at 10:00 Sunday local (W2 step 6, scripts/workforce/review.ts).
+$reviewAction = New-ScheduledTaskAction -Execute "wscript.exe" `
+  -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\workforce\review.ts review")
+$reviewTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At "10:00"
+Register-ScheduledTask -TaskName "MOP Review" -Action $reviewAction -Trigger $reviewTrigger -Settings $auditSettings `
+  -Description "Matter of Place: the AI staff's weekly review (lessons, instructions, the week's numbers)." -Force | Out-Null
+Write-Output "task: MOP Review registered (Sunday 10:00 local)"
+
 $chrome = @(
   (Join-Path $env:ProgramFiles "Google\Chrome\Application\chrome.exe"),
   (Join-Path ${env:ProgramFiles(x86)} "Google\Chrome\Application\chrome.exe"),
