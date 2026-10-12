@@ -46,6 +46,13 @@ describe("DashboardTiles", () => {
     }).toEqual({ quiet: null, count: "3", href: "/admin/requests?workflow_state=Submitted" });
   });
 
+  it("says in one sentence how many requests are in motion and how many things need a person", () => {
+    tiles(dashboard({ counts: { Submitted: 2, "Under Review": 1 }, assets_pending: 1 }));
+    expect(screen.getByText(/in motion/).textContent).toBe(
+      "3 requests in motion. 1 thing needs a person.",
+    );
+  });
+
   it("a tile whose list is not built yet has no link", () => {
     tiles(dashboard({ jobs: { failed_24h: 1, dead: 0 } }), (routeId) => routeId !== "/admin/jobs/");
     expect({

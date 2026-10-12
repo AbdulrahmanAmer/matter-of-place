@@ -22,5 +22,13 @@ export const formatNumber = (value: number) =>
 /** Two-digit counters for editorial pagination ("01 / 06"). */
 export const padIndex = (value: number) => String(value).padStart(2, "0");
 
+/** The day as a heading says it, in the reader's own time zone: "Monday, October 12". */
+export const formatWeekday = (at: number) =>
+  new Intl.DateTimeFormat(siteConfig.locale, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(at);
+
 export const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
   count === 1 ? singular : plural;
