@@ -8,25 +8,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import type { Json } from "../../src/db/index.ts";
+import { jsonValue } from "../../src/domain/json-value.ts";
 
 const app = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const MAX_CALLS = 10;
 /** What the runner sends with: `fetch`, or a stand-in in a test. */
 export type Send = (url: string, init: RequestInit) => Promise<Response>;
 const WRITE_METHODS = ["POST", "PUT", "PATCH", "DELETE"] as const;
-
-/** Any JSON value, so a call's body is stored as the database's own `Json`. */
-const jsonValue: z.ZodType<Json> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValue),
-    z.record(z.string(), jsonValue),
-  ]),
-);
 
 export const adminCallSchema = z.object({
   method: z.enum(WRITE_METHODS),

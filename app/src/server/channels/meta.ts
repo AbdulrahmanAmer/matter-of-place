@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Json } from "../../db/index.ts";
 import type { AssetFile } from "../../domain/assets.ts";
+import { jsonValue } from "../../domain/json-value.ts";
 import type { StepContext } from "../jobs/types.ts";
 import { hmacSha256, toHex } from "../lib/crypto.ts";
 import { AppError } from "../lib/errors.ts";
@@ -56,17 +57,6 @@ export interface MetaChannel extends Channel {
   ): ReturnType<Channel["publish"]>;
   findRecentPost(marker: string, since: Date, ctx: StepContext): Promise<Resumed>;
 }
-
-const jsonValue: z.ZodType<Json> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValue),
-    z.record(z.string(), jsonValue),
-  ]),
-);
 
 const idField = z.string().min(1);
 const settingsSchema = z
