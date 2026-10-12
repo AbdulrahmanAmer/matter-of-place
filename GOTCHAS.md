@@ -7862,3 +7862,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a preview, screenshot or measurement harness that runs longer than a few minutes uses its own agent key (made in Team and access for the purpose), never Matter's; Matter's key is for Matter's calls.
 - proof: `node scratchpad/matter-me.mjs` → `status 429 ... rate_limited` after the watch (measured 2026-10-13 00:50 Cairo).
 - added: 2026-10-13
+
+## P-3446 · The project's Cloudflare token cannot see the zone; zone settings go through the dashboard
+- paths: (process)
+- severity: warn
+- symptom: 2026-10-13, gap item 19: `GET /zones?name=matterofplace.com` with `CLOUDFLARE_API_TOKEN` from `.env` returned an empty list (the token is Workers-scoped, no Zone Read), so no zone setting (email obfuscation, bot fight, WAF, DNSSEC) can be read or changed by API. The dashboard tab then signed out between two pages.
+- rule: zone settings are changed in the operator's signed-in Chrome; before starting, open the zone page once and confirm it is not the sign-in page; never ask for, or add, zone scopes to the Workers token without his word.
+- proof: `bun --env-file="/e/Matter Of Place/.env" scratchpad/cf-zone.mjs email_obfuscation` → `TypeError: undefined is not an object (evaluating 'zones.result[0].id')` (measured 2026-10-13 01:45 Cairo).
