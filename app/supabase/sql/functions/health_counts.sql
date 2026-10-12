@@ -51,7 +51,13 @@ begin
       from public.jobs
       where run_local and status in ('queued', 'failed')
     ),
-    'backup', v_backup
+    'backup', v_backup,
+    -- Gap audit item 7: public writes let in without a passed Turnstile check (Cloudflare unreachable) in 24 hours.
+    'unverified_24h', (
+      (select count(*) from public.submissions where not turnstile_ok and received_at > p_now - interval '24 hours')
+      + (select count(*) from public.inquiries where not turnstile_ok and received_at > p_now - interval '24 hours')
+      + (select count(*) from public.subject_requests where not turnstile_ok and received_at > p_now - interval '24 hours')
+    )
   );
 end;
 $$;

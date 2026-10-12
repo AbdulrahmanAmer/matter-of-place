@@ -31,6 +31,15 @@ export async function fetchMe() {
   }
 }
 
+/** Ends this browser's session (W3: the account menu's Sign out). */
+export async function signOut(): Promise<void> {
+  await adminFetch("/api/admin/auth/sign-out", z.unknown(), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  });
+}
+
 /** Asks for a sign-in link; the answer is the same whether or not the address belongs to the team. */
 export async function requestSignInLink(email: string): Promise<void> {
   const token = await getTurnstileToken("auth-send-link");

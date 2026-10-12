@@ -28,6 +28,8 @@ const countsSchema = z.object({
   long_waits: z.number(),
   local_oldest_age_s: z.number().nullable(),
   backup: z.object({ enabled: z.boolean(), last_run_at: z.string().nullable() }).nullable(),
+  // Gap audit item 7: absent until the migration that adds it runs, then a number.
+  unverified_24h: z.number().default(0),
 });
 export type HealthCounts = z.infer<typeof countsSchema>;
 
@@ -86,6 +88,16 @@ export const healthChecks: readonly HealthCheck[] = [
     name: "dead_jobs_24h",
     async run(ctx) {
       return failWhenAny((await ctx.counts()).dead_jobs_24h, "jobs went dead in the last 24 hours");
+    },
+  },
+  {
+    // Gap audit item 7: a public write let in while Turnstile was unreachable is checked by a person.
+    name: "unverified_writes",
+    async run(ctx) {
+      return failWhenAny(
+        (await ctx.counts()).unverified_24h,
+        "public writes in the last 24 hours were let in without the spam check: read them in Inbox",
+      );
     },
   },
   {

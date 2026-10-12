@@ -4,14 +4,16 @@ import type { PermissionEntry } from "../authz.ts";
 // `settings.site_put` is the audit action of B16, `settings.invoice_put` that of B6, `settings.products_put` that
 // of B18.
 const guarded = { roles: ["admin"], humanOnly: true, recentAuth: true } as const;
+// W3 (ruling H91): looking needs no fresh sign-in, so the screen always opens; every change still does.
+const viewing = { roles: ["admin"], humanOnly: true } as const;
 
 export const settings = [
-  { action: "settings.get", group: "settings", ...guarded },
+  { action: "settings.get", group: "settings", ...viewing },
   { action: "settings.site_put", group: "settings", ...guarded },
   { action: "settings.invoice_put", group: "settings", ...guarded },
   { action: "settings.coming_soon_put", group: "settings", ...guarded },
   { action: "settings.notifications_put", group: "settings", ...guarded },
-  { action: "settings.redirects_get", group: "settings", ...guarded },
+  { action: "settings.redirects_get", group: "settings", ...viewing },
   { action: "settings.redirects_put", group: "settings", ...guarded },
   { action: "settings.products_put", group: "settings", ...guarded },
   { action: "settings.products_preview", group: "settings", ...guarded },

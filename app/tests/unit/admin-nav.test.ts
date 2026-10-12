@@ -1,7 +1,14 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { activeScreen, navEntries, navGroups, visibleNav } from "../../src/admin/nav";
+import {
+  activeScreen,
+  areaOf,
+  areaTabs,
+  navEntries,
+  navGroups,
+  visibleNav,
+} from "../../src/admin/nav";
 import { matrix, type AppRole } from "../../src/server/lib/authz";
 
 // The 27 routeIds of B7 step 3, one per screen of admin-screens; an `.index.tsx` file gives a trailing slash.
@@ -53,26 +60,42 @@ describe("the nav registry", () => {
     );
   });
 
-  it("shows 24 links in six groups when every route and action exists", () => {
+  it("shows 24 screens in eight areas when every route and action exists (W3)", () => {
     const sections = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
     expect(sections.map((section) => section.group)).toEqual([...navGroups]);
-    expect(sections.map((section) => section.entries.length)).toEqual([9, 2, 2, 2, 5, 4]);
+    expect(sections.map((section) => section.entries.length)).toEqual([2, 3, 3, 4, 3, 4, 3, 2]);
     expect(screensShown(sections)).toHaveLength(24);
   });
 
-  it("reads Work as Dashboard, Office, Approvals, Requests, People, Properties, Media, Assets, Inquiries", () => {
-    const [work] = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
-    expect(work?.entries.map((entry) => entry.label)).toEqual([
-      "Dashboard",
-      "Office",
-      "Approvals",
-      "Requests",
-      "People",
-      "Properties",
-      "Media",
-      "Assets",
-      "Inquiries",
-    ]);
+  it("names each area's screens for the work: Inbox, Listings, Automation and Settings", () => {
+    const sections = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
+    const labels = (group: string) =>
+      sections.find((section) => section.group === group)?.entries.map((entry) => entry.label);
+    expect({
+      inbox: labels("Inbox"),
+      listings: labels("Listings"),
+      automation: labels("Automation"),
+      settings: labels("Settings"),
+    }).toEqual({
+      inbox: ["Approvals", "Requests", "Inquiries"],
+      listings: ["Properties", "Photographs", "Visuals"],
+      automation: ["Flows", "Emails", "Decline reasons", "History"],
+      settings: ["Business", "Channels and schedules", "Team and access"],
+    });
+  });
+
+  it("gives a screen its area's tabs, a detail screen its parent's, and a lone screen none", () => {
+    const sections = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
+    const tabsOf = (screen: number) => areaTabs(sections, screen).map((entry) => entry.screen);
+    expect({
+      requests: tabsOf(3),
+      request: tabsOf(4),
+      areaOfRequest: areaOf(4),
+      signIn: tabsOf(1),
+    }).toEqual({ requests: [29, 3, 11], request: [29, 3, 11], areaOfRequest: "Inbox", signIn: [] });
+    // An editor without the settings and team actions sees one Settings tab, so no tab strip.
+    const editor = visibleNav({ hasRoute: everyRoute, actions: actionsOf("managing_editor") });
+    expect(areaTabs(editor, 20)).toEqual([]);
   });
 
   it("renders no link for screens 1, 4, 6, 8 and 27, and gives four of them a parent", () => {

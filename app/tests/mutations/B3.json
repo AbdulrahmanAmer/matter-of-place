@@ -2070,7 +2070,7 @@
     "kind": "file",
     "test": "tests/unit/turnstile.test.ts",
     "file": "src/server/lib/turnstile.ts",
-    "find": "  if (secret === undefined || secret === \"\") return \"unreachable\";\n",
+    "find": "  if (secret === undefined || secret === \"\")\n    return env.MOP_ENV === \"local\" ? \"unreachable\" : \"fail\";\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/turnstile.test.ts",
     "expect": "× .*is unreachable with no secret configured"
@@ -2270,8 +2270,8 @@
     "kind": "file",
     "test": "tests/unit/public-pipeline.test.ts",
     "file": "src/server/lib/turnstile.ts",
-    "find": "  if (secret === undefined || secret === \"\") return \"unreachable\";\n",
-    "replace": "  if (secret === undefined || secret === \"\") return \"fail\";\n",
+    "find": "    return env.MOP_ENV === \"local\" ? \"unreachable\" : \"fail\";\n",
+    "replace": "    return \"fail\";\n",
     "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
     "expect": "× .*accepts a write with no secret configured"
   },

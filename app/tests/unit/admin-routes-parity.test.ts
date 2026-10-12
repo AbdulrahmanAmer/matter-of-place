@@ -185,18 +185,24 @@ describe("defineAdminRoute", () => {
     const handler = vi.fn(() => Promise.resolve([]));
     const deps = guards(20);
     const team = defineAdminRoute(
-      { method: "GET", action: "team.users_list", input: z.object({}), handler },
+      { method: "POST", action: "team.invite", input: z.object({}), handler },
       deps,
     );
     const list = defineAdminRoute(
       { method: "GET", action: "submissions.list", input: z.object({}), handler },
       deps,
     );
-    const refused = await call(team);
+    // W3 (ruling H91): reading the team needs no fresh sign-in; only changing it does.
+    const people = defineAdminRoute(
+      { method: "GET", action: "team.users_list", input: z.object({}), handler },
+      deps,
+    );
+    const refused = await call(team, json({}));
     expect(refused.status).toBe(401);
     expect(await bodyOf(refused)).toMatchObject({ error: { code: "reauth_required" } });
     expect(handler).not.toHaveBeenCalled();
     expect((await call(list)).status).toBe(200);
+    expect((await call(people)).status).toBe(200);
   });
 
   it("answers 422 on a bad body before the handler runs", async () => {

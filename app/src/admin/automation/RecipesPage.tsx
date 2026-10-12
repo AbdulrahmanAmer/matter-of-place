@@ -36,26 +36,39 @@ export function RecipesPage() {
 
   const { items, steps } = recipes.data;
   const open = items.find((recipe) => recipe.trigger === trigger);
+  // W3: the list is the page; an open flow takes the whole width, with the way back above it.
+  if (open !== undefined)
+    return (
+      <>
+        <button
+          type="button"
+          className="admin-flows__back"
+          onClick={() => {
+            filters.setFilters({});
+          }}
+        >
+          All flows
+        </button>
+        <RecipeEditor key={`${open.id}:${String(open.version)}`} recipe={open} specs={steps} />
+      </>
+    );
   return (
     <>
-      <h1>Recipes</h1>
+      <h1>Flows</h1>
       <p className="admin-recipes__intro">
-        What follows each event. A saved change applies to the next event, with no deploy.
+        What the site does by itself after each event. Open one to change its steps, try it safely,
+        then save. A saved change applies to the next event.
       </p>
-      <div className="admin-recipes">
-        <RecipeList
-          recipes={items}
-          selected={open?.trigger}
-          onSelect={(next) => {
-            filters.setFilters({ trigger: next });
-          }}
-        />
-        {open === undefined ? (
-          <EmptyState title="Choose an event">Pick one on the left to see its steps.</EmptyState>
-        ) : (
-          <RecipeEditor key={`${open.id}:${String(open.version)}`} recipe={open} specs={steps} />
-        )}
-      </div>
+      {trigger === undefined || trigger === "" ? null : (
+        <EmptyState title="That flow is not here">Choose one from the list below.</EmptyState>
+      )}
+      <RecipeList
+        recipes={items}
+        specs={steps}
+        onSelect={(next) => {
+          filters.setFilters({ trigger: next });
+        }}
+      />
     </>
   );
 }

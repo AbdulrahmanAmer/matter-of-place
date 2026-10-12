@@ -726,7 +726,8 @@ describe("seed (step 4)", () => {
       ).rows;
     });
     expect(rows).toEqual([
-      { key: "audit", cron: "0 12 * * 6", interval_days: null, enabled: false },
+      // W3: 09:00 Saturday Cairo, the laptop task's time (20261012070000_audit_clock.sql).
+      { key: "audit", cron: "0 6 * * 6", interval_days: null, enabled: false },
       { key: "backup", cron: "17 3 * * *", interval_days: null, enabled: false },
       { key: "digest", cron: "0 14 * * 2", interval_days: 14, enabled: false },
       { key: "keepwarm", cron: "*/10 * * * *", interval_days: null, enabled: true },

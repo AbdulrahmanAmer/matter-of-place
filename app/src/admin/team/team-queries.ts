@@ -23,6 +23,7 @@ import {
   putDailyLimits,
   requestSignInLink,
   setOwnPassword,
+  signOut,
   signInWithPasswordRequest,
 } from "./team-api";
 
@@ -34,6 +35,11 @@ export function useSendSignInLink() {
 /** The sign-in form's password path. */
 export function usePasswordSignIn(onError?: (error: unknown) => void) {
   return useAsyncAction(signInWithPasswordRequest, onError);
+}
+
+/** The account menu's Sign out (W3). */
+export function useSignOut() {
+  return useAsyncAction(signOut);
 }
 
 /** The top bar's "set your password" form. */

@@ -4,7 +4,14 @@
 const PACIFIC = "America/Los_Angeles";
 const EASTERN = "America/New_York";
 
-const SUFFIX: Readonly<Record<string, string>> = { [PACIFIC]: "PT", [EASTERN]: "ET" };
+/** The operator's office (W3): the admin's clocks are read and set in Cairo time. */
+export const OFFICE_ZONE = "Africa/Cairo";
+
+const SUFFIX: Readonly<Record<string, string>> = {
+  [PACIFIC]: "PT",
+  [EASTERN]: "ET",
+  [OFFICE_ZONE]: "Cairo time",
+};
 
 /** California is Pacific; New York, Florida and an entity with no market are Eastern. */
 export function marketTimezone(marketSlug: string | null | undefined): string {
@@ -15,6 +22,15 @@ const STYLES = {
   date: { dateStyle: "medium" },
   datetime: { dateStyle: "medium", timeStyle: "short" },
   time: { timeStyle: "short" },
+  /** "Sat, Oct 17, 09:00": a clock's next run. */
+  dayTime: {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  },
 } as const satisfies Record<string, Intl.DateTimeFormatOptions>;
 
 export type TimeStyle = keyof typeof STYLES;
@@ -30,7 +46,7 @@ export function formatInZone(utcIso: string, zone: string, style: TimeStyle): st
 const LOCAL_INPUT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
 
 /** Minutes `zone` is ahead of UTC at the instant `utcMs`. */
-function offsetMinutes(utcMs: number, zone: string): number {
+export function offsetMinutes(utcMs: number, zone: string): number {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: zone,
     hourCycle: "h23",

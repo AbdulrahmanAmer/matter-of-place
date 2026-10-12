@@ -810,6 +810,17 @@ interface Counts {
   long_waits: number;
   local_oldest_age_s: number | null;
   backup: { enabled: boolean; last_run_at: string | null } | null;
+  unverified_24h: number;
+}
+
+/** An inquiry that came in `hours` ago, with or without a passed Turnstile check. */
+async function inquiryAt(db: Db, hours: number, turnstileOk: boolean): Promise<void> {
+  await db.query(
+    `insert into public.inquiries (intent, name, email, message, source_path, received_at, turnstile_ok)
+     values ('ask', 'Fixture', 'inquiry@fixtures.invalid', 'Hello', '/contact',
+       now() - make_interval(hours => $1::int), $2)`,
+    [hours, turnstileOk],
+  );
 }
 
 async function quietJobs(db: Db): Promise<void> {
@@ -862,6 +873,17 @@ async function policy(db: Db, key: string, lastRunDays: number): Promise<void> {
 }
 
 describe("health_counts", () => {
+  it("counts an inquiry let in without the spam check an hour ago in unverified_24h, not one 25 hours ago or a checked one", async () => {
+    const result = await withRollback(async (db) => {
+      const before = (await counts(db)).unverified_24h;
+      await inquiryAt(db, 1, false);
+      await inquiryAt(db, 25, false);
+      await inquiryAt(db, 1, true);
+      return (await counts(db)).unverified_24h - before;
+    });
+    expect(result).toBe(1);
+  });
+
   it("counts a dead job finished 23 hours earlier in dead_jobs_24h and not one finished 25 hours earlier", async () => {
     const result = await withRollback(async (db) => {
       await quietJobs(db);

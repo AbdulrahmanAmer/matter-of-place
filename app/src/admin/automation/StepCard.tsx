@@ -44,7 +44,9 @@ export function StepCard({
         <span className="admin-step__position">{position + 1}</span>
         <div className="admin-step__name">
           <strong>{label}</strong>
-          <code>{step.id}</code>
+          {spec === undefined ? null : (
+            <span className="admin-step__about">{spec.description}</span>
+          )}
         </div>
         <div className="admin-step__pills">
           {spec === undefined ? <StatusPill label="Unknown step" tone="danger" /> : null}
@@ -77,7 +79,7 @@ export function StepCard({
         <div className="admin-actions">
           <button
             type="button"
-            className="admin-button admin-button--quiet"
+            className="admin-step__action"
             disabled={position === 0}
             aria-label={`Move ${label} up`}
             onClick={() => {
@@ -88,7 +90,7 @@ export function StepCard({
           </button>
           <button
             type="button"
-            className="admin-button admin-button--quiet"
+            className="admin-step__action"
             disabled={position === count - 1}
             aria-label={`Move ${label} down`}
             onClick={() => {
@@ -99,7 +101,7 @@ export function StepCard({
           </button>
           <button
             type="button"
-            className="admin-button admin-button--quiet"
+            className="admin-step__action"
             aria-label={`Remove ${label}`}
             onClick={onRemove}
           >
@@ -107,9 +109,11 @@ export function StepCard({
           </button>
         </div>
       </div>
-      {spec === undefined ? null : <p className="admin-step__about">{spec.description}</p>}
       <details open={invalid || selected}>
-        <summary>Settings and conditions</summary>
+        <summary>Change its settings and when it runs</summary>
+        <p className="admin-field__hint">
+          Reference <code>{step.id}</code>, kept so earlier runs stay linked.
+        </p>
         {spec === undefined ? null : (
           <ParamsForm
             fields={spec.fields}
