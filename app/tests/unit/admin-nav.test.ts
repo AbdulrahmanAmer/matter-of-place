@@ -33,6 +33,9 @@ const ROUTE_IDS: Record<number, string> = {
   25: "/admin/audit/",
   26: "/admin/people/",
   27: "/admin/people/$id",
+  // W1 (2026-10-12): the office of the AI employees and their approvals.
+  28: "/admin/office",
+  29: "/admin/approvals",
 };
 
 const everyRoute = () => true;
@@ -43,24 +46,26 @@ const screensShown = (sections: ReturnType<typeof visibleNav>) =>
   sections.flatMap((section) => section.entries.map((entry) => entry.screen));
 
 describe("the nav registry", () => {
-  it("holds 27 entries, one per screen, with the routeId list of the plan", () => {
-    expect(navEntries).toHaveLength(27);
+  it("holds 29 entries, one per screen, with the routeId list of the plan and W1", () => {
+    expect(navEntries).toHaveLength(29);
     expect(Object.fromEntries(navEntries.map((entry) => [entry.screen, entry.routeId]))).toEqual(
       ROUTE_IDS,
     );
   });
 
-  it("shows 22 links in six groups when every route and action exists", () => {
+  it("shows 24 links in six groups when every route and action exists", () => {
     const sections = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
     expect(sections.map((section) => section.group)).toEqual([...navGroups]);
-    expect(sections.map((section) => section.entries.length)).toEqual([7, 2, 2, 2, 5, 4]);
-    expect(screensShown(sections)).toHaveLength(22);
+    expect(sections.map((section) => section.entries.length)).toEqual([9, 2, 2, 2, 5, 4]);
+    expect(screensShown(sections)).toHaveLength(24);
   });
 
-  it("reads Work as Dashboard, Requests, People, Properties, Media, Assets, Inquiries", () => {
+  it("reads Work as Dashboard, Office, Approvals, Requests, People, Properties, Media, Assets, Inquiries", () => {
     const [work] = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
     expect(work?.entries.map((entry) => entry.label)).toEqual([
       "Dashboard",
+      "Office",
+      "Approvals",
       "Requests",
       "People",
       "Properties",
@@ -90,7 +95,7 @@ describe("the nav registry", () => {
       actions: everyAction(),
     });
     expect(screensShown(sections)).not.toContain(23);
-    expect(screensShown(sections)).toHaveLength(21);
+    expect(screensShown(sections)).toHaveLength(23);
   });
 
   it("hides the team screen from a commercial actor", () => {

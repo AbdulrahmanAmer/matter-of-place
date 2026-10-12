@@ -50,6 +50,7 @@ export const agentScopes = [
   "people",
   "jobs",
   "assets",
+  "workforce",
 ] as const;
 export type AgentScope = (typeof agentScopes)[number];
 

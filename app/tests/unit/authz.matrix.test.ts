@@ -147,6 +147,13 @@ assets.approve                     CE MO
 assets.reject                      CE MO
 assets.re_render                   CE MO
 assets.caption                     CE MO
+workforce.office                   CE ME VE MO CO AD
+workforce.messages                 CE ME VE MO CO AD
+workforce.post_message             CE ME VE MO CO AD
+workforce.approvals                CE ME VE MO CO AD
+workforce.hire                     CE AD
+workforce.update                   CE AD
+workforce.decide                   CE AD
 `;
 
 const ROLE: Record<string, AppRole> = {
