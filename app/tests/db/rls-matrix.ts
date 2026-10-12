@@ -88,6 +88,11 @@ export const rlsMatrix: Record<string, Access> = {
   newsletter_issues: staffRead,
   // B10 step 6: written only through the social.sql functions under the service role.
   social_posts: staffRead,
+  // W1: staff read the office; every write is a workforce_* function or the daemon's claim under the service role.
+  agents: staffRead,
+  agent_messages: staffRead,
+  agent_runs: staffRead,
+  agent_approvals: staffRead,
 };
 
 /**

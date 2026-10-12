@@ -73,6 +73,14 @@ create table public.agent_approvals (
   created_at timestamptz not null default now()
 );
 create index agent_approvals_state_created on public.agent_approvals (state, created_at desc);
+-- R24: every foreign key leads an index.
+create index agents_created_by on public.agents (created_by);
+create index agent_runs_message on public.agent_runs (message_id);
+create index agent_approvals_agent on public.agent_approvals (agent_id);
+create index agent_approvals_run on public.agent_approvals (run_id);
+create index agent_approvals_decided_by on public.agent_approvals (decided_by);
+-- Invariant 18: a person's line in the chat carries the first part of their address as their name.
+insert into public.pii_columns (table_name, column_name) values ('agent_messages', 'author_name');
 
 alter table public.agents enable row level security;
 alter table public.agent_messages enable row level security;
