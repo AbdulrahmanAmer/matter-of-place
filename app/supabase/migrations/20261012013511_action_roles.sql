@@ -87,6 +87,7 @@ values
   ('people.list', array['chief_editor', 'managing_editor', 'visual_editor', 'media_ops', 'commercial', 'admin']::public.app_role[], false),
   ('people.note', array['chief_editor', 'managing_editor', 'visual_editor', 'media_ops']::public.app_role[], false),
   ('properties.agent_preview', array['chief_editor', 'managing_editor', 'visual_editor']::public.app_role[], false),
+  ('properties.create', array['chief_editor', 'managing_editor', 'visual_editor']::public.app_role[], false),
   ('properties.create_from_submission', array['chief_editor', 'managing_editor', 'visual_editor']::public.app_role[], false),
   ('properties.get', array['chief_editor', 'managing_editor', 'visual_editor', 'media_ops', 'commercial', 'admin']::public.app_role[], false),
   ('properties.list', array['chief_editor', 'managing_editor', 'visual_editor', 'media_ops', 'commercial', 'admin']::public.app_role[], false),
@@ -139,5 +140,12 @@ values
   ('team.role_grant', array['admin']::public.app_role[], true),
   ('team.role_revoke', array['admin']::public.app_role[], true),
   ('team.user_disable', array['admin']::public.app_role[], true),
-  ('team.users_list', array['admin']::public.app_role[], true)
+  ('team.users_list', array['admin']::public.app_role[], true),
+  ('workforce.approvals', array['chief_editor', 'managing_editor', 'visual_editor', 'media_ops', 'commercial', 'admin']::public.app_role[], false),
+  ('workforce.decide', array['chief_editor', 'admin']::public.app_role[], false),
+  ('workforce.hire', array['chief_editor', 'admin']::public.app_role[], false),
+  ('workforce.messages', array['chief_editor', 'managing_editor', 'visual_editor', 'media_ops', 'commercial', 'admin']::public.app_role[], false),
+  ('workforce.office', array['chief_editor', 'managing_editor', 'visual_editor', 'media_ops', 'commercial', 'admin']::public.app_role[], false),
+  ('workforce.post_message', array['chief_editor', 'managing_editor', 'visual_editor', 'media_ops', 'commercial', 'admin']::public.app_role[], false),
+  ('workforce.update', array['chief_editor', 'admin']::public.app_role[], false)
 on conflict (action) do update set roles = excluded.roles, human_only = excluded.human_only;
