@@ -872,6 +872,7 @@ export const notPii = [
   // B6: invoice_list stores nothing either; submissions.submitter_name and submitter_email have rows.
   "invoice_list.submitter_name",
   "invoice_list.submitter_email",
-  // W1: an AI employee's own name, never a person's.
+  // W1: an AI employee's own name, never a person's; and the id of the chat line that woke a run.
   "agents.name",
+  "agent_runs.message_id",
 ];

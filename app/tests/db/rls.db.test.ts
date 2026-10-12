@@ -101,6 +101,12 @@ begin
   insert into public.channel_settings (channel, posting_window) values ('youtube', '{"tz": "UTC"}')
   on conflict (channel) do nothing;
   insert into public.schedule_settings (key, cron) values ('backup', '0 3 * * *') on conflict (key) do nothing;
+  -- W1: the office's chat, runs and proposals (the agents are seeded by the migration).
+  insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
+  values ('team', 'system', 'system', 'Matter of Place', 'test-rls');
+  insert into public.agent_runs (agent_id, cause) select id, 'message' from public.agents where slug = 'chief';
+  insert into public.agent_approvals (agent_id, action, summary, content, content_hash)
+  select id, 'post', 'test-rls', '{}'::jsonb, repeat('a', 64) from public.agents where slug = 'chief';
 end
 $$`;
 
