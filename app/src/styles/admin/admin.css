@@ -158,10 +158,102 @@ h3 {
   color: var(--muted-foreground);
 }
 
-.admin-bar__password {
+/* The account menu (W3): one button, a short list under it. */
+.admin-account {
+  position: relative;
+}
+
+.admin-account__button {
+  min-height: 32px;
+  padding: var(--admin-space-1) var(--admin-space-3);
+  border: 1px solid var(--border);
   font-size: 13px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+}
+
+.admin-account__button[aria-expanded="true"],
+.admin-account__button:hover {
+  border-color: var(--foreground);
+}
+
+.admin-account__menu {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + var(--admin-space-1));
+  z-index: 30;
+  display: grid;
+  min-width: 240px;
+  padding-block: var(--admin-space-2);
+  border: 1px solid var(--foreground);
+  background: var(--background);
+}
+
+.admin-account__who {
+  display: grid;
+  gap: var(--admin-space-1);
+  padding: var(--admin-space-2) var(--admin-space-4) var(--admin-space-3);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.admin-account__item {
+  min-height: 40px;
+  padding-inline: var(--admin-space-4);
+  text-align: start;
+  font-size: 14px;
+}
+
+.admin-account__item:hover,
+.admin-account__item:focus-visible {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--background));
+}
+
+/* How many wait behind a tab or an area (W3 stage 5). */
+.admin-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-inline-start: var(--admin-space-2);
+  padding-inline: 6px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.admin-nav__link .admin-count {
+  margin-inline-start: auto;
+}
+
+/* The screens of the open area, as tabs across the top of the page (W3). */
+.admin-area-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--admin-space-5);
+  margin-bottom: var(--admin-space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-area-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.admin-area-tabs__tab:hover {
+  color: var(--foreground);
+}
+
+.admin-area-tabs__tab[aria-current="page"] {
+  border-bottom-color: var(--foreground);
+  color: var(--foreground);
 }
 
 .admin-actor {

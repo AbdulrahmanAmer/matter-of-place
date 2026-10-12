@@ -5,38 +5,232 @@
   color: var(--muted-foreground);
 }
 
-.admin-recipes {
+/* W3: every flow under its topic, each row a sentence; a row opens the flow at full width. */
+.admin-flows {
   display: grid;
-  grid-template-columns: minmax(200px, 280px) minmax(0, 1fr);
   gap: var(--admin-space-6);
-  align-items: start;
+  max-width: 960px;
 }
 
-.admin-recipes__list ul {
+.admin-flows__topic {
+  display: grid;
+  gap: var(--admin-space-2);
+}
+
+.admin-flows__topic ul {
   display: grid;
   border-top: 1px solid var(--border);
 }
 
-.admin-recipes__list button {
+.admin-flows__row {
   display: grid;
-  gap: var(--admin-space-1);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--admin-space-1) var(--admin-space-5);
   width: 100%;
-  padding: var(--admin-space-3) var(--admin-space-2);
+  padding: var(--admin-space-4) var(--admin-space-3);
   border-bottom: 1px solid var(--border);
   text-align: left;
 }
 
-.admin-recipes__list button[aria-current="true"] {
-  border-left: 2px solid var(--foreground);
-  padding-left: var(--admin-space-3);
+.admin-flows__row:hover,
+.admin-flows__row:focus-visible {
   background: var(--muted);
 }
 
-.admin-recipes__name {
+.admin-flows__name {
+  font-size: 16px;
   font-weight: 500;
 }
 
-.admin-recipes__list code,
+.admin-flows__sentence {
+  grid-column: 1;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.admin-flows__meta {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-3);
+  font-size: 13px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.admin-flows__back {
+  margin-bottom: var(--admin-space-4);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-flows__back::before {
+  content: "\2190\00a0";
+}
+
+/* One flow: the sentence and the actions on top, the steps as a list with a place to add between each. */
+.admin-flow {
+  display: grid;
+  gap: var(--admin-space-6);
+  max-width: 960px;
+}
+
+.admin-flow form {
+  display: grid;
+  gap: var(--admin-space-5);
+}
+
+.admin-flow__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--admin-space-4);
+  padding-bottom: var(--admin-space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-flow__title {
+  display: grid;
+  gap: var(--admin-space-2);
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+.admin-flow__sentence {
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.admin-flow__state {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.admin-flow__basics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--admin-space-5);
+}
+
+.admin-flow__basics > :first-child {
+  flex: 1 1 320px;
+}
+
+.admin-flow__switch {
+  min-height: 40px;
+  font-size: 14px;
+}
+
+.admin-flow__steps-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--admin-space-3);
+}
+
+.admin-flow__steps-head h2 {
+  font-size: 22px;
+}
+
+.admin-flow__views {
+  display: flex;
+  border: 1px solid var(--border);
+}
+
+.admin-flow__views button {
+  min-height: 36px;
+  padding-inline: var(--admin-space-4);
+  font-size: 13px;
+}
+
+.admin-flow__views button[aria-pressed="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.admin-flow__add-button {
+  min-height: 28px;
+  padding-inline: var(--admin-space-3);
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.admin-flow__add-button::before {
+  content: "+\00a0";
+}
+
+.admin-flow__add-button:hover,
+.admin-flow__add-button:focus-visible {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-steps:has(.admin-flow__add) {
+  gap: var(--admin-space-1);
+}
+
+.admin-step__action {
+  min-height: 32px;
+  padding-inline: var(--admin-space-2);
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.admin-step__action:hover:not(:disabled),
+.admin-step__action:focus-visible {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-step__action:disabled {
+  opacity: 0.35;
+}
+
+.admin-flow__picker {
+  display: grid;
+  gap: var(--admin-space-3);
+  padding: var(--admin-space-4);
+  border: 1px solid var(--foreground);
+}
+
+.admin-flow__picker legend {
+  padding-inline: var(--admin-space-2);
+  font-size: 13px;
+}
+
+.admin-flow__picker ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--admin-space-2);
+}
+
+.admin-flow__choice {
+  display: grid;
+  gap: var(--admin-space-1);
+  width: 100%;
+  height: 100%;
+  padding: var(--admin-space-3);
+  border: 1px solid var(--border);
+  text-align: left;
+  font-size: 13px;
+}
+
+.admin-flow__choice span {
+  color: var(--muted-foreground);
+}
+
+.admin-flow__choice:hover,
+.admin-flow__choice:focus-visible {
+  border-color: var(--foreground);
+}
+
 .admin-step__name code,
 .admin-recipe__event code {
   font-size: 12px;
@@ -420,6 +614,92 @@
 .admin-clock {
   padding-top: var(--admin-space-4);
   border-top: 1px solid var(--border);
+}
+
+/* W3: a channel or a clock is one line of what it does; "Change" opens its form under it. */
+.admin-settings__list {
+  gap: 0;
+  max-width: 1040px;
+}
+
+.admin-settings__list > .admin-channel,
+.admin-settings__list > .admin-clock {
+  padding: var(--admin-space-4) 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.admin-channel__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--admin-space-2) var(--admin-space-4);
+}
+
+.admin-channel__name {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.admin-channel__pills {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-space-3);
+  white-space: nowrap;
+}
+
+.admin-channel__summary,
+.admin-clock__when {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.admin-channel__change,
+.admin-clock__change {
+  margin-top: var(--admin-space-2);
+}
+
+.admin-channel__change > summary,
+.admin-clock__change > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-channel__change[open] > summary,
+.admin-clock__change[open] > summary {
+  margin-bottom: var(--admin-space-4);
+}
+
+.admin-clock__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--admin-space-4);
+}
+
+.admin-clock__title h3 {
+  font-size: 18px;
+}
+
+.admin-clock__picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--admin-space-4);
+}
+
+@media (max-width: 720px) {
+  .admin-channel__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-channel__summary {
+    grid-column: 1 / -1;
+  }
 }
 
 .admin-channel form,

@@ -31,6 +31,28 @@ function blocked(channel: ChannelRow["channel"], newChannels: boolean): boolean 
   return (gated && !newChannels) || channelSteps[channel] === null;
 }
 
+const zoneWords: Readonly<Record<string, string>> = {
+  "America/New_York": "New York time",
+  "America/Los_Angeles": "Los Angeles time",
+  UTC: "UTC",
+};
+
+/** The stored settings in one line (W3): "Tue, Wed, Thu, 09:00 to 12:00 New York time, up to 2 a day. ..." */
+function summaryOf(row: ChannelRow): string {
+  const { posting_window: window } = row;
+  const days = weekdays
+    .filter(({ day }) => window.days.includes(day))
+    .map(({ label }) => label)
+    .join(", ");
+  const modes = new Set(tiers.map((tier) => row.approval_mode[tier]));
+  const [only] = [...modes];
+  const approval =
+    modes.size === 1 && only !== undefined
+      ? approvalModeLabels[only]
+      : "Approval is set per kind of post";
+  return `${days === "" ? "No days" : days}, ${window.from} to ${window.to} ${zoneWords[window.tz] ?? window.tz}, up to ${String(window.daily_cap)} a day. ${approval}.`;
+}
+
 /**
  * One channel on screen 20: the switch, the posting window in its own zone, the daily cap and who approves each tier.
  * `credentials` is null for a channel that signs in nowhere (Place Notes). The parent keys this component by the
@@ -72,186 +94,202 @@ export function ChannelSettingsForm({
 
   return (
     <article className="admin-channel" aria-label={label}>
-      <form
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          submit();
-        }}
-      >
-        <fieldset className="admin-channel__fields" disabled={!canEdit || save.isPending}>
-          <legend className="admin-template__key">{label}</legend>
-          <div className="admin-channel__switch">
-            <label className="admin-check">
-              <input
-                type="checkbox"
-                checked={draft.enabled}
-                disabled={notEnabledYet && !row.enabled}
-                onChange={(event) => {
-                  setDraft({ ...draft, enabled: event.target.checked });
-                }}
-              />
-              {label} on
-            </label>
-            {notEnabledYet ? <span className="admin-field__hint">Not enabled yet.</span> : null}
-            {credentials === null ? null : (
-              <span className="admin-channel__credentials">
-                Sign-in <StatusPill label={credentials} tone={credentialTone[credentials]} />
-              </span>
-            )}
-          </div>
-          <div className="admin-channel__window">
-            <Field
-              label="Time zone"
-              hint="Hours are wall time in this zone and keep their local time across daylight saving."
-            >
-              {(control) => (
-                <select
-                  {...control}
-                  value={draft.tz}
-                  onChange={(event) => {
-                    setDraft({ ...draft, tz: event.target.value });
-                  }}
-                >
-                  {zoneOptions(row.posting_window.tz).map((zone) => (
-                    <option key={zone} value={zone}>
-                      {zone}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Field>
-            <Field label="From" {...(errors.from === undefined ? {} : { error: errors.from })}>
-              {(control) => (
-                <input
-                  {...control}
-                  type="time"
-                  value={draft.from}
-                  onChange={(event) => {
-                    setDraft({ ...draft, from: event.target.value });
-                  }}
-                />
-              )}
-            </Field>
-            <Field label="To" {...(errors.to === undefined ? {} : { error: errors.to })}>
-              {(control) => (
-                <input
-                  {...control}
-                  type="time"
-                  value={draft.to}
-                  onChange={(event) => {
-                    setDraft({ ...draft, to: event.target.value });
-                  }}
-                />
-              )}
-            </Field>
-            <Field
-              label="Daily cap"
-              hint="Posts a day, 1 to 25."
-              {...(errors.dailyCap === undefined ? {} : { error: errors.dailyCap })}
-            >
-              {(control) => (
-                <input
-                  {...control}
-                  type="number"
-                  min={1}
-                  max={25}
-                  value={draft.dailyCap}
-                  onChange={(event) => {
-                    setDraft({ ...draft, dailyCap: event.target.value });
-                  }}
-                />
-              )}
-            </Field>
-          </div>
-          <div className="admin-channel__days" role="group" aria-label={`${label} posting days`}>
-            {weekdays.map(({ day, label: name }) => (
-              <label key={day} className="admin-check">
+      <div className="admin-channel__row">
+        <strong className="admin-channel__name">{label}</strong>
+        <span className="admin-channel__pills">
+          {notEnabledYet && !row.enabled ? (
+            <StatusPill label="Not enabled yet" />
+          ) : (
+            <StatusPill label={row.enabled ? "On" : "Off"} tone={row.enabled ? "ok" : "neutral"} />
+          )}
+          {credentials === null ? null : (
+            <span className="admin-channel__credentials">
+              Sign-in <StatusPill label={credentials} tone={credentialTone[credentials]} />
+            </span>
+          )}
+        </span>
+        <span className="admin-channel__summary">{summaryOf(row)}</span>
+      </div>
+      <details className="admin-channel__change" open={dirty || shown?.ok === false}>
+        <summary>Change {label}</summary>
+        <form
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit();
+          }}
+        >
+          <fieldset className="admin-channel__fields" disabled={!canEdit || save.isPending}>
+            <legend className="admin-visually-hidden">{label}</legend>
+            <div className="admin-channel__switch">
+              <label className="admin-check">
                 <input
                   type="checkbox"
-                  checked={draft.days.includes(day)}
+                  checked={draft.enabled}
+                  disabled={notEnabledYet && !row.enabled}
                   onChange={(event) => {
-                    setDraft({
-                      ...draft,
-                      days: event.target.checked
-                        ? [...draft.days, day]
-                        : draft.days.filter((other) => other !== day),
-                    });
+                    setDraft({ ...draft, enabled: event.target.checked });
                   }}
                 />
-                {name}
+                {label} on
               </label>
-            ))}
-          </div>
-          {errors.days === undefined ? null : (
-            <p className="admin-field__error" role="alert">
-              {errors.days}
-            </p>
-          )}
-          <div className="admin-channel__approval">
-            {tiers.map((tier) => (
-              <Field key={tier} label={`${tier} approval`}>
+              {notEnabledYet ? <span className="admin-field__hint">Not enabled yet.</span> : null}
+            </div>
+            <div className="admin-channel__window">
+              <Field
+                label="Time zone"
+                hint="Hours are wall time in this zone and keep their local time across daylight saving."
+              >
                 {(control) => (
                   <select
                     {...control}
-                    value={draft.approval[tier]}
+                    value={draft.tz}
                     onChange={(event) => {
-                      const next = approvalModes.find((mode) => mode === event.target.value);
-                      if (next === undefined) return;
-                      setDraft({
-                        ...draft,
-                        approval: { ...draft.approval, [tier]: next },
-                      });
+                      setDraft({ ...draft, tz: event.target.value });
                     }}
                   >
-                    {approvalModes.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {approvalModeLabels[mode]}
+                    {zoneOptions(row.posting_window.tz).map((zone) => (
+                      <option key={zone} value={zone}>
+                        {zone}
                       </option>
                     ))}
                   </select>
                 )}
               </Field>
-            ))}
-            <Field
-              label="Automatic from"
-              hint="A tier set to automatic posts without a person only from this date. Empty means never."
-              {...(errors.autoAfter === undefined ? {} : { error: errors.autoAfter })}
-            >
-              {(control) => (
-                <input
-                  {...control}
-                  type="date"
-                  value={draft.autoAfter}
-                  onChange={(event) => {
-                    setDraft({ ...draft, autoAfter: event.target.value });
-                  }}
-                />
-              )}
-            </Field>
-          </div>
-        </fieldset>
-        <RoleGate action="automation.channels_put">
-          <div className="admin-actions">
-            {dirty ? <span className="admin-field__hint">Unsaved changes</span> : null}
-            <button
-              type="button"
-              className="admin-button admin-button--quiet"
-              disabled={!dirty || save.isPending}
-              onClick={() => {
-                setDraft(draftOf(row));
-                setShown(null);
-              }}
-            >
-              Discard changes
-            </button>
-            <button type="submit" className="admin-button" disabled={!dirty || save.isPending}>
-              Save {label}
-            </button>
-          </div>
-        </RoleGate>
-        {save.isError ? <RequestFailure error={save.error} className="admin-field__error" /> : null}
-      </form>
+              <Field label="From" {...(errors.from === undefined ? {} : { error: errors.from })}>
+                {(control) => (
+                  <input
+                    {...control}
+                    type="time"
+                    value={draft.from}
+                    onChange={(event) => {
+                      setDraft({ ...draft, from: event.target.value });
+                    }}
+                  />
+                )}
+              </Field>
+              <Field label="To" {...(errors.to === undefined ? {} : { error: errors.to })}>
+                {(control) => (
+                  <input
+                    {...control}
+                    type="time"
+                    value={draft.to}
+                    onChange={(event) => {
+                      setDraft({ ...draft, to: event.target.value });
+                    }}
+                  />
+                )}
+              </Field>
+              <Field
+                label="Daily cap"
+                hint="Posts a day, 1 to 25."
+                {...(errors.dailyCap === undefined ? {} : { error: errors.dailyCap })}
+              >
+                {(control) => (
+                  <input
+                    {...control}
+                    type="number"
+                    min={1}
+                    max={25}
+                    value={draft.dailyCap}
+                    onChange={(event) => {
+                      setDraft({ ...draft, dailyCap: event.target.value });
+                    }}
+                  />
+                )}
+              </Field>
+            </div>
+            <div className="admin-channel__days" role="group" aria-label={`${label} posting days`}>
+              {weekdays.map(({ day, label: name }) => (
+                <label key={day} className="admin-check">
+                  <input
+                    type="checkbox"
+                    checked={draft.days.includes(day)}
+                    onChange={(event) => {
+                      setDraft({
+                        ...draft,
+                        days: event.target.checked
+                          ? [...draft.days, day]
+                          : draft.days.filter((other) => other !== day),
+                      });
+                    }}
+                  />
+                  {name}
+                </label>
+              ))}
+            </div>
+            {errors.days === undefined ? null : (
+              <p className="admin-field__error" role="alert">
+                {errors.days}
+              </p>
+            )}
+            <div className="admin-channel__approval">
+              {tiers.map((tier) => (
+                <Field key={tier} label={`${tier} approval`}>
+                  {(control) => (
+                    <select
+                      {...control}
+                      value={draft.approval[tier]}
+                      onChange={(event) => {
+                        const next = approvalModes.find((mode) => mode === event.target.value);
+                        if (next === undefined) return;
+                        setDraft({
+                          ...draft,
+                          approval: { ...draft.approval, [tier]: next },
+                        });
+                      }}
+                    >
+                      {approvalModes.map((mode) => (
+                        <option key={mode} value={mode}>
+                          {approvalModeLabels[mode]}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
+              ))}
+              <Field
+                label="Automatic from"
+                hint="A tier set to automatic posts without a person only from this date. Empty means never."
+                {...(errors.autoAfter === undefined ? {} : { error: errors.autoAfter })}
+              >
+                {(control) => (
+                  <input
+                    {...control}
+                    type="date"
+                    value={draft.autoAfter}
+                    onChange={(event) => {
+                      setDraft({ ...draft, autoAfter: event.target.value });
+                    }}
+                  />
+                )}
+              </Field>
+            </div>
+          </fieldset>
+          <RoleGate action="automation.channels_put">
+            <div className="admin-actions">
+              {dirty ? <span className="admin-field__hint">Unsaved changes</span> : null}
+              <button
+                type="button"
+                className="admin-button admin-button--quiet"
+                disabled={!dirty || save.isPending}
+                onClick={() => {
+                  setDraft(draftOf(row));
+                  setShown(null);
+                }}
+              >
+                Discard changes
+              </button>
+              <button type="submit" className="admin-button" disabled={!dirty || save.isPending}>
+                Save {label}
+              </button>
+            </div>
+          </RoleGate>
+          {save.isError ? (
+            <RequestFailure error={save.error} className="admin-field__error" />
+          ) : null}
+        </form>
+      </details>
     </article>
   );
 }

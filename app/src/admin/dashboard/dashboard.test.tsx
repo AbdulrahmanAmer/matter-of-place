@@ -70,7 +70,7 @@ describe("DashboardTiles", () => {
     );
     const banner = screen.getByRole("alert");
     expect({
-      text: banner.textContent.includes("dead_jobs_24h"),
+      text: banner.textContent.includes("some jobs failed for good in the last day"),
       red: banner.classList.contains("admin-banner--danger"),
     }).toEqual({ text: true, red: true });
   });
@@ -224,8 +224,8 @@ describe("TodayFeed", () => {
     );
     const items = screen.getAllByRole("listitem").map((item) => item.textContent);
     expect(items).toEqual([
-      "submissions: start reviewSeed Managing EditorOct 8, 2026, 6:00 AM ET",
-      "submissions: declineAgentAgentOct 8, 2026, 6:00 AM ET",
+      "Started reviewing a requestSeed Managing EditorOct 8, 2026, 6:00 AM ET",
+      "Declined a requestAgentAgentOct 8, 2026, 6:00 AM ET",
     ]);
   });
 

@@ -34,7 +34,12 @@ export function ChannelHealthTile() {
                 <li key={channel} aria-label={socialChannelLabels[channel]}>
                   <header>
                     <h3>{socialChannelLabels[channel]}</h3>
-                    <StatusPill label={levelLabel[row.level]} tone={levelTone[row.level]} />
+                    {row.connected ? (
+                      <StatusPill label={levelLabel[row.level]} tone={levelTone[row.level]} />
+                    ) : (
+                      // W3: a channel never signed in is not one to reconnect.
+                      <StatusPill label="Not connected yet" />
+                    )}
                   </header>
                   <HealthFacts health={row} />
                 </li>,

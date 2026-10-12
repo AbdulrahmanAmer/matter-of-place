@@ -66,9 +66,7 @@ export function SettingsPage() {
       <section aria-labelledby="schedules-heading">
         <h2 id="schedules-heading">Schedules</h2>
         <p className="admin-recipes__intro">
-          Every clock is set in UTC. It moves one hour against local time when daylight saving
-          starts and ends, twice a year, so the digest and the audit run an hour earlier or later on
-          the wall clock.
+          What the site does on its own, and when. Times are Cairo time; open one to change it.
         </p>
         <div className="admin-settings__list">
           {schedules.data.items.map((row) => (
