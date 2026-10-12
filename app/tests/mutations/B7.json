@@ -372,8 +372,8 @@
   {
     "id": "b7-g2-session-get-user",
     "file": "src/server/lib/session.ts",
-    "find": "  const { data, error } = await authClient(request).auth.getSession();",
-    "replace": "  await authClient(request).auth.getUser();\n  const { data, error } = await authClient(request).auth.getSession();",
+    "find": "  const { data, error } = await authClient(request).getSession();",
+    "replace": "  await authClient(request).getUser();\n  const { data, error } = await authClient(request).getSession();",
     "test": "tests/unit/session-local.test.ts",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/session-local.test.ts",
     "expect": "× .*serves 1,000 requests"
