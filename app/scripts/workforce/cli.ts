@@ -2,6 +2,7 @@
 // stdin (a long positional argument makes the CLI wait for stdin), JSON out, stderr ignored, the whole process tree
 // killed on timeout (Jay: a plain kill leaves the CLI's children running).
 import { spawn, spawnSync } from "node:child_process";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { z } from "zod";
 
 const cliAnswer = z.object({
@@ -9,6 +10,30 @@ const cliAnswer = z.object({
   result: z.string(),
   session_id: z.string().optional(),
 });
+
+/** The operator's Claude limit is spent: nothing can run until `resetAt` (gap audit item 32). */
+export class UsageLimitError extends Error {
+  readonly resetAt: Date;
+  constructor(resetAt: Date) {
+    super(`the Claude usage limit is reached until ${resetAt.toISOString()}`);
+    this.name = "UsageLimitError";
+    this.resetAt = resetAt;
+  }
+}
+
+const LIMIT_TEXT = /usage limit|limit reached|rate limit|out of (extra )?usage|weekly limit/i;
+
+/**
+ * A usage-limit answer from the CLI, with its reset time: the "...|<epoch seconds>" the CLI prints, or an hour from
+ * now when it gives none. Null for any other answer.
+ */
+export function usageLimitOf(text: string, now: Date = new Date()): Date | null {
+  if (!LIMIT_TEXT.test(text)) return null;
+  const epoch = /\|(\d{10})/.exec(text)?.[1];
+  return epoch === undefined
+    ? new Date(now.getTime() + 60 * 60_000)
+    : new Date(Number(epoch) * 1000);
+}
 
 function killTree(pid: number | undefined): void {
   if (pid === undefined) return;
@@ -54,6 +79,11 @@ export function runClaude(input: {
     });
     child.on("close", (code) => {
       clearTimeout(timer);
+      const limit = usageLimitOf(out);
+      if (limit !== null && (code !== 0 || out.includes('"is_error":true'))) {
+        fail(new UsageLimitError(limit));
+        return;
+      }
       if (code !== 0) {
         fail(new Error(`the Claude CLI exited with code ${String(code)}`));
         return;
@@ -74,4 +104,21 @@ export function runClaude(input: {
     });
     child.stdin.end(input.prompt);
   });
+}
+
+/** When the usage-limit breaker is set and its reset is still ahead, that reset; otherwise null (and the file goes). */
+export function breakerUntil(file: string, now: Date = new Date()): Date | null {
+  if (!existsSync(file)) return null;
+  try {
+    const raw: unknown = JSON.parse(readFileSync(file, "utf8"));
+    const until =
+      typeof raw === "object" && raw !== null && "until" in raw && typeof raw.until === "string"
+        ? new Date(raw.until)
+        : null;
+    if (until !== null && until.getTime() > now.getTime()) return until;
+  } catch {
+    // An unreadable breaker is no breaker.
+  }
+  rmSync(file, { force: true });
+  return null;
 }
