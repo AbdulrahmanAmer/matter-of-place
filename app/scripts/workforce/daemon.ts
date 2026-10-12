@@ -19,6 +19,8 @@ import { knowledgeBlock } from "./knowledge.ts";
 import { makeVoiceover, mediaRequestSchema } from "./media.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
+import { followMain } from "./follow.ts";
+import { applyHires } from "./hiring.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -388,18 +390,7 @@ async function runOnce(client: Db): Promise<boolean> {
       });
     }
     if (agent.tools.includes("hire")) {
-      for (const hire of result.hire) {
-        const { error: hireError } = await client.from("agents").insert(hire);
-        if (hireError === null) {
-          await client.from("agent_messages").insert({
-            thread: "team",
-            author_kind: "system",
-            author_id: "system",
-            author_name: "Matter of Place",
-            body: `${hire.name} joined the team as ${hire.role}.`,
-          });
-        }
-      }
+      await applyHires(client, { slug: agent.slug, id: agent.id }, result.hire, run.id);
     }
     await client
       .from("agent_runs")
@@ -501,6 +492,17 @@ async function pass(client: Db): Promise<void> {
       `${new Date().toISOString()} paused: the Claude usage limit resets at ${until.toISOString()}`,
     );
     return;
+  }
+  // Gap audit item 6: between runs the runner moves to the newest main; the next pass runs the new code.
+  const { count: inFlight } = await client
+    .from("agent_runs")
+    .select("id", { count: "exact", head: true })
+    .eq("state", "running");
+  if (inFlight === 0) {
+    const followed = followMain(resolve(import.meta.dir, "../.."), join(HOME, "runner-app"));
+    if (followed !== "unchanged" && followed !== "not the runner") {
+      console.log(`${new Date().toISOString()} runner ${followed}`);
+    }
   }
   const woke = await wakeOnEvents(client);
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);

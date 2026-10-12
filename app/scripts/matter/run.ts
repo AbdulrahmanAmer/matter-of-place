@@ -80,8 +80,29 @@ export function matterPrompt(input: {
 }
 
 /** Matter's desk exists before its first run: a worktree of the repository at main, never the runner's folder. */
+/**
+ * Gap audit item 4 (Jay M4): Matter reads today's code, not the code of the day its desk was made. Before each run the
+ * desk fetches and moves to origin/main; a desk with local changes is left exactly as it is and the run says so. In
+ * safe mode Matter has no write tool, so a clean desk is the normal case. Answers what it did, for the run's log.
+ */
+export function refreshDesk(
+  desk: string = DESK,
+): "moved" | "unchanged" | "kept local changes" | "no fetch" {
+  const git = (...args: string[]) =>
+    spawnSync("git", ["-C", desk, ...args], { windowsHide: true, encoding: "utf8" });
+  if (git("fetch", "-q", "origin", "main").status !== 0) return "no fetch";
+  const status = git("status", "--porcelain");
+  if (status.status !== 0 || status.stdout.trim() !== "") return "kept local changes";
+  const before = git("rev-parse", "HEAD").stdout.trim();
+  if (git("checkout", "-q", "--detach", "origin/main").status !== 0) return "unchanged";
+  return git("rev-parse", "HEAD").stdout.trim() === before ? "unchanged" : "moved";
+}
+
 function ensureDesk(): void {
-  if (existsSync(DESK)) return;
+  if (existsSync(DESK)) {
+    console.log(`matter: desk ${refreshDesk()}`);
+    return;
+  }
   const root = join(here, "../../..");
   spawnSync("git", ["-C", root, "fetch", "-q", "origin", "main"], { windowsHide: true });
   const made = spawnSync(

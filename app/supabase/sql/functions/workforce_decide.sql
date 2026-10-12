@@ -98,6 +98,24 @@ begin
     );
   end if;
 
+  -- Gap audit item 5: a hire that needed a person's word (proposed by a colleague other than Matter, past Matter's
+  -- daily cap, or on Opus) joins the team here. No hire ever carries the hire tool.
+  if p_decision = 'approved' and v_row.action = 'hire' then
+    insert into public.agents (slug, name, role, instructions, model, wake_on, tools)
+    values (
+      v_row.content -> 'hire' ->> 'slug',
+      v_row.content -> 'hire' ->> 'name',
+      v_row.content -> 'hire' ->> 'role',
+      left(coalesce(v_row.content -> 'hire' ->> 'instructions', ''), 8000),
+      coalesce(v_row.content -> 'hire' ->> 'model', 'sonnet'),
+      array(select jsonb_array_elements_text(coalesce(v_row.content -> 'hire' -> 'wake_on', '[]'::jsonb))),
+      array(
+        select t from jsonb_array_elements_text(coalesce(v_row.content -> 'hire' -> 'tools', '[]'::jsonb)) t
+        where t <> 'hire'
+      )
+    );
+  end if;
+
   insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
   values (
     'team', 'system', 'system', 'Matter of Place',
