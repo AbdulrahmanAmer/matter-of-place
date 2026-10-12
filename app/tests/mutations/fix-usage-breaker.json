@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ub-a-reset-time",
+    "test": "tests/unit/usage-breaker.test.ts",
+    "file": "scripts/workforce/cli.ts",
+    "find": "new Date(Number(epoch) * 1000)",
+    "replace": "new Date(now.getTime())",
+    "run": "bunx vitest run --project unit tests/unit/usage-breaker.test.ts",
+    "expect": "× .*reads the reset time the CLI prints"
+  },
+  {
+    "id": "ub-b-holds",
+    "test": "tests/unit/usage-breaker.test.ts",
+    "file": "scripts/workforce/cli.ts",
+    "find": "if (until !== null && until.getTime() > now.getTime()) return until;",
+    "replace": "if (until !== null && until.getTime() < now.getTime()) return until;",
+    "run": "bunx vitest run --project unit tests/unit/usage-breaker.test.ts",
+    "expect": "× .*holds until the reset"
+  }
+]
