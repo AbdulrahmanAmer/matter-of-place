@@ -108,6 +108,14 @@ describe("verifyTurnstile outcomes", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("fails closed with no secret outside a local run, before it calls Cloudflare", async () => {
+    expect([
+      await verifyTurnstile("tok", IP, { MOP_ENV: "production" }, "inquiries"),
+      await verifyTurnstile("tok", IP, { MOP_ENV: "preview", TURNSTILE_SECRET: "" }, "x"),
+    ]).toEqual(["fail", "fail"]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it.each([undefined, null, ""])(
     "fails an absent or empty token (%j) when a secret is set, without calling siteverify",
     async (token) => {

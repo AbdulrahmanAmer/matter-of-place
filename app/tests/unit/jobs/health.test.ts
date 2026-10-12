@@ -20,6 +20,7 @@ const quiet: HealthCounts = {
   long_waits: 0,
   local_oldest_age_s: null,
   backup: null,
+  unverified_24h: 0,
 };
 
 // B16's `site_identity` check reads the shared public state; a complete site keeps it quiet here.
@@ -126,6 +127,7 @@ describe("health job", () => {
     expect(checksOf(result).map((check) => check.name)).toEqual([
       "captions_waiting",
       "dead_jobs_24h",
+      "unverified_writes",
       "stale_queue",
       "cron_failures",
       "retention_stalled",
@@ -162,6 +164,15 @@ describe("health job", () => {
     const { result } = await run({}, { force_fail: "backup_fresh" });
     expect(statusOf(result, "backup_fresh")).toBe("fail");
     expect(statusOf(result, "dead_jobs_24h")).toBe("ok");
+  });
+
+  it("fails unverified_writes when a public write got in without the spam check, and passes at 0 (gap item 7)", async () => {
+    const failing = await run({ counts: { unverified_24h: 2 } });
+    const passing = await run({ counts: { unverified_24h: 0 } });
+    expect([
+      statusOf(failing.result, "unverified_writes"),
+      statusOf(passing.result, "unverified_writes"),
+    ]).toEqual(["fail", "ok"]);
   });
 
   it("reports each failed check once to Sentry with its fingerprint", async () => {

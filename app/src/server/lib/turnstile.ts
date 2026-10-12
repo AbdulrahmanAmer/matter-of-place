@@ -50,7 +50,10 @@ export async function verifyTurnstile(
   action: string,
 ): Promise<TurnstileOutcome> {
   const secret = env.TURNSTILE_SECRET;
-  if (secret === undefined || secret === "") return "unreachable";
+  // Gap audit item 7 (2026-10-12): a missing secret is a broken deploy, not an outage of Cloudflare, so outside a
+  // local run it refuses the write instead of letting it in flagged.
+  if (secret === undefined || secret === "")
+    return env.MOP_ENV === "local" ? "unreachable" : "fail";
   if (token === null || token === undefined || token === "") return "fail";
   let answer: z.infer<typeof answerSchema>;
   try {
