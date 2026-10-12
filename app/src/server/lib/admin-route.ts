@@ -29,8 +29,8 @@ const JSON_TYPE = /^application\/json\s*(?:;|$)/i;
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 type Auth = "session" | "none";
-/** The two sign-in routes that run before there is an actor (invariant 19). */
-type OpenAction = "auth.send_link" | "auth.verify";
+/** The sign-in routes that run before there is an actor (invariant 19), and the password path beside them. */
+type OpenAction = "auth.send_link" | "auth.verify" | "auth.password";
 
 export type { AdminActor };
 

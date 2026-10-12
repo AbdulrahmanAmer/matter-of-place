@@ -7,6 +7,24 @@ import { appRoles } from "./contracts.ts";
 /** `POST /api/admin/auth/send-link`. The Turnstile token travels in the `x-turnstile-token` header. */
 export const sendLinkInput = z.object({ email: z.string().trim().toLowerCase().email().max(254) });
 
+/**
+ * The password path of the sign-in screen (operator, 2026-10-12: "give me a password"): the address and the password
+ * the person chose for themselves. A wrong pair and an unknown address read the same.
+ */
+export const passwordSignInInput = z.object({
+  email: z.string().trim().toLowerCase().email().max(254),
+  password: z.string().min(1).max(256),
+  next: z.string().max(2048).optional(),
+});
+
+/** Where the browser goes after a password sign-in: always a page inside `/admin`. */
+export const passwordSignedInSchema = z.object({ next: z.string() });
+
+/** A signed-in person's own new password. Twelve characters at least; nobody else ever sets it. */
+export const setPasswordInput = z.object({
+  password: z.string().min(12, "Use at least 12 characters.").max(256),
+});
+
 /** The form the confirm page posts to `POST /api/admin/auth/verify`. */
 export const verifyInput = z.object({
   token_hash: z.string().min(1).max(512),

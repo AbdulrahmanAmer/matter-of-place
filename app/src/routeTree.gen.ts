@@ -108,6 +108,7 @@ import { Route as ApiAdminAuditNotfoundRouteImport } from './routes/api/admin/au
 import { Route as ApiAdminAuditRecordRunRouteImport } from './routes/api/admin/audit.record-run'
 import { Route as ApiAdminAuditSubjectRequestsRouteImport } from './routes/api/admin/audit.subject-requests'
 import { Route as ApiAdminAuditUsageRouteImport } from './routes/api/admin/audit.usage'
+import { Route as ApiAdminAuthPasswordRouteImport } from './routes/api/admin/auth.password'
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
 import { Route as ApiAdminAuthVerifyRouteImport } from './routes/api/admin/auth.verify'
@@ -129,6 +130,7 @@ import { Route as ApiAdminJobsIdRouteImport } from './routes/api/admin/jobs.$id'
 import { Route as ApiAdminJobsRetryBulkRouteImport } from './routes/api/admin/jobs.retry-bulk'
 import { Route as ApiAdminMarketsIndexRouteImport } from './routes/api/admin/markets.index'
 import { Route as ApiAdminMarketsSlugRouteImport } from './routes/api/admin/markets.$slug'
+import { Route as ApiAdminMePasswordRouteImport } from './routes/api/admin/me.password'
 import { Route as ApiAdminMediaIndexRouteImport } from './routes/api/admin/media.index'
 import { Route as ApiAdminMediaIdRouteImport } from './routes/api/admin/media.$id'
 import { Route as ApiAdminMediaAttachRouteImport } from './routes/api/admin/media.attach'
@@ -769,6 +771,11 @@ const ApiAdminAuditUsageRoute = ApiAdminAuditUsageRouteImport.update({
   path: '/api/admin/audit/usage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminAuthPasswordRoute = ApiAdminAuthPasswordRouteImport.update({
+  id: '/api/admin/auth/password',
+  path: '/api/admin/auth/password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminAuthSendLinkRoute = ApiAdminAuthSendLinkRouteImport.update({
   id: '/api/admin/auth/send-link',
   path: '/api/admin/auth/send-link',
@@ -881,6 +888,11 @@ const ApiAdminMarketsSlugRoute = ApiAdminMarketsSlugRouteImport.update({
   id: '/api/admin/markets/$slug',
   path: '/api/admin/markets/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMePasswordRoute = ApiAdminMePasswordRouteImport.update({
+  id: '/password',
+  path: '/password',
+  getParentRoute: () => ApiAdminMeRoute,
 } as any)
 const ApiAdminMediaIndexRoute = ApiAdminMediaIndexRouteImport.update({
   id: '/api/admin/media/',
@@ -1582,7 +1594,7 @@ export interface FileRoutesByFullPath {
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
-  '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
@@ -1625,6 +1637,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/audit/record-run': typeof ApiAdminAuditRecordRunRoute
   '/api/admin/audit/subject-requests': typeof ApiAdminAuditSubjectRequestsRouteWithChildren
   '/api/admin/audit/usage': typeof ApiAdminAuditUsageRoute
+  '/api/admin/auth/password': typeof ApiAdminAuthPasswordRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
@@ -1643,6 +1656,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
   '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
   '/api/admin/markets/$slug': typeof ApiAdminMarketsSlugRouteWithChildren
+  '/api/admin/me/password': typeof ApiAdminMePasswordRoute
   '/api/admin/media/$id': typeof ApiAdminMediaIdRouteWithChildren
   '/api/admin/media/attach': typeof ApiAdminMediaAttachRoute
   '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
@@ -1813,7 +1827,7 @@ export interface FileRoutesByTo {
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
-  '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
@@ -1856,6 +1870,7 @@ export interface FileRoutesByTo {
   '/api/admin/audit/record-run': typeof ApiAdminAuditRecordRunRoute
   '/api/admin/audit/subject-requests': typeof ApiAdminAuditSubjectRequestsRouteWithChildren
   '/api/admin/audit/usage': typeof ApiAdminAuditUsageRoute
+  '/api/admin/auth/password': typeof ApiAdminAuthPasswordRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
@@ -1874,6 +1889,7 @@ export interface FileRoutesByTo {
   '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
   '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
   '/api/admin/markets/$slug': typeof ApiAdminMarketsSlugRouteWithChildren
+  '/api/admin/me/password': typeof ApiAdminMePasswordRoute
   '/api/admin/media/$id': typeof ApiAdminMediaIdRouteWithChildren
   '/api/admin/media/attach': typeof ApiAdminMediaAttachRoute
   '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
@@ -2050,7 +2066,7 @@ export interface FileRoutesById {
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
-  '/api/admin/me': typeof ApiAdminMeRoute
+  '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
@@ -2093,6 +2109,7 @@ export interface FileRoutesById {
   '/api/admin/audit/record-run': typeof ApiAdminAuditRecordRunRoute
   '/api/admin/audit/subject-requests': typeof ApiAdminAuditSubjectRequestsRouteWithChildren
   '/api/admin/audit/usage': typeof ApiAdminAuditUsageRoute
+  '/api/admin/auth/password': typeof ApiAdminAuthPasswordRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
   '/api/admin/auth/verify': typeof ApiAdminAuthVerifyRoute
@@ -2111,6 +2128,7 @@ export interface FileRoutesById {
   '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
   '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
   '/api/admin/markets/$slug': typeof ApiAdminMarketsSlugRouteWithChildren
+  '/api/admin/me/password': typeof ApiAdminMePasswordRoute
   '/api/admin/media/$id': typeof ApiAdminMediaIdRouteWithChildren
   '/api/admin/media/attach': typeof ApiAdminMediaAttachRoute
   '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
@@ -2330,6 +2348,7 @@ export interface FileRouteTypes {
     | '/api/admin/audit/record-run'
     | '/api/admin/audit/subject-requests'
     | '/api/admin/audit/usage'
+    | '/api/admin/auth/password'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
@@ -2348,6 +2367,7 @@ export interface FileRouteTypes {
     | '/api/admin/jobs/$id'
     | '/api/admin/jobs/retry-bulk'
     | '/api/admin/markets/$slug'
+    | '/api/admin/me/password'
     | '/api/admin/media/$id'
     | '/api/admin/media/attach'
     | '/api/admin/media/reorder'
@@ -2561,6 +2581,7 @@ export interface FileRouteTypes {
     | '/api/admin/audit/record-run'
     | '/api/admin/audit/subject-requests'
     | '/api/admin/audit/usage'
+    | '/api/admin/auth/password'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
@@ -2579,6 +2600,7 @@ export interface FileRouteTypes {
     | '/api/admin/jobs/$id'
     | '/api/admin/jobs/retry-bulk'
     | '/api/admin/markets/$slug'
+    | '/api/admin/me/password'
     | '/api/admin/media/$id'
     | '/api/admin/media/attach'
     | '/api/admin/media/reorder'
@@ -2797,6 +2819,7 @@ export interface FileRouteTypes {
     | '/api/admin/audit/record-run'
     | '/api/admin/audit/subject-requests'
     | '/api/admin/audit/usage'
+    | '/api/admin/auth/password'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
     | '/api/admin/auth/verify'
@@ -2815,6 +2838,7 @@ export interface FileRouteTypes {
     | '/api/admin/jobs/$id'
     | '/api/admin/jobs/retry-bulk'
     | '/api/admin/markets/$slug'
+    | '/api/admin/me/password'
     | '/api/admin/media/$id'
     | '/api/admin/media/attach'
     | '/api/admin/media/reorder'
@@ -2951,7 +2975,7 @@ export interface RootRouteChildren {
   ApiConsentRoute: typeof ApiConsentRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ApiAdminDashboardRoute: typeof ApiAdminDashboardRoute
-  ApiAdminMeRoute: typeof ApiAdminMeRoute
+  ApiAdminMeRoute: typeof ApiAdminMeRouteWithChildren
   ApiAdminReportsRoute: typeof ApiAdminReportsRouteWithChildren
   ApiHooksResendRoute: typeof ApiHooksResendRoute
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
@@ -2974,6 +2998,7 @@ export interface RootRouteChildren {
   ApiAdminAuditRecordRunRoute: typeof ApiAdminAuditRecordRunRoute
   ApiAdminAuditSubjectRequestsRoute: typeof ApiAdminAuditSubjectRequestsRouteWithChildren
   ApiAdminAuditUsageRoute: typeof ApiAdminAuditUsageRoute
+  ApiAdminAuthPasswordRoute: typeof ApiAdminAuthPasswordRoute
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
   ApiAdminAuthVerifyRoute: typeof ApiAdminAuthVerifyRoute
@@ -3731,6 +3756,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminAuditUsageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/auth/password': {
+      id: '/api/admin/auth/password'
+      path: '/api/admin/auth/password'
+      fullPath: '/api/admin/auth/password'
+      preLoaderRoute: typeof ApiAdminAuthPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/auth/send-link': {
       id: '/api/admin/auth/send-link'
       path: '/api/admin/auth/send-link'
@@ -3877,6 +3909,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/markets/$slug'
       preLoaderRoute: typeof ApiAdminMarketsSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/me/password': {
+      id: '/api/admin/me/password'
+      path: '/password'
+      fullPath: '/api/admin/me/password'
+      preLoaderRoute: typeof ApiAdminMePasswordRouteImport
+      parentRoute: typeof ApiAdminMeRoute
     }
     '/api/admin/media/': {
       id: '/api/admin/media/'
@@ -4845,6 +4884,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface ApiAdminMeRouteChildren {
+  ApiAdminMePasswordRoute: typeof ApiAdminMePasswordRoute
+}
+
+const ApiAdminMeRouteChildren: ApiAdminMeRouteChildren = {
+  ApiAdminMePasswordRoute: ApiAdminMePasswordRoute,
+}
+
+const ApiAdminMeRouteWithChildren = ApiAdminMeRoute._addFileChildren(
+  ApiAdminMeRouteChildren,
+)
+
 interface ApiAdminReportsIdRouteChildren {
   ApiAdminReportsIdEmailRoute: typeof ApiAdminReportsIdEmailRoute
 }
@@ -5392,7 +5443,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiConsentRoute: ApiConsentRoute,
   MediaSplatRoute: MediaSplatRoute,
   ApiAdminDashboardRoute: ApiAdminDashboardRoute,
-  ApiAdminMeRoute: ApiAdminMeRoute,
+  ApiAdminMeRoute: ApiAdminMeRouteWithChildren,
   ApiAdminReportsRoute: ApiAdminReportsRouteWithChildren,
   ApiHooksResendRoute: ApiHooksResendRoute,
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
@@ -5416,6 +5467,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuditSubjectRequestsRoute:
     ApiAdminAuditSubjectRequestsRouteWithChildren,
   ApiAdminAuditUsageRoute: ApiAdminAuditUsageRoute,
+  ApiAdminAuthPasswordRoute: ApiAdminAuthPasswordRoute,
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,
   ApiAdminAuthVerifyRoute: ApiAdminAuthVerifyRoute,

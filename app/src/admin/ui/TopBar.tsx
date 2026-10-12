@@ -2,6 +2,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Wordmark } from "../../components/brand/wordmark";
 import { roleLabels } from "../../domain/contracts";
+import { PasswordDialog } from "../team/PasswordDialog";
 import { ActorBadge } from "./ActorBadge";
 import { useAdminMe } from "./admin-me";
 
@@ -13,6 +14,7 @@ export function TopBar() {
   const router = useRouter();
   const me = useAdminMe();
   const [text, setText] = useState("");
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   return (
     <header className="admin-bar" data-print="hide">
@@ -42,6 +44,25 @@ export function TopBar() {
         />
       </form>
       <ActorBadge name={me.roles.map((role) => roleLabels[role]).join(", ")} kind={me.kind} />
+      {me.kind === "human" && me.actions.includes("dashboard.password") ? (
+        <>
+          <button
+            type="button"
+            className="admin-bar__password"
+            onClick={() => {
+              setPasswordOpen(true);
+            }}
+          >
+            Password
+          </button>
+          <PasswordDialog
+            open={passwordOpen}
+            onClose={() => {
+              setPasswordOpen(false);
+            }}
+          />
+        </>
+      ) : null}
     </header>
   );
 }

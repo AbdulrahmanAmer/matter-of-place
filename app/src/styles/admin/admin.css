@@ -156,6 +156,12 @@ h3 {
   color: var(--muted-foreground);
 }
 
+.admin-bar__password {
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .admin-actor {
   display: flex;
   align-items: center;
@@ -297,6 +303,20 @@ h3 {
 
 .admin-signin button:disabled {
   opacity: 0.35;
+}
+
+.admin-signin__or {
+  margin-top: var(--admin-space-4);
+  padding-top: var(--admin-space-4);
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+
+.admin-signin button.admin-signin__link {
+  padding: var(--admin-space-3) var(--admin-space-5);
+  border: 1px solid var(--foreground);
+  background: transparent;
+  color: var(--foreground);
 }
 
 @media (max-width: 900px) {
