@@ -10,6 +10,8 @@ export const properties = [
   { action: "properties.timeline", group: "properties", roles: appRoles },
   { action: "properties.representatives", group: "properties", roles: appRoles },
   { action: "properties.create_from_submission", group: "properties", roles: writers },
+  // A property entered by hand, without a request (operator, 2026-10-12).
+  { action: "properties.create", group: "properties", roles: writers },
   // Also saves related properties and features.
   { action: "properties.update", group: "properties", roles: writers },
   { action: "properties.representative_put", group: "properties", roles: writers },

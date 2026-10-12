@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 import { decisionAnswerSchema } from "./admin-submissions.ts";
-import { editorialStates, slugPattern, submissionStates, submitterKinds } from "./contracts.ts";
+import {
+  editorialStates,
+  propertyTypes,
+  slugPattern,
+  submissionStates,
+  submitterKinds,
+} from "./contracts.ts";
 import { marketSlugSchema } from "./market.ts";
 import { propertySchema } from "./property.ts";
 
@@ -233,6 +239,22 @@ export const createFromSubmissionAnswerSchema = z.object({
   property_id: uuid,
   copy_job_id: uuid.nullable(),
 });
+
+/**
+ * `POST properties`: a property entered by hand, without a request (operator, 2026-10-12). Only what every property
+ * needs; the rest is filled on the property screen.
+ */
+export const createPropertyInputSchema = z.object({
+  title: z.string().trim().min(1, "Give the property a title.").max(200),
+  market_slug: marketSlugSchema,
+  city: z.string().trim().min(1, "Name the city.").max(120),
+  address: z.string().trim().min(1, "Give the address.").max(300),
+  type: z.enum(propertyTypes),
+  price: z.number().positive().max(9_999_999_999).nullable().default(null),
+});
+export type CreatePropertyInput = z.input<typeof createPropertyInputSchema>;
+
+export const createPropertyAnswerSchema = z.object({ property_id: uuid });
 
 /** `POST properties/:id/preview-token`: the public page with a 15 minute draft token, for the Preview tab. */
 export const previewTokenAnswerSchema = z.object({ url: z.string(), expires_at: z.string() });

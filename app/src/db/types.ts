@@ -1262,6 +1262,9 @@ isOneToOne: false
               "id": string,"received_at": string
             }[]
                            },
+"create_property_editorial":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_address": string,"p_city": string,"p_market_slug": string,"p_price"?: number,"p_request_id": string,"p_title": string,"p_type": Database["public"]['Enums']["property_type"] }; Returns: Json
+                           },
 "create_property_from_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: Json
                            },
