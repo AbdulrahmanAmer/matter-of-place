@@ -43,5 +43,13 @@
     "replace": "  .min(1);",
     "run": "bunx vitest run --project unit tests/unit/workforce.test.ts",
     "expect": "× .*refuses a handle with capitals or spaces"
+  },
+  {
+    "id": "w1-f-off-skipped",
+    "kind": "sql",
+    "test": "tests/db/workforce.db.test.ts",
+    "sql": "update public.agents set state = 'off' where slug = 'chief'",
+    "run": "bunx vitest run --project db tests/db/workforce.db.test.ts",
+    "expect": "× .*a team message wakes the named colleagues who are not off"
   }
 ]
