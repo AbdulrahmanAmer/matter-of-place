@@ -75,7 +75,8 @@ export function matterPrompt(input: {
     input.business,
     fenced("THREAD", input.thread),
     'A hire entry is {"slug", "name", "role", "instructions", "model", "wake_on", "tools"}. A media entry makes a voice-over in the brand\'s own voice with the qwen-voiceover skill on this laptop: {"skill": "qwen-voiceover", "name": "short name", "lines": ["each spoken line"]}; a line takes about three seconds per ten words, so a 20 second voice-over is about 60 words. Say in your reply that it is being made; the file\'s path follows in the thread.',
-    'When you are done, end with one JSON object on its own: {"reply": "what you tell the operator, plain and short", "task": "a few words for the office board", "note": "one line worth keeping for next time, or empty", "hire": [], "media": []}.',
+    'To change anything in the admin (a flow, an email, a setting, a market, a story, a request), add an action: {"method": "POST|PUT|PATCH|DELETE", "path": "/api/admin/... exactly as the atlas lists it, with the real ids", "body": {the JSON the route takes}, "why": "one plain line for the operator"}. You make no change yourself: the runner checks each action against the admin and your key, and it waits in Approvals until a person approves it; then the runner makes it and tells you here. At most ten a run. Read a record before you change it, and send the whole value a route replaces.',
+    'When you are done, end with one JSON object on its own: {"reply": "what you tell the operator, plain and short", "task": "a few words for the office board", "note": "one line worth keeping for next time, or empty", "hire": [], "media": [], "actions": []}.',
   ].join("\n\n");
 }
 
