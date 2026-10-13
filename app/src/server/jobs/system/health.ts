@@ -36,6 +36,7 @@ const countsSchema = z.object({
   privacy_due_7d: z.number().default(0),
   // W5: agent keys past their daily alert line (no key is blocked by it).
   agent_keys_over_line: z.number().default(0),
+  agent_runs_waiting: z.number().default(0),
 });
 export type HealthCounts = z.infer<typeof countsSchema>;
 
@@ -134,6 +135,16 @@ export const healthChecks: readonly HealthCheck[] = [
       return failWhenAny(
         (await ctx.counts()).agent_keys_over_line,
         "agent keys made more admin requests in 24 hours than their alert line: check Team and access",
+      );
+    },
+  },
+  {
+    // W5 item 19: a stopped laptop runner or a stuck run leaves the AI team's work undone; a person is told.
+    name: "team_waiting",
+    async run(ctx) {
+      return failWhenAny(
+        (await ctx.counts()).agent_runs_waiting,
+        "AI colleague runs are waiting over 30 minutes or stuck: is the laptop on and the runner running? See Team, Office",
       );
     },
   },
