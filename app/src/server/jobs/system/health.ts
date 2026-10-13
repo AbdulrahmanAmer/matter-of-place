@@ -34,6 +34,8 @@ const countsSchema = z.object({
   dropped_contact_events_24h: z.number().default(0),
   // Gap audit item 29: open privacy requests due within 7 days or past due.
   privacy_due_7d: z.number().default(0),
+  // W5: agent keys past their daily alert line (no key is blocked by it).
+  agent_keys_over_line: z.number().default(0),
 });
 export type HealthCounts = z.infer<typeof countsSchema>;
 
@@ -121,6 +123,17 @@ export const healthChecks: readonly HealthCheck[] = [
       return failWhenAny(
         (await ctx.counts()).privacy_due_7d,
         "privacy requests are due within 7 days or past due: answer them in System, Activity log, Data requests",
+      );
+    },
+  },
+  {
+    // W5 (operator: "the allowance ideology ... I don't like it"; Jay: alert, never block): a key working far more
+    // than usual is told to a person; the key keeps working.
+    name: "agent_requests",
+    async run(ctx) {
+      return failWhenAny(
+        (await ctx.counts()).agent_keys_over_line,
+        "agent keys made more admin requests in 24 hours than their alert line: check Team and access",
       );
     },
   },

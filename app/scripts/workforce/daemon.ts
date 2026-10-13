@@ -33,6 +33,8 @@ import { followMain } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
 import { groundingLines } from "./grounding.ts";
 import { applyHires } from "./hiring.ts";
+import { workforceConfig } from "./config.ts";
+import { liveAlive } from "../matter/live-alive.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -266,6 +268,8 @@ async function runOnce(client: Db): Promise<boolean> {
     p_worker: WORKER,
     // Longer than Matter's longest run (45 minutes at full power), so no other runner claims a run still in work.
     p_lease_seconds: 3000,
+    // W5: while Matter's live session runs, a person's line to Matter is its work.
+    p_skip_live: liveAlive(),
   });
   if (error !== null) throw new Error("workforce: the claim failed");
   const run = claimed[0];
@@ -501,7 +505,7 @@ async function wakeBacklog(client: Db): Promise<void> {
   console.log(`${new Date().toISOString()} backlog run for ${next}`);
 }
 
-const say = (client: Db, thread: string, body: string) =>
+export const say = (client: Db, thread: string, body: string) =>
   client.from("agent_messages").insert({
     thread,
     author_kind: "system",
@@ -511,7 +515,7 @@ const say = (client: Db, thread: string, body: string) =>
   });
 
 /** Gap item 31: each call Matter names is checked against the admin's routes and its key, then waits in Approvals. */
-async function proposeCalls(
+export async function proposeCalls(
   client: Db,
   agent: { id: string },
   runId: string,
@@ -634,7 +638,8 @@ async function pass(client: Db): Promise<void> {
     ran += 1;
   }
   // W2 contract 12: with nothing waiting, one colleague works its open decisions (its backlog).
-  if (ran === 0) await wakeBacklog(client);
+  // W5: the backlog is a laptop switch; off until the Claude allowance resets (decided with Jay, 2026-10-13).
+  if (ran === 0 && workforceConfig().backlog) await wakeBacklog(client);
 }
 
 async function main(): Promise<void> {
