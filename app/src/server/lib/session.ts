@@ -53,8 +53,9 @@ const unavailable = () =>
     "Sign-in is unavailable at the moment. Please try again shortly.",
   );
 
+// Gap audit item 8: the publishable key, never the service-role key; without it sign-in is unavailable (fails closed).
 function project(): { url: string; key: string } {
-  const { SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key } = env;
+  const { SUPABASE_URL: url, SUPABASE_PUBLISHABLE_KEY: key } = env;
   if (url === undefined || key === undefined) throw unavailable();
   return { url, key };
 }
@@ -147,8 +148,8 @@ const authFetch: typeof fetch = Object.assign(
 /**
  * The Auth half of the `@supabase/ssr` client of one request: it reads the session cookies of `request` and records
  * the cookies it writes (sign-in, refresh, sign-out) for `takeIssuedCookies`. Gap audit item 8 (2026-10-12): it is
- * built with the service-role key, so only `.auth` leaves this file and no caller can read or write a table through
- * it; table access goes through `db.ts`.
+ * built with the project's publishable key, and only `.auth` leaves this file, so no caller can read or write a table
+ * through it; table access and every `auth.admin` call go through `db.ts`.
  */
 export function authClient(request: Request) {
   return cookieClient(request).auth;

@@ -24,6 +24,7 @@ const quiet: HealthCounts = {
   dropped_contact_events_24h: 0,
   privacy_due_7d: 0,
   agent_keys_over_line: 0,
+  agent_runs_waiting: 0,
 };
 
 // B16's `site_identity` check reads the shared public state; a complete site keeps it quiet here.
@@ -134,6 +135,7 @@ describe("health job", () => {
       "dropped_unsubscribes",
       "privacy_due",
       "agent_requests",
+      "team_waiting",
       "stale_queue",
       "cron_failures",
       "retention_stalled",
@@ -205,6 +207,15 @@ describe("health job", () => {
     expect([
       statusOf(failing.result, "agent_requests"),
       statusOf(passing.result, "agent_requests"),
+    ]).toEqual(["fail", "ok"]);
+  });
+
+  it("fails team_waiting while an AI colleague run waits or is stuck, and passes at 0 (W5 item 19)", async () => {
+    const failing = await run({ counts: { agent_runs_waiting: 1 } });
+    const passing = await run({ counts: { agent_runs_waiting: 0 } });
+    expect([
+      statusOf(failing.result, "team_waiting"),
+      statusOf(passing.result, "team_waiting"),
     ]).toEqual(["fail", "ok"]);
   });
 

@@ -696,3 +696,39 @@
     }
   }
 }
+
+/* W5 items 7 to 9: the side chat's "now" line, its tabs and its task list. */
+.side-chat__now {
+  margin: 0;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.side-chat__tabs {
+  display: flex;
+  gap: var(--admin-space-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.side-chat__tab {
+  min-height: 44px;
+  padding: 0 var(--admin-space-3);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.side-chat__tab[aria-selected="true"] {
+  border-bottom-color: var(--foreground);
+  color: var(--foreground);
+}
+
+.side-chat__time {
+  color: var(--muted-foreground);
+}
+
+.side-chat__tasks li[data-state="running"] .side-chat__who {
+  color: var(--foreground);
+}

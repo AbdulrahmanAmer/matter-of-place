@@ -63,6 +63,8 @@ const OUTLINES = {
 /** Identifiers, URLs, flags and public values. */
 const NOT_SECRETS = new Set([
   "SUPABASE_URL",
+  // Gap audit item 8: the publishable key ships in browser code by design; a Worker secret only for invariant 2.
+  "SUPABASE_PUBLISHABLE_KEY",
   "SENTRY_DSN",
   "SENTRY_DSN_JOB_RUNNER",
   "MOP_ENV",

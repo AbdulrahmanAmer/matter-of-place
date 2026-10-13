@@ -32,6 +32,7 @@ import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } f
 import { followMain } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
 import { groundingLines } from "./grounding.ts";
+import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
 import { workforceConfig } from "./config.ts";
@@ -252,6 +253,11 @@ function promptFor(
     ...(lessons === "" ? [] : [lessons]),
     `Your colleagues: ${team.map((member) => `@${member.slug} (${member.name}, ${member.role})`).join("; ")}. Mention a colleague with @handle to hand them work.`,
     `You may: ${may.join(", ")}. Anything that leaves the company (a reply, a post, a newsletter) is a proposal a person approves; you never send it yourself.`,
+    ...(agent.tools.includes("admin_call")
+      ? [
+          `To change something in the admin, add to your JSON an "actions" list: {"method", "path" with the real id, "body", "why"}. Only these routes are yours: ${(colleagueRoutes[agent.slug] ?? []).join(", ")}. Read the record first. Each waits in Approvals until a person approves it; you never make it yourself.`,
+        ]
+      : []),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
   ].join("\n\n");
@@ -391,6 +397,12 @@ async function runOnce(client: Db): Promise<boolean> {
       });
     }
     if (isMatter) await proposeCalls(client, agent, run.id, thread, result.actions);
+    // W5 item 12: a colleague with admin_call proposes calls on its own routes only; the rest are refused and said.
+    if (!isMatter && agent.tools.includes("admin_call")) {
+      const { allowed, refused } = colleagueCalls(agent.slug, result.actions);
+      if (refused.length > 0) await say(client, thread, `Not proposed: ${refused.join("; ")}.`);
+      await proposeCalls(client, agent, run.id, thread, allowed);
+    }
     for (const proposal of result.proposals) {
       if (!agent.tools.includes(allowedProposal[proposal.action] ?? "")) continue;
       const content = proposal.content;

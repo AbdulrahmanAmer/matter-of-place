@@ -17,6 +17,10 @@ regexes = [
   '''^whsec_dGVzdC1zZWNyZXQt[A-Za-z0-9+/]*=*$''',
   # The example signing secret of Svix's verification documentation, used by resend-signature.test.ts.
   '''^whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw$''',
+  # The project's Supabase publishable key (gap audit item 8, 2026-10-13): public by design, it ships in browser code
+  # and only signs a person in. It sat in wrangler.toml for one commit (f3e6b151) before it became a Worker secret, and
+  # pushed history is never rewritten. Only this exact value; any other key is still reported.
+  '''^sb_publishable_Z0KVVx1WQMjq5Kk24avLSg_VVJoY0D2$''',
 ]
 
 [[allowlists]]

@@ -183,6 +183,23 @@ export function nextSession(
 }
 
 /** Jay's rotation: a session that has run six turns or a day starts over, seeded from the state file. */
+/** The open background tasks after one task event: a start adds its key, a finish removes it. */
+export function openTasks(
+  open: ReadonlySet<string>,
+  event: { id: string; label: string; state: "started" | "done" },
+): Set<string> {
+  const next = new Set(open);
+  const key = event.id === "" ? event.label : event.id;
+  if (event.state === "started") next.add(key);
+  else next.delete(key);
+  return next;
+}
+
+/** Idle means no line in hand and no background task still running; only then may the session rotate or move. */
+export function isIdle(active: number, open: number): boolean {
+  return active === 0 && open === 0;
+}
+
 export function shouldRotate(record: SessionRecord | null, now: number): boolean {
   return (
     record !== null &&
@@ -238,6 +255,8 @@ class Supervisor {
   private child: ChildProcessWithoutNullStreams | null = null;
   private buffer = "";
   private active: { runId: string; thread: string }[] = [];
+  /** Background tasks started and not yet reported back; they die with the session. */
+  private open = new Set<string>();
   private lastOutput = Date.now();
   private crashes: number[] = [];
   private readonly head = runnerHead();
@@ -323,6 +342,8 @@ class Supervisor {
         await this.setTask(
           event.state === "started" ? `Background: ${event.label}` : `Finished: ${event.label}`,
         );
+        this.open = openTasks(this.open, event);
+        await this.recordTask(event);
       } else if (event.kind === "result") {
         await this.onResult(event);
       }
@@ -391,6 +412,8 @@ class Supervisor {
     this.child = null;
     const runs = this.active;
     this.active = [];
+    this.open = new Set();
+    await this.stopRunningTasks();
     if (this.rotating) {
       this.rotating = false;
       console.log(`${new Date().toISOString()} live: rotated to a new session`);
@@ -414,6 +437,34 @@ class Supervisor {
     const now = Date.now();
     this.crashes = [...this.crashes.filter((at) => now - at < CRASH_WINDOW_MS), now];
     console.log(`${new Date().toISOString()} live: the session exited (code ${String(code)})`);
+  }
+
+  /** W5 items 7 and 8: a background task as the side chat lists it, keyed by the CLI's task id. */
+  private async recordTask(event: Extract<LiveEvent, { kind: "task" }>): Promise<void> {
+    const key = event.id === "" ? `${event.label}@${new Date().toISOString()}` : event.id;
+    if (event.state === "started") {
+      await this.client
+        .from("agent_activity")
+        .upsert(
+          { agent_id: this.matterId, task_key: key, label: event.label, state: "running" },
+          { onConflict: "agent_id,task_key" },
+        );
+      return;
+    }
+    await this.client
+      .from("agent_activity")
+      .update({ state: "done", finished_at: new Date().toISOString() })
+      .eq("agent_id", this.matterId)
+      .eq("task_key", key);
+  }
+
+  /** A session that ends leaves no task shown as running. */
+  private async stopRunningTasks(): Promise<void> {
+    await this.client
+      .from("agent_activity")
+      .update({ state: "stopped", finished_at: new Date().toISOString() })
+      .eq("agent_id", this.matterId)
+      .eq("state", "running");
   }
 
   /** Jay's first condition: the one-shot runs of Matter (read only) since the last line, so its memory stays true. */
@@ -461,7 +512,7 @@ class Supervisor {
       }
       if (
         this.child !== null &&
-        this.active.length === 0 &&
+        isIdle(this.active.length, this.open.size) &&
         shouldRotate(readSession(), Date.now())
       ) {
         // Rotate while idle: the next line starts a new session seeded from the state file and the notes.
