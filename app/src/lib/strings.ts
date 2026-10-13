@@ -31,6 +31,7 @@ const en = {
     privacy: "Privacy",
     terms: "Terms for Professionals",
     accessibility: "Accessibility",
+    accessibilitySettings: "Accessibility settings",
     doNotSell: "Do Not Sell or Share",
     instagram: "Instagram",
     x: "X",

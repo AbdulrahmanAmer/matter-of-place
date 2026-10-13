@@ -1800,3 +1800,22 @@ first day of the new usage week; no step was cut from any plan.
   knip, jscpd, stubs, prettier pass; unit and component tests 4534 of 4535 pass, the one failure is
   step-specs "run-twice" timing out at 64 s against its 60 s limit under laptop load (file untouched by W4). W4 unit
   tests pass. gitleaks: no leaks. The 3 db tests and w4-a to w4-c replay run in CI. PR opened, not merged by me.
+
+## 2026-10-13 19:45 +0300 370 AND 373 MERGED AND LIVE; PRODUCTION KEY FIXED (P-530 AGAIN); NESTED REPLAY LOCK ON fix/nested-replay-lock
+- Merged today: 365 live Matter, 366 laptop CI (H103), 371 records, 372 harness, 369 office window, 367 publishable key
+  (gap item 8), 370 site scale + privacy categories + accessibility panel, 373 W6 plan. All on the live site after
+  the 16:11 UTC deploy rerun went green (footer "Accessibility settings", head bootstrap, privacy names no vendor).
+- Production deploys at 15:39 and 16:11 UTC failed smoke and rolled back: SUPABASE_PUBLISHABLE_KEY had been put
+  under the shell's personal Cloudflare token (bun --env-file does not override it), so production lacked it.
+  Fixed: versions secret put under the project pair (version fa31beea), dev Worker too, deploy rerun green.
+  Guard: account_id pinned in app/wrangler.toml (hy-wrangler-account) + global shell-shaper refuses bare wrangler
+  in this project. NOT DONE: the stray Worker matter-of-place on the personal account (empty upload + that key,
+  11:54 UTC) awaits the operator's word to delete.
+- PR 356 (Dependabot actions) db job red: B4:ii replays a replay and the P-3444 lock refused the child. Fixed here:
+  WATCHFAIL_PARENT lets a nested replay through its parent's lock (watchfail-lock test 2, ap-j-nested-replay);
+  B4:ii replays OK locally. 356 needs main merged after this lands.
+- P-3451 and P-3453 marked enforced-by (their tests exist), which unblocks the live-supervisor fix (W5 item 5,
+  UNPROVEN: live.ts moves to new code only on rotation). Next: shouldMove + exit while idle on a new HEAD.
+- Harness: shell-shaper no longer backgrounds read-only commands that name a long tool; quoted text is not split.
+- Matter on W4 (feat/w4-email-replies) running his tests at 16:15 UTC; backend 0 dead jobs, 0 overdue.
+- PR 357 (router API + bundle budget) NOT DONE. Repo is PUBLIC until building is done (operator order).

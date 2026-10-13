@@ -9,6 +9,24 @@
   border: 0 solid;
 }
 
+/* The accessibility panel's text size (src/lib/access.ts) draws the public site larger: Larger and Largest. A size
+   taken from the screen's height divides by --site-zoom, so a hero still fills the share of the screen it was designed
+   for. The admin is not scaled. A default below 1 (the 90% the operator asked for, 2026-10-13) was tried and taken
+   out: CSS zoom below 1 draws the 2px focus ring under 2 device px (WCAG 2.4.13) and CI's keyboard tests caught it;
+   the smaller site comes with the redesign, by its type and spacing scale, not by zoom. */
+body:has(.site-header) {
+  --site-zoom: 1;
+  zoom: var(--site-zoom);
+}
+
+:root[data-text="1"] body:has(.site-header) {
+  --site-zoom: 1.12;
+}
+
+:root[data-text="2"] body:has(.site-header) {
+  --site-zoom: 1.25;
+}
+
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
