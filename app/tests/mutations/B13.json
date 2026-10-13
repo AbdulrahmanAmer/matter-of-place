@@ -2193,8 +2193,8 @@
     "id": "b13-g2-stale-new-isolate",
     "test": "tests/unit/seo-cache.test.ts",
     "file": "src/server/public/cache.ts",
-    "find": "return answer(request, kept, kind, \"stale\");",
-    "replace": "return answer(request, kept, kind, \"hit\");",
+    "find": "  if (kept !== undefined) return answer(request, kept, kind, \"stale\");",
+    "replace": "  if (kept !== undefined) return answer(request, kept, kind, \"hit\");",
     "run": "bunx vitest run --project unit tests/unit/seo-cache.test.ts",
     "expect": "FAIL .*in a new isolate that cannot read the database"
   },

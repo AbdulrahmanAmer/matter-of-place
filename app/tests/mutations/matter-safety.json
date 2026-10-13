@@ -46,8 +46,8 @@
     "id": "ms-e-only-the-runner",
     "test": "tests/unit/follow.test.ts",
     "file": "scripts/workforce/follow.ts",
-    "find": "  if (!existsSync(marker) || !same(readFileSync(marker, \"utf8\").trim(), app)) return \"not the runner\";",
-    "replace": "  if (!existsSync(marker)) return \"not the runner\";",
+    "find": "  if (!existsSync(marker) || !same(readFileSync(marker, \"utf8\").trim(), app))\n",
+    "replace": "  if (!existsSync(marker))\n",
     "run": "bunx vitest run --project unit tests/unit/follow.test.ts",
     "expect": "× .*moves only the registered runner"
   }

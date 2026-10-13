@@ -97,7 +97,8 @@ describe("the admin route registry", () => {
         (route.tag.auth === "session" && !actions.has(route.tag.action)),
     );
     expect(wrong).toEqual([]);
-  });
+    // It imports every admin route file cold: past 5 s on the laptop (2026-10-13, as the service probe).
+  }, 30_000);
 
   it("gives every matrix action a route, apart from the ones a later step adds", async () => {
     const routed = new Set((await loadAdminRoutes()).map((route) => route.tag?.action));
@@ -106,7 +107,7 @@ describe("the admin route registry", () => {
     );
     const stale = routesPending.filter((action) => routed.has(action));
     expect({ missing, stale }).toEqual({ missing: [], stale: [] });
-  });
+  }, 30_000);
 
   it("derives each path from the file name as TanStack does", () => {
     expect([
