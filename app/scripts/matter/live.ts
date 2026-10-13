@@ -207,18 +207,22 @@ function killTree(pid: number | undefined): void {
   spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true });
 }
 
+/** Whether a process id is running: signal 0 tests it without touching it. */
+function processAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function lockOrExit(): void {
   mkdirSync(MATTER_HOME, { recursive: true });
   if (existsSync(LOCK_FILE)) {
     const pid = Number(readFileSync(LOCK_FILE, "utf8").trim());
-    const alive =
-      Number.isInteger(pid) &&
-      pid > 0 &&
-      spawnSync("tasklist", ["/FI", `PID eq ${String(pid)}`], {
-        encoding: "utf8",
-        windowsHide: true,
-      }).stdout.includes(String(pid));
-    if (alive) process.exit(0);
+    if (Number.isInteger(pid) && pid > 0 && pid !== process.pid && processAlive(pid))
+      process.exit(0);
   }
   writeFileSync(LOCK_FILE, String(process.pid));
 }
