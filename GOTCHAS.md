@@ -7907,3 +7907,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, PR 354: the top bar's search input carried `aria-controls={listId}` while its results list rendered only when open; axe's `aria-valid-attr-value` failed 10 end-to-end tests on every admin screen. The component tests and lint passed, since only the Playwright run calls axe.
 - rule: an `aria-controls`, `aria-activedescendant` or `aria-describedby` points only at an element in the page at that moment; spread it in with the condition that renders the target (`{...(shown ? { "aria-controls": id } : {})}`).
 - proof: the e2e job of PR 354's run 38338365639 lists `/admin/assets | aria-valid-attr-value | input` with the unconditional attribute.
+
+## P-3451 · An agent believes its prompt over its tools: a power change must change the words too
+- paths: app/scripts/matter/**, app/scripts/workforce/**
+- severity: block
+- symptom: 2026-10-13 09:17 Cairo, the first operator message after H100 and H101: the runner gave Matter full power (`settings-full.json`), but `matterPrompt` still opened with the fixed paragraph "safe mode ... You cannot run commands, edit files or call the admin API". Matter answered "I couldn't build this myself. In my current safe mode..." and wrote a plan instead of building, without trying a tool.
+- rule: whatever decides an agent's tools also decides the sentence that tells the agent what it can do; pass the same value to both (`matterPrompt({ ..., power })` and `askMatter(..., power)`), and test the words for each mode.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter.test.ts -t "tells Matter the power it really has"` → 1 passed; registry `mp-h-prompt-says-power` goes red when the full-power words are never chosen.
