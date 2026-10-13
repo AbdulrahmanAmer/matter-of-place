@@ -7914,3 +7914,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 09:17 Cairo, the first operator message after H100 and H101: the runner gave Matter full power (`settings-full.json`), but `matterPrompt` still opened with the fixed paragraph "safe mode ... You cannot run commands, edit files or call the admin API". Matter answered "I couldn't build this myself. In my current safe mode..." and wrote a plan instead of building, without trying a tool.
 - rule: whatever decides an agent's tools also decides the sentence that tells the agent what it can do; pass the same value to both (`matterPrompt({ ..., power })` and `askMatter(..., power)`), and test the words for each mode.
 - proof: `cd app && bunx vitest run --project unit tests/unit/matter.test.ts -t "tells Matter the power it really has"` → 1 passed; registry `mp-h-prompt-says-power` goes red when the full-power words are never chosen.
+
+## P-3452 · An answer reader that cuts from the first "{" drops the closing JSON when the prose holds braces
+- paths: app/scripts/workforce/**
+- severity: block
+- symptom: 2026-10-13 09:29 Cairo, test 2 (a colleague's line asking Matter for a subject-line proposal): Matter wrote "We have received {{property_address}}" in its prose and ended with a valid JSON object holding one admin action. `readJsonAnswer` sliced from the first "{" (inside the prose) to the last "}", the parse failed, the fallback made the whole text the reply, and the action was dropped while Matter's reply said "filed in Approvals". Approvals stayed empty.
+- rule: read an agent's closing object by trying each "{" from the left until one slice parses against the schema; never assume the first brace starts the object. A run whose reply promises an action that no row backs is a defect to look for in every end-to-end test.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-answer.test.ts` → 2 passed; registry `mp-i-answer-braces` goes red when only the first "{" is tried.
