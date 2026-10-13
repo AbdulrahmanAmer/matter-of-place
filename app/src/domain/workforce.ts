@@ -157,7 +157,7 @@ export const scoreSchema = z.object({
 export type Score = z.infer<typeof scoreSchema>;
 
 /** W5 items 7 and 8: one background task an AI colleague runs, as the side chat lists it. */
-export const activitySchema = z.object({
+const activitySchema = z.object({
   id: z.string().uuid(),
   agent_slug: z.string(),
   label: z.string(),
@@ -165,7 +165,6 @@ export const activitySchema = z.object({
   started_at: z.string(),
   finished_at: z.string().nullable(),
 });
-export type Activity = z.infer<typeof activitySchema>;
 
 export const officeSchema = z.object({
   agents: z.array(agentSchema),
