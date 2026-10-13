@@ -34,6 +34,7 @@ import { readJsonAnswer } from "./answer.ts";
 import { groundingLines } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
+import { checkMail } from "./mail.ts";
 import { workforceConfig } from "./config.ts";
 import { liveAlive } from "../matter/live-alive.ts";
 
@@ -641,6 +642,12 @@ async function pass(client: Db): Promise<void> {
     }
   }
   await makeApprovedCalls(client);
+  // W4: replies to our email reach their colleague; a mailbox that fails never stops the runs.
+  const replies = await checkMail(client, HOME).catch((failure: unknown) => {
+    console.log(failure instanceof Error ? failure.message : String(failure));
+    return 0;
+  });
+  if (replies > 0) console.log(`${new Date().toISOString()} replies ${String(replies)}`);
   const woke = await wakeOnEvents(client);
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
   // Up to five runs a pass, one after another; the scheduled task starts the next pass a minute later.

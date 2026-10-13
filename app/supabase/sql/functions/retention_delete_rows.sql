@@ -41,6 +41,8 @@ begin
     when 'agent_runs_finished' then
       $r$public.agent_runs where state in ('done', 'failed') and finished_at < now() - $1$r$
     when 'agent_messages' then 'public.agent_messages where created_at < now() - $1'
+    -- W4: an email reply names a person and quotes them, so it is deleted, not anonymised.
+    when 'email_replies' then 'public.email_replies where received_at < now() - $1'
   end;
   if v_rows is null then
     raise exception 'bad_request';

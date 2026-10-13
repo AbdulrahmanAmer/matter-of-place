@@ -94,6 +94,9 @@ begin
   values ('test_rls_' || v_user, 'transactional', 'Test', '[]');
   insert into public.email_messages (template_key, kind, to_email)
   values ('received', 'transactional', 'test-rls-' || v_user || '@example.test');
+  -- W4: a reply read from the mailbox (written only by email_reply_record in production).
+  insert into public.email_replies (provider_id, from_email, received_at)
+  values ('test-rls-' || v_user, 'test-rls-' || v_user || '@example.test', now());
   insert into public.email_suppressions (email, reason) values ('test-rls-' || v_user || '@example.test', 'manual');
   insert into public.email_events (provider_event_id, type, at) values ('test-rls-' || v_user, 'email.sent', now());
   insert into public.newsletter_issues (number, status)

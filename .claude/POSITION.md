@@ -1795,6 +1795,11 @@ first day of the new usage week; no step was cut from any plan.
   to merge; 357 needs a router and bundle slice (fix/deps-router, E:/mop-build/deps); 356 rebase asked.
 - Operator idea: Ubuntu 24.04 on his second laptop as a build machine and a self-hosted GitHub runner, which would end
   H103 without a card. Waiting for him to install it.
+- 2026-10-13 W4 (W5 item 6) finished on feat/w4-email-replies: origin/main merged (one conflict, check-layout.mjs
+  workforce list, kept both colleague-calls.ts and mail.ts), mail.ts lint fix committed. Check: layout, typecheck, lint,
+  knip, jscpd, stubs, prettier pass; unit and component tests 4534 of 4535 pass, the one failure is
+  step-specs "run-twice" timing out at 64 s against its 60 s limit under laptop load (file untouched by W4). W4 unit
+  tests pass. gitleaks: no leaks. The 3 db tests and w4-a to w4-c replay run in CI. PR opened, not merged by me.
 
 ## 2026-10-13 19:45 +0300 370 AND 373 MERGED AND LIVE; PRODUCTION KEY FIXED (P-530 AGAIN); NESTED REPLAY LOCK ON fix/nested-replay-lock
 - Merged today: 365 live Matter, 366 laptop CI (H103), 371 records, 372 harness, 369 office window, 367 publishable key
