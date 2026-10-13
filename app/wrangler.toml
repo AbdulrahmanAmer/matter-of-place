@@ -14,6 +14,9 @@ crons = ["*/10 * * * *"]
 [vars]
 MOP_ENV = "production"
 MEDIA_PUBLIC_BASE = "https://matterofplace.com/media"
+# Gap audit item 8: the Auth cookie client's key. A publishable key is public by design (it ships in browser code);
+# it can sign a person in and nothing more, so the service-role key never builds a client a request can reach.
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Z0KVVx1WQMjq5Kk24avLSg_VVJoY0D2"
 
 # Gap audit item 20: Workers Logs with per-request CPU and wall time, every request kept (head_sampling_rate 1). The free
 # plan keeps 200,000 events a day; the site serves far fewer. Lower the rate before raising any limit.
