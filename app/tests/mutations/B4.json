@@ -1199,10 +1199,10 @@
     "id": "p",
     "test": "tests/unit/perf-budget.test.ts",
     "file": "lighthouserc.json",
-    "find": "163840",
+    "find": "180224",
     "replace": "1000000",
     "run": "bunx vitest run tests/unit/perf-budget.test.ts",
-    "expect": "163840"
+    "expect": "180224"
   },
   {
     "id": "p-document",
@@ -1235,10 +1235,10 @@
     "id": "p-budget-script",
     "test": "tests/unit/perf-budget.test.ts",
     "file": "budget.json",
-    "find": "\"scriptBytes\": 163840",
+    "find": "\"scriptBytes\": 180224",
     "replace": "\"scriptBytes\": 140000",
     "run": "bunx vitest run tests/unit/perf-budget.test.ts",
-    "expect": "expected 140000 to be 163840"
+    "expect": "expected 140000 to be 180224"
   },
   {
     "id": "p-url",

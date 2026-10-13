@@ -12,7 +12,9 @@ async function redirectOf(path: string) {
     history: createMemoryHistory({ initialEntries: [path] }),
   });
   await router.load();
-  return router.state.redirect;
+  // Router 1.170.41: a server load keeps its redirect on `_serverResult`, as the framework's request handler reads it.
+  const result = router._serverResult;
+  return result?.type === "redirect" ? result.redirect : undefined;
 }
 
 /** One slash, then not a second slash or a backslash: no scheme, no host. */
