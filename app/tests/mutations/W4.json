@@ -1,0 +1,53 @@
+[
+  {
+    "id": "w4-a-own-mail",
+    "test": "tests/unit/workforce-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "  if (address === \"\" || address.endsWith(`@${OWN_DOMAIN}`)) return true;",
+    "replace": "  if (address === \"\") return true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-mail.test.ts",
+    "expect": "× .*skips bounces, out-of-office answers, no-reply senders and our own mail"
+  },
+  {
+    "id": "w4-b-quoted-history",
+    "test": "tests/unit/workforce-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "    /(^|\\n)[^\\n]*On [^\\n]{0,200}(\\n[^\\n]{0,200})?wrote:/,",
+    "replace": "    /(^|\\n)On never wrote:/,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-mail.test.ts",
+    "expect": "× .*keeps the new words and cuts the quoted email under them"
+  },
+  {
+    "id": "w4-c-quote-marks",
+    "test": "tests/unit/workforce-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "    /(^|\\n)>/,",
+    "replace": "    /(^|\\n)>>>>>/,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-mail.test.ts",
+    "expect": "× .*cuts a quoted history marked with > or an Original Message line"
+  },
+  {
+    "id": "w4-d-owner-editor",
+    "kind": "sql",
+    "test": "tests/db/email-replies.db.test.ts",
+    "sql": "update public.agents set state = 'off' where slug = 'editor'",
+    "run": "bunx vitest run --project db tests/db/email-replies.db.test.ts",
+    "expect": "× .*matches the send whose subject the reply carries"
+  },
+  {
+    "id": "w4-e-stranger",
+    "kind": "sql",
+    "test": "tests/db/email-replies.db.test.ts",
+    "sql": "insert into public.email_messages (template_key, kind, to_email, subject, status, entity, entity_id) values ('received', 'transactional', 'stranger.w4@example.com', 'Hello', 'sent', 'inquiry', gen_random_uuid())",
+    "run": "bunx vitest run --project db tests/db/email-replies.db.test.ts",
+    "expect": "× .*stores nothing from someone we never wrote to"
+  },
+  {
+    "id": "w4-f-owner-concierge",
+    "kind": "sql",
+    "test": "tests/db/email-replies.db.test.ts",
+    "sql": "update public.agents set state = 'off' where slug = 'concierge'",
+    "run": "bunx vitest run --project db tests/db/email-replies.db.test.ts",
+    "expect": "× .*keeps a reply's words inside the fence"
+  }
+]

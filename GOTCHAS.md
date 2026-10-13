@@ -7919,6 +7919,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: the e2e job of PR 354's run 38338365639 lists `/admin/assets | aria-valid-attr-value | input` with the unconditional attribute.
 - added: 2026-10-13
 
+## G-1311 · A plain string literal continued on the next line by an `E'...'` literal is a syntax error in SQL
+- paths: app/supabase/sql/functions/**
+- severity: warn
+- symptom: 2026-10-13, W4: `email_reply_record`'s `format()` text was three literals on three lines, the middle one plain and the last `E'...'`; the throwaway cluster refused the migration with `syntax error at or near "E'<<<OUTSIDE EMAIL ..."`. Lint, typecheck and the unit tests cannot see it; only the CI `db` job would have.
+- cause: Postgres joins adjacent literals separated by a newline only when the later ones carry no prefix; an `E` on a continuation starts a new token.
+- rule: join literal pieces with `||` whenever any piece is an `E'...'` string, and dry-run every new function file on a throwaway native cluster (P-718 recipe, stubbing only the tables it names) before pushing.
+- proof: a file holding `select 'a'` and, on the next line, `E'b';` run with `psql -f` → `syntax error at or near "E'b'"`; `select 'a' || E'b';` → `ab` (W4, 2026-10-13).
+- added: 2026-10-13
+
 ## P-3451 · An agent believes its prompt over its tools: a power change must change the words too
 - paths: app/scripts/matter/**, app/scripts/workforce/**
 - severity: block
@@ -7984,4 +7993,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - enforced-by: .claude/hooks/edit-impact.mjs, .claude/hooks/shell-shaper.mjs, .claude/hooks/turn-checklist.mjs
 - hit again: 2026-10-13 19:00, the other way: shell-shaper sent every `grep ... watchfail.mjs` and `git show ...:watchfail.mjs` to the background because the long-command list matched the file name in an argument, so each read cost a round trip. It now tests the list only on the pieces of a command that are not readers (grep, sed, cat, git show and the like); a shell-shaper test covers it.
 - hit again: 2026-10-13 20:05, PR 375: `scripts/watchfail.mjs` read `process.env.WATCHFAIL_PARENT`, the scripts tsc (`tsconfig.scripts.json`, CI's check job) refused it (TS4111), one CI round lost; only eslint and prettier had run locally. edit-impact now names `bunx tsc --noEmit -p tsconfig.scripts.json` as the companion of any edit under `app/scripts/` (edit-impact test, watched red without the rule).
+- added: 2026-10-13
+
+## P-3460 · A merge chained with `;` committed its own conflict markers, and a full `bun run check` outlasts the 30 minute background limit
+- symptom: 2026-10-13, W4 merge of origin/main: the script that resolved check-layout.mjs failed to start (a /tmp path Git Bash and Windows node read differently), the `;` after it still ran `git commit --no-edit`, and the merge commit held `<<<<<<<` lines. Caught by reading the file, amended before any push. Separately, `bun run check` on the loaded laptop took over 30 minutes and was killed at the default background limit during the vitest step; `bun run test` alone then ran 2057 s and step-specs.test.ts (hard-coded 60 s) timed out at 64 s.
+- rule: resolve a conflict with the Edit tool, then `grep -c '^<<<<<<<'` the file, and only then commit; chain with `&&`, never `;`, when a later step commits. Start a full check with `timeout: 7200000`. On the loaded laptop a vitest timeout of the 60 s kind is load, not a fault: rerun that file alone, and let CI decide.
+- proof: `grep -rn '^<<<<<<<' app/scripts` prints nothing after the merge; `tail /tmp/w4-test.log` shows `Test Files  1 failed | 400 passed (401)` with `Test timed out in 60000ms`.
 - added: 2026-10-13
