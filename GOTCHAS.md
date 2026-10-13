@@ -7885,3 +7885,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, feat/matter-actions: the merge of origin/main into the branch conflicted in `app/src/styles/admin/automation.css` (both added a block at the end); the keep-both script joined the sides inside the conflict lines, so `.admin-email-head p {` lost its `}` and swallowed `.admin-ask-matter`. ESLint and the tests do not read CSS; only `format:check` (prettier) said `CssSyntaxError: Unclosed block (1003:1)`, a full check later.
 - rule: after resolving any conflict in a `.css` file by keeping both sides, run `bunx prettier --check <file>` before the merge commit, and `git diff origin/main -- <file>` must show additions only.
 - proof: `cd app && bunx prettier --check src/styles/admin/automation.css` → `All matched files use Prettier code style!` at 991cedbc; at 835b9cb8 it prints the `Unclosed block` error (measured 2026-10-13 02:55 Cairo).
+
+## P-3449 · A private repo on the free plan gets 2,000 Actions minutes a month; the build week spent about 15,000
+- paths: (process)
+- severity: block
+- symptom: 2026-10-13, before the operator switches the repo back to private: a week of runs (2,166) estimated by workflow, run count times the mean billed job minutes of 8 recent runs: ci 598 runs at about 20 minutes, deploy 923 runs at about 3.4, about 15,000 job minutes a week, about 65,000 a month. A public repo's minutes are free; a private one on the free plan stops all workflows (CI, deploy, nightly backup, render) when its 2,000 are spent.
+- rule: switch to private only after the build PRs stop; after that, budget about 23 minutes per pull request (CI plus deploy) plus about 40 a month for backups and audits, so fewer than about 80 pull requests a month. Measure again with `scratchpad/actions-estimate.mjs` before the switch, and watch the account's billing page in the first week.
+- proof: `node scratchpad/actions-estimate.mjs` → `TOTAL about 15234 job minutes a week, about 65289 a month (private free plan: 2,000)` (measured 2026-10-13 05:00 Cairo).
+
+## P-3450 · A unit test that imports every route or service file cold runs past vitest's 5-second limit on the laptop
+- paths: app/tests/unit/**
+- severity: warn
+- symptom: 2026-10-13: `admin-authz-sweep.test.ts` (every `service.ts`, 5.6 s) and `admin-routes-parity.test.ts` (every admin route) timed out locally under a replay; their watched-fails reported `wrong reason` (a timeout, not the expected failure). CI on Linux was fast enough, so the full check passed while a replay failed.
+- rule: a test that imports a whole folder of modules sets its own limit (`it(..., 30_000)`), with a comment naming the measured time; a replay `wrong reason` whose red run says `Test timed out` is this, not a weak assertion.
+- proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts --reporter verbose` → `refuse a roleless actor ... 5734ms`; with `30_000` the file passes under load.
