@@ -1,20 +1,39 @@
 # Matter of Place
 
 A selective real-estate media platform for exceptional residential property in California, New York and Florida.
-We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: matterofplace.com (not live yet).
+We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: [matterofplace.com](https://matterofplace.com) (live, coming-soon mode).
 
-**Where we are:** the build is running. The website shell, the deploy pipeline, the database (33 tables, policies, functions, seeded with illustrative properties), the public write functions, the job system (runner, cron, health) and the creative render scripts are on `main` and deploy themselves to a dev address on every merge. The public API, the admin portal, email, social posting, the newsletter and the audit robot are being built now, one proven step at a time; every step is reviewed by a fresh agent and merged through a gate. Production shows nothing until the launch switch. The numbers below come from the build board and are rewritten with every update.
+**Where we are (2026-10-13):** live since 2026-10-11 (stage 5, LAUNCH). matterofplace.com serves the public site in
+coming-soon mode (no illustrative property, per-market interest signups), with the admin portal at `/admin`, the
+database, the job system, email, the automation console, invoices, the newsletter and the AI staff (Matter and his
+colleagues, run from the operator's laptop) all running on their own. Every merge to `main` deploys itself and is
+smoke-tested; a failed smoke rolls back.
+
+- Merged today: the accessibility panel and privacy wording (370), the sign-in key fix (367, gap audit item 8), the
+  office window (369), laptop CI and backups (366), live Matter (365), the W6 plan (373). All on the live site.
+- In progress: Matter teaching the AI staff to read email replies (W4); the router upgrade (PR 357, NOT DONE); the
+  GitHub Actions bump (PR 356); Matter's live session moving to new code without a restart (W5 item 5, UNPROVEN).
+- Next: W6 (staff that watch their own usage, a system map, Matter building the rest and learning from it, a client
+  room), after the weekly Claude allowance resets on Saturday.
+- Waiting on the operator: the social accounts (Instagram, X, LinkedIn) and the first real listing, which proves the
+  submission-to-publish path end to end.
+- On the operator's own measure (21 items, social accounts left out): 13 merged, 8 of them observed working live,
+  3 in progress, 5 waiting on Saturday's reset or the first real listing.
+
+The numbers below come from the build board. They count plan steps accepted through the lane reviews, which ended on
+2026-10-13; work built after that (invoices B6, the newsletter B11, Matter's own work) exists in the code but is not
+counted there.
 
 <!-- progress:start -->
-**Progress (updated 2026-10-07 11:45, from the build board; parked at 94 percent usage):** 170 of 259 planned steps accepted (66%; 28 accepted by the reviewer and waiting for the orchestrator's re-run), 9 of 22 slices closed, 0 steps in work until the account switch.
+**Progress (updated 2026-10-13, from the build board):** 205 of 262 planned steps accepted (78.2%), 13 of 23 slices closed, 1 steps in work.
 
 | Arm | To launch | What it covers |
 |---|---|---|
-| Website | 63.9% | pages, forms, the public API they call, SEO, legal pages |
-| Admin portal | 56.1% | screens, actions, roles and permissions |
-| Backend logic and automation | 60.5% | jobs, recipes, cross-wiring, content pipelines, email |
-| Database | 60.4% | tables, functions, triggers, policies, migrations |
-| Deployment and operations | 65.5% | CI, deploys, backups, monitoring, the launch switch |
+| Website | 84.4% | pages, forms, the public API they call, SEO, legal pages |
+| Admin portal | 82.5% | screens, actions, roles and permissions |
+| Backend logic and automation | 82.7% | jobs, recipes, cross-wiring, content pipelines, email |
+| Database | 82.5% | tables, functions, triggers, policies, migrations |
+| Deployment and operations | 83% | CI, deploys, backups, monitoring, the launch switch |
 
 | Slice | What | Accepted | |
 |---|---|---|---|
@@ -23,22 +42,25 @@ We curate it, frame it, publish it, distribute it. A product of Omnikom. Site: m
 | B3b | Coming-soon mode | 10 of 10 | 100% |
 | B4 | Tests | 10 of 10 | 100% |
 | B5 | Email | 10 of 10 | 100% |
+| B7 | Admin workspace | 20 of 20 | 100% |
+| B8 | Job system | 14 of 14 | 100% |
+| B8b | Automation console | 11 of 11 | 100% |
+| B9 | Creative system | 11 of 11 | 100% |
 | B12 | Reel | 9 of 9 | 100% |
+| B13 | SEO, AEO, GEO | 13 of 13 | 100% |
 | B15 | Omnikom handoff | 7 of 7 | 100% |
-| B1b | Repo and delivery | 14 of 16 | 87.5% |
-| B7 | Admin workspace | 4 of 20 | 20% |
-| B8 | Job system | 11 of 14 | 78.6% |
-| B8b | Automation console | 6 of 11 | 54.5% |
-| B9 | Creative system | 9 of 11 | 81.8% |
-| B13 | SEO, AEO, GEO | 7 of 13 | 53.8% |
-| B14 | Audit robot | 3 of 9 | 33.3% |
-| B16 | Legal identity | 2 of 8 | 25% |
-| B17 | Website essentials and compliance (the must-haves of any professional site) | 7 of 12 | 58.3% |
+| B16 | Legal identity | 8 of 8 | 100% |
+| B1b | Repo and delivery | 15 of 16 | 93.8% |
+| B10 | Social publishing | 9 of 16 | 56.3% |
+| B14 | Audit robot | 6 of 9 | 66.7% |
+| B17 | Website essentials and compliance (the must-haves of any professional site) | 9 of 12 | 75% |
+| H1 | HARDEN checklist | 7 of 11 | 63.6% |
+| L1 | LAUNCH | 3 of 11 | 27.3% |
 
-Not started yet: B6 (Money box), B10 (Social publishing), B11 (Newsletter), H1 (HARDEN checklist), H2 (Acceptance panel: the whole site walked through by three senior agents), L1 (LAUNCH).
+Not started yet: B6 (Money box), B11 (Newsletter), B18 (Exposure products as a database setting), H2 (Acceptance panel: the whole site walked through by three senior agents).
 <!-- progress:end -->
 
-How the build works: 22 plans (`workspace/05-plans/`) broken into steps, each with a proof; lanes build in parallel on this laptop, a reviewer in a fresh context tries to refute each group, a merge gate refuses anything without green checks, and an acceptance panel (plan H2) walks the finished site end to end before launch. Decisions: [PROJECT-STATE.md](PROJECT-STATE.md). Things that already bit us: [GOTCHAS.md](GOTCHAS.md). Position of the work: [.claude/POSITION.md](.claude/POSITION.md).
+How the build works: plans in `workspace/05-plans/` broken into steps, each with a proof. The parallel lanes were retired on 2026-10-13; work now lands as single pull requests (the orchestrator's, and Matter's from his desk), each merged only through a gate that refuses anything without green checks and a replayed watched-fail for every new test. Decisions: [PROJECT-STATE.md](PROJECT-STATE.md). Things that already bit us: [GOTCHAS.md](GOTCHAS.md). Position of the work: [.claude/POSITION.md](.claude/POSITION.md).
 
 ## The whole system in one picture
 Solid boxes exist today; dashed boxes are what we build.
@@ -109,7 +131,7 @@ inquiries, subscribers with market interest, analytics) · commercial (payments,
 | matterofplace.com | done: registered at Namecheap, DNS on Cloudflare nameservers | everything |
 | Cloudflare | done: account under admin@matterofplace.com, zone active on Free, mail records imported, TLS and security hardened, deploy token and owner token issued. Previews use holy-meadow-4327.workers.dev | wave 1 |
 | Storage (photos, uploads, documents) | done: Supabase Storage buckets, no R2 (decision S57) | waves 2, 5, 7 |
-| GitHub | done: private repository, Actions enabled and secrets set. No branch protection and no Environments on this plan, so merge review is the gate | wave 1 |
+| GitHub | done: repository public for now (Actions minutes; the operator switches it back to private when building is done), Actions enabled and secrets set. No branch protection and no Environments on this plan, so merge review is the gate | wave 1 |
 | Turnstile | done: widget "matterofplace.com forms" | wave 2 |
 | Company email | done: Zoho Mail free plan, admin@matterofplace.com sends and receives; SPF, DKIM, DMARC set | everything |
 | Supabase (database) | done: one project `mop-dev`, the build database now and production after the launch switch (decision S60); 33 tables, policies, functions, cron and the job runner deployed | everything |
