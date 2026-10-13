@@ -7907,3 +7907,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, PR 354: the top bar's search input carried `aria-controls={listId}` while its results list rendered only when open; axe's `aria-valid-attr-value` failed 10 end-to-end tests on every admin screen. The component tests and lint passed, since only the Playwright run calls axe.
 - rule: an `aria-controls`, `aria-activedescendant` or `aria-describedby` points only at an element in the page at that moment; spread it in with the condition that renders the target (`{...(shown ? { "aria-controls": id } : {})}`).
 - proof: the e2e job of PR 354's run 38338365639 lists `/admin/assets | aria-valid-attr-value | input` with the unconditional attribute.
+
+## G-1311 · A plain string literal continued on the next line by an `E'...'` literal is a syntax error in SQL
+- paths: app/supabase/sql/functions/**
+- severity: warn
+- symptom: 2026-10-13, W4: `email_reply_record`'s `format()` text was three literals on three lines, the middle one plain and the last `E'...'`; the throwaway cluster refused the migration with `syntax error at or near "E'<<<OUTSIDE EMAIL ..."`. Lint, typecheck and the unit tests cannot see it; only the CI `db` job would have.
+- cause: Postgres joins adjacent literals separated by a newline only when the later ones carry no prefix; an `E` on a continuation starts a new token.
+- rule: join literal pieces with `||` whenever any piece is an `E'...'` string, and dry-run every new function file on a throwaway native cluster (P-718 recipe, stubbing only the tables it names) before pushing.
+- proof: a file holding `select 'a'` and, on the next line, `E'b';` run with `psql -f` → `syntax error at or near "E'b'"`; `select 'a' || E'b';` → `ab` (W4, 2026-10-13).
+- added: 2026-10-13

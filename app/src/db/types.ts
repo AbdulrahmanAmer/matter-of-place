@@ -459,6 +459,25 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"email_replies": {
+                  Row: {
+                    "body": string,"created_at": string,"entity": string | null,"entity_id": string | null,"from_email": string | null,"from_name": string | null,"id": string,"owner_slug": string | null,"provider_id": string,"received_at": string,"send_id": string | null,"state": string,"subject": string
+                  }
+                  Insert: {
+                    "body"?: string,"created_at"?: string,"entity"?: string | null,"entity_id"?: string | null,"from_email"?: string | null,"from_name"?: string | null,"id"?: string,"owner_slug"?: string | null,"provider_id": string,"received_at": string,"send_id"?: string | null,"state"?: string,"subject"?: string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"entity"?: string | null,"entity_id"?: string | null,"from_email"?: string | null,"from_name"?: string | null,"id"?: string,"owner_slug"?: string | null,"provider_id"?: string,"received_at"?: string,"send_id"?: string | null,"state"?: string,"subject"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "email_replies_send_id_fkey"
+      columns: ["send_id"]
+isOneToOne: false
+      referencedRelation: "email_messages"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"email_suppressions": {
                   Row: {
                     "at": string,"email": string,"reason": string
@@ -1483,6 +1502,9 @@ isOneToOne: false
                            },
 "email_message_finish":
 { Args: { "p_error"?: string,"p_id": string,"p_resend_id"?: string,"p_status": string }; Returns: undefined
+                           },
+"email_reply_record":
+{ Args: { "p_body": string,"p_from": string,"p_name": string,"p_provider_id": string,"p_received_at": string,"p_subject": string }; Returns: string
                            },
 "email_sent_month":
 { Args: Record<PropertyKey, never>; Returns: number

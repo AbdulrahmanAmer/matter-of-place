@@ -591,6 +591,22 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     sent_at: "timestamptz?",
     delivered_at: "timestamptz?",
   },
+  // W4: replies to our email, written only by email_reply_record.
+  email_replies: {
+    id: "uuid",
+    provider_id: "text",
+    from_email: "text?",
+    from_name: "text?",
+    subject: "text",
+    body: "text",
+    received_at: "timestamptz",
+    send_id: "uuid?",
+    entity: "text?",
+    entity_id: "uuid?",
+    owner_slug: "text?",
+    state: "text",
+    created_at: "timestamptz",
+  },
   email_suppressions: {
     email: "text",
     reason: "text",

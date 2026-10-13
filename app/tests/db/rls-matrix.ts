@@ -79,6 +79,8 @@ export const rlsMatrix: Record<string, Access> = {
   automation_recipes: { select: staffRoles, update: automation },
   email_templates: { select: staffRoles, insert: automation, update: automation },
   email_messages: staffRead,
+  // W4: written only by email_reply_record under the service role.
+  email_replies: staffRead,
   email_suppressions: staffRead,
   email_events: staffRead,
   channel_settings: { select: staffRoles, insert: automation, update: automation },
