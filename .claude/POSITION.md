@@ -1776,3 +1776,22 @@ first day of the new usage week; no step was cut from any plan.
 - Live read-only checks the same morning: 21 public addresses 200 (the newsletter page is /place-notes); job runner
   every minute, no dead job in 24 h, 5 cron tasks active; zero business events in 24 h, so the colleagues who wake
   on a listing have not been woken by a real one yet.
+- 2026-10-13 14:25 Cairo. PR 364 merged (Matter's long runs, W5 21a). The repo went private (H101) and GitHub Actions
+  then started no job: "recent account payments have failed or your spending limit needs to be increased"
+  (P-3456). Jay refused going public (open gap-audit items in the history, no force push) and chose ruling H103: the
+  laptop runs CI, deploys and the backup. Built on ci/local-gate (PR 366, E:/mop-build/localci): scripts/local-ci.mjs
+  (check and build jobs, unit replay, P-712 rerun of workers that never started), merge-gate.mjs --local-ci (only for
+  jobs carrying GitHub's not-started notice; posts ci-local), scripts/deploy-local.mjs (backup, rolled-back migration
+  rehearsal, db push, job-runner deploy, build with repo vars, wrangler deploy, wait, smoke, rollback). The db and e2e
+  jobs need Docker and do not run under H103. PR 366 laptop CI running; then 365 (live Matter), then office window.
+- Laptop backup live: task "MOP Backup" 06:17 daily, ~/.mop-workforce/backup-local.mjs, E:/mop-backups (30 days);
+  first scheduled run failed on PATH (P-3457), fixed, proven by Start-ScheduledTask: 888,671 bytes in 94 s.
+- Operator asks in flight (branch design/site-scale, E:/mop-build/zoom, NOT committed): public site at 90% from 1024px
+  (zoom with svh heights divided by --site-zoom); privacy page names provider categories, not vendors (test
+  privacy-no-stack); the accessibility widget remade from scratch (access-panel.tsx, access.css, lib/access.ts,
+  vision-filters.tsx with daltonization matrices whose rows sum to 1, footer link, Alt + A, head script in
+  CSP_INLINE_ALLOWLIST). Tests and screenshots of every state are NEXT, after PR 366's check frees the laptop.
+- W5: 21a done; items 1 to 5, 7 to 9, 12 and 19 (team_waiting health check, on feat/office-window) built and waiting
+  to merge; 357 needs a router and bundle slice (fix/deps-router, E:/mop-build/deps); 356 rebase asked.
+- Operator idea: Ubuntu 24.04 on his second laptop as a build machine and a self-hosted GitHub runner, which would end
+  H103 without a card. Waiting for him to install it.

@@ -7937,3 +7937,21 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 10:22 Cairo, test 2 repeated (a line labelled Claude asking for a subject-line proposal, read only): Matter answered a different, older topic and said "The subject proposal is already in Approvals, so I did not file it again". `agent_approvals` had never held a row: its earlier claim had been false (P-3452), and the thread was the only memory it read.
 - rule: before the thread, a run reads as facts the line that woke it (fenced, "answer this first") and its own open proposals from `agent_approvals`, with the plain sentence that nothing else of its own is there (`scripts/workforce/grounding.ts`). Any state an agent may claim (approvals, PRs, decisions) is given to it from the source, never left to the thread.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-grounding.test.ts` → 2 passed; registry `mp-l-grounding-none`, `mp-m-grounding-woke` go red when undone.
+
+## P-3455 · A replay under `timeout` that is killed prints no summary, and a chain that only looks for `bad N` reads that as clean
+- symptom: 2026-10-13, W5 live batch: `timeout 1500 node scripts/watchfail.mjs --changed origin/main` was killed at 25 minutes mid-entry. It printed no `watchfail: replayed ...` line and left `scripts/workforce/grounding.ts` mutated in the tree. The chain went on only if `grep -qE "bad [1-9]|stale [1-9]"` found nothing, so it pushed, opened PR 365 and started the gate on an unfinished replay. One `BAD: wrong reason` (mp-h) in the log was load: `--only mp-h-prompt-says-power` alone printed `WATCHED-FAIL OK`.
+- rule: a chain goes on only when the summary line is there and clean: `grep -qE "^watchfail: replayed .* bad 0, stale 0" log`. Give the replay no `timeout`, or one longer than the whole selection, and run `git status --short` after it.
+- proof: `grep -c "^## P-3455" GOTCHAS.md` prints 1.
+- added: 2026-10-13
+
+## P-3456 · A private repo on the free plan has a monthly Actions allowance; when it is spent no job starts, merges and deploys stop
+- symptom: 2026-10-13, the day after the repo went private (H101), every job of PR 365 failed with no failed step; the annotation read "The job was not started because recent account payments have failed or your spending limit needs to be increased". The nightly backup (`backup.yml`) and the Saturday audit run on Actions too.
+- rule: before a repo goes private, measure its monthly Actions minutes and set a budget, or keep it public. Read a job that failed with no failed step through its annotations: `gh api repos/<owner>/<repo>/check-runs/<job id>/annotations --jq '.[].message'`.
+- proof: `gh run view 38376148119 --json jobs --jq '.jobs[].conclusion'` shows failures with no failed step.
+- added: 2026-10-13
+
+## P-3457 · A Windows scheduled task starts with the system PATH: a tool found in Git Bash or scoop is not there
+- symptom: 2026-10-13, ruling H103's laptop backup passed when run from the shell (887,807 bytes) and failed from its scheduled task "MOP Backup" with `spawnSync openssl ENOENT`: openssl lives in Git's mingw64 folder, which only Git Bash puts on PATH. The plain dump had been written and was deleted by the script's `finally`, so nothing unencrypted stayed on disk.
+- rule: a script that a scheduled task runs names every outside tool by its full path (`C:/Program Files/Git/mingw64/bin/openssl.exe`, `C:/Users/DELL/scoop/apps/postgresql/current/bin/pg_dump.exe`), and it is proven by `Start-ScheduledTask`, never only from the shell.
+- proof: `Start-ScheduledTask -TaskName "MOP Backup"`, then `~/.mop-workforce/backup.log` ends `mop-dev-2026-10-13.dump.p7m: 888671 bytes in 94 s` (2026-10-13 14:08).
+- added: 2026-10-13
