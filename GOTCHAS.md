@@ -7921,3 +7921,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 09:29 Cairo, test 2 (a colleague's line asking Matter for a subject-line proposal): Matter wrote "We have received {{property_address}}" in its prose and ended with a valid JSON object holding one admin action. `readJsonAnswer` sliced from the first "{" (inside the prose) to the last "}", the parse failed, the fallback made the whole text the reply, and the action was dropped while Matter's reply said "filed in Approvals". Approvals stayed empty.
 - rule: read an agent's closing object by trying each "{" from the left until one slice parses against the schema; never assume the first brace starts the object. A run whose reply promises an action that no row backs is a defect to look for in every end-to-end test.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-answer.test.ts` → 2 passed; registry `mp-i-answer-braces` goes red when only the first "{" is tried.
+
+## P-3453 · A 15-minute run limit cuts a full-power build off, and the cut was silent
+- paths: app/scripts/matter/**, app/scripts/workforce/**
+- severity: block
+- symptom: 2026-10-13 10:02 to 10:17 Cairo, test 1 repeated after P-3451: Matter, at full power, branched `feat/w4-email-replies` in its desk and wrote a plan, two migrations, a function, the mail reader and tests, then the runner killed it at 15 minutes ("Matter took longer than 15 minutes"). The run was marked failed and nothing was said in the thread: the operator would have seen silence. The run's lease was 10 minutes, so on a long run a second runner could have claimed the same run.
+- rule: a full-power run gets 45 minutes (`runTimeoutMs`), inside the scheduled task's 50 and the run lease's 3000 seconds; every failed run says in its thread that it stopped and where the work is; uncommitted work stays in the desk (refreshDesk leaves a dirty desk alone).
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter.test.ts` → the cases "gives a full-power build 45 minutes" and "says in the thread when a run stops" pass; registry `mp-j-full-run-time`, `mp-k-lease` go red when undone.
