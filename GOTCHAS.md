@@ -7838,6 +7838,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after stopping a background task that started node or a browser, list what is left with `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*<script>*' }` and `Stop-Process` it; write each run to its own file name.
 - proof: the listing showed two `node.exe` processes for `.hw.tmp.mjs` (8:46 PM and 9:18 PM) after the first task was stopped; `Stop-Process -Id 52664` left one (measured 2026-10-12).
 - added: 2026-10-12
+- hit again: 2026-10-13: the admin-pass dev server (TaskStop the night before) still held `E:/mop-build/adminpass`, so `git worktree remove` failed with `Invalid argument`; eleven more removed worktrees kept their folders the same way, and six old dev servers (wrangler, workerd, vite from 2026-10-08 to 10-12) were still running. Before removing worktrees, list `vite`, `wrangler` and `workerd` processes whose command line names `E:\mop-build\` and stop them; after `git worktree remove`, check the folder is gone.
 
 ## P-3443 · A temporary script copied into `app/scripts` is linted by the next full check
 - paths: (process)
