@@ -34,5 +34,14 @@
     "replace": "    if (notStarted < 0)",
     "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
     "expect": "× .*refuses a log of another head or with a failed step"
+  },
+  {
+    "id": "h103-e-workers-only",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/local-ci.mjs",
+    "find": "    !/^\\s*(×|FAIL)\\s/m.test(output) &&",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
+    "expect": "× .*reruns the tests only for workers that never started"
   }
 ]

@@ -105,6 +105,21 @@ export function replayClean(output) {
   return /^watchfail: replayed \d+: ok \d+, bad 0, stale 0/m.test(output);
 }
 
+/**
+ * True when a failed `bun run check` failed only because vitest workers did not start (GOTCHAS P-712): every stage
+ * before the tests passed, at least one "Failed to start forks worker", and no failed test or file.
+ * @param {string} output
+ * @returns {boolean}
+ */
+export function workersOnly(output) {
+  return (
+    /Failed to start forks worker/.test(output) &&
+    !/^\s*(×|FAIL)\s/m.test(output) &&
+    !/Test Files\s+\d+ failed/.test(output) &&
+    /error: script "test" exited/.test(output)
+  );
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // The run itself. Everything below talks to processes and the disk.
 
@@ -184,7 +199,18 @@ function main(argv) {
     },
     install: () => step(sh("bun", ["install", "--frozen-lockfile"])),
     "migration-order": () => step(sh("bun", ["run", "migrations:check"])),
-    check: () => step(sh("bun", ["run", "check"])),
+    check: () => {
+      const first = sh("bun", ["run", "check"]);
+      if (first.ok || !workersOnly(first.out)) return step(first);
+      // GOTCHAS P-712: workers that never started under load, and no failed test, is not a red; the test stage runs
+      // once more alone, and the log says so.
+      const again = sh("bun", ["run", "test"]);
+      return {
+        ok: again.ok,
+        detail: `check exit ${String(first.status)} on workers that did not start only; test alone exit ${String(again.status)}`,
+        out: again.out,
+      };
+    },
     audit: () => step(sh("bun", ["run", "audit:deps"])),
     "audit launch": () => {
       const cwd = join(ROOT, "launch");

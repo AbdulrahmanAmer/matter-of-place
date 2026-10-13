@@ -8,7 +8,13 @@ import {
   jobKeys,
 } from "../../scripts/merge-gate.mjs";
 import { mergeGate } from "../../../workspace/05-plans/merge-gate.mjs";
-import { CI_STEPS, NOT_RUN, localCiProblem, replayClean } from "../../scripts/local-ci.mjs";
+import {
+  CI_STEPS,
+  NOT_RUN,
+  localCiProblem,
+  replayClean,
+  workersOnly,
+} from "../../scripts/local-ci.mjs";
 import { STEPS, renderLog } from "../../scripts/preview-local.mjs";
 
 const SHA = "abaa02de74944bfc2f0a39825849da50628bb840";
@@ -536,6 +542,17 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
         [1, 0, "merge-gate: --local-ci refused: bundle-check is fail in the log: 10 s"],
         [1, 0, "merge-gate: --local-ci refused: GitHub started every job (ruling H103)"],
       ]);
+    });
+
+    it("reruns the tests only for workers that never started, never for a failed test (P-712)", () => {
+      const WORKERS =
+        'Error: [vitest-pool]: Failed to start forks worker for test files a.test.tsx.\n      Tests  4530 passed (4530)\nerror: script "test" exited with code 1';
+      expect([
+        workersOnly(WORKERS),
+        workersOnly(`${WORKERS}\n × the gate refuses a draft`),
+        workersOnly(`${WORKERS}\n Test Files  1 failed | 255 passed (256)`),
+        workersOnly('error: script "lint" exited with code 1'),
+      ]).toEqual([true, false, false, false]);
     });
 
     it("reads a replay as clean only from its own finished summary (P-3455)", () => {
