@@ -44,11 +44,26 @@ describe("Matter's run", () => {
       notes: "",
       thread: "hello",
       business: "",
+      power: "read",
     });
     expect([
       prompt.indexOf("CHARTER") < prompt.indexOf("ATLAS"),
       prompt.trim().endsWith("}."),
     ]).toEqual([true, true]);
+  });
+
+  it("tells Matter the power it really has: tools and the merge gate at full power, none in read mode", () => {
+    const base = { charterText: "C", atlasText: "A", notes: "", thread: "t", business: "" };
+    const full = matterPrompt({ ...base, power: "full" });
+    const read = matterPrompt({ ...base, power: "read" });
+    expect({
+      full: [
+        full.includes("full power"),
+        full.includes("merge-gate.mjs"),
+        full.includes("You cannot run commands"),
+      ],
+      read: [read.includes("read only"), read.includes("You cannot run commands")],
+    }).toEqual({ full: [true, true, false], read: [true, true] });
   });
 
   it("maps every admin screen, every permission and the admin API in its atlas", () => {
