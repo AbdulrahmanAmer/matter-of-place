@@ -11,6 +11,7 @@ import {
   fenced,
   matterArgs,
   matterPower,
+  runTimeoutMs,
   matterPrompt,
   refreshDesk,
 } from "../../scripts/matter/run.ts";
@@ -145,6 +146,19 @@ describe("Matter's safe mode (gap audit items 1 and 31)", () => {
       read: [true, true, true],
       bothRefuse: true,
     });
+  });
+
+  it("gives a full-power build 45 minutes and a read-only answer 15 (P-3453)", () => {
+    expect([runTimeoutMs("full"), runTimeoutMs("read")]).toEqual([45 * 60_000, 15 * 60_000]);
+  });
+
+  it("says in the thread when a run stops, and claims a run for longer than its longest build (P-3453)", () => {
+    const daemon = readFileSync(join(process.cwd(), "scripts/workforce/daemon.ts"), "utf8");
+    const failure = daemon.slice(daemon.indexOf('state: "failed"'));
+    expect([
+      failure.slice(0, 1200).includes("stopped before finishing"),
+      /p_lease_seconds: (\d+)/.exec(daemon)?.[1],
+    ]).toEqual([true, "3000"]);
   });
 
   it("keeps the operator's personal files closed even at full power", () => {
