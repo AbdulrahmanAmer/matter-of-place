@@ -7777,7 +7777,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - severity: warn
 - symptom: 2026-10-12, PR 321's `db` job failed `type drift`: the hand-added `workforce_hire` and `workforce_post_message` types said `string[]`, the generator writes `(string)[]` for a `text[]` argument.
 - cause: the generator wraps every array element type in parentheses; tables keep `string[]`.
-- rule: a function type added by hand before CI regenerates copies the generator's form: arguments in alphabetical order, `"p_x"?:` for a defaulted one, `(string)[]` for an array argument, `Returns: string` for uuid or text.
+- rule: a function type added by hand before CI regenerates copies the generator's form: arguments in alphabetical order, `"p_x"?:` for a defaulted one, `(string)[]` for an array argument, `Returns: string` for uuid or text, and `Returns: string[]` (no parentheses) for `returns setof text` (hit 2026-10-13, PR 354: `staging_orphans` written `(string)[]` failed the db job's type drift).
 - proof: `gh run view <run> --log-failed | grep "type drift"` shows the `-`/`+` lines; with `(string)[]` the job's diff is empty (PR 321 at 5c... merged 05:18).
 - added: 2026-10-12
 
