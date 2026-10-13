@@ -13,8 +13,20 @@ vi.mock("../../src/server/lib/session", () => ({
 
 const USER = "00000000-0000-4000-8000-000000000001";
 const page = new Request("https://matterofplace.com/admin/team?tab=keys");
-const roles = (rows: { role: string; disabled_at: string | null }[]) =>
-  fakeDb({ tables: { user_roles: rows.map((row) => ({ user_id: USER, ...row })) } });
+const roles = (rows: { role: "admin" | "chief_editor"; disabled_at: string | null }[]) =>
+  fakeDb({
+    tables: {
+      user_roles: rows.map((row, index) => ({
+        id: `00000000-0000-4000-8000-00000000010${String(index)}`,
+        user_id: USER,
+        actor_kind: "human" as const,
+        display_name: null,
+        created_at: "2026-10-01T00:00:00Z",
+        updated_at: "2026-10-01T00:00:00Z",
+        ...row,
+      })),
+    },
+  });
 
 beforeEach(() => {
   vi.mocked(getSessionUser).mockReset();
