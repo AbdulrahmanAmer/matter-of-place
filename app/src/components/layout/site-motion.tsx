@@ -1,5 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { isStill } from "../../lib/access";
 
 /**
  * Site-wide motion (operator, 2026-10-11: "elevate the whole website pages sections animation motion"). Sections,
@@ -58,7 +59,8 @@ export function SiteMotion() {
   const router = useRouter();
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // The device's own setting, or Stop motion chosen in the accessibility settings.
+    if (isStill()) return;
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {

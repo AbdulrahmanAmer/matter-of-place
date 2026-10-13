@@ -9,6 +9,38 @@
   border: 0 solid;
 }
 
+/* The operator, 2026-10-13: "the size of the whole website is a bit too big ... if we can zoom it out a bit that
+   would be best". From 1024px wide the public site is drawn at 90%, as the browser's own zoom would draw it; a size
+   taken from the screen's height divides by --site-zoom, so a hero still fills the share of the screen it was designed
+   for. Phones keep full size for legibility, and the admin is not scaled. The accessibility text size
+   (src/lib/access.ts) moves the same scale: larger and largest. */
+body:has(.site-header) {
+  --site-zoom: 1;
+  zoom: var(--site-zoom);
+}
+
+:root[data-text="1"] body:has(.site-header) {
+  --site-zoom: 1.12;
+}
+
+:root[data-text="2"] body:has(.site-header) {
+  --site-zoom: 1.25;
+}
+
+@media (min-width: 1024px) {
+  body:has(.site-header) {
+    --site-zoom: 0.9;
+  }
+
+  :root[data-text="1"] body:has(.site-header) {
+    --site-zoom: 1.05;
+  }
+
+  :root[data-text="2"] body:has(.site-header) {
+    --site-zoom: 1.2;
+  }
+}
+
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;

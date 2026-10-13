@@ -1,7 +1,9 @@
 import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { AccessPanel } from "../components/layout/access-panel";
 import { SiteChrome } from "../components/layout/site-chrome";
 import { SiteMotion } from "../components/layout/site-motion";
+import { VisionFilters } from "../components/layout/vision-filters";
 import { Ga4Loader } from "../components/site/ga4-loader";
 import { captureAttribution } from "../lib/attribution";
 import { installClientErrorListeners } from "../lib/report-error";
@@ -42,6 +44,8 @@ function SiteLayout() {
       </SiteChrome>
       <Ga4Loader />
       <SiteMotion />
+      <VisionFilters />
+      <AccessPanel />
     </>
   );
 }

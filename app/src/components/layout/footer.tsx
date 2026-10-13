@@ -2,6 +2,7 @@ import type { MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { Emblem } from "../brand/emblem";
 import { siteConfig } from "../../config/site";
+import { openAccess } from "../../lib/access";
 import { openConsentNotice } from "../../lib/consent";
 import { legalIdentity } from "../../lib/legal-identity";
 import { useSite } from "../../lib/queries";
@@ -16,6 +17,15 @@ function reopenNotice(event: MouseEvent) {
     return;
   event.preventDefault();
   openConsentNotice();
+}
+
+// A real link to the accessibility statement; with JavaScript the same click opens the settings panel in place, and
+// brings back a mark the visitor hid.
+function openSettings(event: MouseEvent) {
+  if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
+    return;
+  event.preventDefault();
+  openAccess();
 }
 
 export function Footer() {
@@ -103,6 +113,9 @@ export function Footer() {
             </Link>
             <Link to="/privacy-choices" id="consent-change" onClick={reopenNotice}>
               {t.consent.change}
+            </Link>
+            <Link to="/accessibility" hash="settings" onClick={openSettings}>
+              {t.access.settings}
             </Link>
             {profiles.map(({ label, url }) => (
               <a key={label} href={url} rel="noopener noreferrer" target="_blank">

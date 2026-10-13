@@ -1,0 +1,590 @@
+/* Accessibility settings (src/components/layout/access-panel.tsx, operator 2026-10-13).
+
+   Geometry, worked once (CSS px, before the site's 90% scale):
+   - Mark: a 56 circle, Obsidian, 24 from the right and bottom (phone: 52, 16 from each). A Sandstone ring r 23 inside
+     it (5 in from the edge), 1 wide, circumference 2 x pi x 23 = 144.51. The universal figure on a 24 grid, stroke 1.6.
+   - Panel: 368 wide, 12 above the mark; head 20/20/16 padding; body 16/20/20; two tile columns of 160, gap 8
+     (20 + 160 + 8 + 160 + 20 = 368); a tile 84 high, 12 padding, icon 22. Its height fits the screen, only the body
+     scrolls. Phone: a bottom sheet the width of the screen, at most 85% of its height.
+   - Hidden: a tab 32 x 56 against the right edge, a half-circle of radius 28 on its left.
+
+   Timeline, worked once, in seconds after load: 0.8 the mark settles from 92% (0.6); 1.0 the ring draws once round
+   from the top (1.2, the motion bible's line wipe); 1.3 the doorway and threshold draw in (0.9); 1.8 the figure
+   fades in (0.5); settled at 2.3. Every arrival holds
+   only its first frame (backwards), so the states below drive the mark once it has arrived. Opening: the figure gives
+   way to the close mark (0.3); the panel rises through a hard mask (0.5, M1); a phone's sheet slides up (0.5). Never a
+   bounce, a spin or a glow, and Stop motion, or a device that asks for less motion, stops all of it. */
+
+.access {
+  --access-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --access-ease-line: cubic-bezier(0.65, 0, 0.35, 1);
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: var(--z-access);
+}
+
+/* The mark. */
+.access-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  color: var(--background);
+  background: var(--foreground);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  animation: accessArrive 0.6s var(--access-ease-out) 0.8s backwards;
+}
+
+.access-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  rotate: -90deg;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 144.51;
+  stroke-dashoffset: 0;
+  transition: stroke 0.3s ease;
+  animation: accessRing 1.2s var(--access-ease-line) 1s backwards;
+}
+
+.access-mark:hover .access-ring,
+.access-mark:focus-visible .access-ring,
+.access-mark-open .access-ring {
+  stroke: var(--background);
+}
+
+.access-figure,
+.access-x {
+  grid-area: 1 / 1;
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    opacity 0.3s ease,
+    scale 0.3s var(--access-ease-out);
+}
+
+.access-figure {
+  stroke-width: 1.5;
+}
+
+.access-figure circle {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* The doorway and threshold around the figure: 1 wide at half strength, full strength while hovered or open. */
+.access-door {
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.access-mark:is(:hover, :focus-visible) .access-door,
+.access-tab:is(:hover, :focus-visible) .access-door {
+  opacity: 1;
+}
+
+.access-mark .access-door {
+  animation: accessDoor 0.9s var(--access-ease-line) 1.3s backwards;
+}
+
+.access-mark .access-figure {
+  animation: accessFade 0.5s ease 1.8s backwards;
+}
+
+.access-x {
+  opacity: 0;
+  scale: 0.8;
+}
+
+.access-mark-open .access-figure {
+  opacity: 0;
+  scale: 0.8;
+}
+
+.access-mark-open .access-x {
+  opacity: 1;
+  scale: 1;
+}
+
+/* The name beside the mark, on a screen that hovers; drawn by CSS (GOTCHAS G-1301). */
+.access-hint {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 12px);
+  translate: 0 -50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.access-hint::before {
+  content: attr(data-hint);
+  display: block;
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--border);
+  transition: letter-spacing 0.4s var(--access-ease-out);
+}
+
+@media (hover: hover) {
+  .access-mark:is(:hover, :focus-visible):not(.access-mark-open) .access-hint {
+    opacity: 1;
+  }
+
+  .access-mark:is(:hover, :focus-visible):not(.access-mark-open) .access-hint::before {
+    letter-spacing: 0.16em;
+  }
+}
+
+/* Hidden: a tab against the right edge that brings the mark back. */
+.access-tab {
+  position: fixed;
+  right: 0;
+  bottom: 24px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 56px;
+  padding: 0 0 0 4px;
+  color: var(--background);
+  background: var(--foreground);
+  border: 0;
+  border-radius: 28px 0 0 28px;
+  cursor: pointer;
+  animation: accessTab 0.5s var(--access-ease-out) backwards;
+}
+
+.access-tab .access-figure {
+  width: 18px;
+  height: 18px;
+}
+
+/* The panel. */
+.access-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  display: flex;
+  flex-direction: column;
+  width: 368px;
+  max-height: calc(100svh / var(--site-zoom, 1) - 140px);
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--border);
+  animation: accessPanel 0.5s var(--access-ease-out) backwards;
+}
+
+.access-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.access-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.access-saved {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.access-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px 0 0;
+  color: var(--foreground);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.access-close:hover {
+  border-color: var(--border);
+}
+
+.access-close svg,
+.access-play svg,
+.access-tile-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.access-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.access-fill {
+  fill: currentColor;
+  stroke: none;
+}
+
+.access-body {
+  display: grid;
+  flex: 1;
+  gap: 16px;
+  min-height: 0;
+  padding: 16px 20px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The read-aloud bar: a 44 play button, the state, and Stop while it reads. */
+.access-voice {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+}
+
+.access-play {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--background);
+  background: var(--foreground);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.access-play svg {
+  width: 20px;
+  height: 20px;
+}
+
+.access-voice-title {
+  margin: 0;
+  font-size: 14px;
+}
+
+.access-note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+/* The tiles: icon and state on top, name and value at the foot. */
+.access-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.access-tile {
+  display: grid;
+  grid-template:
+    "icon state" auto
+    "name name" 1fr
+    "value value" auto / 1fr auto;
+  height: 84px;
+  padding: 12px;
+  color: var(--foreground);
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.access-tile:hover {
+  border-color: var(--foreground);
+}
+
+.access-tile-on {
+  background: var(--secondary);
+  border-color: var(--foreground);
+  box-shadow: inset 0 0 0 1px var(--foreground);
+}
+
+.access-tile-icon {
+  grid-area: icon;
+  width: 22px;
+  height: 22px;
+}
+
+.access-tile-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.access-tile-state {
+  display: flex;
+  grid-area: state;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.access-dot {
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--foreground);
+  border-radius: 50%;
+}
+
+.access-dot-on {
+  background: var(--foreground);
+}
+
+.access-tile-name {
+  grid-area: name;
+  align-self: end;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.access-tile-value {
+  grid-area: value;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+
+.access-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.access-link {
+  min-height: 44px;
+  padding: 0 2px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--foreground);
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+/* The reading guide: a 96 band that follows the pointer; above and below it the page is dimmed. */
+.access-guide-dim {
+  position: fixed;
+  right: 0;
+  left: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--access-dim);
+}
+
+.access-guide-top {
+  top: 0;
+}
+
+.access-guide-bottom {
+  bottom: 0;
+}
+
+.access-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* A phone: the mark 52 and 16 from the edges, above the cookie card while it shows; the panel a bottom sheet. */
+@media (max-width: 700px) {
+  .access {
+    right: 16px;
+    bottom: calc(16px + var(--consent-bar-h, 0px));
+  }
+
+  .access-mark {
+    width: 52px;
+    height: 52px;
+  }
+
+  .access-tab {
+    bottom: calc(16px + var(--consent-bar-h, 0px));
+  }
+
+  .access-panel {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-height: 85svh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    animation-name: accessSheet;
+  }
+}
+
+@keyframes accessArrive {
+  from {
+    opacity: 0;
+    scale: 0.92;
+  }
+}
+
+@keyframes accessRing {
+  from {
+    stroke-dashoffset: 144.51;
+  }
+}
+
+/* The doorway draws itself in, threshold first (pathLength 1). */
+@keyframes accessDoor {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes accessFade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes accessTab {
+  from {
+    translate: 100% 0;
+  }
+}
+
+/* M1: the panel rises through a hard mask from its bottom edge. */
+@keyframes accessPanel {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes accessSheet {
+  from {
+    translate: 0 100%;
+  }
+}
+
+/* The settings, drawn on <html> (src/lib/access.ts). */
+
+/* Text spacing, WCAG 1.4.12: letters 0.12em, words 0.16em, lines 1.8, paragraphs 2em apart. */
+:root[data-spacing] main :is(p, li, dd, dt, td, th, blockquote, figcaption, label) {
+  line-height: 1.8 !important;
+  letter-spacing: 0.12em !important;
+  word-spacing: 0.16em !important;
+}
+
+:root[data-spacing] main p {
+  margin-block-end: 2em;
+}
+
+/* Readable font: the light serif and the light sans give way to Urbanist at a regular weight. */
+:root[data-font] body:has(.site-header) {
+  --font-serif: var(--font-ui);
+  --font-sans: var(--font-ui);
+  font-weight: 400;
+}
+
+:root[data-font] body:has(.site-header) :is(h1, h2, h3, h4) {
+  font-weight: 500;
+  font-style: normal;
+}
+
+:root[data-links] body:has(.site-header) a:not(.button) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+/* Colour vision: the whole page through one corrective filter (src/components/layout/vision-filters.tsx). A filter
+   on the root element keeps fixed elements fixed. */
+:root[data-vision="deutan"] {
+  filter: url("#mop-vision-deutan");
+}
+
+:root[data-vision="protan"] {
+  filter: url("#mop-vision-protan");
+}
+
+:root[data-vision="tritan"] {
+  filter: url("#mop-vision-tritan");
+}
+
+/* Stop motion: what a device asking for reduced motion already gets (motion.css, hero.css, cards.css). */
+:root[data-still] body:has(.site-header) *,
+:root[data-still] body:has(.site-header) *::before,
+:root[data-still] body:has(.site-header) *::after {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+:root[data-still] .motion-ready [data-motion] {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+:root[data-still] :is(.property-card, .market-card, .story-card):hover img,
+:root[data-still] .market-card:hover h3,
+:root[data-still] .hero-index a:is(:hover, :focus-visible) .hero-index-name {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .access-mark,
+  .access-ring,
+  .access-mark .access-figure,
+  .access-mark .access-door,
+  .access-tab,
+  .access-panel {
+    animation: none;
+  }
+}

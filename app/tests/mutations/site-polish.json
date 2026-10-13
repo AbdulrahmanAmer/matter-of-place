@@ -1,0 +1,65 @@
+[
+  {
+    "id": "sp-a-privacy-names-vendor",
+    "test": "tests/unit/privacy-no-stack.test.ts",
+    "file": "src/routes/_site.privacy.tsx",
+    "find": "    receives: \"Our database and email providers.\",\n  },\n  {\n    name: \"Professional information\",",
+    "replace": "    receives: \"Supabase, Resend.\",\n  },\n  {\n    name: \"Professional information\",",
+    "run": "bunx vitest run --project unit tests/unit/privacy-no-stack.test.ts",
+    "expect": "× .*_site.privacy.tsx names no vendor"
+  },
+  {
+    "id": "sp-b-access-text-attribute",
+    "test": "tests/unit/access-panel.test.tsx",
+    "file": "src/lib/access.ts",
+    "find": "  else root.setAttribute(\"data-text\", String(access.text));",
+    "replace": "  else root.removeAttribute(\"data-text\");",
+    "run": "bunx vitest run --project component tests/unit/access-panel.test.tsx",
+    "expect": "× .*each tile draws its choice on <html> at once"
+  },
+  {
+    "id": "sp-c-access-escape",
+    "test": "tests/unit/access-panel.test.tsx",
+    "file": "src/components/layout/access-panel.tsx",
+    "find": "      if (event.key === \"Escape\") closeRef.current(true);",
+    "replace": "      if (event.key === \"Never\") closeRef.current(true);",
+    "run": "bunx vitest run --project component tests/unit/access-panel.test.tsx",
+    "expect": "× .*closes on Escape and gives the focus back"
+  },
+  {
+    "id": "sp-d-access-bootstrap-vision",
+    "test": "tests/unit/access-panel.test.tsx",
+    "file": "src/lib/access.ts",
+    "find": "r.setAttribute(\"data-vision\",p.vision);",
+    "replace": ";",
+    "run": "bunx vitest run --project component tests/unit/access-panel.test.tsx",
+    "expect": "× .*draws a stored choice on <html> before the page renders"
+  },
+  {
+    "id": "sp-e-access-unhide",
+    "test": "tests/unit/access-panel.test.tsx",
+    "file": "src/components/layout/access-panel.tsx",
+    "find": "            update({ hidden: false });\n          }}\n        >\n          <Figure />",
+    "replace": "            update({ hidden: true });\n          }}\n        >\n          <Figure />",
+    "run": "bunx vitest run --project component tests/unit/access-panel.test.tsx",
+    "expect": "× .*the tab brings it back"
+  },
+  {
+    "id": "sp-f-access-alt-a",
+    "test": "tests/unit/access-panel.test.tsx",
+    "file": "src/components/layout/access-panel.tsx",
+    "find": "event.code === \"KeyA\"",
+    "replace": "event.code === \"KeyZ\"",
+    "run": "bunx vitest run --project component tests/unit/access-panel.test.tsx",
+    "expect": "× .*from the footer link and from Alt \\+ A"
+  },
+  {
+    "id": "sp-g-vision-matrix",
+    "test": "tests/unit/access-panel.test.tsx",
+    "file": "src/components/layout/vision-filters.tsx",
+    "find": "0.4547 -0.6454 1.1907",
+    "replace": "0.4547 -0.6454 1.2907",
+    "run": "bunx vitest run --project component tests/unit/access-panel.test.tsx",
+    "expect": "× .*keeps every grey grey"
+  }
+]

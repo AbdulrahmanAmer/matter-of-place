@@ -64,7 +64,7 @@ const categories: readonly {
     source: "You, through the forms.",
     purpose: "To reply to you, run the service and limit abuse.",
     kept: `Inquiries ${keep("inquiries_anonymise")}, privacy requests ${keep("subject_requests")}. A hashed IP address is deleted from rate-limit records after ${keep("rate_limits")}; one stored with an inquiry, a privacy request or a rights confirmation stays with that record.`,
-    receives: "Supabase, Resend, Cloudflare.",
+    receives: "Our hosting, database and email providers.",
   },
   {
     name: "Commercial information",
@@ -72,7 +72,7 @@ const categories: readonly {
     source: "You, through the submission form and our replies.",
     purpose: "To review, publish and invoice a property.",
     kept: "For as long as the record is needed to run the service and for accounting.",
-    receives: "Supabase, Resend.",
+    receives: "Our database and email providers.",
   },
   {
     name: "Professional information",
@@ -80,7 +80,7 @@ const categories: readonly {
     source: "You, through the submission form.",
     purpose: "To credit a property correctly and route replies.",
     kept: `Anonymised ${keep("contacts_anonymise")} after your last request.`,
-    receives: "Supabase, Resend.",
+    receives: "Our database and email providers.",
   },
   {
     name: "Internet activity",
@@ -88,7 +88,7 @@ const categories: readonly {
     source: "Your browser.",
     purpose: "To see which pages are read.",
     kept: `Raw events ${keep("analytics_events")}, daily totals ${keep("analytics_daily")}.`,
-    receives: "Supabase. Google Analytics, only after you allow analytics.",
+    receives: "Our database provider. Google Analytics, only after you allow analytics.",
   },
   {
     name: "Audio, visual and similar information",
@@ -96,7 +96,7 @@ const categories: readonly {
     source: "The person who submits the property.",
     purpose: "To review the property and, once accepted, publish it.",
     kept: `Declined photographs ${keep("declined_submission_media")}. Accepted photographs while the property is published.`,
-    receives: "Supabase, Cloudflare, GitHub.",
+    receives: "Our hosting, storage and image processing providers.",
   },
 ];
 
@@ -166,14 +166,14 @@ function PrivacyPage() {
 
         <h2>Who receives it</h2>
         <p>
-          Cloudflare hosts the site and serves its pages and images. Supabase holds the database and
-          the files. Resend sends email. Google Analytics counts page reads, with gtag.js only and
-          no Tag Manager. Sentry receives error reports. GitHub renders images and video from
-          photographs that were supplied to us.
+          Service providers that work for us under contract, and only on our instructions: hosting and
+          delivery of the site, the database and file storage, email delivery, error reporting, and the
+          preparation of images and video from photographs supplied to us. Google Analytics counts page
+          reads, only after you allow analytics.
         </p>
         <p>
-          Anthropic receives property facts when a caption is drafted. That runs through Claude on
-          the operator's own computer, and we hold no Anthropic key.
+          An AI writing assistant receives the facts of a property when a caption is drafted. A person
+          reviews every caption before it is used.
         </p>
         <p>
           Meta, X and LinkedIn receive only what we post. {siteConfig.parentCompany} receives the
