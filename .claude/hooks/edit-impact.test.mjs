@@ -30,7 +30,11 @@ it("flags an expect that names a renamed test (ak-a after the session test was r
 });
 
 it("flags a new test file no entry names (deploy-local.test.ts)", () => {
-  const lines = run({ file: at("app/tests/unit/deploy-local.test.ts"), text: 'it("x", () => {});' });
+  const lines = run({
+    file: at("app/tests/unit/deploy-local.test.ts"),
+    text: 'it("x", () => {});',
+    registries: [{ name: "H103", entries: [{ id: "h103-a", test: "tests/unit/merge-gate.test.ts", file: "x", find: "y" }] }],
+  });
   assert.ok(lines.some((l) => l.startsWith("NO ENTRY")), lines.join("\n"));
 });
 

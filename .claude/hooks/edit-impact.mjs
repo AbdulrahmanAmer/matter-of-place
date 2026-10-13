@@ -20,12 +20,18 @@ const SKIP_DIRS = new Set(["node_modules", ".output", "dist", ".git", ".wrangler
 
 const posix = (p) => p.split(sep).join("/");
 
-/** The repository root that holds app/tests/mutations above `file`, or null. */
+/** Matter of Place's root (it holds app/tests/mutations) above `file`, or null. */
 export function findRoot(file) {
   for (let dir = dirname(resolve(file)); ; dir = dirname(dir)) {
     if (existsSync(join(dir, "app", "tests", "mutations"))) return dir;
     if (dirname(dir) === dir) return null;
   }
+}
+
+/** The git top level of `file`, for any other repository, or null. */
+function gitRoot(file) {
+  const r = spawnSync("git", ["-C", dirname(resolve(file)), "rev-parse", "--show-toplevel"], { encoding: "utf8", windowsHide: true });
+  return r.status === 0 && r.stdout.trim() !== "" ? resolve(r.stdout.trim()) : null;
 }
 
 function walk(dir, out = []) {
@@ -118,7 +124,8 @@ export function expectedTitle(expect) {
  */
 export function findings(ctx) {
   const { root, file, text, headText, sources, registries } = ctx;
-  const app = join(root, "app");
+  const mop = ctx.mop ?? true;
+  const app = mop ? join(root, "app") : root;
   const appRel = posix(relative(app, file));
   const rootRel = posix(relative(root, file));
   const out = [];
@@ -144,7 +151,7 @@ export function findings(ctx) {
         if (title !== "" && !text.includes(title)) out.push(`EXPECT ${name}:${e.id} looks for the test "${title}", which is no longer in ${appRel}.`);
       }
     }
-    if (!named) out.push(`NO ENTRY: no registry entry names ${appRel} as its test; add one (tests/unit/mutation-registry.test.ts fails otherwise).`);
+    if (!named && registries.length > 0) out.push(`NO ENTRY: no registry entry names ${appRel} as its test; add one (tests/unit/mutation-registry.test.ts fails otherwise).`);
   }
 
   // Exports gone since HEAD, and exports nothing else uses.
@@ -158,7 +165,7 @@ export function findings(ctx) {
       const users = imports.filter(({ i }) => i.names.has(gone)).map(({ s }) => posix(relative(root, s.path)));
       if (users.length > 0) out.push(`GONE ${gone} left ${rootRel} but is still imported by: ${users.slice(0, 8).join(", ")}.`);
     }
-    if (!KNIP_EXEMPT.some((re) => re.test(appRel)) && !imports.some(({ i }) => i.whole)) {
+    if (mop && !KNIP_EXEMPT.some((re) => re.test(appRel)) && !imports.some(({ i }) => i.whole)) {
       for (const name of now) {
         if (name === "default") continue;
         const used = imports.some(({ i }) => i.names.has(name));
@@ -171,7 +178,8 @@ export function findings(ctx) {
     if (importers.length > 0 && out.length > 0) out.push(`TESTS that import ${basename(file)}: ${importers.slice(0, 10).join(", ")}; re-read them for moved names before running.`);
   }
 
-  // Companion files from today's failures.
+  // Companion files from today's failures (Matter of Place only).
+  if (!mop) return out;
   if (appRel === ".env.example") out.push("COMPANION: every name in .env.example must be in docs/runbooks/rotation.md's inventory or in NOT_SECRETS of scripts/harden/runbook-lint.mjs.");
   if (appRel === "wrangler.toml") out.push("COMPANION: tests/unit/hygiene.test.ts refuses `key =`, `secret` and `token` in wrangler.toml; a key is a Worker secret.");
   if (appRel === "src/server/jobs/system/health.ts") out.push("COMPANION: tests/unit/jobs/health.test.ts lists every check name in order; add a new check there.");
@@ -184,11 +192,11 @@ function gitHead(root, rootRel) {
   return r.status === 0 ? r.stdout : null;
 }
 
-function load(root) {
-  const app = join(root, "app");
+function load(root, mop) {
+  const app = mop ? join(root, "app") : root;
   const mutations = join(app, "tests", "mutations");
   const registries = [];
-  for (const name of readdirSync(mutations)) {
+  for (const name of mop ? readdirSync(mutations) : []) {
     if (!name.endsWith(".json")) continue;
     try {
       const entries = JSON.parse(readFileSync(join(mutations, name), "utf8"));
@@ -198,8 +206,10 @@ function load(root) {
     }
   }
   const sources = [];
-  for (const dir of ["src", "tests", "scripts"]) {
+  const dirs = mop ? ["src", "tests", "scripts"] : ["src", "test", "tests", "lib", "app", "scripts", "packages"];
+  for (const dir of dirs) {
     for (const path of walk(join(app, dir))) {
+      if (sources.length >= 6000) break;
       try {
         sources.push({ path, text: readFileSync(path, "utf8") });
       } catch {
@@ -222,11 +232,13 @@ async function main() {
   }
   const file = payload.tool_input?.file_path;
   if (typeof file !== "string" || !existsSync(file)) return;
-  const root = findRoot(file);
-  if (root === null || !resolve(file).startsWith(resolve(root, "app"))) return;
+  const mopRoot = findRoot(file);
+  const mop = mopRoot !== null && resolve(file).startsWith(resolve(mopRoot, "app"));
+  const root = mop ? mopRoot : gitRoot(file);
+  if (root === null || !CODE.test(file) && !mop) return;
   const text = readFileSync(file, "utf8");
-  const { registries, sources } = load(root);
-  const lines = findings({ root, file: resolve(file), text, headText: gitHead(root, posix(relative(root, resolve(file)))), sources, registries });
+  const { registries, sources } = load(root, mop);
+  const lines = findings({ root, mop, file: resolve(file), text, headText: gitHead(root, posix(relative(root, resolve(file)))), sources, registries });
   if (lines.length === 0) return;
   const context = `edit-impact (fix these before running any test or check):\n- ${lines.join("\n- ")}`;
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: context } }));
