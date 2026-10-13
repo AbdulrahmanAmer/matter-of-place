@@ -4493,6 +4493,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run tests/unit/action-roles.sync.test.ts` → `2 passed` after the generator; `ls supabase/migrations | grep action_roles | tail -3` lists the lane's two files after main's.
 - added: 2026-10-07
 - hit again: 2026-10-07, B6 g3: the merge of main (B10 channels, reports) left the lane's newest `action_roles` file without those actions; `bun run scripts/gen-action-roles.mjs` wrote `20261008040840_action_roles.sql` and `action-roles.sync.test.ts` went green.
+- hit again: 2026-10-13, feat/matter-actions (orchestrator, not a worker): `dashboard.search` was added to the matrix without the generator or the hand-typed row in `tests/unit/authz.matrix.test.ts`; three full checks died earlier (lint, knip, jscpd), so the two failures showed only at the fourth. A new matrix action takes three edits in one commit: the matrix, `bun run scripts/gen-action-roles.mjs`, and the fixture row.
 
 ## P-2315 · `scripts/gen-action-roles.mjs` has no dry run and ignores every flag: `--check` wrote a new migration into a read-only review
 - symptom: a reviewer ran `bun run scripts/gen-action-roles.mjs --check` to see whether the file was in sync. It printed `wrote supabase/migrations/20261007043422_action_roles.sql 91 actions` and `git status` showed `?? supabase/migrations/20261007043422_action_roles.sql`: a read-only check had added a migration to the snapshot, which was deleted by hand.
@@ -6720,6 +6721,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a service a route calls lives in, or is re-exported from, `src/server/<folder>/service.ts`. When a plan names another file, keep the plan's file and re-export its functions from the folder's `service.ts` (as `src/server/audit/service.ts` does since step 15a), so the sweep probes them, and say so in the log.
 - proof: `cd app && bunx vitest run tests/unit/admin-authz-sweep.test.ts` passes on slice/b7 at B7 g2 with the five routes importing `../../../server/audit/service`; `grep -n -A1 "const ALLOWED_IMPORT" tests/unit/admin-authz-sweep.test.ts` prints the rule with `server\/.+\/service`.
 - added: 2026-10-10
+- hit again: 2026-10-13, feat/matter-actions: `src/routes/api/admin/search.ts` imported `server/dashboard/search`; fixed by re-exporting `searchAdmin` from `server/dashboard/service.ts`, which also puts it under the roleless-actor probe. That probe imports every `service.ts` cold and takes 5.6 s on the laptop, so it now has its own 30 s limit.
 
 ## P-2051 · A local `sql` replay whose prelude holds a migration main pushed mid-run is red on every entry for the wrong reason, and `WATCHED-FAIL OK` cannot tell
 - symptom: B7 g2 (step 15a): a scratch registry of the nine `b7-15a-db-*` entries, each prefixed with the four unpushed B7 migrations (`admin_team`, `admin_settings`, `admin_redirects`, `admin_privacy`), replayed `ok 31, bad 0` at about 10:00. Meanwhile main merged and pushed `admin_team` and `admin_settings` to mop-dev; the next db run with the same prelude failed every case in about 1.3 s with `error: relation "audit_log_list_idx" already exists`. CI's mutation replay on 47e16020 then found two of the nine entries `WATCHED-FAIL BAD: stayed green` (`b7-15a-db-export-handled`, `b7-15a-db-delete-audit-email`), so the local OK had come from the prelude error, not the mutation.
@@ -7866,6 +7868,34 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 ## P-3446 · The project's Cloudflare token cannot see the zone; zone settings go through the dashboard
 - paths: (process)
 - severity: warn
-- symptom: 2026-10-13, gap item 19: `GET /zones?name=matterofplace.com` with `CLOUDFLARE_API_TOKEN` from `.env` returned an empty list (the token is Workers-scoped, no Zone Read), so no zone setting (email obfuscation, bot fight, WAF, DNSSEC) can be read or changed by API. The dashboard tab then signed out between two pages.
-- rule: zone settings are changed in the operator's signed-in Chrome; before starting, open the zone page once and confirm it is not the sign-in page; never ask for, or add, zone scopes to the Workers token without his word.
-- proof: `bun --env-file="/e/Matter Of Place/.env" scratchpad/cf-zone.mjs email_obfuscation` → `TypeError: undefined is not an object (evaluating 'zones.result[0].id')` (measured 2026-10-13 01:45 Cairo).
+- symptom: 2026-10-13, gap item 19: `GET /zones?name=matterofplace.com` with `CLOUDFLARE_API_TOKEN` from `.env` returned an empty list (the token is Workers-scoped, no Zone Read), so no zone setting (email obfuscation, bot fight, WAF, DNSSEC) can be read or changed by API. In Chrome, a dashboard page opened in a background tab, or in a new tab group, stayed on "Loading..." or showed the sign-in page although the operator was signed in (operator, 2026-10-13: "you have to make the browser become what is on the screen so it loads").
+- rule: zone settings are changed in the operator's signed-in Chrome, in the tab he is looking at (the existing tab of the session's group, never a new group); a "Loading..." or sign-in page there means the tab is not in front, not that he is signed out. Never ask for, or add, zone scopes to the Workers token without his word.
+- proof: `bun --env-file="/e/Matter Of Place/.env" scratchpad/cf-zone.mjs email_obfuscation` → `TypeError: undefined is not an object (evaluating 'zones.result[0].id')` (measured 2026-10-13 01:45 Cairo); the same zone settings page loaded in the front tab 600036229 a minute after the new group's tab showed the sign-in page.
+
+## P-3447 · Linting only the changed files misses knip and jscpd, and each miss costs a full check
+- paths: (process)
+- severity: warn
+- symptom: 2026-10-13, feat/matter-actions: ESLint on the changed files was clean, then two full `bun run check` runs failed in turn on knip (`fetchSearch` exported, never imported) and on jscpd (the `jsonValue` schema copied from `src/server/channels/meta.ts` into `scripts/matter/actions.ts`).
+- rule: before a full check, run the three fast whole-repo gates once: `bun run knip && bun run jscpd && bun run format:check`; a schema two files need lives once in `src/domain/` (here `json-value.ts`).
+- proof: `cd app && bun run jscpd` → `Found 0 clones.` with `src/domain/json-value.ts` (measured 2026-10-13 02:40 Cairo); with the copy back in `actions.ts` it prints `Clone found (typescript)` naming `actions.ts [20:1 - 29:3]` and `meta.ts [60:1 - 69:3]`.
+
+## P-3448 · Keeping both sides of a CSS conflict can leave a rule unclosed
+- paths: app/src/styles/**
+- severity: warn
+- symptom: 2026-10-13, feat/matter-actions: the merge of origin/main into the branch conflicted in `app/src/styles/admin/automation.css` (both added a block at the end); the keep-both script joined the sides inside the conflict lines, so `.admin-email-head p {` lost its `}` and swallowed `.admin-ask-matter`. ESLint and the tests do not read CSS; only `format:check` (prettier) said `CssSyntaxError: Unclosed block (1003:1)`, a full check later.
+- rule: after resolving any conflict in a `.css` file by keeping both sides, run `bunx prettier --check <file>` before the merge commit, and `git diff origin/main -- <file>` must show additions only.
+- proof: `cd app && bunx prettier --check src/styles/admin/automation.css` → `All matched files use Prettier code style!` at 991cedbc; at 835b9cb8 it prints the `Unclosed block` error (measured 2026-10-13 02:55 Cairo).
+
+## P-3449 · A private repo on the free plan gets 2,000 Actions minutes a month; the build week spent about 15,000
+- paths: (process)
+- severity: block
+- symptom: 2026-10-13, before the operator switches the repo back to private: a week of runs (2,166) estimated by workflow, run count times the mean billed job minutes of 8 recent runs: ci 598 runs at about 20 minutes, deploy 923 runs at about 3.4, about 15,000 job minutes a week, about 65,000 a month. A public repo's minutes are free; a private one on the free plan stops all workflows (CI, deploy, nightly backup, render) when its 2,000 are spent.
+- rule: switch to private only after the build PRs stop; after that, budget about 23 minutes per pull request (CI plus deploy) plus about 40 a month for backups and audits, so fewer than about 80 pull requests a month. Measure again with `scratchpad/actions-estimate.mjs` before the switch, and watch the account's billing page in the first week.
+- proof: `node scratchpad/actions-estimate.mjs` → `TOTAL about 15234 job minutes a week, about 65289 a month (private free plan: 2,000)` (measured 2026-10-13 05:00 Cairo).
+
+## P-3450 · A unit test that imports every route or service file cold runs past vitest's 5-second limit on the laptop
+- paths: app/tests/unit/**
+- severity: warn
+- symptom: 2026-10-13: `admin-authz-sweep.test.ts` (every `service.ts`, 5.6 s) and `admin-routes-parity.test.ts` (every admin route) timed out locally under a replay; their watched-fails reported `wrong reason` (a timeout, not the expected failure). CI on Linux was fast enough, so the full check passed while a replay failed.
+- rule: a test that imports a whole folder of modules sets its own limit (`it(..., 30_000)`), with a comment naming the measured time; a replay `wrong reason` whose red run says `Test timed out` is this, not a weak assertion.
+- proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts --reporter verbose` → `refuse a roleless actor ... 5734ms`; with `30_000` the file passes under load.

@@ -1,132 +1,94 @@
-# The road to the finish line, as diagrams
+# Where Matter of Place stands, as diagrams
 
-Pictures: [img/completion-map-1.png](img/completion-map-1.png) (stages and gates), [img/completion-map-2.png](img/completion-map-2.png)
-(build slices and what depends on what), [img/completion-map-3.png](img/completion-map-3.png) (what you set up before each slice).
-Source of truth for the words: `../04-completion-map/completion-map.md`.
+Pictures: [img/completion-map-1.png](img/completion-map-1.png) (the road, and where we are),
+[img/completion-map-2.png](img/completion-map-2.png) (everything built), [img/completion-map-3.png](img/completion-map-3.png)
+(what is left, and what does not count).
 
-## 1. Stages and gates
+Updated 2026-10-13 by the operator's definition: completion is the setup as code and software. Accounts on outside
+services (the social apps) are set up by the operator and the orchestrator whenever they choose and do not
+count toward it. The build plans of 2026-10-02 (waves, slices B1b to L1) are history; their files stay in `05-plans/`.
+
+## 1. The road, and where we are
 
 ```mermaid
 flowchart LR
-  S0[Stage 0 SHAPE<br/>decisions D1-D13, Q1-Q12<br/>DONE 2026-09-30] --> S1[Stage 1 DESIGN DIRECTION<br/>site done by MVP,<br/>social, email, reel templates<br/>chosen from rendered options]
-  S1 --> S2[Stage 2 SYSTEM DESIGN<br/>plan file sliced<br/>with verifiable exits]
-  S2 --> S3[Stage 3 BUILD<br/>B1b to B17 in waves 1 to 6,<br/>each verified when it lands]
-  S3 --> S4[Stage 4 HARDEN, H1<br/>security, empty states,<br/>a11y, Lighthouse 95,<br/>backups, rollback]
-  S4 --> S5[Stage 5 LAUNCH, L1<br/>coming-soon live,<br/>first real property<br/>through the whole path]
-  S5 --> LOOP[Iterate: Saturday audit<br/>→ PR → merge → deploy]
-  LOOP --> S3
+  S0[Shape: decisions<br/>DONE 2026-09-30] --> S1[Design direction<br/>DONE]
+  S1 --> S2[System design: plans<br/>DONE]
+  S2 --> S3[Build: site, admin,<br/>database, automation<br/>DONE]
+  S3 --> S4[Harden: security, backups,<br/>restore drill, rollback<br/>DONE]
+  S4 --> S5[Live on matterofplace.com<br/>DONE]
+  S5 --> S6[AI company: Matter and<br/>the colleagues run it<br/>DONE]
+  S6 --> NOW([We are here: one gap left,<br/>staff cannot read email replies])
+  NOW --> LOOP[Run and improve: Saturday audit,<br/>Matter's proposals, approvals]
+
+  classDef done fill:#EEEAE1,stroke:#575751;
+  classDef here fill:#C9C0B2,stroke:#11110F,stroke-width:2px;
+  class S0,S1,S2,S3,S4,S5,S6 done;
+  class NOW here;
 ```
 
-## 2. Build slices, waves and dependencies
-
-Waves are `05-plans/PLAN.md`. Waves 3 and 4 interleave; the landing order is B8 steps 1 to 8, B8b steps 1 to 5, B5,
-B16 steps 1 and 2 (any time after B2), the rest of B16 after B5, B7 steps 1 to 10, B6, B7 steps 11 to 16, B8 steps 9 and 10,
-B8b steps 6 to 10. An arrow means "needs"; the full list is the Depends line of each plan.
+## 2. Everything built
 
 ```mermaid
 flowchart TB
-  subgraph W1["Wave 1"]
-    B1[B1b Repo and delivery: wrangler, CI,<br/>preview per PR, dev Worker, Sentry, headers, backups]
+  subgraph SITE["The website"]
+    P1[Pages: home, markets, properties,<br/>stories, submit, newsletter, legal]
+    P2[Finder, search, concierge,<br/>per-market interest signup]
+    P3[SEO, AEO, GEO: JSON-LD, sitemap,<br/>llms.txt, OG images]
+    P4[Essentials: consent, CSP,<br/>icons, security.txt]
   end
-  subgraph W2["Wave 2: the spine"]
-    B2[B2 Database on mop-dev: migrations, generated types,<br/>seed to dev only, three Storage buckets, H33]
-    B3[B3 API: catalog + writes + search +<br/>rule-based concierge + rate limits + Turnstile]
-    B3b[B3b Coming-soon mode: empty states +<br/>per-market interest signup]
-    B4[B4 Tests: Vitest + Playwright on every PR]
+  subgraph ADMIN["The admin, front and back"]
+    A1[Queue, decide, dossier,<br/>media, publish, approvals]
+    A2[Invoices: issue, mark paid,<br/>activate, PDFs]
+    A3[Automation: flows as data,<br/>emails, schedules, history]
+    A4[Jobs, activity log, team and keys,<br/>search everything]
   end
-  subgraph W3["Wave 3"]
-    B8[B8 Job system: jobs, pgmq, pg_cron,<br/>Actions dispatch + callback]
-    B8b1[B8b steps 1 to 5: automation tables, seed,<br/>planner, fan-out, scheduler, keep-warm]
-    B5[B5 Email: Resend, transactional templates,<br/>Place Notes double opt-in]
-    B7[B7 Admin workspace: queue, decide,<br/>dossier, media, publish, approvals]
-    B17[B17 Website essentials: fonts, consent,<br/>CSP by hashes, icons, .well-known]
+  subgraph DATA["Database and jobs"]
+    D1[One Supabase project, live:<br/>migrations, row security]
+    D2[Job runner: pgmq + pg_cron,<br/>heavy renders in Actions]
+    D3[Storage: uploads, media,<br/>documents; old uploads cleared]
+    D4[Backups nightly,<br/>restore drill 2.1 minutes]
   end
-  subgraph W4["Wave 4"]
-    B6[B6 Money box: invoices, mark paid,<br/>activate agent, Stripe later]
-    B8b2[B8b steps 6 to 10: automation API<br/>and screens 17 to 21]
-    B16[B16 Legal identity: product of Omnikom]
+  subgraph CONTENT["Content and distribution"]
+    C1[Covers, carousels, stories,<br/>reels, newsletter blocks]
+    C2[Place Notes newsletter:<br/>double opt-in, digest]
+    C3[Instagram, X, LinkedIn<br/>adapters; Facebook, YouTube off]
+    C4[Audit robot,<br/>Saturday mornings]
   end
-  subgraph W5["Wave 5"]
-    B9[B9 Creative system: carousel, story,<br/>cover, newsletter, reel templates]
-    B10[B10 Social publishing: Instagram, X, LinkedIn,<br/>Facebook and YouTube as disabled blocks]
-    B11[B11 Newsletter automation: digest every 14 days,<br/>standalone email for Campaign]
-    B12[B12 Reel: ffmpeg in Actions]
+  subgraph AI["The AI company"]
+    M1[Matter: full power when a person<br/>or colleague wakes it]
+    M2[Colleagues: hiring, daily meeting,<br/>decisions with a metric]
+    M3[Ask Matter on any flow;<br/>admin calls through Approvals]
+    M4[Laptop runner on the<br/>operator's Claude account]
   end
-  subgraph W6["Wave 6"]
-    B13[B13 SEO / AEO / GEO: JSON-LD, sitemap,<br/>llms.txt, OG, archive pages]
-    B14[B14 Audit robot: Saturday morning]
-    B15[B15 Omnikom handoff webhook]
+  subgraph EDGE["Edge and safety"]
+    E1[Cloudflare Worker,<br/>cache with an outage copy]
+    E2[DNSSEC, API burst guard,<br/>Turnstile]
+    E3[Sentry, health checks,<br/>GA4 and Search Console]
   end
-  H1[H1 HARDEN, wave 7]
-  L1[L1 LAUNCH, wave 8]
 
-  B1 --> B2 --> B3 --> B3b --> B4
-  B3 --> B8 --> B8b1
-  B4 --> B8b1
-  B3 --> B5
-  B3 --> B7
-  B3b --> B17
-  B5 --> B17
-  B2 --> B16
-  B5 --> B16
-  B7 --> B6
-  B5 --> B6
-  B7 --> B8b2
-  B5 --> B8b2
-  B8b1 --> B8b2
-  B8 --> B9
-  B8b1 --> B9
-  B9 --> B10
-  B8b1 --> B10
-  B5 --> B11
-  B8b1 --> B11
-  B9 --> B12
-  B17 --> B13
-  B8b1 --> B13
-  B13 --> B14
-  B10 --> B14
-  B11 --> B14
-  B7 --> B15
-  B8b1 --> B15
-  W6 --> H1 --> L1
-
-  classDef found fill:#F5F2EB,stroke:#575751;
-  classDef ops fill:#EEEAE1,stroke:#575751;
-  classDef content fill:#C9C0B2,stroke:#575751;
-  class B1,B2,B3,B3b,B4 found;
-  class B5,B6,B7,B8,B8b1,B8b2,B16,B17 ops;
-  class B9,B10,B11,B12 content;
+  classDef done fill:#EEEAE1,stroke:#575751;
+  class P1,P2,P3,P4,A1,A2,A3,A4,D1,D2,D3,D4,C1,C2,C3,C4,M1,M2,M3,M4,E1,E2,E3 done;
 ```
 
-## 3. What the owner sets up, and which slice waits for it
+## 3. What is left, and what does not count
 
 ```mermaid
 flowchart LR
-  A1[A1 DONE: Cloudflare zone,<br/>mop-admin and deploy tokens] --> B1
-  A8[A8 DONE: GitHub Actions secrets<br/>and variables, no branch protection] --> B1
-  A6[A6 DONE: Sentry account] --> B1
-  A10[A10 DONE: Lovable disconnected] --> B1
-  A2[A2 Supabase: mop-dev DONE,<br/>the one database, H35] --> B2
-  A3[A3 Resend + domain records] --> B5
-  A4[A4 Invoice template inputs:<br/>entity, methods, numbering] --> B6
-  A9[A9 Business facts: contact,<br/>entity, handle, editors] --> B4 & B7
-  A5[A5 X app, LinkedIn page and app,<br/>Meta through the partner] --> B10
-  A7[A7 GA4 with gtag.js, Search Console,<br/>Bing, no Tag Manager] --> B13 & B14
-  A12[A12 no model key: captions<br/>through the laptop, H34] --> B9
-  A13[A13 DONE: GitHub dispatch token] --> B8 & B9
-  A14[A14 no Omnikom endpoint:<br/>B15 built, switched off] --> B15
-  A15[A15 Uptime account by the operator,<br/>Sentry token DONE] --> B14
+  subgraph LEFT["Left in the software: one item"]
+    R1[Staff read email replies:<br/>a reply to our mail lands in the<br/>Zoho mailbox hello@ and admin@,<br/>which the AI staff cannot see] --> R2[Owner: Matter sets it up<br/>through Ask Matter / a proposal]
+  end
+  subgraph OUTSIDE["Outside accounts: do not count, done when chosen"]
+    O1[Meta, X and LinkedIn accounts:<br/>connect the built adapters]
+    O2[The Instagram handle<br/>for the site's link]
+  end
+  subgraph LATER["Later by decision"]
+    L1[Stripe: invoices are<br/>manual until then]
+    L2[Programmatic media:<br/>managed separately]
+  end
 
-  B1[B1b Repo + deploy]
-  B2[B2 Database]
-  B4[B4 Tests]
-  B5[B5 Email]
-  B6[B6 Money box]
-  B7[B7 Admin]
-  B8[B8 Job system]
-  B9[B9 Creative system]
-  B10[B10 Social]
-  B13[B13 SEO]
-  B14[B14 Audit robot]
-  B15[B15 Omnikom handoff]
+  classDef open fill:#C9C0B2,stroke:#11110F,stroke-width:2px;
+  classDef outside fill:#F5F2EB,stroke:#8B877F,stroke-dasharray: 5 5;
+  class R1,R2 open;
+  class O1,O2,L1,L2 outside;
 ```
