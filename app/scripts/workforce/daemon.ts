@@ -339,6 +339,7 @@ async function runOnce(client: Db): Promise<boolean> {
             ...matterInputs(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
             thread: situation,
             business: lessons,
+            power,
           }),
           matterEnv(),
           power,

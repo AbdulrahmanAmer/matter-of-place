@@ -61,5 +61,14 @@
     "replace": "    .regex(/./, \"Use at least one digit.\"),",
     "run": "bunx vitest run --project unit tests/unit/admin-password-rule.test.ts",
     "expect": "× .*needs twelve characters, a letter and a digit"
+  },
+  {
+    "id": "mp-h-prompt-says-power",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "    input.power === \"full\"\n",
+    "replace": "    input.power === \"never\"\n",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*tells Matter the power it really has"
   }
 ]
