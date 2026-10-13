@@ -15,10 +15,8 @@ const FAIL_BUCKET = "agent_key_fail:ip";
 const FAIL_LIMIT = 20;
 const FAIL_WINDOW_MS = 60_000;
 const PER_MINUTE = 60;
-const DAY_SECONDS = 86_400;
+
 const TOUCH_AFTER_MS = 60_000;
-// `settings.agent_daily_limits` is read at most this often per isolate (screen 23 edits it).
-const LIMITS_TTL_MS = 60_000;
 
 export interface AgentKey {
   keyId: string;
@@ -46,24 +44,6 @@ const keyRowSchema = z.object({
   roles: z.array(z.enum(appRoles)),
 });
 
-const limitsSchema = z.object({ requests_per_day: z.number().int().positive() });
-let dailyLimit: { value: number; readAt: number } | undefined;
-
-async function requestsPerDay(db: Db, now: number): Promise<number> {
-  if (dailyLimit !== undefined && now - dailyLimit.readAt < LIMITS_TTL_MS) return dailyLimit.value;
-  const { data, error } = await db.from("settings").select("value").eq("key", "agent_daily_limits");
-  const parsed = limitsSchema.safeParse(data?.[0]?.value);
-  if (error !== null || !parsed.success) {
-    throw new AppError(
-      "unavailable",
-      undefined,
-      "The service is busy. Please try again in a moment.",
-    );
-  }
-  dailyLimit = { value: parsed.data.requests_per_day, readAt: now };
-  return dailyLimit.value;
-}
-
 const refused = () => new AppError("unauthorized", undefined, "This key is not valid.");
 
 /** 429 `rate_limited`; `defineAdminRoute` answers it with `Retry-After`. */
@@ -81,7 +61,7 @@ const limited = (retryAfter: number) => new KeyRateLimited(retryAfter);
 
 /**
  * The agent behind `key`, after the request limits of invariant 3: a refused address is answered from
- * memory, a valid key passes one `rate_limit_check` (60 a minute and `requests_per_day`), and
+ * memory, a valid key passes one `rate_limit_check` (60 a minute; the daily line only alerts), and
  * `last_used_at` is written at most once a minute.
  */
 export async function verifyKey(
@@ -109,14 +89,10 @@ export async function verifyKey(
     throw refused();
   }
   const bucket = `agent:${row.key_id}`;
+  // W5 (operator and Jay, 2026-10-13): only the flood guard blocks; the daily line is an alert (health check
+  // `agent_requests`), never a refusal.
   const verdict = await checkDb(db, [
     { bucket, keyHash: row.key_id, limit: PER_MINUTE, windowSeconds: 60 },
-    {
-      bucket,
-      keyHash: row.key_id,
-      limit: await requestsPerDay(db, now),
-      windowSeconds: DAY_SECONDS,
-    },
   ]);
   if (!verdict.ok) throw limited(verdict.retryAfter);
   const lastUsed =

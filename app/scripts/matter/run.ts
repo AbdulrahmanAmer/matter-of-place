@@ -10,14 +10,22 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runClaude, type CliUsage } from "../workforce/cli.ts";
+import { workforceConfig } from "../workforce/config.ts";
 import { atlas } from "./atlas.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const HOME = join(homedir(), ".mop-workforce", "matter");
 const RUN_TIMEOUT_MS = 15 * 60_000;
+// P-3453: a full-power run builds (code, tests, a pull request); 15 minutes cut the first one off. 45 minutes stays
+// inside the scheduled task's 50-minute limit and the run's 50-minute lease.
+const FULL_RUN_TIMEOUT_MS = 45 * 60_000;
+
+/** How long one run may take: a build at full power, an answer in read mode. */
+export function runTimeoutMs(power: MatterPower): number {
+  return power === "full" ? FULL_RUN_TIMEOUT_MS : RUN_TIMEOUT_MS;
+}
 const NOTES_LINES = 150;
 const ATLAS_MAX_AGE_MS = 60 * 60_000;
-const MODEL = "claude-opus-5-5";
 
 /** Where Matter changes code: its own worktree, on a branch per change, never the runner's folder. */
 export const DESK = join(dirname(join(here, "../../..")), "matter-desk");
@@ -148,7 +156,16 @@ export function matterPower(cause: string, authorKind: string | null): MatterPow
 
 /** The command line for one run: either mode refuses what it does not allow, never asks. */
 export function matterArgs(power: MatterPower): string[] {
-  const base = ["-p", "--model", MODEL, "--output-format", "json", "--permission-mode", "dontAsk"];
+  // W5: the model is a laptop switch (~/.mop-workforce/config.json), Opus by default.
+  const base = [
+    "-p",
+    "--model",
+    workforceConfig().matterModel,
+    "--output-format",
+    "json",
+    "--permission-mode",
+    "dontAsk",
+  ];
   return power === "full"
     ? [...base, "--settings", join(here, "settings-full.json")]
     : [
@@ -173,7 +190,7 @@ export async function askMatter(
     cwd: DESK,
     env,
     prompt,
-    timeoutMs: RUN_TIMEOUT_MS,
+    timeoutMs: runTimeoutMs(power),
     who: "Matter",
   });
   return { text: answer.text, ...(answer.usage === undefined ? {} : { usage: answer.usage }) };

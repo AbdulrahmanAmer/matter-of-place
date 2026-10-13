@@ -16,6 +16,8 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review, closed]
+    # W5 (Jay, 2026-10-13: private repo, 2,000 minutes a month): a plan or Markdown change deploys no preview.
+    paths-ignore: ["workspace/**", "launch/**", "**/*.md"]
   workflow_run:
     workflows: [ci]
     types: [completed]

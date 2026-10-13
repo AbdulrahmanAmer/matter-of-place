@@ -79,5 +79,41 @@
     "replace": "start = -1",
     "run": "bunx vitest run --project unit tests/unit/workforce-answer.test.ts",
     "expect": "× .*is read from its closing object even when the prose before it holds braces"
+  },
+  {
+    "id": "mp-l-grounding-none",
+    "test": "tests/unit/workforce-grounding.test.ts",
+    "file": "scripts/workforce/grounding.ts",
+    "find": "If the thread says something of yours is in Approvals, it is not; file it again if it is still wanted.",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-grounding.test.ts",
+    "expect": "× .*names the line that woke it"
+  },
+  {
+    "id": "mp-m-grounding-woke",
+    "test": "tests/unit/workforce-grounding.test.ts",
+    "file": "scripts/workforce/grounding.ts",
+    "find": "  if (woke !== null) {",
+    "replace": "  if (woke === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-grounding.test.ts",
+    "expect": "× .*names the line that woke it"
+  },
+  {
+    "id": "mp-j-full-run-time",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "  return power === \"full\" ? FULL_RUN_TIMEOUT_MS : RUN_TIMEOUT_MS;",
+    "replace": "  return RUN_TIMEOUT_MS;",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*gives a full-power build 45 minutes"
+  },
+  {
+    "id": "mp-k-lease",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    p_lease_seconds: 3000,",
+    "replace": "    p_lease_seconds: 600,",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*says in the thread when a run stops"
   }
 ]
