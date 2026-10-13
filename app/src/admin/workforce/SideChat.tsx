@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { Dialog } from "../ui/Dialog";
 import { LocalTime } from "../ui/LocalTime";
+import type { AgentMessage } from "../../domain/workforce";
 import { presenceOf } from "./presence";
 import { useMessages, useOffice, usePostMessage } from "./workforce-queries";
 
@@ -136,14 +137,7 @@ export function SideChat({ open, onClose }: { open: boolean; onClose: () => void
           aria-labelledby="side-chat-tab-team"
           hidden={tab !== "team"}
         >
-          {(team.data?.items ?? []).map((message) => (
-            <li key={message.id} data-from={message.author_kind}>
-              <span className="side-chat__who">
-                {message.author_kind === "human" ? "You" : message.author_name}
-              </span>
-              <p>{message.body}</p>
-            </li>
-          ))}
+          <MessageRows messages={team.data?.items ?? []} />
           {(team.data?.items ?? []).length === 0 && !team.isLoading ? (
             <li className="side-chat__empty">The team has not talked yet.</li>
           ) : null}
@@ -156,14 +150,7 @@ export function SideChat({ open, onClose }: { open: boolean; onClose: () => void
           aria-labelledby="side-chat-tab-chat"
           hidden={tab !== "chat"}
         >
-          {items.map((message) => (
-            <li key={message.id} data-from={message.author_kind}>
-              <span className="side-chat__who">
-                {message.author_kind === "human" ? "You" : message.author_name}
-              </span>
-              <p>{message.body}</p>
-            </li>
-          ))}
+          <MessageRows messages={items} />
           {items.length === 0 && !messages.isLoading ? (
             <li className="side-chat__empty">
               Ask Matter for anything: today&apos;s requests, a draft, a change to the site, a
@@ -198,5 +185,21 @@ export function SideChat({ open, onClose }: { open: boolean; onClose: () => void
         </form>
       </section>
     </Dialog>
+  );
+}
+
+/** One line per message, the person's own shown as "You": the chat and the team talk alike. */
+function MessageRows({ messages }: { messages: readonly AgentMessage[] }) {
+  return (
+    <>
+      {messages.map((message) => (
+        <li key={message.id} data-from={message.author_kind}>
+          <span className="side-chat__who">
+            {message.author_kind === "human" ? "You" : message.author_name}
+          </span>
+          <p>{message.body}</p>
+        </li>
+      ))}
+    </>
   );
 }
