@@ -39,14 +39,14 @@ export const siteConfig = {
 } as const;
 
 /** The date of the last edit of the legal copy, shown as "Last updated" on the accessibility statement. */
-export const legalUpdated = "2026-10-08";
+export const legalUpdated = "2026-10-13";
 
 /**
  * The version of each legal text, an ISO date. `terms` is what a submitter's rights confirmation records
  * (`currentRightsVersion`), so editing the terms adds a new version here and a new entry in
  * `tests/unit/fixtures/legal-hashes.json`.
  */
-export const legalVersions = { privacy: "2026-10-11", terms: "2026-10-11" } as const;
+export const legalVersions = { privacy: "2026-10-13", terms: "2026-10-11" } as const;
 
 /** Absolute URL for a site path, used in canonical links and structured data. */
 export const absoluteUrl = (path: string) =>

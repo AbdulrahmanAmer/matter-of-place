@@ -5,8 +5,10 @@ import { describe, expect, it } from "vitest";
 import { workforceConfig } from "../../scripts/workforce/config";
 import { liveAlive } from "../../scripts/matter/live-alive";
 import {
+  isIdle,
   liveArgs,
   nextSession,
+  openTasks,
   postableText,
   readStreamLine,
   shouldRotate,
@@ -142,6 +144,21 @@ describe("the laptop's switches", () => {
       { matterModel: "claude-sonnet-5-5", backlog: false },
       { matterModel: "claude-opus-5-5", backlog: true },
       { matterModel: "claude-opus-5-5", backlog: true },
+    ]);
+  });
+});
+
+describe("a background task keeps the session busy (2026-10-13, a rotation dropped a running W4 check)", () => {
+  it("opens a task on its start and closes it on its finish, and is idle only with nothing open", () => {
+    const started = openTasks(new Set(), { id: "t-1", label: "bun run check", state: "started" });
+    const second = openTasks(started, { id: "t-2", label: "tests", state: "started" });
+    const oneDone = openTasks(second, { id: "t-1", label: "bun run check", state: "done" });
+    const allDone = openTasks(oneDone, { id: "t-2", label: "tests", state: "done" });
+    expect([...oneDone]).toEqual(["t-2"]);
+    expect([isIdle(0, oneDone.size), isIdle(0, allDone.size), isIdle(1, 0)]).toEqual([
+      false,
+      true,
+      false,
     ]);
   });
 });

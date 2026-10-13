@@ -35,7 +35,7 @@ export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
   authorize(actor, "workforce.office");
   const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
   const weekAgo = new Date(Date.now() - 7 * 24 * 3_600_000).toISOString();
-  const [agents, runs, today, approvals, week] = await Promise.all([
+  const [agents, runs, today, approvals, week, activity] = await Promise.all([
     db.from("agents").select("*").order("created_at"),
     db
       .from("agent_runs")
@@ -45,13 +45,20 @@ export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
     db.from("agent_runs").select("agent_id").gte("created_at", since),
     db.from("agent_approvals").select("id", { count: "exact", head: true }).eq("state", "pending"),
     db.rpc("workforce_scoreboard", { p_since: weekAgo }),
+    // W5 items 7 and 8: what the colleagues run in the background, newest first.
+    db
+      .from("agent_activity")
+      .select("id, agent_id, label, state, started_at, finished_at")
+      .order("started_at", { ascending: false })
+      .limit(20),
   ]);
   if (
     agents.error !== null ||
     runs.error !== null ||
     today.error !== null ||
     approvals.error !== null ||
-    week.error !== null
+    week.error !== null ||
+    activity.error !== null
   ) {
     throw unavailable("The office");
   }
@@ -92,6 +99,14 @@ export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
     })),
     pending_approvals: approvals.count ?? 0,
     week: z.array(scoreSchema).safeParse(week.data).data ?? [],
+    activity: activity.data.map((row) => ({
+      id: row.id,
+      agent_slug: slugOf.get(row.agent_id) ?? "",
+      label: row.label,
+      state: row.state === "done" || row.state === "stopped" ? row.state : "running",
+      started_at: row.started_at,
+      finished_at: row.finished_at,
+    })),
   };
 }
 

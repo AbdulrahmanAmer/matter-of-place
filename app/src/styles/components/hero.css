@@ -2,7 +2,7 @@
 
 .hero {
   position: relative;
-  height: min(800px, 88svh);
+  height: min(800px, calc(88svh / var(--site-zoom, 1)));
   min-height: 570px;
   overflow: hidden;
   color: var(--primary-foreground);
@@ -85,7 +85,7 @@
 
 .image-hero {
   position: relative;
-  height: min(700px, 82svh);
+  height: min(700px, calc(82svh / var(--site-zoom, 1)));
   min-height: 500px;
   overflow: hidden;
   color: var(--primary-foreground);
@@ -194,7 +194,7 @@
 .hero-text {
   display: flex;
   align-items: flex-end;
-  min-height: min(84svh, 840px);
+  min-height: min(calc(84svh / var(--site-zoom, 1)), 840px);
   padding-top: calc(var(--header-h) + clamp(56px, 8vw, 120px));
   padding-bottom: clamp(56px, 7vw, 104px);
   color: var(--primary-foreground);

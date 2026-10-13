@@ -20,6 +20,25 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"agent_activity": {
+                  Row: {
+                    "agent_id": string,"finished_at": string | null,"id": string,"label": string,"started_at": string,"state": string,"task_key": string
+                  }
+                  Insert: {
+                    "agent_id": string,"finished_at"?: string | null,"id"?: string,"label": string,"started_at"?: string,"state"?: string,"task_key": string
+                  }
+                  Update: {
+                    "agent_id"?: string,"finished_at"?: string | null,"id"?: string,"label"?: string,"started_at"?: string,"state"?: string,"task_key"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "agent_activity_agent_id_fkey"
+      columns: ["agent_id"]
+isOneToOne: false
+      referencedRelation: "agents"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"agent_approvals": {
                   Row: {
                     "action": string,"agent_id": string,"content": NonNullable<Json>,"content_hash": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"edited_content": Json | null,"id": string,"reason": string | null,"run_id": string | null,"state": string,"summary": string

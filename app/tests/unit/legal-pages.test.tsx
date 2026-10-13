@@ -214,6 +214,7 @@ const sections = {
   accessibility: [
     "Our commitment",
     "What we do",
+    "Accessibility settings",
     "How we check",
     "Known limits",
     "Tell us about a problem",

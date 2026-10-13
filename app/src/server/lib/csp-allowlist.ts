@@ -1,3 +1,5 @@
+import { ACCESS_BOOTSTRAP } from "../../lib/access-bootstrap";
+
 // The router's own scroll-restoration script, emitted into every page because `src/router.tsx` sets
 // `scrollRestoration: true`. TanStack gives it no `class="$tsr"` marker; its text is a constant of
 // `@tanstack/router-core` (`scroll-restoration-inline.js` plus the storage key and a self-removal), so it changes
@@ -9,4 +11,4 @@ const SCROLL_RESTORATION = `(function(a,f){let l;try{l=JSON.parse(sessionStorage
  * scripts (SEC-03): a script of the app, or one the router emits without its marker. An entry is added only with
  * the commit that adds its script, and the `csp-inline-rules` case asserts every entry still occurs in a render.
  */
-export const CSP_INLINE_ALLOWLIST: readonly string[] = [SCROLL_RESTORATION];
+export const CSP_INLINE_ALLOWLIST: readonly string[] = [SCROLL_RESTORATION, ACCESS_BOOTSTRAP];

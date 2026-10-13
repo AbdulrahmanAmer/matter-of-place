@@ -97,5 +97,14 @@
     "replace": "      - name: deno\n        run: >\n",
     "run": "bunx vitest run --project unit tests/unit/ci-deno-gate.test.ts",
     "expect": "× .*runs both commands in the one step named deno"
+  },
+  {
+    "id": "f4-g-publishable-key",
+    "test": "tests/unit/session-local.test.ts",
+    "file": "src/server/lib/session.ts",
+    "find": "  const { SUPABASE_URL: url, SUPABASE_PUBLISHABLE_KEY: key } = env;",
+    "replace": "  const { SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key } = env;",
+    "run": "bunx vitest run --project unit tests/unit/session-local.test.ts",
+    "expect": "× .*builds the Auth client with the publishable key"
   }
 ]

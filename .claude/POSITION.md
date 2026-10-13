@@ -1766,3 +1766,51 @@ first day of the new usage week; no step was cut from any plan.
   by the heap watch 2026-10-12 22:30 to 00:50); it frees between about 22:30 and 01:00 tonight.
 - Open for the operator: approve the staff charter (W2.md); ask Matter in the side chat to set up reading email
   replies; switch the repo to private only after the build PRs stop (P-3449).
+- 2026-10-13 10:00 Cairo. Staff charter approved (PR 362). Matter's key reset on the operator's word: cap 4,000 a
+  day (put_setting, audited), 2,000 old hits cleared; the key answers 200 and holds no person-only action.
+  Operator tests of Matter: test 1 (his own message, full power) found the prompt still said safe mode (P-3451);
+  test 2 (a line labelled Claude, read only) found a dropped admin action (P-3452). Both fixed on
+  fix/matter-prompt-power (E:/mop-build/mpower), full check and gate running; repeat both tests after it merges.
+- Operator, 2026-10-13: no synthetic listing on the live site. The first real listing he sends is the end-to-end
+  test of the listing path (form, received email, Concierge draft in Approvals, admin request). Wait for it.
+- Live read-only checks the same morning: 21 public addresses 200 (the newsletter page is /place-notes); job runner
+  every minute, no dead job in 24 h, 5 cron tasks active; zero business events in 24 h, so the colleagues who wake
+  on a listing have not been woken by a real one yet.
+- 2026-10-13 14:25 Cairo. PR 364 merged (Matter's long runs, W5 21a). The repo went private (H101) and GitHub Actions
+  then started no job: "recent account payments have failed or your spending limit needs to be increased"
+  (P-3456). Jay refused going public (open gap-audit items in the history, no force push) and chose ruling H103: the
+  laptop runs CI, deploys and the backup. Built on ci/local-gate (PR 366, E:/mop-build/localci): scripts/local-ci.mjs
+  (check and build jobs, unit replay, P-712 rerun of workers that never started), merge-gate.mjs --local-ci (only for
+  jobs carrying GitHub's not-started notice; posts ci-local), scripts/deploy-local.mjs (backup, rolled-back migration
+  rehearsal, db push, job-runner deploy, build with repo vars, wrangler deploy, wait, smoke, rollback). The db and e2e
+  jobs need Docker and do not run under H103. PR 366 laptop CI running; then 365 (live Matter), then office window.
+- Laptop backup live: task "MOP Backup" 06:17 daily, ~/.mop-workforce/backup-local.mjs, E:/mop-backups (30 days);
+  first scheduled run failed on PATH (P-3457), fixed, proven by Start-ScheduledTask: 888,671 bytes in 94 s.
+- Operator asks in flight (branch design/site-scale, E:/mop-build/zoom, NOT committed): public site at 90% from 1024px
+  (zoom with svh heights divided by --site-zoom); privacy page names provider categories, not vendors (test
+  privacy-no-stack); the accessibility widget remade from scratch (access-panel.tsx, access.css, lib/access.ts,
+  vision-filters.tsx with daltonization matrices whose rows sum to 1, footer link, Alt + A, head script in
+  CSP_INLINE_ALLOWLIST). Tests and screenshots of every state are NEXT, after PR 366's check frees the laptop.
+- W5: 21a done; items 1 to 5, 7 to 9, 12 and 19 (team_waiting health check, on feat/office-window) built and waiting
+  to merge; 357 needs a router and bundle slice (fix/deps-router, E:/mop-build/deps); 356 rebase asked.
+- Operator idea: Ubuntu 24.04 on his second laptop as a build machine and a self-hosted GitHub runner, which would end
+  H103 without a card. Waiting for him to install it.
+
+## 2026-10-13 19:45 +0300 370 AND 373 MERGED AND LIVE; PRODUCTION KEY FIXED (P-530 AGAIN); NESTED REPLAY LOCK ON fix/nested-replay-lock
+- Merged today: 365 live Matter, 366 laptop CI (H103), 371 records, 372 harness, 369 office window, 367 publishable key
+  (gap item 8), 370 site scale + privacy categories + accessibility panel, 373 W6 plan. All on the live site after
+  the 16:11 UTC deploy rerun went green (footer "Accessibility settings", head bootstrap, privacy names no vendor).
+- Production deploys at 15:39 and 16:11 UTC failed smoke and rolled back: SUPABASE_PUBLISHABLE_KEY had been put
+  under the shell's personal Cloudflare token (bun --env-file does not override it), so production lacked it.
+  Fixed: versions secret put under the project pair (version fa31beea), dev Worker too, deploy rerun green.
+  Guard: account_id pinned in app/wrangler.toml (hy-wrangler-account) + global shell-shaper refuses bare wrangler
+  in this project. NOT DONE: the stray Worker matter-of-place on the personal account (empty upload + that key,
+  11:54 UTC) awaits the operator's word to delete.
+- PR 356 (Dependabot actions) db job red: B4:ii replays a replay and the P-3444 lock refused the child. Fixed here:
+  WATCHFAIL_PARENT lets a nested replay through its parent's lock (watchfail-lock test 2, ap-j-nested-replay);
+  B4:ii replays OK locally. 356 needs main merged after this lands.
+- P-3451 and P-3453 marked enforced-by (their tests exist), which unblocks the live-supervisor fix (W5 item 5,
+  UNPROVEN: live.ts moves to new code only on rotation). Next: shouldMove + exit while idle on a new HEAD.
+- Harness: shell-shaper no longer backgrounds read-only commands that name a long tool; quoted text is not split.
+- Matter on W4 (feat/w4-email-replies) running his tests at 16:15 UTC; backend 0 dead jobs, 0 overdue.
+- PR 357 (router API + bundle budget) NOT DONE. Repo is PUBLIC until building is done (operator order).

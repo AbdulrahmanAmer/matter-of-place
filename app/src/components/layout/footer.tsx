@@ -2,6 +2,7 @@ import type { MouseEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { Emblem } from "../brand/emblem";
 import { siteConfig } from "../../config/site";
+import { openAccess } from "../../lib/access-events";
 import { openConsentNotice } from "../../lib/consent";
 import { legalIdentity } from "../../lib/legal-identity";
 import { useSite } from "../../lib/queries";
@@ -9,13 +10,23 @@ import { presentLines } from "../../domain/settings";
 import { fill, t } from "../../lib/strings";
 import { ConsentNotice } from "./consent-notice";
 
+// A modified click is the visitor opening a link in a new tab or window, so the browser keeps it.
+const modifiedClick = (event: MouseEvent) =>
+  event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey;
+
 // A real link to /privacy-choices; with JavaScript the same click reopens the notice in place.
-// A modified click is the visitor opening the page in a new tab or window, so the browser keeps it.
 function reopenNotice(event: MouseEvent) {
-  if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
-    return;
+  if (modifiedClick(event)) return;
   event.preventDefault();
   openConsentNotice();
+}
+
+// A real link to the accessibility statement; with JavaScript the same click opens the settings panel in place, and
+// brings back a mark the visitor hid.
+function openSettings(event: MouseEvent) {
+  if (modifiedClick(event)) return;
+  event.preventDefault();
+  openAccess();
 }
 
 export function Footer() {
@@ -103,6 +114,9 @@ export function Footer() {
             </Link>
             <Link to="/privacy-choices" id="consent-change" onClick={reopenNotice}>
               {t.consent.change}
+            </Link>
+            <Link to="/accessibility" hash="settings" onClick={openSettings}>
+              {t.nav.accessibilitySettings}
             </Link>
             {profiles.map(({ label, url }) => (
               <a key={label} href={url} rel="noopener noreferrer" target="_blank">

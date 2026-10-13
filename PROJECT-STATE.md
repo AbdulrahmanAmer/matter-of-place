@@ -8,8 +8,10 @@ enforcement: deny
 
 ## OPEN DECISIONS
 
-None. Q1–Q16 answered by the CEO on 2026-09-30 (S22–S33, S43–S46). Owner inputs status in S47.
-Stage 0 gate met; stage 2 gate met (PLAN.md read and sliced); STAGE stays 3 (BUILD). Production starts next session with B1b.
+None blocking. Q1–Q16 answered by the CEO on 2026-09-30 (S22–S33, S43–S46). Owner inputs status in S47.
+STAGE 5 (LAUNCH) since 2026-10-11: the site is live in coming-soon mode. Waiting on the operator, not decisions: the
+social accounts, the first real listing, switching the repo back to private when building is done, and his word on
+deleting the stray `matter-of-place` Worker in his personal Cloudflare account (P-530, 2026-10-13).
 
 Open risks (ASSUMED section H, 2026-10-02; recorded, not decisions to take now):
 - Ruling H4 (SEC-01 part 2 not adopted): pull request preview jobs hold the account-wide deploy token `mop-github-actions`
@@ -121,3 +123,9 @@ first editors' emails and roles, Meta Business access, Namecheap purchase of mat
   before any admin page; passwords 12 characters with letters and digits. Lanes retired (workspace/05-plans/lanes
   removed). The repo is public until the operator switches it back to private (H5 still holds: no branch protection on
   the free plan either way).
+- 2026-10-13 evening: 365, 366, 367, 369, 370, 371, 372, 373 merged and live (accessibility panel, privacy names
+  provider categories only, sign-in publishable key, office window, laptop CI and backups under H103, W6 plan). Two
+  production deploys rolled back on smoke because the publishable key had gone to the personal Cloudflare account
+  (P-530 again); key set on the project's Worker, deploy rerun green, account now pinned in wrangler.toml and a hook
+  refuses bare wrangler calls. Open: W4 (Matter, email replies), PR 357 (router), PR 356 (actions), W5 item 5
+  (UNPROVEN), W6 after the Saturday allowance reset. The repo is public until the operator switches it back.

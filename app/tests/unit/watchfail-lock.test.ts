@@ -33,4 +33,33 @@ describe("watchfail's lock", () => {
       rmSync(lock, { force: true });
     }
   }, 60_000);
+
+  it("lets a replay run by an entry of the lock's holder (B4:ii) through, and leaves the lock to the holder", () => {
+    if (existsSync(lock))
+      throw new Error("a replay is running in this folder; run this test alone");
+    mkdirSync(join(app, "node_modules", ".cache"), { recursive: true });
+    const holder = spawn(process.execPath, ["-e", "setTimeout(() => {}, 30000)"], {
+      stdio: "ignore",
+    });
+    try {
+      writeFileSync(lock, String(holder.pid));
+      const nested = spawnSync(
+        process.execPath,
+        ["scripts/watchfail.mjs", "--registry", "tests/mutations", "--only", "no-such-entry"],
+        {
+          cwd: app,
+          encoding: "utf8",
+          env: { ...process.env, WATCHFAIL_PARENT: String(holder.pid) },
+        },
+      );
+      expect([
+        nested.stderr.includes("another replay"),
+        nested.stderr.includes("no entry with id no-such-entry"),
+        readFileSync(lock, "utf8"),
+      ]).toEqual([false, true, String(holder.pid)]);
+    } finally {
+      holder.kill();
+      rmSync(lock, { force: true });
+    }
+  }, 60_000);
 });

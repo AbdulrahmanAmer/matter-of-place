@@ -1,6 +1,6 @@
 /* The loading skeleton (RoutePending): blocks in the page's own measures, no motion beyond the fade-in. */
 .route-pending {
-  min-height: 70svh;
+  min-height: calc(70svh / var(--site-zoom, 1));
   padding: 80px var(--container-pad);
   animation: fadeIn 0.4s ease both;
 }

@@ -191,6 +191,8 @@ jobs:
             echo "DEV_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres"
             echo "SUPABASE_URL=http://127.0.0.1:54321"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            # Gap audit item 8: the Auth cookie client signs in with the publishable key, here the stack's anon key.
+            echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
             echo "RATE_LIMIT_SALT=ci-only-salt"
             echo "MOP_ENV=local"
           } >> "$GITHUB_ENV"
@@ -284,6 +286,8 @@ jobs:
             echo "DEV_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres"
             echo "SUPABASE_URL=http://127.0.0.1:54321"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            # Gap audit item 8: the Auth cookie client signs in with the publishable key, here the stack's anon key.
+            echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
             echo "RATE_LIMIT_SALT=ci-only-salt"
             echo "MOP_ENV=local"
           } >> "$GITHUB_ENV"
@@ -307,6 +311,7 @@ jobs:
           {
             echo "SUPABASE_URL=$SUPABASE_URL"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY"
+            echo "SUPABASE_PUBLISHABLE_KEY=$SUPABASE_PUBLISHABLE_KEY"
             echo "TURNSTILE_SECRET=1x0000000000000000000000000000000AA"
             echo "RATE_LIMIT_SALT=ci-only-salt"
             echo "CATALOG_VERSION_TTL_MS=0"
