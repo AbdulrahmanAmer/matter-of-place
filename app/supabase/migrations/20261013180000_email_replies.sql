@@ -23,6 +23,8 @@ create table public.email_replies (
   created_at timestamptz not null default now()
 );
 create index email_replies_entity_idx on public.email_replies (entity, entity_id);
+-- R24: every foreign key leads an index.
+create index email_replies_send_id_idx on public.email_replies (send_id);
 create index email_replies_received_at_idx on public.email_replies (received_at desc);
 
 alter table public.email_replies enable row level security;
