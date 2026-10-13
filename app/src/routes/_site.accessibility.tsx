@@ -42,6 +42,22 @@ function AccessibilityPage() {
           heading.
         </p>
 
+        <h2 id="settings">Accessibility settings</h2>
+        <p>
+          The round mark at the bottom right of every page opens the accessibility settings, as do
+          Alt + A and the Accessibility settings link at the foot of every page. They read a page,
+          or a passage you select, aloud in your browser&apos;s own voice. They make text larger,
+          raise the contrast, set the text spacing of WCAG 1.4.12, change the type to a plainer
+          face, underline every link, add a reading guide that follows the pointer, and stop all
+          motion. For colour vision they apply a corrective filter for green-weak, red-weak or
+          blue-yellow sight, which moves the colour differences you cannot see into ones you can.
+        </p>
+        <p>
+          Your choices are kept in this browser only and are never sent to us. The mark can be
+          hidden behind a tab at the edge of the screen, and the tab, the link or Alt + A brings it
+          back.
+        </p>
+
         <h2>How we check</h2>
         <p>
           Automated axe checks run on every route in continuous integration, on a desktop and a

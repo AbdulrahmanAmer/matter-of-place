@@ -29,6 +29,9 @@
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
   --z-consent: 40;
+  --z-access: 45;
+  /* The accessibility reading guide: the page above and below the band, dimmed. */
+  --access-dim: rgb(17 17 15 / 0.5);
   --z-skip-link: 120;
 
   --font-sans: "Jost", "Jost Fallback", sans-serif;
@@ -121,6 +124,13 @@
   --social-story-price-top: 382px;
   --social-story-specs-size: 18px;
   --social-story-specs-top: 466px;
+}
+
+/* Accessibility, higher contrast (src/lib/access.ts): secondary text turns Obsidian and hairlines turn Mineral Grey,
+   on public pages only. The palette is unchanged; only its quiet steps go. */
+:root[data-contrast] body:has(.site-header) {
+  --muted-foreground: #11110f;
+  --border: #575751;
 }
 
 @media (max-width: 700px) {

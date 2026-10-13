@@ -58,7 +58,12 @@ export function SiteMotion() {
   const router = useRouter();
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // The device's own setting, or Stop motion chosen in the accessibility settings.
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      document.documentElement.hasAttribute("data-still")
+    )
+      return;
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {

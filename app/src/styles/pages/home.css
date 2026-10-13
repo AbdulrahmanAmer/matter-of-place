@@ -269,7 +269,7 @@
 .home-submit {
   display: grid;
   place-items: center;
-  min-height: min(78svh, 760px);
+  min-height: min(calc(78svh / var(--site-zoom, 1)), 760px);
   padding: clamp(96px, 10vw, 160px) 0;
 }
 

@@ -16,6 +16,7 @@ import { SiteChrome } from "../components/layout/site-chrome";
 import { siteConfig } from "../config/site";
 import { ogStaticQuery, siteQuery } from "../lib/queries";
 import { defaultLocale, localeDirection } from "../lib/strings";
+import { ACCESS_BOOTSTRAP } from "../lib/access-bootstrap";
 import { services } from "../services";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -50,6 +51,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "/feed.json",
       },
     ],
+    // The accessibility settings drawn on <html> before the first paint (src/lib/access.ts); its exact text is in
+    // CSP_INLINE_ALLOWLIST, so the policy hashes it.
+    scripts: [{ children: ACCESS_BOOTSTRAP }],
   }),
   shellComponent: RootShell,
   component: RootLayout,
@@ -59,7 +63,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang={defaultLocale} dir={localeDirection[defaultLocale]}>
+    // The accessibility head script may set data attributes on <html> before React hydrates it.
+    <html lang={defaultLocale} dir={localeDirection[defaultLocale]} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
