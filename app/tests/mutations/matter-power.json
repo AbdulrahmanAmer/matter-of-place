@@ -52,5 +52,14 @@
     "replace": "  { action: \"workforce.decide\", group: \"workforce\", roles: deciders },",
     "run": "bunx vitest run --project unit tests/unit/workforce-post.test.ts",
     "expect": "× .*is never decided by an agent key"
+  },
+  {
+    "id": "mp-g-password-digit",
+    "test": "tests/unit/admin-password-rule.test.ts",
+    "file": "src/domain/admin-team.ts",
+    "find": "    .regex(/[0-9]/, \"Use at least one digit.\"),",
+    "replace": "    .regex(/./, \"Use at least one digit.\"),",
+    "run": "bunx vitest run --project unit tests/unit/admin-password-rule.test.ts",
+    "expect": "× .*needs twelve characters, a letter and a digit"
   }
 ]
