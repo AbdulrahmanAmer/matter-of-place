@@ -12,12 +12,16 @@
 // `--local-preview <log>` (ruling H73): while the edge answers Cloudflare's 429 (GOTCHAS P-543), a log written by
 // app/scripts/preview-local.mjs for this head stands in for the `preview` check of deploy.yml; every other check is
 // read as without the flag.
+// `--local-ci <log>` (ruling H103): while GitHub starts no Actions job on the private repo (GOTCHAS P-3456), a log
+// written by app/scripts/local-ci.mjs for this head stands in for each check whose job carries GitHub's "was not
+// started" notice; a check that ran and failed still refuses, and a `ci-local` status on the head records the stand-in.
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { devNull } from "node:os";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { localCiProblem } from "../../app/scripts/local-ci.mjs";
 import { localPreviewProblem } from "../../app/scripts/preview-local.mjs";
 
 const REPO = "AbdulrahmanAmer/matter-of-place";
@@ -48,6 +52,10 @@ const BOOKKEEPING = /^(Set up job|Complete job|Post )/;
 
 // What gh 2.92.0 writes to stderr, with exit 1, for a pull request no workflow ran on.
 const NO_CHECKS = /^no checks reported/;
+
+// GitHub's notice on a job it refused to start (P-3456); only such a job may be stood in for by --local-ci.
+const NOT_STARTED =
+  /The job was not started because recent account payments have failed or your spending limit/;
 
 // ci.yml is read as YAML (ruling H79 (1)), so a flow list, a block list, quoted or bare strings and a reformatted file
 // all give the same patterns. The `yaml` package is the app's dependency: this folder has no node_modules of its own,
@@ -229,9 +237,10 @@ function tsv(text) {
  * @param {string} pr
  * @param {Run} run
  * @param {LocalPreview} [local]
+ * @param {LocalPreview} [localCi] ruling H103's log
  * @returns {{ code: number, lines: string[] }}
  */
-export function mergeGate(pr, run, local) {
+export function mergeGate(pr, run, local, localCi) {
   /** @type {string[]} */
   const lines = [];
   /** @param {string} message */
@@ -287,7 +296,25 @@ export function mergeGate(pr, run, local) {
   }
   let blocked = false;
   let standIn = false;
+  let notStarted = 0;
   for (const [bucket = "", workflow = "", name = "", link = ""] of rows) {
+    if (localCi !== undefined && bucket === "fail") {
+      const jobId = /\/job\/(\d+)/.exec(link)?.[1];
+      const notes =
+        jobId === undefined
+          ? { status: 1, out: "", err: "no job in the link" }
+          : run("gh", [
+              "api",
+              `repos/${REPO}/check-runs/${jobId}/annotations`,
+              "--jq",
+              ".[].message",
+            ]);
+      if (notes.status === 0 && NOT_STARTED.test(notes.out)) {
+        lines.push(`not started by GitHub: ${workflow} ${name}`);
+        notStarted += 1;
+        continue;
+      }
+    }
     if (local !== undefined && workflow === "deploy" && name === "preview" && bucket !== "pass") {
       lines.push(`${bucket}: ${workflow} ${name}`);
       standIn = true;
@@ -315,6 +342,38 @@ export function mergeGate(pr, run, local) {
     if (bucket !== "skipping") blocked = true;
   }
   if (blocked) return refuse("merge-gate: checks are not all green");
+
+  if (localCi !== undefined) {
+    if (notStarted === 0)
+      return refuse("merge-gate: --local-ci refused: GitHub started every job (ruling H103)");
+    let text = "";
+    try {
+      text = localCi.read(localCi.path);
+    } catch (error) {
+      return refuse(
+        `merge-gate: cannot read ${localCi.path}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    const problem = localCiProblem(text, pr, headSha);
+    if (problem !== "") return refuse(`merge-gate: --local-ci refused: ${problem}`);
+    const recorded = run("gh", [
+      "api",
+      "-X",
+      "POST",
+      `repos/${REPO}/statuses/${headSha}`,
+      "-f",
+      "state=success",
+      "-f",
+      "context=ci-local",
+      "-f",
+      `description=H103: check, build and unit replay run on the laptop, ${basename(localCi.path)}`,
+    ]);
+    if (recorded.status !== 0)
+      return refuse(`merge-gate: posting the ci-local status failed: ${recorded.err}`);
+    lines.push(
+      `merge-gate: ${String(notStarted)} checks GitHub did not start accepted from ${localCi.path} (ruling H103)`,
+    );
+  }
 
   if (local !== undefined && standIn) {
     const recorded = run("gh", [
@@ -354,18 +413,26 @@ export function mergeGate(pr, run, local) {
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [pr, flag, logPath, ...extra] = process.argv.slice(2);
-  const withLog = flag === "--local-preview" && logPath !== undefined && logPath !== "";
+  const withLog =
+    (flag === "--local-preview" || flag === "--local-ci") &&
+    logPath !== undefined &&
+    logPath !== "";
   if (!/^\d+$/.test(pr ?? "") || extra.length > 0 || (flag !== undefined && !withLog)) {
     process.stdout.write(
-      "usage: node workspace/05-plans/merge-gate.mjs <pr> [--local-preview <log>]\n",
+      "usage: node workspace/05-plans/merge-gate.mjs <pr> [--local-preview <log> | --local-ci <log>]\n",
     );
     process.exit(2);
   }
   /** @type {LocalPreview | undefined} */
-  const local = withLog
-    ? { path: logPath, read: (path) => readFileSync(resolve(path), "utf8") }
+  const given = withLog
+    ? {
+        path: logPath,
+        read: (/** @type {string} */ path) => readFileSync(resolve(path), "utf8"),
+      }
     : undefined;
-  const { code, lines } = mergeGate(pr ?? "", runHere, local);
+  const local = flag === "--local-preview" ? given : undefined;
+  const localCi = flag === "--local-ci" ? given : undefined;
+  const { code, lines } = mergeGate(pr ?? "", runHere, local, localCi);
   for (const line of lines) {
     process.stdout.write(`${line}\n`);
   }
