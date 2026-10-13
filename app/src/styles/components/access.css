@@ -462,6 +462,21 @@
   }
 }
 
+/* A property page keeps its own fixed controls at the bottom right: the mark stands above them, never on them (axe
+   target-size, CI 2026-10-13). Desktop: "Ask Matter of Place" is 43 high at 24 from the bottom, so 24 + 43 + 12.
+   Phone: the 56-high action bar runs across the bottom, so 56 + 16. */
+body:has(.concierge-toggle) .access,
+body:has(.concierge-toggle) .access-tab {
+  bottom: 79px;
+}
+
+@media (max-width: 700px) {
+  body:has(.sticky-actions) .access,
+  body:has(.sticky-actions) .access-tab {
+    bottom: calc(72px + var(--consent-bar-h, 0px));
+  }
+}
+
 @keyframes accessArrive {
   from {
     opacity: 0;

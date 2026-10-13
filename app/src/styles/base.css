@@ -27,7 +27,6 @@ body:has(.site-header) {
   --site-zoom: 1.25;
 }
 
-
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;

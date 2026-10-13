@@ -166,14 +166,14 @@ function PrivacyPage() {
 
         <h2>Who receives it</h2>
         <p>
-          Service providers that work for us under contract, and only on our instructions: hosting and
-          delivery of the site, the database and file storage, email delivery, error reporting, and the
-          preparation of images and video from photographs supplied to us. Google Analytics counts page
-          reads, only after you allow analytics.
+          Service providers that work for us under contract, and only on our instructions: hosting
+          and delivery of the site, the database and file storage, email delivery, error reporting,
+          and the preparation of images and video from photographs supplied to us. Google Analytics
+          counts page reads, only after you allow analytics.
         </p>
         <p>
-          An AI writing assistant receives the facts of a property when a caption is drafted. A person
-          reviews every caption before it is used.
+          An AI writing assistant receives the facts of a property when a caption is drafted. A
+          person reviews every caption before it is used.
         </p>
         <p>
           Meta, X and LinkedIn receive only what we post. {siteConfig.parentCompany} receives the
