@@ -5,6 +5,7 @@ import { AdminApiError } from "../ui/admin-fetch";
 import { EmptyState } from "../ui/EmptyState";
 import { useUrlFilters } from "../ui/use-url-filters";
 import { useRecipes } from "./automation-queries";
+import { AskMatter } from "./AskMatter";
 import { RecipeEditor } from "./RecipeEditor";
 import { RecipeList } from "./RecipeList";
 import { RequestFailure } from "./RequestFailure";
@@ -50,6 +51,7 @@ export function RecipesPage() {
           All flows
         </button>
         <RecipeEditor key={`${open.id}:${String(open.version)}`} recipe={open} specs={steps} />
+        <AskMatter recipe={open} />
       </>
     );
   return (

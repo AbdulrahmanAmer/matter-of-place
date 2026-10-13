@@ -16,8 +16,8 @@ declare
   v_unconfirmed boolean;
   v_newsletter_for_interest boolean;
 begin
-  insert into public.subscribers (email, source, markets, confirm_token_hash)
-  values (v_email, v_source, v_markets, v_hash)
+  insert into public.subscribers (email, source, markets, confirm_token_hash, confirm_token_at)
+  values (v_email, v_source, v_markets, v_hash, case when v_hash is not null then now() end)
   on conflict ((lower(email))) do nothing
   returning id into v_id;
   -- G12, G20: every call that stores a fresh hash emits the sealed token for the confirmation email, in this transaction.
@@ -51,6 +51,11 @@ begin
     confirm_token_hash = case
       when v_unconfirmed or v_newsletter_for_interest then v_hash
       else s.confirm_token_hash
+    end,
+    -- Gap audit item 24: the link's 7 days start when its hash is stored.
+    confirm_token_at = case
+      when v_unconfirmed or v_newsletter_for_interest then now()
+      else s.confirm_token_at
     end
   where s.id = v_row.id;
   if (v_unconfirmed or v_newsletter_for_interest) and v_sealed is not null then

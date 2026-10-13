@@ -1,6 +1,7 @@
 // Matter's run (plan W2): the operator's owner-level agent. The daemon hands it every claimed run of the agent
-// `matter`. Unlike an employee, Matter works with the full Claude Code toolset, in its own working copy of the
-// repository (never the live runner folder), under the deny list of `settings.json` (the operator's standing rules).
+// `matter`. Unlike an employee, Matter works with the full Claude Code toolset (`settings-full.json`, ruling H100) when a
+// person or a colleague woke it, in its own working copy of the repository (never the live runner folder); a run woken
+// by outside text reads only (`settings.json`, gap audit items 1 and 31).
 // It has no session: each run reads the charter (the operator's words, verbatim), the atlas, its capped notes and the
 // recent thread, and ends with one JSON object the daemon acts on.
 import { spawnSync } from "node:child_process";
@@ -75,13 +76,35 @@ export function matterPrompt(input: {
     input.business,
     fenced("THREAD", input.thread),
     'A hire entry is {"slug", "name", "role", "instructions", "model", "wake_on", "tools"}. A media entry makes a voice-over in the brand\'s own voice with the qwen-voiceover skill on this laptop: {"skill": "qwen-voiceover", "name": "short name", "lines": ["each spoken line"]}; a line takes about three seconds per ten words, so a 20 second voice-over is about 60 words. Say in your reply that it is being made; the file\'s path follows in the thread.',
-    'When you are done, end with one JSON object on its own: {"reply": "what you tell the operator, plain and short", "task": "a few words for the office board", "note": "one line worth keeping for next time, or empty", "hire": [], "media": []}.',
+    'To change anything in the admin (a flow, an email, a setting, a market, a story, a request), add an action: {"method": "POST|PUT|PATCH|DELETE", "path": "/api/admin/... exactly as the atlas lists it, with the real ids", "body": {the JSON the route takes}, "why": "one plain line for the operator"}. You make no change yourself: the runner checks each action against the admin and your key, and it waits in Approvals until a person approves it; then the runner makes it and tells you here. At most ten a run. Read a record before you change it, and send the whole value a route replaces.',
+    'When you are done, end with one JSON object on its own: {"reply": "what you tell the operator, plain and short", "task": "a few words for the office board", "note": "one line worth keeping for next time, or empty", "hire": [], "media": [], "actions": []}.',
   ].join("\n\n");
 }
 
 /** Matter's desk exists before its first run: a worktree of the repository at main, never the runner's folder. */
+/**
+ * Gap audit item 4 (Jay M4): Matter reads today's code, not the code of the day its desk was made. Before each run the
+ * desk fetches and moves to origin/main; a desk with local changes is left exactly as it is and the run says so. In
+ * safe mode Matter has no write tool, so a clean desk is the normal case. Answers what it did, for the run's log.
+ */
+export function refreshDesk(
+  desk: string = DESK,
+): "moved" | "unchanged" | "kept local changes" | "no fetch" {
+  const git = (...args: string[]) =>
+    spawnSync("git", ["-C", desk, ...args], { windowsHide: true, encoding: "utf8" });
+  if (git("fetch", "-q", "origin", "main").status !== 0) return "no fetch";
+  const status = git("status", "--porcelain");
+  if (status.status !== 0 || status.stdout.trim() !== "") return "kept local changes";
+  const before = git("rev-parse", "HEAD").stdout.trim();
+  if (git("checkout", "-q", "--detach", "origin/main").status !== 0) return "unchanged";
+  return git("rev-parse", "HEAD").stdout.trim() === before ? "unchanged" : "moved";
+}
+
 function ensureDesk(): void {
-  if (existsSync(DESK)) return;
+  if (existsSync(DESK)) {
+    console.log(`matter: desk ${refreshDesk()}`);
+    return;
+  }
   const root = join(here, "../../..");
   spawnSync("git", ["-C", root, "fetch", "-q", "origin", "main"], { windowsHide: true });
   const made = spawnSync(
@@ -94,26 +117,42 @@ function ensureDesk(): void {
   if (made.status !== 0) throw new Error("Matter's desk could not be made");
 }
 
+/**
+ * Ruling H100 (operator, 2026-10-13: "it has full power access to get anything I ask for done"): Matter works with the
+ * full toolset, keys included, like the orchestrator does, when a signed-in person wrote the message that woke it.
+ * Anything else may carry outside text (a form, an email, or a colleague who read one), so it runs read-only
+ * (ruling H101, operator: "no one can some how figure out a way to talk to my ai employees and cause issues").
+ */
+export type MatterPower = "full" | "read";
+
+export function matterPower(cause: string, authorKind: string | null): MatterPower {
+  return cause === "message" && authorKind === "human" ? "full" : "read";
+}
+
+/** The command line for one run: either mode refuses what it does not allow, never asks. */
+export function matterArgs(power: MatterPower): string[] {
+  const base = ["-p", "--model", MODEL, "--output-format", "json", "--permission-mode", "dontAsk"];
+  return power === "full"
+    ? [...base, "--settings", join(here, "settings-full.json")]
+    : [
+        ...base,
+        // Ignores the operator's own settings and confines the file tools to the desk (H101).
+        "--restricted",
+        "--settings",
+        join(here, "settings.json"),
+        "--disallowedTools",
+        "Bash,Write,Edit,NotebookEdit,WebFetch",
+      ];
+}
+
 export async function askMatter(
   prompt: string,
   env: NodeJS.ProcessEnv,
+  power: MatterPower = "read",
 ): Promise<{ text: string; usage?: CliUsage }> {
   ensureDesk();
   const answer = await runClaude({
-    args: [
-      "-p",
-      "--model",
-      MODEL,
-      "--output-format",
-      "json",
-      "--settings",
-      join(here, "settings.json"),
-      // Safe mode (gap audit items 1, 31): reads only, inside the desk; anything not allowed is refused, never asked.
-      "--permission-mode",
-      "dontAsk",
-      "--disallowedTools",
-      "Bash,Write,Edit,NotebookEdit,WebFetch",
-    ],
+    args: matterArgs(power),
     cwd: DESK,
     env,
     prompt,

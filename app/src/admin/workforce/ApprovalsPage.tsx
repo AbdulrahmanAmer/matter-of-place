@@ -12,6 +12,8 @@ const actionLabel: Record<string, string> = {
   newsletter_issue: "Place Notes issue",
   instructions_change: "Change to a colleague's instructions",
   campaign_plan: "Paid campaign plan",
+  hire: "A new colleague",
+  admin_call: "A change Matter wants to make",
 };
 
 type Mode = "view" | "decline" | "edit";
@@ -28,7 +30,10 @@ function Proposal({ item }: { item: AgentApproval }) {
   const [draft, setDraft] = useState(original);
   // An instructions change is read and approved as a whole: its body only describes it.
   const editable =
-    typeof item.content["body"] === "string" && item.action !== "instructions_change";
+    typeof item.content["body"] === "string" &&
+    item.action !== "instructions_change" &&
+    item.action !== "hire" &&
+    item.action !== "admin_call";
   const shown = item.edited_content === null ? original : bodyOf(item.edited_content);
   const decided =
     item.state === "approved"

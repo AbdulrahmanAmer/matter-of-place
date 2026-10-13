@@ -134,6 +134,7 @@ export function inquiryRow(overrides: Partial<Tables<"inquiries">> = {}) {
 export function subscriberRow(overrides: Partial<Tables<"subscribers">> = {}) {
   const row: Tables<"subscribers"> = {
     archived_at: null,
+    confirm_token_at: null,
     confirm_token_hash: null,
     confirmed_at: null,
     created_at: STAMP,

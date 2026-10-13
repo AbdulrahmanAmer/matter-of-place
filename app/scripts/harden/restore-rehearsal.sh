@@ -5,13 +5,24 @@
 # `restore ok <minutes> minutes`. Exit 1: refused, no key file, a failed backup run or decrypt, a count or marker
 # mismatch. Exit 2: pg_restore stopped (`restore blocked: <object>`); the fix goes into restore-shims.sql. Any other failing
 # command stops it with its own exit code (set -e). docs/runbooks/restore.md section 3.
+#
+# `--live` first (gap audit item 27): the drill for the one database after the launch switch. It writes nothing to that
+# database (no marker, so no production refusal), and in place of the marker it proves the read path boots on the copy:
+# `public_state()` answers there. `bash scripts/harden/restore-rehearsal.sh --live <key path>`.
 set -euo pipefail
 
+LIVE=0
+if [ "${1:-}" = "--live" ]; then
+  LIVE=1
+  shift
+fi
 START=$(date +%s)
 APP=$(cd "$(dirname "$0")/../.." && (pwd -W 2> /dev/null || pwd))
 cd "$APP"
 # (0) The marker below is a test row, so a production database is refused first (ruling H35 (5)).
-bun -e "await (await import('./scripts/lib/assert-not-production.mjs')).assertNotProduction({ dbUrl: process.env.DEV_DB_URL })"
+if [ "$LIVE" = 0 ]; then
+  bun -e "await (await import('./scripts/lib/assert-not-production.mjs')).assertNotProduction({ dbUrl: process.env.DEV_DB_URL })"
+fi
 # shellcheck source=scripts/harden/restore-lib.sh
 . "$APP/scripts/harden/restore-lib.sh"
 KEY=$(restore_key "${1:-}")
@@ -30,7 +41,9 @@ trap cleanup EXIT
 
 # (1) The marker: audit_log is append-only, so the row stays on mop-dev (actor null, as scripts/audit-note.ts writes).
 MARK="h1-restore-$(date -u +%Y%m%dT%H%M%SZ)"
-restore_dev_psql -c "insert into audit_log (action, entity, note) values ('restore.marker', 'restore', '$MARK') returning id" > /dev/null
+if [ "$LIVE" = 0 ]; then
+  restore_dev_psql -c "insert into audit_log (action, entity, note) values ('restore.marker', 'restore', '$MARK') returning id" > /dev/null
+fi
 
 # (2) to (4) A fresh backup run, its artifact, decrypted with the escrowed key.
 restore_fetch "$KEY" "$DIR"
@@ -55,11 +68,20 @@ RESTORED=$(restore_psql "${LOCAL[@]}" -d restore -F ' ' -f "$APP/scripts/harden/
 SOURCE=$(restore_dev_psql -F ' ' -f "$APP/scripts/harden/rowcounts.sql")
 restore_compare "$RESTORED" "$SOURCE"
 
-# (8) The marker proves the dump is the one just taken.
-found=$(restore_psql "${LOCAL[@]}" -d restore -c "select count(*) from audit_log where note = '$MARK'")
-if [ "$found" != 1 ]; then
-  echo "restore: marker $MARK found $found times"
-  exit 1
+# (8) The marker proves the dump is the one just taken; in a live drill the read path proves the copy can serve.
+if [ "$LIVE" = 0 ]; then
+  found=$(restore_psql "${LOCAL[@]}" -d restore -c "select count(*) from audit_log where note = '$MARK'")
+  if [ "$found" != 1 ]; then
+    echo "restore: marker $MARK found $found times"
+    exit 1
+  fi
+else
+  served=$(restore_psql "${LOCAL[@]}" -d restore -c "select jsonb_typeof(public.public_state()::jsonb)")
+  if [ "$served" != object ]; then
+    echo "restore: public_state() on the copy answered [$served]"
+    exit 1
+  fi
+  echo "read path: public_state() answers on the copy"
 fi
 
 echo "restore ok $(awk -v s="$START" -v e="$(date +%s)" 'BEGIN { printf "%.1f", (e - s) / 60 }') minutes"

@@ -58,6 +58,16 @@ begin
       (select count(*) from public.submissions where not turnstile_ok and received_at > p_now - interval '24 hours')
       + (select count(*) from public.inquiries where not turnstile_ok and received_at > p_now - interval '24 hours')
       + (select count(*) from public.subject_requests where not turnstile_ok and received_at > p_now - interval '24 hours')
+    ),
+    -- Gap audit item 22: contact events about our own readers dropped for an unmapped audience, in 24 hours.
+    'dropped_contact_events_24h', (
+      select count(*) from public.audit_log
+      where action = 'email.contact_event_dropped' and at > p_now - interval '24 hours'
+    ),
+    -- Gap audit item 29: open privacy requests due within 7 days, or past due.
+    'privacy_due_7d', (
+      select count(*) from public.subject_requests
+      where status in ('received', 'verifying') and due_at < p_now + interval '7 days'
     )
   );
 end;

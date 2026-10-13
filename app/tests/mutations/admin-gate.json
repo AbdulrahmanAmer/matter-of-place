@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ag-a-gate-skipped",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    if (gate !== undefined && \"refuse\" in gate) {",
+    "replace": "    if (gate !== undefined && \"refuse\" in gate && false) {",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*answers every admin page read without a session with the sign-in redirect"
+  },
+  {
+    "id": "ag-b-raw-path",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "      closed === null && deps.adminGate !== undefined && gatedAdminPage(request, path)",
+    "replace": "      closed === null && deps.adminGate !== undefined && gatedAdminPage(request, pathname)",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*answers every admin page read without a session with the sign-in redirect"
+  },
+  {
+    "id": "ag-c-cookies-lost",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "      for (const cookie of gate?.cookies ?? []) response.headers.append(\"set-cookie\", cookie);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*renders the page for a signed-in person and sends the session cookies"
+  },
+  {
+    "id": "ag-d-roles-ignored",
+    "test": "tests/unit/admin-page-gate.test.ts",
+    "file": "src/server/lib/admin-page-gate.ts",
+    "find": "  if (user !== null && (await enabledRoles(db, user.userId)).length > 0) return { cookies };",
+    "replace": "  if (user !== null) return { cookies };",
+    "run": "bunx vitest run --project unit tests/unit/admin-page-gate.test.ts",
+    "expect": "× .*refuses a signed session whose every role is disabled"
+  },
+  {
+    "id": "ag-e-open-path-wide",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    !ADMIN_OPEN_PATHS.has(path.replace(/\\/+$/, \"\"))",
+    "replace": "    !path.startsWith(\"/admin/\")",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*answers every admin page read without a session with the sign-in redirect"
+  }
+]

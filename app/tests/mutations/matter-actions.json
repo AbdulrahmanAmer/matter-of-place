@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ma-a-key-permission",
+    "test": "tests/unit/matter-actions.test.ts",
+    "file": "scripts/matter/actions.ts",
+    "find": "  if (!allowed.includes(route.action)) {",
+    "replace": "  if (allowed.length < 0) {",
+    "run": "bunx vitest run --project unit tests/unit/matter-actions.test.ts",
+    "expect": "× .*accepts a call to a real route the key may make"
+  },
+  {
+    "id": "ma-b-key-header",
+    "test": "tests/unit/matter-actions.test.ts",
+    "file": "scripts/matter/actions.ts",
+    "find": "      headers: { authorization: `Bearer ${key}`, \"content-type\": \"application/json\" },",
+    "replace": "      headers: { \"content-type\": \"application/json\" },",
+    "run": "bunx vitest run --project unit tests/unit/matter-actions.test.ts",
+    "expect": "× .*makes an approved call with Matter's key"
+  },
+  {
+    "id": "ma-c-writes-only",
+    "test": "tests/unit/matter-actions.test.ts",
+    "file": "scripts/matter/actions.ts",
+    "find": "const WRITE_METHODS = [\"POST\", \"PUT\", \"PATCH\", \"DELETE\"] as const;",
+    "replace": "const WRITE_METHODS = [\"GET\", \"POST\", \"PUT\", \"PATCH\", \"DELETE\"] as const;",
+    "run": "bunx vitest run --project unit tests/unit/matter-actions.test.ts",
+    "expect": "× .*accepts a call to a real route the key may make"
+  },
+  {
+    "id": "ma-d-ask-matter-thread",
+    "test": "src/admin/automation/ask-matter.test.tsx",
+    "file": "src/admin/automation/AskMatter.tsx",
+    "find": "  const post = usePostMessage(\"matter\");",
+    "replace": "  const post = usePostMessage(\"team\");",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/automation/ask-matter.test.tsx",
+    "expect": "× .*sends the change in words to Matter's thread"
+  }
+]

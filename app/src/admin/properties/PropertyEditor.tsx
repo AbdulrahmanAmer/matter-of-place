@@ -6,6 +6,7 @@ import {
   type PropertyPatch,
 } from "../../domain/admin-properties";
 import type { WatchedJob } from "../ui/JobWatcher";
+import { MediaGrid } from "../media/MediaGrid";
 import { Tabs } from "../ui/Tabs";
 import { useToast } from "../ui/use-toast";
 import { valuesOf } from "./editor-values";
@@ -28,12 +29,16 @@ import { RepresentationTab } from "./RepresentationTab";
 import { SequenceTab } from "./SequenceTab";
 import { StaleBanner } from "./StaleBanner";
 import { UnpublishDialog } from "./UnpublishDialog";
+import { VisualsTab } from "./VisualsTab";
 import { useAutosave } from "./use-autosave";
 
 const tabs = [
   { id: "narrative", label: "Narrative" },
   { id: "facts", label: "Facts" },
   { id: "sequence", label: "Sequence" },
+  // W3 stage 6: the property's photographs and visuals on its own page.
+  { id: "photographs", label: "Photographs" },
+  { id: "visuals", label: "Visuals" },
   { id: "representation", label: "Representation" },
   { id: "placement", label: "Placement" },
   { id: "preview", label: "Preview" },
@@ -175,6 +180,8 @@ export function PropertyEditor({
       />
     ),
     sequence: <SequenceTab propertyId={id} />,
+    photographs: <MediaGrid propertyId={id} />,
+    visuals: <VisualsTab propertyId={id} />,
     representation: (
       <RepresentationTab
         propertyId={id}

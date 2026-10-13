@@ -1,0 +1,38 @@
+[
+  {
+    "id": "as-a-groups-by-permission",
+    "test": "tests/unit/admin-search.test.ts",
+    "file": "src/server/dashboard/search.ts",
+    "find": "  const kinds = adminSearchKinds.filter((kind) => can(actor, listAction[kind]));",
+    "replace": "  const kinds = adminSearchKinds.filter((kind) => listAction[kind] !== \"dashboard.get\");",
+    "run": "bunx vitest run --project unit tests/unit/admin-search.test.ts",
+    "expect": "× .*reads only the groups an agent key's scopes allow"
+  },
+  {
+    "id": "as-b-like-syntax",
+    "test": "tests/unit/admin-search.test.ts",
+    "file": "src/server/dashboard/search.ts",
+    "find": "  return `%${text.replace(/[%_\\\\,()*\"]/g, \" \").trim()}%`;",
+    "replace": "  return `%${text.trim()}%`;",
+    "run": "bunx vitest run --project unit tests/unit/admin-search.test.ts",
+    "expect": "× .*strips what like and PostgREST read as syntax"
+  },
+  {
+    "id": "as-c-first-hit",
+    "test": "src/admin/ui/shell.test.tsx",
+    "file": "src/admin/ui/AdminSearch.tsx",
+    "find": "        go(first?.href ?? `/admin/requests?search=${encodeURIComponent(query)}`);",
+    "replace": "        go(`/admin/requests?search=${encodeURIComponent(query)}`);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
+    "expect": "× .*searches every kind of record as you type"
+  },
+  {
+    "id": "as-d-visuals-tab",
+    "test": "src/admin/properties/properties.test.tsx",
+    "file": "src/admin/properties/PropertyEditor.tsx",
+    "find": "  { id: \"visuals\", label: \"Visuals\" },",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/properties/properties.test.tsx",
+    "expect": "× .*opens the property's own visuals in a tab of its page"
+  }
+]

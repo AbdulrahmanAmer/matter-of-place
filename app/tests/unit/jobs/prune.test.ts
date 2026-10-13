@@ -9,12 +9,19 @@ import { fakeDb, type FakeDb } from "../../fixtures/fake-db";
 
 const NOW = new Date("2026-10-04T03:30:00.000Z");
 
-function setup(jobsDone: { keep_for: string | null; enabled: boolean } | null): FakeDb {
+const ORPHANS = Array.from({ length: 150 }, (_, n) => `staging/market/california/${String(n)}.jpg`);
+
+function setup(
+  jobsDone: { keep_for: string | null; enabled: boolean } | null,
+  orphans: string[] = [],
+): FakeDb {
   const db = fakeDb({
     rpc: {
       prune_jobs: () => 4,
       retention_delete_rows: ({ p_key }) => (p_key === "rate_limits" ? 7 : 2),
+      staging_orphans: () => orphans,
     },
+    storage: { submissions: { remove: () => Promise.resolve({ data: [], error: null }) } },
   });
   const rows = jobsDone === null ? [] : [{ key: "jobs_done", action: "delete", ...jobsDone }];
   return Object.assign(db, {
@@ -59,10 +66,17 @@ describe("prune", () => {
       ["prune_jobs", { p_keep: "30 days", p_dry_run: false }],
       ["retention_delete_rows", { p_key: "rate_limits", p_dry_run: false }],
       ["retention_delete_rows", { p_key: "webhook_receipts", p_dry_run: false }],
+      ["staging_orphans", { p_older: "48 hours" }],
     ]);
     expect(result).toEqual({
       status: "done",
-      result: { dry_run: false, jobs_done: 4, rate_limits: 7, webhook_receipts: 2 },
+      result: {
+        dry_run: false,
+        jobs_done: 4,
+        rate_limits: 7,
+        webhook_receipts: 2,
+        staging_orphans: 0,
+      },
     });
   });
 
@@ -73,6 +87,7 @@ describe("prune", () => {
       { p_keep: "30 days", p_dry_run: true },
       { p_key: "rate_limits", p_dry_run: true },
       { p_key: "webhook_receipts", p_dry_run: true },
+      { p_older: "48 hours" },
     ]);
   });
 
@@ -83,7 +98,27 @@ describe("prune", () => {
       expect(rpcCalls(db).map(([name]) => name)).toEqual([
         "retention_delete_rows",
         "retention_delete_rows",
+        "staging_orphans",
       ]);
     }
+  });
+
+  it("removes abandoned staged uploads through Storage a hundred at a time, and only counts them on a dry run (gap item 18)", async () => {
+    const db = setup({ keep_for: "30 days", enabled: true }, ORPHANS);
+    const result = await run(db);
+    const removes = db.calls.filter((call) => call.name === "submissions.remove");
+    const dry = setup({ keep_for: "30 days", enabled: true }, ORPHANS);
+    const dryResult = await run(dry, { dry_run: true });
+    expect({
+      batches: removes.map((call) => (Array.isArray(call.args[0]) ? call.args[0].length : 0)),
+      removed: result.status === "done" ? result.result : null,
+      dryRemoves: dry.calls.filter((call) => call.name === "submissions.remove").length,
+      dryCount: dryResult.status === "done" ? dryResult.result : null,
+    }).toMatchObject({
+      batches: [100, 50],
+      removed: { staging_orphans: 150 },
+      dryRemoves: 0,
+      dryCount: { staging_orphans: 150 },
+    });
   });
 });

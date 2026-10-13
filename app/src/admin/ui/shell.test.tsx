@@ -71,9 +71,53 @@ describe("AdminShell", () => {
     expect(screen.getByText("Agent")).not.toBeNull();
   });
 
-  it("opens the request list with the search text", async () => {
+  it("searches every kind of record as you type, and Enter opens the first hit", async () => {
+    const asked: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) => {
+        const url = new URL(input, "http://admin.test");
+        asked.push(`${url.pathname}?${url.searchParams.toString()}`);
+        const body =
+          url.pathname === "/api/admin/search"
+            ? {
+                groups: [
+                  {
+                    kind: "people",
+                    items: [
+                      {
+                        id: "p1",
+                        title: "Jordan Lee",
+                        detail: "Lee & Co · jordan@example.invalid",
+                        href: "/admin/people/p1",
+                      },
+                    ],
+                  },
+                ],
+              }
+            : {};
+        return Promise.resolve(Response.json(body));
+      }),
+    );
     const router = await mount(me);
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search requests" }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search everything" }), {
+      target: { value: "jordan" },
+    });
+    const results = await screen.findByRole("region", { name: "Search results" });
+    await within(results).findByText("Jordan Lee");
+    expect(within(results).getByRole("heading", { name: "People" })).toBeTruthy();
+    fireEvent.submit(screen.getByRole("search"));
+    await vi.waitFor(() => {
+      expect(router.state.location.pathname).toBe("/admin/people/p1");
+    });
+    expect(asked.filter((path) => path.startsWith("/api/admin/search"))).toEqual([
+      "/api/admin/search?q=jordan",
+    ]);
+  });
+
+  it("opens the request list with the search text when nothing is found yet", async () => {
+    const router = await mount(me);
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search everything" }), {
       target: { value: "12 Alder & Co" },
     });
     fireEvent.submit(screen.getByRole("search"));

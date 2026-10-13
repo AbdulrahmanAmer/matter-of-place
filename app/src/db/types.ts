@@ -1112,13 +1112,13 @@ isOneToOne: false
                   ]
                 },"subscribers": {
                   Row: {
-                    "archived_at": string | null,"confirm_token_hash": string | null,"confirmed_at": string | null,"created_at": string,"email": string,"id": string,"last_engaged_at": string | null,"markets": (string)[],"pending_source": string | null,"repermission_sent_at": string | null,"resend_contact_id": string | null,"source": string,"unsubscribed_at": string | null,"updated_at": string
+                    "archived_at": string | null,"confirm_token_at": string | null,"confirm_token_hash": string | null,"confirmed_at": string | null,"created_at": string,"email": string,"id": string,"last_engaged_at": string | null,"markets": (string)[],"pending_source": string | null,"repermission_sent_at": string | null,"resend_contact_id": string | null,"source": string,"unsubscribed_at": string | null,"updated_at": string
                   }
                   Insert: {
-                    "archived_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email": string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source": string,"unsubscribed_at"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"confirm_token_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email": string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source": string,"unsubscribed_at"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "archived_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email"?: string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source"?: string,"unsubscribed_at"?: string | null,"updated_at"?: string
+                    "archived_at"?: string | null,"confirm_token_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email"?: string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source"?: string,"unsubscribed_at"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -2080,6 +2080,9 @@ isOneToOne: false
 "staff_can_sign_in":
 { Args: { "p_email": string }; Returns: boolean
                            },
+"staging_orphans":
+{ Args: { "p_limit"?: number,"p_older": string }; Returns: string[]
+                           },
 "start_review":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_ids": (string)[] }; Returns: number
                            },
@@ -2180,7 +2183,7 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_instructions": string,"p_model": string,"p_name": string,"p_request_id": string,"p_role": string,"p_slug": string,"p_tools": (string)[],"p_wake_on": (string)[] }; Returns: string
                            },
 "workforce_post_message":
-{ Args: { "p_author_id": string,"p_author_name": string,"p_body": string,"p_thread": string,"p_wake": (string)[] }; Returns: string
+{ Args: { "p_author_id": string,"p_author_kind"?: string,"p_author_name": string,"p_body": string,"p_thread": string,"p_wake": (string)[] }; Returns: string
                            },
 "workforce_scoreboard":
 { Args: { "p_since": string }; Returns: Json

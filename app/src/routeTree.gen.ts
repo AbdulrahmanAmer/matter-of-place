@@ -86,6 +86,7 @@ import { Route as AdminTeamIndexRouteImport } from './routes/admin/team.index'
 import { Route as ApiAdminDashboardRouteImport } from './routes/api/admin/dashboard'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
 import { Route as ApiAdminReportsRouteImport } from './routes/api/admin/reports'
+import { Route as ApiAdminSearchRouteImport } from './routes/api/admin/search'
 import { Route as ApiHooksResendRouteImport } from './routes/api/hooks/resend'
 import { Route as ApiHooksSentryTestRouteImport } from './routes/api/hooks/sentry-test'
 import { Route as ApiPublicClientErrorRouteImport } from './routes/api/public/client-error'
@@ -666,6 +667,11 @@ const ApiAdminMeRoute = ApiAdminMeRouteImport.update({
 const ApiAdminReportsRoute = ApiAdminReportsRouteImport.update({
   id: '/api/admin/reports',
   path: '/api/admin/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSearchRoute = ApiAdminSearchRouteImport.update({
+  id: '/api/admin/search',
+  path: '/api/admin/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHooksResendRoute = ApiHooksResendRouteImport.update({
@@ -1650,6 +1656,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
+  '/api/admin/search': typeof ApiAdminSearchRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
@@ -1891,6 +1898,7 @@ export interface FileRoutesByTo {
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
+  '/api/admin/search': typeof ApiAdminSearchRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
@@ -2138,6 +2146,7 @@ export interface FileRoutesById {
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
+  '/api/admin/search': typeof ApiAdminSearchRoute
   '/api/hooks/resend': typeof ApiHooksResendRoute
   '/api/hooks/sentry-test': typeof ApiHooksSentryTestRoute
   '/api/public/client-error': typeof ApiPublicClientErrorRoute
@@ -2385,6 +2394,7 @@ export interface FileRouteTypes {
     | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
+    | '/api/admin/search'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
@@ -2626,6 +2636,7 @@ export interface FileRouteTypes {
     | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
+    | '/api/admin/search'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
@@ -2872,6 +2883,7 @@ export interface FileRouteTypes {
     | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
+    | '/api/admin/search'
     | '/api/hooks/resend'
     | '/api/hooks/sentry-test'
     | '/api/public/client-error'
@@ -3077,6 +3089,7 @@ export interface RootRouteChildren {
   ApiAdminDashboardRoute: typeof ApiAdminDashboardRoute
   ApiAdminMeRoute: typeof ApiAdminMeRouteWithChildren
   ApiAdminReportsRoute: typeof ApiAdminReportsRouteWithChildren
+  ApiAdminSearchRoute: typeof ApiAdminSearchRoute
   ApiHooksResendRoute: typeof ApiHooksResendRoute
   ApiHooksSentryTestRoute: typeof ApiHooksSentryTestRoute
   ApiPublicClientErrorRoute: typeof ApiPublicClientErrorRoute
@@ -3704,6 +3717,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/reports'
       fullPath: '/api/admin/reports'
       preLoaderRoute: typeof ApiAdminReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/search': {
+      id: '/api/admin/search'
+      path: '/api/admin/search'
+      fullPath: '/api/admin/search'
+      preLoaderRoute: typeof ApiAdminSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/hooks/resend': {
@@ -5637,6 +5657,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminDashboardRoute: ApiAdminDashboardRoute,
   ApiAdminMeRoute: ApiAdminMeRouteWithChildren,
   ApiAdminReportsRoute: ApiAdminReportsRouteWithChildren,
+  ApiAdminSearchRoute: ApiAdminSearchRoute,
   ApiHooksResendRoute: ApiHooksResendRoute,
   ApiHooksSentryTestRoute: ApiHooksSentryTestRoute,
   ApiPublicClientErrorRoute: ApiPublicClientErrorRoute,

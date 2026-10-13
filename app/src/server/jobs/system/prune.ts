@@ -16,6 +16,25 @@ async function deleteRows(db: Db, key: string, dryRun: boolean): Promise<number>
   return data;
 }
 
+// Gap audit item 18 (operator's yes, 2026-10-13): an upload staged in the private bucket more than 48 hours ago that no
+// photograph names and no unfinished job mentions is removed, a hundred at a time, through Storage (never by SQL).
+const STAGING_KEEP = "48 hours";
+const STAGING_BUCKET = "submissions";
+
+async function removeStagingOrphans(db: Db, dryRun: boolean): Promise<number> {
+  const { data, error } = await db.rpc("staging_orphans", { p_older: STAGING_KEEP });
+  if (error !== null) throw unavailable("staging_orphans");
+  if (dryRun || data.length === 0) return data.length;
+  let removed = 0;
+  for (let at = 0; at < data.length; at += 100) {
+    const batch = data.slice(at, at + 100);
+    const answer = await db.storage.from(STAGING_BUCKET).remove(batch);
+    if (answer.error !== null) throw unavailable("storage remove");
+    removed += batch.length;
+  }
+  return removed;
+}
+
 export const prune: SystemJobDefinition = {
   type: "prune",
   sideEffect: "none",
@@ -34,6 +53,7 @@ export const prune: SystemJobDefinition = {
     }
     const rateLimits = await deleteRows(ctx.db, "rate_limits", dryRun);
     const webhookReceipts = await deleteRows(ctx.db, "webhook_receipts", dryRun);
+    const stagingOrphans = await removeStagingOrphans(ctx.db, dryRun);
     return {
       status: "done",
       result: {
@@ -41,6 +61,7 @@ export const prune: SystemJobDefinition = {
         jobs_done: jobs,
         rate_limits: rateLimits,
         webhook_receipts: webhookReceipts,
+        staging_orphans: stagingOrphans,
       },
     };
   },

@@ -202,6 +202,10 @@ export async function cachedResponse(
   const key = versionedKey(kind, version, url);
   const hit = await cache?.match(key);
   if (hit !== undefined) return answer(request, hit, kind, stateStale ? "stale" : "hit");
+  // An outage seen by a cold isolate (gap item 9: the state is the kept copy): the page's own last good copy first,
+  // a build from the kept snapshot only when there is none.
+  const kept = stateStale ? await cache?.match(lastGoodKey(kind, url)) : undefined;
+  if (kept !== undefined) return answer(request, kept, kind, "stale");
   let built: Response;
   try {
     built = await build();

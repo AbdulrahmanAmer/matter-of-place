@@ -22,6 +22,7 @@ export const errorCodes = {
   version_conflict: 409,
   invalid_patch_key: 422,
   invalid_kind: 422,
+  invalid_author_kind: 422,
   publish_incomplete: 422,
   publish_not_allowed: 403,
   slug_immutable: 422,

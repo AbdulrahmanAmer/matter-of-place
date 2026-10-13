@@ -1417,9 +1417,9 @@
   {
     "id": "b7-g3-shl-search",
     "test": "src/admin/ui/shell.test.tsx",
-    "file": "src/admin/ui/TopBar.tsx",
-    "find": "encodeURIComponent(search)",
-    "replace": "search",
+    "file": "src/admin/ui/AdminSearch.tsx",
+    "find": "encodeURIComponent(query)",
+    "replace": "query",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/ui/shell.test.tsx",
     "expect": "× .*opens the request list with the search"
   },

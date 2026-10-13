@@ -1,9 +1,19 @@
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { atlas } from "../../scripts/matter/atlas.ts";
-import { cappedNotes, charter, fenced, matterPrompt } from "../../scripts/matter/run.ts";
+import {
+  cappedNotes,
+  charter,
+  fenced,
+  matterArgs,
+  matterPower,
+  matterPrompt,
+  refreshDesk,
+} from "../../scripts/matter/run.ts";
 import { presenceOf } from "../../src/admin/workforce/presence.ts";
 
 // W2: Matter starts every run from the operator's words, the atlas, its capped notes and the fenced thread.
@@ -90,4 +100,85 @@ describe("Matter's safe mode (gap audit items 1 and 31)", () => {
       dontAsk: true,
     });
   });
+
+  it("works at full power only when a person woke it, and reads only otherwise, restricted (H100, H101)", () => {
+    const full = matterArgs("full");
+    const read = matterArgs("read");
+    expect({
+      powers: [
+        matterPower("message", "human"),
+        matterPower("message", "agent"),
+        matterPower("message", "system"),
+        matterPower("event", null),
+        matterPower("message", null),
+      ],
+      full: [
+        full.some((arg) => arg.endsWith("settings-full.json")),
+        full.includes("--disallowedTools"),
+      ],
+      read: [
+        read.some((arg) => arg.endsWith("settings.json")),
+        read.includes("--disallowedTools"),
+        read.includes("--restricted"),
+      ],
+      bothRefuse: [full, read].every(
+        (args) => args[args.indexOf("--permission-mode") + 1] === "dontAsk",
+      ),
+    }).toEqual({
+      powers: ["full", "read", "read", "read", "read"],
+      full: [true, false],
+      read: [true, true, true],
+      bothRefuse: true,
+    });
+  });
+
+  it("keeps the operator's personal files closed even at full power", () => {
+    const full = z
+      .object({ permissions: z.object({ allow: z.array(z.string()), deny: z.array(z.string()) }) })
+      .parse(
+        JSON.parse(readFileSync(join(process.cwd(), "scripts/matter/settings-full.json"), "utf8")),
+      ).permissions;
+    expect({
+      tools: ["Bash", "Write", "Edit", "WebFetch"].every((tool) => full.allow.includes(tool)),
+      closed: [
+        "Read(**/creds/**)",
+        "Read(**/cloudflare tokens and secrets.txt)",
+        "Read(**/Claude Session.txt)",
+        "Bash(git push --force*)",
+      ].every((rule) => full.deny.includes(rule)),
+    }).toEqual({ tools: true, closed: true });
+  });
+});
+
+describe("Matter's desk (gap item 4)", () => {
+  it("moves a clean desk to the newest main, and leaves a desk with local changes as it is", () => {
+    const root = mkdtempSync(join(tmpdir(), "mop-desk-"));
+    const origin = join(root, "origin");
+    const desk = join(root, "desk");
+    const git = (cwd: string, ...args: string[]) =>
+      spawnSync("git", ["-C", cwd, "-c", "user.name=t", "-c", "user.email=t@t.invalid", ...args], {
+        encoding: "utf8",
+      });
+    spawnSync("git", ["init", "-q", "-b", "main", origin]);
+    writeFileSync(join(origin, "a.txt"), "one");
+    git(origin, "add", ".");
+    git(origin, "commit", "-q", "-m", "one");
+    spawnSync("git", ["clone", "-q", origin, desk]);
+    git(desk, "checkout", "-q", "--detach");
+    writeFileSync(join(origin, "a.txt"), "two");
+    git(origin, "commit", "-q", "-am", "two");
+    const first = refreshDesk(desk);
+    const content = readFileSync(join(desk, "a.txt"), "utf8");
+    writeFileSync(join(desk, "a.txt"), "mine");
+    writeFileSync(join(origin, "a.txt"), "three");
+    git(origin, "commit", "-q", "-am", "three");
+    const second = refreshDesk(desk);
+    expect([first, content, second, readFileSync(join(desk, "a.txt"), "utf8")]).toEqual([
+      "moved",
+      "two",
+      "kept local changes",
+      "mine",
+    ]);
+    // Eleven git processes: seconds on Windows, more under load (G-031).
+  }, 60_000);
 });
