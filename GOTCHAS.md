@@ -7928,3 +7928,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 10:02 to 10:17 Cairo, test 1 repeated after P-3451: Matter, at full power, branched `feat/w4-email-replies` in its desk and wrote a plan, two migrations, a function, the mail reader and tests, then the runner killed it at 15 minutes ("Matter took longer than 15 minutes"). The run was marked failed and nothing was said in the thread: the operator would have seen silence. The run's lease was 10 minutes, so on a long run a second runner could have claimed the same run.
 - rule: a full-power run gets 45 minutes (`runTimeoutMs`), inside the scheduled task's 50 and the run lease's 3000 seconds; every failed run says in its thread that it stopped and where the work is; uncommitted work stays in the desk (refreshDesk leaves a dirty desk alone).
 - proof: `cd app && bunx vitest run --project unit tests/unit/matter.test.ts` → the cases "gives a full-power build 45 minutes" and "says in the thread when a run stops" pass; registry `mp-j-full-run-time`, `mp-k-lease` go red when undone.
+
+## P-3454 · An agent trusts its own earlier claim in the thread over the database
+- paths: app/scripts/workforce/**
+- severity: block
+- symptom: 2026-10-13 10:22 Cairo, test 2 repeated (a line labelled Claude asking for a subject-line proposal, read only): Matter answered a different, older topic and said "The subject proposal is already in Approvals, so I did not file it again". `agent_approvals` had never held a row: its earlier claim had been false (P-3452), and the thread was the only memory it read.
+- rule: before the thread, a run reads as facts the line that woke it (fenced, "answer this first") and its own open proposals from `agent_approvals`, with the plain sentence that nothing else of its own is there (`scripts/workforce/grounding.ts`). Any state an agent may claim (approvals, PRs, decisions) is given to it from the source, never left to the thread.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-grounding.test.ts` → 2 passed; registry `mp-l-grounding-none`, `mp-m-grounding-woke` go red when undone.
