@@ -2081,7 +2081,7 @@ isOneToOne: false
 { Args: { "p_email": string }; Returns: boolean
                            },
 "staging_orphans":
-{ Args: { "p_limit"?: number,"p_older": string }; Returns: (string)[]
+{ Args: { "p_limit"?: number,"p_older": string }; Returns: string[]
                            },
 "start_review":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_ids": (string)[] }; Returns: number
