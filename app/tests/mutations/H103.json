@@ -43,5 +43,14 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
     "expect": "× .*reruns the tests only for workers that never started"
+  },
+  {
+    "id": "h103-f-pending-only",
+    "test": "tests/unit/deploy-local.test.ts",
+    "file": "scripts/deploy-local.mjs",
+    "find": "      return version !== undefined && !done.has(version);",
+    "replace": "      return version !== undefined;",
+    "run": "bunx vitest run --project unit tests/unit/deploy-local.test.ts",
+    "expect": "× .*names the migrations the database has not recorded"
   }
 ]
