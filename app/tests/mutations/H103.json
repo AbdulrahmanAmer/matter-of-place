@@ -1,0 +1,38 @@
+[
+  {
+    "id": "h103-a-not-started-only",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "      if (notes.status === 0 && NOT_STARTED.test(notes.out)) {",
+    "replace": "      if (notes.status === 0) {",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
+    "expect": "× .*still refuses a job that ran and failed"
+  },
+  {
+    "id": "h103-b-log-head",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/local-ci.mjs",
+    "find": "  if (log.head !== headSha) {",
+    "replace": "  if (log.head === \"never\") {",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
+    "expect": "× .*refuses a log of another head"
+  },
+  {
+    "id": "h103-c-replay-summary",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "scripts/local-ci.mjs",
+    "find": "bad 0, stale 0/m.test(output);",
+    "replace": "bad \\d+, stale \\d+/m.test(output);",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
+    "expect": "× .*reads a replay as clean only from its own finished summary"
+  },
+  {
+    "id": "h103-d-every-job-ran",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../workspace/05-plans/merge-gate.mjs",
+    "find": "    if (notStarted === 0)",
+    "replace": "    if (notStarted < 0)",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
+    "expect": "× .*refuses a log of another head or with a failed step"
+  }
+]

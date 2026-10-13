@@ -8,6 +8,7 @@ import {
   jobKeys,
 } from "../../scripts/merge-gate.mjs";
 import { mergeGate } from "../../../workspace/05-plans/merge-gate.mjs";
+import { CI_STEPS, NOT_RUN, localCiProblem, replayClean } from "../../scripts/local-ci.mjs";
 import { STEPS, renderLog } from "../../scripts/preview-local.mjs";
 
 const SHA = "abaa02de74944bfc2f0a39825849da50628bb840";
@@ -371,6 +372,10 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
     edge?: Answer;
     /** The text of the `--local-preview` log; unset, the flag is not given. */
     local?: string;
+    /** The text of the `--local-ci` log (H103); unset, the flag is not given. */
+    localCi?: string;
+    /** What `gh api repos/.../check-runs/<id>/annotations --jq .[].message` prints, by job id. */
+    notes?: Record<string, Answer>;
   }
 
   // H73: what `curl -s -o NUL -D -` printed for the dev Worker on 2026-10-08 18:42 UTC, and for a reachable one.
@@ -421,6 +426,8 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
     merge = { status: 0 },
     edge = LIMITED,
     local,
+    localCi,
+    notes = {},
   }: Stub) {
     const calls: string[] = [];
     const preview =
@@ -446,13 +453,100 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
         if (call === "gh pr checks") return answer(checks);
         if (call === "gh api -X") return answer(post);
         if (call === "gh pr merge") return answer(merge);
+        const noted = /check-runs\/(\d+)\/annotations$/.exec(args[1] ?? "")?.[1];
+        if (noted !== undefined) return answer(notes[noted] ?? { status: 0, out: "" });
         const job = /actions\/jobs\/([^/]+)$/.exec(args[1] ?? "")?.[1] ?? "";
         return answer(jobs[job] ?? { status: 1, err: "HTTP 404" });
       },
       preview,
+      localCi === undefined ? undefined : { path: CI_LOG_PATH, read: (_path: string) => localCi },
     );
     return { ...result, calls, writes: calls.filter((call) => WRITES.includes(call)) };
   }
+
+  // H103: GitHub's notice on a job it did not start (PR 365, run 38376148119, 2026-10-13), and a log of every step.
+  const CI_LOG_PATH = "workspace/05-plans/logs/local-ci/pr-22-0a59cc2.md";
+  const NOT_STARTED = {
+    status: 0,
+    out: "The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings",
+  };
+  const ciLog = (head = HEAD_SHA, failing?: string) =>
+    [
+      "pr: 22",
+      `head: ${head}`,
+      "tree: clean",
+      ...CI_STEPS.map((name) => `- step ${name}: ${name === failing ? "fail" : "pass"} (10 s)`),
+      NOT_RUN,
+    ].join("\n");
+  const REFUSED_BY_GITHUB = {
+    status: 0,
+    out: `fail\tci\tcheck\t${JOB(5)}\nfail\tci\tbuild\t${JOB(6)}\nskipping\tci\tmerge-gate\t`,
+  };
+
+  describe("--local-ci (H103)", () => {
+    it("stands in for the jobs GitHub did not start, records ci-local, and merges", () => {
+      const { code, lines, writes } = gate({
+        checks: REFUSED_BY_GITHUB,
+        notes: { "5": NOT_STARTED, "6": NOT_STARTED },
+        localCi: ciLog(),
+      });
+      expect({ code, writes }).toEqual({ code: 0, writes: ["gh api -X", ...WRITES] });
+      expect(lines).toContain(
+        `merge-gate: 2 checks GitHub did not start accepted from ${CI_LOG_PATH} (ruling H103)`,
+      );
+    });
+
+    it("still refuses a job that ran and failed, whatever the log says", () => {
+      const { code, lines, writes } = gate({
+        checks: REFUSED_BY_GITHUB,
+        notes: { "5": NOT_STARTED, "6": { status: 0, out: "Process completed with exit code 1." } },
+        localCi: ciLog(),
+      });
+      expect({ code, writes, last: lines.at(-1) }).toEqual({
+        code: 1,
+        writes: [],
+        last: "merge-gate: checks are not all green",
+      });
+    });
+
+    it("refuses a log of another head or with a failed step, and the flag when GitHub started every job", () => {
+      const otherHead = gate({
+        checks: REFUSED_BY_GITHUB,
+        notes: { "5": NOT_STARTED, "6": NOT_STARTED },
+        localCi: ciLog("b".repeat(40)),
+      });
+      const redStep = gate({
+        checks: REFUSED_BY_GITHUB,
+        notes: { "5": NOT_STARTED, "6": NOT_STARTED },
+        localCi: ciLog(HEAD_SHA, "bundle-check"),
+      });
+      const allRan = gate({ checks: GREEN, localCi: ciLog() });
+      expect(
+        [otherHead, redStep, allRan].map(({ code, writes, lines }) => [
+          code,
+          writes.length,
+          lines.at(-1),
+        ]),
+      ).toEqual([
+        [
+          1,
+          0,
+          `merge-gate: --local-ci refused: the log's head ${"b".repeat(40)} is not the pull request's head ${HEAD_SHA}`,
+        ],
+        [1, 0, "merge-gate: --local-ci refused: bundle-check is fail in the log: 10 s"],
+        [1, 0, "merge-gate: --local-ci refused: GitHub started every job (ruling H103)"],
+      ]);
+    });
+
+    it("reads a replay as clean only from its own finished summary (P-3455)", () => {
+      expect([
+        replayClean("watchfail: replayed 12: ok 12, bad 0, stale 0; manual 0 not replayed"),
+        replayClean("WATCHED-FAIL OK x\n  mutated a.ts:3"),
+        replayClean("watchfail: replayed 12: ok 11, bad 1, stale 0"),
+        localCiProblem(ciLog().replace(NOT_RUN, ""), "22", HEAD_SHA),
+      ]).toEqual([true, false, false, "the log does not name the jobs it could not run"]);
+    });
+  });
 
   it("posts the status and merges when every check passes or is skipped", () => {
     const { code, lines, writes } = gate({
