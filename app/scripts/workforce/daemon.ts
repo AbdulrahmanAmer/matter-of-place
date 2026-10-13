@@ -74,6 +74,11 @@ function askClaude(
       "--strict-mcp-config",
       "--mcp-config",
       emptyMcpConfig(),
+      // H101: no shell, no web fetch, none of the operator's own settings, files only inside the desk; anything
+      // not allowed is refused, never asked.
+      "--restricted",
+      "--permission-mode",
+      "dontAsk",
       // W2 step 7: a colleague with the research tool may search the web, and nothing more.
       ...(research ? ["--allowedTools", "WebSearch"] : []),
     ],
@@ -326,6 +331,8 @@ async function runOnce(client: Db): Promise<boolean> {
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
     const isMatter = agent.slug === "matter";
+    // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
+    const power = isMatter ? matterPower(run.cause, authorKind) : "read";
     const answer = isMatter
       ? await askMatter(
           matterPrompt({
@@ -334,7 +341,7 @@ async function runOnce(client: Db): Promise<boolean> {
             business: lessons,
           }),
           matterEnv(),
-          matterPower(run.cause, authorKind),
+          power,
         )
       : await askClaude(
           promptFor(
@@ -350,7 +357,7 @@ async function runOnce(client: Db): Promise<boolean> {
           agent.tools.includes("research"),
         );
     const result = readJsonAnswer(answer.text);
-    if (isMatter) keepNote(result.note);
+    if (isMatter && power === "full") keepNote(result.note);
     // W2 step 5: Matter cannot run a skill in its safe mode; the daemon runs it, one at a time, and says where it is.
     const media = isMatter ? result.media.slice(0, 2) : [];
 
@@ -414,7 +421,13 @@ async function runOnce(client: Db): Promise<boolean> {
       });
     }
     if (agent.tools.includes("hire")) {
-      await applyHires(client, { slug: agent.slug, id: agent.id }, result.hire, run.id);
+      await applyHires(
+        client,
+        { slug: agent.slug, id: agent.id },
+        result.hire,
+        run.id,
+        power === "full",
+      );
     }
     await client
       .from("agent_runs")

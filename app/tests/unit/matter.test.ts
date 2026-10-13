@@ -101,7 +101,7 @@ describe("Matter's safe mode (gap audit items 1 and 31)", () => {
     });
   });
 
-  it("works at full power when a person or a colleague woke it, and reads only when outside text did (H100)", () => {
+  it("works at full power only when a person woke it, and reads only otherwise, restricted (H100, H101)", () => {
     const full = matterArgs("full");
     const read = matterArgs("read");
     expect({
@@ -116,14 +116,18 @@ describe("Matter's safe mode (gap audit items 1 and 31)", () => {
         full.some((arg) => arg.endsWith("settings-full.json")),
         full.includes("--disallowedTools"),
       ],
-      read: [read.some((arg) => arg.endsWith("settings.json")), read.includes("--disallowedTools")],
+      read: [
+        read.some((arg) => arg.endsWith("settings.json")),
+        read.includes("--disallowedTools"),
+        read.includes("--restricted"),
+      ],
       bothRefuse: [full, read].every(
         (args) => args[args.indexOf("--permission-mode") + 1] === "dontAsk",
       ),
     }).toEqual({
-      powers: ["full", "full", "read", "read", "read"],
+      powers: ["full", "read", "read", "read", "read"],
       full: [true, false],
-      read: [true, true],
+      read: [true, true, true],
       bothRefuse: true,
     });
   });

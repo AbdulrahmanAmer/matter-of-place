@@ -31,6 +31,23 @@ export interface PipelineDeps {
   isApiRoute: (pathname: string) => boolean;
   /** B14 GG-02: told of a GET that answered 404, from the cache hook or a render, never of a redirect. */
   notFound?: (request: Request, ctx: PipelineContext) => void;
+  /**
+   * H101: an `/admin` page read other than sign-in. A response (the sign-in redirect) answers instead of the page;
+   * `cookies` are the session cookies the check refreshed, added to the rendered page.
+   */
+  adminGate?: (request: Request) => Promise<{ refuse: Response } | { cookies: string[] }>;
+}
+
+/** The admin pages a visitor without a session may open (`src/routes/admin.tsx`, `OPEN_PATHS`). */
+const ADMIN_OPEN_PATHS = new Set(["/admin/sign-in", "/admin/auth/confirm"]);
+
+/** An `/admin` page read that needs a signed-in person: every one but sign-in and its confirmation link. */
+export function gatedAdminPage(request: Request, path: string): boolean {
+  return (
+    (request.method === "GET" || request.method === "HEAD") &&
+    isAdmin(path) &&
+    !ADMIN_OPEN_PATHS.has(path.replace(/\/+$/, ""))
+  );
 }
 
 type CacheKind = "html" | "json" | "doc";
@@ -273,7 +290,17 @@ export async function handle(
     const closed = await maintenanceGate(request, flags, mopEnv);
     const redirect = closed === null && page ? await deps.redirect(request) : null;
     redirected = redirect !== null;
-    response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());
+    // H101: no admin page, not even its empty shell, reaches a visitor without a session and a role.
+    const gate =
+      closed === null && deps.adminGate !== undefined && gatedAdminPage(request, path)
+        ? await deps.adminGate(request)
+        : undefined;
+    if (gate !== undefined && "refuse" in gate) {
+      response = gate.refuse;
+    } else {
+      response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());
+      for (const cookie of gate?.cookies ?? []) response.headers.append("set-cookie", cookie);
+    }
     if (request.method === "GET" && response.status === 404) deps.notFound?.(request, ctx);
   } catch (error) {
     // A page that cannot read the database and holds no last good copy is an outage, already logged and

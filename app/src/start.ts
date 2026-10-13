@@ -47,6 +47,13 @@ const pipeline = createMiddleware({ type: "request" }).server<{ requestId: strin
         report: (error, info) => captureException(error, { ...info, ...sentryOptions() }),
         isApiRoute,
         ...(hasDatabase ? { notFound: (r, c) => logNotFound(getDb(), r, c) } : {}),
+        // H101: loaded on the first admin page read, so public pages carry none of the session code.
+        ...(hasDatabase
+          ? {
+              adminGate: async (r) =>
+                (await import("./server/lib/admin-page-gate")).adminPageGate(r, getDb()),
+            }
+          : {}),
       },
     );
   },

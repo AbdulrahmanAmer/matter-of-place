@@ -42,6 +42,7 @@ function setup(options: {
   getFlags?: PipelineDeps["getFlags"];
   apiRoutes?: string[];
   notFound?: PipelineDeps["notFound"];
+  adminGate?: PipelineDeps["adminGate"];
 }) {
   const waitUntil = vi.fn<PipelineContext["waitUntil"]>();
   const report = vi.fn<PipelineDeps["report"]>(() => Promise.resolve());
@@ -60,6 +61,7 @@ function setup(options: {
     report,
     isApiRoute: (pathname) => (options.apiRoutes ?? []).includes(pathname),
     ...(options.notFound ? { notFound: options.notFound } : {}),
+    ...(options.adminGate ? { adminGate: options.adminGate } : {}),
   };
   return {
     rendered,
@@ -638,5 +640,60 @@ describe("the 404 hook (B14 GG-02)", () => {
     const posted = setup({ notFound, render: notFoundPage });
     expect((await posted.run(get("/no-such-page", { method: "POST" }))).status).toBe(404);
     expect(notFound).not.toHaveBeenCalled();
+  });
+});
+
+describe("the admin page gate (H101)", () => {
+  const signIn = () =>
+    Promise.resolve({
+      refuse: new Response(null, { status: 302, headers: { location: "/admin/sign-in" } }),
+    });
+
+  it("answers every admin page read without a session with the sign-in redirect, and renders nothing", async () => {
+    const gate = vi.fn<NonNullable<PipelineDeps["adminGate"]>>(signIn);
+    const pipeline = setup({ adminGate: gate });
+    const paths = ["/admin", "/admin/office", "/ADMIN/team", "/%61dmin/invoices", "//admin/jobs"];
+    const answers = await Promise.all(paths.map((path) => pipeline.run(get(path))));
+    expect({
+      statuses: answers.map((response) => response.status),
+      cache: answers.map((response) => response.headers.get("cache-control")),
+      rendered: pipeline.rendered,
+      gated: gate.mock.calls.length,
+    }).toEqual({
+      statuses: [302, 302, 302, 302, 302],
+      cache: ["no-store", "no-store", "no-store", "no-store", "no-store"],
+      rendered: [],
+      gated: 5,
+    });
+  });
+
+  it("lets the sign-in page, its confirmation link, a write and a public page through without asking", async () => {
+    const gate = vi.fn<NonNullable<PipelineDeps["adminGate"]>>(signIn);
+    const pipeline = setup({ adminGate: gate });
+    await pipeline.run(get("/admin/sign-in"));
+    await pipeline.run(get("/admin/auth/confirm?code=x"));
+    await pipeline.run(get("/admin/sign-in/"));
+    await pipeline.run(get("/california"));
+    expect([gate.mock.calls.length, pipeline.rendered.length]).toEqual([0, 4]);
+  });
+
+  it("renders the page for a signed-in person and sends the session cookies the check refreshed", async () => {
+    const pipeline = setup({
+      adminGate: () => Promise.resolve({ cookies: ["sb-x-auth-token=new; Path=/; HttpOnly"] }),
+    });
+    const response = await pipeline.run(get("/admin/office"));
+    expect([response.status, response.headers.get("set-cookie"), pipeline.rendered]).toEqual([
+      200,
+      "sb-x-auth-token=new; Path=/; HttpOnly",
+      ["GET /admin/office"],
+    ]);
+  });
+
+  it("fails closed: a session check that cannot run answers 503, never the page", async () => {
+    const pipeline = setup({
+      adminGate: () => Promise.reject(new AppError("unavailable", undefined, "down")),
+    });
+    const response = await pipeline.run(get("/admin/office", { headers: { accept: "text/html" } }));
+    expect([response.status, pipeline.rendered]).toEqual([503, []]);
   });
 });
