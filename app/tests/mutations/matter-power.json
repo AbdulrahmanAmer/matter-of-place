@@ -70,5 +70,14 @@
     "replace": "    input.power === \"never\"\n",
     "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
     "expect": "× .*tells Matter the power it really has"
+  },
+  {
+    "id": "mp-i-answer-braces",
+    "test": "tests/unit/workforce-answer.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "start = text.indexOf(\"{\", start + 1)",
+    "replace": "start = -1",
+    "run": "bunx vitest run --project unit tests/unit/workforce-answer.test.ts",
+    "expect": "× .*is read from its closing object even when the prose before it holds braces"
   }
 ]
