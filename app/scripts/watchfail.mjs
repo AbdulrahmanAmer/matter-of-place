@@ -194,7 +194,7 @@ const mutatedNow = new Map();
 // A replay run by an entry of another replay (B4:ii) keeps its own file, so it never overwrites its parent's.
 const PENDING_TOP = "node_modules/.cache/watchfail.pending.json";
 const PENDING_NESTED = "node_modules/.cache/watchfail.pending-nested.json";
-const PENDING = process.env.WATCHFAIL_PARENT === undefined ? PENDING_TOP : PENDING_NESTED;
+const PENDING = process.env["WATCHFAIL_PARENT"] === undefined ? PENDING_TOP : PENDING_NESTED;
 
 function restoreAll() {
   for (const [path, bytes] of mutatedNow) writeFileSync(path, bytes);
@@ -469,7 +469,7 @@ function takeLock() {
     writeFileSync(LOCK, String(process.pid), { flag: "wx" });
   } catch {
     const holder = Number.parseInt(readFileSync(LOCK, "utf8"), 10);
-    if (String(holder) === process.env.WATCHFAIL_PARENT) return false;
+    if (String(holder) === process.env["WATCHFAIL_PARENT"]) return false;
     let alive = false;
     try {
       process.kill(holder, 0);
