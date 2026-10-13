@@ -7955,3 +7955,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a script that a scheduled task runs names every outside tool by its full path (`C:/Program Files/Git/mingw64/bin/openssl.exe`, `C:/Users/DELL/scoop/apps/postgresql/current/bin/pg_dump.exe`), and it is proven by `Start-ScheduledTask`, never only from the shell.
 - proof: `Start-ScheduledTask -TaskName "MOP Backup"`, then `~/.mop-workforce/backup.log` ends `mop-dev-2026-10-13.dump.p7m: 888671 bytes in 94 s` (2026-10-13 14:08).
 - added: 2026-10-13
+
+## P-3458 · The laptop runner follows main within a minute, but a migration lands only when the deploy's db push runs
+- symptom: 2026-10-13, after PR 365 (claim_agent_run gained p_skip_live) the runner moved to the new code at 11:40:53 UTC and logged `workforce: the claim failed` six times until 12:00:15, when the deploy had pushed the migration and the runner moved again. No run was lost (claims only fail, nothing is marked), but the team was deaf for about 20 minutes.
+- rule: the runner runs new code before the database has its migration, so a new RPC argument or function breaks the runner until the deploy lands; a DEFAULT only protects old callers. Ship the migration in a PR of its own and merge the code that calls it after the deploy shows it applied (`select version from supabase_migrations.schema_migrations`), or have the runner follow main only after the deploy run of that commit is green.
+- proof: `grep -c "the claim failed" ~/.mop-workforce/daemon.log` counts the window; `select pg_get_function_arguments(oid) from pg_proc where proname='claim_agent_run'` shows `p_skip_live boolean DEFAULT false`.
+- added: 2026-10-13
