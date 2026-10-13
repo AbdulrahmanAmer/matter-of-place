@@ -50,7 +50,8 @@ export function AdminSearch() {
         type="search"
         name="search"
         aria-label="Search everything"
-        aria-controls={listId}
+        // The list exists only while it is shown; pointing at a missing id is an axe violation.
+        {...(shown ? { "aria-controls": listId } : {})}
         placeholder="Search requests, people, properties and more"
         autoComplete="off"
         value={text}
