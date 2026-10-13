@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { join, resolve } from "node:path";
 import { z } from "zod";
-import { agentTools, hireInputSchema, mentionedSlugs } from "../../src/domain/workforce.ts";
+import { agentTools, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import {
   ADMIN_BASE,
@@ -26,11 +26,15 @@ import { askMatter, keepNote, matterInputs, matterPower, matterPrompt } from "..
 import { staffCharterFrom } from "./charter.ts";
 import { childEnv, loadEnvFile, serviceDb as db } from "./env.ts";
 import { knowledgeBlock } from "./knowledge.ts";
-import { makeVoiceover, mediaRequestSchema } from "./media.ts";
+import { makeVoiceover } from "./media.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain } from "./follow.ts";
+import { readJsonAnswer } from "./answer.ts";
+import { groundingLines } from "./grounding.ts";
 import { applyHires } from "./hiring.ts";
+import { workforceConfig } from "./config.ts";
+import { liveAlive } from "../matter/live-alive.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -141,57 +145,12 @@ async function wakeOnEvents(client: Db): Promise<number> {
 
 // ---------- one run ----------
 
-const outcome = z.object({
-  reply: z.string().default(""),
-  task: z.string().default(""),
-  proposals: z
-    .array(
-      z.object({
-        action: z.enum(["reply_inquiry", "social_post", "newsletter_issue", "campaign_plan"]),
-        summary: z.string().min(1).max(500),
-        content: z.object({
-          body: z.string().min(1).max(20000),
-          to: z.string().max(300).optional(),
-        }),
-      }),
-    )
-    .default([]),
-  hire: z.array(hireInputSchema).default([]),
-  // Matter only: one line it keeps in its capped notes.
-  note: z.string().default(""),
-  // Matter only (W2 step 5): media the daemon makes with the installed skills.
-  media: z.array(mediaRequestSchema).default([]),
-  // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
-  actions: z.array(z.unknown()).default([]),
-});
-
 const allowedProposal: Record<string, string> = {
   reply_inquiry: "draft_reply",
   social_post: "draft_post",
   newsletter_issue: "draft_newsletter",
   campaign_plan: "draft_campaign",
 };
-
-function readJsonAnswer(text: string): z.infer<typeof outcome> {
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start >= 0 && end > start) {
-    try {
-      return outcome.parse(JSON.parse(text.slice(start, end + 1)));
-    } catch {
-      // fall through: a plain answer is still a reply
-    }
-  }
-  return {
-    reply: text.trim(),
-    task: "",
-    proposals: [],
-    hire: [],
-    note: "",
-    media: [],
-    actions: [],
-  };
-}
 
 async function context(
   client: Db,
@@ -210,6 +169,25 @@ async function context(
         `What woke you: the event ${data.type} at ${data.at}.\nIts data: ${JSON.stringify(data.payload)}`,
       );
   }
+  // P-3454: the line that woke the run, and the colleague's real open proposals, as facts before the thread.
+  const [woke, pending] = await Promise.all([
+    run.message_id === null
+      ? Promise.resolve(null)
+      : client
+          .from("agent_messages")
+          .select("author_name, author_kind, body")
+          .eq("id", run.message_id)
+          .single()
+          .then(({ data }) => data),
+    client
+      .from("agent_approvals")
+      .select("action, summary, created_at")
+      .eq("agent_id", run.agent_id)
+      .eq("state", "pending")
+      .order("created_at")
+      .then(({ data }) => data ?? []),
+  ]);
+  parts.push(...groundingLines(woke, pending));
   const { data: messages } = await client
     .from("agent_messages")
     .select("author_name, body, created_at")
@@ -288,7 +266,10 @@ async function runOnce(client: Db): Promise<boolean> {
 
   const { data: claimed, error } = await client.rpc("claim_agent_run", {
     p_worker: WORKER,
-    p_lease_seconds: 600,
+    // Longer than Matter's longest run (45 minutes at full power), so no other runner claims a run still in work.
+    p_lease_seconds: 3000,
+    // W5: while Matter's live session runs, a person's line to Matter is its work.
+    p_skip_live: liveAlive(),
   });
   if (error !== null) throw new Error("workforce: the claim failed");
   const run = claimed[0];
@@ -339,6 +320,7 @@ async function runOnce(client: Db): Promise<boolean> {
             ...matterInputs(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
             thread: situation,
             business: lessons,
+            power,
           }),
           matterEnv(),
           power,
@@ -479,6 +461,14 @@ async function runOnce(client: Db): Promise<boolean> {
       })
       .eq("id", run.id);
     console.log(`${new Date().toISOString()} ${agent.slug} failed: ${message}`);
+    // 2026-10-13 test 1 (P-3453): a run that stops says so where the person is waiting, never in silence.
+    await say(
+      client,
+      thread,
+      agent.slug === "matter"
+        ? `Matter stopped before finishing: ${message}. The work so far stays in Matter's desk; your next message picks it up from there.`
+        : `${agent.name} stopped before finishing: ${message}.`,
+    );
   } finally {
     await client
       .from("agents")
@@ -515,7 +505,7 @@ async function wakeBacklog(client: Db): Promise<void> {
   console.log(`${new Date().toISOString()} backlog run for ${next}`);
 }
 
-const say = (client: Db, thread: string, body: string) =>
+export const say = (client: Db, thread: string, body: string) =>
   client.from("agent_messages").insert({
     thread,
     author_kind: "system",
@@ -525,7 +515,7 @@ const say = (client: Db, thread: string, body: string) =>
   });
 
 /** Gap item 31: each call Matter names is checked against the admin's routes and its key, then waits in Approvals. */
-async function proposeCalls(
+export async function proposeCalls(
   client: Db,
   agent: { id: string },
   runId: string,
@@ -648,7 +638,8 @@ async function pass(client: Db): Promise<void> {
     ran += 1;
   }
   // W2 contract 12: with nothing waiting, one colleague works its open decisions (its backlog).
-  if (ran === 0) await wakeBacklog(client);
+  // W5: the backlog is a laptop switch; off until the Claude allowance resets (decided with Jay, 2026-10-13).
+  if (ran === 0 && workforceConfig().backlog) await wakeBacklog(client);
 }
 
 async function main(): Promise<void> {

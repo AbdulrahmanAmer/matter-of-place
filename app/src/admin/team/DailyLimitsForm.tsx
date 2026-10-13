@@ -5,7 +5,7 @@ import { Field } from "../ui/Field";
 const fields: { key: keyof DailyLimits; label: string; min: number }[] = [
   { key: "decisions_per_day", label: "Decisions per day", min: 0 },
   { key: "publish_per_day", label: "Publications per day", min: 0 },
-  { key: "requests_per_day", label: "Requests per day", min: 1 },
+  { key: "requests_per_day", label: "Alert above, requests a day", min: 1 },
 ];
 
 /** The daily caps every agent works under; each counts per agent and resets at midnight UTC. */

@@ -11,6 +11,7 @@ import {
   fenced,
   matterArgs,
   matterPower,
+  runTimeoutMs,
   matterPrompt,
   refreshDesk,
 } from "../../scripts/matter/run.ts";
@@ -44,11 +45,26 @@ describe("Matter's run", () => {
       notes: "",
       thread: "hello",
       business: "",
+      power: "read",
     });
     expect([
       prompt.indexOf("CHARTER") < prompt.indexOf("ATLAS"),
       prompt.trim().endsWith("}."),
     ]).toEqual([true, true]);
+  });
+
+  it("tells Matter the power it really has: tools and the merge gate at full power, none in read mode", () => {
+    const base = { charterText: "C", atlasText: "A", notes: "", thread: "t", business: "" };
+    const full = matterPrompt({ ...base, power: "full" });
+    const read = matterPrompt({ ...base, power: "read" });
+    expect({
+      full: [
+        full.includes("full power"),
+        full.includes("merge-gate.mjs"),
+        full.includes("You cannot run commands"),
+      ],
+      read: [read.includes("read only"), read.includes("You cannot run commands")],
+    }).toEqual({ full: [true, true, false], read: [true, true] });
   });
 
   it("maps every admin screen, every permission and the admin API in its atlas", () => {
@@ -130,6 +146,19 @@ describe("Matter's safe mode (gap audit items 1 and 31)", () => {
       read: [true, true, true],
       bothRefuse: true,
     });
+  });
+
+  it("gives a full-power build 45 minutes and a read-only answer 15 (P-3453)", () => {
+    expect([runTimeoutMs("full"), runTimeoutMs("read")]).toEqual([45 * 60_000, 15 * 60_000]);
+  });
+
+  it("says in the thread when a run stops, and claims a run for longer than its longest build (P-3453)", () => {
+    const daemon = readFileSync(join(process.cwd(), "scripts/workforce/daemon.ts"), "utf8");
+    const failure = daemon.slice(daemon.indexOf('state: "failed"'));
+    expect([
+      failure.slice(0, 1200).includes("stopped before finishing"),
+      /p_lease_seconds: (\d+)/.exec(daemon)?.[1],
+    ]).toEqual([true, "3000"]);
   });
 
   it("keeps the operator's personal files closed even at full power", () => {

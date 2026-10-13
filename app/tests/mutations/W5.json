@@ -1,0 +1,47 @@
+[
+  {
+    "id": "w5-a-rotate-turns",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "(record.turns >= ROTATE_TURNS || ",
+    "replace": "(record.turns >= ROTATE_TURNS * 100 || ",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*rotates a session after six turns or a day"
+  },
+  {
+    "id": "w5-b-heartbeat-age",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live-alive.ts",
+    "find": "    return now - statSync(file).mtimeMs < ALIVE_MS;",
+    "replace": "    return statSync(file).mtimeMs > 0;",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*calls the supervisor alive only while its heartbeat is under a minute old"
+  },
+  {
+    "id": "w5-c-config-until",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/workforce/config.ts",
+    "find": "  if (until !== null && !(until.getTime() > now.getTime())) return { ...DEFAULTS };",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*uses the file's model and backlog until its date"
+  },
+  {
+    "id": "w5-d-stream-task",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "event.subtype === \"task_started\" ? \"started\" : \"done\"",
+    "replace": "\"done\"",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*turns assistant text, a tool call, a background task and the result into events"
+  },
+  {
+    "id": "w5-e-agent-requests-alert",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "        (await ctx.counts()).agent_keys_over_line,",
+    "replace": "        0,",
+    "run": "bunx vitest run --project unit tests/unit/jobs/health.test.ts",
+    "expect": "× .*fails agent_requests while a key is past its daily alert line"
+  }
+]
