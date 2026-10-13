@@ -135,6 +135,7 @@ describe("health job", () => {
       "dropped_unsubscribes",
       "privacy_due",
       "agent_requests",
+      "team_waiting",
       "stale_queue",
       "cron_failures",
       "retention_stalled",
