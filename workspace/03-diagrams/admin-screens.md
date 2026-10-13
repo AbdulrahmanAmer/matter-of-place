@@ -4,50 +4,55 @@ Pictures: [img/admin-screens-1.png](img/admin-screens-1.png) navigation map, [im
 decide-and-invoice flow, [img/admin-screens-3.png](img/admin-screens-3.png) publish-to-channels flow.
 Words: `../07-admin-platform/admin-screens.md`.
 
-## 1. Navigation map (27 screens)
+## 1. Navigation map (30 screens, as in `app/src/admin/nav.ts`, 2026-10-13)
 
 ```mermaid
 flowchart LR
-  SI[1 Sign in] --> DB[2 Dashboard]
+  SI[Sign in: the only screen without a session; the Worker checks the session before any other] --> OV[Overview]
+  OV --- SR[Search everything, in the top bar]
+  subgraph TEAM[The AI company]
+    OF[Office: Matter and the colleagues, side chat]
+    AP[Approvals: a person decides]
+  end
   subgraph WORK[Work]
-    RQ[3 Requests] --> RD[4 Request detail]
-    PP[26 People] --> PD[27 Person]
-    PR[7 Properties] --> PE[8 Property editor]
-    ME[9 Media]
-    AS[10 Assets]
-    IN[11 Inquiries]
+    RQ[Requests] --> RD[Request]
+    PP[People] --> PD[Person]
+    PR[Properties] --> PE[Property]
+    PE --- PH[Photographs tab] & VI[Visuals tab]
+    IN[Inquiries]
   end
   subgraph DIST[Distribution]
-    CH[12 Channels]
-    NL[13 Newsletter]
+    SP[Social posts]
+    NL[Place Notes]
   end
   subgraph MONEY[Money]
-    IV[5 Invoices] --> ID[6 Invoice detail]
-    RP[22 Reports]
+    IV[Invoices] --> ID[Invoice]
+    IV --> NI[New invoice]
+    RP[Reports]
   end
   subgraph EDIT[Editorial]
-    ST[14 Stories]
-    MK[15 Markets: coming-soon toggles]
+    ST[Stories]
+    MK[Markets]
   end
   subgraph AUTO[Automation]
-    RC[17 Recipes + dry run]
-    ET[18 Email templates]
-    DR[19 Decline reasons]
-    CS[20 Channels and schedules]
-    RV[21 Revisions]
+    FL[Flows + dry run + Ask Matter]
+    EM[Emails]
+    DR[Decline reasons]
+    HI[History]
   end
   subgraph SYS[System]
-    JB[16 Jobs]
-    TM[23 Team: humans and agents]
-    SE[24 Settings]
-    AU[25 Audit log]
+    BU[Business]
+    CS[Channels and schedules]
+    TM[Team and access]
+    JB[Jobs]
+    AL[Activity log]
   end
-  DB --> WORK & DIST & MONEY & EDIT & AUTO & SYS
+  OV --> TEAM & WORK & DIST & MONEY & EDIT & AUTO & SYS
   RD -->|accept| ID
   RD -->|open person| PD
   ID -->|activate| PE
-  PE -->|publish| AS
-  AS -->|approve| CH & NL
+  PE -->|publish| SP & NL
+  FL -->|Ask Matter| AP
 ```
 
 ## 2. Decide and invoice (screens 4 and 6)

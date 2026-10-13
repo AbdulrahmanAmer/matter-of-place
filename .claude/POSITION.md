@@ -1740,3 +1740,16 @@ first day of the new usage week; no step was cut from any plan.
 - Waiting on the operator: Windows user "matter" (1(b)), the staff charter's approval (W2.md), gap 18's word, gap 19's zone token.
 - 2026-10-13 01:50 Cairo, feat/matter-actions (E:/mop-build/mact) gains: gap 18 (operator's yes): `staging_orphans` + the daily prune removes staged uploads over 48 hours old that no photograph names and no unfinished job mentions (migration 20261012221926, registry fix-staging fs-a, fs-b); 1(b) closed by the operator as not a gap: ruling H100, Matter at full power (`scripts/matter/settings-full.json`) when a person or colleague wakes it, read-only when an event or system message does (registry matter-power mp-a, mp-b). All four WATCHED-FAIL OK. Full check running, then push and one PR with the body in scratchpad pr-mact.md.
 - Gap 19 in Chrome: DNSSEC enabled (pending a DS record at the registrar, which is not Cloudflare), email address obfuscation OFF. BLOCKED on the operator signing back in to Cloudflare (the tab signed out): AI-bot blocking, a rate-limit rule, cache ratio, the DS record (P-3446).
+- 2026-10-13 05:20 Cairo. Completion by the operator's definition (software only; social accounts do not count): done
+  but one item, the AI staff cannot read replies to our email (Zoho mailbox); Matter owns it. Security, ruling H101:
+  only a signed-in person's line gives Matter full power; key lines are agent lines (migration 20261013004554);
+  approve, hire and change a colleague person-only (action_roles 20261013004909); colleagues and read-mode Matter run
+  `claude --restricted`; the Worker checks the session before any admin page (`src/server/lib/admin-page-gate.ts`);
+  passwords 12 characters with letters and digits (config.toml and live). Outside probe: 240 admin API tries refused,
+  public database key reads nothing, the site ships no key. All on feat/matter-actions (E:/mop-build/mact) with
+  fix/ai-staff-security merged in; full check running; PR body scratchpad pr-mact.md.
+- Records branch records/2026-10-13c: diagrams rewritten and rendered (completion map, system map, architecture 1, 4, 5,
+  admin screens), lanes folder removed, PROJECT-STATE log, P-3446 to P-3450.
+- Before the operator switches the repo to private: P-3449, the build week spent about 15,000 Actions minutes against
+  2,000 a month for a private free repo; switch only after the build PRs stop.
+- Paused workflow wqxa0dba5 (L1) is outdated and unused; nothing to relaunch.

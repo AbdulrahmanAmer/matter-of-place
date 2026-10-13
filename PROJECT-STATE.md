@@ -112,3 +112,12 @@ first editors' emails and roles, Meta Business access, Namecheap purchase of mat
   carried as work inside B9 (creative direction from rendered options) and P1 (plan file); they are not skipped, they are
   sequenced behind B1 because B1 touches only tooling and the removal of the preset.
 - 2026-10-11 STAGE 3 → 5 (LAUNCH) on the operator's instruction ("I told you to launch so yes advance it", 13:05 +0300): launch today, target 16:00; H2 steps 2 to 6 parked to after launch by the operator; the acceptance panel walked the site instead.
+- 2026-10-13 Completion by the operator's definition ("the completion is the setup itself as code and software"): site,
+  admin front and back, database, automation and the AI company are live and run on their own. Social accounts do not
+  count (done by the operator and the orchestrator when chosen). One software item is open: the AI staff cannot read
+  replies to our email (they land in the Zoho mailbox); Matter owns it. Security the same night (ruling H101): only a
+  signed-in person's message gives Matter full power; a key's chat line is an agent's; approving, hiring and changing a
+  colleague are person-only; colleagues and read-mode Matter run `claude --restricted`; the Worker checks the session
+  before any admin page; passwords 12 characters with letters and digits. Lanes retired (workspace/05-plans/lanes
+  removed). The repo is public until the operator switches it back to private (H5 still holds: no branch protection on
+  the free plan either way).
