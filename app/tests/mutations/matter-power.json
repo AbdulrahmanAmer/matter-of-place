@@ -81,6 +81,24 @@
     "expect": "× .*is read from its closing object even when the prose before it holds braces"
   },
   {
+    "id": "mp-l-grounding-none",
+    "test": "tests/unit/workforce-grounding.test.ts",
+    "file": "scripts/workforce/grounding.ts",
+    "find": "If the thread says something of yours is in Approvals, it is not; file it again if it is still wanted.",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-grounding.test.ts",
+    "expect": "× .*names the line that woke it"
+  },
+  {
+    "id": "mp-m-grounding-woke",
+    "test": "tests/unit/workforce-grounding.test.ts",
+    "file": "scripts/workforce/grounding.ts",
+    "find": "  if (woke !== null) {",
+    "replace": "  if (woke === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-grounding.test.ts",
+    "expect": "× .*names the line that woke it"
+  },
+  {
     "id": "mp-j-full-run-time",
     "test": "tests/unit/matter.test.ts",
     "file": "scripts/matter/run.ts",

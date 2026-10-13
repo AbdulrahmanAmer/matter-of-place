@@ -10,6 +10,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runClaude, type CliUsage } from "../workforce/cli.ts";
+import { workforceConfig } from "../workforce/config.ts";
 import { atlas } from "./atlas.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -25,7 +26,6 @@ export function runTimeoutMs(power: MatterPower): number {
 }
 const NOTES_LINES = 150;
 const ATLAS_MAX_AGE_MS = 60 * 60_000;
-const MODEL = "claude-opus-5-5";
 
 /** Where Matter changes code: its own worktree, on a branch per change, never the runner's folder. */
 export const DESK = join(dirname(join(here, "../../..")), "matter-desk");
@@ -156,7 +156,16 @@ export function matterPower(cause: string, authorKind: string | null): MatterPow
 
 /** The command line for one run: either mode refuses what it does not allow, never asks. */
 export function matterArgs(power: MatterPower): string[] {
-  const base = ["-p", "--model", MODEL, "--output-format", "json", "--permission-mode", "dontAsk"];
+  // W5: the model is a laptop switch (~/.mop-workforce/config.json), Opus by default.
+  const base = [
+    "-p",
+    "--model",
+    workforceConfig().matterModel,
+    "--output-format",
+    "json",
+    "--permission-mode",
+    "dontAsk",
+  ];
   return power === "full"
     ? [...base, "--settings", join(here, "settings-full.json")]
     : [

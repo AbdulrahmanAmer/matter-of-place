@@ -68,6 +68,20 @@ begin
     'privacy_due_7d', (
       select count(*) from public.subject_requests
       where status in ('received', 'verifying') and due_at < p_now + interval '7 days'
+    ),
+    -- W5 (operator and Jay, 2026-10-13): an agent key has no daily block any more, only an alert line, the
+    -- requests_per_day of settings.agent_daily_limits (2,000 by default). Keys past it in the last 24 hours.
+    'agent_keys_over_line', (
+      select count(*) from (
+        select r.bucket
+        from public.rate_limits r
+        where r.bucket like 'agent:%' and r.at > p_now - interval '24 hours'
+        group by r.bucket
+        having count(*) > coalesce(
+          (select (s.value ->> 'requests_per_day')::int from public.settings s where s.key = 'agent_daily_limits'),
+          2000
+        )
+      ) heavy
     )
   );
 end;

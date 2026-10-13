@@ -19,6 +19,17 @@ Register-ScheduledTask -TaskName "MOP Workforce" -Action $action -Trigger $trigg
   -Description "Matter of Place AI colleagues: one pass a minute (scripts/workforce/daemon.ts)." -Force | Out-Null
 Write-Output "task: MOP Workforce registered (every minute, hidden)"
 
+# 2b. W5: the scheduled task "MOP Matter Live": Matter's live session supervisor (scripts/matter/live.ts). It runs
+# without end; the task checks every five minutes and starts it again if it stopped (never two at once).
+$liveAction = New-ScheduledTaskAction -Execute "wscript.exe" `
+  -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\matter\live.ts live")
+$liveTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+$liveSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries `
+  -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Seconds 0)
+Register-ScheduledTask -TaskName "MOP Matter Live" -Action $liveAction -Trigger $liveTrigger -Settings $liveSettings `
+  -Description "Matter of Place: Matter's live session (scripts/matter/live.ts), kept running." -Force | Out-Null
+Write-Output "task: MOP Matter Live registered (checked every five minutes, hidden)"
+
 # 3. The scheduled task "MOP Usage": the dashboard's vendor gauges measured once a day (scripts/usage-push.ts).
 $usageAction = New-ScheduledTaskAction -Execute "wscript.exe" `
   -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\usage-push.ts usage")
