@@ -18,6 +18,7 @@ export const SESSION_ID = "00000000-0000-4000-8000-0000000000b1";
 export function stubAuthEnv(): void {
   vi.stubEnv("SUPABASE_URL", PROJECT_URL);
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "unit-test-service-role");
+  vi.stubEnv("SUPABASE_PUBLISHABLE_KEY", "unit-test-publishable");
   vi.stubEnv("CSRF_SECRET", CSRF_KEY);
   vi.stubEnv("TURNSTILE_SECRET", "1x0000000000000000000000000000000AA");
 }

@@ -12,6 +12,7 @@ const PRODUCTION = {
   MOP_ENV: "production",
   SUPABASE_URL: "https://proj.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: "service-key",
+  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
   TURNSTILE_SECRET: "turnstile",
   SENTRY_DSN: "https://key@o1.ingest.sentry.io/2",
   RESEND_WEBHOOK_SECRET: "whsec",

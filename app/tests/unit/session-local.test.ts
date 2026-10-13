@@ -122,7 +122,24 @@ describe("the admin session", () => {
     ]);
   });
 
-  it("hands out only the Auth half of the service-key client, so no caller can reach a table (gap item 8)", async () => {
+  it("builds the Auth client with the publishable key, never the service-role key (gap item 8)", async () => {
+    const auth = fakeAuth([], (url) =>
+      url.pathname === "/auth/v1/otp" ? Response.json({}) : undefined,
+    );
+    stubAuthEnv();
+    vi.resetModules();
+    const { authClient } = await import("../../src/server/lib/session");
+    await authClient(new Request(`${SITE}/admin/sign-in`)).signInWithOtp({
+      email: "editor@example.test",
+    });
+    const sent = authApiCalls(auth).map((call) => {
+      const headers = new Headers(call.init?.headers);
+      return [headers.get("apikey"), headers.get("authorization")];
+    });
+    expect(sent).toEqual([["unit-test-publishable", "Bearer unit-test-publishable"]]);
+  });
+
+  it("hands out only the Auth half of its client, so no caller can reach a table (gap item 8)", async () => {
     fakeAuth([]);
     stubAuthEnv();
     vi.resetModules();
