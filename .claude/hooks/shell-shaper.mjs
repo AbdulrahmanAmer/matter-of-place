@@ -80,6 +80,17 @@ function nodePath(file, cwd) {
   return f.replace(/\\/g, "/");
 }
 
+/** The working directory a command has reached at `index`: each `cd X` before it, applied in order. */
+export function cwdAt(command, index, start) {
+  let dir = start;
+  const re = /(?:^|&&|;|\|\||\n)\s*cd\s+("[^"]+"|'[^']+'|[^\s;&|]+)/g;
+  for (const m of command.slice(0, index).matchAll(re)) {
+    const target = m[1].replace(/^["']|["']$/g, "");
+    dir = nodePath(target, dir);
+  }
+  return dir;
+}
+
 let counter = 0;
 const scratch = () => join(tmpdir(), "claude-shell-shaper");
 
@@ -101,7 +112,7 @@ export function shape(input, io = {}) {
   const notes = [];
 
   for (let heredoc = findHeredoc(command); heredoc !== null; heredoc = findHeredoc(command)) {
-    write(nodePath(heredoc.file, cwd), heredoc.body, heredoc.append);
+    write(nodePath(heredoc.file, cwdAt(command, heredoc.start, cwd)), heredoc.body, heredoc.append);
     command = `${command.slice(0, heredoc.start)}: wrote ${heredoc.file}${command.slice(heredoc.end)}`;
     notes.push(`heredoc written to ${heredoc.file}`);
   }

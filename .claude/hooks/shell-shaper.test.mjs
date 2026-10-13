@@ -33,13 +33,19 @@ it("writes a quoted heredoc into its file, appending with >>, and drops it from 
   written.length = 0;
   const r = shape({ command: "cd /e/rec && cat >> GOTCHAS.md <<'EOF'\n## P-1 \\d stays\n- added: x\nEOF\ngrep -c P-1 GOTCHAS.md" }, io);
   assert.equal(r.input.command, "cd /e/rec && : wrote GOTCHAS.md\ngrep -c P-1 GOTCHAS.md");
-  assert.deepEqual(written[0], { file: "E:/work/GOTCHAS.md", text: "## P-1 \\d stays\n- added: x\n", append: true });
+  assert.deepEqual(written[0], { file: "E:/rec/GOTCHAS.md", text: "## P-1 \\d stays\n- added: x\n", append: true });
 });
 
 it("maps a Git Bash drive path for the heredoc file", () => {
   written.length = 0;
   shape({ command: "cat > /e/mop-build/x.txt <<'EOF'\nhello\nEOF" }, io);
   assert.equal(written[0].file, "E:/mop-build/x.txt");
+});
+
+it("writes a relative heredoc file where the command's own cd has taken it (P-3459 landed in the root bank)", () => {
+  written.length = 0;
+  shape({ command: "cd /e/mop-build/harness && cat >> GOTCHAS.md <<'EOF'\n## P-9\nEOF\ngit add -A" }, io);
+  assert.equal(written[0].file, "E:/mop-build/harness/GOTCHAS.md");
 });
 
 it("sends a long command to the background, and keeps one already there", () => {
