@@ -82,6 +82,17 @@ begin
           2000
         )
       ) heavy
+    ),
+    -- W5 item 19: AI colleague runs nobody is doing. A run of an active colleague queued over 30 minutes (the laptop
+    -- runner is off or paused) or running 10 minutes past its lease (a stuck run).
+    'agent_runs_waiting', (
+      select count(*) from public.agent_runs r
+      join public.agents a on a.id = r.agent_id
+      where a.state in ('idle', 'working')
+        and (
+          (r.state = 'queued' and r.created_at < p_now - interval '30 minutes')
+          or (r.state = 'running' and r.lease_until < p_now - interval '10 minutes')
+        )
     )
   );
 end;

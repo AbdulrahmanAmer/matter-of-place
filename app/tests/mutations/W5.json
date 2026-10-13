@@ -43,5 +43,77 @@
     "replace": "        0,",
     "run": "bunx vitest run --project unit tests/unit/jobs/health.test.ts",
     "expect": "× .*fails agent_requests while a key is past its daily alert line"
+  },
+  {
+    "id": "w5-f-now-line",
+    "test": "src/admin/workforce/sidechat.test.tsx",
+    "file": "src/admin/workforce/SideChat.tsx",
+    "find": "          {matter?.state === \"working\" && matter.current_task !== null ? (",
+    "replace": "          {matter?.state === \"never\" && matter.current_task !== null ? (",
+    "run": "bunx vitest run --project component src/admin/workforce/sidechat.test.tsx",
+    "expect": "× .*shows what Matter is running now"
+  },
+  {
+    "id": "w5-g-team-talk",
+    "test": "src/admin/workforce/sidechat.test.tsx",
+    "file": "src/admin/workforce/SideChat.tsx",
+    "find": "  const team = useMessages(\"team\");",
+    "replace": "  const team = useMessages(\"matter\");",
+    "run": "bunx vitest run --project component src/admin/workforce/sidechat.test.tsx",
+    "expect": "× .*shows what Matter is running now"
+  },
+  {
+    "id": "w5-h-editor-route",
+    "test": "tests/unit/colleague-calls.test.ts",
+    "file": "scripts/workforce/colleague-calls.ts",
+    "find": "  editor: [\"PATCH /api/admin/properties/$id\"],",
+    "replace": "  editor: [\"POST /api/admin/properties/$id/publish\"],",
+    "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
+    "expect": "× .*lets the Editor propose the property write-up"
+  },
+  {
+    "id": "w5-i-route-method",
+    "test": "tests/unit/colleague-calls.test.ts",
+    "file": "scripts/workforce/colleague-calls.ts",
+    "find": "  return routeMethod === method && pattern.test(path);",
+    "replace": "  return pattern.test(path);",
+    "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
+    "expect": "× .*refuses a colleague's own path under another method"
+  },
+  {
+    "id": "w5-j-no-routes",
+    "test": "tests/unit/colleague-calls.test.ts",
+    "file": "scripts/workforce/colleague-calls.ts",
+    "find": "  const routes = colleagueRoutes[slug] ?? [];",
+    "replace": "  const routes = colleagueRoutes[slug] ?? Object.values(colleagueRoutes).flat();",
+    "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
+    "expect": "× .*Concierge propose notes only"
+  },
+  {
+    "id": "w5-k-team-waiting",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "        (await ctx.counts()).agent_runs_waiting,",
+    "replace": "        0,",
+    "run": "bunx vitest run --project unit tests/unit/jobs/health.test.ts",
+    "expect": "× .*fails team_waiting while an AI colleague run waits"
+  },
+  {
+    "id": "w5-l-open-task-closes",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  else next.delete(key);",
+    "replace": "  else next.add(key);",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*opens a task on its start and closes it on its finish"
+  },
+  {
+    "id": "w5-m-idle-counts-tasks",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  return active === 0 && open === 0;",
+    "replace": "  return active === 0;",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*opens a task on its start and closes it on its finish"
   }
 ]
