@@ -78,5 +78,13 @@
     "run": "bunx vitest run --project unit tests/unit/watchfail-lock.test.ts",
     "expect": "× .*refuses a second replay while the first lives",
     "procedure": "The lock under test is the replay tool's own: a replay of this entry would hold the lock the test checks for. By hand: in scripts/watchfail.mjs set `alive = holder !== process.pid;` to `alive = false;`, run the command above (red: exit 0, not 3), put it back (green). Measured 2026-10-12."
+  },
+  {
+    "id": "ap-j-nested-replay",
+    "kind": "manual",
+    "test": "tests/unit/watchfail-lock.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/watchfail-lock.test.ts",
+    "expect": "× .*lets a replay run by an entry of the lock's holder",
+    "procedure": "Same reason as ap-i: a replay of this entry would hold the lock under test. By hand: in scripts/watchfail.mjs delete the line `if (String(holder) === process.env.WATCHFAIL_PARENT) return false;`, run the command above (red: the nested replay refuses with 'another replay'), put it back (green). The live proof is B4:ii, which replays a replay and failed on PR 356 before this (2026-10-13)."
   }
 ]

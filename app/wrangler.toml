@@ -1,4 +1,7 @@
 name = "matter-of-place"
+# P-530 (hit twice): pinned so a wrangler call signed in to some other Cloudflare account fails instead of writing
+# there. The account id is a public identifier.
+account_id = "5f55b1e09db48961c4366b73b188c7f9"
 compatibility_date = "2026-09-30"
 compatibility_flags = ["nodejs_compat"]
 

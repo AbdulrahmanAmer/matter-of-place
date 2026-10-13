@@ -774,6 +774,15 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     checked_at: "timestamptz?",
     created_at: "timestamptz",
   },
+  agent_activity: {
+    id: "uuid",
+    agent_id: "uuid",
+    task_key: "text",
+    label: "text",
+    state: "text",
+    started_at: "timestamptz",
+    finished_at: "timestamptz?",
+  },
   vendor_usage: {
     line: "text",
     used: "bigint",

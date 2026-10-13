@@ -12,6 +12,9 @@ const shape = z.object({
   SENTRY_RELEASE: text.default("dev"),
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: text.optional(),
+  // Gap audit item 8: the publishable key the Auth cookie client is built with. Public by design, but a Worker secret,
+  // so wrangler.toml stays free of anything key-shaped (invariant 2).
+  SUPABASE_PUBLISHABLE_KEY: text.optional(),
   TURNSTILE_SECRET: text.optional(),
   RATE_LIMIT_SALT: text,
   SENTRY_DSN: text.optional(),
@@ -40,6 +43,7 @@ const shape = z.object({
 const REQUIRED_IN_PRODUCTION = [
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
   "RESEND_WEBHOOK_SECRET",
 ] as const;
 const REQUIRED_OUTSIDE_LOCAL = ["TURNSTILE_SECRET", "SENTRY_DSN"] as const;

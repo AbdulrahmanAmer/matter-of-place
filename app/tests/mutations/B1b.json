@@ -2143,6 +2143,15 @@
     "expect": "holds no secret and no paid binding"
   },
   {
+    "id": "hy-wrangler-account",
+    "test": "tests/unit/hygiene.test.ts",
+    "file": "wrangler.toml",
+    "find": "account_id = \"5f55b1e09db48961c4366b73b188c7f9\"\n",
+    "replace": "",
+    "run": "bunx vitest run tests/unit/hygiene.test.ts",
+    "expect": "pins the project's Cloudflare account"
+  },
+  {
     "id": "hy-lint-warnings",
     "test": "tests/unit/hygiene.test.ts",
     "file": "package.json",

@@ -115,6 +115,9 @@ begin
   -- W2 step 7: a meeting decision.
   insert into public.agent_decisions (meeting_on, owner_id, decision, due_on, metric)
   select current_date, id, 'test-rls decision', current_date, 'test-rls' from public.agents where slug = 'chief';
+  -- W5 items 7 and 8: one background task of a colleague.
+  insert into public.agent_activity (agent_id, task_key, label)
+  select id, 'test-rls-' || v_user, 'test-rls task' from public.agents where slug = 'chief';
   insert into public.vendor_usage (line, used, measured_at) values ('sentry_errors', 1, now())
   on conflict (line) do nothing;
 end

@@ -760,6 +760,7 @@ Entry template
 - added: 2026-10-02
 - hit again: 2026-10-04, B3b g2: the plan says "`id` the letter" for `tests/mutations/B3b.json`, but every plan letter (d, h, i, k, l, z) is already an id in at least one of B1b, B2, B4 and B8, and `--only <id>` replays every registry that holds the id, so the entries are `b3b-d`, `b3b-h`, `b3b-i`, `b3b-k`, `b3b-l`, `b3b-z` (`b3b-l` is the `mergeFlags` half; the state half takes `b3b-l-state`). Replay with `--only b3b-<letter>`.
 - hit again: 2026-10-04, B3 g8: the registry entry `b3-g8-se-rank` (drop the matcher's score from the sort) printed `WATCHED-FAIL BAD: stayed green`: the test's two properties had one token hit each, so the order held without the score. A mutation of an ordering rule needs a fixture where the other key alone would give the opposite order (here the token-only property has two hits against one).
+- hit again: 2026-10-13, W5 item 12: `w5-h-editor-route` (swap the Editor's route for publish) and `w5-i-route-method` (ignore the method) printed `WATCHED-FAIL BAD: stayed green`: the test only counted allowed and refused calls ([1, 2]), and swapping which call is allowed keeps the counts. An assertion on a filter checks WHICH items pass (`expect(allowed).toEqual([...])`), and a method rule needs a case with the right path under the wrong method.
 - hit again: 2026-10-05, B8b g4: 7 of 41 new entries replayed `BAD: wrong reason`: five carried the suite name (`runKeepWarm in production makes ...`) and two `bump_catalog_version step > is in the registry`, while the `×` line prints the leaf title only; and `--changed origin/main` selected 0 entries until the work was committed, because it reads the committed diff. `--only` takes one id. Write `expect` from the leaf title, commit before a `--changed` replay, and replay several ids in a loop of `--only <id>`.
 - hit again: 2026-10-05, B4 c7l: the same `--changed origin/main` replay over all of B4 took about 30 minutes, and the first one ran in a shell that held `CLOUDFLARE_API_TOKEN`, so 17 db-project entries came back BAD for the guard (P-310) and the run was repeated under `env -u CLOUDFLARE_API_TOKEN -u PROD_TURNSTILE_SECRET -u SUPABASE_ACCESS_TOKEN`; a new `warn` level in `lighthouserc.json` also needed `perf-budget.test.ts` reworked and a new entry (`p-level-warn`) before the replay was green. `--only <id>` matches the id in every registry file (`--only p` replays `B2:p`, `B4:p` and `B8:p`, two of them BAD for unrelated reasons): use a unique id or read the line of the slice you replay.
 - hit again: 2026-10-04, B4 g7 review fix, found only by running the CI command `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main --kinds unit,sql` over the whole diff (192 entries, 6 STALE): B3 g1's route renames (`_site.about.tsx`) staled `B4:e` and `rc-*` in `routes.ts`; the e2e job's checkout added to `ci.yml` in the same input order as the check job's made `B1b:hy-checkout` occur twice; the two steps B4 copied the heavy `if:` into made `B1b:as` occur three times in `deploy.yml`. Run that command, with `env -u CLOUDFLARE_API_TOKEN -u PROD_TURNSTILE_SECRET -u SUPABASE_ACCESS_TOKEN` (the full `.env` makes every db entry print `BAD: wrong reason`, P-310), before every ready push, and do not stash or checkout while it runs: it holds mutated files.
@@ -1930,6 +1931,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-05, B8b g5 review (second): `bun run check` run while another review lane (admin-review) had vitest up passed every gate before `test`, then `test` exited 1 on four forks-worker start timeouts (`illustrative-labels.test.tsx`, `turnstile-client`, `consent-notice`, `interest-form`) with no failing assertion; `bun run test` alone gave `Test Files  146 passed (146)` and `Tests  1821 passed (1821)`, exit 0. About 10 minutes lost. A reviewer brief says to run the `test` gate alone when another lane's vitest is up.
 - hit again: 2026-10-05, B7 g2 review: `bun run check` exited 1 only in its test stage with `Error: [vitest-pool]: Failed to start forks worker for test files .../illustrative-labels.test.tsx` and `.../turnstile-client.test.tsx` and `script "check" exited with code 1`, while the reviewer's own vitest ran at the same time; `bun run test` alone then printed `Test Files  165 passed (165)` and `Tests  2000 passed (2000)`, exit 0, and the stage alone cost another 11 minutes. Proof: `grep -c "hit again: 2026-10-05, B7 g2 review: .bun run check. exited 1" GOTCHAS.md` prints 1.
 - hit again: 2026-10-08, chore/bank-merge-superseded: the first full `bun run check` (backgrounded, 1346 s) exited 1 with `Test Files  256 passed (256)` and `Errors  4 errors` (`Failed to start forks worker` for four `src/admin` test files); the second run, same tree, exited 0 (`Test Files  260 passed (260)`, 737 s).
+- hit again: 2026-10-13, W5 live batch: the backgrounded `bun run check` in `E:/mop-build/mctx` ran while the office worktree's vitest, tsc and watched-fails ran beside it; it ended `Tests  4530 passed (4530)`, `Errors  4 errors` (`Failed to start forks worker` for InvoiceDetail, recipes, channels and legal-pages), exit 1. One check at a time on this laptop, even across worktrees.
 - hit again: 2026-10-11, L1 g1: the second backgrounded `bun run check` passed every stage before `test` and exited 1 there on three worker-start timeouts and no `×`; `bun run test` alone then ran 1650 s and ended `Tests  2 failed | 4339 passed (4341)`, the two being `settings.test.tsx` "draws the identity fields..." and `hygiene.test.ts` "lint gives prettier/prettier..." (139305 ms); each re-run alone passed (`Tests  6 passed (6)`, `Tests  1 passed | 64 skipped (65)`). About 45 minutes of waiting; the first check of the same group had passed whole.
 
 ## G-104 · A trigger function shared by two tables cannot name a column of one table in a condition that runs for the other
@@ -4069,6 +4071,8 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never call wrangler bare. Every wrangler call runs with the project's `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` read from `.env` and passed in the child's env (as `preview-bundle.mjs` and the fix commit did), and prints `whoami`'s account name first; "Creating new Worker" on a name that should exist means stop and delete the stray. Check for a stray with the shell token: `bunx wrangler secret list --name <worker>` → "not found" is the healthy answer.
 - proof: `bunx wrangler delete --name matter-of-place --force` under the personal token → "Successfully deleted"; under the project env, `secret list --name matter-of-place` → 7 names (CONFIRM_TOKEN_SECRET, RATE_LIMIT_SALT, RESEND_WEBHOOK_SECRET, SENTRY_DSN, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL, TURNSTILE_SECRET); `matter-of-place-dev` → 11 names; the personal account has neither Worker.
 - Hit again 2026-10-06, B5 g2: a bare `bunx wrangler secret list --name matter-of-place-dev` answered "Worker not found" (the shell token belongs to the personal account) and the Worker's RESEND_WEBHOOK_SECRET was recorded UNPROVEN, although it was there. "Not found" under the shell token says nothing about the project's Worker. With the project's token and account id loaded from `.env` the same command lists RESEND_WEBHOOK_SECRET.
+- hit again: 2026-10-13, gap audit item 8 (PR 367): `SUPABASE_PUBLISHABLE_KEY` was put with `bun --env-file=<.env> x wrangler secret put`, and **`bun --env-file` does not replace a variable the shell already holds** (fingerprints: shell and `bun --env-file` saw the same token, `env -u CLOUDFLARE_API_TOKEN bun --env-file` the project's). The key went to a stray in the personal account; production lacked it, `env.ts` requires it there, so the next two production deploys (15:39 and 16:11 UTC) failed their smoke ("did not answer ten times in a row") and rolled back, and three merged PRs stayed off the live site for about 45 minutes. Fixed with `wrangler versions secret put` under the project pair, then the deploy rerun went green.
+- enforced-by: `account_id` pinned in `app/wrangler.toml` (hygiene test "pins the project's Cloudflare account", registry `hy-wrangler-account`), so a call under another account fails instead of writing there; the global shell-shaper hook refuses a wrangler call in this project while the shell holds a token, unless the command unsets it or passes the project pair.
 - added: 2026-10-06
 
 ## P-528 · The Claude Code cloud sandbox cannot run a lane: its network lets only web traffic out, so the Postgres connection every database test uses is closed even with network access set to "Full"
@@ -7856,6 +7860,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - enforced-by: the lock in `scripts/watchfail.mjs` (`node_modules/.cache/watchfail.lock`): a second replay exits 3 while the first lives; `tests/unit/watchfail-lock.test.ts` (registry `ap-i-one-replay`, manual).
 - proof: with a live process holding the lock, `node scripts/watchfail.mjs --registry tests/mutations --only ap-a-job-name` → `exit 3 watchfail: another replay ... (P-3444)`; with the holder gone → `exit 0` (measured 2026-10-12).
 - hit again: 2026-10-13 00:40, a replay stopped with Stop-Process left `RerenderAssetsButton.tsx` mutated (`if (false) continue;`). watchfail now writes the original to `node_modules/.cache/watchfail.pending.json` before each mutation and the next replay restores it: a hard kill mid-mutation, then the next replay printed `restored ...job-words.ts` and the file matched (measured 2026-10-13).
+- hit again: 2026-10-13, PR 356 db job: the lock refused the replay that entry B4:ii runs inside its own parent replay (`WATCHED-FAIL BAD: wrong reason (B4:ii)` with `another replay (pid 9027)` in its red run). A replay started by another replay now carries `WATCHFAIL_PARENT`, passes the parent's lock, takes none, restores nothing and keeps its own pending file; `tests/unit/watchfail-lock.test.ts` second test (registry `ap-j-nested-replay`, manual).
 - added: 2026-10-12
 
 ## P-3445 · A long preview with Matter's agent key spends its 2,000 calls a day
@@ -7872,6 +7877,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, gap item 19: `GET /zones?name=matterofplace.com` with `CLOUDFLARE_API_TOKEN` from `.env` returned an empty list (the token is Workers-scoped, no Zone Read), so no zone setting (email obfuscation, bot fight, WAF, DNSSEC) can be read or changed by API. In Chrome, a dashboard page opened in a background tab, or in a new tab group, stayed on "Loading..." or showed the sign-in page although the operator was signed in (operator, 2026-10-13: "you have to make the browser become what is on the screen so it loads").
 - rule: zone settings are changed in the operator's signed-in Chrome, in the tab he is looking at (the existing tab of the session's group, never a new group); a "Loading..." or sign-in page there means the tab is not in front, not that he is signed out. Never ask for, or add, zone scopes to the Workers token without his word.
 - proof: `bun --env-file="/e/Matter Of Place/.env" scratchpad/cf-zone.mjs email_obfuscation` → `TypeError: undefined is not an object (evaluating 'zones.result[0].id')` (measured 2026-10-13 01:45 Cairo); the same zone settings page loaded in the front tab 600036229 a minute after the new group's tab showed the sign-in page.
+- added: 2026-10-13
 
 ## P-3447 · Linting only the changed files misses knip and jscpd, and each miss costs a full check
 - paths: (process)
@@ -7879,6 +7885,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, feat/matter-actions: ESLint on the changed files was clean, then two full `bun run check` runs failed in turn on knip (`fetchSearch` exported, never imported) and on jscpd (the `jsonValue` schema copied from `src/server/channels/meta.ts` into `scripts/matter/actions.ts`).
 - rule: before a full check, run the three fast whole-repo gates once: `bun run knip && bun run jscpd && bun run format:check`; a schema two files need lives once in `src/domain/` (here `json-value.ts`).
 - proof: `cd app && bun run jscpd` → `Found 0 clones.` with `src/domain/json-value.ts` (measured 2026-10-13 02:40 Cairo); with the copy back in `actions.ts` it prints `Clone found (typescript)` naming `actions.ts [20:1 - 29:3]` and `meta.ts [60:1 - 69:3]`.
+- added: 2026-10-13
 
 ## P-3448 · Keeping both sides of a CSS conflict can leave a rule unclosed
 - paths: app/src/styles/**
@@ -7886,6 +7893,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, feat/matter-actions: the merge of origin/main into the branch conflicted in `app/src/styles/admin/automation.css` (both added a block at the end); the keep-both script joined the sides inside the conflict lines, so `.admin-email-head p {` lost its `}` and swallowed `.admin-ask-matter`. ESLint and the tests do not read CSS; only `format:check` (prettier) said `CssSyntaxError: Unclosed block (1003:1)`, a full check later.
 - rule: after resolving any conflict in a `.css` file by keeping both sides, run `bunx prettier --check <file>` before the merge commit, and `git diff origin/main -- <file>` must show additions only.
 - proof: `cd app && bunx prettier --check src/styles/admin/automation.css` → `All matched files use Prettier code style!` at 991cedbc; at 835b9cb8 it prints the `Unclosed block` error (measured 2026-10-13 02:55 Cairo).
+- added: 2026-10-13
 
 ## P-3449 · A private repo on the free plan gets 2,000 Actions minutes a month; the build week spent about 15,000
 - paths: (process)
@@ -7893,6 +7901,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, before the operator switches the repo back to private: a week of runs (2,166) estimated by workflow, run count times the mean billed job minutes of 8 recent runs: ci 598 runs at about 20 minutes, deploy 923 runs at about 3.4, about 15,000 job minutes a week, about 65,000 a month. A public repo's minutes are free; a private one on the free plan stops all workflows (CI, deploy, nightly backup, render) when its 2,000 are spent.
 - rule: switch to private only after the build PRs stop; after that, budget about 23 minutes per pull request (CI plus deploy) plus about 40 a month for backups and audits, so fewer than about 80 pull requests a month. Measure again with `scratchpad/actions-estimate.mjs` before the switch, and watch the account's billing page in the first week.
 - proof: `node scratchpad/actions-estimate.mjs` → `TOTAL about 15234 job minutes a week, about 65289 a month (private free plan: 2,000)` (measured 2026-10-13 05:00 Cairo).
+- added: 2026-10-13
 
 ## P-3450 · A unit test that imports every route or service file cold runs past vitest's 5-second limit on the laptop
 - paths: app/tests/unit/**
@@ -7900,6 +7909,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13: `admin-authz-sweep.test.ts` (every `service.ts`, 5.6 s) and `admin-routes-parity.test.ts` (every admin route) timed out locally under a replay; their watched-fails reported `wrong reason` (a timeout, not the expected failure). CI on Linux was fast enough, so the full check passed while a replay failed.
 - rule: a test that imports a whole folder of modules sets its own limit (`it(..., 30_000)`), with a comment naming the measured time; a replay `wrong reason` whose red run says `Test timed out` is this, not a weak assertion.
 - proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts --reporter verbose` → `refuse a roleless actor ... 5734ms`; with `30_000` the file passes under load.
+- added: 2026-10-13
 
 ## G-1310 · `aria-controls` naming an element that is not rendered fails axe on every page that shows it
 - paths: app/src/admin/**
@@ -7907,3 +7917,71 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, PR 354: the top bar's search input carried `aria-controls={listId}` while its results list rendered only when open; axe's `aria-valid-attr-value` failed 10 end-to-end tests on every admin screen. The component tests and lint passed, since only the Playwright run calls axe.
 - rule: an `aria-controls`, `aria-activedescendant` or `aria-describedby` points only at an element in the page at that moment; spread it in with the condition that renders the target (`{...(shown ? { "aria-controls": id } : {})}`).
 - proof: the e2e job of PR 354's run 38338365639 lists `/admin/assets | aria-valid-attr-value | input` with the unconditional attribute.
+- added: 2026-10-13
+
+## P-3451 · An agent believes its prompt over its tools: a power change must change the words too
+- paths: app/scripts/matter/**, app/scripts/workforce/**
+- severity: block
+- symptom: 2026-10-13 09:17 Cairo, the first operator message after H100 and H101: the runner gave Matter full power (`settings-full.json`), but `matterPrompt` still opened with the fixed paragraph "safe mode ... You cannot run commands, edit files or call the admin API". Matter answered "I couldn't build this myself. In my current safe mode..." and wrote a plan instead of building, without trying a tool.
+- rule: whatever decides an agent's tools also decides the sentence that tells the agent what it can do; pass the same value to both (`matterPrompt({ ..., power })` and `askMatter(..., power)`), and test the words for each mode.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter.test.ts -t "tells Matter the power it really has"` → 1 passed; registry `mp-h-prompt-says-power` goes red when the full-power words are never chosen.
+- enforced-by: tests/unit/matter.test.ts ("tells Matter the power it really has"), registry mp-h-prompt-says-power
+- added: 2026-10-13
+
+## P-3452 · An answer reader that cuts from the first "{" drops the closing JSON when the prose holds braces
+- paths: app/scripts/workforce/**
+- severity: block
+- symptom: 2026-10-13 09:29 Cairo, test 2 (a colleague's line asking Matter for a subject-line proposal): Matter wrote "We have received {{property_address}}" in its prose and ended with a valid JSON object holding one admin action. `readJsonAnswer` sliced from the first "{" (inside the prose) to the last "}", the parse failed, the fallback made the whole text the reply, and the action was dropped while Matter's reply said "filed in Approvals". Approvals stayed empty.
+- rule: read an agent's closing object by trying each "{" from the left until one slice parses against the schema; never assume the first brace starts the object. A run whose reply promises an action that no row backs is a defect to look for in every end-to-end test.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-answer.test.ts` → 2 passed; registry `mp-i-answer-braces` goes red when only the first "{" is tried.
+- added: 2026-10-13
+
+## P-3453 · A 15-minute run limit cuts a full-power build off, and the cut was silent
+- paths: app/scripts/matter/**, app/scripts/workforce/**
+- severity: block
+- symptom: 2026-10-13 10:02 to 10:17 Cairo, test 1 repeated after P-3451: Matter, at full power, branched `feat/w4-email-replies` in its desk and wrote a plan, two migrations, a function, the mail reader and tests, then the runner killed it at 15 minutes ("Matter took longer than 15 minutes"). The run was marked failed and nothing was said in the thread: the operator would have seen silence. The run's lease was 10 minutes, so on a long run a second runner could have claimed the same run.
+- rule: a full-power run gets 45 minutes (`runTimeoutMs`), inside the scheduled task's 50 and the run lease's 3000 seconds; every failed run says in its thread that it stopped and where the work is; uncommitted work stays in the desk (refreshDesk leaves a dirty desk alone).
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter.test.ts` → the cases "gives a full-power build 45 minutes" and "says in the thread when a run stops" pass; registry `mp-j-full-run-time`, `mp-k-lease` go red when undone.
+- enforced-by: tests/unit/matter.test.ts ("gives a full-power build 45 minutes", "says in the thread when a run stops"), registry mp-j-full-run-time, mp-k-lease
+- added: 2026-10-13
+
+## P-3454 · An agent trusts its own earlier claim in the thread over the database
+- paths: app/scripts/workforce/**
+- severity: block
+- symptom: 2026-10-13 10:22 Cairo, test 2 repeated (a line labelled Claude asking for a subject-line proposal, read only): Matter answered a different, older topic and said "The subject proposal is already in Approvals, so I did not file it again". `agent_approvals` had never held a row: its earlier claim had been false (P-3452), and the thread was the only memory it read.
+- rule: before the thread, a run reads as facts the line that woke it (fenced, "answer this first") and its own open proposals from `agent_approvals`, with the plain sentence that nothing else of its own is there (`scripts/workforce/grounding.ts`). Any state an agent may claim (approvals, PRs, decisions) is given to it from the source, never left to the thread.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-grounding.test.ts` → 2 passed; registry `mp-l-grounding-none`, `mp-m-grounding-woke` go red when undone.
+- added: 2026-10-13
+
+## P-3455 · A replay under `timeout` that is killed prints no summary, and a chain that only looks for `bad N` reads that as clean
+- symptom: 2026-10-13, W5 live batch: `timeout 1500 node scripts/watchfail.mjs --changed origin/main` was killed at 25 minutes mid-entry. It printed no `watchfail: replayed ...` line and left `scripts/workforce/grounding.ts` mutated in the tree. The chain went on only if `grep -qE "bad [1-9]|stale [1-9]"` found nothing, so it pushed, opened PR 365 and started the gate on an unfinished replay. One `BAD: wrong reason` (mp-h) in the log was load: `--only mp-h-prompt-says-power` alone printed `WATCHED-FAIL OK`.
+- rule: a chain goes on only when the summary line is there and clean: `grep -qE "^watchfail: replayed .* bad 0, stale 0" log`. Give the replay no `timeout`, or one longer than the whole selection, and run `git status --short` after it.
+- proof: `grep -c "^## P-3455" GOTCHAS.md` prints 1.
+- added: 2026-10-13
+
+## P-3456 · A private repo on the free plan has a monthly Actions allowance; when it is spent no job starts, merges and deploys stop
+- symptom: 2026-10-13, the day after the repo went private (H101), every job of PR 365 failed with no failed step; the annotation read "The job was not started because recent account payments have failed or your spending limit needs to be increased". The nightly backup (`backup.yml`) and the Saturday audit run on Actions too.
+- rule: before a repo goes private, measure its monthly Actions minutes and set a budget, or keep it public. Read a job that failed with no failed step through its annotations: `gh api repos/<owner>/<repo>/check-runs/<job id>/annotations --jq '.[].message'`.
+- proof: `gh run view 38376148119 --json jobs --jq '.jobs[].conclusion'` shows failures with no failed step.
+- added: 2026-10-13
+
+## P-3457 · A Windows scheduled task starts with the system PATH: a tool found in Git Bash or scoop is not there
+- symptom: 2026-10-13, ruling H103's laptop backup passed when run from the shell (887,807 bytes) and failed from its scheduled task "MOP Backup" with `spawnSync openssl ENOENT`: openssl lives in Git's mingw64 folder, which only Git Bash puts on PATH. The plain dump had been written and was deleted by the script's `finally`, so nothing unencrypted stayed on disk.
+- rule: a script that a scheduled task runs names every outside tool by its full path (`C:/Program Files/Git/mingw64/bin/openssl.exe`, `C:/Users/DELL/scoop/apps/postgresql/current/bin/pg_dump.exe`), and it is proven by `Start-ScheduledTask`, never only from the shell.
+- proof: `Start-ScheduledTask -TaskName "MOP Backup"`, then `~/.mop-workforce/backup.log` ends `mop-dev-2026-10-13.dump.p7m: 888671 bytes in 94 s` (2026-10-13 14:08).
+- added: 2026-10-13
+
+## P-3458 · The laptop runner follows main within a minute, but a migration lands only when the deploy's db push runs
+- symptom: 2026-10-13, after PR 365 (claim_agent_run gained p_skip_live) the runner moved to the new code at 11:40:53 UTC and logged `workforce: the claim failed` six times until 12:00:15, when the deploy had pushed the migration and the runner moved again. No run was lost (claims only fail, nothing is marked), but the team was deaf for about 20 minutes.
+- rule: the runner runs new code before the database has its migration, so a new RPC argument or function breaks the runner until the deploy lands; a DEFAULT only protects old callers. Ship the migration in a PR of its own and merge the code that calls it after the deploy shows it applied (`select version from supabase_migrations.schema_migrations`), or have the runner follow main only after the deploy run of that commit is green.
+- proof: `grep -c "the claim failed" ~/.mop-workforce/daemon.log` counts the window; `select pg_get_function_arguments(oid) from pg_proc where proname='claim_agent_run'` shows `p_skip_live boolean DEFAULT false`.
+- added: 2026-10-13
+
+## P-3459 · A change was run before what it broke was found: tests, registry entries and companion lists failed one CI round at a time
+- symptom: 2026-10-13, about a dozen CI and local rounds lost to changes whose dependents were never looked at first: a renamed test title (registry ak-a), a new test file with no entry, a check written twice in the footer (b17-cn-modified STALE), exports moved or left unused (knip), `.env.example` without its runbook inventory line, a new table without its RLS seed row, a health check missing from the test's list. Each cost a 15 to 40 minute round. Separately, inline scripts were refused for backslashes and retried, and long commands were waited on.
+- rule: fix every dependent of an edit before running anything. The harness enforces it: `.claude/hooks/edit-impact.mjs` (PostToolUse on Edit and Write) names the stale entries, expected titles, gone and unused exports, importing tests and companion files right after each edit; `.claude/hooks/shell-shaper.mjs` (PreToolUse on Bash) turns an inline script or heredoc into a file and sends long commands to the background; `.claude/hooks/turn-checklist.mjs` (UserPromptSubmit) pushes the working checklist into every turn.
+- proof: `node .claude/hooks/edit-impact.test.mjs` and `node .claude/hooks/shell-shaper.test.mjs` print only `ok` lines (7 and 8), each case one of the failures above.
+- enforced-by: .claude/hooks/edit-impact.mjs, .claude/hooks/shell-shaper.mjs, .claude/hooks/turn-checklist.mjs
+- hit again: 2026-10-13 19:00, the other way: shell-shaper sent every `grep ... watchfail.mjs` and `git show ...:watchfail.mjs` to the background because the long-command list matched the file name in an argument, so each read cost a round trip. It now tests the list only on the pieces of a command that are not readers (grep, sed, cat, git show and the like); a shell-shaper test covers it.
+- hit again: 2026-10-13 20:05, PR 375: `scripts/watchfail.mjs` read `process.env.WATCHFAIL_PARENT`, the scripts tsc (`tsconfig.scripts.json`, CI's check job) refused it (TS4111), one CI round lost; only eslint and prettier had run locally. edit-impact now names `bunx tsc --noEmit -p tsconfig.scripts.json` as the companion of any edit under `app/scripts/` (edit-impact test, watched red without the rule).
+- added: 2026-10-13

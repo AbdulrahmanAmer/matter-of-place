@@ -161,7 +161,14 @@ function execute(command, extraEnv) {
     if (at > 0) given[word.slice(0, at)] = word.slice(at + 1);
   }
   /** @type {Record<string, string | undefined>} */
-  const env = { ...process.env, ...given, ...extraEnv, NO_COLOR: "1", FORCE_COLOR: undefined };
+  const env = {
+    ...process.env,
+    ...given,
+    ...extraEnv,
+    NO_COLOR: "1",
+    FORCE_COLOR: undefined,
+    WATCHFAIL_PARENT: String(process.pid),
+  };
   return new Promise((done) => {
     const child = spawn(command.slice(assignments.length), { shell: true, env });
     let output = "";
@@ -184,7 +191,10 @@ const mutatedNow = new Map();
 
 // P-3444: a replay killed hard (Stop-Process, a closed terminal) runs no exit handler, so the mutated file stays.
 // Before each mutation the original is written here; the next replay in the folder puts it back before anything else.
-const PENDING = "node_modules/.cache/watchfail.pending.json";
+// A replay run by an entry of another replay (B4:ii) keeps its own file, so it never overwrites its parent's.
+const PENDING_TOP = "node_modules/.cache/watchfail.pending.json";
+const PENDING_NESTED = "node_modules/.cache/watchfail.pending-nested.json";
+const PENDING = process.env["WATCHFAIL_PARENT"] === undefined ? PENDING_TOP : PENDING_NESTED;
 
 function restoreAll() {
   for (const [path, bytes] of mutatedNow) writeFileSync(path, bytes);
@@ -192,12 +202,15 @@ function restoreAll() {
   if (existsSync(PENDING)) unlinkSync(PENDING);
 }
 
-/** Puts back what a replay that died mid-mutation left. Answers the path it restored, or null. */
-function restorePending() {
-  if (!existsSync(PENDING)) return null;
+/**
+ * Puts back what a replay that died mid-mutation left. Answers the path it restored, or null.
+ * @param {string} file
+ */
+function restorePending(file) {
+  if (!existsSync(file)) return null;
   /** @type {unknown} */
-  const pending = JSON.parse(readFileSync(PENDING, "utf8"));
-  unlinkSync(PENDING);
+  const pending = JSON.parse(readFileSync(file, "utf8"));
+  unlinkSync(file);
   if (
     typeof pending !== "object" ||
     pending === null ||
@@ -448,12 +461,15 @@ async function main(argv) {
 // lives. The lock sits under node_modules, which git and lint ignore.
 const LOCK = "node_modules/.cache/watchfail.lock";
 
+// An entry may itself run a replay (B4:ii); that one runs inside its parent's lock and takes none. Answers whether
+// this replay took the lock.
 function takeLock() {
   mkdirSync(dirname(LOCK), { recursive: true });
   try {
     writeFileSync(LOCK, String(process.pid), { flag: "wx" });
   } catch {
     const holder = Number.parseInt(readFileSync(LOCK, "utf8"), 10);
+    if (String(holder) === process.env["WATCHFAIL_PARENT"]) return false;
     let alive = false;
     try {
       process.kill(holder, 0);
@@ -476,13 +492,18 @@ function takeLock() {
       // Already gone.
     }
   });
+  return true;
 }
 
 if (import.meta.main) {
-  takeLock();
-  const left = restorePending();
-  if (left !== null)
-    console.log(`watchfail: restored ${left}, left mutated by a replay that died (P-3444)`);
+  // Only the replay that holds the lock puts back what a dead one left; a nested one would undo its parent's mutation.
+  if (takeLock()) {
+    for (const file of [PENDING_TOP, PENDING_NESTED]) {
+      const left = restorePending(file);
+      if (left !== null)
+        console.log(`watchfail: restored ${left}, left mutated by a replay that died (P-3444)`);
+    }
+  }
   process.on("exit", restoreAll);
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(130));
   main(process.argv.slice(2)).then(

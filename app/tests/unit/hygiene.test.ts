@@ -1054,6 +1054,12 @@ describe("wrangler.toml (invariant 2, G-011, R59)", () => {
       ...(/key\s*=/i.test(text) ? ["key ="] : []),
     ]).toEqual([]);
   });
+
+  it("pins the project's Cloudflare account, so another token cannot write elsewhere (P-530)", () => {
+    expect(read(join(APP, "wrangler.toml"))).toMatch(
+      /^account_id = "5f55b1e09db48961c4366b73b188c7f9"$/m,
+    );
+  });
 });
 
 describe("code gates (invariant 16; R01, R36, R48)", () => {
