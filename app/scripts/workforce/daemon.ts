@@ -244,7 +244,8 @@ async function runOnce(client: Db): Promise<boolean> {
 
   const { data: claimed, error } = await client.rpc("claim_agent_run", {
     p_worker: WORKER,
-    p_lease_seconds: 600,
+    // Longer than Matter's longest run (45 minutes at full power), so no other runner claims a run still in work.
+    p_lease_seconds: 3000,
   });
   if (error !== null) throw new Error("workforce: the claim failed");
   const run = claimed[0];
@@ -436,6 +437,14 @@ async function runOnce(client: Db): Promise<boolean> {
       })
       .eq("id", run.id);
     console.log(`${new Date().toISOString()} ${agent.slug} failed: ${message}`);
+    // 2026-10-13 test 1 (P-3453): a run that stops says so where the person is waiting, never in silence.
+    await say(
+      client,
+      thread,
+      agent.slug === "matter"
+        ? `Matter stopped before finishing: ${message}. The work so far stays in Matter's desk; your next message picks it up from there.`
+        : `${agent.name} stopped before finishing: ${message}.`,
+    );
   } finally {
     await client
       .from("agents")
