@@ -97,5 +97,23 @@
     "replace": "        0,",
     "run": "bunx vitest run --project unit tests/unit/jobs/health.test.ts",
     "expect": "× .*fails team_waiting while an AI colleague run waits"
+  },
+  {
+    "id": "w5-l-open-task-closes",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  else next.delete(key);",
+    "replace": "  else next.add(key);",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*opens a task on its start and closes it on its finish"
+  },
+  {
+    "id": "w5-m-idle-counts-tasks",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  return active === 0 && open === 0;",
+    "replace": "  return active === 0;",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*opens a task on its start and closes it on its finish"
   }
 ]

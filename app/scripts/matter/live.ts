@@ -183,6 +183,23 @@ export function nextSession(
 }
 
 /** Jay's rotation: a session that has run six turns or a day starts over, seeded from the state file. */
+/** The open background tasks after one task event: a start adds its key, a finish removes it. */
+export function openTasks(
+  open: ReadonlySet<string>,
+  event: { id: string; label: string; state: "started" | "done" },
+): Set<string> {
+  const next = new Set(open);
+  const key = event.id === "" ? event.label : event.id;
+  if (event.state === "started") next.add(key);
+  else next.delete(key);
+  return next;
+}
+
+/** Idle means no line in hand and no background task still running; only then may the session rotate or move. */
+export function isIdle(active: number, open: number): boolean {
+  return active === 0 && open === 0;
+}
+
 export function shouldRotate(record: SessionRecord | null, now: number): boolean {
   return (
     record !== null &&
@@ -238,6 +255,8 @@ class Supervisor {
   private child: ChildProcessWithoutNullStreams | null = null;
   private buffer = "";
   private active: { runId: string; thread: string }[] = [];
+  /** Background tasks started and not yet reported back; they die with the session. */
+  private open = new Set<string>();
   private lastOutput = Date.now();
   private crashes: number[] = [];
   private readonly head = runnerHead();
@@ -323,6 +342,7 @@ class Supervisor {
         await this.setTask(
           event.state === "started" ? `Background: ${event.label}` : `Finished: ${event.label}`,
         );
+        this.open = openTasks(this.open, event);
         await this.recordTask(event);
       } else if (event.kind === "result") {
         await this.onResult(event);
@@ -392,6 +412,7 @@ class Supervisor {
     this.child = null;
     const runs = this.active;
     this.active = [];
+    this.open = new Set();
     await this.stopRunningTasks();
     if (this.rotating) {
       this.rotating = false;
@@ -491,7 +512,7 @@ class Supervisor {
       }
       if (
         this.child !== null &&
-        this.active.length === 0 &&
+        isIdle(this.active.length, this.open.size) &&
         shouldRotate(readSession(), Date.now())
       ) {
         // Rotate while idle: the next line starts a new session seeded from the state file and the notes.
