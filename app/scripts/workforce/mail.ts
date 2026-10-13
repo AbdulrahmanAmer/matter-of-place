@@ -215,7 +215,8 @@ export async function checkMail(client: Db, home: string, now = Date.now()): Pro
       p_received_at: new Date(row.received).toISOString(),
     });
     if (error !== null) throw new Error("mail: a reply could not be recorded");
-    if (data !== null) recorded += 1;
+    // The function returns null for a reply already recorded; the generated type cannot say so.
+    if ((data as string | null) !== null) recorded += 1;
   }
   writeFileSync(file, JSON.stringify({ at: newest, checked: now }));
   return recorded;
