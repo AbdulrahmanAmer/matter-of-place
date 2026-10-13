@@ -1766,3 +1766,13 @@ first day of the new usage week; no step was cut from any plan.
   by the heap watch 2026-10-12 22:30 to 00:50); it frees between about 22:30 and 01:00 tonight.
 - Open for the operator: approve the staff charter (W2.md); ask Matter in the side chat to set up reading email
   replies; switch the repo to private only after the build PRs stop (P-3449).
+- 2026-10-13 10:00 Cairo. Staff charter approved (PR 362). Matter's key reset on the operator's word: cap 4,000 a
+  day (put_setting, audited), 2,000 old hits cleared; the key answers 200 and holds no person-only action.
+  Operator tests of Matter: test 1 (his own message, full power) found the prompt still said safe mode (P-3451);
+  test 2 (a line labelled Claude, read only) found a dropped admin action (P-3452). Both fixed on
+  fix/matter-prompt-power (E:/mop-build/mpower), full check and gate running; repeat both tests after it merges.
+- Operator, 2026-10-13: no synthetic listing on the live site. The first real listing he sends is the end-to-end
+  test of the listing path (form, received email, Concierge draft in Approvals, admin request). Wait for it.
+- Live read-only checks the same morning: 21 public addresses 200 (the newsletter page is /place-notes); job runner
+  every minute, no dead job in 24 h, 5 cron tasks active; zero business events in 24 h, so the colleagues who wake
+  on a listing have not been woken by a real one yet.
