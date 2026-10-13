@@ -31,6 +31,7 @@ import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.t
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
+import { groundingLines } from "./grounding.ts";
 import { applyHires } from "./hiring.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
@@ -166,6 +167,25 @@ async function context(
         `What woke you: the event ${data.type} at ${data.at}.\nIts data: ${JSON.stringify(data.payload)}`,
       );
   }
+  // P-3454: the line that woke the run, and the colleague's real open proposals, as facts before the thread.
+  const [woke, pending] = await Promise.all([
+    run.message_id === null
+      ? Promise.resolve(null)
+      : client
+          .from("agent_messages")
+          .select("author_name, author_kind, body")
+          .eq("id", run.message_id)
+          .single()
+          .then(({ data }) => data),
+    client
+      .from("agent_approvals")
+      .select("action, summary, created_at")
+      .eq("agent_id", run.agent_id)
+      .eq("state", "pending")
+      .order("created_at")
+      .then(({ data }) => data ?? []),
+  ]);
+  parts.push(...groundingLines(woke, pending));
   const { data: messages } = await client
     .from("agent_messages")
     .select("author_name, body, created_at")
