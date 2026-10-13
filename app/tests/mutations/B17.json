@@ -1143,8 +1143,8 @@
     "kind": "manual",
     "test": "tests/e2e/essentials.spec.ts",
     "file": "src/styles/base.css",
-    "find": ".market-card,\n.site-header-overlay {\n  --focus-ring: var(--background);",
-    "replace": ".market-card {\n  --focus-ring: var(--background);",
+    "find": ".site-footer,\n.site-header-overlay {\n  --focus-ring: var(--background);",
+    "replace": ".site-footer {\n  --focus-ring: var(--background);",
     "run": "bun run build && bunx playwright test tests/e2e/essentials.spec.ts --project=desktop -g \"ring is Obsidian on the page\" --reporter=line",
     "expect": "ring is Obsidian on the page[^]*Expected"
   },
