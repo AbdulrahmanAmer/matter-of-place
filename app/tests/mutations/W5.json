@@ -88,5 +88,14 @@
     "replace": "  const routes = colleagueRoutes[slug] ?? Object.values(colleagueRoutes).flat();",
     "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
     "expect": "× .*Concierge propose notes only"
+  },
+  {
+    "id": "w5-k-team-waiting",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "        (await ctx.counts()).agent_runs_waiting,",
+    "replace": "        0,",
+    "run": "bunx vitest run --project unit tests/unit/jobs/health.test.ts",
+    "expect": "× .*fails team_waiting while an AI colleague run waits"
   }
 ]
