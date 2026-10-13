@@ -13,6 +13,7 @@ import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";
+import { readLearned, signatures } from "./background-learner.mjs";
 
 const LONG =
   /(\bvitest\b|\bbun run (check|test|test:db|build|knip|typecheck|lint|jscpd)\b|\bbunx (tsc|vitest|eslint|knip|playwright)\b|\btsc --noEmit\b|watchfail\.mjs|local-ci\.mjs|deploy-local\.mjs|gate-loop\.sh|\bbun install\b|\bnpm (ci|install)\b|playwright test|supabase (db push|functions deploy)|wrangler deploy|bundle-check\.mjs)/;
@@ -126,7 +127,12 @@ export function shape(input, io = {}) {
   if (/(\bpython3?\s+-c\b|<<-?\s*\w+\s*\n)/.test(command) && command.includes("\\")) {
     return { deny: "An inline python script or an unquoted heredoc with a backslash cannot be rewritten safely (P-008): write it to a file with the Write tool and run the file." };
   }
-  const background = input.run_in_background !== true && LONG.test(command);
+  // Long by the list, by what the operator once backgrounded by hand (background-learned.json), or by the command's own
+  // stated time limit of a minute or more.
+  const learned = io.learned ?? readLearned();
+  const longByLimit = [...command.matchAll(/\btimeout\s+(\d+)\b/g)].some((m) => Number(m[1]) >= 60);
+  const longByLearning = signatures(command).some((sig) => learned.includes(sig));
+  const background = input.run_in_background !== true && (LONG.test(command) || longByLimit || longByLearning);
   if (notes.length === 0 && !background) return null;
   if (background) notes.push("long command sent to the background");
   return { input: { ...input, command, ...(background ? { run_in_background: true } : {}) }, notes };

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { shape } from "./shell-shaper.mjs";
 
 const written = [];
-const io = { cwd: "E:/work", now: () => 1, write: (file, text, append) => written.push({ file, text, append }) };
+const io = { cwd: "E:/work", now: () => 1, learned: [], write: (file, text, append) => written.push({ file, text, append }) };
 const cases = [];
 const it = (name, fn) => cases.push([name, fn]);
 
@@ -55,6 +55,15 @@ it("sends a long command to the background, and keeps one already there", () => 
   for (const long of ["bun run build", "node scripts/watchfail.mjs --only x", "bash gate-loop.sh l 1", "bunx tsc --noEmit -p x", "bun install --frozen-lockfile"]) {
     assert.equal(shape({ command: long }, io)?.input.run_in_background, true, long);
   }
+});
+
+it("backgrounds what was once backgrounded by hand, and any command with a time limit of a minute or more", () => {
+  const learnedIo = { ...io, learned: ["gitleaks detect", "scoop install"] };
+  assert.equal(shape({ command: "cd /e/x && gitleaks detect --source . --redact" }, learnedIo)?.input.run_in_background, true);
+  assert.equal(shape({ command: "scoop install gitleaks" }, learnedIo)?.input.run_in_background, true);
+  assert.equal(shape({ command: "node scripts/x.mjs" }, learnedIo), null);
+  assert.equal(shape({ command: "timeout 120 node scripts/x.mjs" }, learnedIo)?.input.run_in_background, true);
+  assert.equal(shape({ command: "timeout 20 node scripts/x.mjs" }, learnedIo), null);
 });
 
 it("still refuses what it cannot rewrite safely", () => {
