@@ -1,6 +1,5 @@
 import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { AccessPanel } from "../components/layout/access-panel";
+import { lazy, Suspense, useEffect } from "react";
 import { SiteChrome } from "../components/layout/site-chrome";
 import { SiteMotion } from "../components/layout/site-motion";
 import { VisionFilters } from "../components/layout/vision-filters";
@@ -11,6 +10,11 @@ import { t } from "../lib/strings";
 import { registerServiceWorker } from "../lib/sw-register";
 import { startWebVitals } from "../lib/web-vitals";
 import appCss from "../styles.css?url";
+
+// The accessibility widget loads after the page; a stored choice is already drawn by the head script (FE-03).
+const AccessPanel = lazy(() =>
+  import("../components/layout/access-panel").then((m) => ({ default: m.AccessPanel })),
+);
 
 // The pathless layout of every public page (FE-02): public-only chrome and effects mount here, never in
 // `__root.tsx`, so none of them reaches `/admin`.
@@ -45,7 +49,9 @@ function SiteLayout() {
       <Ga4Loader />
       <SiteMotion />
       <VisionFilters />
-      <AccessPanel />
+      <Suspense fallback={null}>
+        <AccessPanel />
+      </Suspense>
     </>
   );
 }

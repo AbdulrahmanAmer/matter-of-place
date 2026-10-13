@@ -16,7 +16,7 @@ import { SiteChrome } from "../components/layout/site-chrome";
 import { siteConfig } from "../config/site";
 import { ogStaticQuery, siteQuery } from "../lib/queries";
 import { defaultLocale, localeDirection } from "../lib/strings";
-import { ACCESS_BOOTSTRAP } from "../lib/access";
+import { ACCESS_BOOTSTRAP } from "../lib/access-bootstrap";
 import { services } from "../services";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({

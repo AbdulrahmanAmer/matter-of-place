@@ -1,4 +1,4 @@
-import { ACCESS_BOOTSTRAP } from "../../lib/access";
+import { ACCESS_BOOTSTRAP } from "../../lib/access-bootstrap";
 
 // The router's own scroll-restoration script, emitted into every page because `src/router.tsx` sets
 // `scrollRestoration: true`. TanStack gives it no `class="$tsr"` marker; its text is a constant of

@@ -2,7 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AccessPanel } from "../../src/components/layout/access-panel";
 import { MATRICES } from "../../src/components/layout/vision-filters";
-import { ACCESS_BOOTSTRAP, ACCESS_KEY, openAccess, parseAccess } from "../../src/lib/access";
+import { ACCESS_BOOTSTRAP, ACCESS_KEY, parseAccess } from "../../src/lib/access";
+import { openAccess } from "../../src/lib/access-events";
 
 // The accessibility settings (operator, 2026-10-13): a round mark at the bottom right, eight settings and a read-aloud
 // bar, every choice kept on this device and drawn on <html> before the first paint; a hidden mark always comes back.
@@ -42,18 +43,22 @@ afterEach(() => {
 
 const openPanel = async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Accessibility" }));
-  return screen.getByRole("dialog", { name: "Accessibility" });
+  // The panel body loads on first open (access-dialog.tsx), so it is awaited.
+  return screen.findByRole("dialog", { name: "Accessibility" });
 };
 
 describe("the accessibility settings", () => {
   it("opens from the mark with eight settings, and each tile draws its choice on <html> at once", async () => {
     render(<AccessPanel />);
     await openPanel();
-    expect(
-      screen.getAllByRole("button", {
-        name: /^(Text size|Higher contrast|Text spacing|Readable font|Highlight links|Reading guide|Stop motion|Colour vision):/,
-      }),
-    ).toHaveLength(8);
+    // The reading guide tile shows once the panel has seen a fine pointer, one render after it opens.
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole("button", {
+          name: /^(Text size|Higher contrast|Text spacing|Readable font|Highlight links|Reading guide|Stop motion|Colour vision):/,
+        }),
+      ).toHaveLength(8);
+    });
     fireEvent.click(screen.getByRole("button", { name: "Text size: Standard" }));
     fireEvent.click(screen.getByRole("button", { name: "Text size: Larger" }));
     fireEvent.click(screen.getByRole("button", { name: "Higher contrast: Off" }));

@@ -2,17 +2,18 @@
 // ACCESS_KEY, and drawn as data attributes on <html> that the styles read (src/styles/components/access.css). The head
 // script ACCESS_BOOTSTRAP applies a stored choice before the first paint, so nothing jumps as a page loads.
 
-export const ACCESS_KEY = "mop-access";
+import { ACCESS_KEY } from "./access-bootstrap";
+
+export { ACCESS_BOOTSTRAP, ACCESS_KEY } from "./access-bootstrap";
 const CHANGED = "mop-access-change";
-const OPEN = "mop-access-open";
 
 export const textSteps = [0, 1, 2] as const;
-export type TextStep = (typeof textSteps)[number];
+type TextStep = (typeof textSteps)[number];
 
 /** Corrective colour filters (daltonization), never a simulation: each moves the colour difference an eye loses into
  * one it sees. The matrices are worked in src/components/layout/vision-filters.tsx. */
 export const visions = ["none", "deutan", "protan", "tritan"] as const;
-export type Vision = (typeof visions)[number];
+type Vision = (typeof visions)[number];
 
 export type Access = {
   text: TextStep;
@@ -43,7 +44,7 @@ export const STANDARD: Access = {
 };
 
 /** The flags drawn on <html> as empty attributes, in order. */
-export const FLAGS = ["contrast", "spacing", "font", "links", "still"] as const;
+const FLAGS = ["contrast", "spacing", "font", "links", "still"] as const;
 
 /** A stored value read leniently: anything unknown is the standard setting. */
 export function parseAccess(raw: string | null): Access {
@@ -80,7 +81,7 @@ export function readAccess(): Access {
 }
 
 /** The attributes on <html> the styles read; a setting at its standard value leaves none. */
-export function applyAccess(access: Access, root: HTMLElement = document.documentElement): void {
+function applyAccess(access: Access, root: HTMLElement = document.documentElement): void {
   if (access.text === 0) root.removeAttribute("data-text");
   else root.setAttribute("data-text", String(access.text));
   if (access.vision === "none") root.removeAttribute("data-vision");
@@ -108,29 +109,3 @@ export function onAccessChange(listener: () => void): () => void {
     window.removeEventListener(CHANGED, listener);
   };
 }
-
-/** Opens the panel from anywhere: the footer link, or Alt + A. A hidden mark comes back with it. */
-export function openAccess(): void {
-  window.dispatchEvent(new Event(OPEN));
-}
-
-export function onAccessOpen(listener: () => void): () => void {
-  window.addEventListener(OPEN, listener);
-  return () => {
-    window.removeEventListener(OPEN, listener);
-  };
-}
-
-/** True when the page should not move: the device asks for it, or the visitor stopped motion here. */
-export function isStill(): boolean {
-  return (
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-    document.documentElement.hasAttribute("data-still")
-  );
-}
-
-/**
- * The head script: the stored choice drawn on <html> before the first paint, on public pages only. Plain ES5 with no
- * backslash, so its exact text can sit in CSP_INLINE_ALLOWLIST and be hashed.
- */
-export const ACCESS_BOOTSTRAP = `(function(){try{if(location.pathname.indexOf("/admin")===0)return;var p=JSON.parse(localStorage.getItem("${ACCESS_KEY}")||"{}"),r=document.documentElement,f=["contrast","spacing","font","links","still"];if(p.text===1||p.text===2)r.setAttribute("data-text",String(p.text));if(p.vision==="deutan"||p.vision==="protan"||p.vision==="tritan")r.setAttribute("data-vision",p.vision);for(var i=0;i<f.length;i++)if(p[f[i]]===true)r.setAttribute("data-"+f[i],"")}catch(e){}})()`;
