@@ -7777,7 +7777,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - severity: warn
 - symptom: 2026-10-12, PR 321's `db` job failed `type drift`: the hand-added `workforce_hire` and `workforce_post_message` types said `string[]`, the generator writes `(string)[]` for a `text[]` argument.
 - cause: the generator wraps every array element type in parentheses; tables keep `string[]`.
-- rule: a function type added by hand before CI regenerates copies the generator's form: arguments in alphabetical order, `"p_x"?:` for a defaulted one, `(string)[]` for an array argument, `Returns: string` for uuid or text.
+- rule: a function type added by hand before CI regenerates copies the generator's form: arguments in alphabetical order, `"p_x"?:` for a defaulted one, `(string)[]` for an array argument, `Returns: string` for uuid or text, and `Returns: string[]` (no parentheses) for `returns setof text` (hit 2026-10-13, PR 354: `staging_orphans` written `(string)[]` failed the db job's type drift).
 - proof: `gh run view <run> --log-failed | grep "type drift"` shows the `-`/`+` lines; with `(string)[]` the job's diff is empty (PR 321 at 5c... merged 05:18).
 - added: 2026-10-12
 
@@ -7838,6 +7838,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after stopping a background task that started node or a browser, list what is left with `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*<script>*' }` and `Stop-Process` it; write each run to its own file name.
 - proof: the listing showed two `node.exe` processes for `.hw.tmp.mjs` (8:46 PM and 9:18 PM) after the first task was stopped; `Stop-Process -Id 52664` left one (measured 2026-10-12).
 - added: 2026-10-12
+- hit again: 2026-10-13: the admin-pass dev server (TaskStop the night before) still held `E:/mop-build/adminpass`, so `git worktree remove` failed with `Invalid argument`; eleven more removed worktrees kept their folders the same way, and six old dev servers (wrangler, workerd, vite from 2026-10-08 to 10-12) were still running. Before removing worktrees, list `vite`, `wrangler` and `workerd` processes whose command line names `E:\mop-build\` and stop them; after `git worktree remove`, check the folder is gone.
 
 ## P-3443 · A temporary script copied into `app/scripts` is linted by the next full check
 - paths: (process)
@@ -7899,3 +7900,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13: `admin-authz-sweep.test.ts` (every `service.ts`, 5.6 s) and `admin-routes-parity.test.ts` (every admin route) timed out locally under a replay; their watched-fails reported `wrong reason` (a timeout, not the expected failure). CI on Linux was fast enough, so the full check passed while a replay failed.
 - rule: a test that imports a whole folder of modules sets its own limit (`it(..., 30_000)`), with a comment naming the measured time; a replay `wrong reason` whose red run says `Test timed out` is this, not a weak assertion.
 - proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts --reporter verbose` → `refuse a roleless actor ... 5734ms`; with `30_000` the file passes under load.
+
+## G-1310 · `aria-controls` naming an element that is not rendered fails axe on every page that shows it
+- paths: app/src/admin/**
+- severity: warn
+- symptom: 2026-10-13, PR 354: the top bar's search input carried `aria-controls={listId}` while its results list rendered only when open; axe's `aria-valid-attr-value` failed 10 end-to-end tests on every admin screen. The component tests and lint passed, since only the Playwright run calls axe.
+- rule: an `aria-controls`, `aria-activedescendant` or `aria-describedby` points only at an element in the page at that moment; spread it in with the condition that renders the target (`{...(shown ? { "aria-controls": id } : {})}`).
+- proof: the e2e job of PR 354's run 38338365639 lists `/admin/assets | aria-valid-attr-value | input` with the unconditional attribute.

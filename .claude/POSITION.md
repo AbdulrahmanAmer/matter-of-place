@@ -1753,3 +1753,16 @@ first day of the new usage week; no step was cut from any plan.
 - Before the operator switches the repo to private: P-3449, the build week spent about 15,000 Actions minutes against
   2,000 a month for a private free repo; switch only after the build PRs stop.
 - Paused workflow wqxa0dba5 (L1) is outdated and unused; nothing to relaunch.
+- 2026-10-13 07:05 Cairo. PR 354 merged (ac8e15d0): every remaining gap, Matter's power rules (H100, H101), the admin
+  page gate, passwords 12 with letters and digits, admin search, property tabs. Main CI and the production deploy
+  succeeded (deploy run 38343677471). Live from outside: every /admin page, with forged credentials and path tricks,
+  answers 302 to sign-in with an empty body; /admin/sign-in 200; /api/admin/* refuses all 240 probe tries; home 200.
+- Runner E:/mop-build/live moved to ac8e15d0 and install.ps1 re-run: five tasks registered, marker
+  ~/.mop-workforce/runner-app names E:/mop-build/live/app, so the daemon now follows main by itself.
+- Cleanup: 33 merged worktrees and their leftover folders removed (kept: live, matter-desk, records, orch and the
+  ones with unmerged work), 12 old dev servers stopped, 240 merged remote branches deleted; GitHub keeps main and
+  the parked slice/h2.
+- UNPROVEN: Matter's admin calls end to end. MATTER_AGENT_KEY is still 429 (2,000 calls in a rolling 24 hours, spent
+  by the heap watch 2026-10-12 22:30 to 00:50); it frees between about 22:30 and 01:00 tonight.
+- Open for the operator: approve the staff charter (W2.md); ask Matter in the side chat to set up reading email
+  replies; switch the repo to private only after the build PRs stop (P-3449).
