@@ -7987,3 +7987,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node .claude/hooks/edit-impact.test.mjs` and `node .claude/hooks/shell-shaper.test.mjs` print only `ok` lines (7 and 8), each case one of the failures above.
 - enforced-by: .claude/hooks/edit-impact.mjs, .claude/hooks/shell-shaper.mjs, .claude/hooks/turn-checklist.mjs
 - added: 2026-10-13
+
+## P-3460 · A merge chained with `;` committed its own conflict markers, and a full `bun run check` outlasts the 30 minute background limit
+- symptom: 2026-10-13, W4 merge of origin/main: the script that resolved check-layout.mjs failed to start (a /tmp path Git Bash and Windows node read differently), the `;` after it still ran `git commit --no-edit`, and the merge commit held `<<<<<<<` lines. Caught by reading the file, amended before any push. Separately, `bun run check` on the loaded laptop took over 30 minutes and was killed at the default background limit during the vitest step; `bun run test` alone then ran 2057 s and step-specs.test.ts (hard-coded 60 s) timed out at 64 s.
+- rule: resolve a conflict with the Edit tool, then `grep -c '^<<<<<<<'` the file, and only then commit; chain with `&&`, never `;`, when a later step commits. Start a full check with `timeout: 7200000`. On the loaded laptop a vitest timeout of the 60 s kind is load, not a fault: rerun that file alone, and let CI decide.
+- proof: `grep -rn '^<<<<<<<' app/scripts` prints nothing after the merge; `tail /tmp/w4-test.log` shows `Test Files  1 failed | 400 passed (401)` with `Test timed out in 60000ms`.
+- added: 2026-10-13
