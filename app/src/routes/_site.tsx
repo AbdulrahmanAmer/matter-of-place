@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useSyncExternalStore } from "react";
 import { SiteChrome } from "../components/layout/site-chrome";
 import { SiteMotion } from "../components/layout/site-motion";
 import { VisionFilters } from "../components/layout/vision-filters";
@@ -25,6 +25,13 @@ export const Route = createFileRoute("/_site")({
 
 function SiteLayout() {
   const router = useRouter();
+  // The accessibility panel exists only in the browser: rendered on the server, its lazy chunk would suspend and the
+  // page would switch to client rendering (csp-inline.test.ts). A stored choice is already drawn by the head script.
+  const inBrowser = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
   useEffect(() => installClientErrorListeners(), []);
   useEffect(() => {
     startWebVitals();
@@ -49,9 +56,11 @@ function SiteLayout() {
       <Ga4Loader />
       <SiteMotion />
       <VisionFilters />
-      <Suspense fallback={null}>
-        <AccessPanel />
-      </Suspense>
+      {inBrowser && (
+        <Suspense fallback={null}>
+          <AccessPanel />
+        </Suspense>
+      )}
     </>
   );
 }

@@ -131,7 +131,6 @@
 :root[data-contrast] body:has(.site-header) {
   --muted-foreground: #11110f;
   --border: #575751;
-  --accent: #575751;
 }
 
 @media (max-width: 700px) {
