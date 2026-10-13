@@ -207,18 +207,22 @@ function killTree(pid: number | undefined): void {
   spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true });
 }
 
+/** Whether a process id is running: signal 0 tests it without touching it. */
+function processAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function lockOrExit(): void {
   mkdirSync(MATTER_HOME, { recursive: true });
   if (existsSync(LOCK_FILE)) {
     const pid = Number(readFileSync(LOCK_FILE, "utf8").trim());
-    const alive =
-      Number.isInteger(pid) &&
-      pid > 0 &&
-      spawnSync("tasklist", ["/FI", `PID eq ${String(pid)}`], {
-        encoding: "utf8",
-        windowsHide: true,
-      }).stdout.includes(String(pid));
-    if (alive) process.exit(0);
+    if (Number.isInteger(pid) && pid > 0 && pid !== process.pid && processAlive(pid))
+      process.exit(0);
   }
   writeFileSync(LOCK_FILE, String(process.pid));
 }
@@ -319,6 +323,7 @@ class Supervisor {
         await this.setTask(
           event.state === "started" ? `Background: ${event.label}` : `Finished: ${event.label}`,
         );
+        await this.recordTask(event);
       } else if (event.kind === "result") {
         await this.onResult(event);
       }
@@ -387,6 +392,7 @@ class Supervisor {
     this.child = null;
     const runs = this.active;
     this.active = [];
+    await this.stopRunningTasks();
     if (this.rotating) {
       this.rotating = false;
       console.log(`${new Date().toISOString()} live: rotated to a new session`);
@@ -410,6 +416,34 @@ class Supervisor {
     const now = Date.now();
     this.crashes = [...this.crashes.filter((at) => now - at < CRASH_WINDOW_MS), now];
     console.log(`${new Date().toISOString()} live: the session exited (code ${String(code)})`);
+  }
+
+  /** W5 items 7 and 8: a background task as the side chat lists it, keyed by the CLI's task id. */
+  private async recordTask(event: Extract<LiveEvent, { kind: "task" }>): Promise<void> {
+    const key = event.id === "" ? `${event.label}@${new Date().toISOString()}` : event.id;
+    if (event.state === "started") {
+      await this.client
+        .from("agent_activity")
+        .upsert(
+          { agent_id: this.matterId, task_key: key, label: event.label, state: "running" },
+          { onConflict: "agent_id,task_key" },
+        );
+      return;
+    }
+    await this.client
+      .from("agent_activity")
+      .update({ state: "done", finished_at: new Date().toISOString() })
+      .eq("agent_id", this.matterId)
+      .eq("task_key", key);
+  }
+
+  /** A session that ends leaves no task shown as running. */
+  private async stopRunningTasks(): Promise<void> {
+    await this.client
+      .from("agent_activity")
+      .update({ state: "stopped", finished_at: new Date().toISOString() })
+      .eq("agent_id", this.matterId)
+      .eq("state", "running");
   }
 
   /** Jay's first condition: the one-shot runs of Matter (read only) since the last line, so its memory stays true. */
