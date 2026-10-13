@@ -8,7 +8,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: min(62svh, 620px);
+  min-height: min(calc(62svh / var(--site-zoom, 1)), 620px);
   padding: calc(var(--header-h) + clamp(64px, 8vw, 128px))
     max(var(--container-pad), calc((100% - var(--container)) / 2 + var(--container-pad)))
     clamp(56px, 6vw, 96px);
@@ -221,7 +221,7 @@
 
 /* Not found and route errors */
 .not-found {
-  min-height: 86svh;
+  min-height: calc(86svh / var(--site-zoom, 1));
   display: grid;
   place-items: center;
   text-align: center;

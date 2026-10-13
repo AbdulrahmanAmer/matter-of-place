@@ -9,4 +9,3 @@ Typefaces: Jost, Cormorant Garamond, Urbanist and Epilogue, set under the SIL Op
 
 /* BUILD */
 Standards: HTML5, CSS3, WCAG 2.2 AA
-Software: React, TanStack Start, Cloudflare Workers and Supabase
