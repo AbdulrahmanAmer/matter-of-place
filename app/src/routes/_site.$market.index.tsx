@@ -22,9 +22,9 @@ import { fill, t } from "../lib/strings";
 export const Route = createFileRoute("/_site/$market/")({
   loader: async ({ params, context: { queryClient } }) => {
     const [market, properties, stories] = await Promise.all([
-      queryClient.ensureQueryData(marketQuery(params.market)),
-      queryClient.ensureQueryData(propertiesQuery()),
-      queryClient.ensureQueryData(storiesQuery()),
+      queryClient.query({ ...marketQuery(params.market), staleTime: "static" }),
+      queryClient.query({ ...propertiesQuery(), staleTime: "static" }),
+      queryClient.query({ ...storiesQuery(), staleTime: "static" }),
     ]);
     if (!market) throw notFound();
     const pool = propertiesIn(properties, market.slug);

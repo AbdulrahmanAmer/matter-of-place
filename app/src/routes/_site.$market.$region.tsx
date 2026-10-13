@@ -35,8 +35,8 @@ export const Route = createFileRoute("/_site/$market/$region")({
   },
   loader: async ({ params, context: { queryClient } }) => {
     const [market, properties] = await Promise.all([
-      queryClient.ensureQueryData(marketQuery(params.market)),
-      queryClient.ensureQueryData(propertiesQuery()),
+      queryClient.query({ ...marketQuery(params.market), staleTime: "static" }),
+      queryClient.query({ ...propertiesQuery(), staleTime: "static" }),
     ]);
     const region = market?.regions.find((item) => item.slug === params.region);
     if (!market || !region) throw notFound();

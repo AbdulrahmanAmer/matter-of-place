@@ -584,9 +584,9 @@
   {
     "id": "q-context",
     "test": "tests/e2e/sweep.spec.ts",
-    "file": "src/routes/_site.index.tsx",
-    "find": "\"@context\": \"https://schema.org\"",
-    "replace": "\"@context\": \"http://schema.org\"",
+    "file": "src/lib/seo.ts",
+    "find": "{ \"@context\": \"https://schema.org\", \"@graph\": jsonLd }",
+    "replace": "{ \"@context\": \"http://schema.org\", \"@graph\": jsonLd }",
     "run": "E2E_PORT=8808 bunx playwright test sweep.spec.ts --project=desktop --project=phone --grep \" /$\"",
     "expect": "@context of each ld[+]json block",
     "kind": "manual"
@@ -1177,8 +1177,8 @@
     "id": "hy-bulk",
     "test": "tests/e2e/hydration.spec.ts",
     "file": "src/routes/_site.index.tsx",
-    "find": "      queryClient.ensureQueryData(propertiesQuery()),\n",
-    "replace": "      queryClient.ensureQueryData(propertiesQuery()).then(async (cards) => {\n        const { propertyQuery } = await import(\"../lib/queries\");\n        await Promise.all(cards.map((card) => queryClient.ensureQueryData(propertyQuery(card.slug))));\n        return cards;\n      }),\n",
+    "find": "      queryClient.query({ ...propertiesQuery(), staleTime: \"static\" }),\n",
+    "replace": "      queryClient.query({ ...propertiesQuery(), staleTime: \"static\" }).then(async (cards) => {\n        const { propertyQuery } = await import(\"../lib/queries\");\n        await Promise.all(cards.map((card) => queryClient.ensureQueryData(propertyQuery(card.slug))));\n        return cards;\n      }),\n",
     "run": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA E2E_TARGET=built E2E_MODE=live E2E_PORT=8808 bun run build && bunx playwright test --project=live-desktop hydration.spec.ts --grep \"home document\"",
     "expect": "Expected substring: not \"gallery:\"",
     "after": "MSYS_NO_PATHCONV=1 VITE_API_BASE_URL=/api/public VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA bun run build",

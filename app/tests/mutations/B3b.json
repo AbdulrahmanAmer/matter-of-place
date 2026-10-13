@@ -1084,8 +1084,8 @@
     "kind": "manual",
     "test": "tests/e2e/coming-soon.spec.ts",
     "file": "src/routes/_site.$market.index.tsx",
-    "find": "{pool.length === 0 ? (",
-    "replace": "{pool.length < 0 ? (",
+    "find": "{pool.length === 0 ? (\n        <div id=\"market-signup\"",
+    "replace": "{pool.length < 0 ? (\n        <div id=\"market-signup\"",
     "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
     "expect": "california shows its empty state with the form and no image[\\s\\S]*No property is listed in California yet"
   },

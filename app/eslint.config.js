@@ -225,7 +225,12 @@ export default defineConfig(
           ],
         },
       ],
-      "react-refresh/only-export-components": ["error", { allowConstantExport: true }],
+      // 0.5 flags a call result or an object exported beside a component: a TanStack route file must export `Route`,
+      // `TextLink` is a component made by `createLink`, and the vision filters' tests read `MATRICES`.
+      "react-refresh/only-export-components": [
+        "error",
+        { allowConstantExport: true, allowExportNames: ["Route", "TextLink", "MATRICES"] },
+      ],
     },
   },
   {
@@ -240,6 +245,11 @@ export default defineConfig(
       },
     },
     rules: typeAwareRules,
+  },
+  // A job step without parameters infers `{}` from its empty params schema on purpose (typescript-eslint 8.71).
+  {
+    files: ["src/server/jobs/steps/*.ts"],
+    rules: { "@typescript-eslint/no-generated-empty-object-type": "off" },
   },
   // A template file is drawn by a render job and never hot-reloaded: it exports its seed beside its component.
   {

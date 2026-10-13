@@ -10,7 +10,8 @@ import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/stories/")({
-  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(storiesQuery()),
+  loader: ({ context: { queryClient } }) =>
+    queryClient.query({ ...storiesQuery(), staleTime: "static" }),
   head: ({ loaderData, matches }) =>
     pageHead({
       title: "Stories",

@@ -10,11 +10,12 @@ import { z } from "zod";
 // usage: node scripts/bundle-check.mjs [.output]
 
 /**
- * The same number as `budget.json` of B4, which `perf-budget.test.ts` compares. 160 KiB since ruling H66
+ * The same number as `budget.json` of B4, which `perf-budget.test.ts` compares. 176 KiB since 2026-10-13 (the router and
+ * framework patch upgrade of PR 368 added 2 to 7 KB to every public route); 160 KiB from ruling H66
  * (2026-10-07): the public entry's floor is 143,354 gzip bytes of framework on main, the admin route shells of B7's
  * 27 screens are bounded near 6 KB by `admin-route-shells.test.ts`, and 153,600 left 654 bytes.
  */
-export const SCRIPT_BUDGET_BYTES = 163_840;
+export const SCRIPT_BUDGET_BYTES = 180_224;
 
 const USAGE = "usage: node scripts/bundle-check.mjs [.output]";
 const ROUTE_CHUNK = /^src\/routes\/(.+)\.tsx\?tsr-split=component$/;

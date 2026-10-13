@@ -24,8 +24,8 @@ export const Route = createFileRoute("/_site/properties")({
   },
   loader: async ({ context: { queryClient } }) => {
     const [properties, markets] = await Promise.all([
-      queryClient.ensureQueryData(propertiesQuery()),
-      queryClient.ensureQueryData(marketsQuery()),
+      queryClient.query({ ...propertiesQuery(), staleTime: "static" }),
+      queryClient.query({ ...marketsQuery(), staleTime: "static" }),
     ]);
     return { properties, markets };
   },

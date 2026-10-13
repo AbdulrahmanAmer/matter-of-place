@@ -24,8 +24,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   // `ogStatic` from the same match for every route head): one loader, both shapes.
   loader: async ({ context: { queryClient } }) => {
     const [site, ogStatic] = await Promise.all([
-      queryClient.ensureQueryData(siteQuery()),
-      queryClient.ensureQueryData(ogStaticQuery()),
+      queryClient.query({ ...siteQuery(), staleTime: "static" }),
+      queryClient.query({ ...ogStaticQuery(), staleTime: "static" }),
     ]);
     return { ...site, ogStatic };
   },

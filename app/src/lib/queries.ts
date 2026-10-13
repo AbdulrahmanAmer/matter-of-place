@@ -6,7 +6,7 @@ import { isLive, services } from "../services";
 
 /**
  * Query definitions for catalog reads. Route loaders call
- * `queryClient.ensureQueryData(...)` so navigations reuse cached data; the
+ * `queryClient.query({ ...q, staleTime: "static" })` so navigations reuse cached data; the
  * stale time matches the edge cache TTL described in docs/architecture/caching.md.
  */
 const catalogStaleTime = 5 * 60 * 1000;
