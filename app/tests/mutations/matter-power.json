@@ -3,10 +3,10 @@
     "id": "mp-a-outside-text",
     "test": "tests/unit/matter.test.ts",
     "file": "scripts/matter/run.ts",
-    "find": "  return cause === \"message\" && (authorKind === \"human\" || authorKind === \"agent\")\n",
-    "replace": "  return cause === \"message\"\n",
+    "find": "  return cause === \"message\" && authorKind === \"human\" ? \"full\" : \"read\";",
+    "replace": "  return cause === \"message\" && authorKind !== \"system\" ? \"full\" : \"read\";",
     "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
-    "expect": "× .*works at full power when a person or a colleague woke it"
+    "expect": "× .*works at full power only when a person woke it"
   },
   {
     "id": "mp-b-personal-files",
@@ -16,5 +16,41 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
     "expect": "× .*keeps the operator's personal files closed even at full power"
+  },
+  {
+    "id": "mp-c-read-restricted",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "        \"--restricted\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*works at full power only when a person woke it"
+  },
+  {
+    "id": "mp-d-hire-untrusted",
+    "test": "tests/unit/hiring.test.ts",
+    "file": "scripts/workforce/hiring.ts",
+    "find": "  if (!counts.trusted)\n",
+    "replace": "  if (false)\n",
+    "run": "bunx vitest run --project unit tests/unit/hiring.test.ts",
+    "expect": "× .*sends Matter's hire to Approvals when no person woke the run"
+  },
+  {
+    "id": "mp-e-key-line-is-agent",
+    "test": "tests/unit/workforce-post.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "    p_author_kind: actor.kind === \"human\" ? \"human\" : \"agent\",",
+    "replace": "    p_author_kind: \"human\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-post.test.ts",
+    "expect": "× .*counts as a person's only when a signed-in person wrote it"
+  },
+  {
+    "id": "mp-f-decide-person-only",
+    "test": "tests/unit/workforce-post.test.ts",
+    "file": "src/server/lib/permissions/workforce.ts",
+    "find": "  { action: \"workforce.decide\", group: \"workforce\", roles: deciders, humanOnly: true },",
+    "replace": "  { action: \"workforce.decide\", group: \"workforce\", roles: deciders },",
+    "run": "bunx vitest run --project unit tests/unit/workforce-post.test.ts",
+    "expect": "× .*is never decided by an agent key"
   }
 ]

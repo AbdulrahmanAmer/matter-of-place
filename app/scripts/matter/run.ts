@@ -119,15 +119,14 @@ function ensureDesk(): void {
 
 /**
  * Ruling H100 (operator, 2026-10-13: "it has full power access to get anything I ask for done"): Matter works with the
- * full toolset, keys included, like the orchestrator does, when a person or a colleague woke it. A run woken by an
- * event or a system message carries outside text (a form, an email), so it stays in the read-only mode of items 1, 31.
+ * full toolset, keys included, like the orchestrator does, when a signed-in person wrote the message that woke it.
+ * Anything else may carry outside text (a form, an email, or a colleague who read one), so it runs read-only
+ * (ruling H101, operator: "no one can some how figure out a way to talk to my ai employees and cause issues").
  */
 export type MatterPower = "full" | "read";
 
 export function matterPower(cause: string, authorKind: string | null): MatterPower {
-  return cause === "message" && (authorKind === "human" || authorKind === "agent")
-    ? "full"
-    : "read";
+  return cause === "message" && authorKind === "human" ? "full" : "read";
 }
 
 /** The command line for one run: either mode refuses what it does not allow, never asks. */
@@ -137,6 +136,8 @@ export function matterArgs(power: MatterPower): string[] {
     ? [...base, "--settings", join(here, "settings-full.json")]
     : [
         ...base,
+        // Ignores the operator's own settings and confines the file tools to the desk (H101).
+        "--restricted",
         "--settings",
         join(here, "settings.json"),
         "--disallowedTools",

@@ -16,6 +16,8 @@ export interface HireCounts {
   hiredToday: number;
   /** Colleagues on the team now. */
   team: number;
+  /** H101: a signed-in person's message woke this run; anything else may carry outside text. */
+  trusted: boolean;
 }
 
 export type HireRoute =
@@ -25,6 +27,8 @@ export type HireRoute =
 export function hireRoute(hirer: string, input: HireInput, counts: HireCounts): HireRoute {
   const hire = { ...input, tools: input.tools.filter((tool) => tool !== "hire") };
   if (hirer !== "matter") return { kind: "approval", hire, why: `proposed by @${hirer}` };
+  if (!counts.trusted)
+    return { kind: "approval", hire, why: "not asked for by a person in this run" };
   if (hire.model === "opus")
     return { kind: "approval", hire, why: "on Opus, which needs your word" };
   if (counts.hiredToday >= MATTER_DAILY_HIRES) {
@@ -74,6 +78,7 @@ export async function applyHires(
   hirer: { slug: string; id: string },
   hires: readonly HireInput[],
   runId: string | null,
+  trusted: boolean,
   now: Date = new Date(),
 ): Promise<void> {
   const say = (body: string) =>
@@ -95,6 +100,7 @@ export async function applyHires(
     const route = hireRoute(hirer.slug, input, {
       hiredToday: recent.count ?? MATTER_DAILY_HIRES,
       team: team.count ?? TEAM_CEILING,
+      trusted,
     });
     if (route.kind === "direct") {
       const { error } = await db.from("agents").insert(route.hire);

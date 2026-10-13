@@ -17,7 +17,7 @@ const hire = (extra: Record<string, unknown> = {}) =>
     tools: ["read_business", "chat", "hire"],
     ...extra,
   });
-const quiet = { hiredToday: 0, team: 6 };
+const quiet = { hiredToday: 0, team: 6, trusted: true };
 
 describe("hiring", () => {
   it("lets Matter hire directly within the limits, and never hands on the hire tool", () => {
@@ -29,9 +29,17 @@ describe("hiring", () => {
     expect([
       hireRoute("chief", hire(), quiet).kind,
       hireRoute("matter", hire({ model: "opus" }), quiet).kind,
-      hireRoute("matter", hire(), { hiredToday: MATTER_DAILY_HIRES, team: 6 }).kind,
-      hireRoute("matter", hire(), { hiredToday: 0, team: TEAM_CEILING }).kind,
+      hireRoute("matter", hire(), { ...quiet, hiredToday: MATTER_DAILY_HIRES }).kind,
+      hireRoute("matter", hire(), { ...quiet, team: TEAM_CEILING }).kind,
     ]).toEqual(["approval", "approval", "approval", "approval"]);
+  });
+
+  it("sends Matter's hire to Approvals when no person woke the run (H101)", () => {
+    const route = hireRoute("matter", hire(), { ...quiet, trusted: false });
+    expect([route.kind, route.kind === "approval" ? route.why : ""]).toEqual([
+      "approval",
+      "not asked for by a person in this run",
+    ]);
   });
 
   it("writes the proposal a person reads, with the hire the database applies", () => {

@@ -359,7 +359,8 @@ async function main(): Promise<void> {
         })),
       );
     remember(decided.knowledge);
-    await applyHires(db, { slug: matter.slug, id: matter.id }, decided.hire, null);
+    // H101: the meeting reads the colleagues' reports, which may carry outside text, so its hires wait in Approvals.
+    await applyHires(db, { slug: matter.slug, id: matter.id }, decided.hire, null, false);
   }
   const closedLine =
     decided.closed.length === 0
