@@ -15,6 +15,8 @@ export const agentTools = [
   // W2 step 7: web research (the Analyst) and campaign plans for approval (Campaigns).
   "research",
   "draft_campaign",
+  // W5 item 12 (H102 (5)): proposes admin changes on its own routes, made after a person's yes.
+  "admin_call",
 ] as const;
 export type AgentTool = (typeof agentTools)[number];
 
@@ -27,6 +29,7 @@ export const agentToolLabels: Record<AgentTool, string> = {
   draft_newsletter: "Drafts Place Notes for approval",
   research: "Searches the web for the market and the competition",
   draft_campaign: "Drafts paid campaigns and budgets for approval",
+  admin_call: "Proposes admin changes on its own routes, made after a person's yes",
 };
 
 /** What wakes an employee, in the words of the office. */

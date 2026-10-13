@@ -61,5 +61,32 @@
     "replace": "  const team = useMessages(\"matter\");",
     "run": "bunx vitest run --project component src/admin/workforce/sidechat.test.tsx",
     "expect": "× .*shows what Matter is running now"
+  },
+  {
+    "id": "w5-h-editor-route",
+    "test": "tests/unit/colleague-calls.test.ts",
+    "file": "scripts/workforce/colleague-calls.ts",
+    "find": "  editor: [\"PATCH /api/admin/properties/$id\"],",
+    "replace": "  editor: [\"POST /api/admin/properties/$id/publish\"],",
+    "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
+    "expect": "× .*lets the Editor propose the property write-up"
+  },
+  {
+    "id": "w5-i-route-method",
+    "test": "tests/unit/colleague-calls.test.ts",
+    "file": "scripts/workforce/colleague-calls.ts",
+    "find": "  return routeMethod === method && pattern.test(path);",
+    "replace": "  return pattern.test(path);",
+    "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
+    "expect": "× .*refuses a colleague's own path under another method"
+  },
+  {
+    "id": "w5-j-no-routes",
+    "test": "tests/unit/colleague-calls.test.ts",
+    "file": "scripts/workforce/colleague-calls.ts",
+    "find": "  const routes = colleagueRoutes[slug] ?? [];",
+    "replace": "  const routes = colleagueRoutes[slug] ?? Object.values(colleagueRoutes).flat();",
+    "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
+    "expect": "× .*Concierge propose notes only"
   }
 ]
