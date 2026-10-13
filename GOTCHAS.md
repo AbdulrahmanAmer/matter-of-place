@@ -7900,3 +7900,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13: `admin-authz-sweep.test.ts` (every `service.ts`, 5.6 s) and `admin-routes-parity.test.ts` (every admin route) timed out locally under a replay; their watched-fails reported `wrong reason` (a timeout, not the expected failure). CI on Linux was fast enough, so the full check passed while a replay failed.
 - rule: a test that imports a whole folder of modules sets its own limit (`it(..., 30_000)`), with a comment naming the measured time; a replay `wrong reason` whose red run says `Test timed out` is this, not a weak assertion.
 - proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts --reporter verbose` → `refuse a roleless actor ... 5734ms`; with `30_000` the file passes under load.
+
+## G-1310 · `aria-controls` naming an element that is not rendered fails axe on every page that shows it
+- paths: app/src/admin/**
+- severity: warn
+- symptom: 2026-10-13, PR 354: the top bar's search input carried `aria-controls={listId}` while its results list rendered only when open; axe's `aria-valid-attr-value` failed 10 end-to-end tests on every admin screen. The component tests and lint passed, since only the Playwright run calls axe.
+- rule: an `aria-controls`, `aria-activedescendant` or `aria-describedby` points only at an element in the page at that moment; spread it in with the condition that renders the target (`{...(shown ? { "aria-controls": id } : {})}`).
+- proof: the e2e job of PR 354's run 38338365639 lists `/admin/assets | aria-valid-attr-value | input` with the unconditional attribute.
