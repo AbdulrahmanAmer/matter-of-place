@@ -1003,3 +1003,19 @@
 .admin-email-head p {
   color: var(--muted-foreground);
 }
+
+/* Ask Matter to change a flow (gap item 31): under the open flow, a box for the change in plain words. */
+.admin-ask-matter {
+  display: grid;
+  gap: var(--admin-space-3);
+  max-width: 960px;
+  margin-top: var(--admin-space-6);
+  padding-top: var(--admin-space-5);
+  border-top: 1px solid var(--border);
+}
+
+.admin-ask-matter textarea {
+  width: 100%;
+  padding: var(--admin-space-3);
+  border: 1px solid var(--border);
+}

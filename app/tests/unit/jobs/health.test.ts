@@ -21,6 +21,8 @@ const quiet: HealthCounts = {
   local_oldest_age_s: null,
   backup: null,
   unverified_24h: 0,
+  dropped_contact_events_24h: 0,
+  privacy_due_7d: 0,
 };
 
 // B16's `site_identity` check reads the shared public state; a complete site keeps it quiet here.
@@ -128,6 +130,8 @@ describe("health job", () => {
       "captions_waiting",
       "dead_jobs_24h",
       "unverified_writes",
+      "dropped_unsubscribes",
+      "privacy_due",
       "stale_queue",
       "cron_failures",
       "retention_stalled",
@@ -172,6 +176,24 @@ describe("health job", () => {
     expect([
       statusOf(failing.result, "unverified_writes"),
       statusOf(passing.result, "unverified_writes"),
+    ]).toEqual(["fail", "ok"]);
+  });
+
+  it("fails dropped_unsubscribes when a reader's update came for an unmapped audience, and passes at 0 (gap item 22)", async () => {
+    const failing = await run({ counts: { dropped_contact_events_24h: 1 } });
+    const passing = await run({ counts: { dropped_contact_events_24h: 0 } });
+    expect([
+      statusOf(failing.result, "dropped_unsubscribes"),
+      statusOf(passing.result, "dropped_unsubscribes"),
+    ]).toEqual(["fail", "ok"]);
+  });
+
+  it("fails privacy_due while a privacy request is within 7 days of its due date, and passes at 0 (gap item 29)", async () => {
+    const failing = await run({ counts: { privacy_due_7d: 1 } });
+    const passing = await run({ counts: { privacy_due_7d: 0 } });
+    expect([
+      statusOf(failing.result, "privacy_due"),
+      statusOf(passing.result, "privacy_due"),
     ]).toEqual(["fail", "ok"]);
   });
 

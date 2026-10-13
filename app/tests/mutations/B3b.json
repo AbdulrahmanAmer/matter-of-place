@@ -624,8 +624,8 @@
     "kind": "file",
     "test": "tests/unit/flags.test.ts",
     "file": "src/server/public/state.ts",
-    "find": "  const visible = applyVisibility(mapped, {",
-    "replace": "  await db.from(\"markets\").select(\"slug\");\n  const visible = applyVisibility(mapped, {",
+    "find": "  const raw = await readRpc(db, \"public_catalog_snapshot\");\n  const catalog = buildCatalog(raw, state);",
+    "replace": "  await db.from(\"markets\").select(\"slug\");\n  const raw = await readRpc(db, \"public_catalog_snapshot\");\n  const catalog = buildCatalog(raw, state);",
     "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
     "expect": "× .*one state call and one snapshot call in 100 getCatalog calls"
   },
@@ -634,8 +634,8 @@
     "kind": "file",
     "test": "tests/unit/flags.test.ts",
     "file": "src/server/public/state.ts",
-    "find": "    if (stateMemo === undefined) throw unavailable();\n    // Held for one more interval",
-    "replace": "    throw unavailable();\n    // Held for one more interval",
+    "find": "    stateMemo = { ...stateMemo, checkedAt: now, stale: true };\n    return { state: stateMemo.state, stale: true };",
+    "replace": "    throw unavailable();",
     "run": "bunx vitest run --project unit tests/unit/flags.test.ts",
     "expect": "× .*serves the last good flags"
   },

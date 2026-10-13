@@ -292,6 +292,20 @@ describe("upsert_subscriber (DL-06)", () => {
 });
 
 describe("confirm_subscriber (DL-06)", () => {
+  it("refuses a link issued more than 7 days ago, and a fresh signup's link works (gap item 24)", async () => {
+    const outcome = await withRollback(async (db) => {
+      await upsert(db, "old-link@example.invalid", "stories", "test-old");
+      await db.query(
+        "update public.subscribers set confirm_token_at = now() - interval '8 days' where email = 'old-link@example.invalid'",
+      );
+      const stale = await confirm(db, "test-old");
+      await upsert(db, "old-link@example.invalid", "stories", "test-new");
+      const fresh = await confirm(db, "test-new");
+      return { stale: stale.id, fresh: fresh.id !== null };
+    });
+    expect(outcome).toEqual({ stale: null, fresh: true });
+  });
+
   it("confirms once, moves a pending source into source, and a reused link matches nothing", async () => {
     const outcome = await withRollback(async (db) => {
       await upsert(db, "f@example.invalid", "interest:california", "test-h1", ["california"]);

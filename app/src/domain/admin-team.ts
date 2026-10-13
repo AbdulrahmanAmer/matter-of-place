@@ -20,9 +20,17 @@ export const passwordSignInInput = z.object({
 /** Where the browser goes after a password sign-in: always a page inside `/admin`. */
 export const passwordSignedInSchema = z.object({ next: z.string() });
 
-/** A signed-in person's own new password. Twelve characters at least; nobody else ever sets it. */
+/**
+ * A signed-in person's own new password. Twelve characters at least, with a letter and a digit, as Supabase Auth now
+ * requires (`supabase/config.toml`, H101); nobody else ever sets it.
+ */
 export const setPasswordInput = z.object({
-  password: z.string().min(12, "Use at least 12 characters.").max(256),
+  password: z
+    .string()
+    .min(12, "Use at least 12 characters.")
+    .max(256)
+    .regex(/[A-Za-z]/, "Use at least one letter.")
+    .regex(/[0-9]/, "Use at least one digit."),
 });
 
 /** The form the confirm page posts to `POST /api/admin/auth/verify`. */

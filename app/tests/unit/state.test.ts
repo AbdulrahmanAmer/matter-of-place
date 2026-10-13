@@ -188,6 +188,37 @@ describe("getPublicState", () => {
     expect((await pending).stale).toBe(true);
   });
 
+  it("answers a cold isolate from the copy an earlier one kept, state and catalog, during an outage (gap item 9)", async () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("caches", {
+      default: {
+        match: (key: string) =>
+          Promise.resolve(store.has(key) ? new Response(store.get(key)) : undefined),
+        put: async (key: string, response: Response) => {
+          store.set(key, await response.text());
+        },
+      },
+    });
+    const warm = await load();
+    const { db } = served(7);
+    await warm.state.getCatalog(db);
+    const cold = await load();
+    const down = fakeDb({
+      rpc: {
+        public_state: () => new Error("down"),
+        public_catalog_snapshot: () => new Error("down"),
+      },
+    });
+    const read = await cold.state.readCatalog(down);
+    expect({
+      kept: store.size,
+      version: read.state.catalogVersion,
+      stale: read.stale,
+      serving: cold.state.servingStale(),
+    }).toEqual({ kept: 2, version: 7, stale: true, serving: true });
+    vi.unstubAllGlobals();
+  });
+
   it("answers 503 unavailable when there is no last good state", async () => {
     const { state } = await load();
     const db = fakeDb({ rpc: { public_state: () => new Error("down") } });

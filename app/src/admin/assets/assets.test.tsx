@@ -230,7 +230,9 @@ describe("AssetCards", () => {
     const cover = within(card("Cover, revision 1"));
     expect({
       error: cover.getByRole("alert").textContent,
-      waiting: cover.getByText("Waiting for the caption runner.").tagName,
+      waiting: cover.getByText(
+        "Waiting for the caption writer on the laptop. Write it by hand with Edit caption.",
+      ).tagName,
     }).toEqual({ error: "chromium exited 1", waiting: "P" });
     fireEvent.click(cover.getByRole("button", { name: "Re-render" }));
     fireEvent.click(

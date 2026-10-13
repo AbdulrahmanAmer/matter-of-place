@@ -700,8 +700,8 @@
     "kind": "file",
     "test": "tests/unit/state.test.ts",
     "file": "src/server/public/state.ts",
-    "find": "    if (catalogMemo === undefined) throw unavailable();\n    catalogStale = true;",
-    "replace": "    throw unavailable();\n    catalogStale = true;",
+    "find": "    catalogStale = true;\n    return { catalog: catalogMemo, state, stale: true };",
+    "replace": "    throw unavailable();",
     "run": "bunx vitest run --project unit tests/unit/state.test.ts",
     "expect": "× .*serves the last good catalog when the snapshot fails"
   },
@@ -760,7 +760,7 @@
     "kind": "file",
     "test": "tests/unit/state.test.ts",
     "file": "src/server/public/state.ts",
-    "find": "    if (stateMemo === undefined) throw unavailable();\n",
+    "find": "      if (!copy.success) throw unavailable();\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/state.test.ts",
     "expect": "× .*answers 503 unavailable when there is no last good state"
@@ -790,8 +790,8 @@
     "kind": "file",
     "test": "tests/unit/state.test.ts",
     "file": "src/server/public/state.ts",
-    "find": "readVar(\"MOP_ENV\") ?? \"production\"",
-    "replace": "readVar(\"MOP_ENV\") ?? \"preview\"",
+    "find": "MOP_ENV: readVar(\"MOP_ENV\") ?? \"production\"",
+    "replace": "MOP_ENV: readVar(\"MOP_ENV\") ?? \"preview\"",
     "run": "bunx vitest run --project unit tests/unit/state.test.ts",
     "expect": "× .*reads an unset MOP_ENV as production"
   },

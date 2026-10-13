@@ -39,8 +39,8 @@
     "id": "w2g-e-no-edit-of-instructions",
     "test": "src/admin/workforce/approvals.test.tsx",
     "file": "src/admin/workforce/ApprovalsPage.tsx",
-    "find": " && item.action !== \"instructions_change\";",
-    "replace": ";",
+    "find": "    item.action !== \"instructions_change\" &&\n",
+    "replace": "",
     "run": "bunx vitest run --project component src/admin/workforce/approvals.test.tsx",
     "expect": "× .*offers no edit for a change of a colleague's instructions"
   },

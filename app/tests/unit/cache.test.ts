@@ -121,7 +121,8 @@ describe("a JSON read", () => {
     const first = await cache.edgeCached(get("/api/public/properties"), served(7), build, EDGE);
     await cache.edgeCached(get("/api/public/properties"), served(7), build, EDGE);
     expect(first.headers.get("x-mop-cache")).toBe("bypass");
-    expect(edge.puts).toEqual([]);
+    // The state's own kept copy (gap item 9) is not the response.
+    expect(edge.puts.filter((key) => !key.includes("/last-good/state/"))).toEqual([]);
     expect(build).toHaveBeenCalledTimes(2);
   });
 
@@ -353,10 +354,11 @@ describe("the last good copy", () => {
     );
     expect(json.headers.get("x-mop-cache")).toBe("stale");
     expect(await json.json()).toEqual([7]);
+    // The page has no copy under the new release, and its build reads the database too.
     const html = cache.cachedResponse(
       get("/california"),
       "html",
-      () => Promise.resolve(new Response("<p>")),
+      () => Promise.reject(new errors.AppError("unavailable", undefined, "down")),
       undefined,
       failing(),
     );

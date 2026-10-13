@@ -30,6 +30,10 @@ const countsSchema = z.object({
   backup: z.object({ enabled: z.boolean(), last_run_at: z.string().nullable() }).nullable(),
   // Gap audit item 7: absent until the migration that adds it runs, then a number.
   unverified_24h: z.number().default(0),
+  // Gap audit item 22: the same, for contact events about our readers dropped for an unmapped audience.
+  dropped_contact_events_24h: z.number().default(0),
+  // Gap audit item 29: open privacy requests due within 7 days or past due.
+  privacy_due_7d: z.number().default(0),
 });
 export type HealthCounts = z.infer<typeof countsSchema>;
 
@@ -97,6 +101,26 @@ export const healthChecks: readonly HealthCheck[] = [
       return failWhenAny(
         (await ctx.counts()).unverified_24h,
         "public writes in the last 24 hours were let in without the spam check: read them in Inbox",
+      );
+    },
+  },
+  {
+    // Gap audit item 22: an unsubscribe about one of our readers that arrived for an audience we do not map.
+    name: "dropped_unsubscribes",
+    async run(ctx) {
+      return failWhenAny(
+        (await ctx.counts()).dropped_contact_events_24h,
+        "reader updates from Resend were dropped for an unknown audience: check settings.resend.audiences",
+      );
+    },
+  },
+  {
+    // Gap audit item 29: a privacy request has 45 days; the alert starts 7 days before and holds until it is handled.
+    name: "privacy_due",
+    async run(ctx) {
+      return failWhenAny(
+        (await ctx.counts()).privacy_due_7d,
+        "privacy requests are due within 7 days or past due: answer them in System, Activity log, Data requests",
       );
     },
   },

@@ -12,13 +12,25 @@ import { join, resolve } from "node:path";
 import { z } from "zod";
 import { agentTools, hireInputSchema, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
-import { askMatter, keepNote, matterInputs, matterPrompt } from "../matter/run.ts";
+import {
+  ADMIN_BASE,
+  MAX_CALLS,
+  adminCallSchema,
+  adminRoutes,
+  allowedActions,
+  callProposal,
+  checkCall,
+  makeCall,
+} from "../matter/actions.ts";
+import { askMatter, keepNote, matterInputs, matterPower, matterPrompt } from "../matter/run.ts";
 import { staffCharterFrom } from "./charter.ts";
-import { childEnv, serviceDb as db } from "./env.ts";
+import { childEnv, loadEnvFile, serviceDb as db } from "./env.ts";
 import { knowledgeBlock } from "./knowledge.ts";
 import { makeVoiceover, mediaRequestSchema } from "./media.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
+import { followMain } from "./follow.ts";
+import { applyHires } from "./hiring.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -62,6 +74,11 @@ function askClaude(
       "--strict-mcp-config",
       "--mcp-config",
       emptyMcpConfig(),
+      // H101: no shell, no web fetch, none of the operator's own settings, files only inside the desk; anything
+      // not allowed is refused, never asked.
+      "--restricted",
+      "--permission-mode",
+      "dontAsk",
       // W2 step 7: a colleague with the research tool may search the web, and nothing more.
       ...(research ? ["--allowedTools", "WebSearch"] : []),
     ],
@@ -144,6 +161,8 @@ const outcome = z.object({
   note: z.string().default(""),
   // Matter only (W2 step 5): media the daemon makes with the installed skills.
   media: z.array(mediaRequestSchema).default([]),
+  // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
+  actions: z.array(z.unknown()).default([]),
 });
 
 const allowedProposal: Record<string, string> = {
@@ -163,7 +182,15 @@ function readJsonAnswer(text: string): z.infer<typeof outcome> {
       // fall through: a plain answer is still a reply
     }
   }
-  return { reply: text.trim(), task: "", proposals: [], hire: [], note: "", media: [] };
+  return {
+    reply: text.trim(),
+    task: "",
+    proposals: [],
+    hire: [],
+    note: "",
+    media: [],
+    actions: [],
+  };
 }
 
 async function context(
@@ -273,13 +300,15 @@ async function runOnce(client: Db): Promise<boolean> {
   const agent = agents?.find((row) => row.id === run.agent_id);
   if (agent === undefined) return true;
   let thread = "team";
+  let authorKind: string | null = null;
   if (run.message_id !== null) {
     const { data: message } = await client
       .from("agent_messages")
-      .select("thread")
+      .select("thread, author_kind")
       .eq("id", run.message_id)
       .single();
     thread = message?.thread ?? "team";
+    authorKind = message?.author_kind ?? null;
   }
   await client
     .from("agents")
@@ -302,6 +331,8 @@ async function runOnce(client: Db): Promise<boolean> {
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
     const isMatter = agent.slug === "matter";
+    // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
+    const power = isMatter ? matterPower(run.cause, authorKind) : "read";
     const answer = isMatter
       ? await askMatter(
           matterPrompt({
@@ -310,6 +341,7 @@ async function runOnce(client: Db): Promise<boolean> {
             business: lessons,
           }),
           matterEnv(),
+          power,
         )
       : await askClaude(
           promptFor(
@@ -325,7 +357,7 @@ async function runOnce(client: Db): Promise<boolean> {
           agent.tools.includes("research"),
         );
     const result = readJsonAnswer(answer.text);
-    if (isMatter) keepNote(result.note);
+    if (isMatter && power === "full") keepNote(result.note);
     // W2 step 5: Matter cannot run a skill in its safe mode; the daemon runs it, one at a time, and says where it is.
     const media = isMatter ? result.media.slice(0, 2) : [];
 
@@ -375,6 +407,7 @@ async function runOnce(client: Db): Promise<boolean> {
             : `The voice-over "${request.name}" is ready: ${made.path}`,
       });
     }
+    if (isMatter) await proposeCalls(client, agent, run.id, thread, result.actions);
     for (const proposal of result.proposals) {
       if (!agent.tools.includes(allowedProposal[proposal.action] ?? "")) continue;
       const content = proposal.content;
@@ -388,18 +421,13 @@ async function runOnce(client: Db): Promise<boolean> {
       });
     }
     if (agent.tools.includes("hire")) {
-      for (const hire of result.hire) {
-        const { error: hireError } = await client.from("agents").insert(hire);
-        if (hireError === null) {
-          await client.from("agent_messages").insert({
-            thread: "team",
-            author_kind: "system",
-            author_id: "system",
-            author_name: "Matter of Place",
-            body: `${hire.name} joined the team as ${hire.role}.`,
-          });
-        }
-      }
+      await applyHires(
+        client,
+        { slug: agent.slug, id: agent.id },
+        result.hire,
+        run.id,
+        power === "full",
+      );
     }
     await client
       .from("agent_runs")
@@ -487,6 +515,103 @@ async function wakeBacklog(client: Db): Promise<void> {
   console.log(`${new Date().toISOString()} backlog run for ${next}`);
 }
 
+const say = (client: Db, thread: string, body: string) =>
+  client.from("agent_messages").insert({
+    thread,
+    author_kind: "system",
+    author_id: "system",
+    author_name: "Matter of Place",
+    body: body.slice(0, 20000),
+  });
+
+/** Gap item 31: each call Matter names is checked against the admin's routes and its key, then waits in Approvals. */
+async function proposeCalls(
+  client: Db,
+  agent: { id: string },
+  runId: string,
+  thread: string,
+  raw: readonly unknown[],
+): Promise<void> {
+  if (raw.length === 0) return;
+  loadEnvFile();
+  const key = process.env["MATTER_AGENT_KEY"];
+  if (key === undefined || key === "") {
+    await say(
+      client,
+      thread,
+      "Matter asked to change the admin, but this laptop holds no Matter key.",
+    );
+    return;
+  }
+  const routes = adminRoutes();
+  const allowed = await allowedActions(key);
+  const lines: string[] = [];
+  for (const item of raw.slice(0, MAX_CALLS)) {
+    const check = checkCall(item, routes, allowed);
+    if (!check.ok) {
+      lines.push(`Not proposed: ${check.reason}.`);
+      continue;
+    }
+    const proposal = callProposal(check);
+    const { error } = await client.from("agent_approvals").insert({
+      agent_id: agent.id,
+      run_id: runId,
+      ...proposal,
+      content_hash: createHash("sha256").update(JSON.stringify(proposal.content)).digest("hex"),
+    });
+    lines.push(
+      error === null
+        ? `Waiting for your approval: ${proposal.summary}`
+        : `Not proposed: ${error.message}`,
+    );
+  }
+  if (raw.length > MAX_CALLS) {
+    lines.push(
+      `${String(raw.length - MAX_CALLS)} more were left out (at most ${String(MAX_CALLS)} a run).`,
+    );
+  }
+  await say(client, thread, lines.join("\n"));
+}
+
+/** Gap item 31: an approved call is made once with Matter's own key, and its outcome is written back and said. */
+async function makeApprovedCalls(client: Db): Promise<void> {
+  const { data } = await client
+    .from("agent_approvals")
+    .select("id, summary, content")
+    .eq("action", "admin_call")
+    .eq("state", "approved")
+    .is("content->outcome", null)
+    .order("decided_at", { ascending: true })
+    .limit(5);
+  if (data === null || data.length === 0) return;
+  loadEnvFile();
+  const key = process.env["MATTER_AGENT_KEY"];
+  if (key === undefined || key === "") return;
+  for (const row of data) {
+    const content = z.record(z.string(), z.unknown()).parse(row.content);
+    const call = adminCallSchema.safeParse(content["call"]);
+    // Marked first, so a pass that dies mid-call never makes it twice.
+    await client
+      .from("agent_approvals")
+      .update({ content: { ...content, outcome: { state: "making" } } })
+      .eq("id", row.id);
+    const outcome = call.success
+      ? await makeCall(call.data, key, ADMIN_BASE)
+      : { status: 0, ok: false, message: "the call could not be read" };
+    await client
+      .from("agent_approvals")
+      .update({ content: { ...content, outcome: { ...outcome, at: new Date().toISOString() } } })
+      .eq("id", row.id);
+    await say(
+      client,
+      "matter",
+      outcome.ok
+        ? `Done: ${row.summary}`
+        : `Could not do it: ${row.summary} (${String(outcome.status)} ${outcome.message})`,
+    );
+  }
+}
+
 async function pass(client: Db): Promise<void> {
   // W2: Matter's side chat says "online" while this runner passes; one touch of Matter's row per pass.
   await client
@@ -502,6 +627,18 @@ async function pass(client: Db): Promise<void> {
     );
     return;
   }
+  // Gap audit item 6: between runs the runner moves to the newest main; the next pass runs the new code.
+  const { count: inFlight } = await client
+    .from("agent_runs")
+    .select("id", { count: "exact", head: true })
+    .eq("state", "running");
+  if (inFlight === 0) {
+    const followed = followMain(resolve(import.meta.dir, "../.."), join(HOME, "runner-app"));
+    if (followed !== "unchanged" && followed !== "not the runner") {
+      console.log(`${new Date().toISOString()} runner ${followed}`);
+    }
+  }
+  await makeApprovedCalls(client);
   const woke = await wakeOnEvents(client);
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
   // Up to five runs a pass, one after another; the scheduled task starts the next pass a minute later.

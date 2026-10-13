@@ -580,6 +580,52 @@ describe("apply_email_event", () => {
     });
   });
 
+  it("apply_email_event records a dropped update about one of our readers, without the address, and health counts it (gap item 22)", async () => {
+    const result = await withRollback(async (db) => {
+      await ownAudience(db);
+      const id = await subscriber(db, { confirmed_at: "now()" });
+      const { email } = await one<{ email: string }>(
+        db,
+        "select email from public.subscribers where id = $1",
+        [id],
+      );
+      const event = (to: string) => ({
+        provider_event_id: `msg_${randomUUID()}`,
+        type: "contact.updated",
+        audience_id: "aud_lost",
+        to_email: to,
+        data: { unsubscribed: true, email: to },
+      });
+      const before = await one<{ n: number }>(
+        db,
+        "select (public.health_counts(now()) ->> 'dropped_contact_events_24h')::int as n",
+      );
+      await apply(db, event(address()));
+      await apply(db, event(email.toUpperCase()));
+      const after = await one<{ n: number }>(
+        db,
+        "select (public.health_counts(now()) ->> 'dropped_contact_events_24h')::int as n",
+      );
+      const logged = await one<{ after: Record<string, unknown> }>(
+        db,
+        `select after from public.audit_log where action = 'email.contact_event_dropped'
+         order by id desc limit 1`,
+      );
+      return {
+        counted: after.n - before.n,
+        audience: logged.after["audience_id"],
+        unsubscribed: logged.after["unsubscribed"],
+        holdsAddress: JSON.stringify(logged.after).includes("@"),
+      };
+    });
+    expect(result).toEqual({
+      counted: 1,
+      audience: "aud_lost",
+      unsubscribed: true,
+      holdsAddress: false,
+    });
+  });
+
   it("email_events.provider_event_id is unique", async () => {
     const outcome = await withRollback(async (db) => {
       const insert =

@@ -7,7 +7,7 @@ as $$
   -- GG-05: the ask stores a fresh confirm hash; false means the subscriber no longer consents and nothing is sent.
   with changed as (
     update public.subscribers
-    set confirm_token_hash = p_token_hash, repermission_sent_at = now()
+    set confirm_token_hash = p_token_hash, confirm_token_at = now(), repermission_sent_at = now()
     where id = p_subscriber_id and confirmed_at is not null and unsubscribed_at is null and archived_at is null
     returning 1
   )

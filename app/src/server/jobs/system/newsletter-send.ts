@@ -181,6 +181,12 @@ async function deliver(
       return await adopt(ctx.db, issue);
     }
     const recipients = await recipientCount(ctx.db);
+    // Gap audit item 23: with no confirmed reader nothing is sent; the issue stays approved and unsent, and its screen
+    // says why.
+    if (recipients === 0) {
+      await setSendError(ctx.db, issue.id, "no_subscribers");
+      return done({ skipped: "no_subscribers" });
+    }
     const gate = await quotaGate(ctx, issue, recipients);
     if (gate !== null) return gate;
     await syncAudience(ctx.db, AUDIENCE);

@@ -2844,7 +2844,7 @@
     "find": "{asset.caption === null && asset.captions_waiting ? (",
     "replace": "{false ? (",
     "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"shows a render error\"",
-    "expect": "Unable to find an element with the text: Waiting for the caption runner"
+    "expect": "Unable to find an element with the text: Waiting for the caption writer on the laptop"
   },
   {
     "id": "b9g2-render-error-shown",

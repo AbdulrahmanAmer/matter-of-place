@@ -360,6 +360,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     markets: "text[]",
     confirmed_at: "timestamptz?",
     confirm_token_hash: "text?",
+    confirm_token_at: "timestamptz?",
     unsubscribed_at: "timestamptz?",
     resend_contact_id: "text?",
     archived_at: "timestamptz?",

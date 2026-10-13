@@ -135,6 +135,8 @@ export async function postMessage(
     p_author_id: actor.userId,
     p_author_name: await personName(db, actor),
     p_wake: woke,
+    // H101: only a signed-in person's line counts as a person's.
+    p_author_kind: actor.kind === "human" ? "human" : "agent",
   });
   if (error !== null) throw fromRpcError(error);
   return { id, woke };

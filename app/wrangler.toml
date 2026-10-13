@@ -15,5 +15,8 @@ crons = ["*/10 * * * *"]
 MOP_ENV = "production"
 MEDIA_PUBLIC_BASE = "https://matterofplace.com/media"
 
+# Gap audit item 20: Workers Logs with per-request CPU and wall time, every request kept (head_sampling_rate 1). The free
+# plan keeps 200,000 events a day; the site serves far fewer. Lower the rate before raising any limit.
 [observability]
 enabled = true
+head_sampling_rate = 1

@@ -22,6 +22,22 @@ begin
     ) a
     where s.key = 'resend' and a.value = p ->> 'audience_id'
   ) then
+    -- Gap audit item 22: a contact event about one of our own readers, dropped because its audience is not mapped,
+    -- would leave an unsubscribe unrecorded. It is kept (without the address) and the health check counts it.
+    if v_type = 'contact.updated' and v_email is not null and exists (
+      select 1 from public.subscribers s where lower(s.email) = v_email
+    ) then
+      insert into public.audit_log (action, entity, after)
+      values (
+        'email.contact_event_dropped',
+        'subscribers',
+        jsonb_build_object(
+          'audience_id', p ->> 'audience_id',
+          'provider_event_id', p ->> 'provider_event_id',
+          'unsubscribed', v_data -> 'unsubscribed'
+        )
+      );
+    end if;
     return false;
   end if;
 

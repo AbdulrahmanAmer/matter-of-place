@@ -1038,8 +1038,8 @@
     "id": "b14-s",
     "test": "tests/unit/pipeline.test.ts",
     "file": "src/server/lib/pipeline.ts",
-    "find": "    const render = () => withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n    // Only a public page is looked up for a redirect or stored; `/media/`, documents, the API and the admin never are.\n    const page = !neverCached(request, pathname) && isPageRequest(pathname);\n    const closed = await maintenanceGate(request, flags, mopEnv);\n    const redirect = closed === null && page ? await deps.redirect(request) : null;\n    redirected = redirect !== null;\n    response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());\n    if (request.method === \"GET\" && response.status === 404) deps.notFound?.(request, ctx);\n",
-    "replace": "    const render = async () => {\n      const rendered = await withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n      if (request.method === \"GET\" && rendered.status === 404) deps.notFound?.(request, ctx);\n      return rendered;\n    };\n    // Only a public page is looked up for a redirect or stored; `/media/`, documents, the API and the admin never are.\n    const page = !neverCached(request, pathname) && isPageRequest(pathname);\n    const closed = await maintenanceGate(request, flags, mopEnv);\n    const redirect = closed === null && page ? await deps.redirect(request) : null;\n    redirected = redirect !== null;\n    response = closed ?? redirect ?? (page ? await deps.cache(request, render) : await render());\n",
+    "find": "    const render = () => withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n",
+    "replace": "    const render = async () => {\n      const rendered = await withPageCsp(deps.render, mopEnv, flags, framing)(request, requestId);\n      if (request.method === \"GET\" && rendered.status === 404) deps.notFound?.(request, ctx);\n      return rendered;\n    };\n",
     "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
     "expect": "the 404 hook \\(B14 GG-02\\) > tells the hook once of a rendered 404"
   },
