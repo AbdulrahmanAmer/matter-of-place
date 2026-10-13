@@ -8,7 +8,9 @@
 
 SVG versions sit next to each PNG. After editing any diagram below, run `node render.mjs` in this folder to refresh the pictures.
 
-Solid boxes exist today; dashed boxes are not built. Free tier everywhere unless a box says otherwise.
+Updated 2026-10-13: everything solid is built and running on matterofplace.com. Dashed boxes are the only things not
+built: Stripe (invoices are manual by decision) and programmatic media (managed separately). Free tier everywhere unless
+a box says otherwise.
 
 ## 1. System map
 
@@ -18,58 +20,64 @@ flowchart TB
   agent([Agent / brokerage / owner])
   editor([Editorial team: Chief Editor, Managing Editor, Visual Editor, Media Ops])
 
-  subgraph CF[Cloudflare, free tier: zone matterofplace.com]
-    edge[Edge cache + WAF + Turnstile + rate-limit rule]
-    site[One Worker: SSR pages, /api/* server routes, /admin behind auth, Cache API, keep-warm cron every 10 minutes. Also pr-N previews and the stable dev Worker matter-of-place-dev]
+  subgraph CF[Cloudflare, free tier: zone matterofplace.com, DNSSEC on]
+    edge[Edge cache + Turnstile + API burst guard: 100 requests in 10 s per address on /api/]
+    site[One Worker: SSR pages, /api/* server routes, /admin behind auth, Cache API with a kept copy for outages, keep-warm cron every 10 minutes. Also pr-N previews and the stable dev Worker matter-of-place-dev]
   end
 
-  subgraph SB[Supabase, free tier]
-    db[(Postgres: catalog, submissions, inquiries, subscribers, events, campaigns, jobs, assets)]
+  subgraph SB[Supabase, free tier: one project, live]
+    db[(Postgres: catalog, submissions, inquiries, subscribers, events, campaigns, jobs, assets, the AI staff)]
     auth[Auth: magic links, roles chief_editor, managing_editor, visual_editor, media_ops, commercial, admin]
-    store[(Storage, no R2: private submissions for signed uploads and staged originals, public media for variants and renders at /media/key, private documents for invoice PDFs)]
-    q[[pgmq queues jobs_light, jobs_heavy + pg_cron: runner every minute, health, retention, token refresh]]:::todo
-    fn[[Edge Function: job runner reads the recipe at trigger time]]:::todo
-    rules[(Automation settings: recipes, email templates, decline reasons, channel + schedule settings, revisions)]:::todo
+    store[(Storage: private submissions for signed uploads and staged originals, cleared after 48 h when never attached; public media at /media/key; private documents for invoice PDFs)]
+    q[[pgmq queues jobs_light, jobs_heavy + pg_cron: runner every minute, health, retention, prune, token refresh]]
+    fn[[Edge Function: job runner reads the recipe at trigger time]]
+    rules[(Automation settings: recipes, email templates, decline reasons, channel + schedule settings, revisions)]
   end
 
   subgraph GH[GitHub, free tier]
-    repo[Private repo: no branch protection on this plan, deploy runs only after CI passes on the same commit]
-    ci[[Actions: check, test, build, wrangler deploy, nightly encrypted backup]]:::todo
-    render[[Actions render workflow: image variants, carousel + story + OG PNGs, ffmpeg reels]]:::todo
+    repo[Repository: deploy runs only after CI passes on the same commit; merges through the merge gate]
+    ci[[Actions: check, test, build, wrangler deploy, migrations, nightly encrypted backup]]
+    render[[Actions render workflow: image variants, carousel + story + OG PNGs, ffmpeg reels]]
+  end
+
+  subgraph LAPTOP[The operator's laptop: the AI company runs here on his Claude account]
+    matter[[Matter, the owner-level agent: full power when a person or colleague wakes it, read-only when outside text does]]
+    staff[[AI colleagues: hired by Matter or a person, wake on messages and events, meet daily, decide with a metric]]
+    runner[[Workforce runner: claims runs every minute, keeps its desk on main, makes approved admin calls]]
+    cap[Captions + alt text through the caption runner]
   end
 
   subgraph GEN[Generated per publish, then waits for approval]
-    og[OG cover]:::todo
-    car[IG carousel 1080x1350]:::todo
-    story[IG story 1080x1920]:::todo
-    reel[Reel, Campaign tier]:::todo
-    nl[Newsletter block + standalone email]:::todo
-    cap[Captions + alt text: Haiku through the laptop caption runner]:::todo
-    approve{Media Ops approves in /admin}:::todo
+    og[OG cover]
+    car[IG carousel 1080x1350]
+    story[IG story 1080x1920]
+    reel[Reel, Campaign tier]
+    nl[Newsletter block + standalone email]
+    approve{Media Ops approves in /admin}
   end
 
-  subgraph OUT[Distribution]
-    ig[Instagram: Meta Graph API]:::todo
-    xch[X: X API, OAuth 2.0 user context]:::todo
-    li[LinkedIn company page: LinkedIn API]:::todo
-    offch[Facebook and YouTube: built as blocks, disabled until further notice]:::todo
-    resend[Resend: Place Notes broadcasts + transactional]:::todo
+  subgraph OUT[Distribution: code built; accounts connected by the operator when he chooses]
+    ig[Instagram: Meta Graph API]
+    xch[X: X API, OAuth 2.0 user context]
+    li[LinkedIn company page: LinkedIn API]
+    offch[Facebook and YouTube: built as blocks, disabled until further notice]
+    resend[Resend: Place Notes broadcasts + transactional]
     prog[Programmatic media, Campaign tier, managed separately]:::todo
   end
 
-  subgraph MONEY[Commercial: manual now, Stripe later behind the same table]
-    pay[payments table: invoice from template, PDF in the private documents bucket, preferred method, mark paid, activate agent]:::todo
+  subgraph MONEY[Commercial: manual invoices now, Stripe later behind the same table]
+    pay[payments table: invoice from template, PDF in the private documents bucket, preferred method, mark paid, activate agent]
     stripe[Stripe adapter, later]:::todo
-    omni[Omnikom handoff webhook: inquiries, attribution]:::todo
+    omni[Omnikom handoff webhook: inquiries, attribution]
   end
-  subgraph SOON[Coming-soon mode at launch]
-    empty[Every empty collection: what is real, coming soon, signup for this market]:::todo
+  subgraph SOON[Before the first listing]
+    empty[Every empty collection: what is real, coming soon, signup for this market]
   end
 
   subgraph OBS[Observe and improve]
-    sentry[Sentry free]:::todo
+    sentry[Sentry free]
     ga[GA4 through gtag.js after consent + Search Console + Cloudflare zone analytics + first-party events]
-    auditor[[mop-auditor on a schedule: perf, SEO, AEO, GEO, keywords, channels → report + patch PR]]:::todo
+    auditor[[Audit robot every Saturday morning: perf, SEO, AEO, GEO, keywords, channels → report + patch PR]]
   end
 
   visitor --> edge --> site
@@ -85,8 +93,13 @@ flowchart TB
   render -->|signed callback| site
   render --> store
   render --> og & car & story & reel & nl
-  fn --> cap
+  fn -->|caption jobs| cap
   og & car & story & reel & nl & cap --> approve
+  editor -->|side chat, Ask Matter on a flow| staff
+  runner --> matter & staff
+  runner -->|claims runs, reads the thread| db
+  matter -->|admin calls, each approved in /admin › Approvals| site
+  staff -->|agent keys| site
   approve --> ig & xch & li & resend
   approve -.->|only when switched on| offch
   site --> pay
@@ -101,9 +114,6 @@ flowchart TB
   prog -.-> OUT
 
   classDef todo stroke-dasharray: 5 5;
-  style GEN stroke-dasharray: 5 5
-  style OUT stroke-dasharray: 5 5
-  style MONEY stroke-dasharray: 5 5
 ```
 
 ## 2. How an admin deploys a listing
@@ -162,4 +172,5 @@ flowchart TB
   C --> N[Newsletters: emails, story drafts]
   MOP --> B[Backend + DB + admin publish flow + automation]
   MOP --> AU[Audit agent: performance, SEO, AEO, GEO, keywords, channels]
+  MOP --> AI[AI company: Matter and the colleagues it hires, running the business through /admin]
 ```

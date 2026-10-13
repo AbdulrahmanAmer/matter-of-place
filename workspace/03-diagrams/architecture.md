@@ -1,15 +1,16 @@
 # Architecture diagrams
 
 Pictures: [img/architecture-1.png](img/architecture-1.png) request paths, [img/architecture-2.png](img/architecture-2.png) data model v2,
-[img/architecture-3.png](img/architecture-3.png) job lifecycle, [img/architecture-4.png](img/architecture-4.png) agents as staff, [img/architecture-5.png](img/architecture-5.png) caching.
+[img/architecture-3.png](img/architecture-3.png) job lifecycle, [img/architecture-4.png](img/architecture-4.png) agents as staff and their power, [img/architecture-5.png](img/architecture-5.png) caching.
+Updated 2026-10-13.
 Words: `../06-architecture/architecture.md`.
 
 ## 1. Request paths
 
 ```mermaid
 flowchart LR
-  V([Visitor]) --> E[Cloudflare zone: WAF + rate-limit rule]
-  E --> W[Cloudflare Worker: Cache API lookup first, Turnstile verified on form writes]
+  V([Visitor]) --> E[Cloudflare zone, DNSSEC: API burst guard, 100 requests in 10 s per address]
+  E --> W[Cloudflare Worker: Cache API lookup first, Turnstile verified on form writes, admin pages only after a session check]
   CR[Worker cron trigger every 10 minutes] -->|keep-warm| W
   W --> P[Pages SSR]
   W --> PUB["/api/public/*"]
@@ -27,6 +28,8 @@ flowchart LR
   RUN -->|"heavy: render_variants, render_cover, render_carousel, render_story, render_reel, render_og_static"| GH
   RUN -->|light| STEPS[light steps: send_email, notify_admin, build_newsletter_block, post_meta, post_x, post_linkedin, queue_digest, webhook_omnikom, bump_catalog_version, purge_cache]
   J -->|local, H34| CAPR[[Caption runner on the operator's laptop: write_captions through the Claude CLI]]
+  DB -->|agent runs, claimed every minute| WF[[Workforce runner on the operator's laptop: Matter and the colleagues]]
+  WF -->|agent keys, approved admin calls| ADM
 ```
 
 ## 2. Data model v2
@@ -142,12 +145,12 @@ stateDiagram-v2
   cancelled --> [*]
 ```
 
-## 4. Agents as staff
+## 4. Agents as staff, and how outside text is kept away from power (H99 to H101)
 
 ```mermaid
 flowchart LR
-  H([Human editor: magic link]) --> S[Session cookie]
-  A([AI agent: Claude session, routine, or headless worker]) --> K[Agent key: hashed, scoped, revocable]
+  H([Person: magic link, signed session]) --> S[Session cookie: ES256 token checked, role read on every request]
+  A([Matter or a colleague]) --> K[Agent key: hashed, scoped, 2,000 calls a day]
   S --> R{Role check in the server function}
   K --> R
   R -->|chief_editor, managing_editor| D[Decide, accept, decline, publish]
@@ -156,7 +159,14 @@ flowchart LR
   R -->|commercial| RO[Read queue, invoices, reports]
   R -->|admin| T[Team, agent keys, settings, invoices, void]
   D & M & AP & RO & T --> AU[(audit_log: actor_id, actor_kind)]
-  G[Guardrails: agents cannot touch roles, keys or settings, 403 human_only on mark paid, waive, void, activate and on switching a channel to automatic, per-channel human approval, daily decision cap] -.-> K
+  G[Person only, 403 human_only for any key: mark paid, waive, void, activate, channel to automatic, approve a proposal, hire, change a colleague] -.-> K
+
+  subgraph WAKE[What wakes the AI staff, and with what power]
+    P1([A person's chat line]) --> FULL[Matter at full power: shell, edits, keys; its notes kept; may hire 2 a day]
+    P2([A form, an email, an event, a colleague's line, a key's line]) --> READ[Read only, restricted: no shell, no web fetch, files only in its desk; hires and admin calls wait in Approvals; notes dropped]
+  end
+  READ -->|proposals| APPR{Approvals: a person decides}
+  FULL -->|admin calls| APPR
 ```
 
 ## 5. Caching: what a visitor's request touches
@@ -177,7 +187,7 @@ flowchart LR
   BUMP --> DB
   BUMP --> NEW[Every cache key changes within 15 seconds, no purge needed]
   NEW --> EC
-  DOWN{{Database down or slower than 2 seconds}} -.-> STALE[The last good copy is served, x-mop-cache stale]
+  DOWN{{Database down or slower than 2 seconds}} -.-> STALE[The last good copy is served, x-mop-cache stale; a fresh isolate reads the kept state and snapshot first]
   STALE -.-> V
   WARM[Warm page view: zero database calls] -.-> EC
   KW[Keep-warm every 10 minutes: one state RPC, keeps the free database awake] -.-> D1
