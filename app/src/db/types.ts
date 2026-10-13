@@ -1342,7 +1342,7 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_request_id": string }; Returns: undefined
                            },
 "claim_agent_run":
-{ Args: { "p_lease_seconds"?: number,"p_worker": string }; Returns: {
+{ Args: { "p_lease_seconds"?: number,"p_skip_live"?: boolean,"p_worker": string }; Returns: {
               "agent_id": string,
 "cause": string,
 "cost_microusd": number,
@@ -1396,6 +1396,34 @@ isOneToOne: false
                           SetofOptions: {
         from: "*"
         to: "jobs"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"claim_matter_live":
+{ Args: { "p_lease_seconds"?: number,"p_worker": string }; Returns: {
+              "agent_id": string,
+"cause": string,
+"cost_microusd": number,
+"created_at": string,
+"error": string | null,
+"event_id": string | null,
+"finished_at": string | null,
+"id": string,
+"input_tokens": number,
+"lease_until": string | null,
+"lessons_used": (string)[],
+"message_id": string | null,
+"output_tokens": number,
+"session_id": string | null,
+"started_at": string | null,
+"state": string,
+"summary": string | null,
+"turns": number,
+"worker": string | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "agent_runs"
         isOneToOne: false
         isSetofReturn: true
       } },

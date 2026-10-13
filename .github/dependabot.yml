@@ -11,6 +11,10 @@ updates:
     # No automatic rebase: every rebase re-runs CI, and main moves many times a day during the build
     # (ruling H47). The updates are read and merged in H1.
     rebase-strategy: "disabled"
+    # W5 (Jay, 2026-10-13): major versions wait until after launch; each one is a migration, not a bump.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       app-minor-and-patch:
         update-types: ["minor", "patch"]
@@ -25,6 +29,10 @@ updates:
       timezone: "America/New_York"
     open-pull-requests-limit: 5
     rebase-strategy: "disabled"
+    # W5 (Jay, 2026-10-13): major versions wait until after launch; each one is a migration, not a bump.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       actions-minor-and-patch:
         update-types: ["minor", "patch"]
