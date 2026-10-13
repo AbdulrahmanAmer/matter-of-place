@@ -7874,6 +7874,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, gap item 19: `GET /zones?name=matterofplace.com` with `CLOUDFLARE_API_TOKEN` from `.env` returned an empty list (the token is Workers-scoped, no Zone Read), so no zone setting (email obfuscation, bot fight, WAF, DNSSEC) can be read or changed by API. In Chrome, a dashboard page opened in a background tab, or in a new tab group, stayed on "Loading..." or showed the sign-in page although the operator was signed in (operator, 2026-10-13: "you have to make the browser become what is on the screen so it loads").
 - rule: zone settings are changed in the operator's signed-in Chrome, in the tab he is looking at (the existing tab of the session's group, never a new group); a "Loading..." or sign-in page there means the tab is not in front, not that he is signed out. Never ask for, or add, zone scopes to the Workers token without his word.
 - proof: `bun --env-file="/e/Matter Of Place/.env" scratchpad/cf-zone.mjs email_obfuscation` → `TypeError: undefined is not an object (evaluating 'zones.result[0].id')` (measured 2026-10-13 01:45 Cairo); the same zone settings page loaded in the front tab 600036229 a minute after the new group's tab showed the sign-in page.
+- added: 2026-10-13
 
 ## P-3447 · Linting only the changed files misses knip and jscpd, and each miss costs a full check
 - paths: (process)
@@ -7881,6 +7882,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, feat/matter-actions: ESLint on the changed files was clean, then two full `bun run check` runs failed in turn on knip (`fetchSearch` exported, never imported) and on jscpd (the `jsonValue` schema copied from `src/server/channels/meta.ts` into `scripts/matter/actions.ts`).
 - rule: before a full check, run the three fast whole-repo gates once: `bun run knip && bun run jscpd && bun run format:check`; a schema two files need lives once in `src/domain/` (here `json-value.ts`).
 - proof: `cd app && bun run jscpd` → `Found 0 clones.` with `src/domain/json-value.ts` (measured 2026-10-13 02:40 Cairo); with the copy back in `actions.ts` it prints `Clone found (typescript)` naming `actions.ts [20:1 - 29:3]` and `meta.ts [60:1 - 69:3]`.
+- added: 2026-10-13
 
 ## P-3448 · Keeping both sides of a CSS conflict can leave a rule unclosed
 - paths: app/src/styles/**
@@ -7888,6 +7890,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, feat/matter-actions: the merge of origin/main into the branch conflicted in `app/src/styles/admin/automation.css` (both added a block at the end); the keep-both script joined the sides inside the conflict lines, so `.admin-email-head p {` lost its `}` and swallowed `.admin-ask-matter`. ESLint and the tests do not read CSS; only `format:check` (prettier) said `CssSyntaxError: Unclosed block (1003:1)`, a full check later.
 - rule: after resolving any conflict in a `.css` file by keeping both sides, run `bunx prettier --check <file>` before the merge commit, and `git diff origin/main -- <file>` must show additions only.
 - proof: `cd app && bunx prettier --check src/styles/admin/automation.css` → `All matched files use Prettier code style!` at 991cedbc; at 835b9cb8 it prints the `Unclosed block` error (measured 2026-10-13 02:55 Cairo).
+- added: 2026-10-13
 
 ## P-3449 · A private repo on the free plan gets 2,000 Actions minutes a month; the build week spent about 15,000
 - paths: (process)
@@ -7895,6 +7898,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, before the operator switches the repo back to private: a week of runs (2,166) estimated by workflow, run count times the mean billed job minutes of 8 recent runs: ci 598 runs at about 20 minutes, deploy 923 runs at about 3.4, about 15,000 job minutes a week, about 65,000 a month. A public repo's minutes are free; a private one on the free plan stops all workflows (CI, deploy, nightly backup, render) when its 2,000 are spent.
 - rule: switch to private only after the build PRs stop; after that, budget about 23 minutes per pull request (CI plus deploy) plus about 40 a month for backups and audits, so fewer than about 80 pull requests a month. Measure again with `scratchpad/actions-estimate.mjs` before the switch, and watch the account's billing page in the first week.
 - proof: `node scratchpad/actions-estimate.mjs` → `TOTAL about 15234 job minutes a week, about 65289 a month (private free plan: 2,000)` (measured 2026-10-13 05:00 Cairo).
+- added: 2026-10-13
 
 ## P-3450 · A unit test that imports every route or service file cold runs past vitest's 5-second limit on the laptop
 - paths: app/tests/unit/**
@@ -7902,6 +7906,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13: `admin-authz-sweep.test.ts` (every `service.ts`, 5.6 s) and `admin-routes-parity.test.ts` (every admin route) timed out locally under a replay; their watched-fails reported `wrong reason` (a timeout, not the expected failure). CI on Linux was fast enough, so the full check passed while a replay failed.
 - rule: a test that imports a whole folder of modules sets its own limit (`it(..., 30_000)`), with a comment naming the measured time; a replay `wrong reason` whose red run says `Test timed out` is this, not a weak assertion.
 - proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts --reporter verbose` → `refuse a roleless actor ... 5734ms`; with `30_000` the file passes under load.
+- added: 2026-10-13
 
 ## G-1310 · `aria-controls` naming an element that is not rendered fails axe on every page that shows it
 - paths: app/src/admin/**
@@ -7909,6 +7914,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13, PR 354: the top bar's search input carried `aria-controls={listId}` while its results list rendered only when open; axe's `aria-valid-attr-value` failed 10 end-to-end tests on every admin screen. The component tests and lint passed, since only the Playwright run calls axe.
 - rule: an `aria-controls`, `aria-activedescendant` or `aria-describedby` points only at an element in the page at that moment; spread it in with the condition that renders the target (`{...(shown ? { "aria-controls": id } : {})}`).
 - proof: the e2e job of PR 354's run 38338365639 lists `/admin/assets | aria-valid-attr-value | input` with the unconditional attribute.
+- added: 2026-10-13
 
 ## P-3451 · An agent believes its prompt over its tools: a power change must change the words too
 - paths: app/scripts/matter/**, app/scripts/workforce/**
@@ -7916,6 +7922,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 09:17 Cairo, the first operator message after H100 and H101: the runner gave Matter full power (`settings-full.json`), but `matterPrompt` still opened with the fixed paragraph "safe mode ... You cannot run commands, edit files or call the admin API". Matter answered "I couldn't build this myself. In my current safe mode..." and wrote a plan instead of building, without trying a tool.
 - rule: whatever decides an agent's tools also decides the sentence that tells the agent what it can do; pass the same value to both (`matterPrompt({ ..., power })` and `askMatter(..., power)`), and test the words for each mode.
 - proof: `cd app && bunx vitest run --project unit tests/unit/matter.test.ts -t "tells Matter the power it really has"` → 1 passed; registry `mp-h-prompt-says-power` goes red when the full-power words are never chosen.
+- added: 2026-10-13
 
 ## P-3452 · An answer reader that cuts from the first "{" drops the closing JSON when the prose holds braces
 - paths: app/scripts/workforce/**
@@ -7923,6 +7930,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 09:29 Cairo, test 2 (a colleague's line asking Matter for a subject-line proposal): Matter wrote "We have received {{property_address}}" in its prose and ended with a valid JSON object holding one admin action. `readJsonAnswer` sliced from the first "{" (inside the prose) to the last "}", the parse failed, the fallback made the whole text the reply, and the action was dropped while Matter's reply said "filed in Approvals". Approvals stayed empty.
 - rule: read an agent's closing object by trying each "{" from the left until one slice parses against the schema; never assume the first brace starts the object. A run whose reply promises an action that no row backs is a defect to look for in every end-to-end test.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-answer.test.ts` → 2 passed; registry `mp-i-answer-braces` goes red when only the first "{" is tried.
+- added: 2026-10-13
 
 ## P-3453 · A 15-minute run limit cuts a full-power build off, and the cut was silent
 - paths: app/scripts/matter/**, app/scripts/workforce/**
@@ -7930,6 +7938,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 10:02 to 10:17 Cairo, test 1 repeated after P-3451: Matter, at full power, branched `feat/w4-email-replies` in its desk and wrote a plan, two migrations, a function, the mail reader and tests, then the runner killed it at 15 minutes ("Matter took longer than 15 minutes"). The run was marked failed and nothing was said in the thread: the operator would have seen silence. The run's lease was 10 minutes, so on a long run a second runner could have claimed the same run.
 - rule: a full-power run gets 45 minutes (`runTimeoutMs`), inside the scheduled task's 50 and the run lease's 3000 seconds; every failed run says in its thread that it stopped and where the work is; uncommitted work stays in the desk (refreshDesk leaves a dirty desk alone).
 - proof: `cd app && bunx vitest run --project unit tests/unit/matter.test.ts` → the cases "gives a full-power build 45 minutes" and "says in the thread when a run stops" pass; registry `mp-j-full-run-time`, `mp-k-lease` go red when undone.
+- added: 2026-10-13
 
 ## P-3454 · An agent trusts its own earlier claim in the thread over the database
 - paths: app/scripts/workforce/**
@@ -7937,6 +7946,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 10:22 Cairo, test 2 repeated (a line labelled Claude asking for a subject-line proposal, read only): Matter answered a different, older topic and said "The subject proposal is already in Approvals, so I did not file it again". `agent_approvals` had never held a row: its earlier claim had been false (P-3452), and the thread was the only memory it read.
 - rule: before the thread, a run reads as facts the line that woke it (fenced, "answer this first") and its own open proposals from `agent_approvals`, with the plain sentence that nothing else of its own is there (`scripts/workforce/grounding.ts`). Any state an agent may claim (approvals, PRs, decisions) is given to it from the source, never left to the thread.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-grounding.test.ts` → 2 passed; registry `mp-l-grounding-none`, `mp-m-grounding-woke` go red when undone.
+- added: 2026-10-13
 
 ## P-3455 · A replay under `timeout` that is killed prints no summary, and a chain that only looks for `bad N` reads that as clean
 - symptom: 2026-10-13, W5 live batch: `timeout 1500 node scripts/watchfail.mjs --changed origin/main` was killed at 25 minutes mid-entry. It printed no `watchfail: replayed ...` line and left `scripts/workforce/grounding.ts` mutated in the tree. The chain went on only if `grep -qE "bad [1-9]|stale [1-9]"` found nothing, so it pushed, opened PR 365 and started the gate on an unfinished replay. One `BAD: wrong reason` (mp-h) in the log was load: `--only mp-h-prompt-says-power` alone printed `WATCHED-FAIL OK`.
