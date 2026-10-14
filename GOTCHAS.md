@@ -7943,6 +7943,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 09:29 Cairo, test 2 (a colleague's line asking Matter for a subject-line proposal): Matter wrote "We have received {{property_address}}" in its prose and ended with a valid JSON object holding one admin action. `readJsonAnswer` sliced from the first "{" (inside the prose) to the last "}", the parse failed, the fallback made the whole text the reply, and the action was dropped while Matter's reply said "filed in Approvals". Approvals stayed empty.
 - rule: read an agent's closing object by trying each "{" from the left until one slice parses against the schema; never assume the first brace starts the object. A run whose reply promises an action that no row backs is a defect to look for in every end-to-end test.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-answer.test.ts` → 2 passed; registry `mp-i-answer-braces` goes red when only the first "{" is tried.
+- enforced-by: tests/unit/workforce-answer.test.ts, registry mp-i-answer-braces
 - added: 2026-10-13
 
 ## P-3453 · A 15-minute run limit cuts a full-power build off, and the cut was silent
@@ -7960,6 +7961,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-13 10:22 Cairo, test 2 repeated (a line labelled Claude asking for a subject-line proposal, read only): Matter answered a different, older topic and said "The subject proposal is already in Approvals, so I did not file it again". `agent_approvals` had never held a row: its earlier claim had been false (P-3452), and the thread was the only memory it read.
 - rule: before the thread, a run reads as facts the line that woke it (fenced, "answer this first") and its own open proposals from `agent_approvals`, with the plain sentence that nothing else of its own is there (`scripts/workforce/grounding.ts`). Any state an agent may claim (approvals, PRs, decisions) is given to it from the source, never left to the thread.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-grounding.test.ts` → 2 passed; registry `mp-l-grounding-none`, `mp-m-grounding-woke` go red when undone.
+- enforced-by: tests/unit/workforce-grounding.test.ts, registry mp-l-grounding-none, mp-m-grounding-woke
 - added: 2026-10-13
 
 ## P-3455 · A replay under `timeout` that is killed prints no summary, and a chain that only looks for `bad N` reads that as clean

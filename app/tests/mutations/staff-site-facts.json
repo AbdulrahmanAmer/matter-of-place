@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ssf-a-real-price",
+    "test": "tests/unit/workforce-site-facts.test.ts",
+    "file": "scripts/workforce/site-facts.ts",
+    "find": "`- ${item.name}: $${item.price.toLocaleString(\"en-US\")}. ",
+    "replace": "`- ${item.name}: ",
+    "run": "bunx vitest run --project unit tests/unit/workforce-site-facts.test.ts",
+    "expect": "× .*states every product with its real price"
+  },
+  {
+    "id": "ssf-b-no-guess",
+    "test": "tests/unit/workforce-site-facts.test.ts",
+    "file": "scripts/workforce/site-facts.ts",
+    "find": "return `Our site's facts could not be read this cycle",
+    "replace": "return `Our site's facts were read this cycle",
+    "run": "bunx vitest run --project unit tests/unit/workforce-site-facts.test.ts",
+    "expect": "× .*says not to guess a price when the site cannot be read"
+  },
+  {
+    "id": "ssf-c-page-text",
+    "test": "tests/unit/workforce-site-facts.test.ts",
+    "file": "scripts/workforce/site-facts.ts",
+    "find": "    .replace(/<(script|style|noscript|svg)\\b[\\s\\S]*?<\\/\\1>/gi, \"\")\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-site-facts.test.ts",
+    "expect": "× .*keeps the words of the main element"
+  },
+  {
+    "id": "ssf-d-once-a-day",
+    "test": "tests/unit/workforce-site-facts.test.ts",
+    "file": "scripts/workforce/site-facts.ts",
+    "find": "  if (existsSync(stamp) && now - statSync(stamp).mtimeMs < PAGES_EVERY_MS) return 0;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-site-facts.test.ts",
+    "expect": "× .*writes every page into every desk, then not again within a day"
+  }
+]
