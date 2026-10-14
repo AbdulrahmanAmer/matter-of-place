@@ -115,5 +115,14 @@
     "replace": "  return active === 0;",
     "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
     "expect": "× .*opens a task on its start and closes it on its finish"
+  },
+  {
+    "id": "w5-n-moves-when-idle",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  return idle && headNow !== \"\" && headNow !== headAtStart;",
+    "replace": "  return headNow !== \"\" && headNow !== headAtStart;",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*moves only when idle and the runner is on another readable commit"
   }
 ]

@@ -11,6 +11,7 @@ import {
   openTasks,
   postableText,
   readStreamLine,
+  shouldMove,
   shouldRotate,
 } from "../../scripts/matter/live";
 
@@ -160,5 +161,17 @@ describe("a background task keeps the session busy (2026-10-13, a rotation dropp
       true,
       false,
     ]);
+  });
+});
+
+// W5 item 5: an idle live session kept the 12:58 code for three hours (2026-10-13); it now moves when the runner does.
+describe("moving to new runner code", () => {
+  it("moves only when idle and the runner is on another readable commit", () => {
+    expect([
+      shouldMove(true, "b", "a"),
+      shouldMove(false, "b", "a"),
+      shouldMove(true, "a", "a"),
+      shouldMove(true, "", "a"),
+    ]).toEqual([true, false, false, false]);
   });
 });
