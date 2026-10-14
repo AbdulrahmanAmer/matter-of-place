@@ -509,6 +509,7 @@ isOneToOne: false
                   Row: {
                     "body": string,"created_at": string,"entity": string | null,"entity_id": string | null,"from_email": string | null,"from_name": string | null,"id": string,"owner_slug": string | null,"provider_id": string,"received_at": string,"send_id": string | null,"state": string,"subject": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "body"?: string,"created_at"?: string,"entity"?: string | null,"entity_id"?: string | null,"from_email"?: string | null,"from_name"?: string | null,"id"?: string,"owner_slug"?: string | null,"provider_id": string,"received_at": string,"send_id"?: string | null,"state"?: string,"subject"?: string
                   }
