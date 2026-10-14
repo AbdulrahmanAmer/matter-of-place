@@ -123,7 +123,11 @@ function parsedInline(page: string, tag: "script" | "style", marked = false): st
       "tagName" in node &&
       node.tagName === tag &&
       (!marked ||
-        node.attrs.some(({ name, value }) => name === "class" && value.split(" ").includes("$tsr")))
+        node.attrs.some(
+          ({ name, value }) =>
+            (name === "class" && value.split(" ").includes("$tsr")) ||
+            name === "data-tsr-stream-part",
+        ))
     ) {
       found.push(node.childNodes.map((child) => ("value" in child ? child.value : "")).join(""));
     }
@@ -390,7 +394,8 @@ describe("csp-inline-rules", () => {
 
   it("csp-inline-rules: still finds class $tsr on the bootstrap script of a real render of /, and every allowlist entry in it", async () => {
     const page = await renderHome();
-    expect(page).toContain('<script class="$tsr"');
+    // Router 1.170.42 marks its scripts `data-tsr-stream-part`; earlier versions `class="$tsr"`.
+    expect(page).toMatch(/<script (class="\$tsr"|data-tsr-stream-part)/);
     for (const entry of CSP_INLINE_ALLOWLIST) expect(page).toContain(entry);
     expect((await inlineHashes(page)).unexpected).toBe(0);
   });
@@ -416,7 +421,7 @@ describe("csp-inline-rules", () => {
     const page = await renderHome();
     const marked = parsedInline(page, "script", true);
     expect(marked.length).toBeGreaterThan(0);
-    expect(page).toContain(String.fromCharCode(0));
+    // Router 1.170.42 no longer sends NUL in its scripts; the NUL and CRLF case is the fixture test above.
     const found = await inlineHashes(page);
     for (const text of marked) expect(found.scripts).toContain(sha256(text));
     for (const text of parsedInline(page, "style")) expect(found.styles).toContain(sha256(text));
@@ -1625,11 +1630,12 @@ describe("site-layout", () => {
     });
     await router.load();
     const root = createRoot(document);
-    mounted.push(async () => {
-      await act(async () => {
+    // Router 1.170.42: a load after its provider unmounted never settles, so the teardown only unmounts.
+    mounted.push(() => {
+      act(() => {
         root.unmount();
-        await router.load();
       });
+      return Promise.resolve();
     });
     await act(async () => {
       root.render(createElement(RouterProvider, { router }));
