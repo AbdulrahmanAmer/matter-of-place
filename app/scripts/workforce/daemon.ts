@@ -26,6 +26,7 @@ import { askMatter, keepNote, matterInputs, matterPower, matterPrompt } from "..
 import { staffCharterFrom } from "./charter.ts";
 import { childEnv, loadEnvFile, serviceDb as db } from "./env.ts";
 import { knowledgeBlock } from "./knowledge.ts";
+import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
@@ -232,6 +233,8 @@ async function context(
   parts.push(
     `The business right now: ${String(requests.count ?? 0)} new requests, ${String(inquiries.count ?? 0)} inquiries in total, ${String(properties.count ?? 0)} published properties.`,
   );
+  // W5 item 13: our own products, prices and markets, so no reply brackets a price it could have read.
+  parts.push(await readSiteFacts());
   return parts.join("\n\n");
 }
 
@@ -648,6 +651,15 @@ async function pass(client: Db): Promise<void> {
     return 0;
   });
   if (replies > 0) console.log(`${new Date().toISOString()} replies ${String(replies)}`);
+  // W5 item 13: our public pages' text in every desk, once a day, so a colleague can quote the site it works for.
+  const { data: staff } = await client.from("agents").select("slug");
+  const pages = await writeSitePages(
+    (staff ?? []).map(({ slug }) => join(HOME, "desks", slug)),
+  ).catch((failure: unknown) => {
+    console.log(`site pages: ${failure instanceof Error ? failure.message : String(failure)}`);
+    return 0;
+  });
+  if (pages > 0) console.log(`${new Date().toISOString()} site pages ${String(pages)}`);
   const woke = await wakeOnEvents(client);
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
   // Up to five runs a pass, one after another; the scheduled task starts the next pass a minute later.
