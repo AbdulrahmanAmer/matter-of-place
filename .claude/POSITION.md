@@ -1819,3 +1819,19 @@ first day of the new usage week; no step was cut from any plan.
 - Harness: shell-shaper no longer backgrounds read-only commands that name a long tool; quoted text is not split.
 - Matter on W4 (feat/w4-email-replies) running his tests at 16:15 UTC; backend 0 dead jobs, 0 overdue.
 - PR 357 (router API + bundle budget) NOT DONE. Repo is PUBLIC until building is done (operator order).
+
+## 2026-10-14 05:20 +0300 ALL FOUR PRS MERGED AND LIVE (356, 374, 376, 368); W5 ITEMS 5 AND 6 DONE
+- 356 (actions bump) merged after the nested-replay fix; 357 closed as superseded by 368; stray personal-account
+  Worker deleted (operator's word, 2026-10-13).
+- 374 (W4 email replies) merged and deployed; email_replies + email_reply_record on the live database.
+- 376 (live supervisor moves when idle) merged; observed after 368: 4980 exited 05:12:43, 70204 started 05:13:14.
+- 368 (router 1.170.42, start 1.168.61, react-query 5.104.1) merged and deployed. What the upgrade changed: router
+  API (getMatchedRoutes tuple, _serverResult); scripts marked data-tsr-stream-part plus an unmarked stream-boundary
+  script (CSP allowlist); no head for a route that threw notFound (404 page carries its own tags now); react-query
+  ensureQueryData deprecated (query with staleTime static); react-refresh 0.5 (off for route files); script budget
+  176 KiB (ruling H104). Live: home 200 with the new scripts, /no-such-page 404 with description and canonical.
+- W5 19 partly: health run 23:48 UTC has team_waiting=ok; an alert reaching the operator not yet exercised.
+  W5 7, 8, 9: code merged, data flowing (12 activity rows, 9 team lines in 3 days); the screens need the operator's
+  admin sign-in on this browser to be looked at.
+- Waiting outside our hands: weekly allowance reset Saturday 07:00 (items 13, 14, W6); first real listing (11, 15,
+  16); social accounts. Repo still public until the operator switches it back.
