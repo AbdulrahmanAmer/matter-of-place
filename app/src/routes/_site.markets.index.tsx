@@ -8,7 +8,8 @@ import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/markets/")({
-  loader: ({ context: { queryClient } }) => queryClient.ensureQueryData(marketsQuery()),
+  loader: ({ context: { queryClient } }) =>
+    queryClient.query({ ...marketsQuery(), staleTime: "static" }),
   head: ({ loaderData, matches }) =>
     pageHead({
       title: "Markets",

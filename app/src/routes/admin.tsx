@@ -29,10 +29,12 @@ export const Route = createFileRoute("/admin")({
       },
     });
     if (OPEN_PATHS.has(location.pathname.replace(/\/$/, ""))) return { me: null };
-    const me = await context.queryClient.ensureQueryData({
+    // react-query 5.104: `query` with a static stale time is what `ensureQueryData` did, a cached answer when there is
+    // one.
+    const me = await context.queryClient.query({
       queryKey: adminKeys.me(),
       queryFn: fetchMe,
-      staleTime: 60_000,
+      staleTime: "static",
     });
     if (me === null) {
       throw redirect({ to: "/admin/sign-in", search: { next: location.href } });

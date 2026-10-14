@@ -30,7 +30,10 @@ describe("router hydration", () => {
     const browser = getRouter();
     await browser.options.hydrate?.(state);
     const listProperties = vi.spyOn(services.catalog, "listProperties");
-    const answer = await browser.options.context.queryClient.ensureQueryData(propertiesQuery());
+    const answer = await browser.options.context.queryClient.query({
+      ...propertiesQuery(),
+      staleTime: "static",
+    });
     expect({ answer, calls: listProperties.mock.calls.length }).toEqual({
       answer: cards,
       calls: 0,

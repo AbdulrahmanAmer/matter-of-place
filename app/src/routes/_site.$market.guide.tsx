@@ -13,7 +13,7 @@ import { marketGuideDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/$market/guide")({
   loader: async ({ params, context: { queryClient } }) => {
-    const market = await queryClient.ensureQueryData(marketQuery(params.market));
+    const market = await queryClient.query({ ...marketQuery(params.market), staleTime: "static" });
     if (!market) throw notFound();
     return market;
   },

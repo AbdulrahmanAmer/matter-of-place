@@ -27,7 +27,10 @@ export const Route = createFileRoute("/_site/archive/$kind/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
     const kind = archiveKinds.find((candidate) => candidate === params.kind);
     if (kind === undefined) throw notFound();
-    const facet = await queryClient.ensureQueryData(archiveQuery(kind, params.slug));
+    const facet = await queryClient.query({
+      ...archiveQuery(kind, params.slug),
+      staleTime: "static",
+    });
     if (facet === null) throw notFound();
     return facet;
   },

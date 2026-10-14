@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { NotFound } from "../components/layout/not-found";
 import { RouteError } from "../components/layout/route-error";
 import { SiteChrome } from "../components/layout/site-chrome";
-import { siteConfig } from "../config/site";
+import { absoluteUrl, siteConfig } from "../config/site";
 import { ogStaticQuery, siteQuery } from "../lib/queries";
 import { defaultLocale, localeDirection } from "../lib/strings";
 import { ACCESS_BOOTSTRAP } from "../lib/access-bootstrap";
@@ -24,8 +24,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   // `ogStatic` from the same match for every route head): one loader, both shapes.
   loader: async ({ context: { queryClient } }) => {
     const [site, ogStatic] = await Promise.all([
-      queryClient.ensureQueryData(siteQuery()),
-      queryClient.ensureQueryData(ogStaticQuery()),
+      queryClient.query({ ...siteQuery(), staleTime: "static" }),
+      queryClient.query({ ...ogStaticQuery(), staleTime: "static" }),
     ]);
     return { ...site, ogStatic };
   },
@@ -90,6 +90,11 @@ function RootLayout() {
 function PublicNotFound() {
   return (
     <>
+      {/* Router 1.170.42 runs no `head` of a route whose loader threw `notFound`, so the page carries its own
+          description, canonical and noindex (React 19 hoists them), as `unavailableHead` gave it before. */}
+      <meta name="description" content="This page could not be found." />
+      <meta name="robots" content="noindex, nofollow" />
+      <link rel="canonical" href={absoluteUrl("/")} />
       <link rel="stylesheet" href={appCss} precedence="default" />
       <SiteChrome>
         <NotFound />

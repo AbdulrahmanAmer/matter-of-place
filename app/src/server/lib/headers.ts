@@ -169,7 +169,10 @@ export async function inlineHashes(html: string): Promise<PageHashes & { unexpec
     ) {
       continue;
     }
-    const marked = attribute(attrs, "class")?.split(/\s+/).includes("$tsr") === true;
+    // Router 1.170.42 writes its bootstrap and stream scripts as `data-tsr-stream-part`; earlier ones as `class="$tsr"`.
+    const marked =
+      attribute(attrs, "class")?.split(/\s+/).includes("$tsr") === true ||
+      attribute(attrs, "data-tsr-stream-part") !== undefined;
     if (marked || CSP_INLINE_ALLOWLIST.includes(text)) scripts.push(parsedText(text));
     else unexpected += 1;
   }

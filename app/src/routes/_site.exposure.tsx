@@ -12,7 +12,7 @@ import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/exposure")({
   loader: async ({ context: { queryClient } }) =>
-    (await queryClient.ensureQueryData(siteQuery())).products,
+    (await queryClient.query({ ...siteQuery(), staleTime: "static" })).products,
   head: ({ loaderData, matches }) =>
     pageHead({
       title: "Property Exposure",

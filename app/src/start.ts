@@ -23,10 +23,11 @@ let matcher: ReturnType<typeof getRouter> | undefined;
 // router decodes before it matches and `getMatchedRoutes` does not.
 function isApiRoute(pathname: string): boolean {
   matcher ??= getRouter();
-  const { foundRoute, routeParams } = matcher.getMatchedRoutes(pathname);
+  // Router 1.170.41: a tuple of matched routes, raw params and the found route.
+  const [, rawParams, foundRoute] = matcher.getMatchedRoutes(pathname);
   const fullPath: unknown = foundRoute?.fullPath;
   return (
-    typeof fullPath === "string" && fullPath.startsWith("/api/") && routeParams["**"] === undefined
+    typeof fullPath === "string" && fullPath.startsWith("/api/") && rawParams["**"] === undefined
   );
 }
 

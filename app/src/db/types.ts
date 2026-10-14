@@ -11,6 +11,7 @@ export type Database = {
                   Row: {
                     "action": string,"human_only": boolean,"roles": (Database["public"]['Enums']["app_role"])[]
                   }
+                  ComputedFields: never
                   Insert: {
                     "action": string,"human_only": boolean,"roles": (Database["public"]['Enums']["app_role"])[]
                   }
@@ -24,6 +25,7 @@ export type Database = {
                   Row: {
                     "agent_id": string,"finished_at": string | null,"id": string,"label": string,"started_at": string,"state": string,"task_key": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "agent_id": string,"finished_at"?: string | null,"id"?: string,"label": string,"started_at"?: string,"state"?: string,"task_key": string
                   }
@@ -43,6 +45,7 @@ isOneToOne: false
                   Row: {
                     "action": string,"agent_id": string,"content": NonNullable<Json>,"content_hash": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"edited_content": Json | null,"id": string,"reason": string | null,"run_id": string | null,"state": string,"summary": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "action": string,"agent_id": string,"content": NonNullable<Json>,"content_hash": string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"edited_content"?: Json | null,"id"?: string,"reason"?: string | null,"run_id"?: string | null,"state"?: string,"summary": string
                   }
@@ -68,6 +71,7 @@ isOneToOne: false
                   Row: {
                     "checked_at": string | null,"created_at": string,"decision": string,"due_on": string,"id": string,"meeting_on": string,"metric": string,"owner_id": string,"status": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "checked_at"?: string | null,"created_at"?: string,"decision": string,"due_on": string,"id"?: string,"meeting_on": string,"metric": string,"owner_id": string,"status"?: string
                   }
@@ -87,6 +91,7 @@ isOneToOne: false
                   Row: {
                     "agent_id": string,"approval_id": string | null,"created_at": string,"id": string,"instructions": string,"reason": string,"version": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "agent_id": string,"approval_id"?: string | null,"created_at"?: string,"id"?: string,"instructions": string,"reason": string,"version": number
                   }
@@ -112,6 +117,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"id": string,"key_hash": string,"label": string,"last_used_at": string | null,"revoked_at": string | null,"scopes": (string)[],"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"id"?: string,"key_hash": string,"label": string,"last_used_at"?: string | null,"revoked_at"?: string | null,"scopes"?: (string)[],"user_id": string
                   }
@@ -125,6 +131,7 @@ isOneToOne: false
                   Row: {
                     "action": string,"agent_id": string | null,"created_at": string,"evidence_ref": string,"id": string,"last_used_at": string | null,"source": string,"status": string,"trigger": string,"uses": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "action": string,"agent_id"?: string | null,"created_at"?: string,"evidence_ref": string,"id"?: string,"last_used_at"?: string | null,"source": string,"status"?: string,"trigger": string,"uses"?: number
                   }
@@ -144,6 +151,7 @@ isOneToOne: false
                   Row: {
                     "author_id": string,"author_kind": string,"author_name": string,"body": string,"created_at": string,"id": string,"thread": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "author_id": string,"author_kind": string,"author_name": string,"body": string,"created_at"?: string,"id"?: string,"thread": string
                   }
@@ -157,6 +165,7 @@ isOneToOne: false
                   Row: {
                     "agent_id": string,"cause": string,"cost_microusd": number,"created_at": string,"error": string | null,"event_id": string | null,"finished_at": string | null,"id": string,"input_tokens": number,"lease_until": string | null,"lessons_used": (string)[],"message_id": string | null,"output_tokens": number,"session_id": string | null,"started_at": string | null,"state": string,"summary": string | null,"turns": number,"worker": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "agent_id": string,"cause": string,"cost_microusd"?: number,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"input_tokens"?: number,"lease_until"?: string | null,"lessons_used"?: (string)[],"message_id"?: string | null,"output_tokens"?: number,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
                   }
@@ -182,6 +191,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"created_by": string | null,"current_task": string | null,"id": string,"instructions": string,"last_seen_at": string | null,"model": string,"name": string,"role": string,"slug": string,"state": string,"tools": (string)[],"wake_on": (string)[]
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"created_by"?: string | null,"current_task"?: string | null,"id"?: string,"instructions"?: string,"last_seen_at"?: string | null,"model"?: string,"name": string,"role": string,"slug": string,"state"?: string,"tools"?: (string)[],"wake_on"?: (string)[]
                   }
@@ -195,6 +205,7 @@ isOneToOne: false
                   Row: {
                     "day": string,"dim": string,"event": string,"events": number,"p75": number | null,"path": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "day": string,"dim"?: string,"event": string,"events": number,"p75"?: number | null,"path": string
                   }
@@ -208,6 +219,7 @@ isOneToOne: false
                   Row: {
                     "data": NonNullable<Json>,"event": string,"id": number,"occurred_at": string,"path": string,"received_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "data"?: NonNullable<Json>,"event": string,"id"?: never,"occurred_at": string,"path": string,"received_at"?: string
                   }
@@ -221,6 +233,7 @@ isOneToOne: false
                   Row: {
                     "data": NonNullable<Json>,"event": string,"id": number,"occurred_at": string,"path": string,"received_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "data"?: NonNullable<Json>,"event": string,"id"?: never,"occurred_at": string,"path": string,"received_at"?: string
                   }
@@ -234,6 +247,7 @@ isOneToOne: false
                   Row: {
                     "data": NonNullable<Json>,"event": string,"id": number,"occurred_at": string,"path": string,"received_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "data"?: NonNullable<Json>,"event": string,"id"?: never,"occurred_at": string,"path": string,"received_at"?: string
                   }
@@ -247,6 +261,7 @@ isOneToOne: false
                   Row: {
                     "data": NonNullable<Json>,"event": string,"id": number,"occurred_at": string,"path": string,"received_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "data"?: NonNullable<Json>,"event": string,"id"?: never,"occurred_at": string,"path": string,"received_at"?: string
                   }
@@ -260,6 +275,7 @@ isOneToOne: false
                   Row: {
                     "data": NonNullable<Json>,"event": string,"id": number,"occurred_at": string,"path": string,"received_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "data"?: NonNullable<Json>,"event": string,"id"?: never,"occurred_at": string,"path": string,"received_at"?: string
                   }
@@ -273,6 +289,7 @@ isOneToOne: false
                   Row: {
                     "alt_text": string | null,"approved_at": string | null,"approved_by": string | null,"caption": string | null,"created_at": string,"files": NonNullable<Json>,"id": string,"job_id": string | null,"kind": Database["public"]['Enums']["asset_kind"],"meta": NonNullable<Json>,"property_id": string,"rejection_note": string | null,"render_error": string | null,"revision": number,"status": Database["public"]['Enums']["asset_status"],"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "alt_text"?: string | null,"approved_at"?: string | null,"approved_by"?: string | null,"caption"?: string | null,"created_at"?: string,"files"?: NonNullable<Json>,"id"?: string,"job_id"?: string | null,"kind": Database["public"]['Enums']["asset_kind"],"meta"?: NonNullable<Json>,"property_id": string,"rejection_note"?: string | null,"render_error"?: string | null,"revision"?: number,"status"?: Database["public"]['Enums']["asset_status"],"updated_at"?: string
                   }
@@ -304,6 +321,7 @@ isOneToOne: false
                   Row: {
                     "action": string,"actor_id": string | null,"actor_kind": Database["public"]['Enums']["actor_kind"] | null,"after": Json | null,"at": string,"before": Json | null,"entity": string,"entity_id": string | null,"id": number,"note": string | null,"request_id": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "action": string,"actor_id"?: string | null,"actor_kind"?: Database["public"]['Enums']["actor_kind"] | null,"after"?: Json | null,"at"?: string,"before"?: Json | null,"entity": string,"entity_id"?: string | null,"id"?: never,"note"?: string | null,"request_id"?: string | null
                   }
@@ -317,6 +335,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"enabled": boolean,"id": string,"name": string,"steps": NonNullable<Json>,"trigger": string,"updated_at": string,"version": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"enabled"?: boolean,"id"?: string,"name": string,"steps"?: NonNullable<Json>,"trigger": string,"updated_at"?: string,"version"?: number
                   }
@@ -330,6 +349,7 @@ isOneToOne: false
                   Row: {
                     "actor_id": string | null,"actor_kind": Database["public"]['Enums']["actor_kind"] | null,"after": Json | null,"at": string,"before": Json | null,"id": string,"note": string | null,"row_id": string,"table_name": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "actor_id"?: string | null,"actor_kind"?: Database["public"]['Enums']["actor_kind"] | null,"after"?: Json | null,"at"?: string,"before"?: Json | null,"id"?: string,"note"?: string | null,"row_id": string,"table_name": string
                   }
@@ -343,6 +363,7 @@ isOneToOne: false
                   Row: {
                     "campaign_id": string,"channel_mix": NonNullable<Json>,"clicks": number,"created_at": string,"ctr": number | null,"geography": NonNullable<Json>,"id": string,"impressions": number,"media_spend": number,"owned_distribution": NonNullable<Json>,"period_end": string,"period_start": string,"reach": number,"top_creative": string | null,"updated_at": string,"video_views": number | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "campaign_id": string,"channel_mix"?: NonNullable<Json>,"clicks"?: number,"created_at"?: string,"ctr"?: number | null,"geography"?: NonNullable<Json>,"id"?: string,"impressions"?: number,"media_spend"?: number,"owned_distribution"?: NonNullable<Json>,"period_end": string,"period_start": string,"reach"?: number,"top_creative"?: string | null,"updated_at"?: string,"video_views"?: number | null
                   }
@@ -362,6 +383,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"ends_on": string | null,"featured_status": Database["public"]['Enums']["channel_status"],"homepage_status": Database["public"]['Enums']["channel_status"],"id": string,"management_fee": number | null,"media_budget": number,"newsletter_status": Database["public"]['Enums']["channel_status"],"package": Database["public"]['Enums']["exposure_package"],"payment_id": string,"programmatic_status": Database["public"]['Enums']["channel_status"],"property_id": string,"social_status": Database["public"]['Enums']["channel_status"],"starts_on": string | null,"submission_id": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"ends_on"?: string | null,"featured_status"?: Database["public"]['Enums']["channel_status"],"homepage_status"?: Database["public"]['Enums']["channel_status"],"id"?: string,"management_fee"?: never,"media_budget"?: number,"newsletter_status"?: Database["public"]['Enums']["channel_status"],"package": Database["public"]['Enums']["exposure_package"],"payment_id": string,"programmatic_status"?: Database["public"]['Enums']["channel_status"],"property_id": string,"social_status"?: Database["public"]['Enums']["channel_status"],"starts_on"?: string | null,"submission_id"?: string | null,"updated_at"?: string
                   }
@@ -411,6 +433,7 @@ isOneToOne: false
                   Row: {
                     "approval_mode": NonNullable<Json>,"auto_after": string | null,"channel": string,"created_at": string,"credentials_ref": string | null,"enabled": boolean,"id": string,"posting_window": NonNullable<Json>,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "approval_mode"?: NonNullable<Json>,"auto_after"?: string | null,"channel": string,"created_at"?: string,"credentials_ref"?: string | null,"enabled"?: boolean,"id"?: string,"posting_window": NonNullable<Json>,"updated_at"?: string
                   }
@@ -424,6 +447,7 @@ isOneToOne: false
                   Row: {
                     "archived_at": string | null,"brokerage": string | null,"created_at": string,"email": string,"id": string,"kind": Database["public"]['Enums']["submitter_kind"],"name": string,"notes": string | null,"phone": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "archived_at"?: string | null,"brokerage"?: string | null,"created_at"?: string,"email": string,"id"?: string,"kind": Database["public"]['Enums']["submitter_kind"],"name": string,"notes"?: string | null,"phone"?: string | null,"updated_at"?: string
                   }
@@ -437,6 +461,7 @@ isOneToOne: false
                   Row: {
                     "code": string,"created_at": string,"email_paragraph": string,"enabled": boolean,"id": string,"label": string,"sort": number,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "code": string,"created_at"?: string,"email_paragraph": string,"enabled"?: boolean,"id"?: string,"label": string,"sort"?: number,"updated_at"?: string
                   }
@@ -450,6 +475,7 @@ isOneToOne: false
                   Row: {
                     "at": string,"broadcast_id": string | null,"data": NonNullable<Json>,"id": number,"provider_event_id": string,"resend_email_id": string | null,"to_email": string | null,"type": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "at": string,"broadcast_id"?: string | null,"data"?: NonNullable<Json>,"id"?: never,"provider_event_id": string,"resend_email_id"?: string | null,"to_email"?: string | null,"type": string
                   }
@@ -463,6 +489,7 @@ isOneToOne: false
                   Row: {
                     "content_hash": string | null,"created_at": string,"delivered_at": string | null,"entity": string | null,"entity_id": string | null,"error": string | null,"id": string,"job_id": string | null,"kind": string,"resend_id": string | null,"sent_at": string | null,"status": string,"subject": string | null,"template_key": string,"to_email": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "content_hash"?: string | null,"created_at"?: string,"delivered_at"?: string | null,"entity"?: string | null,"entity_id"?: string | null,"error"?: string | null,"id"?: string,"job_id"?: string | null,"kind": string,"resend_id"?: string | null,"sent_at"?: string | null,"status"?: string,"subject"?: string | null,"template_key": string,"to_email"?: string | null
                   }
@@ -482,6 +509,7 @@ isOneToOne: false
                   Row: {
                     "body": string,"created_at": string,"entity": string | null,"entity_id": string | null,"from_email": string | null,"from_name": string | null,"id": string,"owner_slug": string | null,"provider_id": string,"received_at": string,"send_id": string | null,"state": string,"subject": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "body"?: string,"created_at"?: string,"entity"?: string | null,"entity_id"?: string | null,"from_email"?: string | null,"from_name"?: string | null,"id"?: string,"owner_slug"?: string | null,"provider_id": string,"received_at": string,"send_id"?: string | null,"state"?: string,"subject"?: string
                   }
@@ -501,6 +529,7 @@ isOneToOne: false
                   Row: {
                     "at": string,"email": string,"reason": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "at"?: string,"email": string,"reason": string
                   }
@@ -514,6 +543,7 @@ isOneToOne: false
                   Row: {
                     "body": NonNullable<Json>,"class": string,"created_at": string,"enabled": boolean,"id": string,"key": string,"preheader": string,"subject": string,"updated_at": string,"variables": (string)[],"version": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "body": NonNullable<Json>,"class": string,"created_at"?: string,"enabled"?: boolean,"id"?: string,"key": string,"preheader"?: string,"subject": string,"updated_at"?: string,"variables"?: (string)[],"version"?: number
                   }
@@ -527,6 +557,7 @@ isOneToOne: false
                   Row: {
                     "attempts": number,"event_id": string,"last_error": string | null,"next_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "attempts": number,"event_id": string,"last_error"?: string | null,"next_at": string
                   }
@@ -546,6 +577,7 @@ isOneToOne: true
                   Row: {
                     "actor_id": string | null,"at": string,"entity": string | null,"entity_id": string | null,"id": string,"payload": NonNullable<Json>,"processed_at": string | null,"type": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "actor_id"?: string | null,"at"?: string,"entity"?: string | null,"entity_id"?: string | null,"id"?: string,"payload"?: NonNullable<Json>,"processed_at"?: string | null,"type": string
                   }
@@ -559,6 +591,7 @@ isOneToOne: true
                   Row: {
                     "anonymised_at": string | null,"assigned_to": string | null,"attribution": NonNullable<Json>,"details": NonNullable<Json>,"email": string,"forwarded_at": string | null,"forwarded_payload": Json | null,"id": string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash": string | null,"location": string | null,"message": string,"name": string,"phone": string | null,"received_at": string,"source_path": string,"state": Database["public"]['Enums']["inquiry_state"],"subject_kind": string | null,"subject_slug": string | null,"subject_title": string | null,"topic": string | null,"turnstile_ok": boolean
                   }
+                  ComputedFields: never
                   Insert: {
                     "anonymised_at"?: string | null,"assigned_to"?: string | null,"attribution"?: NonNullable<Json>,"details"?: NonNullable<Json>,"email": string,"forwarded_at"?: string | null,"forwarded_payload"?: Json | null,"id"?: string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash"?: string | null,"location"?: string | null,"message": string,"name": string,"phone"?: string | null,"received_at"?: string,"source_path": string,"state"?: Database["public"]['Enums']["inquiry_state"],"subject_kind"?: string | null,"subject_slug"?: string | null,"subject_title"?: string | null,"topic"?: string | null,"turnstile_ok"?: boolean
                   }
@@ -572,6 +605,7 @@ isOneToOne: true
                   Row: {
                     "last": number,"year": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "last": number,"year": number
                   }
@@ -585,6 +619,7 @@ isOneToOne: true
                   Row: {
                     "actor_id": string | null,"at": string,"attempt": number | null,"data": Json | null,"from_status": Database["public"]['Enums']["job_status"] | null,"id": number,"job_id": string,"kind": string,"message": string | null,"to_status": Database["public"]['Enums']["job_status"] | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "actor_id"?: string | null,"at"?: string,"attempt"?: number | null,"data"?: Json | null,"from_status"?: Database["public"]['Enums']["job_status"] | null,"id"?: never,"job_id": string,"kind": string,"message"?: string | null,"to_status"?: Database["public"]['Enums']["job_status"] | null
                   }
@@ -604,6 +639,7 @@ isOneToOne: false
                   Row: {
                     "attempts": number,"created_at": string,"error": string | null,"event_id": string | null,"finished_at": string | null,"heavy": boolean,"id": string,"idempotency_key": string,"locked_at": string | null,"locked_by": string | null,"max_attempts": number,"msg_id": number | null,"payload": NonNullable<Json>,"recipe_id": string | null,"result": Json | null,"run_after": string,"run_local": boolean,"status": Database["public"]['Enums']["job_status"],"step_id": string | null,"type": string,"updated_at": string,"job_event_entity_id": string | null
                   }
+                  ComputedFields: "job_event_entity_id"
                   Insert: {
                     "attempts"?: number,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"heavy"?: boolean,"id"?: string,"idempotency_key": string,"locked_at"?: string | null,"locked_by"?: string | null,"max_attempts"?: number,"msg_id"?: number | null,"payload"?: NonNullable<Json>,"recipe_id"?: string | null,"result"?: Json | null,"run_after"?: string,"run_local"?: boolean,"status"?: Database["public"]['Enums']["job_status"],"step_id"?: string | null,"type": string,"updated_at"?: string
                   }
@@ -629,6 +665,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"id": string,"label": string,"market_slug": string,"region_slug": string | null,"section": string,"sort_order": number,"text": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"id"?: string,"label": string,"market_slug": string,"region_slug"?: string | null,"section": string,"sort_order"?: number,"text": string,"updated_at"?: string
                   }
@@ -654,6 +691,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"id": string,"label": string,"market_slug": string,"sort_order": number,"text": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"id"?: string,"label": string,"market_slug": string,"sort_order"?: number,"text": string,"updated_at"?: string
                   }
@@ -673,6 +711,7 @@ isOneToOne: false
                   Row: {
                     "coming_soon": boolean,"country": string,"created_at": string,"currency": string,"image": string | null,"image_variants": NonNullable<Json>,"interest_copy": string | null,"intro": string,"name": string,"places": (string)[],"slug": string,"sort_order": number,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "coming_soon"?: boolean,"country": string,"created_at"?: string,"currency"?: string,"image"?: string | null,"image_variants"?: NonNullable<Json>,"interest_copy"?: string | null,"intro": string,"name": string,"places"?: (string)[],"slug": string,"sort_order"?: number,"updated_at"?: string
                   }
@@ -686,6 +725,7 @@ isOneToOne: false
                   Row: {
                     "pushed_at": string,"sha256": string,"version": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "pushed_at"?: string,"sha256": string,"version": string
                   }
@@ -699,6 +739,7 @@ isOneToOne: false
                   Row: {
                     "approval_count": number,"approved_by": string | null,"blocks": NonNullable<Json>,"created_at": string,"id": string,"metrics": NonNullable<Json>,"number": number,"preheader": string | null,"resend_broadcast_id": string | null,"scheduled_for": string | null,"send_error": string | null,"sent_at": string | null,"status": string,"subject": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "approval_count"?: number,"approved_by"?: string | null,"blocks"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"metrics"?: NonNullable<Json>,"number": number,"preheader"?: string | null,"resend_broadcast_id"?: string | null,"scheduled_for"?: string | null,"send_error"?: string | null,"sent_at"?: string | null,"status"?: string,"subject"?: string | null,"updated_at"?: string
                   }
@@ -712,6 +753,7 @@ isOneToOne: false
                   Row: {
                     "at": string,"detail": Json | null,"name": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "at": string,"detail"?: Json | null,"name": string
                   }
@@ -725,6 +767,7 @@ isOneToOne: false
                   Row: {
                     "amount": number,"created_at": string,"currency": string,"due_at": string | null,"id": string,"invoice_file_key": string | null,"invoice_number": string | null,"invoice_snapshot": Json | null,"issued_at": string | null,"issued_by": string | null,"method": Database["public"]['Enums']["payment_method"],"notes": string | null,"paid_at": string | null,"paid_marked_by": string | null,"paid_method": string | null,"paid_reference": string | null,"preferred_method": string | null,"product": Database["public"]['Enums']["exposure_package"],"property_id": string | null,"status": Database["public"]['Enums']["payment_status"],"stripe_payment_intent": string | null,"submission_id": string,"updated_at": string,"waived_by": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "amount": number,"created_at"?: string,"currency"?: string,"due_at"?: string | null,"id"?: string,"invoice_file_key"?: string | null,"invoice_number"?: string | null,"invoice_snapshot"?: Json | null,"issued_at"?: string | null,"issued_by"?: string | null,"method"?: Database["public"]['Enums']["payment_method"],"notes"?: string | null,"paid_at"?: string | null,"paid_marked_by"?: string | null,"paid_method"?: string | null,"paid_reference"?: string | null,"preferred_method"?: string | null,"product": Database["public"]['Enums']["exposure_package"],"property_id"?: string | null,"status"?: Database["public"]['Enums']["payment_status"],"stripe_payment_intent"?: string | null,"submission_id": string,"updated_at"?: string,"waived_by"?: string | null
                   }
@@ -762,6 +805,7 @@ isOneToOne: false
                   Row: {
                     "column_name": string,"table_name": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "column_name": string,"table_name": string
                   }
@@ -775,6 +819,7 @@ isOneToOne: false
                   Row: {
                     "address": string,"architect": string | null,"archived_at": string | null,"baths": number | null,"beds": number | null,"campaign_tier": Database["public"]['Enums']["campaign_tier"],"city": string,"coordinates": unknown,"country": string | null,"created_at": string,"created_by": string | null,"currency": string,"designer": string | null,"editorial_state": Database["public"]['Enums']["editorial_state"],"featured_rank": number | null,"first_published_at": string | null,"hero_image": string | null,"hero_rank": number | null,"id": string,"interior_sq_ft": number | null,"listing_url": string | null,"lot_acres": number | null,"market_slug": string,"neighborhood": string | null,"og_image_key": string | null,"place": string | null,"presented_by_owner": boolean,"preview_nonce": string,"price": number | null,"published_at": string | null,"region_slug": string | null,"representative_id": string | null,"search_text": unknown,"slug": string,"source": Database["public"]['Enums']["submission_source"],"state": string,"status": Database["public"]['Enums']["listing_status"],"story": (string)[],"style": string | null,"submission_id": string | null,"taken_down_at": string | null,"title": string,"type": Database["public"]['Enums']["property_type"],"unpublish_reason": string | null,"unpublished_at": string | null,"updated_at": string,"updated_by": string | null,"version": number,"video": Json | null,"year_built": number | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "address": string,"architect"?: string | null,"archived_at"?: string | null,"baths"?: number | null,"beds"?: number | null,"campaign_tier"?: Database["public"]['Enums']["campaign_tier"],"city": string,"coordinates"?: unknown,"country"?: string | null,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"designer"?: string | null,"editorial_state"?: Database["public"]['Enums']["editorial_state"],"featured_rank"?: number | null,"first_published_at"?: string | null,"hero_image"?: string | null,"hero_rank"?: number | null,"id"?: string,"interior_sq_ft"?: number | null,"listing_url"?: string | null,"lot_acres"?: number | null,"market_slug": string,"neighborhood"?: string | null,"og_image_key"?: string | null,"place"?: string | null,"presented_by_owner"?: boolean,"preview_nonce"?: string,"price"?: number | null,"published_at"?: string | null,"region_slug"?: string | null,"representative_id"?: string | null,"search_text"?: never,"slug": string,"source"?: Database["public"]['Enums']["submission_source"],"state": string,"status"?: Database["public"]['Enums']["listing_status"],"story"?: (string)[],"style"?: string | null,"submission_id"?: string | null,"taken_down_at"?: string | null,"title": string,"type": Database["public"]['Enums']["property_type"],"unpublish_reason"?: string | null,"unpublished_at"?: string | null,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"video"?: Json | null,"year_built"?: number | null
                   }
@@ -818,6 +863,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"feature": string,"property_id": string,"sort_order": number,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"feature": string,"property_id": string,"sort_order"?: number,"updated_at"?: string
                   }
@@ -843,6 +889,7 @@ isOneToOne: false
                   Row: {
                     "alt": string | null,"created_at": string,"id": string,"media_key": string | null,"orientation": Database["public"]['Enums']["media_orientation"] | null,"property_id": string,"render_job_id": string | null,"sort_order": number,"staging_path": string | null,"updated_at": string,"variants": NonNullable<Json>
                   }
+                  ComputedFields: never
                   Insert: {
                     "alt"?: string | null,"created_at"?: string,"id"?: string,"media_key"?: string | null,"orientation"?: Database["public"]['Enums']["media_orientation"] | null,"property_id": string,"render_job_id"?: string | null,"sort_order"?: number,"staging_path"?: string | null,"updated_at"?: string,"variants"?: NonNullable<Json>
                   }
@@ -868,6 +915,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"property_id": string,"related_slug": string,"sort_order": number,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"property_id": string,"related_slug": string,"sort_order"?: number,"updated_at"?: string
                   }
@@ -893,6 +941,7 @@ isOneToOne: false
                   Row: {
                     "at": string,"bucket": string,"id": number,"key_hash": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "at"?: string,"bucket": string,"id"?: never,"key_hash": string
                   }
@@ -906,6 +955,7 @@ isOneToOne: false
                   Row: {
                     "archived_at": string | null,"created_at": string,"created_by": string | null,"enabled": boolean,"from_path": string,"id": string,"note": string | null,"status": number,"to_path": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "archived_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"enabled"?: boolean,"from_path": string,"id"?: string,"note"?: string | null,"status"?: number,"to_path": string,"updated_at"?: string
                   }
@@ -919,6 +969,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"image": string | null,"image_variants": NonNullable<Json>,"intro": string,"market_slug": string,"name": string,"places": (string)[],"slug": string,"sort_order": number,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"image"?: string | null,"image_variants"?: NonNullable<Json>,"intro": string,"market_slug": string,"name": string,"places"?: (string)[],"slug": string,"sort_order"?: number,"updated_at"?: string
                   }
@@ -938,6 +989,7 @@ isOneToOne: false
                   Row: {
                     "brokerage": string,"created_at": string,"email": string | null,"id": string,"license": string | null,"name": string,"phone": string | null,"photo": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "brokerage": string,"created_at"?: string,"email"?: string | null,"id"?: string,"license"?: string | null,"name": string,"phone"?: string | null,"photo"?: string | null,"updated_at"?: string
                   }
@@ -951,6 +1003,7 @@ isOneToOne: false
                   Row: {
                     "action": string,"enabled": boolean,"keep_for": string | null,"key": string,"last_count": number | null,"last_run_at": string | null,"note": string | null,"table_name": string,"updated_at": string,"updated_by": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "action": string,"enabled"?: boolean,"keep_for"?: string | null,"key": string,"last_count"?: number | null,"last_run_at"?: string | null,"note"?: string | null,"table_name": string,"updated_at"?: string,"updated_by"?: string | null
                   }
@@ -964,6 +1017,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"cron": string,"enabled": boolean,"id": string,"interval_days": number | null,"key": string,"last_run_at": string | null,"next_run_at": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"cron": string,"enabled"?: boolean,"id"?: string,"interval_days"?: number | null,"key": string,"last_run_at"?: string | null,"next_run_at"?: string | null,"updated_at"?: string
                   }
@@ -977,6 +1031,7 @@ isOneToOne: false
                   Row: {
                     "key": string,"updated_at": string,"updated_by": string | null,"value": NonNullable<Json>
                   }
+                  ComputedFields: never
                   Insert: {
                     "key": string,"updated_at"?: string,"updated_by"?: string | null,"value": NonNullable<Json>
                   }
@@ -990,6 +1045,7 @@ isOneToOne: false
                   Row: {
                     "changed_at": string,"property_id": string,"slug": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "changed_at"?: string,"property_id": string,"slug": string
                   }
@@ -1015,6 +1071,7 @@ isOneToOne: false
                   Row: {
                     "asset_id": string,"channel": string,"created_at": string,"error": string | null,"id": string,"metrics": NonNullable<Json>,"permalink": string | null,"posted_at": string | null,"property_id": string,"remote_id": string | null,"scheduled_at": string,"status": Database["public"]['Enums']["social_post_status"],"updated_at": string,"withdraw_required_at": string | null,"withdrawn_at": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "asset_id": string,"channel": string,"created_at"?: string,"error"?: string | null,"id"?: string,"metrics"?: NonNullable<Json>,"permalink"?: string | null,"posted_at"?: string | null,"property_id": string,"remote_id"?: string | null,"scheduled_at": string,"status"?: Database["public"]['Enums']["social_post_status"],"updated_at"?: string,"withdraw_required_at"?: string | null,"withdrawn_at"?: string | null
                   }
@@ -1046,6 +1103,7 @@ isOneToOne: false
                   Row: {
                     "archived_at": string | null,"author_id": string | null,"body": (string)[],"category": Database["public"]['Enums']["story_category"],"created_at": string,"deck": string,"editorial_state": Database["public"]['Enums']["editorial_state"],"id": string,"image": string | null,"image_variants": NonNullable<Json>,"market_slug": string,"properties": (string)[],"published_at": string | null,"slug": string,"title": string,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "archived_at"?: string | null,"author_id"?: string | null,"body"?: (string)[],"category": Database["public"]['Enums']["story_category"],"created_at"?: string,"deck": string,"editorial_state"?: Database["public"]['Enums']["editorial_state"],"id"?: string,"image"?: string | null,"image_variants"?: NonNullable<Json>,"market_slug": string,"properties"?: (string)[],"published_at"?: string | null,"slug": string,"title": string,"updated_at"?: string
                   }
@@ -1065,6 +1123,7 @@ isOneToOne: false
                   Row: {
                     "created_at": string,"due_at": string | null,"email": string,"fulfilled_at": string | null,"handled_by": string | null,"id": string,"ip_hash": string | null,"kind": string,"note": string | null,"received_at": string,"status": string,"turnstile_ok": boolean,"updated_at": string,"verified_at": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "created_at"?: string,"due_at"?: never,"email": string,"fulfilled_at"?: string | null,"handled_by"?: string | null,"id"?: string,"ip_hash"?: string | null,"kind": string,"note"?: string | null,"received_at"?: string,"status"?: string,"turnstile_ok"?: boolean,"updated_at"?: string,"verified_at"?: string | null
                   }
@@ -1078,6 +1137,7 @@ isOneToOne: false
                   Row: {
                     "bytes": number | null,"id": string,"mime": string | null,"name": string,"sha256": string | null,"sort_order": number,"storage_path": string,"submission_id": string,"uploaded_at": string | null
                   }
+                  ComputedFields: never
                   Insert: {
                     "bytes"?: number | null,"id"?: string,"mime"?: string | null,"name": string,"sha256"?: string | null,"sort_order"?: number,"storage_path": string,"submission_id": string,"uploaded_at"?: string | null
                   }
@@ -1103,6 +1163,7 @@ isOneToOne: false
                   Row: {
                     "accepted_at": string | null,"accepted_by": string | null,"activated_at": string | null,"activated_by": string | null,"address": string,"architect": string | null,"baths": number | null,"beds": number | null,"brokerage": string | null,"city": string,"contact_id": string | null,"currency": string,"decline_note": string | null,"decline_reason_id": string | null,"designer": string | null,"duplicate_of": string | null,"id": string,"interior_sq_ft": number | null,"ip_hash": string | null,"listed_with_agent": boolean | null,"listing_agent_brokerage": string | null,"listing_agent_name": string | null,"listing_url": string | null,"media_budget": number | null,"notes": (Json)[],"package": Database["public"]['Enums']["exposure_package"],"photography_url": string | null,"price": number | null,"property_id": string | null,"property_type": Database["public"]['Enums']["property_type"],"received_at": string,"reviewed_at": string | null,"reviewed_by": string | null,"rights_confirmed_at": string,"rights_ip_hash": string,"rights_version": string,"significance": string,"source_path": string,"source_url": string | null,"state": Database["public"]['Enums']["accepted_state"],"story": string,"submitter_email": string,"submitter_kind": Database["public"]['Enums']["submitter_kind"],"submitter_name": string,"submitter_phone": string | null,"turnstile_ok": boolean,"updated_at": string,"video_url": string | null,"workflow_state": Database["public"]['Enums']["submission_state"],"year_built": number | null,"year_renovated": number | null,"zip": string,"submission_event_payload": Json | null
                   }
+                  ComputedFields: "submission_event_payload"
                   Insert: {
                     "accepted_at"?: string | null,"accepted_by"?: string | null,"activated_at"?: string | null,"activated_by"?: string | null,"address": string,"architect"?: string | null,"baths"?: number | null,"beds"?: number | null,"brokerage"?: string | null,"city": string,"contact_id"?: string | null,"currency"?: string,"decline_note"?: string | null,"decline_reason_id"?: string | null,"designer"?: string | null,"duplicate_of"?: string | null,"id"?: string,"interior_sq_ft"?: number | null,"ip_hash"?: string | null,"listed_with_agent"?: boolean | null,"listing_agent_brokerage"?: string | null,"listing_agent_name"?: string | null,"listing_url"?: string | null,"media_budget"?: number | null,"notes"?: (Json)[],"package": Database["public"]['Enums']["exposure_package"],"photography_url"?: string | null,"price"?: number | null,"property_id"?: string | null,"property_type": Database["public"]['Enums']["property_type"],"received_at"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"rights_confirmed_at": string,"rights_ip_hash": string,"rights_version": string,"significance": string,"source_path": string,"source_url"?: string | null,"state": Database["public"]['Enums']["accepted_state"],"story": string,"submitter_email": string,"submitter_kind": Database["public"]['Enums']["submitter_kind"],"submitter_name": string,"submitter_phone"?: string | null,"turnstile_ok"?: boolean,"updated_at"?: string,"video_url"?: string | null,"workflow_state"?: Database["public"]['Enums']["submission_state"],"year_built"?: number | null,"year_renovated"?: number | null,"zip": string
                   }
@@ -1152,6 +1213,7 @@ isOneToOne: false
                   Row: {
                     "archived_at": string | null,"confirm_token_at": string | null,"confirm_token_hash": string | null,"confirmed_at": string | null,"created_at": string,"email": string,"id": string,"last_engaged_at": string | null,"markets": (string)[],"pending_source": string | null,"repermission_sent_at": string | null,"resend_contact_id": string | null,"source": string,"unsubscribed_at": string | null,"updated_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "archived_at"?: string | null,"confirm_token_at"?: string | null,"confirm_token_hash"?: string | null,"confirmed_at"?: string | null,"created_at"?: string,"email": string,"id"?: string,"last_engaged_at"?: string | null,"markets"?: (string)[],"pending_source"?: string | null,"repermission_sent_at"?: string | null,"resend_contact_id"?: string | null,"source": string,"unsubscribed_at"?: string | null,"updated_at"?: string
                   }
@@ -1165,6 +1227,7 @@ isOneToOne: false
                   Row: {
                     "actor_kind": Database["public"]['Enums']["actor_kind"],"created_at": string,"disabled_at": string | null,"display_name": string | null,"id": string,"role": Database["public"]['Enums']["app_role"],"updated_at": string,"user_id": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "actor_kind"?: Database["public"]['Enums']["actor_kind"],"created_at"?: string,"disabled_at"?: string | null,"display_name"?: string | null,"id"?: string,"role": Database["public"]['Enums']["app_role"],"updated_at"?: string,"user_id": string
                   }
@@ -1178,6 +1241,7 @@ isOneToOne: false
                   Row: {
                     "limit_value": number | null,"line": string,"measured_at": string,"note": string | null,"used": number
                   }
+                  ComputedFields: never
                   Insert: {
                     "limit_value"?: number | null,"line": string,"measured_at": string,"note"?: string | null,"used": number
                   }
@@ -1191,6 +1255,7 @@ isOneToOne: false
                   Row: {
                     "id": string,"provider": string,"received_at": string
                   }
+                  ComputedFields: never
                   Insert: {
                     "id": string,"provider": string,"received_at"?: string
                   }
@@ -1207,6 +1272,7 @@ isOneToOne: false
                   Row: {
                     "kind": string | null,"label": string | null,"property_count": number | null,"slug": string | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     
                   ]
@@ -1214,6 +1280,7 @@ isOneToOne: false
                   Row: {
                     "count": number | null,"workflow_state": Database["public"]['Enums']["submission_state"] | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     
                   ]
@@ -1221,6 +1288,7 @@ isOneToOne: false
                   Row: {
                     "amount": number | null,"days_open": number | null,"due_at": string | null,"id": string | null,"invoice_number": string | null,"issued_at": string | null,"overdue": boolean | null,"paid_at": string | null,"product": Database["public"]['Enums']["exposure_package"] | null,"status": Database["public"]['Enums']["payment_status"] | null,"submission_id": string | null,"submitter_email": string | null,"submitter_name": string | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     {
       foreignKeyName: "payments_submission_id_fkey"
@@ -1240,6 +1308,7 @@ isOneToOne: false
                   Row: {
                     "confirmed": number | null,"market_slug": string | null,"pending": number | null,"total": number | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     
                   ]
@@ -1247,6 +1316,7 @@ isOneToOne: false
                   Row: {
                     "accepted_at": string | null,"address": string | null,"brokerage": string | null,"city": string | null,"duplicate_of": string | null,"id": string | null,"package": Database["public"]['Enums']["exposure_package"] | null,"property_id": string | null,"received_at": string | null,"state": Database["public"]['Enums']["accepted_state"] | null,"submitter_kind": Database["public"]['Enums']["submitter_kind"] | null,"submitter_name": string | null,"turnstile_ok": boolean | null,"workflow_state": Database["public"]['Enums']["submission_state"] | null
                   }
+                  ComputedFields: never
                   Relationships: [
                     {
       foreignKeyName: "submissions_duplicate_of_fkey"
@@ -1636,7 +1706,7 @@ isOneToOne: false
 { Args: { "p_subscriber_id": string,"p_token_hash": string }; Returns: boolean
                            },
 "job_event_entity_id":
-{ Args: { "j": Database["public"]['Tables']["jobs"]['Row'] }; Returns: string
+{ Args: { "j": Omit<Database["public"]['Tables']["jobs"]['Row'], Database["public"]['Tables']["jobs"]['ComputedFields']> }; Returns: string
                            },
 "job_queue_delete":
 { Args: { "p_heavy": boolean,"p_msg_id": number }; Returns: boolean
@@ -2159,7 +2229,7 @@ isOneToOne: false
 { Args: { "p_channel": string,"p_token_set": Json,"p_used_refresh_sha256": string }; Returns: string
                            },
 "submission_event_payload":
-{ Args: { "p_submission": Database["public"]['Tables']["submissions"]['Row'] }; Returns: Json
+{ Args: { "p_submission": Omit<Database["public"]['Tables']["submissions"]['Row'], Database["public"]['Tables']["submissions"]['ComputedFields']> }; Returns: Json
                            },
 "submission_transition_allowed":
 { Args: { "p_from": Database["public"]['Enums']["submission_state"],"p_to": Database["public"]['Enums']["submission_state"] }; Returns: boolean

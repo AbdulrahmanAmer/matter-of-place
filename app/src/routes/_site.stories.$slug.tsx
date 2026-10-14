@@ -14,8 +14,8 @@ import { storyDescription } from "../lib/seo-copy";
 export const Route = createFileRoute("/_site/stories/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
     const [story, properties] = await Promise.all([
-      queryClient.ensureQueryData(storyQuery(params.slug)),
-      queryClient.ensureQueryData(propertiesQuery()),
+      queryClient.query({ ...storyQuery(params.slug), staleTime: "static" }),
+      queryClient.query({ ...propertiesQuery(), staleTime: "static" }),
     ]);
     if (!story) throw notFound();
     return {

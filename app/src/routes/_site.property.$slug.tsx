@@ -50,10 +50,10 @@ export const Route = createFileRoute("/_site/property/$slug")({
   loaderDeps: ({ search }) => ({ preview: search.preview }),
   loader: async ({ params, deps, context: { queryClient } }) => {
     const [property, properties, markets, archive] = await Promise.all([
-      queryClient.ensureQueryData(propertyQuery(params.slug, deps.preview)),
-      queryClient.ensureQueryData(propertiesQuery()),
-      queryClient.ensureQueryData(marketsQuery()),
-      queryClient.ensureQueryData(archiveFacetsQuery()),
+      queryClient.query({ ...propertyQuery(params.slug, deps.preview), staleTime: "static" }),
+      queryClient.query({ ...propertiesQuery(), staleTime: "static" }),
+      queryClient.query({ ...marketsQuery(), staleTime: "static" }),
+      queryClient.query({ ...archiveFacetsQuery(), staleTime: "static" }),
     ]);
     if (!property) throw notFound();
     if ("gone" in property) return { gone: true as const };

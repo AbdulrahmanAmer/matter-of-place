@@ -27,9 +27,9 @@ import { t } from "../lib/strings";
 export const Route = createFileRoute("/_site/")({
   loader: async ({ context: { queryClient } }) => {
     const [properties, markets, site] = await Promise.all([
-      queryClient.ensureQueryData(propertiesQuery()),
-      queryClient.ensureQueryData(marketsQuery()),
-      queryClient.ensureQueryData(siteQuery()),
+      queryClient.query({ ...propertiesQuery(), staleTime: "static" }),
+      queryClient.query({ ...marketsQuery(), staleTime: "static" }),
+      queryClient.query({ ...siteQuery(), staleTime: "static" }),
     ]);
     return {
       hero: heroProperties(properties),

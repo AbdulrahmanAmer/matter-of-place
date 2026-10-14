@@ -138,8 +138,8 @@
     "id": "b17-allow-entry",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/server/lib/csp-allowlist.ts",
-    "find": "document.currentScript.remove()",
-    "replace": "document.currentScript.remove();",
+    "find": "(\"tsr-scroll-restoration-v1_3\");document.currentScript.remove()`",
+    "replace": "(\"tsr-scroll-restoration-v1_3\");document.currentScript.remove();`",
     "run": "bun run test tests/unit/essentials.test.ts",
     "expect": "× .*csp-inline-rules: still finds class .tsr on the bootstrap script"
   },
@@ -274,7 +274,7 @@
     "run": "bun run test tests/unit/essentials.test.ts",
     "find": "scripts.push(parsedText(text));",
     "replace": "scripts.push(text);",
-    "expect": "× .*csp-inline-rules: admits every class .tsr script of a real render"
+    "expect": "× .*csp-inline-rules: hashes the text a parser reads"
   },
   {
     "id": "b17-parsed-style",
@@ -1882,5 +1882,14 @@
     "run": "E2E_TARGET=built E2E_PORT=8938 bunx playwright test tests/e2e/a11y-settle.spec.ts --project=desktop -g \"longer than the cap\" --reporter=line",
     "expect": "longer than the cap is reported, not hidden[^]*Expected: false",
     "kind": "manual"
+  },
+  {
+    "id": "b17-not-found-head",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "      <link rel=\"canonical\" href={absoluteUrl(\"/\")} />\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/essentials.test.ts -t not-found-head",
+    "expect": "× .*not-found-head: a page no route matches has a description, a canonical and noindex"
   }
 ]

@@ -14,11 +14,11 @@ function client() {
   return queryClient;
 }
 
-/** How many times the query function ran before `fetchQuery` gave up on an error of this kind. */
+/** How many times the query function ran before `query` gave up on an error of this kind. */
 async function attempts(error: Error) {
   const queryFn = vi.fn(() => Promise.reject(error));
   await client()
-    .fetchQuery({ queryKey: adminKeys.submissions.list({}), queryFn })
+    .query({ queryKey: adminKeys.submissions.list({}), queryFn })
     .catch(() => undefined);
   return queryFn.mock.calls.length;
 }
