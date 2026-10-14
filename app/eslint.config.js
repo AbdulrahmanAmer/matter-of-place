@@ -246,6 +246,12 @@ export default defineConfig(
     },
     rules: typeAwareRules,
   },
+  // A route file's components reload through the TanStack router plugin, not React Refresh: react-refresh 0.5 flags
+  // every component beside the `Route` export, which is how a route file is written.
+  {
+    files: ["src/routes/**/*.tsx"],
+    rules: { "react-refresh/only-export-components": "off" },
+  },
   // A job step without parameters infers `{}` from its empty params schema on purpose (typescript-eslint 8.71).
   {
     files: ["src/server/jobs/steps/*.ts"],
