@@ -34,6 +34,8 @@ const BREAKER_FILE = join(HOME, "breaker.json");
 const WORKER = `matter-live@${hostname()}`;
 const POLL_MS = 3_000;
 const STALL_MS = 20 * 60_000;
+// How often an idle supervisor asks git for the runner's commit (W5 item 5).
+const HEAD_CHECK_MS = 60_000;
 
 const CRASH_WINDOW_MS = 10 * 60_000;
 
@@ -200,6 +202,15 @@ export function isIdle(active: number, open: number): boolean {
   return active === 0 && open === 0;
 }
 
+/**
+ * W5 item 5: the supervisor moves to new code between tasks. Idle with the runner on a commit other than the one it
+ * started on, it ends the session and exits; the scheduled task starts the new supervisor a minute later, which resumes
+ * the kept session. An unreadable head (empty) never moves it.
+ */
+export function shouldMove(idle: boolean, headNow: string, headAtStart: string): boolean {
+  return idle && headNow !== "" && headNow !== headAtStart;
+}
+
 export function shouldRotate(record: SessionRecord | null, now: number): boolean {
   return (
     record !== null &&
@@ -260,6 +271,7 @@ class Supervisor {
   private lastOutput = Date.now();
   private crashes: number[] = [];
   private readonly head = runnerHead();
+  private headCheckedAt = 0;
   private matterId = "";
   // The running session already carries the briefing (a resumed one, or a new one after its first line).
   private seeded = false;
@@ -522,11 +534,18 @@ class Supervisor {
         await new Promise((settle) => setTimeout(settle, POLL_MS));
         continue;
       }
-      if (this.child === null) {
-        // New code on the runner: exit while idle, the scheduled task starts the new supervisor a minute later.
-        if (runnerHead() !== this.head) process.exit(0);
-        this.start();
+      const idle = isIdle(this.active.length, this.open.size);
+      if (idle && Date.now() - this.headCheckedAt > HEAD_CHECK_MS) {
+        this.headCheckedAt = Date.now();
+        // New code on the runner: exit while idle (a live session included, which once kept old code for three hours),
+        // and the scheduled task starts the new supervisor a minute later.
+        if (shouldMove(idle, runnerHead(), this.head)) {
+          console.log(`${new Date().toISOString()} live: new runner code, moving to it`);
+          killTree(this.child?.pid);
+          process.exit(0);
+        }
       }
+      if (this.child === null) this.start();
       if (this.active.length > 0 && Date.now() - this.lastOutput > STALL_MS) {
         console.log(`${new Date().toISOString()} live: no output for 20 minutes, restarting`);
         killTree(this.child?.pid);
