@@ -8368,3 +8368,21 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a helper an admin route needs that must stay out of the job runner's graph lives in its own `service.ts` under its area's folder (`src/server/<area>/<name>/service.ts`; a new top folder under `src/server` also needs a STANDARDS row and the folder map, `bun run layout`) and is passed into the shared service by the route; a function there shaped `(actor, db, ...)` is probed by the sweep and must refuse a roleless actor before any database read.
 - proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts` and `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` both pass with `src/server/settings/redirect-links/service.ts`; with the route importing `server/settings/redirect-links` the sweep fails with `expected [ Array(1) ] to deeply equal []`.
 - added: 2026-10-15
+
+## P-3573 · `watchfail.mjs --only` takes the bare entry id; `PLAN:id` selects nothing and prints nothing
+- symptom: 2026-10-15, W8 0e: a loop of `node scripts/watchfail.mjs --registry tests/mutations --only W8-0:<id>` over eleven entries printed no line at all, which a grep for `WATCHED` turned into silence that looked like a pass.
+- rule: pass the id as written in the registry (`--only w8-0e-hire-slug`); the `W8-0:` prefix appears only in the output. A loop that greps the output also greps `replayed` so an empty selection shows as `replayed 0`.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0r4-gate-hold` → `WATCHED-FAIL OK W8-0:w8-0r4-gate-hold` and `replayed 1`; with `--only W8-0:w8-0r4-gate-hold` → nothing replayed (measured 2026-10-15).
+- added: 2026-10-16
+
+## P-3574 · `builders/launch.sh` starts the builder but never returns while the laptop is loaded
+- symptom: 2026-10-15, render window: both `bash ~/.mop-workforce/builders/launch.sh <item> <worktree>` calls ran past their 10- and 30-minute limits and were stopped; the first builder was running, the second had never been started because the script never reached it.
+- rule: launch one builder per background command, never two in a row in one command, and prove it from its log instead of the launcher's last line: `run.jsonl` grows and its init event names the model (`python E:/mop-build/.tmp/builder-result.py <run.jsonl>`). Stopping the launcher's wrapper does not stop the builder.
+- proof: `ls -la ~/.mop-workforce/builders/w7-3-fix/run.jsonl` grew from 257732 to 315924 bytes after its launcher was stopped, and its init event reads `model: claude-sonnet-5-5` (2026-10-16).
+- added: 2026-10-16
+
+## P-3575 · A registry entry that mutates a migration file never turns a db test red: the database is built before
+- symptom: 2026-10-16, PR 444: the entry for a new CHECK replaced the constraint in the migration file; a fresh Opus review showed the db test reads a database already migrated (`DEV_DB_URL`, and CI's db job runs `db:reset` before the replay), so the replay would report `stayed green` and turn CI's db job red.
+- rule: a constraint, policy or function in the database is watched with a `kind: "sql"` entry that undoes it in the test's database (`alter table ... drop constraint ...`), as `tests/mutations/B2.json` does for `properties_slug_format`; a file mutation is for code the test itself loads.
+- proof: `tests/mutations/W8-0-slug.json` entry `w8-0e-slug-check-table` is `kind: "sql"` with `alter table public.agents drop constraint agents_slug_not_account_id`; CI's db job replays it (mop-dev refuses db tests from the laptop, H35).
+- added: 2026-10-16
