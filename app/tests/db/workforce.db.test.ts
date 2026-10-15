@@ -18,6 +18,30 @@ async function proposal(db: Db): Promise<string> {
   return id;
 }
 
+/** A scheduled backlog run, an event and a person's message to the chief, oldest first; nothing else waits. */
+async function waitingRuns(db: Db): Promise<void> {
+  await db.query(
+    "update public.agent_runs set state = 'done' where state in ('queued', 'running')",
+  );
+  await db.query(
+    `insert into public.agent_runs (agent_id, cause, created_at)
+     select id, 'schedule', now() - interval '3 minutes' from public.agents where slug = 'editor'`,
+  );
+  await db.query(
+    `insert into public.agent_runs (agent_id, cause, created_at)
+     select id, 'event', now() - interval '2 minutes' from public.agents where slug = 'social'`,
+  );
+  const message = await db.query<{ id: string }>(
+    `insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
+     values ('chief', 'human', 'u1', 'Operator', 'Status?') returning id`,
+  );
+  await db.query(
+    `insert into public.agent_runs (agent_id, cause, message_id)
+     select id, 'message', $1 from public.agents where slug = 'chief'`,
+    [message.rows[0]?.id],
+  );
+}
+
 async function failure(db: Db, sql: string, args: unknown[]): Promise<string> {
   await db.query("savepoint attempt");
   try {
@@ -49,27 +73,7 @@ describe("workforce write functions", () => {
 
   it("claims a person's message before an older event and the backlog (gap item 3)", async () => {
     const claimed = await withRollback(async (db) => {
-      // Only this case's runs are waiting.
-      await db.query(
-        "update public.agent_runs set state = 'done' where state in ('queued', 'running')",
-      );
-      await db.query(
-        `insert into public.agent_runs (agent_id, cause, created_at)
-         select id, 'schedule', now() - interval '3 minutes' from public.agents where slug = 'editor'`,
-      );
-      await db.query(
-        `insert into public.agent_runs (agent_id, cause, created_at)
-         select id, 'event', now() - interval '2 minutes' from public.agents where slug = 'social'`,
-      );
-      const message = await db.query<{ id: string }>(
-        `insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
-         values ('chief', 'human', 'u1', 'Operator', 'Status?') returning id`,
-      );
-      await db.query(
-        `insert into public.agent_runs (agent_id, cause, message_id)
-         select id, 'message', $1 from public.agents where slug = 'chief'`,
-        [message.rows[0]?.id],
-      );
+      await waitingRuns(db);
       const order: string[] = [];
       for (let index = 0; index < 3; index += 1) {
         const run = await db.query<{ cause: string }>(
@@ -80,6 +84,35 @@ describe("workforce write functions", () => {
       return order;
     });
     expect(claimed).toEqual(["message", "event", "schedule"]);
+  });
+
+  it("with the allowance nearly spent, claims only a person's line (W6 item 1)", async () => {
+    const claimed = await withRollback(async (db) => {
+      await waitingRuns(db);
+      const mention = await db.query<{ id: string }>(
+        `insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
+         values ('team', 'agent', 'chief', 'Chief', '@social a post?') returning id`,
+      );
+      await db.query(
+        `insert into public.agent_runs (agent_id, cause, message_id)
+         select id, 'message', $1 from public.agents where slug = 'social'`,
+        [mention.rows[0]?.id],
+      );
+      const kinds: string[] = [];
+      for (let index = 0; index < 2; index += 1) {
+        const run = await db.query<{ cause: string; message_id: string | null }>(
+          "select cause, message_id from public.claim_agent_run('test-worker', 60, false, true)",
+        );
+        const row = run.rows[0];
+        kinds.push(
+          row === undefined
+            ? "none"
+            : `${row.cause}:${row.message_id === mention.rows[0]?.id ? "agent" : "human"}`,
+        );
+      }
+      return kinds;
+    });
+    expect(claimed).toEqual(["message:human", "none"]);
   });
 
   it("refuses a direct thread to a colleague who is not on the team", async () => {
