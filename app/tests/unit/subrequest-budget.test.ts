@@ -182,6 +182,7 @@ describe("outbound calls of an admin activation (E2E-02, PERF-07)", () => {
           bytes: photo.size,
           mime: photo.type,
           sha256: null,
+          source_url: null,
           uploaded_at: STAMP,
         })),
         events: [

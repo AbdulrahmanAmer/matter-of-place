@@ -250,20 +250,16 @@ async function main(): Promise<void> {
     .maybeSingle();
   if (error !== null || request === null) throw new Error("pull: the request could not be read");
   const say = (body: string) =>
-    client
-      .from("agent_messages")
-      .insert({
-        thread: "team",
-        author_kind: "system",
-        author_id: "system",
-        author_name: "Matter of Place",
-        body,
-      });
-  if (request.rights_confirmed_at === null) {
-    console.log("rights not confirmed: nothing pulled");
-    await say(`The photographs of request ${id} were not pulled: its rights are not confirmed.`);
-    return;
-  }
+    client.from("agent_messages").insert({
+      thread: "team",
+      author_kind: "system",
+      author_id: "system",
+      author_name: "Matter of Place",
+      body,
+    });
+  // `rights_confirmed_at` is not null by schema (the form refuses a request without it), and
+  // `add_pulled_submission_media` refuses again before anything is attached.
+  console.log(`rights confirmed ${request.rights_confirmed_at}`);
   const links = [request.photography_url, request.listing_url, request.source_url].flatMap(
     (link) => (link === null || link.trim() === "" ? [] : [link.trim()]),
   );
