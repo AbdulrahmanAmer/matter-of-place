@@ -380,7 +380,7 @@
     "id": "w8-0r4-gate-hold",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/triage.ts",
-    "find": "  return answerable(triage) ? \"answer\" : \"hold\";",
+    "find": "  return answerable(triage) || triage.allowed === true ? \"answer\" : \"hold\";",
     "replace": "  return \"answer\";",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*decides before any prompt"
@@ -492,5 +492,32 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*starts a colleague run about an outside message shut off"
+  },
+  {
+    "id": "w8-0d-allowed-answers",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  return answerable(triage) || triage.allowed === true ? \"answer\" : \"hold\";",
+    "replace": "  return answerable(triage) ? \"answer\" : \"hold\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*wakes the owner on Matter's decision"
+  },
+  {
+    "id": "w8-0d-allow-only-held",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    allow: shape.rule === \"held\" && input.answer.allow,",
+    "replace": "    allow: input.answer.allow,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*lets only Matter's read of a held line decide to allow"
+  },
+  {
+    "id": "w8-0d-owner-needed",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (ownerRow === undefined) throw new Error(\"the held message's owner is not in the team\");",
+    "replace": "  if (ownerRow === undefined) return;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*lets only Matter's read of a held line decide to allow"
   }
 ]

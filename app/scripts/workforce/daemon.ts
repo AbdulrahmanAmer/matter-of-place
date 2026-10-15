@@ -44,12 +44,15 @@ import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
 import type { SourceName } from "./criteria.ts";
 import {
+  allowLine,
   HELD_AUTHOR,
   heldLine,
+  MATTER_ALLOWS_AUTHOR,
   outsideGate,
   outsideWords,
   ownsSource,
   promptData,
+  recordOf,
   runShape,
   ruleOutside,
   shownBody,
@@ -238,7 +241,42 @@ export function answerPlan(input: {
         content: proposal.content,
       })),
     summary: fixed?.run ?? (result.task || result.reply).slice(0, 300),
+    // W8 0d: only Matter's read of a held message can let its owner answer it.
+    allow: shape.rule === "held" && input.answer.allow,
   };
+}
+
+/**
+ * W8 0d: Matter's decision that a held message may be answered. The runner writes it in the owner's thread in its own
+ * words with the record, and wakes the owner on it; that run triages the record afresh and may propose within the
+ * criteria only (a person approves). A decision that cannot be written fails the run. Exported for its test.
+ */
+export async function allowForOwner(
+  client: Db,
+  agents: readonly { id: string; slug: string }[],
+  owner: string,
+  record: { source: SourceName; id: string },
+): Promise<void> {
+  const ownerRow = agents.find((row) => row.slug === owner);
+  if (ownerRow === undefined) throw new Error("the held message's owner is not in the team");
+  const { data: rows, error } = await client
+    .from("agent_messages")
+    .insert({
+      thread: owner,
+      author_kind: "system",
+      author_id: MATTER_ALLOWS_AUTHOR,
+      author_name: "Matter",
+      body: allowLine(record, owner),
+    })
+    .select("id");
+  const line = rows?.[0];
+  if (error !== null || line === undefined)
+    throw new Error("Matter's decision could not be written");
+  const { error: queueError } = await client
+    .from("agent_runs")
+    .insert({ agent_id: ownerRow.id, cause: "message", message_id: line.id });
+  if (queueError !== null)
+    throw new Error("the owner's run on Matter's decision could not be queued");
 }
 
 /**
@@ -358,7 +396,10 @@ export async function context(
   }
   // W5 item 13: our own products, prices and markets, so no reply brackets a price it could have read.
   parts.push(await readSiteFacts());
-  return { situation: parts.join("\n\n"), triage };
+  // W8 0d: the record a held line names, for Matter's read of it (the runner wrote it, last in the line).
+  const heldRecord =
+    matterReadsHeld && woke?.author_id === HELD_AUTHOR ? recordOf(woke.body) : null;
+  return { situation: parts.join("\n\n"), triage, heldRecord };
 }
 
 /**
@@ -502,7 +543,7 @@ async function runOnce(client: Db): Promise<boolean> {
   mkdirSync(cwd, { recursive: true });
   try {
     const matterReadsHeld = agent.slug === "matter" && wokeBy === HELD_AUTHOR;
-    const { situation, triage } = await context(
+    const { situation, triage, heldRecord } = await context(
       client,
       run,
       thread,
@@ -605,6 +646,8 @@ async function runOnce(client: Db): Promise<boolean> {
     const { place } = shape;
     if (plan.dropped !== null) await say(client, place.thread, plan.dropped);
     if (plan.keepNote) keepNote(result.note);
+    if (plan.allow && heldRecord !== null)
+      await allowForOwner(client, agents ?? [], thread, heldRecord);
     const media = plan.media;
     let reel: { request_id: string; name: string } | null = null;
 
