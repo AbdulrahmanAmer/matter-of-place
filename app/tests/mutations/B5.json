@@ -439,8 +439,8 @@
     "id": "b5-r-colour",
     "test": "tests/unit/email/render.test.ts",
     "file": "src/templates/email/layout.tsx",
-    "find": "borderTop: `1px solid ${themeHex.mutedForeground}`,",
-    "replace": "borderTop: \"1px solid #ff0000\",",
+    "find": "margin: \"14px 0 0\", color: themeHex.accent }}",
+    "replace": "margin: \"14px 0 0\", color: \"#ff0000\" }}",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "× .*renders with its sample variables, with nothing unreplaced and no stray colour"
   },
@@ -1447,7 +1447,7 @@
     "id": "b5-s-reply-to",
     "test": "tests/unit/email/send-email.test.ts",
     "file": "src/server/jobs/steps/send-email.ts",
-    "find": "  const replyTo = siteOf(settings).contact.email ?? readVar(\"ADMIN_NOTIFY_EMAIL\");",
+    "find": "  const replyTo =\n    replyToFor(input.templateKey, siteOf(settings).contact) ?? readVar(\"ADMIN_NOTIFY_EMAIL\");",
     "replace": "  const replyTo = readVar(\"ADMIN_NOTIFY_EMAIL\");",
     "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
     "expect": "× .*reply to: the contact address when set"
@@ -2244,8 +2244,8 @@
     "id": "b5-shots-overflow-600",
     "test": "scripts/email-shots.ts",
     "file": "src/templates/email/layout.tsx",
-    "find": "  maxWidth: \"600px\",",
-    "replace": "  maxWidth: \"600px\",\n  minWidth: \"700px\",",
+    "find": "const column: CSSProperties = { backgroundColor: themeHex.background };",
+    "replace": "const column: CSSProperties = { backgroundColor: themeHex.background, minWidth: \"700px\" };",
     "run": "bun run email:shots",
     "expect": "received: scrollWidth 7[0-9]{2} at 600 px",
     "kind": "manual",
@@ -2255,8 +2255,8 @@
     "id": "b5-shots-lint-stops",
     "test": "scripts/email-shots.ts",
     "file": "src/templates/email/layout.tsx",
-    "find": "  maxWidth: \"600px\",",
-    "replace": "  maxWidth: \"700px\",",
+    "find": "style={{ maxWidth: `${String(COLUMN)}px`, margin: \"0 auto\" }}",
+    "replace": "style={{ maxWidth: \"700px\", margin: \"0 auto\" }}",
     "run": "bun run email:shots",
     "expect": "received: container-width the outer container does not declare max-width: 600px"
   }

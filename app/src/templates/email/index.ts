@@ -11,6 +11,7 @@ import type { EmailDefinition, EmailProps, TextParts } from "./layout.tsx";
 import * as invoiceFile from "./invoice.tsx";
 import * as marketOpenFile from "./market-open.tsx";
 import * as newsletterConfirmFile from "./newsletter-confirm.tsx";
+import * as newsletterWelcomeFile from "./newsletter-welcome.tsx";
 import * as receivedFile from "./received.tsx";
 import * as repermissionFile from "./repermission.tsx";
 import * as standaloneFile from "./standalone.tsx";
@@ -43,6 +44,7 @@ export const definitions: readonly EmailTemplateFile[] = [
   subjectAckFile,
   marketOpenFile,
   campaignReportFile,
+  newsletterWelcomeFile,
 ];
 
 /** A definition as the row it seeds: the shape `renderTemplate` takes. */

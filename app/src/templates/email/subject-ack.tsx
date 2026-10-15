@@ -1,5 +1,5 @@
 import { variablesByKey } from "../../domain/email.ts";
-import { Message } from "./blocks.tsx";
+import { letter } from "./blocks.tsx";
 import type { EmailDefinition } from "./layout.tsx";
 
 export const definition: EmailDefinition = {
@@ -19,4 +19,4 @@ export const definition: EmailDefinition = {
   ],
 };
 
-export const Email = Message;
+export const Email = letter("Privacy");

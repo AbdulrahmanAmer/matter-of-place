@@ -1,5 +1,5 @@
 import { variablesByKey } from "../../domain/email.ts";
-import { Message } from "./blocks.tsx";
+import { letter } from "./blocks.tsx";
 import type { EmailDefinition } from "./layout.tsx";
 
 // B10 step 9 (G22): the weekly report of a campaign, sent to the person who submitted the property from `/admin` ›
@@ -31,4 +31,4 @@ export const definition: EmailDefinition = {
   ],
 };
 
-export const Email = Message;
+export const Email = letter("Weekly report");

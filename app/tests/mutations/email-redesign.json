@@ -1,0 +1,157 @@
+[
+  {
+    "id": "welcome-markets-or",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "${sentenceList(names, \"or\")}",
+    "replace": "${sentenceList(names)}",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*tells a Place Notes reader the issue comes about every two weeks"
+  },
+  {
+    "id": "welcome-interest-kind",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "const interestOnly = source.startsWith(\"interest:\");",
+    "replace": "const interestOnly = false;",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*tells an interest signup it hears once"
+  },
+  {
+    "id": "welcome-repermission",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  if (confirmation?.template_key === \"repermission\") throw new SkipSend(\"repermission\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*is not sent after a re-permission click"
+  },
+  {
+    "id": "welcome-out-only",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "message.template_key === WELCOME && OUT_STATUSES.includes(message.status),",
+    "replace": "message.template_key === WELCOME,",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*welcomes again a new sign-up after an earlier welcome"
+  },
+  {
+    "id": "welcome-first-sentence",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "latest_line: firstSentence(lead.block.deck),",
+    "replace": "latest_line: lead.block.deck,",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*fills the slot with the lead piece of the latest issue sent"
+  },
+  {
+    "id": "welcome-published-only",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": ".filter((row) => row.editorial_state === \"published\" && row.archived_at === null)",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*passes over a piece no longer published"
+  },
+  {
+    "id": "welcome-recipient",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  newsletter_welcome: \"subscriber\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*goes to the subscriber who confirmed"
+  },
+  {
+    "id": "welcome-slot-drawn",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/templates/email/newsletter-welcome.tsx",
+    "find": "return https && Object.values(piece).every((value) => value !== \"\") ? piece : null;",
+    "replace": "return null;",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*draws the latest piece in its slot"
+  },
+  {
+    "id": "welcome-slot-https",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/templates/email/newsletter-welcome.tsx",
+    "find": "const https = URL.canParse(piece.url) && new URL(piece.url).protocol === \"https:\";",
+    "replace": "const https = true;",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*draws the quiet line, never the link, when the slot's address is not https"
+  },
+  {
+    "id": "welcome-mailto",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/templates/email/newsletter-welcome.tsx",
+    "find": "`mailto:${address}?subject=Unsubscribe`",
+    "replace": "`mailto:${address}`",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*gives a working unsubscribe link"
+  },
+  {
+    "id": "welcome-row-drift",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/templates/email/newsletter-welcome.tsx",
+    "find": "subject: \"Welcome to Matter of Place\",",
+    "replace": "subject: \"Welcome\",",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*equals the row its migration inserts"
+  },
+  {
+    "id": "shell-alt",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/layout.tsx",
+    "find": "alt=\"Matter of Place\"",
+    "replace": "alt=\"\"",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*pictures the house once"
+  },
+  {
+    "id": "shell-reduced-motion",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/style.ts",
+    "find": "\"@media screen and (prefers-reduced-motion:no-preference){\",",
+    "replace": "\"@media screen{\",",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*keeps every motion inside a reduced-motion query"
+  },
+  {
+    "id": "shell-italic",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/blocks.tsx",
+    "find": "/^(.*\\s)(\\p{Ll}\\S*[.?])$/u",
+    "replace": "/^(.*\\s)(\\S*[.?])$/u",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*sets a heading's closing lower-case word in italic"
+  },
+  {
+    "id": "shell-signature",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/blocks.tsx",
+    "find": "return block.text === undefined ? null : (",
+    "replace": "return (",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*draws no name for a signature without words"
+  },
+  {
+    "id": "shell-fonts",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/style.ts",
+    "find": "return [`@media screen{${fonts}}`, FACES_AND_PHONE, MOTION];",
+    "replace": "return [fonts, FACES_AND_PHONE, MOTION];",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*names the brand faces on the site's own origin"
+  },
+  {
+    "id": "phone-column-fluid",
+    "kind": "manual",
+    "test": "scripts/email-gallery.ts",
+    "file": "src/templates/email/style.ts",
+    "find": "  \".mop-column{width:100%!important}\",",
+    "replace": "",
+    "run": "bun run scripts/email-gallery.ts received",
+    "expect": "received: scrollWidth [0-9]+ at 390 px",
+    "note": "Needs the installed Edge (the gallery photographs with it); CI has none, so it is replayed by hand on the laptop. 2026-10-15: node scripts/watchfail.mjs --file src/templates/email/style.ts with this find and run printed WATCHED-FAIL OK."
+  }
+]

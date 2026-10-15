@@ -25,6 +25,7 @@ export const emailTemplateKeys = [
   "repermission",
   "market_open",
   "campaign_report",
+  "newsletter_welcome",
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -156,6 +157,14 @@ export const variablesByKey = {
     "video_views",
     "ctr",
   ],
+  newsletter_welcome: [
+    "what_you_receive",
+    "market_names",
+    "latest_number",
+    "latest_title",
+    "latest_line",
+    "latest_url",
+  ],
 } as const satisfies Record<EmailTemplateKey, readonly string[]>;
 
 type VariableName = (typeof variablesByKey)[EmailTemplateKey][number];
@@ -235,6 +244,12 @@ const sampleValues = (siteUrl: string): Record<VariableName, string | SampleBloc
   ctr: "1.2%",
   subject: "Alder Court, Pasadena",
   preheader: "A new property in California",
+  what_you_receive:
+    "Place Notes will reach you about every two weeks, with the homes and stories published since the last issue. When a single home in California or Florida has a letter of its own, it will reach you too.",
+  latest_number: "3",
+  latest_title: "The house that keeps the afternoon",
+  latest_line: "How a low roof and a deep porch hold the light of a Pasadena afternoon.",
+  latest_url: `${siteUrl}/stories/the-house-that-keeps-the-afternoon?utm_source=place_notes&utm_medium=email&utm_campaign=welcome&utm_content=the-house-that-keeps-the-afternoon`,
   block: {
     title: "Alder Court",
     deck: "A 1926 Spanish Revival house in Pasadena.",
