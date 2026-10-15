@@ -8207,3 +8207,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after `git worktree remove`, delete what is left with the long-path form `cmd /c "rd /s /q \\?\E:\mop-build\<name>"` (scratchpad rm-leftovers.ps1); check free space with `(Get-PSDrive E).Free`.
 - proof: rm-leftovers.ps1 → `deleted continuous` ... `E: free GB: 46.1`.
 - added: 2026-10-15
+
+## P-3479 · The audit robot's Search Console reader aborts under Node on this laptop, and its key is in neither load profile
+- symptom: 2026-10-15, the operator's search assignment: `node workspace/audits/tools/gsc.mjs` printed `Not measured: gsc (GOOGLE_SA_JSON_B64 unset)` with both `load-env.mjs --profile dev` and `--profile ops`; with the key loaded (shell export, then inside Node from the runner's `.env`) it ended `exit 127` and `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76` (Node 24.13 on Windows), the moment it reached the network. Under Bun it signed in, then stopped at `"" cannot be parsed as a URL` (no `SITE_URL`).
+- cause: the key `GOOGLE_SA_JSON_B64` lives only in the runner's `.env` (`E:\mop-build\live\.env`); Node 24 on Windows aborts in libuv when this tool's fetch and exit race; the tool reads the site from `SITE_URL` or `--url`.
+- rule: read Search Console with Bun, the key loaded inside the process from the runner's `.env` (never exported, never printed), and `--url https://matterofplace.com`. The account sees one property, `sc-domain:matterofplace.com` (siteRestrictedUser). A site this new has its queries withheld: read pages and dates for a baseline, and live searches for keyword choice.
+- proof: `bun <wrapper> E:/mop-build/live/.env workspace/audits/tools/gsc.mjs --url https://matterofplace.com` → `Not measured: gsc (Search Console has no queries for sc-domain:matterofplace.com in 28 days)`, exit 0; a 90-day `searchAnalytics/query` by page → `/` 1 impression (position 2), `/stories` 1 (position 40), all on 2026-10-12 (measured 2026-10-15).
+- added: 2026-10-15

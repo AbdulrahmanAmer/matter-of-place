@@ -42,3 +42,9 @@ export function followMain(app: string, marker: string): Followed {
   });
   return install.status === 0 ? "moved and installed" : "moved, install failed";
 }
+
+/** W6 item 3: Matter's system map is written again after each move the runner can run, and whenever it is missing. */
+export function mapDue(followed: Followed, mapExists: boolean): boolean {
+  if (followed === "not the runner" || followed === "moved, install failed") return false;
+  return followed === "moved" || followed === "moved and installed" || !mapExists;
+}
