@@ -1932,3 +1932,14 @@ first day of the new usage week; no step was cut from any plan.
   decision lets the owner propose a reply), 0e, 0f; 0g waits on the operator's Google Drive (W8 item 8); W8 items 1
   and 2 are Matter's now (operator, 2026-10-15). The floor pool of the door move reads as a band (review follow-up).
   Bank grew: P-3530, P-3531.
+
+- 2026-10-15 W7 item 2 (PR 441, feat/w7-2-replies): the Sent emails screen has a Replies part: each `email_replies` row beside the
+  email it answers (through `send_id`), owner, state, and buttons answered / ignored; opening a `new` reply marks it
+  `seen`. Read: `GET /api/admin/emails/replies` (action `audit.list`). Write: `POST /api/admin/emails/replies/:id` (new
+  action `audit.reply_mark`, roles as `audit.list`), SQL function `email_reply_mark`, audited with ids and states only.
+  Files: `src/server/email/replies/service.ts`, `src/admin/audit/RepliesPart.tsx`, `supabase/sql/functions/email_reply_mark.sql`
+  with two migrations (`fn_email_reply_mark`, `action_roles`), `tests/mutations/W7-2.json` (18 entries, all
+  WATCHED-FAIL OK). Seen in headless Chrome (screenshots in E:/mop-build/w72-shots/).
+  UNPROVEN: the function on the real database (db tests refuse mop-dev after the switch, H35; passes 3 of 3 on a stub
+  native cluster; the PR's CI db job counts) and a real reply read through the screen. Reply column is narrow
+  (CSS under `src/styles/admin/` was not in this lane's files). Bank grew: P-3550.

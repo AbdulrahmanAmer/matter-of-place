@@ -5,12 +5,12 @@ import {
   replySchema,
   type replyListInputSchema,
   type replyMarkInputSchema,
-} from "../../domain/admin-emails.ts";
-import { fromRpcError } from "../lib/admin-errors.ts";
-import type { AdminActor } from "../lib/admin-route.ts";
-import { auditContext } from "../lib/audit.ts";
-import { authorize } from "../lib/authz.ts";
-import type { Db } from "../lib/db.ts";
+} from "../../../domain/admin-emails.ts";
+import { fromRpcError } from "../../lib/admin-errors.ts";
+import type { AdminActor } from "../../lib/admin-route.ts";
+import { auditContext } from "../../lib/audit.ts";
+import { authorize } from "../../lib/authz.ts";
+import type { Db } from "../../lib/db.ts";
 
 // W7 item 2: the replies W4 reads from the mailbox (`email_replies`), each beside the email it answers, and the one
 // write, `email_reply_mark`. A reply's words come from outside the company: they go to a person's screen and to

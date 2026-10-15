@@ -80,7 +80,7 @@ export const emailListSchema = z.object({
 export const replyStates = ["new", "seen", "answered", "ignored"] as const;
 
 /** The states a person may mark a reply with: `seen` when it is opened, `answered` or `ignored` when dealt with. */
-export const replyMarks = ["seen", "answered", "ignored"] as const;
+const replyMarks = ["seen", "answered", "ignored"] as const;
 
 /** The email a reply answers, as it was sent (`email_replies.send_id`). */
 const repliedToSchema = z.object({

@@ -1,0 +1,161 @@
+[
+  {
+    "id": "w7-2-order",
+    "test": "tests/unit/email-replies.service.test.ts",
+    "file": "src/server/email/replies/service.ts",
+    "find": ".order(\"received_at\", { ascending: false })",
+    "replace": ".order(\"received_at\", { ascending: true })",
+    "run": "bunx vitest run --project unit tests/unit/email-replies.service.test.ts",
+    "expect": "× .*lists the newest first, each beside the email it answers, and its owner and state"
+  },
+  {
+    "id": "w7-2-orphan",
+    "test": "tests/unit/email-replies.service.test.ts",
+    "file": "src/server/email/replies/service.ts",
+    "find": "sent: send_id === null ? null :",
+    "replace": "sent: send_id === null ? undefined :",
+    "run": "bunx vitest run --project unit tests/unit/email-replies.service.test.ts",
+    "expect": "× .*shows a reply whose email is gone, with no email beside it and no owner"
+  },
+  {
+    "id": "w7-2-state-filter",
+    "test": "tests/unit/email-replies.service.test.ts",
+    "file": "src/server/email/replies/service.ts",
+    "find": "if (input.state !== undefined) query = query.eq(\"state\", input.state);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email-replies.service.test.ts",
+    "expect": "× .*keeps only the replies in the state asked for"
+  },
+  {
+    "id": "w7-2-list-authorize",
+    "test": "tests/unit/email-replies.service.test.ts",
+    "file": "src/server/email/replies/service.ts",
+    "find": "authorize(actor, \"audit.list\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email-replies.service.test.ts",
+    "expect": "× .*refuses a role that cannot read the replies, before any call"
+  },
+  {
+    "id": "w7-2-mark-args",
+    "test": "tests/unit/email-replies.service.test.ts",
+    "file": "src/server/email/replies/service.ts",
+    "find": "    p_state: input.state,",
+    "replace": "    p_state: \"seen\",",
+    "run": "bunx vitest run --project unit tests/unit/email-replies.service.test.ts",
+    "expect": "× .*passes the reply, the mark and the actor to email_reply_mark and answers the state it is in"
+  },
+  {
+    "id": "w7-2-mark-authorize",
+    "test": "tests/unit/email-replies.service.test.ts",
+    "file": "src/server/email/replies/service.ts",
+    "find": "authorize(actor, \"audit.reply_mark\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email-replies.service.test.ts",
+    "expect": "× .*refuses a role that cannot mark a reply, before any call"
+  },
+  {
+    "id": "w7-2-mark-404",
+    "test": "tests/unit/email-replies.service.test.ts",
+    "file": "src/server/email/replies/service.ts",
+    "find": "  if (error !== null) throw fromRpcError(error);\n  return replyMarkAnswerSchema",
+    "replace": "  if (error !== null) throw new Error(error.message);\n  return replyMarkAnswerSchema",
+    "run": "bunx vitest run --project unit tests/unit/email-replies.service.test.ts",
+    "expect": "× .*answers 404 for a reply that is not there"
+  },
+  {
+    "id": "w7-2-mark-values",
+    "test": "tests/unit/email-replies.service.test.ts",
+    "file": "src/domain/admin-emails.ts",
+    "find": "const replyMarks = [\"seen\", \"answered\", \"ignored\"] as const;",
+    "replace": "const replyMarks = [\"new\", \"seen\", \"answered\", \"ignored\"] as const;",
+    "run": "bunx vitest run --project unit tests/unit/email-replies.service.test.ts",
+    "expect": "× .*takes only seen, answered or ignored: a reply never goes back to new"
+  },
+  {
+    "id": "w7-2-screen-beside",
+    "test": "src/admin/audit/replies.test.tsx",
+    "file": "src/admin/audit/RepliesPart.tsx",
+    "find": "(OWNERS[reply.owner_slug] ?? reply.owner_slug)",
+    "replace": "reply.owner_slug",
+    "run": "bunx vitest run --project component src/admin/audit/replies.test.tsx",
+    "expect": "× .*shows each reply beside the email it answers, with its owner and state"
+  },
+  {
+    "id": "w7-2-screen-plain",
+    "test": "src/admin/audit/replies.test.tsx",
+    "file": "src/admin/audit/RepliesPart.tsx",
+    "find": "<p className=\"admin-preview__text\">{reply.body}</p>",
+    "replace": "<p className=\"admin-preview__text\" dangerouslySetInnerHTML={{ __html: reply.body }} />",
+    "run": "bunx vitest run --project component src/admin/audit/replies.test.tsx",
+    "expect": "× .*shows a reply's words as plain text, never as markup"
+  },
+  {
+    "id": "w7-2-screen-seen",
+    "test": "src/admin/audit/replies.test.tsx",
+    "file": "src/admin/audit/RepliesPart.tsx",
+    "find": "canMark && reply.state === \"new\")",
+    "replace": "canMark && reply.state !== \"answered\")",
+    "run": "bunx vitest run --project component src/admin/audit/replies.test.tsx",
+    "expect": "× .*marks a new reply seen once, when it is opened, and not a reply that is already seen"
+  },
+  {
+    "id": "w7-2-screen-refresh",
+    "test": "src/admin/audit/replies.test.tsx",
+    "file": "src/admin/audit/sent-emails-queries.ts",
+    "find": "onSettled: () => invalidateAfterWrite(queryClient, adminKeys.emails.all()),",
+    "replace": "onSettled: () => undefined,",
+    "run": "bunx vitest run --project component src/admin/audit/replies.test.tsx",
+    "expect": "× .*marks a reply answered or ignored, and reads the replies again"
+  },
+  {
+    "id": "w7-2-screen-disabled",
+    "test": "src/admin/audit/replies.test.tsx",
+    "file": "src/admin/audit/RepliesPart.tsx",
+    "find": "disabled={mark.isPending || reply.state === \"ignored\"}",
+    "replace": "disabled={mark.isPending}",
+    "run": "bunx vitest run --project component src/admin/audit/replies.test.tsx",
+    "expect": "× .*does not offer the mark that a reply is already in"
+  },
+  {
+    "id": "w7-2-screen-right",
+    "test": "src/admin/audit/replies.test.tsx",
+    "file": "src/admin/audit/RepliesPart.tsx",
+    "find": "const canMark = useAdminMe().actions.includes(\"audit.reply_mark\");",
+    "replace": "const canMark = true;",
+    "run": "bunx vitest run --project component src/admin/audit/replies.test.tsx",
+    "expect": "× .*shows the replies to a reader but no buttons, and opening one marks nothing"
+  },
+  {
+    "id": "w7-2-screen-filter",
+    "test": "src/admin/audit/replies.test.tsx",
+    "file": "src/admin/audit/sent-emails-queries.ts",
+    "find": "const search = state === undefined ? \"\" : `?state=${encodeURIComponent(state)}`;",
+    "replace": "const search = \"\";",
+    "run": "bunx vitest run --project component src/admin/audit/replies.test.tsx",
+    "expect": "× .*asks only for the replies in the state chosen"
+  },
+  {
+    "id": "w7-2-sql-audit",
+    "kind": "sql",
+    "test": "tests/db/email-reply-mark.db.test.ts",
+    "sql": "create or replace function public.email_reply_mark(\n  p_reply_id uuid,\n  p_state text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before text;\nbegin\n  -- W7 item 2: a person reads a reply on the Sent emails screen and marks it: `seen` when it is opened (only from\n  -- `new`), `answered` or `ignored` when it is dealt with (from any state). A mark to the state it already has changes\n  -- nothing and is not audited. The audit row names the reply and its two states, never its words or its sender.\n  if p_state is null or p_state not in ('seen', 'answered', 'ignored') then\n    raise exception 'validation';\n  end if;\n  select r.state into v_before from public.email_replies r where r.id = p_reply_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_before = p_state or (p_state = 'seen' and v_before <> 'new') then\n    return v_before;\n  end if;\n  update public.email_replies set state = p_state where id = p_reply_id;\n  perform 1; -- public.write_audit(\n    p_actor, p_actor_kind, 'audit.reply_mark', 'email_replies', p_reply_id,\n    jsonb_build_object('id', p_reply_id, 'state', v_before),\n    jsonb_build_object('id', p_reply_id, 'state', p_state),\n    p_request_id\n  );\n  return p_state;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/email-reply-mark.db.test.ts -t \"marks a reply answered and audits its two states without the reply's words or sender\"",
+    "expect": "× .*marks a reply answered and audits its two states without the reply's words or sender"
+  },
+  {
+    "id": "w7-2-sql-unchanged",
+    "kind": "sql",
+    "test": "tests/db/email-reply-mark.db.test.ts",
+    "sql": "create or replace function public.email_reply_mark(\n  p_reply_id uuid,\n  p_state text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before text;\nbegin\n  -- W7 item 2: a person reads a reply on the Sent emails screen and marks it: `seen` when it is opened (only from\n  -- `new`), `answered` or `ignored` when it is dealt with (from any state). A mark to the state it already has changes\n  -- nothing and is not audited. The audit row names the reply and its two states, never its words or its sender.\n  if p_state is null or p_state not in ('seen', 'answered', 'ignored') then\n    raise exception 'validation';\n  end if;\n  select r.state into v_before from public.email_replies r where r.id = p_reply_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if false then\n    return v_before;\n  end if;\n  update public.email_replies set state = p_state where id = p_reply_id;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.reply_mark', 'email_replies', p_reply_id,\n    jsonb_build_object('id', p_reply_id, 'state', v_before),\n    jsonb_build_object('id', p_reply_id, 'state', p_state),\n    p_request_id\n  );\n  return p_state;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/email-reply-mark.db.test.ts -t \"marks seen only a reply that is new, and a mark to the state it already has writes no audit row\"",
+    "expect": "× .*marks seen only a reply that is new, and a mark to the state it already has writes no audit row"
+  },
+  {
+    "id": "w7-2-sql-validation",
+    "kind": "sql",
+    "test": "tests/db/email-reply-mark.db.test.ts",
+    "sql": "create or replace function public.email_reply_mark(\n  p_reply_id uuid,\n  p_state text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns text\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before text;\nbegin\n  -- W7 item 2: a person reads a reply on the Sent emails screen and marks it: `seen` when it is opened (only from\n  -- `new`), `answered` or `ignored` when it is dealt with (from any state). A mark to the state it already has changes\n  -- nothing and is not audited. The audit row names the reply and its two states, never its words or its sender.\n  if p_state is null or p_state not in ('new', 'seen', 'answered', 'ignored') then\n    raise exception 'validation';\n  end if;\n  select r.state into v_before from public.email_replies r where r.id = p_reply_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_before = p_state or (p_state = 'seen' and v_before <> 'new') then\n    return v_before;\n  end if;\n  update public.email_replies set state = p_state where id = p_reply_id;\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.reply_mark', 'email_replies', p_reply_id,\n    jsonb_build_object('id', p_reply_id, 'state', v_before),\n    jsonb_build_object('id', p_reply_id, 'state', p_state),\n    p_request_id\n  );\n  return p_state;\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/email-reply-mark.db.test.ts -t \"refuses a state that is not a mark, a reply that is not there, and a role without the right\"",
+    "expect": "× .*refuses a state that is not a mark, a reply that is not there, and a role without the right"
+  }
+]

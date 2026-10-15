@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { replyListInputSchema, replyListSchema } from "../../../domain/admin-emails";
-import { listReplies } from "../../../server/email/replies";
+import { listReplies } from "../../../server/email/replies/service";
 import { defineAdminRoute } from "../../../server/lib/admin-route";
 
 // W7 item 2: the Replies part of the Sent emails screen, with the screen's own right.

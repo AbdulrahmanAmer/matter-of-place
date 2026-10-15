@@ -105,9 +105,10 @@ describe("email_reply_mark", () => {
         missing: await refusal(db, () => mark(db, randomUUID(), "seen", reader)),
         wrongRole: await refusal(db, () => mark(db, id, "answered", editor)),
         state: (
-          await db.query<{ state: string }>("select state from public.email_replies where id = $1", [
-            id,
-          ])
+          await db.query<{ state: string }>(
+            "select state from public.email_replies where id = $1",
+            [id],
+          )
         ).rows[0]?.state,
       };
     });

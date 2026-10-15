@@ -130,12 +130,8 @@ describe("the replies on the Sent emails screen", () => {
 
   it("does not offer the mark that a reply is already in", async () => {
     open(MARK, [reply({ state: "ignored" })]);
-    expect(
-      ((await screen.findByRole("button", { name: "Ignore" })) as HTMLButtonElement).disabled,
-    ).toBe(true);
-    expect(
-      (screen.getByRole("button", { name: "Mark answered" }) as HTMLButtonElement).disabled,
-    ).toBe(false);
+    expect(await screen.findByRole("button", { name: "Ignore" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "Mark answered" })).toHaveProperty("disabled", false);
   });
 
   it("shows the replies to a reader but no buttons, and opening one marks nothing", async () => {

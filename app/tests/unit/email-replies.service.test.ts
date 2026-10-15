@@ -1,7 +1,7 @@
 import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
 import { replyMarkInputSchema } from "../../src/domain/admin-emails";
-import { listReplies, markReply } from "../../src/server/email/replies";
+import { listReplies, markReply } from "../../src/server/email/replies/service";
 import type { AdminActor } from "../../src/server/lib/admin-route";
 import { AppError } from "../../src/server/lib/errors";
 import { fakeDb } from "../fixtures/fake-db";
@@ -101,7 +101,7 @@ describe("the replies list", () => {
     expect(items.map((item) => item.id)).toEqual([OLDER]);
   });
 
-  it("refuses a role that does not read the Sent emails screen, before any call", async () => {
+  it("refuses a role that cannot read the replies, before any call", async () => {
     const db = fakeDb();
     expect(await outcome(listReplies(editor, db, {}))).toEqual({ status: 403, code: "forbidden" });
     expect(db.calls).toEqual([]);
@@ -134,7 +134,7 @@ describe("marking a reply", () => {
     ]);
   });
 
-  it("refuses a role that does not read the Sent emails screen, before any call", async () => {
+  it("refuses a role that cannot mark a reply, before any call", async () => {
     const db = fakeDb();
     expect(await outcome(markReply(editor, db, { id: REPLY, state: "ignored" }))).toEqual({
       status: 403,

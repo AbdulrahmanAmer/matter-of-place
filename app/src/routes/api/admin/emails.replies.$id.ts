@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { replyMarkAnswerSchema, replyMarkInputSchema } from "../../../domain/admin-emails";
-import { markReply } from "../../../server/email/replies";
+import { markReply } from "../../../server/email/replies/service";
 import { defineAdminRoute } from "../../../server/lib/admin-route";
 
 // W7 item 2: a reply is marked seen, answered or ignored; the change is audited.
