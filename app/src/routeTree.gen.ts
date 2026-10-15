@@ -135,6 +135,7 @@ import { Route as ApiAdminInquiriesIdRouteImport } from './routes/api/admin/inqu
 import { Route as ApiAdminInquiriesAssigneesRouteImport } from './routes/api/admin/inquiries.assignees'
 import { Route as ApiAdminJobsIndexRouteImport } from './routes/api/admin/jobs.index'
 import { Route as ApiAdminJobsIdRouteImport } from './routes/api/admin/jobs.$id'
+import { Route as ApiAdminJobsEventsRouteImport } from './routes/api/admin/jobs.events'
 import { Route as ApiAdminJobsRetryBulkRouteImport } from './routes/api/admin/jobs.retry-bulk'
 import { Route as ApiAdminMarketsIndexRouteImport } from './routes/api/admin/markets.index'
 import { Route as ApiAdminMarketsSlugRouteImport } from './routes/api/admin/markets.$slug'
@@ -929,6 +930,11 @@ const ApiAdminJobsIndexRoute = ApiAdminJobsIndexRouteImport.update({
 const ApiAdminJobsIdRoute = ApiAdminJobsIdRouteImport.update({
   id: '/api/admin/jobs/$id',
   path: '/api/admin/jobs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminJobsEventsRoute = ApiAdminJobsEventsRouteImport.update({
+  id: '/api/admin/jobs/events',
+  path: '/api/admin/jobs/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminJobsRetryBulkRoute = ApiAdminJobsRetryBulkRouteImport.update({
@@ -1770,6 +1776,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/inquiries/$id': typeof ApiAdminInquiriesIdRouteWithChildren
   '/api/admin/inquiries/assignees': typeof ApiAdminInquiriesAssigneesRoute
   '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
+  '/api/admin/jobs/events': typeof ApiAdminJobsEventsRoute
   '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
   '/api/admin/markets/$slug': typeof ApiAdminMarketsSlugRouteWithChildren
   '/api/admin/me/password': typeof ApiAdminMePasswordRoute
@@ -2020,6 +2027,7 @@ export interface FileRoutesByTo {
   '/api/admin/inquiries/$id': typeof ApiAdminInquiriesIdRouteWithChildren
   '/api/admin/inquiries/assignees': typeof ApiAdminInquiriesAssigneesRoute
   '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
+  '/api/admin/jobs/events': typeof ApiAdminJobsEventsRoute
   '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
   '/api/admin/markets/$slug': typeof ApiAdminMarketsSlugRouteWithChildren
   '/api/admin/me/password': typeof ApiAdminMePasswordRoute
@@ -2276,6 +2284,7 @@ export interface FileRoutesById {
   '/api/admin/inquiries/$id': typeof ApiAdminInquiriesIdRouteWithChildren
   '/api/admin/inquiries/assignees': typeof ApiAdminInquiriesAssigneesRoute
   '/api/admin/jobs/$id': typeof ApiAdminJobsIdRouteWithChildren
+  '/api/admin/jobs/events': typeof ApiAdminJobsEventsRoute
   '/api/admin/jobs/retry-bulk': typeof ApiAdminJobsRetryBulkRoute
   '/api/admin/markets/$slug': typeof ApiAdminMarketsSlugRouteWithChildren
   '/api/admin/me/password': typeof ApiAdminMePasswordRoute
@@ -2532,6 +2541,7 @@ export interface FileRouteTypes {
     | '/api/admin/inquiries/$id'
     | '/api/admin/inquiries/assignees'
     | '/api/admin/jobs/$id'
+    | '/api/admin/jobs/events'
     | '/api/admin/jobs/retry-bulk'
     | '/api/admin/markets/$slug'
     | '/api/admin/me/password'
@@ -2782,6 +2792,7 @@ export interface FileRouteTypes {
     | '/api/admin/inquiries/$id'
     | '/api/admin/inquiries/assignees'
     | '/api/admin/jobs/$id'
+    | '/api/admin/jobs/events'
     | '/api/admin/jobs/retry-bulk'
     | '/api/admin/markets/$slug'
     | '/api/admin/me/password'
@@ -3037,6 +3048,7 @@ export interface FileRouteTypes {
     | '/api/admin/inquiries/$id'
     | '/api/admin/inquiries/assignees'
     | '/api/admin/jobs/$id'
+    | '/api/admin/jobs/events'
     | '/api/admin/jobs/retry-bulk'
     | '/api/admin/markets/$slug'
     | '/api/admin/me/password'
@@ -3228,6 +3240,7 @@ export interface RootRouteChildren {
   ApiAdminInquiriesIdRoute: typeof ApiAdminInquiriesIdRouteWithChildren
   ApiAdminInquiriesAssigneesRoute: typeof ApiAdminInquiriesAssigneesRoute
   ApiAdminJobsIdRoute: typeof ApiAdminJobsIdRouteWithChildren
+  ApiAdminJobsEventsRoute: typeof ApiAdminJobsEventsRoute
   ApiAdminJobsRetryBulkRoute: typeof ApiAdminJobsRetryBulkRoute
   ApiAdminMarketsSlugRoute: typeof ApiAdminMarketsSlugRouteWithChildren
   ApiAdminMediaIdRoute: typeof ApiAdminMediaIdRouteWithChildren
@@ -4162,6 +4175,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/jobs/$id'
       fullPath: '/api/admin/jobs/$id'
       preLoaderRoute: typeof ApiAdminJobsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/jobs/events': {
+      id: '/api/admin/jobs/events'
+      path: '/api/admin/jobs/events'
+      fullPath: '/api/admin/jobs/events'
+      preLoaderRoute: typeof ApiAdminJobsEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/jobs/retry-bulk': {
@@ -5870,6 +5890,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminInquiriesIdRoute: ApiAdminInquiriesIdRouteWithChildren,
   ApiAdminInquiriesAssigneesRoute: ApiAdminInquiriesAssigneesRoute,
   ApiAdminJobsIdRoute: ApiAdminJobsIdRouteWithChildren,
+  ApiAdminJobsEventsRoute: ApiAdminJobsEventsRoute,
   ApiAdminJobsRetryBulkRoute: ApiAdminJobsRetryBulkRoute,
   ApiAdminMarketsSlugRoute: ApiAdminMarketsSlugRouteWithChildren,
   ApiAdminMediaIdRoute: ApiAdminMediaIdRouteWithChildren,

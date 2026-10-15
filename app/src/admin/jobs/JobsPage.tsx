@@ -2,6 +2,7 @@ import { useRouter, useRouterState } from "@tanstack/react-router";
 import { AdminApiError } from "../ui/admin-fetch";
 import { useUrlFilters } from "../ui/use-url-filters";
 import { DeadLetterBanner } from "./DeadLetterBanner";
+import { EventsPanel } from "./EventsPanel";
 import { JobDrawer } from "./JobDrawer";
 import { JobsTable } from "./JobsTable";
 import { jobFilterNames, useJobs } from "./jobs-queries";
@@ -85,6 +86,7 @@ export function JobsPage() {
           },
         }}
       />
+      <EventsPanel />
       {openJob.id === null ? null : (
         <JobDrawer key={openJob.id} id={openJob.id} onClose={openJob.close} />
       )}
