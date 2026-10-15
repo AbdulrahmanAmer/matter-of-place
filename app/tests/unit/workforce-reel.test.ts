@@ -28,7 +28,11 @@ const brand: ReelRequest = {
 
 const recording = (): FakeDb => fakeDb({ rpc: { record_requested_reel: () => "asset-1" } });
 
-function deps(over: Partial<ReelDeps> = {}, log: string[] = [], db: FakeDb = recording()): ReelDeps {
+function deps(
+  over: Partial<ReelDeps> = {},
+  log: string[] = [],
+  db: FakeDb = recording(),
+): ReelDeps {
   return {
     db,
     download: () => Promise.resolve(new Uint8Array([1])),
@@ -73,7 +77,9 @@ const brief = (folder: string) => JSON.parse(readFileSync(join(folder, "brief.js
 describe("a reel request (W7 item 19)", () => {
   it("names the subject its kind needs, and is read from an answer beside a voice-over", () => {
     expect(reelRequestSchema.safeParse({ ...brand, kind: "market" }).success).toBe(false);
-    expect(reelRequestSchema.safeParse({ ...brand, kind: "market", market: "florida" }).success).toBe(true);
+    expect(
+      reelRequestSchema.safeParse({ ...brand, kind: "market", market: "florida" }).success,
+    ).toBe(true);
     expect(reelRequestSchema.safeParse({ ...brand, kind: "campaign" }).success).toBe(false);
     expect(reelRequestSchema.safeParse(brand).success).toBe(true);
     const answer = readJsonAnswer(
@@ -86,10 +92,10 @@ describe("a reel request (W7 item 19)", () => {
     const root = studio();
     const first = queueReel(brand, from, root, new Date("2026-10-15T08:00:00Z"));
     const second = queueReel(brand, from, root, new Date("2026-10-15T09:00:00Z"));
-    expect([first.endsWith("2026-10-15-the-door"), second.endsWith("2026-10-15-the-door-2")]).toEqual([
-      true,
-      true,
-    ]);
+    expect([
+      first.endsWith("2026-10-15-the-door"),
+      second.endsWith("2026-10-15-the-door-2"),
+    ]).toEqual([true, true]);
     expect(nextReel(root)?.folder).toBe(first);
     writeFileSync(
       join(first, "brief.json"),
@@ -98,7 +104,10 @@ describe("a reel request (W7 item 19)", () => {
     expect(nextReel(root, new Date("2026-10-15T09:00:00Z"))).toBeNull();
     const later = new Date(Date.parse("2026-10-15T08:00:00Z") + STALE_MS + 1);
     expect(nextReel(root, later)?.folder).toBe(second);
-    expect(brief(first)).toMatchObject({ state: "failed", reason: "abandoned: the process making it stopped" });
+    expect(brief(first)).toMatchObject({
+      state: "failed",
+      reason: "abandoned: the process making it stopped",
+    });
   });
 });
 
@@ -144,10 +153,14 @@ describe("the reel pass", () => {
       log,
       db,
     );
-    expect(await reelPass(refused, root)).toBe("reel The door: failed (review_refused: a title is cut off)");
+    expect(await reelPass(refused, root)).toBe(
+      "reel The door: failed (review_refused: a title is cut off)",
+    );
     expect([log.some((line) => line.startsWith("upload")), db.calls]).toEqual([false, []]);
     expect(brief(folder)).toMatchObject({ state: "failed" });
-    expect(log.at(-1)).toContain("was not made: review_refused: a title is cut off. Nothing was uploaded.");
+    expect(log.at(-1)).toContain(
+      "was not made: review_refused: a title is cut off. Nothing was uploaded.",
+    );
   });
 
   it("refuses spoken lines before any work while the voice mix is not built", async () => {

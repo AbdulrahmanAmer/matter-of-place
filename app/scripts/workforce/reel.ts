@@ -49,7 +49,11 @@ export const reelRequestSchema = z
     };
     const field = needs[request.kind];
     if (field !== undefined && request[field] === undefined) {
-      ctx.addIssue({ code: "custom", path: [field], message: `a ${request.kind} reel names its ${field}` });
+      ctx.addIssue({
+        code: "custom",
+        path: [field],
+        message: `a ${request.kind} reel names its ${field}`,
+      });
     }
   });
 export type ReelRequest = z.infer<typeof reelRequestSchema>;
@@ -150,7 +154,13 @@ async function firstPhotos(db: Db, propertyIds: readonly string[]): Promise<Shot
       .sort((a, b) => a.sort_order - b.sort_order)[0];
     return first === undefined || first.media_key === null
       ? []
-      : [{ key: first.media_key, alt: first.alt ?? "", orientation: first.orientation ?? "landscape" }];
+      : [
+          {
+            key: first.media_key,
+            alt: first.alt ?? "",
+            orientation: first.orientation ?? "landscape",
+          },
+        ];
   });
 }
 
@@ -172,7 +182,13 @@ export async function shotsFor(db: Db, request: ReelRequest): Promise<Shot[]> {
       .flatMap((row) =>
         row.media_key === null
           ? []
-          : [{ key: row.media_key, alt: row.alt ?? "", orientation: row.orientation ?? "landscape" }],
+          : [
+              {
+                key: row.media_key,
+                alt: row.alt ?? "",
+                orientation: row.orientation ?? "landscape",
+              },
+            ],
       );
     if (shots.length === 0) throw new Error("no_photos");
     return shots;
@@ -206,7 +222,9 @@ export async function shotsFor(db: Db, request: ReelRequest): Promise<Shot[]> {
     .eq("editorial_state", "published");
   if (relatedError !== null) throw new Error("properties_unavailable");
   const shots = [
-    ...(story.image === null ? [] : [{ key: story.image, alt: story.title, orientation: "landscape" }]),
+    ...(story.image === null
+      ? []
+      : [{ key: story.image, alt: story.title, orientation: "landscape" }]),
     ...(await firstPhotos(
       db,
       related.map((row) => row.id),
@@ -275,7 +293,10 @@ export type ReelDeps = {
   /** A designer's run in the studio folder (file tools only there); answers its text. */
   design: (folder: string, prompt: string) => Promise<string>;
   /** Films the scene: the gated MP4's path and poster, and the gate's report. */
-  render: (folder: string, spec: unknown) => Promise<{ mp4: string; poster: Uint8Array; gate: Json }>;
+  render: (
+    folder: string,
+    spec: unknown,
+  ) => Promise<{ mp4: string; poster: Uint8Array; gate: Json }>;
   /** Lays the voice under the film and gates the final file again; answers the final MP4's path. Null until E2b. */
   voice: ((folder: string, mp4: string, lines: readonly string[]) => Promise<string>) | null;
   /** Writes review/sheet.jpg from the final file and runs the fresh reviewer; answers its text. */
@@ -299,7 +320,9 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
   try {
     const lines = request.voice ?? [];
     if (lines.length > 0 && deps.voice === null) {
-      throw new Error("voice_not_ready: the voice mix arrives with slice E2b; ask again without voice lines");
+      throw new Error(
+        "voice_not_ready: the voice mix arrives with slice E2b; ask again without voice lines",
+      );
     }
     const shots = await shotsFor(deps.db, request);
     mkdirSync(join(folder, "shots"), { recursive: true });
@@ -311,7 +334,9 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
     }
     mkdirSync(join(folder, "reference", "reel"), { recursive: true });
     for (const rel of REFERENCE) {
-      const name = rel.startsWith("launch/reel/") ? join("reel", rel.slice(12)) : rel.split("/").pop();
+      const name = rel.startsWith("launch/reel/")
+        ? join("reel", rel.slice(12))
+        : rel.split("/").pop();
       copyFileSync(join(REPO, rel), join(folder, "reference", name ?? rel));
     }
     mkdirSync(join(folder, "scene"), { recursive: true });
@@ -332,7 +357,13 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
 
     const video = deps.readFile(final);
     const files = [
-      { role: "video", media_key: `requested/${brief.id}/reel.${hash8(video)}.mp4`, w: 1080, h: 1920, bytes: video.length },
+      {
+        role: "video",
+        media_key: `requested/${brief.id}/reel.${hash8(video)}.mp4`,
+        w: 1080,
+        h: 1920,
+        bytes: video.length,
+      },
       {
         role: "poster",
         media_key: `requested/${brief.id}/poster.${hash8(filmed.poster)}.jpg`,
@@ -378,7 +409,12 @@ function studioArgs(model: string, extraRefused: string): string[] {
   return [
     ...["-p", "--model", model, "--output-format", "json"],
     ...["--strict-mcp-config", "--mcp-config", noMcp, "--restricted"],
-    ...["--permission-mode", "dontAsk", "--disallowedTools", `Bash,WebFetch,WebSearch,NotebookEdit${extraRefused}`],
+    ...[
+      "--permission-mode",
+      "dontAsk",
+      "--disallowedTools",
+      `Bash,WebFetch,WebSearch,NotebookEdit${extraRefused}`,
+    ],
   ];
 }
 
@@ -416,11 +452,15 @@ async function realDeps(): Promise<ReelDeps> {
         encoding: "utf8",
         windowsHide: true,
       });
-      if (install.status !== 0) throw new Error("engine_packages_missing: bun install in launch/ failed");
+      if (install.status !== 0)
+        throw new Error("engine_packages_missing: bun install in launch/ failed");
       const made = await renderRequested({
         sceneDir: join(folder, "scene"),
         shotsDir: join(folder, "shots"),
-        spec: z.object({ shots: z.array(z.object({ file: z.string() })) }).passthrough().parse(spec),
+        spec: z
+          .object({ shots: z.array(z.object({ file: z.string() })) })
+          .passthrough()
+          .parse(spec),
       });
       mkdirSync(join(folder, "out"), { recursive: true });
       copyFileSync(made.mp4, join(folder, "out", "reel.mp4"));
