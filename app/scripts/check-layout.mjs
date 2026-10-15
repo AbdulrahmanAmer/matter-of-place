@@ -135,7 +135,7 @@ export const APP_ROWS = [
       "scripts/{audit,harden,launch}/**/*.{ts,mjs}",
       // W1: the laptop runner of the AI colleagues, its hidden launcher and its installer.
       "scripts/workforce/{answer.ts,charter.ts,cli.ts,colleague-calls.ts,config.ts,daemon.ts,env.ts,follow.ts,grounding.ts,growth.ts,hidden-run.vbs,hiring.ts,install.ps1,knowledge.ts,mail.ts,media.ts,meeting.ts,review.ts,scorecard.ts,site-facts.ts,usage-policy.ts}",
-      "scripts/matter/{actions.ts,atlas.ts,key.ts,live.ts,live-alive.ts,read.ts,run.ts,settings.json,settings-full.json}",
+      "scripts/matter/{actions.ts,atlas.ts,key.ts,live.ts,live-alive.ts,read.ts,run.ts,settings.json,settings-full.json,system-map.ts}",
       "scripts/harden/checklist.json",
       "scripts/harden/rls-review.sql",
       "scripts/harden/{pg-shims,restore-shims,rowcounts}.sql",

@@ -64,7 +64,10 @@ describe("Matter's run", () => {
         power,
       });
       const map = prompt.indexOf("Your system map,");
-      expect([map > prompt.indexOf("ATLAS"), prompt.includes("system-map.md")]).toEqual([true, true]);
+      expect([map > prompt.indexOf("ATLAS"), prompt.includes("system-map.md")]).toEqual([
+        true,
+        true,
+      ]);
     }
   });
 

@@ -685,7 +685,7 @@ async function pass(client: Db): Promise<void> {
     }
     // W6 item 3: a child process, so the map is drawn by the code the runner just moved to, not the code loaded here.
     if (mapDue(followed, existsSync(join(HOME, "matter", "system-map.md")))) {
-      const made = spawnSync("bun", ["scripts/matter/system-map.ts"], {
+      const made = spawnSync("bun", [join(import.meta.dir, "../matter/system-map.ts")], {
         cwd: resolve(import.meta.dir, "../.."),
         windowsHide: true,
         encoding: "utf8",

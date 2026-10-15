@@ -76,9 +76,7 @@ function filesUnder(root: string, rel: string): string[] {
   const dir = join(root, rel);
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
-    entry.isDirectory()
-      ? filesUnder(root, `${rel}/${entry.name}`)
-      : [`${rel}/${entry.name}`],
+    entry.isDirectory() ? filesUnder(root, `${rel}/${entry.name}`) : [`${rel}/${entry.name}`],
   );
 }
 
@@ -90,7 +88,7 @@ function code(text: string): string {
 type Binding = { from: string; name: string };
 
 /** `import { a, b as c } from "./x"` and `import * as ns from "./x"`, type-only imports left out. */
-export function importsOf(text: string): Map<string, Binding> {
+function importsOf(text: string): Map<string, Binding> {
   const bindings = new Map<string, Binding>();
   for (const match of text.matchAll(/^import\s+(?!type\s)([\s\S]*?)\s+from\s+["']([^"']+)["']/gm)) {
     const clause = match[1] ?? "";
@@ -111,7 +109,9 @@ export function importsOf(text: string): Map<string, Binding> {
 /** The file a relative import names, as a path from the app root; null for packages and missing files. */
 function resolveModule(root: string, fromFile: string, spec: string): string | null {
   if (!spec.startsWith(".")) return null;
-  const base = posix.normalize(posix.join(posix.dirname(fromFile), spec)).replace(/\.(tsx?|js)$/, "");
+  const base = posix
+    .normalize(posix.join(posix.dirname(fromFile), spec))
+    .replace(/\.(tsx?|js)$/, "");
   for (const candidate of [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`]) {
     if (existsSync(join(root, candidate))) return candidate;
   }
@@ -122,10 +122,12 @@ function resolveModule(root: string, fromFile: string, spec: string): string | n
  * The text of one top-level declaration (`function name`, `const name`, exported or not), read as prettier formats
  * it: it ends at the first line at column 0 that closes a bracket and opens nothing.
  */
-export function declarationOf(text: string, name: string): string | null {
+function declarationOf(text: string, name: string): string | null {
   const lines = text.split(/\r?\n/);
   const start = lines.findIndex((line) =>
-    new RegExp(`^(export\\s+)?(async\\s+)?(function\\s*\\*?\\s*${name}\\b|const\\s+${name}\\b)`).test(line),
+    new RegExp(
+      `^(export\\s+)?(async\\s+)?(function\\s*\\*?\\s*${name}\\b|const\\s+${name}\\b)`,
+    ).test(line),
   );
   if (start === -1) return null;
   const first = lines[start] ?? "";
@@ -155,7 +157,9 @@ function serviceEffects(text: string, body: string, seen: Set<string> = new Set(
   for (const match of body.matchAll(/enqueueJob\([^{]*\{\s*type:\s*["'](\w+)["']/g)) {
     if (match[1] !== undefined) effects.jobs.push(match[1]);
   }
-  for (const match of body.matchAll(/["']emit_event["'][\s\S]{0,200}?p_type:\s*["']([\w.]+)["']/g)) {
+  for (const match of body.matchAll(
+    /["']emit_event["'][\s\S]{0,200}?p_type:\s*["']([\w.]+)["']/g,
+  )) {
     if (match[1] !== undefined) effects.events.push(match[1]);
   }
   for (const match of body.matchAll(/\b(\w+)\(/g)) {
@@ -240,7 +244,12 @@ function routePathOf(text: string): string | null {
 }
 
 /** `file#function` for an identifier a route file uses, through its imports; null when it is not imported. */
-function serviceOf(root: string, file: string, imports: Map<string, Binding>, id: string): string | null {
+function serviceOf(
+  root: string,
+  file: string,
+  imports: Map<string, Binding>,
+  id: string,
+): string | null {
   const [head, member] = id.split(".");
   const binding = head === undefined ? undefined : imports.get(head);
   if (binding === undefined) return null;
@@ -302,10 +311,14 @@ function apiRoutes(
       // The handler is a function named outright (`handler: saveStory`) or the first call in its body that is
       // imported from `src/server` (`new Response(..., await getPdf(...))` reaches `getPdf`).
       const body = block.slice(Math.max(0, block.indexOf("handler:")));
-      const named = /^handler:\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)\s*[,}\n]/.exec(body)?.[1];
+      const named = /^handler:\s*([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)\s*[,}\n]/.exec(
+        body,
+      )?.[1];
       const candidates = [
         ...(named === undefined ? [] : [named]),
-        ...[...body.matchAll(/([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)\s*\(/g)].map((m) => m[1] ?? ""),
+        ...[...body.matchAll(/([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)?)\s*\(/g)].map(
+          (m) => m[1] ?? "",
+        ),
       ];
       const handler = candidates.find((id) =>
         serviceOf(root, file, imports, id)?.startsWith("src/server/"),
@@ -400,7 +413,8 @@ function reach(root: string, start: string[], depth = 3): string[] {
       texts.push(text);
       for (const match of whole.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)) {
         const target = resolveModule(root, file, match[1] ?? "");
-        if (target !== null && text.includes(match[1] ?? "")) next.push({ file: target, name: null });
+        if (target !== null && text.includes(match[1] ?? ""))
+          next.push({ file: target, name: null });
       }
       for (const [local, binding] of importsOf(whole)) {
         const target = resolveModule(root, file, binding.from);
@@ -491,14 +505,21 @@ function events(
     emitters.set(type, (emitters.get(type) ?? new Set()).add(by));
   for (const [name] of functions) {
     for (const type of sqlEffects(name, functions, new Set([name])).events) {
-      if (new RegExp(`emit_event\\(\\s*'${type.replace(/\./g, "\\.")}'`, "i").test(functions.get(name)?.body ?? "")) {
+      if (
+        new RegExp(`emit_event\\(\\s*'${type.replace(/\./g, "\\.")}'`, "i").test(
+          functions.get(name)?.body ?? "",
+        )
+      ) {
         note(type, name);
       }
     }
   }
   for (const route of routes) {
     for (const type of route.effects.events) {
-      if (route.service !== null && !route.effects.calls.some((call) => emitters.get(type)?.has(call))) {
+      if (
+        route.service !== null &&
+        !route.effects.calls.some((call) => emitters.get(type)?.has(call))
+      ) {
         note(type, route.service);
       }
     }
@@ -513,8 +534,7 @@ function events(
         recipe === undefined
           ? []
           : steps.map(
-              (step) =>
-                `${step.step_type}${step.enabled && recipe.enabled ? "" : " (off)"}`,
+              (step) => `${step.step_type}${step.enabled && recipe.enabled ? "" : " (off)"}`,
             ),
       emails: sorted(steps.flatMap((step) => (step.template === undefined ? [] : [step.template]))),
       wakes: sorted(
@@ -534,7 +554,10 @@ export function systemMap(
 ): SystemMap {
   const unmapped: Unmapped[] = [];
   const functions = sqlFunctions(root);
-  const routes = [...apiRoutes(root, functions, unmapped), ...publicRoutes(root, functions, unmapped)];
+  const routes = [
+    ...apiRoutes(root, functions, unmapped),
+    ...publicRoutes(root, functions, unmapped),
+  ];
   for (const route of routes) {
     for (const call of route.effects.calls) {
       if (!functions.has(call)) {
@@ -587,12 +610,18 @@ export function renderMap(map: SystemMap): string {
     `## 1 Public pages`,
     ...map.pages
       .filter((page) => page.kind === "public")
-      .map((page) => `- ${page.path} (${page.files.join(", ")}): ${page.api.join(", ") || "no API call"}`),
+      .map(
+        (page) =>
+          `- ${page.path} (${page.files.join(", ")}): ${page.api.join(", ") || "no API call"}`,
+      ),
     ``,
     `## 2 Admin screens`,
     ...map.pages
       .filter((page) => page.kind === "admin")
-      .map((page) => `- ${page.path} (${page.files.join(", ")}): ${page.api.join(", ") || "no API call"}`),
+      .map(
+        (page) =>
+          `- ${page.path} (${page.files.join(", ")}): ${page.api.join(", ") || "no API call"}`,
+      ),
     ``,
     `## 3 Server routes`,
     ...map.routes.map((route) =>

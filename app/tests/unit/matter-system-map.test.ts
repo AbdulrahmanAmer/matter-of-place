@@ -325,12 +325,18 @@ describe("Matter's system map (W6 item 3)", () => {
       .filter((file) => /\.tsx?$/.test(file))
       .filter((file) => {
         const name = relative("src/routes", file).replaceAll("\\", "/");
-        if (name === "__root.tsx" || !(name.startsWith("api/") || name.startsWith("admin") || name.startsWith("_site"))) {
+        if (
+          name === "__root.tsx" ||
+          !(name.startsWith("api/") || name.startsWith("admin") || name.startsWith("_site"))
+        ) {
           return false;
         }
         if (mapped.has(file)) return false;
         // A public API file only calls handlePublic: its path is in the route table instead.
-        const path = `/${name.replace(/\.ts$/, "").replace(/\./g, "/").replace(/\$(\w+)/g, ":$1")}`;
+        const path = `/${name
+          .replace(/\.ts$/, "")
+          .replace(/\./g, "/")
+          .replace(/\$(\w+)/g, ":$1")}`;
         return !publicPaths.has(path);
       });
     expect(missing).toEqual([]);
