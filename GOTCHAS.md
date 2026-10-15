@@ -8319,3 +8319,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the runner waits only for runs its own checkout executes (`runnerBusy` in `scripts/workforce/follow.ts` skips workers starting `LIVE_WORKER_PREFIX`). After a merge the live session needs on the runner, check `git -C E:/mop-build/live log --oneline -1` against `origin/main` before waiting on the runner.
 - proof: `cd app && bunx vitest run --project unit tests/unit/follow.test.ts` → `waits for a run this checkout executes, never for the live session's own goal run` passes; the replaced count makes it fail (registry `runner-follow-live.json`).
 - added: 2026-10-15
+
+## P-3532 · A test that passes on the laptop because `~/.mop-workforce` exists failed in CI with ENOENT
+- symptom: 2026-10-15, PR 434: `isolatedArgs` (`app/scripts/workforce/cli.ts`) wrote `no-mcp.json` into `~/.mop-workforce`; every local run passed (the runner made that folder long ago) and CI's check failed three tests with `ENOENT: no such file or directory, open '/home/runner/.mop-workforce/no-mcp.json'`.
+- rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
+- proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
+- added: 2026-10-15
+

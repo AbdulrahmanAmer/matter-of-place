@@ -2,7 +2,7 @@
 // stdin (a long positional argument makes the CLI wait for stdin), JSON or stream-JSON out, stderr ignored, the whole
 // process tree killed when a run is stopped (Jay: a plain kill leaves the CLI's children running).
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 
@@ -13,6 +13,8 @@ import { z } from "zod";
  * the triage, the weekly review's replay and the daily meeting. `home` holds the empty MCP config.
  */
 export function isolatedArgs(home: string, allowed = ""): string[] {
+  // the folder may not exist yet (a fresh machine, CI): made first, so the empty MCP config can be written
+  mkdirSync(home, { recursive: true });
   const noMcp = join(home, "no-mcp.json");
   if (!existsSync(noMcp)) writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));
   return [
