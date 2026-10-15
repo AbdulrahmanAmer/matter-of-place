@@ -79,5 +79,23 @@
     "replace": "  designer: \"Read,Glob,Grep\",",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*lets the designer write in its folder"
+  },
+  {
+    "id": "w7-e2-gate-revision",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "      if (!refusal.startsWith(\"gate_failed\")) throw failure;",
+    "replace": "      throw failure;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*gives the designer the gate's refusal once"
+  },
+  {
+    "id": "w7-e2-gate-rules-in-brief",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    GATE_RULES,\n    \"Write exactly three files",
+    "replace": "    \"Write exactly three files",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*tells the designer what the gate measures"
   }
 ]
