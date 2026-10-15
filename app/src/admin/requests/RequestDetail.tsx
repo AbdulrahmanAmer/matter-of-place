@@ -8,14 +8,17 @@ import { StatusPill } from "../ui/StatusPill";
 import { Timeline } from "../ui/Timeline";
 import { useToast } from "../ui/use-toast";
 import { DecisionPanel } from "./DecisionPanel";
+import { EmailsPanel } from "./EmailsPanel";
 import { NotesPanel } from "./NotesPanel";
 import { PhotoStrip } from "./PhotoStrip";
 import { historyEntry } from "./request-history";
 import {
   useAddNote,
   useOriginal,
+  useResendEmail,
   useStartReview,
   useSubmission,
+  useSubmissionEmails,
   useSubmissionTimeline,
 } from "./requests-queries";
 import { marketSlugOf, stateTone } from "./state-tone";
@@ -36,6 +39,8 @@ export function RequestDetail({ id }: { id: string }) {
   const start = useStartReview();
   const note = useAddNote(id);
   const original = useOriginal(id);
+  const emails = useSubmissionEmails(id);
+  const resend = useResendEmail(id);
   const [opening, setOpening] = useState<string | null>(null);
 
   const detail = request.data;
@@ -72,6 +77,22 @@ export function RequestDetail({ id }: { id: string }) {
           resolve(false);
         },
       });
+    });
+
+  const resendEmail = (messageId: string, email: string) =>
+    new Promise<boolean>((resolve) => {
+      resend.mutate(
+        { messageId, email },
+        {
+          onSuccess: () => {
+            toast({ message: "Queued again." });
+            resolve(true);
+          },
+          onError: () => {
+            resolve(false);
+          },
+        },
+      );
     });
 
   return (
@@ -121,6 +142,14 @@ export function RequestDetail({ id }: { id: string }) {
             }}
           />
           <WithdrawDialog detail={detail} />
+          <EmailsPanel
+            emails={emails.data}
+            marketSlug={market}
+            canResend={actions.includes("submissions.resend_email")}
+            pending={resend.isPending}
+            error={resend.error instanceof AdminApiError ? resend.error.message : null}
+            onResend={resendEmail}
+          />
           <NotesPanel
             notes={detail.notes}
             marketSlug={market}

@@ -5,8 +5,9 @@ import { adminCallSchema } from "../matter/actions.ts";
 
 /** The routes each colleague may propose, as method and path with each id a `$param`. */
 export const colleagueRoutes: Readonly<Record<string, readonly string[]>> = {
-  // The write-up of an activated property: the dossier fields, never publish.
-  editor: ["PATCH /api/admin/properties/$id"],
+  // The write-up of an activated property: the dossier fields, never publish. W9: the next step on a request (a
+  // bounce to follow up, a review to begin) as a note on it.
+  editor: ["PATCH /api/admin/properties/$id", "POST /api/admin/submissions/$id/note"],
   // What a request or a person needs remembered.
   concierge: ["POST /api/admin/submissions/$id/note", "PUT /api/admin/people/$id/notes"],
 };

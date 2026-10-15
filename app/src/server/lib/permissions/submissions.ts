@@ -19,6 +19,8 @@ export const submissions = [
   { action: "submissions.email_preview", group: "submissions", roles: editors },
   { action: "submissions.decline_reasons", group: "submissions", roles: editors },
   { action: "submissions.note", group: "submissions", roles: noters },
+  // W9 item 2: an email about a request that bounced goes again, to the address the person corrected.
+  { action: "submissions.resend_email", group: "submissions", roles: editors },
   {
     action: "submissions.withdraw",
     group: "submissions",

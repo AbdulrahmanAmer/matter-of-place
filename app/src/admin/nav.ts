@@ -247,6 +247,15 @@ export const navEntries: readonly NavEntry[] = [
     requiresAction: "team.users_list",
   },
   { screen: 16, path: "/admin/jobs", routeId: "/admin/jobs/", group: "System", label: "Jobs" },
+  // W9 item 2 and W7 item 1: every email we sent and what became of it.
+  {
+    screen: 32,
+    path: "/admin/emails",
+    routeId: "/admin/emails/",
+    group: "System",
+    label: "Sent emails",
+    requiresAction: "audit.list",
+  },
   {
     screen: 25,
     path: "/admin/audit",

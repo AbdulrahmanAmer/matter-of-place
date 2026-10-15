@@ -8226,3 +8226,38 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: replay in order of risk: the new and retargeted entries first, from an ordered set built outside the repository (`--registry <dir>` takes any folder of registry files), then the rest; never stop a replay without `git status` and a `git checkout -- <file>` of what it left mutated, and never commit while one runs.
 - proof: `cd app && node scripts/watchfail.mjs --registry <folder holding the new and retargeted entries>` ends with `watchfail: replayed N: ok N, bad 0, stale 0` before the long tail starts.
 - added: 2026-10-15
+
+## P-3490 · E: filled up under a second `bun install`: "Failed to install 132 packages" exit 0, then ENOSPC on every Write
+- symptom: 2026-10-15, W9: the second worktree's `bun install --frozen-lockfile` printed `801 packages installed` and `Failed to install 132 packages` and exited 0; the next Write failed `ENOSPC: no space left on device`, and `df -h /e` showed `200G 200G 0 100%`. About forty worktrees under `E:\mop-build` each hold their own `app/node_modules`.
+- cause: bun reports a partial install as success, and every lane copies the whole dependency tree.
+- rule: before a second install on this laptop run `df -h /e`; a lane built from the same `origin/main` (same `bun.lock`) links to an installed lane instead of installing: `cmd //c "mklink /J E:\\mop-build\\<new>\\app\\node_modules E:\\mop-build\\<installed>\\app\\node_modules"`. Remove the linked lane before the one it points at, and never `git worktree remove` the installed lane while a junction points at it. Treat "Failed to install" as a failure whatever the exit code.
+- proof: `df -h /e` → `Avail 0` before; after removing the broken copy and linking, `ls E:/mop-build/w9-2/app/node_modules/.bin | head -1` → `acorn.bunx` and the lane's vitest runs.
+- added: 2026-10-15
+
+## P-3491 · `git reset --soft origin/main` in a lane took a newer main than the one merged: the commit undid 13 files of main
+- symptom: 2026-10-15, W9 item 2: after `git merge origin/main` the lane squashed with `git reset --soft origin/main && git commit`; `git diff --name-only origin/main` then listed `send-email.ts`, `settings.ts`, `services/http/index.ts` and ten tests the item never touched. The pushed commit carried older copies of them.
+- cause: every worktree shares one set of remote refs, and another session's `git fetch` in `E:\Matter Of Place` moved `origin/main` between the merge and the reset. The reset took the new main as parent while the index still held the tree merged with the old one.
+- rule: never squash onto a moving ref name. Pin it first (`base=$(git rev-parse origin/main)`), merge `$base`, reset to `$base`; before every push check `git diff --name-only $base HEAD` lists only the item's files. To repair without a force-push: `git diff --binary <old main> HEAD > item.patch`, `git read-tree -u --reset <new main>`, `git apply --3way item.patch`, commit on top.
+- proof: `git -C E:/mop-build/w9-2 diff --name-only d981cf6f 96ca1f46 | wc -l` → `27`, the item's files only (`49d5e668` alone showed 40).
+- added: 2026-10-15
+
+## P-3492 · A form check that asks outside DNS refused CI's own test addresses: `.invalid` has no name and example.com publishes a null MX
+- symptom: 2026-10-15, W9 item 1 (#412): the db job's api tests failed `expected 422 to be 201` and `no token number 0` in `subscribers.api.test.ts` and `submissions.api.test.ts` once the public pipeline refused addresses on domains that receive no email.
+- cause: the fixtures post `@fixtures.invalid`, `@example.invalid` and `@example.com`; DNS-over-HTTPS answers NXDOMAIN for `.invalid` and a null MX (`0 .`) for example.com, so the honest verdict was `domain_has_no_mail`. Unit tests stub fetch, so only CI, with the network, saw it.
+- rule: any check that consults the outside world about an address or a host answers "not looked up" for the RFC 2606/6761 names (`*.test`, `*.example`, `*.invalid`, `*.localhost`, `example.com/net/org`) before it calls out, as `src/lib/email-check.ts` `RESERVED` does; and a unit test's sample domain is a plausible real one, never example.com, or the guard turns the test vacuous.
+- proof: `cd app && bunx vitest run --project unit tests/unit/email-check.test.ts -t "never looked up"` passes; registry `W9:w9-1-reserved-names` turns it red.
+- added: 2026-10-15
+
+## P-3493 · CI's db job replays every registry entry whose file the PR touches, so an entry already stale on main fails the PR that edits its file
+- symptom: 2026-10-15, W9 item 3 (#415): the db job ended `watchfail: replayed 127: ok 126, bad 0, stale 1` with `STALE B8:en-emit: find occurs 0 times in src/server/lib/events.ts`; the PR had only added one line to that file's list.
+- cause: `p_entity_id: event.entityId,` had become `...(event.entityId === null ? {} : { p_entity_id: event.entityId })` on main long before; nothing replays an entry until a PR touches its file (`--changed`).
+- rule: before pushing a change to a file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` and repair every STALE it names for that file, including entries that were stale before you came; replay each with `--only <id>`.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only en-emit` → `WATCHED-FAIL OK B8:en-emit`.
+- added: 2026-10-15
+
+## P-3479 · The audit robot's Search Console reader aborts under Node on this laptop, and its key is in neither load profile
+- symptom: 2026-10-15, the operator's search assignment: `node workspace/audits/tools/gsc.mjs` printed `Not measured: gsc (GOOGLE_SA_JSON_B64 unset)` with both `load-env.mjs --profile dev` and `--profile ops`; with the key loaded (shell export, then inside Node from the runner's `.env`) it ended `exit 127` and `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76` (Node 24.13 on Windows), the moment it reached the network. Under Bun it signed in, then stopped at `"" cannot be parsed as a URL` (no `SITE_URL`).
+- cause: the key `GOOGLE_SA_JSON_B64` lives only in the runner's `.env` (`E:\mop-build\live\.env`); Node 24 on Windows aborts in libuv when this tool's fetch and exit race; the tool reads the site from `SITE_URL` or `--url`.
+- rule: read Search Console with Bun, the key loaded inside the process from the runner's `.env` (never exported, never printed), and `--url https://matterofplace.com`. The account sees one property, `sc-domain:matterofplace.com` (siteRestrictedUser). A site this new has its queries withheld: read pages and dates for a baseline, and live searches for keyword choice.
+- proof: `bun <wrapper> E:/mop-build/live/.env workspace/audits/tools/gsc.mjs --url https://matterofplace.com` → `Not measured: gsc (Search Console has no queries for sc-domain:matterofplace.com in 28 days)`, exit 0; a 90-day `searchAnalytics/query` by page → `/` 1 impression (position 2), `/stories` 1 (position 40), all on 2026-10-12 (measured 2026-10-15).
+- added: 2026-10-15
