@@ -47,3 +47,7 @@ launch/.site-main/
 
 # scratch output of the render jobs (B12): reel frames, spec and cues
 .tmp/
+
+# task-gate step lists are per machine and per session (.claude/hooks/task-gate.mjs)
+.claude/tasks/
+.git-task-gate-fetch

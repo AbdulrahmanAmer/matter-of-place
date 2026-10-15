@@ -25,6 +25,10 @@ const HOME = join(homedir(), ".mop-workforce");
 const MATTER_HOME = join(HOME, "matter");
 const LOCK_FILE = join(MATTER_HOME, "live.lock");
 const SESSION_FILE = join(MATTER_HOME, "live-session.json");
+// Matter's goal (operator, 2026-10-15): a task-gate step list; between turns he is handed its next open step.
+const GOAL_FILE = join(MATTER_HOME, "goal.json");
+const GOAL_GAP_MS = 10 * 60_000;
+const AFTER_RESULT_MS = 60_000;
 // Jay, 2026-10-13: a long session costs more each turn and compaction drops facts, so the session rotates and a
 // state file Matter keeps current seeds the next one.
 const STATE_FILE = join(MATTER_HOME, "live-state.md");
@@ -216,6 +220,40 @@ export function shouldTouch(touchedAt: number, now: number): boolean {
   return now - touchedAt >= 60_000;
 }
 
+/** Whether to hand Matter his next goal step: idle, a minute after his last answer, and not more than every 10 min. */
+export function shouldContinue(input: {
+  idle: boolean;
+  now: number;
+  lastResultAt: number;
+  goalAt: number;
+}): boolean {
+  return (
+    input.idle &&
+    input.now - input.lastResultAt >= AFTER_RESULT_MS &&
+    input.now - input.goalAt >= GOAL_GAP_MS
+  );
+}
+
+/** The line that hands Matter his next open step. */
+export function goalLine(step: string): string {
+  return `Your goal is not met. The next open step: ${step}\nDo it now, through to a merged pull request or a decided approval, then go on to the next one. If it needs the operator's hands (a password, a card, an account), say so once and take the next step instead.`;
+}
+
+/** The next open step of a task-gate list, or null when there is none, no list, or it cannot be read. */
+export function nextGoalStep(
+  file: string,
+  gate = join(here, "../../../.claude/hooks/task-gate.mjs"),
+): string | null {
+  if (!existsSync(file) || !existsSync(gate)) return null;
+  const result = spawnSync("node", [gate, "next", file], {
+    encoding: "utf8",
+    timeout: 120_000,
+    windowsHide: true,
+  });
+  const text = result.stdout.trim();
+  return result.status === 1 && text !== "" && text !== "DONE" ? text : null;
+}
+
 export function shouldRotate(record: SessionRecord | null, now: number): boolean {
   return (
     record !== null &&
@@ -281,6 +319,8 @@ class Supervisor {
   private matterId = "";
   // The running session already carries the briefing (a resumed one, or a new one after its first line).
   private seeded = false;
+  private lastResultAt = 0;
+  private goalAt = 0;
   // A rotation stops the process on purpose: its exit is not a crash.
   private rotating = false;
   // Jay's first condition: what Matter's one-shot runs did since the last line this session read.
@@ -369,6 +409,7 @@ class Supervisor {
   }
 
   private async onResult(event: Extract<LiveEvent, { kind: "result" }>): Promise<void> {
+    this.lastResultAt = Date.now();
     if (event.session !== null)
       writeFileSync(
         SESSION_FILE,
@@ -413,6 +454,7 @@ class Supervisor {
         last.runId,
         last.thread,
         answer.actions,
+        true,
       );
       if (answer.hire.length > 0)
         await applyHires(
@@ -505,6 +547,50 @@ class Supervisor {
       : `Since your last line, your read-only runs did this (they are you, woken by outside text):\n${lines.join("\n")}\n\n`;
   }
 
+  /** Hands Matter a line; the first line of a session carries his prompt, the live rules and his state. */
+  private say(said: string): void {
+    if (!this.seeded) {
+      this.seeded = true;
+      const prompt = matterPrompt({
+        ...matterInputs(resolve(here, "../../../workspace/05-plans/W2.md")),
+        thread: "",
+        business: "",
+        power: "full",
+      });
+      this.send(`${prompt}\n\n${LIVE_RULES}\n\n${stateText()}\n\n${said}`);
+    } else {
+      this.send(said);
+    }
+  }
+
+  /** Between turns, with a goal step open, Matter is handed it as a run of his own (thread "matter"). */
+  private async continueGoal(): Promise<void> {
+    const now = Date.now();
+    const idle = isIdle(this.active.length, this.open.size);
+    if (!shouldContinue({ idle, now, lastResultAt: this.lastResultAt, goalAt: this.goalAt }))
+      return;
+    this.goalAt = now;
+    const step = nextGoalStep(GOAL_FILE);
+    if (step === null) return;
+    const { data: run } = await this.client
+      .from("agent_runs")
+      .insert({
+        agent_id: this.matterId,
+        cause: "schedule",
+        state: "running",
+        worker: WORKER,
+        started_at: new Date(now).toISOString(),
+        lease_until: new Date(now + 6 * 60 * 60_000).toISOString(),
+      })
+      .select("id")
+      .single();
+    if (run === null) return;
+    console.log(`${new Date(now).toISOString()} live: goal step ${step}`);
+    this.active.push({ runId: run.id, thread: "matter" });
+    await this.setTask("Working on his goal");
+    this.say(goalLine(step));
+  }
+
   async loop(): Promise<void> {
     const { data: matter } = await this.client
       .from("agents")
@@ -580,20 +666,9 @@ class Supervisor {
         this.active.push({ runId: run.id, thread: line.thread });
         await this.setTask("Reading your line");
         const digest = await this.digest();
-        const said = `${digest}The operator (${line.author_name}) writes:\n${line.body}`;
-        if (!this.seeded) {
-          this.seeded = true;
-          const prompt = matterPrompt({
-            ...matterInputs(resolve(here, "../../../workspace/05-plans/W2.md")),
-            thread: "",
-            business: "",
-            power: "full",
-          });
-          this.send(`${prompt}\n\n${LIVE_RULES}\n\n${stateText()}\n\n${said}`);
-        } else {
-          this.send(said);
-        }
+        this.say(`${digest}The operator (${line.author_name}) writes:\n${line.body}`);
       }
+      if ((claimed ?? []).length === 0 && this.child !== null) await this.continueGoal();
       await new Promise((settle) => setTimeout(settle, POLL_MS));
     }
   }

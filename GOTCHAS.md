@@ -8034,3 +8034,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: in Git Bash, read a file at a revision from a worktree checked out at that revision (`git -C <worktree> ls-files`, `cmp`), or set `MSYS_NO_PATHCONV=1` on the git command; never trust a "missing" from a `rev:path` argument without a second check.
 - proof: `MSYS_NO_PATHCONV=1 git cat-file -e origin/main:.claude/hooks/edit-impact.mjs && echo present` prints `present`.
 - added: 2026-10-15
+
+## P-3466 · A session ended its turn with work open; a goal held only in conversation does not hold
+- symptom: 2026-10-15, Matter's live session stopped after each item and waited for a person's line; this session's own steps were tracked in prose, and "done" was claimed by reading, not by a check.
+- rule: work with an end state runs from a task-gate list (`.claude/hooks/task-gate.mjs`): every step names the command or plan box that proves it, `status` is read before any "done", the Stop hook (`--stop .claude/tasks/active.json`) refuses to end while one of ours fails, and Matter's supervisor hands him the next open step of his `goal.json`.
+- proof: `node .claude/hooks/task-gate.test.mjs` prints five `ok` lines; `node .claude/hooks/task-gate.mjs status ~/.mop-workforce/matter/goal.json` lists W6 and W7 with their next open item.
+- enforced-by: .claude/hooks/task-gate.mjs (Stop hook), app/scripts/matter/live.ts (continueGoal)
+- added: 2026-10-15

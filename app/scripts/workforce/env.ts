@@ -13,8 +13,7 @@ const NAMES = [
   "MATTER_AGENT_KEY",
 ];
 
-export function loadEnvFile(): void {
-  const file = resolve(import.meta.dir, "../../../.env");
+export function loadEnvFile(file = resolve(import.meta.dir, "../../../.env")): void {
   if (!existsSync(file)) return;
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
     const match = /^([A-Z0-9_]+)=(.*)$/.exec(line);

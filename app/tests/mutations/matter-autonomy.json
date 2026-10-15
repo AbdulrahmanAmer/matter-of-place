@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ma-a-decided-by-matter",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  return decidedByMatter\n    ? { state: \"approved\", decided_at: now.toISOString(), reason: \"Decided by Matter\" }\n    : {};",
+    "replace": "  return {};",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*records a call from his live session as approved by him"
+  },
+  {
+    "id": "ma-b-senior-engineer",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "Build the way a senior engineer would",
+    "replace": "Build as you see fit",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*is told he merges, decides approvals and builds the smallest change"
+  },
+  {
+    "id": "ma-c-goal-pace",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "    input.idle &&\n    input.now - input.lastResultAt >= AFTER_RESULT_MS",
+    "replace": "    input.now - input.lastResultAt >= AFTER_RESULT_MS",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*is handed the next step only when idle"
+  },
+  {
+    "id": "ma-d-read-admin-only",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/read.ts",
+    "find": "  if (arg === undefined || at < 0) return null;",
+    "replace": "  if (arg === undefined) return null;",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*reads only admin API paths"
+  }
+]
