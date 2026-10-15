@@ -62,6 +62,7 @@ function view(overrides: Partial<MatterPanelViewProps> = {}) {
         finished_at: "2026-10-13T08:41:00Z",
       },
     ],
+    allowance: null,
     now: NOW,
     tab: "chat",
     draft: "",
@@ -114,6 +115,22 @@ describe("Matter's panel", () => {
       away.startsWith("Offline since"),
       screen.getByRole("status").textContent,
     ]).toEqual(["Working: Bash: bun run check", true, "Online, ready for your next line"]);
+  });
+
+  it("shows the weekly allowance in the header, or that it is not measured (W6 item 2)", () => {
+    const { container, unmount } = view({
+      allowance: {
+        week: 94,
+        resets_at: "2026-10-17T04:00:00Z",
+        measured_at: "2026-10-15T00:59:00Z",
+      },
+    });
+    const measured = container.querySelector(".mp-head__allowance")?.textContent;
+    unmount();
+    const missing = view({ allowance: null });
+    expect([measured, missing.container.querySelector(".mp-head__allowance")?.textContent]).toEqual(
+      ["Week 94% used, resets Sat, Oct 17, 07:00 Cairo time", "Allowance not measured"],
+    );
   });
 
   it("groups tasks: running with its time, the last day with how long each took, older folded away", () => {
