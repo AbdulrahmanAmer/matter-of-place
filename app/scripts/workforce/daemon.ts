@@ -34,6 +34,8 @@ import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.t
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
+import { allowedFor } from "./criteria.ts";
+import { answerable, heldLine, shownBody, triageArgs, triageLines, triageRun } from "./triage.ts";
 import { groundingLines, requestSequence } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
@@ -167,12 +169,14 @@ async function context(
   thread: string,
 ) {
   const parts: string[] = [];
+  let event: { type: string; entity_id: string | null } | null = null;
   if (run.event_id !== null) {
     const { data } = await client
       .from("events")
       .select("type, payload, at, entity, entity_id")
       .eq("id", run.event_id)
       .single();
+    event = data;
     if (data !== null)
       parts.push(
         `What woke you: the event ${data.type} at ${data.at}.\nIts data: ${JSON.stringify(data.payload)}`,
@@ -190,7 +194,7 @@ async function context(
       ? Promise.resolve(null)
       : client
           .from("agent_messages")
-          .select("author_name, author_kind, body")
+          .select("author_id, author_name, author_kind, body")
           .eq("id", run.message_id)
           .single()
           .then(({ data }) => data),
@@ -202,10 +206,13 @@ async function context(
       .order("created_at")
       .then(({ data }) => data ?? []),
   ]);
-  parts.push(...groundingLines(woke, pending));
+  // W8 0b: an outside message reaches the prompt only as its triage; its text stays in the database for a person.
+  const triage = await triageRun(client, askTriage, event, woke);
+  if (triage !== null) parts.push(...triageLines(triage));
+  parts.push(...groundingLines(woke === null ? null : { ...woke, body: shownBody(woke) }, pending));
   const { data: messages } = await client
     .from("agent_messages")
-    .select("author_name, body, created_at")
+    .select("author_id, author_name, body, created_at")
     .eq("thread", thread)
     .order("created_at", { ascending: false })
     .limit(HISTORY);
@@ -214,7 +221,7 @@ async function context(
       `The conversation so far (${thread === "team" ? "the team chat" : "your direct thread"}, oldest first):\n` +
         messages
           .reverse()
-          .map((message) => `${message.author_name}: ${message.body}`)
+          .map((message) => `${message.author_name}: ${shownBody(message)}`)
           .join("\n"),
     );
   }
@@ -247,7 +254,22 @@ async function context(
   );
   // W5 item 13: our own products, prices and markets, so no reply brackets a price it could have read.
   parts.push(await readSiteFacts());
-  return parts.join("\n\n");
+  return { situation: parts.join("\n\n"), triage };
+}
+
+/** W8 0b: the tool-less triage call (triage.ts); its own short time limit, so a stuck call fails closed. */
+async function askTriage(prompt: string): Promise<string> {
+  const { args, cwd } = triageArgs(HOME);
+  return (
+    await runClaude({
+      args,
+      cwd,
+      env: childEnv(),
+      prompt,
+      timeoutMs: 2 * 60_000,
+      who: "the triage",
+    })
+  ).text;
 }
 
 function promptFor(
@@ -324,7 +346,38 @@ async function runOnce(client: Db): Promise<boolean> {
   const cwd = join(HOME, "desks", agent.slug);
   mkdirSync(cwd, { recursive: true });
   try {
-    const situation = await context(client, run, thread);
+    const { situation, triage } = await context(client, run, thread);
+    // W8 0d: a message outside its criteria, or one that tries to direct the AI, wakes no one to answer it: it is held
+    // in the owner's thread for Matter, who reads it without power and decides. The run ends here, before any prompt.
+    if (triage !== null && !answerable(triage)) {
+      const { data: held } = await client
+        .from("agent_messages")
+        .insert({
+          thread: agent.slug === "matter" ? "team" : agent.slug,
+          author_kind: "system",
+          author_id: "triage",
+          author_name: "Triage",
+          body: heldLine(triage, agent.slug),
+        })
+        .select("id")
+        .single();
+      const matterRow = (agents ?? []).find((row) => row.slug === "matter");
+      if (held !== null && matterRow !== undefined && agent.slug !== "matter") {
+        await client
+          .from("agent_runs")
+          .insert({ agent_id: matterRow.id, cause: "message", message_id: held.id });
+      }
+      await client
+        .from("agent_runs")
+        .update({
+          state: "done",
+          finished_at: new Date().toISOString(),
+          summary: `Held for Matter: ${triage.intent}${triage.instructions_to_ai ? ", tries to direct the AI" : ""}`,
+        })
+        .eq("id", run.id);
+      console.log(`${new Date().toISOString()} ${agent.slug} held an outside message for Matter`);
+      return true;
+    }
     // W2 step 6: the lessons this colleague has been taught, recalled for what woke it.
     const { data: lessonRows } = await client
       .from("agent_lessons")
@@ -431,6 +484,15 @@ async function runOnce(client: Db): Promise<boolean> {
     }
     for (const proposal of result.proposals) {
       if (!agent.tools.includes(allowedProposal[proposal.action] ?? "")) continue;
+      // W8 0c: for an outside message, only what its source allows; anything else is dropped and said.
+      if (triage !== null && !allowedFor(triage.source, proposal.action)) {
+        await say(
+          client,
+          thread,
+          `Not proposed: ${proposal.action} is not allowed for ${triage.source} (W8 0c).`,
+        );
+        continue;
+      }
       const content = proposal.content;
       await client.from("agent_approvals").insert({
         agent_id: agent.id,
