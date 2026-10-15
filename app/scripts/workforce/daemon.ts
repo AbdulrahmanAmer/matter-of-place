@@ -7,9 +7,10 @@
 //   bun scripts/workforce/daemon.ts --loop   pass after pass until stopped (for watching it live)
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { agentTools, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
@@ -22,6 +23,9 @@ import {
   callProposal,
   checkCall,
   makeCall,
+  type AdminCall,
+  type CallOutcome,
+  type Send,
 } from "../matter/actions.ts";
 import { askMatter, keepNote, matterInputs, matterPower, matterPrompt } from "../matter/run.ts";
 import { staffCharterFrom } from "./charter.ts";
@@ -50,6 +54,10 @@ import {
   MATTER_ALLOWS_AUTHOR,
   outsideGate,
   outsideWords,
+  insideLine,
+  keyAccountLive,
+  startedFromInside,
+  teamLineAllowed,
   ownsSource,
   promptData,
   recordOf,
@@ -105,11 +113,29 @@ function emptyMcpConfig(): string {
  * A colleague's command line. A run about an outside message (W8 fifth review) is shut off like the triage: no tool,
  * no setting source (so none of the operator's settings, hooks or skills load into it), no MCP server.
  */
-export function colleagueArgs(model: string, research: boolean, outside: boolean): string[] {
+export function colleagueArgs(
+  model: string,
+  research: boolean,
+  outside: boolean,
+  terminal = false,
+): string[] {
   const base = ["-p", "--model", model, "--output-format", "stream-json", "--verbose"];
   if (outside) return [...base, ...isolatedArgs(HOME)];
+  // W8 0e (ruling H113): the terminal is file tools in the colleague's own work folder, never a shell (a shell reaches
+  // every secret on the disk). Reads and writes allowed only inside that folder, none of the operator's settings, no
+  // MCP; the runner gives it no key (childEnv).
+  if (terminal)
+    return [
+      ...base,
+      ...["--tools", "Read,Write,Edit,Glob,Grep", "--setting-sources", ""],
+      ...["--strict-mcp-config", "--mcp-config", emptyMcpConfig(), "--restricted"],
+      ...["--permission-mode", "dontAsk", "--settings", TERMINAL_SETTINGS],
+    ];
   return [
     ...base,
+    // W8 0e (second review): no settings file loads, so nothing a terminal wrote in a desk (a hook in .claude/) runs.
+    "--setting-sources",
+    "",
     "--strict-mcp-config",
     "--mcp-config",
     emptyMcpConfig(),
@@ -122,16 +148,75 @@ export function colleagueArgs(model: string, research: boolean, outside: boolean
   ];
 }
 
+/** W8 0e: what a colleague is told when a person or Matter started its run and it has a terminal. */
+export const TERMINAL_LINE =
+  "A person or Matter started this run, so you may write files in your work folder (read, write and edit; no shell, no web): drafts, scenes, copy, data, an SVG. Say in your reply what you made and where; anything that leaves the company is still a proposal a person approves.";
+
+/** A colleague's terminal settings (W8 0e): file tools inside the work folder only, nothing that configures a run. */
+const TERMINAL_SETTINGS = join(dirname(fileURLToPath(import.meta.url)), "settings-terminal.json");
+
+/**
+ * Names that configure a Claude run when found in its folder: a terminal may never leave one behind (second review).
+ * Lower case, and compared in lower case: Windows finds `.Claude` or `claude.md` as the same file (third review).
+ */
+const RUN_CONFIG = new Set([".claude", "claude.md", "claude.local.md", ".mcp.json"]);
+
+/**
+ * W8 0e: a colleague's folder for this run. A terminal works in `desks/<slug>/work`; every other run in the desk.
+ * Before each run, anything that would configure a run (`RUN_CONFIG`) is removed from the whole desk, so what one run
+ * wrote can never steer the next.
+ */
+export function deskFor(home: string, slug: string, terminal: boolean): string {
+  const desk = join(home, "desks", slug);
+  mkdirSync(join(desk, "work"), { recursive: true });
+  sweep(desk, 0);
+  return terminal ? join(desk, "work") : desk;
+}
+
+function sweep(dir: string, depth: number): void {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (RUN_CONFIG.has(entry.name.toLowerCase())) rmSync(path, { recursive: true, force: true });
+    else if (entry.isDirectory() && !entry.isSymbolicLink() && depth < 8) sweep(path, depth + 1);
+  }
+}
+
+/**
+ * W8 0e (third review): who started a run, decided in one tested place. A signed-in person's line, or a line posted
+ * with an unrevoked operator key; an event, a schedule or any other line starts nothing.
+ */
+export async function startedInsideFor(
+  client: Db,
+  cause: string,
+  woke: { author_kind: string | null; author_id: string | null },
+): Promise<boolean> {
+  return startedFromInside(cause, woke, await keyAccountLive(client, woke));
+}
+
+/**
+ * W8 0e (third review): a colleague run's command line and folder, from its shape. One about outside text is shut
+ * off like the triage; a terminal works in its own work folder; any other run reads its desk.
+ */
+export function colleagueLaunch(
+  home: string,
+  slug: string,
+  model: string,
+  shape: { research: boolean; terminal: boolean },
+  outside: boolean,
+): { args: string[]; cwd: string } {
+  return {
+    args: colleagueArgs(model, shape.research, outside, shape.terminal),
+    cwd: deskFor(home, slug, shape.terminal),
+  };
+}
+
 function askClaude(
   prompt: string,
-  model: string,
-  cwd: string,
-  research = false,
-  outside = false,
+  launch: { args: string[]; cwd: string },
 ): Promise<{ text: string; session?: string; usage?: CliUsage }> {
   return runClaude({
-    args: colleagueArgs(model, research, outside),
-    cwd,
+    args: launch.args,
+    cwd: launch.cwd,
     env: childEnv(),
     prompt,
     idleMs: CLI_IDLE_MS,
@@ -293,6 +378,7 @@ export async function context(
   ask: (prompt: string) => Promise<string> = askTriage,
   matterReadsHeld = false,
   owns: (source: SourceName) => boolean = () => true,
+  startedInside = false,
 ) {
   const parts: string[] = [];
   let event: { type: string; entity: string | null; entity_id: string | null } | null = null;
@@ -359,7 +445,7 @@ export async function context(
   if (triage === null) {
     const { data: messages } = await client
       .from("agent_messages")
-      .select("author_id, author_name, body, created_at")
+      .select("author_kind, author_id, author_name, body, created_at")
       .eq("thread", thread)
       .order("created_at", { ascending: false })
       .limit(HISTORY);
@@ -367,6 +453,9 @@ export async function context(
       parts.push(
         `The conversation so far (${thread === "team" ? "the team chat" : "your direct thread"}, oldest first):\n` +
           messages
+            // W8 0e (second review): a run that may hold a terminal reads only people's and keys' lines; any other
+            // line may carry words that passed through an outside message
+            .filter((message) => !startedInside || insideLine(message))
             .reverse()
             .map((message) => `${message.author_name}: ${shownBody(message)}`)
             .join("\n"),
@@ -479,6 +568,7 @@ function promptFor(
   lessons = "",
   charter = "",
   knowledge = "",
+  terminal = false,
 ): string {
   const may = agentTools.filter((tool) => agent.tools.includes(tool));
   return [
@@ -496,6 +586,7 @@ function promptFor(
         ]
       : []),
     ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
+    ...(terminal ? [TERMINAL_LINE] : []),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
   ].join("\n\n");
@@ -547,10 +638,11 @@ async function runOnce(client: Db): Promise<boolean> {
     .update({ state: "working", current_task: "Reading", last_seen_at: new Date().toISOString() })
     .eq("id", agent.id);
 
-  const cwd = join(HOME, "desks", agent.slug);
-  mkdirSync(cwd, { recursive: true });
   try {
     const matterReadsHeld = agent.slug === "matter" && wokeBy === HELD_AUTHOR;
+    // W8 0e: a key's line counts only if its account is an unrevoked agent key.
+    const woke = { author_kind: authorKind, author_id: wokeBy };
+    const startedInside = await startedInsideFor(client, run.cause, woke);
     const { situation, triage, heldRecord } = await context(
       client,
       run,
@@ -558,6 +650,7 @@ async function runOnce(client: Db): Promise<boolean> {
       askTriage,
       matterReadsHeld,
       (source) => ownsSource(source, agent.slug),
+      startedInside,
     );
     // W8 0a/0d: an outside message is answered by its owner only; anyone else it woke does nothing with it.
     const gate = outsideGate(triage, agent.slug);
@@ -605,7 +698,7 @@ async function runOnce(client: Db): Promise<boolean> {
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
     const isMatter = agent.slug === "matter";
-    const shape = runShape(agent, thread, triage, matterReadsHeld);
+    const shape = runShape(agent, thread, triage, matterReadsHeld, startedInside);
     // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
     const power = isMatter ? matterPower(run.cause, authorKind) : "read";
     const answer = isMatter
@@ -630,13 +723,17 @@ async function runOnce(client: Db): Promise<boolean> {
             lessons,
             staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
             triage === null ? knowledgeBlock(situation) : "",
+            shape.terminal,
           ),
-          models[underCeiling(agent.model, policy.colleagueCeiling)] ??
-            models["sonnet"] ??
-            "claude-sonnet-5-5",
-          cwd,
-          shape.research,
-          triage !== null,
+          colleagueLaunch(
+            HOME,
+            agent.slug,
+            models[underCeiling(agent.model, policy.colleagueCeiling)] ??
+              models["sonnet"] ??
+              "claude-sonnet-5-5",
+            shape,
+            triage !== null,
+          ),
         );
     // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
@@ -666,33 +763,29 @@ async function runOnce(client: Db): Promise<boolean> {
     let reel: { request_id: string; name: string } | null = null;
 
     if (plan.reply !== null) {
-      await client.from("agent_messages").insert({
-        thread: plan.reply.thread,
-        author_kind: "agent",
-        author_id: plan.reply.author_id,
-        author_name: agent.name,
-        body: plan.reply.body,
-      });
+      // W8 0e (second review): the woken colleagues read this reply, never whatever line is newest by then.
+      const { data: written } = await client
+        .from("agent_messages")
+        .insert({
+          thread: plan.reply.thread,
+          author_kind: "agent",
+          author_id: plan.reply.author_id,
+          author_name: agent.name,
+          body: plan.reply.body,
+        })
+        .select("id")
+        .single();
       // A colleague handing work to another wakes them, once.
       const handed = mentionedSlugs(result.reply).filter((slug) => slug !== agent.slug);
       const targets = (agents ?? []).filter(
         (row) => handed.includes(row.slug) && row.state !== "off" && row.state !== "paused",
       );
-      if (targets.length > 0 && plan.wake) {
-        const { data: last } = await client
-          .from("agent_messages")
-          .select("id")
-          .eq("thread", place.thread)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-        if (last !== null)
-          await client
-            .from("agent_runs")
-            .insert(
-              targets.map((row) => ({ agent_id: row.id, cause: "message", message_id: last.id })),
-            );
-      }
+      if (targets.length > 0 && plan.wake && written !== null)
+        await client
+          .from("agent_runs")
+          .insert(
+            targets.map((row) => ({ agent_id: row.id, cause: "message", message_id: written.id })),
+          );
     }
     for (const request of media) {
       if (request.skill === "reel") {
@@ -919,11 +1012,58 @@ export async function proposeCalls(
   await say(client, thread, lines.join("\n"));
 }
 
+/** W8 0e: the power of the run that proposed a call (H101: full only for a run a signed-in person's line woke). */
+export async function proposedAt(client: Db, runId: string | null): Promise<"full" | "read"> {
+  if (runId === null) return "read";
+  const { data: run } = await client
+    .from("agent_runs")
+    .select("agent_id, cause, message_id")
+    .eq("id", runId)
+    .maybeSingle();
+  if (run?.message_id == null) return "read";
+  // full power is Matter's alone (H101; third review): any other colleague's run proposes at read power
+  const { data: agent } = await client
+    .from("agents")
+    .select("slug")
+    .eq("id", run.agent_id)
+    .maybeSingle();
+  if (agent?.slug !== "matter") return "read";
+  const { data: line } = await client
+    .from("agent_messages")
+    .select("author_kind")
+    .eq("id", run.message_id)
+    .maybeSingle();
+  return matterPower(run.cause, line?.author_kind ?? null);
+}
+
+/** What an approved call comes to: refused for its address or as a team line nobody with power put there, or made. */
+export async function approvedOutcome(
+  client: Db,
+  row: { decided_by: string | null; run_id: string | null },
+  call: AdminCall,
+  key: string,
+  send: Send = fetch,
+): Promise<CallOutcome> {
+  // W9 item 1: a call that would mail an address the check refuses is not made.
+  const refusal = await refusedAddress(call.body);
+  if (refusal !== null)
+    return { status: 0, ok: false, message: `not made, the address is refused: ${refusal}` };
+  // W8 0e (second review): a line to the team wakes colleagues with a terminal, so only a person or Matter at full
+  // power may have put it here.
+  if (!teamLineAllowed(call, row.decided_by, await proposedAt(client, row.run_id)))
+    return {
+      status: 0,
+      ok: false,
+      message: "not made, a change that reaches a colleague needs a person's approval",
+    };
+  return makeCall(call, key, ADMIN_BASE, send);
+}
+
 /** Gap item 31: an approved call is made once with Matter's own key, and its outcome is written back and said. */
 async function makeApprovedCalls(client: Db): Promise<void> {
   const { data } = await client
     .from("agent_approvals")
-    .select("id, summary, content")
+    .select("id, summary, content, decided_by, run_id")
     .eq("action", "admin_call")
     .eq("state", "approved")
     .is("content->outcome", null)
@@ -941,13 +1081,9 @@ async function makeApprovedCalls(client: Db): Promise<void> {
       .from("agent_approvals")
       .update({ content: { ...content, outcome: { state: "making" } } })
       .eq("id", row.id);
-    // W9 item 1: a call that would mail an address the check refuses is not made.
-    const refusal = call.success ? await refusedAddress(call.data.body) : null;
-    const outcome = !call.success
-      ? { status: 0, ok: false, message: "the call could not be read" }
-      : refusal !== null
-        ? { status: 0, ok: false, message: `not made, the address is refused: ${refusal}` }
-        : await makeCall(call.data, key, ADMIN_BASE);
+    const outcome = call.success
+      ? await approvedOutcome(client, row, call.data, key)
+      : { status: 0, ok: false, message: "the call could not be read" };
     await client
       .from("agent_approvals")
       .update({ content: { ...content, outcome: { ...outcome, at: new Date().toISOString() } } })
@@ -1042,7 +1178,11 @@ async function pass(client: Db): Promise<void> {
   // W5 item 13: our public pages' text in every desk, once a day, so a colleague can quote the site it works for.
   const { data: staff } = await client.from("agents").select("slug");
   const pages = await writeSitePages(
-    (staff ?? []).map(({ slug }) => join(HOME, "desks", slug)),
+    // and in each work folder, the only place a terminal run may read (W8 0e, third review)
+    (staff ?? []).flatMap(({ slug }) => [
+      join(HOME, "desks", slug),
+      join(HOME, "desks", slug, "work"),
+    ]),
   ).catch((failure: unknown) => {
     console.log(`site pages: ${failure instanceof Error ? failure.message : String(failure)}`);
     return 0;

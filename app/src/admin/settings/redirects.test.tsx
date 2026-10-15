@@ -1,13 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { serveAdmin as serve } from "../../../tests/fixtures/admin-serve";
-import type { RedirectRow } from "../../domain/admin-settings";
+import type { LinkCheck, OldAddress, RedirectPage, RedirectRow } from "../../domain/admin-settings";
 import { standInForDialogs } from "../ui/test-dialog";
 import { AdminProviders } from "../ui/test-providers";
 import { RedirectsSection } from "./RedirectsSection";
 
 // Screen 24's redirects (B7 step 15a, invariant 16): the active rows, an add or edit form that refuses an invalid or
-// looping row inline before it sends anything, and remove, which archives the row through DELETE.
+// looping row inline before it sends anything, and remove, which archives the row through DELETE. W7 item 6 adds the
+// old addresses of renamed properties (read only) and a box that tests where a link leads.
 
 const LIST = "/api/admin/settings/redirects";
 const ID_A = "00000000-0000-4000-8000-0000000000c1";
@@ -18,10 +19,40 @@ const rows: RedirectRow[] = [
   { id: ID_B, from_path: "/markets", to_path: "/markets/california", status: 301 },
 ];
 
+const PROPERTY = "00000000-0000-4000-8000-0000000000d1";
+
+const oldAddresses: OldAddress[] = [
+  {
+    slug: "old-ridge",
+    property_id: PROPERTY,
+    title: "The Ridge",
+    current_slug: "the-ridge",
+    live: true,
+  },
+  {
+    slug: "old-cove",
+    property_id: PROPERTY,
+    title: "The Cove",
+    current_slug: "the-cove",
+    live: false,
+  },
+];
+
+/** The answer of the read: the redirect rows, the old addresses and, once a path was sent, its check. */
+function answer(overrides: Partial<RedirectPage> = {}): RedirectPage {
+  return {
+    items: rows,
+    next_cursor: null,
+    old_addresses: { items: [], next_cursor: null },
+    check: null,
+    ...overrides,
+  };
+}
+
 const writes = (requested: string[]) => requested.filter((line) => !line.startsWith("GET "));
 
 function mount(answers: Record<string, unknown> = {}) {
-  const requested = serve({ [`GET ${LIST}`]: { items: rows, next_cursor: null }, ...answers });
+  const requested = serve({ [`GET ${LIST}`]: answer(), ...answers });
   render(
     <AdminProviders actions={[]}>
       <RedirectsSection />
@@ -112,11 +143,10 @@ describe("screen 24, redirects", () => {
 
   it("pages on with the cursor of the last row and back to the first page", async () => {
     const requested = serve({
-      [`GET ${LIST}`]: { items: rows, next_cursor: "/summer" },
-      [`GET ${LIST}?cursor=%2Fsummer`]: {
+      [`GET ${LIST}`]: answer({ next_cursor: "/summer" }),
+      [`GET ${LIST}?cursor=%2Fsummer`]: answer({
         items: [{ id: ID_A, from_path: "/winter", to_path: "/stories", status: 301 }],
-        next_cursor: null,
-      },
+      }),
     });
     render(
       <AdminProviders actions={[]}>
@@ -131,6 +161,127 @@ describe("screen 24, redirects", () => {
     expect({ paged, back: (await screen.findByText("/summer")).textContent }).toEqual({
       paged: [`GET ${LIST}`, `GET ${LIST}?cursor=%2Fsummer`],
       back: "/summer",
+    });
+  });
+
+  it("lists each old property address read only, with the page it leads to and whether that property is published", async () => {
+    mount({
+      [`GET ${LIST}`]: answer({ old_addresses: { items: oldAddresses, next_cursor: null } }),
+    });
+    const table = await screen.findByRole("table", { name: "Old property addresses" });
+    await within(table).findByText("/property/old-ridge");
+    const lines = within(table)
+      .getAllByRole("row")
+      .slice(1)
+      .map((row) => row.textContent);
+    expect({ lines, buttons: within(table).queryAllByRole("button").length }).toEqual({
+      lines: [
+        "/property/old-ridge/property/the-ridge (The Ridge)Published",
+        "/property/old-cove/property/the-cove (The Cove)Not published",
+      ],
+      buttons: 0,
+    });
+  });
+
+  it("pages the old addresses on their own cursor and leaves the redirect rows where they were", async () => {
+    const requested = serve({
+      [`GET ${LIST}`]: answer({
+        old_addresses: { items: oldAddresses.slice(0, 1), next_cursor: "old-ridge" },
+      }),
+      [`GET ${LIST}?old_cursor=old-ridge`]: answer({
+        old_addresses: { items: oldAddresses.slice(1), next_cursor: null },
+      }),
+    });
+    render(
+      <AdminProviders actions={[]}>
+        <RedirectsSection />
+      </AdminProviders>,
+    );
+    const table = await screen.findByRole("table", { name: "Old property addresses" });
+    await within(table).findByText("/property/old-ridge");
+    // The old addresses are the second table of the section, so their pager is the second "next".
+    const next = screen.getAllByRole("button", { name: /next/i }).at(-1);
+    if (next === undefined) throw new Error("no pager");
+    fireEvent.click(next);
+    await screen.findByText("/property/old-cove");
+    expect(requested).toEqual([`GET ${LIST}`, `GET ${LIST}?old_cursor=old-ridge`]);
+  });
+
+  it("tests a typed path through the read and shows each hop, and asks for a path when the box is empty", async () => {
+    const check: LinkCheck = {
+      path: "/summer",
+      loop: false,
+      steps: [
+        { from: "/summer", to: "/markets", status: 302, source: "redirect" },
+        { from: "/markets", to: "/property/the-ridge", status: 301, source: "old_address" },
+      ],
+    };
+    const requested = mount({ [`GET ${LIST}?path=%2Fsummer`]: answer({ check }) });
+    await screen.findByText("/summer");
+    fireEvent.click(screen.getByRole("button", { name: "Test link" }));
+    const empty = screen.getByText("Type an address to test.");
+    fireEvent.change(screen.getByLabelText("Address to test"), { target: { value: " /summer " } });
+    fireEvent.click(screen.getByRole("button", { name: "Test link" }));
+    const result = screen.getByRole("group", { name: "Link test result" });
+    const hops = await within(result).findAllByRole("listitem");
+    expect({
+      empty: empty.textContent,
+      hops: hops.map((item) => item.textContent),
+      requested,
+    }).toEqual({
+      empty: "Type an address to test.",
+      hops: [
+        "/summer goes to /markets (302, redirect).",
+        "/markets goes to /property/the-ridge (301, old property address).",
+      ],
+      requested: [`GET ${LIST}`, `GET ${LIST}?path=%2Fsummer`],
+    });
+  });
+
+  it("says there is no redirect for a path nothing leads from, and says when hops run in a circle", async () => {
+    mount({
+      [`GET ${LIST}?path=%2Fnothing`]: answer({
+        check: { path: "/nothing", loop: false, steps: [] },
+      }),
+      [`GET ${LIST}?path=%2Fa`]: answer({
+        check: {
+          path: "/a",
+          loop: true,
+          steps: [
+            { from: "/a", to: "/b", status: 301, source: "redirect" },
+            { from: "/b", to: "/a", status: 301, source: "redirect" },
+          ],
+        },
+      }),
+    });
+    await screen.findByText("/summer");
+    const box = screen.getByLabelText("Address to test");
+    fireEvent.change(box, { target: { value: "/nothing" } });
+    fireEvent.click(screen.getByRole("button", { name: "Test link" }));
+    const none = await screen.findByText("No redirect: the site answers /nothing as it is.");
+    fireEvent.change(box, { target: { value: "/a" } });
+    fireEvent.click(screen.getByRole("button", { name: "Test link" }));
+    await screen.findByText("These addresses lead in a circle.");
+    expect(none.textContent).toBe("No redirect: the site answers /nothing as it is.");
+  });
+
+  it("hides the last answer while the next path is being checked", async () => {
+    mount({
+      [`GET ${LIST}?path=%2Fnothing`]: answer({
+        check: { path: "/nothing", loop: false, steps: [] },
+      }),
+    });
+    await screen.findByText("/summer");
+    const box = screen.getByLabelText("Address to test");
+    fireEvent.change(box, { target: { value: "/nothing" } });
+    fireEvent.click(screen.getByRole("button", { name: "Test link" }));
+    await screen.findByText("No redirect: the site answers /nothing as it is.");
+    vi.stubGlobal("fetch", () => new Promise<Response>(() => undefined));
+    fireEvent.change(box, { target: { value: "/later" } });
+    fireEvent.click(screen.getByRole("button", { name: "Test link" }));
+    const result = screen.getByRole("group", { name: "Link test result" });
+    await waitFor(() => {
+      expect(result.textContent).toBe("");
     });
   });
 });
