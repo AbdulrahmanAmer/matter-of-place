@@ -1,0 +1,29 @@
+[
+  {
+    "id": "w9-4-widest",
+    "test": "tests/unit/workforce-pull-images.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "return candidates.sort((a, b) => b.size - a.size)[0]?.url ?? null;",
+    "replace": "return candidates.sort((a, b) => a.size - b.size)[0]?.url ?? null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-pull-images.test.ts",
+    "expect": "× .*reads the share image, the structured data and the images, the widest of a srcset, absolute and once"
+  },
+  {
+    "id": "w9-4-no-logos",
+    "test": "tests/unit/workforce-pull-images.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "if (/\\.(svg|gif|ico)(\\?|$)/i.test(url.pathname)) return [];",
+    "replace": "if (/\\.(ico)(\\?|$)/i.test(url.pathname)) return [];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-pull-images.test.ts",
+    "expect": "× .*leaves out logos and icons drawn as svg, gif or ico"
+  },
+  {
+    "id": "w9-4-login",
+    "test": "tests/unit/workforce-pull-images.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "if (/<input[^>]+type=[\"']password[\"']/i.test(html)) return \"the page asks for a password\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-pull-images.test.ts",
+    "expect": "× .*names a refusal, a login page and a password field, and lets a plain page through"
+  }
+]

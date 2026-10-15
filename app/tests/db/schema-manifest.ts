@@ -328,6 +328,8 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     mime: "text?",
     sha256: "text?",
     sort_order: "integer",
+    // W9 item 4: where a pulled photograph came from; null for an upload.
+    source_url: "text?",
   },
   inquiries: {
     id: "uuid",
