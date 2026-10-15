@@ -5,7 +5,7 @@
 // No model key exists anywhere (H34): the CLI is the operator's own account. It prints no secret and no prompt.
 //   bun scripts/workforce/daemon.ts          one pass, then exit (the scheduled task runs it every minute)
 //   bun scripts/workforce/daemon.ts --loop   pass after pass until stopped (for watching it live)
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
@@ -32,12 +32,13 @@ import { makeVoiceover } from "./media.ts";
 import { nextReel, queueReel, reelWorking } from "./reel.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
-import { followMain } from "./follow.ts";
+import { followMain, mapDue } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
 import { groundingLines } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
+import { bounceFacts, wakes } from "./bounce.ts";
 import { checkNewAddresses, refusedAddress } from "./email-check.ts";
 import { refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
@@ -126,7 +127,7 @@ async function wakeOnEvents(client: Db): Promise<number> {
   const cursor = readCursor();
   const { data: events, error } = await client
     .from("events")
-    .select("id, type, at")
+    .select("id, type, at, entity")
     .gt("at", cursor)
     .order("at")
     .limit(50);
@@ -138,10 +139,8 @@ async function wakeOnEvents(client: Db): Promise<number> {
   const { data: agents } = await client.from("agents").select("id, wake_on, state");
   const rows = events.flatMap((event) =>
     (agents ?? [])
-      .filter(
-        (agent) =>
-          agent.state !== "off" && agent.state !== "paused" && agent.wake_on.includes(event.type),
-      )
+      // W9 item 3: a bounce wakes only the owner of the request or inquiry it is about.
+      .filter((agent) => wakes(agent, event))
       .map((agent) => ({ agent_id: agent.id, cause: "event", event_id: event.id })),
   );
   if (rows.length > 0) {
@@ -171,13 +170,16 @@ async function context(
   if (run.event_id !== null) {
     const { data } = await client
       .from("events")
-      .select("type, payload, at")
+      .select("type, payload, at, entity, entity_id")
       .eq("id", run.event_id)
       .single();
     if (data !== null)
       parts.push(
         `What woke you: the event ${data.type} at ${data.at}.\nIts data: ${JSON.stringify(data.payload)}`,
       );
+    // W9 item 3: the failed address and the phone, which the event does not carry.
+    const facts = data?.type === "email.bounced" ? await bounceFacts(client, data) : null;
+    if (facts !== null) parts.push(facts);
   }
   // P-3454: the line that woke the run, and the colleague's real open proposals, as facts before the thread.
   const [woke, pending] = await Promise.all([
@@ -699,6 +701,18 @@ async function pass(client: Db): Promise<void> {
     const followed = followMain(resolve(import.meta.dir, "../.."), join(HOME, "runner-app"));
     if (followed !== "unchanged" && followed !== "not the runner") {
       console.log(`${new Date().toISOString()} runner ${followed}`);
+    }
+    // W6 item 3: a child process, so the map is drawn by the code the runner just moved to, not the code loaded here.
+    if (mapDue(followed, existsSync(join(HOME, "matter", "system-map.md")))) {
+      const made = spawnSync("bun", [join(import.meta.dir, "../matter/system-map.ts")], {
+        cwd: resolve(import.meta.dir, "../.."),
+        windowsHide: true,
+        encoding: "utf8",
+        timeout: 120_000,
+      });
+      console.log(
+        `${new Date().toISOString()} ${made.status === 0 ? made.stdout.trim() : `system map failed: ${made.stderr.trim().slice(0, 300)}`}`,
+      );
     }
   }
   // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute. It

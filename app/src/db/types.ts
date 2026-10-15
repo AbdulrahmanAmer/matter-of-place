@@ -2035,6 +2035,9 @@ isOneToOne: false
 "reschedule_social_post":
 { Args: { "p_id": string,"p_note": string,"p_scheduled_at": string }; Returns: boolean
                            },
+"resend_submission_email":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_email": string,"p_message_id": string,"p_request_id": string,"p_submission_id": string }; Returns: string
+                           },
 "retention_accepted_media":
 { Args: { "p_keep": string }; Returns: {
               "media_id": string,"storage_path": string

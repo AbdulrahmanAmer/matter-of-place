@@ -30,10 +30,19 @@
     "id": "w7-e2-review-refuses",
     "test": "tests/unit/workforce-reel.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "if (!verdict.pass) throw new Error(",
-    "replace": "if (false) throw new Error(",
+    "find": "        if (verdict.pass) {",
+    "replace": "        if (true) {",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*uploads nothing and says why"
+  },
+  {
+    "id": "w7-e2-review-revision",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "      if (revisions >= REVISIONS) throw new Error(refusal);",
+    "replace": "      throw new Error(refusal);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*gives the designer the reviewer's refusal"
   },
   {
     "id": "w7-e2-voice-before-work",
@@ -79,5 +88,23 @@
     "replace": "  designer: \"Read,Glob,Grep\",",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*lets the designer write in its folder"
+  },
+  {
+    "id": "w7-e2-gate-revision",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "      if (!refusal.startsWith(\"gate_failed\")) throw failure;",
+    "replace": "      throw failure;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*gives the designer the gate's refusal once"
+  },
+  {
+    "id": "w7-e2-gate-rules-in-brief",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    GATE_RULES,\n    \"Write exactly three files",
+    "replace": "    \"Write exactly three files",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*tells the designer what the gate measures"
   }
 ]

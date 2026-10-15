@@ -5,14 +5,18 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
+  GATE_RULES,
   nextReel,
   queueReel,
+  REVISIONS,
   reelPass,
   reelRequestSchema,
   reelWorking,
+  scenePrompt,
   shotsFor,
   studioArgs,
   STALE_MS,
+  type Brief,
   type ReelDeps,
   type ReelRequest,
 } from "../../scripts/workforce/reel.ts";
@@ -191,6 +195,38 @@ describe("the reel pass", () => {
     expect(log.at(-1)).toContain(
       "was not made: review_refused: a title is cut off. Nothing was uploaded.",
     );
+    expect(log.filter((line) => line === "design")).toHaveLength(1 + REVISIONS);
+  });
+
+  it("gives the designer the reviewer's refusal, and makes the reel when the revised film is passed", async () => {
+    const root = studio();
+    queueReel(brand, from, root);
+    const log: string[] = [];
+    const prompts: string[] = [];
+    const base = deps({}, log);
+    let reviews = 0;
+    const revised = deps(
+      {
+        design: (folder, prompt) => {
+          prompts.push(prompt);
+          return base.design(folder, prompt);
+        },
+        review: () => {
+          reviews += 1;
+          return Promise.resolve(
+            reviews === 1
+              ? '{"pass": false, "reasons": ["Frame 2: the title is cut off at the top edge."]}'
+              : '{"pass": true, "reasons": []}',
+          );
+        },
+      },
+      log,
+    );
+    expect(await reelPass(revised, root)).toBe("reel The door: done (asset-1)");
+    expect([prompts.length, reviews]).toEqual([2, 2]);
+    expect(prompts[1]).toContain(
+      "a fresh reviewer looking at its stills refused it: review_refused: Frame 2: the title is cut off",
+    );
   });
 
   it("refuses spoken lines before any work while the voice mix is not built", async () => {
@@ -199,6 +235,55 @@ describe("the reel pass", () => {
     const log: string[] = [];
     expect(await reelPass(deps({}, log), root)).toMatch(/^reel The door: failed \(voice_not_ready/);
     expect(log.some((line) => line === "design" || line === "render")).toBe(false);
+  });
+
+  it("gives the designer the gate's refusal once, and makes the reel when the second film passes", async () => {
+    const root = studio();
+    queueReel(brand, from, root);
+    const log: string[] = [];
+    const prompts: string[] = [];
+    const base = deps({}, log);
+    let films = 0;
+    const revised = deps(
+      {
+        design: (folder, prompt) => {
+          prompts.push(prompt);
+          return base.design(folder, prompt);
+        },
+        render: (folder, spec) => {
+          films += 1;
+          return films === 1
+            ? Promise.reject(new Error("gate_failed: coverage 46.3%"))
+            : base.render(folder, spec);
+        },
+      },
+      log,
+    );
+    expect(await reelPass(revised, root)).toBe("reel The door: done (asset-1)");
+    expect([prompts.length, films]).toEqual([2, 2]);
+    expect(prompts[1]).toContain("the motion gate refused it: gate_failed: coverage 46.3%");
+  });
+
+  it("stops when the film is still refused after its revisions, and uploads nothing", async () => {
+    const root = studio();
+    queueReel(brand, from, root);
+    const log: string[] = [];
+    const refused = deps({ render: () => Promise.reject(new Error("gate_failed: cuts 1")) }, log);
+    expect(await reelPass(refused, root)).toBe("reel The door: failed (gate_failed: cuts 1)");
+    expect(log.filter((line) => line === "design")).toHaveLength(1 + REVISIONS);
+    expect(log.some((line) => line.startsWith("upload"))).toBe(false);
+  });
+
+  it("tells the designer what the gate measures before the first film", () => {
+    expect(GATE_RULES).toMatch(/85% of frames.*1\.0 s.*3 to 8 hard cuts.*-18 LUFS/);
+    const queued: Brief = {
+      id: "8d5f2c1e-1a2b-4c3d-9e8f-0a1b2c3d4e5f",
+      at: "2026-10-15T09:00:00Z",
+      request: brand,
+      from,
+      state: "queued",
+    };
+    expect(scenePrompt(queued, [])).toContain(GATE_RULES);
   });
 });
 

@@ -1,0 +1,75 @@
+[
+  {
+    "id": "w9-3-owner-only",
+    "test": "tests/unit/workforce-bounce.test.ts",
+    "file": "scripts/workforce/bounce.ts",
+    "find": "return owner !== undefined && agent.wake_on.includes(owner);",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-bounce.test.ts",
+    "expect": "× .*wakes the Editor for a request and the Concierge for an inquiry, and no one else"
+  },
+  {
+    "id": "w9-3-paused",
+    "test": "tests/unit/workforce-bounce.test.ts",
+    "file": "scripts/workforce/bounce.ts",
+    "find": "if (agent.state === \"off\" || agent.state === \"paused\" || !agent.wake_on.includes(event.type))",
+    "replace": "if (agent.state === \"off\" || !agent.wake_on.includes(event.type))",
+    "run": "bunx vitest run --project unit tests/unit/workforce-bounce.test.ts",
+    "expect": "× .*wakes on any other event by its type alone, and never a paused or off colleague"
+  },
+  {
+    "id": "w9-3-facts-phone",
+    "test": "tests/unit/workforce-bounce.test.ts",
+    "file": "scripts/workforce/bounce.ts",
+    "find": "${data.submitter_name}'s phone: ${phoneOf(data.submitter_phone)}.",
+    "replace": "${data.submitter_name}'s phone: none given.",
+    "run": "bunx vitest run --project unit tests/unit/workforce-bounce.test.ts",
+    "expect": "× .*names the request, the failed address, the phone and the page, and asks for the next step"
+  },
+  {
+    "id": "w9-3-blank-phone",
+    "test": "tests/unit/workforce-bounce.test.ts",
+    "file": "scripts/workforce/bounce.ts",
+    "find": "phone === null || phone.trim() === \"\" ? \"none given\" : phone;",
+    "replace": "phone ?? \"none given\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-bounce.test.ts",
+    "expect": "× .*says when no phone was given, and that a complaint was marked as spam"
+  },
+  {
+    "id": "w9-3-complaint",
+    "test": "tests/unit/workforce-bounce.test.ts",
+    "file": "scripts/workforce/bounce.ts",
+    "find": "payload.reason === \"complaint\" ? \"was marked as spam\" : \"bounced\";",
+    "replace": "payload.reason === \"complaint\" ? \"bounced\" : \"bounced\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-bounce.test.ts",
+    "expect": "× .*says when no phone was given, and that a complaint was marked as spam"
+  },
+  {
+    "id": "w9-3-editor-note",
+    "test": "tests/unit/colleague-calls.test.ts",
+    "file": "scripts/workforce/colleague-calls.ts",
+    "find": "  editor: [\"PATCH /api/admin/properties/$id\", \"POST /api/admin/submissions/$id/note\"],",
+    "replace": "  editor: [\"PATCH /api/admin/properties/$id\"],",
+    "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
+    "expect": "× .*lets the Editor propose the next step on a request as a note, never its decision"
+  },
+  {
+    "id": "w9-3-catalog-type",
+    "test": "tests/unit/jobs/enqueue.test.ts",
+    "file": "src/server/lib/events.ts",
+    "find": "  \"email.bounced\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/enqueue.test.ts",
+    "expect": "× .*holds the 19 types of the events check"
+  },
+  {
+    "id": "w9-3-db-emit",
+    "kind": "manual",
+    "test": "tests/db/email.db.test.ts",
+    "file": "supabase/sql/functions/apply_email_event.sql",
+    "find": "  if v_suppress is not null then\n    select m.id",
+    "replace": "  if false then\n    select m.id",
+    "run": "CI db job: regenerate the function with bun run db:fn apply_email_event, then bunx vitest run --project db tests/db/email.db.test.ts on the ephemeral stack",
+    "expect": "× .*emits email.bounced about the request a suppressing bounce was for"
+  }
+]

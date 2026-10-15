@@ -695,6 +695,8 @@ describe("seed (step 4)", () => {
       "asset.approved": 4,
       "asset.rejected": 0,
       "digest.due": 2,
+      // W9 item 3: seeded by its own migration with no step.
+      "email.bounced": 0,
       "health.failed": 1,
       "inquiry.received": 4,
       "invoice.issued": 1,

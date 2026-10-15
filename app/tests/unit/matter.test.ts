@@ -53,6 +53,24 @@ describe("Matter's run", () => {
     ]).toEqual([true, true]);
   });
 
+  it("names the system map right after the atlas, at both powers (W6 item 3)", () => {
+    for (const power of ["read", "full"] as const) {
+      const prompt = matterPrompt({
+        charterText: "CHARTER",
+        atlasText: "ATLAS",
+        notes: "",
+        thread: "hello",
+        business: "",
+        power,
+      });
+      const map = prompt.indexOf("Your system map,");
+      expect([map > prompt.indexOf("ATLAS"), prompt.includes("system-map.md")]).toEqual([
+        true,
+        true,
+      ]);
+    }
+  });
+
   it("tells Matter the power it really has: tools and the merge gate at full power, none in read mode", () => {
     const base = { charterText: "C", atlasText: "A", notes: "", thread: "t", business: "" };
     const full = matterPrompt({ ...base, power: "full" });

@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { resendEmailAnswerSchema, submissionEmailsSchema } from "../../domain/admin-emails";
 import {
   assetsReceivedAnswerSchema,
   decisionAnswerSchema,
@@ -93,6 +94,20 @@ export function previewEmail(id: string, body: Omit<z.input<typeof emailPreviewS
     `${submissionPath(id)}/email-preview`,
     emailPreviewAnswerSchema,
     postJson(body),
+  );
+}
+
+/** W9 item 2: every email about the request and what became of it. */
+export function fetchSubmissionEmails(id: string) {
+  return adminFetch(`${submissionPath(id)}/emails`, submissionEmailsSchema);
+}
+
+/** W9 item 2: one email that bounced goes again, to the corrected address. */
+export function resendEmail(id: string, messageId: string, email: string) {
+  return adminFetch(
+    `${submissionPath(id)}/resend-email`,
+    resendEmailAnswerSchema,
+    postJson({ message_id: messageId, email }),
   );
 }
 

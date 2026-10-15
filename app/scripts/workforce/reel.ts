@@ -261,6 +261,13 @@ export const REFERENCE = [
   "launch/reel/STORYBOARD.md",
 ] as const;
 
+/**
+ * What the motion gate (`launch/tools/motion-gate.mjs`, as `render-reel.mjs` runs it for a reel) measures; a film that
+ * misses any of these is refused before review. The first real reel failed on coverage at 46.3%.
+ */
+export const GATE_RULES =
+  "The motion gate measures the final file and refuses it unless: at least 85% of frames differ from the one before (keep the camera, a photograph or the light always moving; a held title still drifts), no still run longer than 1.0 s, 3 to 8 hard cuts, an average shot of 2.0 to 5.5 s, the sound at -18 LUFS (within 1.5) with a true peak at or below -1 dBTP, and no sustained pitch (the score is noise-based sound design, never a held tone).";
+
 /** The designer's brief: the request, the house rules that govern (H108, H110) and the files a scene must hold. */
 export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string })[]): string {
   const { request } = brief;
@@ -273,8 +280,27 @@ export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string
     "Read first, in reference/: DIRECTION.md (the Product Launch film: study its process and craft, never copy its layout or shots), MOTION-BIBLE.md, and the engine (film.js, audio.js). reel/ is the property reel, shown only as an example of the engine's API.",
     "House rules that govern (ruling H110): Cormorant Garamond for display, Jost for labels; palette Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2 (accents only), Mineral Grey #575751, Warm Grey #8B877F. Ink follows the paper; one italic word per title; titles rise through masks, never bounce, fade, scale or glow; eased camera, no shake; cuts on an 80 BPM grid (0.75 s); no gradients, no glow, no music (S36): the score is synthesized sound design in cues.mjs only. Copy: calm, brief, no em dashes, no hyperbole, no promise of leads or sales.",
     "Format: 1080 x 1920, 30 fps, 15 to 25 seconds, 3 to 8 cuts, every line that must be read inside the central safe area (about 950 x 980 px, clear of the top 270 px and bottom 670 px), and at least 32 px.",
+    GATE_RULES,
     "Write exactly three files in scene/: scene.html (the page; fonts from /app/public/fonts/, tokens from /app/src/styles/tokens.css), scene.mjs (imports /launch/engine/runtime/film.js by that absolute path, reads ?spec= and ?cues=, draws the spec's titles and shots by their src), and cues.mjs (run as `node cues.mjs <spec.json> <out.json>`, writing the sound cue list audio.js plays, with the same duration as the scene).",
     'End with one JSON object on its own: {"duration_s": <seconds>, "note": "one line on the idea"}.',
+  ].join("\n\n");
+}
+
+/** The second chance: what the gate refused, and the same rules. The idea stays; the scene is revised in place. */
+/** How many times a refused film goes back to the designer before the reel stops. */
+export const REVISIONS = 2;
+
+export function revisePrompt(refusal: string): string {
+  const reviewer = refusal.startsWith("review_refused");
+  return [
+    reviewer
+      ? `Your scene in scene/ was filmed, passed the motion gate, and a fresh reviewer looking at its stills refused it: ${refusal}.`
+      : `Your scene in scene/ was filmed and the motion gate refused it: ${refusal}.`,
+    GATE_RULES,
+    reviewer
+      ? "Fix every point the reviewer named in scene/scene.mjs (keep each title whole and inside the safe area, clear of busy picture and of other labels; no frame may be empty or show a half-drawn line, since titles rise and leave through masks and never fade). Keep the idea, the titles and the house rules, and keep the film passing the gate."
+      : "Revise scene/scene.mjs (and cues.mjs if the sound failed) so the film passes every check. Keep the idea, the titles and the house rules; change the motion, the cuts or the sound, not the design's intent.",
+    'End with one JSON object on its own: {"duration_s": <seconds>, "note": "what you changed"}.',
   ].join("\n\n");
 }
 
@@ -362,13 +388,32 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
       if (!existsSync(join(folder, "scene", file))) throw new Error(`scene_missing: ${file}`);
     }
     const spec = { kind: "requested_reel", titles: request.titles, shots: placed };
-    const filmed = await deps.render(folder, spec);
-    const final =
-      lines.length === 0 || deps.voice === null
-        ? filmed.mp4
-        : await deps.voice(folder, filmed.mp4, lines);
-    const verdict = readVerdict(await deps.review(folder, final, reviewPrompt(brief)));
-    if (!verdict.pass) throw new Error(`review_refused: ${verdict.reasons.join("; ")}`);
+    // The motion gate and then the fresh reviewer judge each film; a refusal from either goes back to the designer, at
+    // most REVISIONS times in all, and the next refusal stops the reel (the first that passed the gate was refused in
+    // review for a clipped title, a crowded frame and a half-rendered line).
+    let made: { filmed: Awaited<ReturnType<ReelDeps["render"]>>; final: string } | null = null;
+    for (let revisions = 0; made === null; revisions += 1) {
+      let refusal: string;
+      try {
+        const filmed = await deps.render(folder, spec);
+        const final =
+          lines.length === 0 || deps.voice === null
+            ? filmed.mp4
+            : await deps.voice(folder, filmed.mp4, lines);
+        const verdict = readVerdict(await deps.review(folder, final, reviewPrompt(brief)));
+        if (verdict.pass) {
+          made = { filmed, final };
+          break;
+        }
+        refusal = `review_refused: ${verdict.reasons.join("; ")}`;
+      } catch (failure: unknown) {
+        refusal = failure instanceof Error ? failure.message : String(failure);
+        if (!refusal.startsWith("gate_failed")) throw failure;
+      }
+      if (revisions >= REVISIONS) throw new Error(refusal);
+      await deps.design(folder, revisePrompt(refusal));
+    }
+    const { filmed, final } = made;
 
     const video = deps.readFile(final);
     const files = [

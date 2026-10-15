@@ -17,7 +17,9 @@ const sections = ["## Goal","## Contract","## Files","## Data changes","## Steps
 const plans = readdirSync(here).filter((f) => /^(B|H|L)\S*\.md$/.test(f));
 const errors = [], warnings = [], created = {};
 // names that look like events but are functions, files, audit actions or columns; reviewed 2026-10-01
-const allow = new Set(["submission.decline","submission.accept","property.publish","asset.auto_approve","subscriber.repermission","subscriber.drop_inactive","payment.waived"]);
+const allow = new Set(["submission.decline","submission.accept","property.publish","asset.auto_approve","subscriber.repermission","subscriber.drop_inactive","payment.waived",
+  // Resend's webhook event types and two RPC names, not catalog events; the `email.` prefix entered the catalog with W9's `email.bounced`
+  "email.sent","email.delivered","email.complained","email.opened","email.clicked","email.sent_today","email.sent_month"]);
 
 for (const f of plans) {
   const raw = readFileSync(join(here, f));

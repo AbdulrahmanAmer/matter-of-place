@@ -463,6 +463,67 @@ describe("apply_email_event", () => {
     expect(reasons).toEqual(["bounce", "complaint"]);
   });
 
+  it("apply_email_event emits email.bounced about the request a suppressing bounce was for, and nothing else (W9 item 3)", async () => {
+    const result = await withRollback(async (db) => {
+      const request = randomUUID();
+      const about = async (to: string, entityId: string | null) => {
+        const resendId = `re_${randomUUID()}`;
+        await db.query(
+          `insert into public.email_messages (template_key, kind, to_email, status, resend_id, sent_at, entity, entity_id)
+           values ('received', 'transactional', $1, 'sent', $2, now(), $3, $4)`,
+          [to, resendId, entityId === null ? null : "submission", entityId],
+        );
+        return resendId;
+      };
+      const hard = address();
+      await apply(db, {
+        type: "email.bounced",
+        resend_email_id: await about(hard, request),
+        to_email: hard,
+        data: { bounce_type: "Permanent" },
+      });
+      const soft = address();
+      await apply(db, {
+        type: "email.bounced",
+        resend_email_id: await about(soft, randomUUID()),
+        to_email: soft,
+        data: { bounce_type: "Transient" },
+      });
+      const loose = address();
+      await apply(db, {
+        type: "email.bounced",
+        resend_email_id: await about(loose, null),
+        to_email: loose,
+        data: { bounce_type: "Permanent" },
+      });
+      const read = await db.query<{
+        entity: string;
+        entity_id: string;
+        payload: Record<string, unknown>;
+      }>(
+        "select entity, entity_id, payload from public.events where type = 'email.bounced' and at >= now()",
+      );
+      return read.rows.map((row) => ({
+        entity: row.entity,
+        mine: row.entity_id === request,
+        submission: row.payload["submission_id"] === request,
+        reason: row.payload["reason"],
+        template: row.payload["template"],
+        bounce_type: row.payload["bounce_type"],
+      }));
+    });
+    expect(result).toEqual([
+      {
+        entity: "submission",
+        mine: true,
+        submission: true,
+        reason: "bounce",
+        template: "received",
+        bounce_type: "Permanent",
+      },
+    ]);
+  });
+
   it("apply_email_event suppresses on the third transient bounce within 30 days only", async () => {
     const result = await withRollback(async (db) => {
       const now = (await dbNow(db)).getTime();
