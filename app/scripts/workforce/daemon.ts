@@ -10,8 +10,8 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { outsideToolkit, toolkitFor } from "../../src/domain/toolkits.ts";
 import { agentTools, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import {
@@ -42,7 +42,7 @@ import {
   reelWorking,
   withReel,
 } from "./reel.ts";
-import { breakerUntil, type CliUsage, isolatedArgs, runClaude, UsageLimitError } from "./cli.ts";
+import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
@@ -78,6 +78,13 @@ import { checkNewAddresses, refusedAddress } from "./email-check.ts";
 import { refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
 import { liveAlive } from "../matter/live-alive.ts";
+import {
+  APP_DIR,
+  toolkitLine,
+  toolkitRules,
+  type ToolkitPaths,
+  type ToolkitRules,
+} from "./toolkit-args.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -103,55 +110,44 @@ function matterEnv(): NodeJS.ProcessEnv {
 
 function emptyMcpConfig(): string {
   const file = join(HOME, "no-mcp.json");
+  // the runner's home may not exist yet (a first run, CI): make it before writing under it (GOTCHAS P-3532)
+  mkdirSync(HOME, { recursive: true });
   if (!existsSync(file)) writeFileSync(file, JSON.stringify({ mcpServers: {} }));
   return file;
 }
 
 /**
- * A colleague's command line. A run about an outside message (W8 fifth review) is shut off like the triage: no tool,
- * no setting source (so none of the operator's settings, hooks or skills load into it), no MCP server.
+ * A colleague's command line (ruling H115, role toolkits): exactly the tools of its toolkit, each allowed by a rule in
+ * the run's own settings file, and anything not allowed refused, never asked. No setting source loads (so nothing a run
+ * wrote in a desk, a hook in `.claude/`, ever runs, W8 0e) and no MCP server; the runner gives it no key (childEnv).
  */
-export function colleagueArgs(
-  model: string,
-  research: boolean,
-  outside: boolean,
-  terminal = false,
-): string[] {
-  const base = ["-p", "--model", model, "--output-format", "stream-json", "--verbose"];
-  if (outside) return [...base, ...isolatedArgs(HOME)];
-  // W8 0e (ruling H113): the terminal is file tools in the colleague's own work folder, never a shell (a shell reaches
-  // every secret on the disk). Reads and writes allowed only inside that folder, none of the operator's settings, no
-  // MCP; the runner gives it no key (childEnv).
-  if (terminal)
-    return [
-      ...base,
-      ...["--tools", "Read,Write,Edit,Glob,Grep", "--setting-sources", ""],
-      ...["--strict-mcp-config", "--mcp-config", emptyMcpConfig(), "--restricted"],
-      ...["--permission-mode", "dontAsk", "--settings", TERMINAL_SETTINGS],
-    ];
+function colleagueArgs(model: string, rules: ToolkitRules, settingsFile: string): string[] {
   return [
-    ...base,
-    // W8 0e (second review): no settings file loads, so nothing a terminal wrote in a desk (a hook in .claude/) runs.
-    "--setting-sources",
-    "",
-    "--strict-mcp-config",
-    "--mcp-config",
-    emptyMcpConfig(),
-    // H101: no shell, no web fetch, files only inside the desk; anything not allowed is refused, never asked.
-    "--restricted",
-    "--permission-mode",
-    "dontAsk",
-    // W2 step 7: a colleague with the research tool may search the web, and nothing more.
-    ...(research ? ["--allowedTools", "WebSearch"] : []),
+    ...["-p", "--model", model, "--output-format", "stream-json", "--verbose"],
+    ...["--setting-sources", "", "--strict-mcp-config", "--mcp-config", emptyMcpConfig()],
+    ...[
+      "--tools",
+      rules.tools.join(","),
+      "--permission-mode",
+      "dontAsk",
+      "--settings",
+      settingsFile,
+    ],
+    ...rules.addDirs.flatMap((dir) => ["--add-dir", dir]),
   ];
 }
 
-/** W8 0e: what a colleague is told when a person or Matter started its run and it has a terminal. */
-export const TERMINAL_LINE =
-  "A person or Matter started this run, so you may write files in your work folder (read, write and edit; no shell, no web): drafts, scenes, copy, data, an SVG. Say in your reply what you made and where; anything that leaves the company is still a proposal a person approves.";
-
-/** A colleague's terminal settings (W8 0e): file tools inside the work folder only, nothing that configures a run. */
-const TERMINAL_SETTINGS = join(dirname(fileURLToPath(import.meta.url)), "settings-terminal.json");
+/** The folders a toolkit names, on this laptop. */
+function toolkitPaths(home: string, own: string): ToolkitPaths {
+  return {
+    own,
+    studio: join(home, "studio"),
+    knowledge: join(home, "matter", "knowledge"),
+    // the folder Google Drive for desktop mirrors (W8 item 8)
+    driveSocial: "G:/My Drive/Matter of Place/Social Media",
+    app: APP_DIR,
+  };
+}
 
 /**
  * Names that configure a Claude run when found in its folder: a terminal may never leave one behind (second review).
@@ -160,15 +156,15 @@ const TERMINAL_SETTINGS = join(dirname(fileURLToPath(import.meta.url)), "setting
 const RUN_CONFIG = new Set([".claude", "claude.md", "claude.local.md", ".mcp.json"]);
 
 /**
- * W8 0e: a colleague's folder for this run. A terminal works in `desks/<slug>/work`; every other run in the desk.
- * Before each run, anything that would configure a run (`RUN_CONFIG`) is removed from the whole desk, so what one run
- * wrote can never steer the next.
+ * W8 0e and H115: a colleague's folder for every run, `desks/<slug>/work`, where the runner puts the material it was
+ * woken for. Before each run, anything that would configure a run (`RUN_CONFIG`) is removed from the whole desk, so
+ * what one run wrote can never steer the next.
  */
-export function deskFor(home: string, slug: string, terminal: boolean): string {
+export function deskFor(home: string, slug: string): string {
   const desk = join(home, "desks", slug);
   mkdirSync(join(desk, "work"), { recursive: true });
   sweep(desk, 0);
-  return terminal ? join(desk, "work") : desk;
+  return join(desk, "work");
 }
 
 function sweep(dir: string, depth: number): void {
@@ -192,19 +188,32 @@ export async function startedInsideFor(
 }
 
 /**
- * W8 0e (third review): a colleague run's command line and folder, from its shape. One about outside text is shut
- * off like the triage; a terminal works in its own work folder; any other run reads its desk.
+ * H115: a colleague run's command line, folder and the line that tells it its tools, from its toolkit. A run about an
+ * outside message gets `outsideToolkit` (W8 0a: it reads only its folder, where the runner puts facts and photographs,
+ * never the person's words), every other run its own toolkit. The run's settings file is written here, each run.
  */
 export function colleagueLaunch(
   home: string,
   slug: string,
   model: string,
-  shape: { research: boolean; terminal: boolean },
+  research: boolean,
   outside: boolean,
-): { args: string[]; cwd: string } {
+): { args: string[]; cwd: string; line: string } {
+  const cwd = deskFor(home, slug);
+  const toolkit = outside ? outsideToolkit : toolkitFor(slug);
+  const paths = toolkitPaths(home, cwd);
+  const searches = research && !outside;
+  const rules = toolkitRules(toolkit, paths, searches);
+  const settingsFile = join(home, "settings", `${slug}.json`);
+  mkdirSync(dirname(settingsFile), { recursive: true });
+  writeFileSync(
+    settingsFile,
+    JSON.stringify({ permissions: { allow: rules.allow, deny: rules.deny } }),
+  );
   return {
-    args: colleagueArgs(model, shape.research, outside, shape.terminal),
-    cwd: deskFor(home, slug, shape.terminal),
+    args: colleagueArgs(model, rules, settingsFile),
+    cwd,
+    line: toolkitLine(toolkit, paths, searches),
   };
 }
 
@@ -560,7 +569,7 @@ function promptFor(
   lessons = "",
   charter = "",
   knowledge = "",
-  terminal = false,
+  toolkit = "",
 ): string {
   const may = agentTools.filter((tool) => agent.tools.includes(tool));
   return [
@@ -578,7 +587,7 @@ function promptFor(
         ]
       : []),
     ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
-    ...(terminal ? [TERMINAL_LINE] : []),
+    ...(toolkit === "" ? [] : [toolkit]),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
   ].join("\n\n");
@@ -690,7 +699,7 @@ async function runOnce(client: Db): Promise<boolean> {
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
     const isMatter = agent.slug === "matter";
-    const shape = runShape(agent, thread, triage, matterReadsHeld, startedInside);
+    const shape = runShape(agent, thread, triage, matterReadsHeld);
     // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
     const power = isMatter ? matterPower(run.cause, authorKind) : "read";
     const answer = isMatter
@@ -706,27 +715,31 @@ async function runOnce(client: Db): Promise<boolean> {
           power,
           matterReadsHeld,
         )
-      : await askClaude(
-          promptFor(
-            // W8 0c: a run about an outside message is not offered admin calls or hires at all.
-            shape.agent,
-            team,
-            situation,
-            lessons,
-            staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
-            triage === null ? knowledgeBlock(situation) : "",
-            shape.terminal,
-          ),
-          colleagueLaunch(
+      : await (async () => {
+          // H115: the run's toolkit decides its command line, its folder and what it is told it may use.
+          const launch = colleagueLaunch(
             HOME,
             agent.slug,
             models[underCeiling(agent.model, policy.colleagueCeiling)] ??
               models["sonnet"] ??
               "claude-sonnet-5-5",
-            shape,
+            shape.research,
             triage !== null,
-          ),
-        );
+          );
+          return askClaude(
+            promptFor(
+              // W8 0c: a run about an outside message is not offered admin calls or hires at all.
+              shape.agent,
+              team,
+              situation,
+              lessons,
+              staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
+              triage === null ? knowledgeBlock(situation) : "",
+              launch.line,
+            ),
+            launch,
+          );
+        })();
     // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
     // nothing that acts (W8 review): it read the outside text itself.

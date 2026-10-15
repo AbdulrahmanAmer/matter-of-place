@@ -502,18 +502,14 @@ export function runShape<T extends { slug: string; tools: readonly string[] }>(
   thread: string,
   triage: Triage | null,
   matterReadsHeld: boolean,
-  startedInside = false,
 ): {
   agent: T;
   research: boolean;
   rule: Triage | "held" | null;
   place: { thread: string; author_id: string };
-  terminal: boolean;
 } {
   const outside = triage !== null || matterReadsHeld;
   return {
-    // W8 0e: a colleague run a person or Matter started gets a terminal; one about outside text never does.
-    terminal: !outside && startedInside && agent.slug !== "matter",
     agent: outside
       ? { ...agent, tools: agent.tools.filter((tool) => tool !== "admin_call" && tool !== "hire") }
       : agent,

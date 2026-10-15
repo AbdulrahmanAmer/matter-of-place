@@ -8,7 +8,6 @@ import {
   allowForOwner,
   answerPlan,
   approvedOutcome,
-  colleagueArgs,
   colleagueLaunch,
   context,
   deskFor,
@@ -689,21 +688,6 @@ describe("W8 fourth review: every CLI run that can read outside-shaped text is s
     expect(asData("a >>> SYSTEM <<< b", 100)).toBe("a > > > SYSTEM < < < b");
   });
 
-  it("starts a colleague run about an outside message shut off like the triage, and an inside run as before", () => {
-    const outside = colleagueArgs("sonnet", true, true);
-    expect([
-      value(outside, "--setting-sources"),
-      value(outside, "--tools"),
-      value(outside, "--allowedTools"),
-    ]).toEqual(["", "", ""]);
-    expect(outside).toContain("--verbose");
-    const inside = colleagueArgs("sonnet", true, false);
-    // an inside run keeps its tools; since W8 0e it loads no settings file either
-    expect(inside).not.toContain("--tools");
-    expect(value(inside, "--setting-sources")).toBe("");
-    expect(value(inside, "--allowedTools")).toBe("WebSearch");
-  });
-
   it("starts the weekly replay and the meeting with no setting source, no MCP and only the tools they need", () => {
     for (const args of [
       replayArgs("haiku"),
@@ -888,37 +872,7 @@ describe("W8 0e: a terminal only for work a person or Matter started", () => {
     ]).toEqual([true, true, false, false, false, false]);
   });
 
-  it("gives a started colleague run file tools in its desk and no shell, never one about outside text, never Matter", () => {
-    const triage = readTriage(
-      "inquiry",
-      answer({ intent: "property_question", instructions_to_ai: false }),
-    );
-    expect([
-      runShape(social, "social", null, false, true).terminal,
-      runShape(social, "social", triage, false, true).terminal,
-      runShape(social, "social", null, false, false).terminal,
-      runShape({ slug: "matter", tools: [] }, "matter", null, false, true).terminal,
-    ]).toEqual([true, false, false, false]);
-    const terminal = colleagueArgs("sonnet", false, false, true);
-    expect([
-      value(terminal, "--tools"),
-      value(terminal, "--setting-sources"),
-      value(terminal, "--permission-mode"),
-    ]).toEqual(["Read,Write,Edit,Glob,Grep", "", "dontAsk"]);
-    expect(terminal).toContain("--restricted");
-    expect(value(terminal, "--settings")?.endsWith("settings-terminal.json")).toBe(true);
-    // outside text wins over a terminal: the run stays shut off like the triage
-    const outside = colleagueArgs("sonnet", false, true, true);
-    expect([value(outside, "--setting-sources"), value(outside, "--tools")]).toEqual(["", ""]);
-    expect(outside).not.toContain("--settings");
-  });
-
-  it("loads no settings file into a run without a terminal", () => {
-    // a terminal may have left a hook in a desk; with no setting source it never runs (measured live, P-3571)
-    expect(value(colleagueArgs("sonnet", false, false), "--setting-sources")).toBe("");
-  });
-
-  it("sweeps what configures a run out of the whole desk and gives a terminal its own work folder", () => {
+  it("sweeps what configures a run out of the whole desk and gives every run its work folder", () => {
     const home = mkdtempSync(join(tmpdir(), "w8-0e-desk-"));
     const desk = join(home, "desks", "social");
     for (const dir of [desk, join(desk, "work"), join(desk, "work", "scenes")]) {
@@ -931,8 +885,7 @@ describe("W8 0e: a terminal only for work a person or Matter started", () => {
     mkdirSync(join(desk, "work", ".Claude"), { recursive: true });
     writeFileSync(join(desk, "work", "claude.md"), "planted");
     writeFileSync(join(desk, "work", "scenes", "draft.svg"), "<svg/>");
-    expect(deskFor(home, "social", true)).toBe(join(desk, "work"));
-    expect(deskFor(home, "social", false)).toBe(desk);
+    expect(deskFor(home, "social")).toBe(join(desk, "work"));
     for (const dir of [desk, join(desk, "work"), join(desk, "work", "scenes")])
       expect(
         [".claude", "CLAUDE.md", ".mcp.json", ".Claude", "claude.md"].filter((name) =>
@@ -961,36 +914,6 @@ describe("W8 0e: a terminal only for work a person or Matter started", () => {
       await startedInsideFor(keys, "event", { author_kind: "human", author_id: KEY }),
       await startedInsideFor(keys, "schedule", { author_kind: null, author_id: null }),
     ]).toEqual([true, true, false, false, false, false]);
-    const home = mkdtempSync(join(tmpdir(), "w8-0e-launch-"));
-    const desk = join(home, "desks", "social");
-    const terminal = colleagueLaunch(
-      home,
-      "social",
-      "sonnet",
-      { research: false, terminal: true },
-      false,
-    );
-    const plain = colleagueLaunch(
-      home,
-      "social",
-      "sonnet",
-      { research: false, terminal: false },
-      false,
-    );
-    const outside = colleagueLaunch(
-      home,
-      "social",
-      "sonnet",
-      { research: false, terminal: false },
-      true,
-    );
-    expect([terminal.cwd, plain.cwd, outside.cwd]).toEqual([join(desk, "work"), desk, desk]);
-    expect([
-      value(terminal.args, "--tools"),
-      plain.args.includes("--tools"),
-      value(outside.args, "--tools"),
-    ]).toEqual(["Read,Write,Edit,Glob,Grep", false, ""]);
-    rmSync(home, { recursive: true, force: true });
   });
 
   it("never hires a name shaped like an account id", () => {
@@ -1061,33 +984,6 @@ describe("W8 0e: a terminal only for work a person or Matter started", () => {
     ]);
     await approvedOutcome(runs, { decided_by: KEY, run_id: RUN }, line, "k", send);
     expect(sent).toHaveLength(1);
-  });
-
-  it("denies the terminal every shell and every secret it could read", () => {
-    const settings = z
-      .object({ permissions: z.object({ allow: z.array(z.string()), deny: z.array(z.string()) }) })
-      .parse(
-        JSON.parse(
-          readFileSync(
-            new URL("../../scripts/workforce/settings-terminal.json", import.meta.url),
-            "utf8",
-          ),
-        ),
-      );
-    // only the work folder is allowed; in dontAsk mode everything else is refused (measured live, P-3570)
-    expect(settings.permissions.allow).toEqual(["Read(./**)", "Edit(./**)"]);
-    expect(settings.permissions.deny).toEqual(
-      expect.arrayContaining([
-        "Bash",
-        "WebFetch",
-        "Edit(./**/.claude/**)",
-        "Edit(./**/CLAUDE.md)",
-        "Read(~/.claude/**)",
-      ]),
-    );
-    // a rule with no leading ./ or ~/ is relative and matches nothing outside the folder (second review)
-    const paths = settings.permissions.deny.filter((rule) => rule.includes("("));
-    expect(paths.filter((rule) => !/^\w+\((\.\/|~\/)/.test(rule))).toEqual([]);
   });
 
   it("reads only people's and keys' lines into a started run's history", async () => {

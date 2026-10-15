@@ -2,11 +2,12 @@
 // that screenshots each frame at its exact size, and the JPEG files named by `mediaKey` and written to `--out` or
 // uploaded to the public `media` bucket. The page holds only data URLs: every other request is refused (invariant 2).
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { basename, extname, join, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import puppeteer from "puppeteer-core";
 import { renderToStaticMarkup } from "react-dom/server";
+import sharp from "sharp";
 import { z } from "zod";
 import { mediaKey } from "./media-key.mjs";
 import { putIfMissing } from "./media-store.mjs";
@@ -312,9 +313,59 @@ export async function renderSet(job, options, plan) {
   return { files: await deliver(spec, shots, options ?? {}) };
 }
 
+// Role toolkits (ruling H115): a colleague's own spec, the property's facts and its photographs beside the spec file.
+const localSchema = z.object({
+  property: propertySchema,
+  images: z
+    .array(
+      imageSchema
+        .omit({ url: true, w: true, h: true })
+        .extend({ path: z.string(), w: z.number().optional(), h: z.number().optional() }),
+    )
+    .min(1)
+    .max(12),
+  slides: z.array(slideSchema).optional(),
+});
+
 /**
- * The command line of a render script: `--fixture --out <dir>` renders the fixture property into a folder, with no
- * network and no upload, and prints one line per file.
+ * A colleague's spec file as a render spec. Each photograph must sit inside the spec's own folder (no path leaves it),
+ * and its size is read from the file when the spec does not give it.
+ * @param {"cover" | "carousel" | "story"} kind
+ * @param {string} file
+ */
+export async function localSpec(kind, file) {
+  const path = resolve(file);
+  const dir = dirname(path);
+  const local = localSchema.parse(JSON.parse(await readFile(path, "utf8")));
+  const images = await Promise.all(
+    local.images.map(async ({ path: imagePath, ...image }) => {
+      const full = resolve(dir, imagePath);
+      const inside = relative(dir, full);
+      if (inside === "" || inside.startsWith("..") || isAbsolute(inside)) {
+        throw new Error(`render-${kind}: ${imagePath} is not inside the spec's folder`);
+      }
+      if (!IMAGE_TYPES.has(extname(full).toLowerCase())) {
+        throw new Error(`render-${kind}: ${imagePath} is not a photograph`);
+      }
+      const size =
+        image.w !== undefined && image.h !== undefined
+          ? { width: image.w, height: image.h }
+          : await sharp(full).metadata();
+      return { ...image, url: full, w: Number(size.width), h: Number(size.height) };
+    }),
+  );
+  return {
+    kind,
+    property: local.property,
+    images,
+    ...(local.slides === undefined ? {} : { slides: local.slides }),
+    out: { key_prefix: `assets/${local.property.id}/${kind}/r1/` },
+  };
+}
+
+/**
+ * The command line of a render script: `--fixture --out <dir>` renders the fixture property, and `--spec <file> --out
+ * <dir>` a colleague's own spec (ruling H115), into a folder, with no network and no upload, one line per file.
  * @param {"cover" | "carousel" | "story"} kind
  * @param {(job: unknown, options: RenderOptions) => Promise<{ files: RenderedFile[] }>} run
  * @returns {Promise<void>}
@@ -322,20 +373,28 @@ export async function renderSet(job, options, plan) {
 export async function runCli(kind, run) {
   try {
     const { values } = parseArgs({
-      options: { fixture: { type: "boolean" }, out: { type: "string" } },
+      options: { fixture: { type: "boolean" }, spec: { type: "string" }, out: { type: "string" } },
     });
-    if (values.fixture !== true || values.out === undefined) {
-      throw new Error(`render-${kind}: run it as --fixture --out <dir>`);
+    if (values.out === undefined || (values.fixture !== true) === (values.spec === undefined)) {
+      throw new Error(
+        `render-${kind}: run it as --fixture --out <dir> or --spec <file> --out <dir>`,
+      );
     }
-    const fixture = fixtureSchema.parse(
-      JSON.parse(await readText("src/templates/social/fixtures/property.fixture.json")),
-    );
-    const spec = {
-      kind,
-      property: fixture.property,
-      images: fixture.images.map(({ path, ...image }) => ({ ...image, url: path })),
-      out: { key_prefix: `assets/${fixture.property.id}/${kind}/r1/` },
-    };
+    const fixture =
+      values.spec === undefined
+        ? fixtureSchema.parse(
+            JSON.parse(await readText("src/templates/social/fixtures/property.fixture.json")),
+          )
+        : null;
+    const spec =
+      fixture === null
+        ? await localSpec(kind, values.spec ?? "")
+        : {
+            kind,
+            property: fixture.property,
+            images: fixture.images.map(({ path, ...image }) => ({ ...image, url: path })),
+            out: { key_prefix: `assets/${fixture.property.id}/${kind}/r1/` },
+          };
     const { files } = await run({ payload: { data: { spec } } }, { out: values.out });
     for (const file of files) {
       console.log(

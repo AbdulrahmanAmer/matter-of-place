@@ -1,0 +1,101 @@
+[
+  {
+    "id": "w8-0i-rule-drive-letter",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "(drive[1] ?? \"\").toLowerCase()",
+    "replace": "drive[1] ?? \"\"",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*names an absolute path the way a permission rule needs it"
+  },
+  {
+    "id": "w8-0i-no-run-config",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "    deny.push(...RUN_CONFIG.map((name) => `Edit(${root}/${name})`));\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*gives Social its renderers"
+  },
+  {
+    "id": "w8-0i-no-env-read",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "Read(${root}/**/.env*)`, ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*gives Social its renderers"
+  },
+  {
+    "id": "w8-0i-render-spec-only",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "replaceAll(\"\\\\\", \"/\")} --spec`;",
+    "replace": "replaceAll(\"\\\\\", \"/\")}`;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*gives Social its renderers"
+  },
+  {
+    "id": "w8-0i-editor-no-shell",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "src/domain/toolkits.ts",
+    "find": "  read: [\"own_folder\", \"studio\", \"knowledge\"],\n  write: [\"own_folder\"],\n  render: [],\n};",
+    "replace": "  read: [\"own_folder\", \"studio\", \"knowledge\"],\n  write: [\"own_folder\"],\n  render: [\"carousel\"],\n};",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*gives the Editor no shell"
+  },
+  {
+    "id": "w8-0i-outside-own-folder",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "src/domain/toolkits.ts",
+    "find": "export const outsideToolkit: Toolkit = { read: [\"own_folder\"], write: [], render: [] };",
+    "replace": "export const outsideToolkit: Toolkit = { read: [\"own_folder\", \"studio\"], write: [], render: [] };",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*gives the Editor no shell, a run about outside text its folder only"
+  },
+  {
+    "id": "w8-0i-launch-outside",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  const toolkit = outside ? outsideToolkit : toolkitFor(slug);",
+    "replace": "  const toolkit = toolkitFor(slug);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*launches every run in its work folder"
+  },
+  {
+    "id": "w8-0i-launch-dontask",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      \"--permission-mode\",\n      \"dontAsk\",\n",
+    "replace": "      \"--permission-mode\",\n      \"default\",\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*launches every run in its work folder"
+  },
+  {
+    "id": "w8-0i-launch-no-sources",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    ...[\"--setting-sources\", \"\", \"--strict-mcp-config\", ",
+    "replace": "    ...[\"--strict-mcp-config\", ",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*launches every run in its work folder"
+  },
+  {
+    "id": "w8-0i-spec-inside",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/lib/shoot.mjs",
+    "find": "      if (inside === \"\" || inside.startsWith(\"..\") || isAbsolute(inside)) {",
+    "replace": "      if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*renders only photographs that sit beside the spec"
+  },
+  {
+    "id": "w8-0i-spec-photographs",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/lib/shoot.mjs",
+    "find": "      if (!IMAGE_TYPES.has(extname(full).toLowerCase())) {",
+    "replace": "      if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*renders only photographs that sit beside the spec"
+  }
+]
