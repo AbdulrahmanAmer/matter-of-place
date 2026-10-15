@@ -1,0 +1,11 @@
+[
+  {
+    "id": "ef-a-fonts-cross-origin",
+    "test": "tests/unit/headers.test.ts",
+    "file": "public/_headers",
+    "find": "  Access-Control-Allow-Origin: *\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
+    "expect": "× .*lets mail apps load the brand fonts"
+  }
+]

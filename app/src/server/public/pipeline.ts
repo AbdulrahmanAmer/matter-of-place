@@ -1,5 +1,6 @@
 import { z, ZodError } from "zod";
 import { honeypotFieldName } from "../../domain/contracts";
+import { checkAddressFree } from "../email/address-check";
 import { getDb, type Db } from "../lib/db";
 import { env, sentryOptions } from "../lib/env";
 import { AppError, fromZod, toErrorResponse } from "../lib/errors";
@@ -66,13 +67,32 @@ const emailSchema = z.union([
   z.object({ submitterEmail: z.string() }),
 ]);
 
-/** The address a per-email limit counts: the `email` of a form, the `submitterEmail` of a submission. */
-function emailOf(input: unknown): string | undefined {
+/** The field that holds a write's address and the address as sent: `email` of a form, `submitterEmail` of a submission. */
+function emailFieldOf(input: unknown): { field: string; address: string } | undefined {
   const parsed = emailSchema.safeParse(input);
   if (!parsed.success) return undefined;
-  return ("email" in parsed.data ? parsed.data.email : parsed.data.submitterEmail)
-    .trim()
-    .toLowerCase();
+  return "email" in parsed.data
+    ? { field: "email", address: parsed.data.email }
+    : { field: "submitterEmail", address: parsed.data.submitterEmail };
+}
+
+/** The address a per-email limit counts. */
+function emailOf(input: unknown): string | undefined {
+  return emailFieldOf(input)?.address.trim().toLowerCase();
+}
+
+/**
+ * W9 item 1: a form whose address is on a domain that receives no email is refused on that field, with the fix of a
+ * typo domain in the message. A lookup that cannot answer lets the form through: the free checks never hold one back.
+ */
+async function refuseUnmailable(route: PublicRoute, input: unknown): Promise<void> {
+  const found = route.form === true ? emailFieldOf(input) : undefined;
+  if (found === undefined) return;
+  const check = await checkAddressFree(found.address);
+  if (check.verdict !== "domain_has_no_mail") return;
+  throw new AppError("validation", undefined, check.reason, [
+    { code: "custom", path: [found.field], message: check.reason },
+  ]);
 }
 
 function refused(requestId: string, retryAfter: number): Response {
@@ -294,6 +314,7 @@ async function write(match: Match, request: Request, db: Db, ctx: PublicCtx): Pr
   const input: unknown = parsed?.data;
   const limited = await dbLimited(db, route, name, ctx, input);
   if (limited !== null) return limited;
+  await refuseUnmailable(route, input);
   return fromService(route, await route.service(db, input, ctx));
 }
 

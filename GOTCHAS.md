@@ -603,6 +603,7 @@ Entry template
 - rule: a lane is made with `git worktree add --detach E:/mop-build/<lane> origin/main`, then `cp .env` into it (it is ignored there too), `bun install --frozen-lockfile` in its `app/`, and `supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF"` in its `app/` before any CLI command that needs the link. Before a slice starts in a lane, move it to the newest main: `git -C E:/mop-build/<lane> fetch -q origin && git -C E:/mop-build/<lane> checkout --detach origin/main`. A builder in a lane never reads, edits or runs git in `E:/Matter Of Place`. The guard now finds the tree a file belongs to by walking up to the folder that holds `GOTCHAS.md` and `.git`.
 - proof: `node .claude/hooks/gotcha-guard.test.mjs` → `gotcha-guard: OK (6 cases)`; with the old hook the two lane cases print `FAIL ... silent`.
 - added: 2026-10-02
+- hit again: 2026-10-15, W9 item 1: the first vitest run in a fresh worktree died with `Cannot find package 'vitest'` (no `bun install` yet, 172 s), and `eval "$(node scripts/load-env.mjs --profile dev)"` printed `ENOENT ... w9-1\.env`. A lane that must not hold a copy of `.env` loads the main checkout's through its own loader, `eval "$(node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev)"`, which reads `E:\Matter Of Place\.env` and checks out nothing there.
 
 ## P-052 · Headless Chrome with the GPU on does not render the same pixels twice
 - symptom: three runs of the brand generator rewrote 2 to 5 PNG files each time with no input changed; one 256 px image rendered 40 times in one Chrome session gave 19 different hashes. A sub-agent had reported "second run changes nothing"; that run was luck.
@@ -8152,11 +8153,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node --env-file=.env gsc-all.mjs` from E:/mop-build/live lists all 18 sitemap pages with verdict and last crawl.
 - added: 2026-10-15
 
-## P-3481 · Edge's command-line screenshot is written in seconds, then Edge holds on for a minute, keeps its profile locked and cannot open a phone-width window
-- symptom: 2026-10-15, the email gallery (`app/scripts/email-gallery.ts`): one `msedge --headless=new --screenshot` took 68 s; the next shot with the same `--user-data-dir` failed with `Lock file can not be created! Error code: 32`; and `--window-size=390,6000` drew the page cut off on the right, while the same HTML in Edge driven by Playwright at a 390 px viewport measured `scrollWidth 390`.
-- cause: headless Edge on Windows lingers after it writes the file, its helpers keep the profile open, and its window keeps a desktop minimum width.
-- rule: end Edge's process tree (`taskkill /PID <pid> /T /F`) as soon as its stderr says `bytes written to file`; give every shot its own profile folder in the OS temp dir; draw any width under a desktop window through Playwright with `channel: "msedge"`, run by Node (`app/scripts/lib/email-gallery-phone.mjs`).
-- proof: `cd app && bun run scripts/email-gallery.ts received` prints `received <n> bytes` and `phone received 390 px, no sideways scroll` within a minute.
+## P-3481 · Under `--permission-mode dontAsk` a headless run is refused every tool it is not given with `--allowedTools`, so a designer told to write a scene writes nothing
+- symptom: 2026-10-15 11:14 to 11:20, the first real requested reel (`studio/2026-10-15-not-every-home`) failed `scene_missing: scene.html`: the designer run ended normally with an empty `scene/`. A probe with the same arguments (`claude -p ... --restricted --permission-mode dontAsk --disallowedTools Bash,...`) asked to write `probe.txt` answered `"permission_denials":[{"tool_name":"Write",...}]` and wrote nothing.
+- cause: `dontAsk` denies whatever is not allowed; `--disallowedTools` only removes tools, it allows none. Colleague runs never needed a file tool, so the gap never showed.
+- rule: a headless run that must read or write files names them in `--allowedTools` (`studioTools` in `scripts/workforce/reel.ts`: the designer Read, Write, Edit, Glob, Grep; the reviewer Read, Glob, Grep), keeps `--restricted` so writes stay in its working folder, and the run's caller checks the files exist before using them (the pass does: `scene_missing`).
+- proof: the same probe with `--allowedTools "Read,Write,Edit,Glob,Grep"` wrote `probe.txt` and was refused `../outside-probe.txt` ("the session is restricted to the working directory"), measured 2026-10-15; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "lets the designer write"`.
 - added: 2026-10-15
 
 ## P-3482 · Drive E: was full: about seventy worktrees under E:/mop-build each carry their own node_modules
@@ -8177,4 +8178,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-15, W7 E2a: `scripts/workforce/reel.ts` set `const REPO = resolve(import.meta.dir, "../../..")`; the runner (bun) is fine, but `bunx vitest run --project unit tests/unit/workforce-reel.test.ts` failed at collection with `TypeError: The "paths[0]" argument must be of type string. Received undefined`, and every test file that imports the module (`answer.ts` too) with it.
 - rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
 - proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
+- added: 2026-10-15
+
+## P-3480 · Work the runner gates on "no colleague run in flight" never happens while Matter's live session runs
+- symptom: 2026-10-15 11:10, a brand reel queued in the studio after PR 419 went live stayed `queued` for four minutes of passes; `daemon.log` showed no `reel pass started`. The office's runs list held Matter's own `schedule` run, `running` since 08:09Z: the live session.
+- cause: `daemon.ts` started the reel pass inside `if (inFlight === 0)`, the follow-main gate; Matter's live session is an `agent_runs` row in `running` for its whole life, so `inFlight` is almost never 0 while Matter works.
+- rule: gate on "no colleague run" only what must not overlap a run (moving the checkout). Work that runs as a process of its own takes its own lock (the reel's `working` brief, `reelWorking()`), and the checkout does not move while that lock is held.
+- proof: `bun app/scripts/matter/read.ts /api/admin/workforce/office` → runs[0] `{"agent_slug":"matter","cause":"schedule","state":"running"}` while the brief read `"state": "queued"`; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "says a reel is being made"` covers the new lock.
 - added: 2026-10-15

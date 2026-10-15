@@ -14,6 +14,7 @@ import { readAttribution } from "../../lib/attribution";
 import { formText, withHoneypot } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { services } from "../../services";
+import { EmailInput } from "./email-input";
 import { Field } from "./field";
 import { DeliveryNotice, FormError, SentNotice } from "./form-notice";
 import { Honeypot } from "./honeypot";
@@ -248,13 +249,7 @@ export function InquiryDialog({
                   />
                 </Field>
                 <Field label="Email" {...field("email")}>
-                  <input
-                    required
-                    type="email"
-                    name="email"
-                    autoComplete="email"
-                    {...control("email")}
-                  />
+                  <EmailInput required name="email" autoComplete="email" {...control("email")} />
                 </Field>
                 <Field label="Phone (optional)">
                   <input type="tel" name="phone" autoComplete="tel" />
