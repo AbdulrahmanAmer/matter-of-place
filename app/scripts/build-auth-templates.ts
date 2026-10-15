@@ -13,8 +13,8 @@ import { lintEmail } from "./lib/email-lint.ts";
 const CONFIRM = "{{ .SiteURL }}/admin/auth/confirm?token_hash={{ .TokenHash }}&type=";
 const NEXT = "&next={{ .RedirectTo }}";
 
-// A static file cannot read `settings.site`, so the footer holds the product line only. The emblem loads from the
-// public origin.
+// A static file cannot read `settings.site`, so the footer holds the product line only. The header's lockup and the
+// fonts load from the public origin.
 const SITE = {
   siteUrl: "https://matterofplace.com",
   entity: null,
@@ -58,6 +58,7 @@ const rendered = await Promise.all(
         blocks,
         site: SITE,
         variables: {},
+        label: "Admin",
       }),
     );
     const text = `${[email.title, email.paragraph, `${email.label}: ${url}`, ...footerLines(SITE)].join("\n\n")}\n`;

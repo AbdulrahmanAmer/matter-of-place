@@ -1,28 +1,20 @@
-import { Link, Text } from "@react-email/components";
-import type { CSSProperties } from "react";
+import { Link } from "@react-email/components";
 import { themeHex } from "../../theme.gen.ts";
-import { fonts } from "../layout.tsx";
+import { fine, small } from "../style.ts";
 
 /** Resend replaces this variable with the recipient's own unsubscribe page when it sends a broadcast. */
 export const UNSUBSCRIBE_URL = "{{{RESEND_UNSUBSCRIBE_URL}}}";
 
-// It sits on the Obsidian footer band of `Layout`, under the legal lines, in Sandstone.
-const line: CSSProperties = {
-  margin: "18px 0 0",
-  fontFamily: fonts.body,
-  fontSize: "11px",
-  letterSpacing: "0.08em",
-  lineHeight: "1.7",
-  color: themeHex.accent,
-};
-
-/** The working unsubscribe link of commercial email, drawn below the legal lines that `Layout` prints. */
-export function Unsubscribe() {
+/**
+ * The working unsubscribe link of commercial email, drawn below the legal lines that `Layout` prints, on its Obsidian
+ * band. A broadcast keeps Resend's variable; a one-to-one email, which Resend does not fill, passes its own `href`.
+ */
+export function Unsubscribe({ href = UNSUBSCRIBE_URL }: { href?: string }) {
   return (
-    <Text style={line}>
-      <Link href={UNSUBSCRIBE_URL} style={{ color: themeHex.accent, textDecoration: "underline" }}>
+    <p className={small.className} style={{ ...fine, margin: "18px 0 0" }}>
+      <Link href={href} style={{ color: themeHex.accent, textDecoration: "underline" }}>
         Unsubscribe
       </Link>
-    </Text>
+    </p>
   );
 }

@@ -1000,8 +1000,8 @@
     "id": "b11-g4-render-unsubscribe-inert",
     "test": "tests/unit/newsletter/render.test.ts",
     "file": "src/templates/email/blocks/footer.tsx",
-    "find": "<Link href={UNSUBSCRIBE_URL}",
-    "replace": "<Link href=\"#\"",
+    "find": "Unsubscribe({ href = UNSUBSCRIBE_URL }",
+    "replace": "Unsubscribe({ href = \"#\" }",
     "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
     "expect": "FAIL.*keeps Resend's unsubscribe variable as the unsubscribe link"
   },
@@ -1027,8 +1027,8 @@
     "id": "b11-g4-render-blocks-reversed",
     "test": "tests/unit/newsletter/render.test.ts",
     "file": "src/templates/email/place-notes.tsx",
-    "find": "{blocks.map((block) => (",
-    "replace": "{[...blocks].reverse().map((block) => (",
+    "find": "{blocks.map((block, index) => (",
+    "replace": "{[...blocks].reverse().map((block, index) => (",
     "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
     "expect": "FAIL.*draws the masthead, the intro lines and the stories in reading order"
   },
@@ -1054,8 +1054,8 @@
     "id": "b11-g4-render-intro-unescaped",
     "test": "tests/unit/newsletter/render.test.ts",
     "file": "src/templates/email/blocks/intro.tsx",
-    "find": "<Text key={index} style={paragraph}>\n            {line}\n          </Text>",
-    "replace": "<Text key={index} style={paragraph} dangerouslySetInnerHTML={{ __html: line }} />",
+    "find": "style={reading}>\n            {line}\n          </p>",
+    "replace": "style={reading} dangerouslySetInnerHTML={{ __html: line }} />",
     "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
     "expect": "FAIL.*escapes what a person typed"
   },
