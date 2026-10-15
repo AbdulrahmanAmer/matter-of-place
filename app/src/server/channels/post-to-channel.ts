@@ -132,7 +132,8 @@ export async function notifyAdmin(
   });
 }
 
-async function loadSubject(ctx: StepContext, assetId: string): Promise<Subject> {
+/** The asset and its property, or null for a reel about a market, a story or the brand (H107: it never posts itself). */
+async function loadSubject(ctx: StepContext, assetId: string): Promise<Subject | null> {
   const assets = await ctx.db
     .from("assets")
     .select("id, kind, files, caption, meta, approved_by, property_id")
@@ -141,6 +142,7 @@ async function loadSubject(ctx: StepContext, assetId: string): Promise<Subject> 
   if (assets.error !== null) throw unavailable("assets");
   const asset = assets.data[0];
   if (asset === undefined) throw new NonRetryableError("asset_not_found");
+  if (asset.property_id === null) return null;
   const properties = await ctx.db
     .from("properties")
     .select("slug, title, editorial_state, campaign_tier")
@@ -398,6 +400,7 @@ export async function postToChannel(
 ): Promise<StepResult> {
   const channel = adapter.id;
   const subject = await loadSubject(ctx, assetId);
+  if (subject === null) return done("skipped_not_a_property_asset");
   const targets = targetsFor(subject.asset.kind, {
     linkedin: { multi_image: await loadMultiImage(ctx) },
   });

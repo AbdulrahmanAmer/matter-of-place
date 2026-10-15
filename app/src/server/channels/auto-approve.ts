@@ -11,7 +11,8 @@ import { targetsFor } from "./index.ts";
 // every enabled target channel is in `auto`; B9's approve_asset stays the only writer of the approval and the only
 // emitter of asset.approved (G20), and this module emits nothing: it fans the returned event out after the commit.
 
-type Reason = "not_pending" | "incomplete" | "lint_failed" | "no_target" | "tier_manual";
+type Reason =
+  "not_pending" | "not_a_property" | "incomplete" | "lint_failed" | "no_target" | "tier_manual";
 
 export type AutoApproval =
   { status: "approved"; eventId: string } | { status: "not_eligible"; reason: Reason };
@@ -40,6 +41,8 @@ export async function maybeAutoApprove(db: Db, assetId: string, now: Date): Prom
   const asset = assets.data[0];
   if (asset === undefined) throw new AppError("not_found", undefined, "The asset does not exist.");
   if (asset.status !== "pending") return { status: "not_eligible", reason: "not_pending" };
+  // W7 item 19 (H107): a reel about a market, a story or the brand is approved by a person only.
+  if (asset.property_id === null) return { status: "not_eligible", reason: "not_a_property" };
   // B9's assets_approve_guard asks the same of a cover, carousel or story.
   const files = Array.isArray(asset.files) ? asset.files : [];
   if (files.length === 0 || blank(asset.caption) || blank(asset.alt_text)) {

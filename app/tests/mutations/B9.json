@@ -2672,8 +2672,8 @@
     "id": "b9g1-captions-waiting",
     "test": "tests/unit/assets/service.test.ts",
     "file": "src/server/assets/service.ts",
-    "find": "captions_waiting: row.caption === null && waiting.has(row.property_id),",
-    "replace": "captions_waiting: false,",
+    "find": "      row.caption === null && row.property_id !== null && waiting.has(row.property_id),",
+    "replace": "      false,",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"marks a null caption\"",
     "expect": "× .*marks a null caption whose property has a queued write_captions job[\\s\\S]*-     true,\\n\\+     false,"
   },
@@ -2690,8 +2690,8 @@
     "id": "b9g1-not-found",
     "test": "tests/unit/assets/service.test.ts",
     "file": "src/server/assets/service.ts",
-    "find": "  if (row === undefined) throw notFound();\n  return toAdmin(",
-    "replace": "  return toAdmin(",
+    "find": "  if (row === undefined) throw notFound();\n  const [asset] = await adminRows(",
+    "replace": "  const [asset] = await adminRows(",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"answers 404 not_found for an id with no row\"",
     "expect": "× .*answers 404 not_found for an id with no row[\\s\\S]*Cannot read properties of undefined \\(reading 'caption'\\)"
   },
@@ -2868,8 +2868,8 @@
     "id": "b9g2-published-no-rerender",
     "test": "src/admin/assets/assets.test.tsx",
     "file": "src/admin/assets/AssetCards.tsx",
-    "find": "{asset.status === \"published\" ? null : (",
-    "replace": "{false ? null : (",
+    "find": "{asset.status === \"published\" || asset.subject !== \"property\" ? null : (",
+    "replace": "{asset.subject !== \"property\" ? null : (",
     "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"offers a rejected card\"",
     "expect": "\\+\\s+Re-render"
   },

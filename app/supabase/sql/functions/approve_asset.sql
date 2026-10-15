@@ -50,10 +50,12 @@ begin
     jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id,
     p_evidence::text
   );
+  -- W7 item 19 (H107): a reel about a market, a story or the brand has no property; its subject and own market go out.
   return public.emit_event(
     'asset.approved', 'asset', p_asset,
     jsonb_build_object(
-      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier, 'market', v_market
+      'asset_id', p_asset, 'subject', v_asset.subject, 'property_id', v_asset.property_id, 'kind', v_asset.kind,
+      'tier', v_tier, 'market', coalesce(v_market, v_asset.market_slug)
     ),
     p_actor
   );

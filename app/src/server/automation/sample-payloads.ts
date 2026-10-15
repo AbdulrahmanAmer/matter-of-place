@@ -77,9 +77,25 @@ async function assetEvent(
   id: string,
 ): Promise<{ payload: JsonObject; rejectionNote: string | null }> {
   const asset = await firstRow(
-    db.from("assets").select("id, property_id, kind, rejection_note").eq("id", id),
+    db
+      .from("assets")
+      .select("id, subject, property_id, market_slug, kind, rejection_note")
+      .eq("id", id),
     "asset",
   );
+  // W7 item 19 (H107): a requested reel about a market, a story or the brand carries its subject and own market.
+  if (asset.property_id === null) {
+    return {
+      payload: {
+        asset_id: asset.id,
+        subject: asset.subject,
+        property_id: null,
+        kind: asset.kind,
+        market: asset.market_slug,
+      },
+      rejectionNote: asset.rejection_note,
+    };
+  }
   const property = await firstRow(
     db.from("properties").select("campaign_tier, market_slug").eq("id", asset.property_id),
     "property",

@@ -19,7 +19,11 @@ afterEach(() => {
 
 function asset(overrides: Partial<AdminAsset> & Pick<AdminAsset, "id" | "kind">): AdminAsset {
   return {
+    subject: "property",
     property_id: PROPERTY,
+    market_slug: null,
+    story_id: null,
+    subject_label: null,
     revision: 1,
     status: "pending",
     caption: "A quiet house on the creek.",
@@ -387,5 +391,29 @@ describe("AssetCards", () => {
       note: within(card("Cover, revision 1")).getByText("Rejected: Too dark").tagName,
       published: within(card("Story, revision 1")).queryAllByRole("button"),
     }).toEqual({ rejected: ["Re-render"], note: "P", published: [] });
+  });
+
+  it("names what a requested reel is about and offers no Re-render or Edit caption (W7 item 19)", () => {
+    mount(
+      <AssetCards
+        items={[
+          asset({
+            id: REEL,
+            kind: "reel",
+            subject: "market",
+            property_id: null,
+            market_slug: "california",
+            subject_label: "California",
+          }),
+        ]}
+      />,
+    );
+    const reelCard = card("Reel, revision 1");
+    expect({
+      meta: reelCard.querySelector(".admin-asset__meta")?.textContent?.startsWith("California, Revision 1"),
+      buttons: within(reelCard)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    }).toEqual({ meta: true, buttons: ["Approve", "Reject"] });
   });
 });
