@@ -1856,3 +1856,16 @@ first day of the new usage week; no step was cut from any plan.
   - PERSON: Campaigns "Wakes on" subscriber.confirmed (W7 item 14), Meta app for Instagram, the post and video brief, the
     first real listing, repo back to private when building stops.
   - UNPROVEN: a real email reply reaching a colleague (W5 item 6); a failing health check reaching the operator (item 19).
+
+- Matter autonomy 2026-10-15 (branch feat/matter-autonomy). The operator: "he needs to have full access and authority of
+  merging and running the CI ... approve things for me too ... it doesn't need a human in a loop". Changed:
+  - `.claude/hooks/task-gate.mjs`: a step list where every step carries its proving check; `status`, `next`, and a Stop hook
+    (`--stop .claude/tasks/active.json`) that refuses to end a session while one of ours fails; PERSON steps never block.
+  - Matter's prompt (`scripts/matter/run.ts`): he merges through merge-gate.mjs himself, his admin calls from the live
+    session are made at once (recorded approved, reason "Decided by Matter", `scripts/workforce/daemon.ts` decision()),
+    he decides colleagues' approvals (POST /api/admin/workforce/approvals/$id), reads the admin with
+    `bun app/scripts/matter/read.ts /api/admin/...`, and builds the smallest change in the right place (senior-engineer rule).
+  - His supervisor (`scripts/matter/live.ts`) hands him the next open step of `~/.mop-workforce/matter/goal.json` (W6, W7)
+    when idle, a minute after his last answer, at most every 10 minutes (shouldContinue, nextGoalStep, goalLine).
+  - Kept: read-only runs woken by outside text still propose and wait (H101), now decided by Matter's live session; no
+    force push, no reading the operator's credential files, keys never in his session's environment.

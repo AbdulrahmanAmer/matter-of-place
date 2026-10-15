@@ -530,13 +530,28 @@ export const say = (client: Db, thread: string, body: string) =>
     body: body.slice(0, 20000),
   });
 
-/** Gap item 31: each call Matter names is checked against the admin's routes and its key, then waits in Approvals. */
+/** How a call of Matter's is recorded: decided by him (made on the next pass), or waiting for a decision. */
+export function decision(
+  decidedByMatter: boolean,
+  now: Date,
+): { state?: "approved"; decided_at?: string; reason?: string } {
+  return decidedByMatter
+    ? { state: "approved", decided_at: now.toISOString(), reason: "Decided by Matter" }
+    : {};
+}
+
+/**
+ * Gap item 31: each call Matter names is checked against the admin's routes and its key. From his live session he
+ * decides it himself (operator, 2026-10-15: Matter runs the operation in his place), so it is recorded as approved and
+ * the next pass makes it; from a read-only run, woken by outside text (H101), it waits in Approvals for a decision.
+ */
 export async function proposeCalls(
   client: Db,
   agent: { id: string },
   runId: string,
   thread: string,
   raw: readonly unknown[],
+  decidedByMatter = false,
 ): Promise<void> {
   if (raw.length === 0) return;
   loadEnvFile();
@@ -564,11 +579,14 @@ export async function proposeCalls(
       run_id: runId,
       ...proposal,
       content_hash: createHash("sha256").update(JSON.stringify(proposal.content)).digest("hex"),
+      ...decision(decidedByMatter, new Date()),
     });
     lines.push(
-      error === null
-        ? `Waiting for your approval: ${proposal.summary}`
-        : `Not proposed: ${error.message}`,
+      error !== null
+        ? `Not proposed: ${error.message}`
+        : decidedByMatter
+          ? `Doing it now: ${proposal.summary}`
+          : `Waiting for your approval: ${proposal.summary}`,
     );
   }
   if (raw.length > MAX_CALLS) {

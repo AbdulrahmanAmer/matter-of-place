@@ -49,6 +49,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/task-gate.mjs\" --stop \"$CLAUDE_PROJECT_DIR/.claude/tasks/active.json\"",
+            "timeout": 600
+          }
+        ]
+      }
     ]
   }
 }
