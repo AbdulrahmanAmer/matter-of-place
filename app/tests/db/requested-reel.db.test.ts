@@ -6,8 +6,20 @@ import { describe, expect, it } from "vitest";
 import { asRole, createStaffUser, withRollback, type Db } from "../fixtures/db";
 
 const FILES = JSON.stringify([
-  { role: "video", media_key: "requested/r1/reel.aaaaaaaa.mp4", w: 1080, h: 1920, bytes: 9_000_000 },
-  { role: "poster", media_key: "requested/r1/poster.aaaaaaaa.jpg", w: 1080, h: 1920, bytes: 200_000 },
+  {
+    role: "video",
+    media_key: "requested/r1/reel.aaaaaaaa.mp4",
+    w: 1080,
+    h: 1920,
+    bytes: 9_000_000,
+  },
+  {
+    role: "poster",
+    media_key: "requested/r1/poster.aaaaaaaa.jpg",
+    w: 1080,
+    h: 1920,
+    bytes: 200_000,
+  },
 ]);
 const META = JSON.stringify({ request: { kind: "market", market: "california" }, duration_s: 20 });
 
@@ -82,7 +94,11 @@ describe("record_requested_reel", () => {
     await withRollback(async (db) => {
       const property = "00000000-0000-4000-8000-00000000e101";
       expect([
-        await attempt(db, "select public.record_requested_reel('market', $1::jsonb, 'c', 'a', '{}'::jsonb)", [FILES]),
+        await attempt(
+          db,
+          "select public.record_requested_reel('market', $1::jsonb, 'c', 'a', '{}'::jsonb)",
+          [FILES],
+        ),
         await attempt(
           db,
           "select public.record_requested_reel('brand', $1::jsonb, 'c', 'a', '{}'::jsonb, p_market => 'california')",
@@ -93,12 +109,15 @@ describe("record_requested_reel", () => {
           "insert into public.assets (subject, property_id, kind, revision) values ('market', $1, 'reel', 1)",
           [property],
         ),
-        await attempt(db, "select public.record_requested_reel('brand', '[]'::jsonb, 'c', 'a', '{}'::jsonb)"),
+        await attempt(
+          db,
+          "select public.record_requested_reel('brand', '[]'::jsonb, 'c', 'a', '{}'::jsonb)",
+        ),
       ]).toEqual([
         expect.stringMatching(/^23514 .*assets_subject_columns/),
         expect.stringMatching(/^23514 .*assets_subject_columns/),
         expect.stringMatching(/^23514 .*assets_subject_columns/),
-        "22023 files",
+        "22023 requested_reel_files",
       ]);
     });
   });
@@ -113,7 +132,9 @@ describe("record_requested_reel", () => {
         [asset, approver],
       );
       expect({
-        status: await scalar<string>(db, "select status as v from public.assets where id = $1", [asset]),
+        status: await scalar<string>(db, "select status as v from public.assets where id = $1", [
+          asset,
+        ]),
         payload: await scalar<Record<string, unknown>>(
           db,
           "select payload as v from public.events where id = $1",

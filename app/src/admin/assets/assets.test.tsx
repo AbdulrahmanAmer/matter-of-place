@@ -410,7 +410,9 @@ describe("AssetCards", () => {
     );
     const reelCard = card("Reel, revision 1");
     expect({
-      meta: reelCard.querySelector(".admin-asset__meta")?.textContent?.startsWith("California, Revision 1"),
+      meta: reelCard
+        .querySelector(".admin-asset__meta")
+        ?.textContent.startsWith("California, Revision 1"),
       buttons: within(reelCard)
         .getAllByRole("button")
         .map((button) => button.textContent),

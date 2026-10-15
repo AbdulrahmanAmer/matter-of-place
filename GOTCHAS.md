@@ -8050,3 +8050,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
   `git switch` in a desk, `git status --short` is empty and no check runs in it.
 - proof: `git -C E:/mop-build/matter-desk worktree list` shows a worktree per open branch.
 - added: 2026-10-15
+
+## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
+- symptom: 2026-10-15, W7 E1: from the desk, `eval "$(node scripts/load-env.mjs --profile dev)"` exported nothing (the
+  desk has no `.env`; the loader reads the one two folders above `scripts/`), then with the main checkout's loader the
+  db project stopped in `tests/db/global-setup.ts` with `Error: refusing: production database`, also for a prelude-only
+  (P-312) run that rolls back.
+- cause: there is one database and it is production now (H35); `assertNotProduction` refuses every db test against it.
+- rule: a branch's new SQL is proven by CI's `db` job (ephemeral stack: `test:db`, then the `sql` and `unit` registry
+  replays of changed entries); locally run only the unit and component projects and their watched-fails, or a native
+  throwaway cluster (P-718). In a worktree without `.env`, load the profile with
+  `node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev` for anything that is not a db test.
+- proof: `sed -n 210,225p .github/workflows/ci.yml` shows `bun run test:db` and `watchfail.mjs ... --kinds unit,sql` in
+  the `db` job; the local run above ends `refusing: production database` at `scripts/lib/assert-not-production.mjs:60`.
+- added: 2026-10-15

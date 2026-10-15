@@ -142,7 +142,8 @@ describe("step catalog", () => {
     expect([
       eventPayloadSchemas["asset.approved"].safeParse(requested).success,
       eventPayloadSchemas["asset.rejected"].safeParse({ ...requested, note: "Too fast." }).success,
-      eventPayloadSchemas["asset.approved"].safeParse({ ...requested, subject: "property" }).success,
+      eventPayloadSchemas["asset.approved"].safeParse({ ...requested, subject: "property" })
+        .success,
     ]).toEqual([true, true, false]);
   });
 

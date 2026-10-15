@@ -24,7 +24,7 @@ begin
   -- W7 item 19 (H107): a reel a colleague or Matter asked for, rendered and gated on the operator's laptop, waits in
   -- Visuals as a pending asset of its subject. The table's check refuses a subject without its column.
   if jsonb_typeof(p_files) is distinct from 'array' or jsonb_array_length(p_files) = 0 then
-    raise exception 'files' using errcode = '22023';
+    raise exception 'requested_reel_files' using errcode = '22023';
   end if;
   perform pg_advisory_xact_lock(hashtext('assets:requested:' || v_key));
   select coalesce(max(a.revision), 0) + 1 into v_revision
