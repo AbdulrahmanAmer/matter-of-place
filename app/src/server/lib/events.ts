@@ -22,6 +22,7 @@ export const catalogEventTypes = [
   "invoice.voided",
   "health.failed",
   "subject_request.received",
+  "email.bounced",
 ] as const;
 
 export type CatalogEventType = (typeof catalogEventTypes)[number];

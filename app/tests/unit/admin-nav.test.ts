@@ -46,6 +46,8 @@ const ROUTE_IDS: Record<number, string> = {
   30: "/admin/invoices/new",
   // Operator, 2026-10-15: the Interest screen.
   31: "/admin/interest/",
+  // W9 item 2: the Sent emails screen.
+  32: "/admin/emails/",
 };
 
 const everyRoute = () => true;
@@ -56,18 +58,18 @@ const screensShown = (sections: ReturnType<typeof visibleNav>) =>
   sections.flatMap((section) => section.entries.map((entry) => entry.screen));
 
 describe("the nav registry", () => {
-  it("holds 31 entries, one per screen, with the routeId list of the plan, W1, the new-invoice form and Interest", () => {
-    expect(navEntries).toHaveLength(31);
+  it("holds 32 entries, one per screen, with the routeId list of the plan, W1, the new-invoice form, Interest and Sent emails", () => {
+    expect(navEntries).toHaveLength(32);
     expect(Object.fromEntries(navEntries.map((entry) => [entry.screen, entry.routeId]))).toEqual(
       ROUTE_IDS,
     );
   });
 
-  it("shows 25 screens in eight areas when every route and action exists (W3)", () => {
+  it("shows 26 screens in eight areas when every route and action exists (W3, W9)", () => {
     const sections = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
     expect(sections.map((section) => section.group)).toEqual([...navGroups]);
-    expect(sections.map((section) => section.entries.length)).toEqual([2, 4, 3, 4, 3, 4, 3, 2]);
-    expect(screensShown(sections)).toHaveLength(25);
+    expect(sections.map((section) => section.entries.length)).toEqual([2, 4, 3, 4, 3, 4, 3, 3]);
+    expect(screensShown(sections)).toHaveLength(26);
   });
 
   it("names each area's screens for the work: Inbox, Listings, Automation and Settings", () => {
@@ -127,7 +129,7 @@ describe("the nav registry", () => {
       actions: everyAction(),
     });
     expect(screensShown(sections)).not.toContain(23);
-    expect(screensShown(sections)).toHaveLength(24);
+    expect(screensShown(sections)).toHaveLength(25);
   });
 
   it("hides the team screen from a commercial actor", () => {

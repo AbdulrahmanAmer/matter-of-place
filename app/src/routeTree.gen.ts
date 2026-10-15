@@ -63,6 +63,7 @@ import { Route as AdminAutomationRecipesRouteImport } from './routes/admin/autom
 import { Route as AdminAutomationRevisionsRouteImport } from './routes/admin/automation.revisions'
 import { Route as AdminAutomationSettingsRouteImport } from './routes/admin/automation.settings'
 import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
+import { Route as AdminEmailsIndexRouteImport } from './routes/admin/emails.index'
 import { Route as AdminInquiriesIndexRouteImport } from './routes/admin/inquiries.index'
 import { Route as AdminInterestIndexRouteImport } from './routes/admin/interest.index'
 import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
@@ -126,6 +127,7 @@ import { Route as ApiAdminAutomationScheduleSettingsRouteImport } from './routes
 import { Route as ApiAdminAutomationTemplatesRouteImport } from './routes/api/admin/automation.templates'
 import { Route as ApiAdminChannelsHealthRouteImport } from './routes/api/admin/channels.health'
 import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
+import { Route as ApiAdminEmailsIndexRouteImport } from './routes/api/admin/emails.index'
 import { Route as ApiAdminInquiriesIndexRouteImport } from './routes/api/admin/inquiries.index'
 import { Route as ApiAdminInquiriesIdRouteImport } from './routes/api/admin/inquiries.$id'
 import { Route as ApiAdminInquiriesAssigneesRouteImport } from './routes/api/admin/inquiries.assignees'
@@ -227,8 +229,10 @@ import { Route as ApiAdminSubmissionsIdActivateRouteImport } from './routes/api/
 import { Route as ApiAdminSubmissionsIdAssetsReceivedRouteImport } from './routes/api/admin/submissions.$id.assets-received'
 import { Route as ApiAdminSubmissionsIdDeclineRouteImport } from './routes/api/admin/submissions.$id.decline'
 import { Route as ApiAdminSubmissionsIdEmailPreviewRouteImport } from './routes/api/admin/submissions.$id.email-preview'
+import { Route as ApiAdminSubmissionsIdEmailsRouteImport } from './routes/api/admin/submissions.$id.emails'
 import { Route as ApiAdminSubmissionsIdNoteRouteImport } from './routes/api/admin/submissions.$id.note'
 import { Route as ApiAdminSubmissionsIdRequestAssetsRouteImport } from './routes/api/admin/submissions.$id.request-assets'
+import { Route as ApiAdminSubmissionsIdResendEmailRouteImport } from './routes/api/admin/submissions.$id.resend-email'
 import { Route as ApiAdminSubmissionsIdTimelineRouteImport } from './routes/api/admin/submissions.$id.timeline'
 import { Route as ApiAdminSubmissionsIdWaiveRouteImport } from './routes/api/admin/submissions.$id.waive'
 import { Route as ApiAdminSubmissionsIdWithdrawRouteImport } from './routes/api/admin/submissions.$id.withdraw'
@@ -534,6 +538,11 @@ const AdminChannelsIndexRoute = AdminChannelsIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/channels.index.lazy').then((d) => d.Route),
 )
+const AdminEmailsIndexRoute = AdminEmailsIndexRouteImport.update({
+  id: '/emails/',
+  path: '/emails/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInquiriesIndexRoute = AdminInquiriesIndexRouteImport.update({
   id: '/inquiries/',
   path: '/inquiries/',
@@ -877,6 +886,11 @@ const ApiAdminChannelsHealthRoute = ApiAdminChannelsHealthRouteImport.update({
 const ApiAdminChannelsPostsRoute = ApiAdminChannelsPostsRouteImport.update({
   id: '/api/admin/channels/posts',
   path: '/api/admin/channels/posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminEmailsIndexRoute = ApiAdminEmailsIndexRouteImport.update({
+  id: '/api/admin/emails/',
+  path: '/api/admin/emails/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminInquiriesIndexRoute = ApiAdminInquiriesIndexRouteImport.update({
@@ -1436,6 +1450,12 @@ const ApiAdminSubmissionsIdEmailPreviewRoute =
     path: '/email-preview',
     getParentRoute: () => ApiAdminSubmissionsIdRoute,
   } as any)
+const ApiAdminSubmissionsIdEmailsRoute =
+  ApiAdminSubmissionsIdEmailsRouteImport.update({
+    id: '/emails',
+    path: '/emails',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
 const ApiAdminSubmissionsIdNoteRoute =
   ApiAdminSubmissionsIdNoteRouteImport.update({
     id: '/note',
@@ -1446,6 +1466,12 @@ const ApiAdminSubmissionsIdRequestAssetsRoute =
   ApiAdminSubmissionsIdRequestAssetsRouteImport.update({
     id: '/request-assets',
     path: '/request-assets',
+    getParentRoute: () => ApiAdminSubmissionsIdRoute,
+  } as any)
+const ApiAdminSubmissionsIdResendEmailRoute =
+  ApiAdminSubmissionsIdResendEmailRouteImport.update({
+    id: '/resend-email',
+    path: '/resend-email',
     getParentRoute: () => ApiAdminSubmissionsIdRoute,
   } as any)
 const ApiAdminSubmissionsIdTimelineRoute =
@@ -1690,6 +1716,7 @@ export interface FileRoutesByFullPath {
   '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/audit/': typeof AdminAuditIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
+  '/admin/emails/': typeof AdminEmailsIndexRoute
   '/admin/inquiries/': typeof AdminInquiriesIndexRoute
   '/admin/interest/': typeof AdminInterestIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
@@ -1773,6 +1800,7 @@ export interface FileRoutesByFullPath {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
   '/api/admin/audit/': typeof ApiAdminAuditIndexRoute
+  '/api/admin/emails/': typeof ApiAdminEmailsIndexRoute
   '/api/admin/inquiries/': typeof ApiAdminInquiriesIndexRoute
   '/api/admin/jobs/': typeof ApiAdminJobsIndexRoute
   '/api/admin/markets/': typeof ApiAdminMarketsIndexRoute
@@ -1829,8 +1857,10 @@ export interface FileRoutesByFullPath {
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
   '/api/admin/submissions/$id/email-preview': typeof ApiAdminSubmissionsIdEmailPreviewRoute
+  '/api/admin/submissions/$id/emails': typeof ApiAdminSubmissionsIdEmailsRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
+  '/api/admin/submissions/$id/resend-email': typeof ApiAdminSubmissionsIdResendEmailRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/admin/submissions/$id/withdraw': typeof ApiAdminSubmissionsIdWithdrawRoute
@@ -1934,6 +1964,7 @@ export interface FileRoutesByTo {
   '/admin/assets': typeof AdminAssetsIndexRoute
   '/admin/audit': typeof AdminAuditIndexRoute
   '/admin/channels': typeof AdminChannelsIndexRoute
+  '/admin/emails': typeof AdminEmailsIndexRoute
   '/admin/inquiries': typeof AdminInquiriesIndexRoute
   '/admin/interest': typeof AdminInterestIndexRoute
   '/admin/invoices': typeof AdminInvoicesIndexRoute
@@ -2017,6 +2048,7 @@ export interface FileRoutesByTo {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/assets': typeof ApiAdminAssetsIndexRoute
   '/api/admin/audit': typeof ApiAdminAuditIndexRoute
+  '/api/admin/emails': typeof ApiAdminEmailsIndexRoute
   '/api/admin/inquiries': typeof ApiAdminInquiriesIndexRoute
   '/api/admin/jobs': typeof ApiAdminJobsIndexRoute
   '/api/admin/markets': typeof ApiAdminMarketsIndexRoute
@@ -2073,8 +2105,10 @@ export interface FileRoutesByTo {
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
   '/api/admin/submissions/$id/email-preview': typeof ApiAdminSubmissionsIdEmailPreviewRoute
+  '/api/admin/submissions/$id/emails': typeof ApiAdminSubmissionsIdEmailsRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
+  '/api/admin/submissions/$id/resend-email': typeof ApiAdminSubmissionsIdResendEmailRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/admin/submissions/$id/withdraw': typeof ApiAdminSubmissionsIdWithdrawRoute
@@ -2184,6 +2218,7 @@ export interface FileRoutesById {
   '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/audit/': typeof AdminAuditIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
+  '/admin/emails/': typeof AdminEmailsIndexRoute
   '/admin/inquiries/': typeof AdminInquiriesIndexRoute
   '/admin/interest/': typeof AdminInterestIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
@@ -2267,6 +2302,7 @@ export interface FileRoutesById {
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
   '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
   '/api/admin/audit/': typeof ApiAdminAuditIndexRoute
+  '/api/admin/emails/': typeof ApiAdminEmailsIndexRoute
   '/api/admin/inquiries/': typeof ApiAdminInquiriesIndexRoute
   '/api/admin/jobs/': typeof ApiAdminJobsIndexRoute
   '/api/admin/markets/': typeof ApiAdminMarketsIndexRoute
@@ -2323,8 +2359,10 @@ export interface FileRoutesById {
   '/api/admin/submissions/$id/assets-received': typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   '/api/admin/submissions/$id/decline': typeof ApiAdminSubmissionsIdDeclineRoute
   '/api/admin/submissions/$id/email-preview': typeof ApiAdminSubmissionsIdEmailPreviewRoute
+  '/api/admin/submissions/$id/emails': typeof ApiAdminSubmissionsIdEmailsRoute
   '/api/admin/submissions/$id/note': typeof ApiAdminSubmissionsIdNoteRoute
   '/api/admin/submissions/$id/request-assets': typeof ApiAdminSubmissionsIdRequestAssetsRoute
+  '/api/admin/submissions/$id/resend-email': typeof ApiAdminSubmissionsIdResendEmailRoute
   '/api/admin/submissions/$id/timeline': typeof ApiAdminSubmissionsIdTimelineRoute
   '/api/admin/submissions/$id/waive': typeof ApiAdminSubmissionsIdWaiveRoute
   '/api/admin/submissions/$id/withdraw': typeof ApiAdminSubmissionsIdWithdrawRoute
@@ -2434,6 +2472,7 @@ export interface FileRouteTypes {
     | '/admin/assets/'
     | '/admin/audit/'
     | '/admin/channels/'
+    | '/admin/emails/'
     | '/admin/inquiries/'
     | '/admin/interest/'
     | '/admin/invoices/'
@@ -2517,6 +2556,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/assets/'
     | '/api/admin/audit/'
+    | '/api/admin/emails/'
     | '/api/admin/inquiries/'
     | '/api/admin/jobs/'
     | '/api/admin/markets/'
@@ -2573,8 +2613,10 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
     | '/api/admin/submissions/$id/email-preview'
+    | '/api/admin/submissions/$id/emails'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/request-assets'
+    | '/api/admin/submissions/$id/resend-email'
     | '/api/admin/submissions/$id/timeline'
     | '/api/admin/submissions/$id/waive'
     | '/api/admin/submissions/$id/withdraw'
@@ -2678,6 +2720,7 @@ export interface FileRouteTypes {
     | '/admin/assets'
     | '/admin/audit'
     | '/admin/channels'
+    | '/admin/emails'
     | '/admin/inquiries'
     | '/admin/interest'
     | '/admin/invoices'
@@ -2761,6 +2804,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/assets'
     | '/api/admin/audit'
+    | '/api/admin/emails'
     | '/api/admin/inquiries'
     | '/api/admin/jobs'
     | '/api/admin/markets'
@@ -2817,8 +2861,10 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
     | '/api/admin/submissions/$id/email-preview'
+    | '/api/admin/submissions/$id/emails'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/request-assets'
+    | '/api/admin/submissions/$id/resend-email'
     | '/api/admin/submissions/$id/timeline'
     | '/api/admin/submissions/$id/waive'
     | '/api/admin/submissions/$id/withdraw'
@@ -2927,6 +2973,7 @@ export interface FileRouteTypes {
     | '/admin/assets/'
     | '/admin/audit/'
     | '/admin/channels/'
+    | '/admin/emails/'
     | '/admin/inquiries/'
     | '/admin/interest/'
     | '/admin/invoices/'
@@ -3010,6 +3057,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers/confirm'
     | '/api/admin/assets/'
     | '/api/admin/audit/'
+    | '/api/admin/emails/'
     | '/api/admin/inquiries/'
     | '/api/admin/jobs/'
     | '/api/admin/markets/'
@@ -3066,8 +3114,10 @@ export interface FileRouteTypes {
     | '/api/admin/submissions/$id/assets-received'
     | '/api/admin/submissions/$id/decline'
     | '/api/admin/submissions/$id/email-preview'
+    | '/api/admin/submissions/$id/emails'
     | '/api/admin/submissions/$id/note'
     | '/api/admin/submissions/$id/request-assets'
+    | '/api/admin/submissions/$id/resend-email'
     | '/api/admin/submissions/$id/timeline'
     | '/api/admin/submissions/$id/waive'
     | '/api/admin/submissions/$id/withdraw'
@@ -3191,6 +3241,7 @@ export interface RootRouteChildren {
   ApiPublicSubjectsRequestRoute: typeof ApiPublicSubjectsRequestRoute
   ApiAdminAssetsIndexRoute: typeof ApiAdminAssetsIndexRoute
   ApiAdminAuditIndexRoute: typeof ApiAdminAuditIndexRoute
+  ApiAdminEmailsIndexRoute: typeof ApiAdminEmailsIndexRoute
   ApiAdminInquiriesIndexRoute: typeof ApiAdminInquiriesIndexRoute
   ApiAdminJobsIndexRoute: typeof ApiAdminJobsIndexRoute
   ApiAdminMarketsIndexRoute: typeof ApiAdminMarketsIndexRoute
@@ -3582,6 +3633,13 @@ declare module '@tanstack/react-router' {
       path: '/channels'
       fullPath: '/admin/channels/'
       preLoaderRoute: typeof AdminChannelsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/emails/': {
+      id: '/admin/emails/'
+      path: '/emails'
+      fullPath: '/admin/emails/'
+      preLoaderRoute: typeof AdminEmailsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/inquiries/': {
@@ -4023,6 +4081,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/channels/posts'
       fullPath: '/api/admin/channels/posts'
       preLoaderRoute: typeof ApiAdminChannelsPostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/emails/': {
+      id: '/api/admin/emails/'
+      path: '/api/admin/emails'
+      fullPath: '/api/admin/emails/'
+      preLoaderRoute: typeof ApiAdminEmailsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/inquiries/': {
@@ -4732,6 +4797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSubmissionsIdEmailPreviewRouteImport
       parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
+    '/api/admin/submissions/$id/emails': {
+      id: '/api/admin/submissions/$id/emails'
+      path: '/emails'
+      fullPath: '/api/admin/submissions/$id/emails'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdEmailsRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
     '/api/admin/submissions/$id/note': {
       id: '/api/admin/submissions/$id/note'
       path: '/note'
@@ -4744,6 +4816,13 @@ declare module '@tanstack/react-router' {
       path: '/request-assets'
       fullPath: '/api/admin/submissions/$id/request-assets'
       preLoaderRoute: typeof ApiAdminSubmissionsIdRequestAssetsRouteImport
+      parentRoute: typeof ApiAdminSubmissionsIdRoute
+    }
+    '/api/admin/submissions/$id/resend-email': {
+      id: '/api/admin/submissions/$id/resend-email'
+      path: '/resend-email'
+      fullPath: '/api/admin/submissions/$id/resend-email'
+      preLoaderRoute: typeof ApiAdminSubmissionsIdResendEmailRouteImport
       parentRoute: typeof ApiAdminSubmissionsIdRoute
     }
     '/api/admin/submissions/$id/timeline': {
@@ -5055,6 +5134,7 @@ interface AdminRouteChildren {
   AdminAssetsIndexRoute: typeof AdminAssetsIndexRoute
   AdminAuditIndexRoute: typeof AdminAuditIndexRoute
   AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
+  AdminEmailsIndexRoute: typeof AdminEmailsIndexRoute
   AdminInquiriesIndexRoute: typeof AdminInquiriesIndexRoute
   AdminInterestIndexRoute: typeof AdminInterestIndexRoute
   AdminInvoicesIndexRoute: typeof AdminInvoicesIndexRoute
@@ -5092,6 +5172,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAssetsIndexRoute: AdminAssetsIndexRoute,
   AdminAuditIndexRoute: AdminAuditIndexRoute,
   AdminChannelsIndexRoute: AdminChannelsIndexRoute,
+  AdminEmailsIndexRoute: AdminEmailsIndexRoute,
   AdminInquiriesIndexRoute: AdminInquiriesIndexRoute,
   AdminInterestIndexRoute: AdminInterestIndexRoute,
   AdminInvoicesIndexRoute: AdminInvoicesIndexRoute,
@@ -5569,8 +5650,10 @@ interface ApiAdminSubmissionsIdRouteChildren {
   ApiAdminSubmissionsIdAssetsReceivedRoute: typeof ApiAdminSubmissionsIdAssetsReceivedRoute
   ApiAdminSubmissionsIdDeclineRoute: typeof ApiAdminSubmissionsIdDeclineRoute
   ApiAdminSubmissionsIdEmailPreviewRoute: typeof ApiAdminSubmissionsIdEmailPreviewRoute
+  ApiAdminSubmissionsIdEmailsRoute: typeof ApiAdminSubmissionsIdEmailsRoute
   ApiAdminSubmissionsIdNoteRoute: typeof ApiAdminSubmissionsIdNoteRoute
   ApiAdminSubmissionsIdRequestAssetsRoute: typeof ApiAdminSubmissionsIdRequestAssetsRoute
+  ApiAdminSubmissionsIdResendEmailRoute: typeof ApiAdminSubmissionsIdResendEmailRoute
   ApiAdminSubmissionsIdTimelineRoute: typeof ApiAdminSubmissionsIdTimelineRoute
   ApiAdminSubmissionsIdWaiveRoute: typeof ApiAdminSubmissionsIdWaiveRoute
   ApiAdminSubmissionsIdWithdrawRoute: typeof ApiAdminSubmissionsIdWithdrawRoute
@@ -5585,9 +5668,11 @@ const ApiAdminSubmissionsIdRouteChildren: ApiAdminSubmissionsIdRouteChildren = {
   ApiAdminSubmissionsIdDeclineRoute: ApiAdminSubmissionsIdDeclineRoute,
   ApiAdminSubmissionsIdEmailPreviewRoute:
     ApiAdminSubmissionsIdEmailPreviewRoute,
+  ApiAdminSubmissionsIdEmailsRoute: ApiAdminSubmissionsIdEmailsRoute,
   ApiAdminSubmissionsIdNoteRoute: ApiAdminSubmissionsIdNoteRoute,
   ApiAdminSubmissionsIdRequestAssetsRoute:
     ApiAdminSubmissionsIdRequestAssetsRoute,
+  ApiAdminSubmissionsIdResendEmailRoute: ApiAdminSubmissionsIdResendEmailRoute,
   ApiAdminSubmissionsIdTimelineRoute: ApiAdminSubmissionsIdTimelineRoute,
   ApiAdminSubmissionsIdWaiveRoute: ApiAdminSubmissionsIdWaiveRoute,
   ApiAdminSubmissionsIdWithdrawRoute: ApiAdminSubmissionsIdWithdrawRoute,
@@ -5784,6 +5869,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSubjectsRequestRoute: ApiPublicSubjectsRequestRoute,
   ApiAdminAssetsIndexRoute: ApiAdminAssetsIndexRoute,
   ApiAdminAuditIndexRoute: ApiAdminAuditIndexRoute,
+  ApiAdminEmailsIndexRoute: ApiAdminEmailsIndexRoute,
   ApiAdminInquiriesIndexRoute: ApiAdminInquiriesIndexRoute,
   ApiAdminJobsIndexRoute: ApiAdminJobsIndexRoute,
   ApiAdminMarketsIndexRoute: ApiAdminMarketsIndexRoute,

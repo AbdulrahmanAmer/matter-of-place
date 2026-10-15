@@ -17,6 +17,15 @@ describe("a colleague's admin calls", () => {
     expect(refused).toHaveLength(2);
   });
 
+  it("lets the Editor propose the next step on a request as a note, never its decision (W9)", () => {
+    const { allowed, refused } = colleagueCalls("editor", [
+      call("POST", `/api/admin/submissions/${ID}/note`),
+      call("POST", `/api/admin/submissions/${ID}/accept`),
+    ]);
+    expect(allowed).toEqual([call("POST", `/api/admin/submissions/${ID}/note`)]);
+    expect(refused).toHaveLength(1);
+  });
+
   it("refuses a colleague's own path under another method", () => {
     const { allowed, refused } = colleagueCalls("editor", [
       call("DELETE", `/api/admin/properties/${ID}`),
