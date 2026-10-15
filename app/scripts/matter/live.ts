@@ -211,6 +211,11 @@ export function shouldMove(idle: boolean, headNow: string, headAtStart: string):
   return idle && headNow !== "" && headNow !== headAtStart;
 }
 
+/** Whether the supervisor's once-a-minute touch of Matter's row is due (his panel's "online"). */
+export function shouldTouch(touchedAt: number, now: number): boolean {
+  return now - touchedAt >= 60_000;
+}
+
 export function shouldRotate(record: SessionRecord | null, now: number): boolean {
   return (
     record !== null &&
@@ -272,6 +277,7 @@ class Supervisor {
   private crashes: number[] = [];
   private readonly head = runnerHead();
   private headCheckedAt = 0;
+  private touchedAt = 0;
   private matterId = "";
   // The running session already carries the briefing (a resumed one, or a new one after its first line).
   private seeded = false;
@@ -509,6 +515,15 @@ class Supervisor {
     this.matterId = matter.id;
     for (;;) {
       writeFileSync(HEARTBEAT_FILE, new Date().toISOString());
+      // Matter's panel (2026-10-15): the panel reads "online" from his row; touch it once a minute from here, so a
+      // long pass of the colleagues' runner (which also touches it) never makes a live Matter read as offline.
+      if (shouldTouch(this.touchedAt, Date.now())) {
+        this.touchedAt = Date.now();
+        await this.client
+          .from("agents")
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq("slug", "matter");
+      }
       const until = breakerUntil(BREAKER_FILE);
       if (until !== null) {
         await new Promise((settle) => setTimeout(settle, POLL_MS * 10));

@@ -45,24 +45,6 @@
     "expect": "× .*fails agent_requests while a key is past its daily alert line"
   },
   {
-    "id": "w5-f-now-line",
-    "test": "src/admin/workforce/sidechat.test.tsx",
-    "file": "src/admin/workforce/SideChat.tsx",
-    "find": "          {matter?.state === \"working\" && matter.current_task !== null ? (",
-    "replace": "          {matter?.state === \"never\" && matter.current_task !== null ? (",
-    "run": "bunx vitest run --project component src/admin/workforce/sidechat.test.tsx",
-    "expect": "× .*shows what Matter is running now"
-  },
-  {
-    "id": "w5-g-team-talk",
-    "test": "src/admin/workforce/sidechat.test.tsx",
-    "file": "src/admin/workforce/SideChat.tsx",
-    "find": "  const team = useMessages(\"team\");",
-    "replace": "  const team = useMessages(\"matter\");",
-    "run": "bunx vitest run --project component src/admin/workforce/sidechat.test.tsx",
-    "expect": "× .*shows what Matter is running now"
-  },
-  {
     "id": "w5-h-editor-route",
     "test": "tests/unit/colleague-calls.test.ts",
     "file": "scripts/workforce/colleague-calls.ts",
@@ -124,5 +106,59 @@
     "replace": "  return headNow !== \"\" && headNow !== headAtStart;",
     "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
     "expect": "× .*moves only when idle and the runner is on another readable commit"
+  },
+  {
+    "id": "w5-f-now-line",
+    "test": "src/admin/workforce/matter-panel.test.tsx",
+    "file": "src/admin/workforce/MatterPanel.tsx",
+    "find": "text: presence.task === null ? \"Working\" : `Working: ${presence.task}`,",
+    "replace": "text: \"Working\",",
+    "run": "bunx vitest run --project component src/admin/workforce/matter-panel.test.tsx",
+    "expect": "× .*says what Matter is doing"
+  },
+  {
+    "id": "w5-g-one-tab",
+    "test": "src/admin/workforce/matter-panel.test.tsx",
+    "file": "src/admin/workforce/MatterPanel.tsx",
+    "find": "{...(tab === item.id ? { \"aria-controls\": \"mp-body\" } : {})}",
+    "replace": "aria-controls=\"mp-body\"",
+    "run": "bunx vitest run --project component src/admin/workforce/matter-panel.test.tsx",
+    "expect": "× .*renders only the open tab's body"
+  },
+  {
+    "id": "w5-o-markdown",
+    "test": "src/admin/workforce/matter-panel.test.tsx",
+    "file": "src/admin/workforce/MessageText.tsx",
+    "find": "if (part.startsWith(\"**\") && part.endsWith(\"**\") && part.length > 4)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project component src/admin/workforce/matter-panel.test.tsx",
+    "expect": "× .*renders the staff's markdown"
+  },
+  {
+    "id": "w5-p-presence-window",
+    "test": "src/admin/workforce/matter-panel.test.tsx",
+    "file": "src/admin/workforce/presence.ts",
+    "find": "input.lastSeen !== null && input.now - Date.parse(input.lastSeen) < ONLINE_WITHIN_MS;",
+    "replace": "input.lastSeen !== null;",
+    "run": "bunx vitest run --project component src/admin/workforce/matter-panel.test.tsx",
+    "expect": "× .*is online while his row was touched within three minutes"
+  },
+  {
+    "id": "w5-q-older-folded",
+    "test": "src/admin/workforce/matter-panel.test.tsx",
+    "file": "src/admin/workforce/MatterPanel.tsx",
+    "find": "{older.length > 0 ? (",
+    "replace": "{false ? (",
+    "run": "bunx vitest run --project component src/admin/workforce/matter-panel.test.tsx",
+    "expect": "× .*groups tasks"
+  },
+  {
+    "id": "w5-r-touch-each-minute",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  return now - touchedAt >= 60_000;",
+    "replace": "  return now - touchedAt >= 600_000;",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*touches Matter's row once a minute"
   }
 ]

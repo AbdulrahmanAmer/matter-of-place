@@ -13,6 +13,7 @@ import {
   readStreamLine,
   shouldMove,
   shouldRotate,
+  shouldTouch,
 } from "../../scripts/matter/live";
 
 // W5 item 1: Matter's live session (operator, 2026-10-13: "work and keep building ... with status update ... if I text
@@ -173,5 +174,17 @@ describe("moving to new runner code", () => {
       shouldMove(true, "a", "a"),
       shouldMove(true, "", "a"),
     ]).toEqual([true, false, false, false]);
+  });
+});
+
+// Matter's panel (2026-10-15): the supervisor touches his row once a minute, so a busy colleagues' pass never reads
+// as "offline".
+describe("the supervisor's touch of Matter's row", () => {
+  it("touches Matter's row once a minute, not more", () => {
+    expect([shouldTouch(0, 60_000), shouldTouch(1_000, 30_000), shouldTouch(0, 59_999)]).toEqual([
+      true,
+      false,
+      false,
+    ]);
   });
 });

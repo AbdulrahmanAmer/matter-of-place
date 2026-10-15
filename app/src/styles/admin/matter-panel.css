@@ -1,0 +1,326 @@
+/*
+ * Matter's panel (remade 2026-10-15). Four fixed bands in one grid, so nothing can sit on anything else: the head
+ * (who and how he is), the tabs, one scrolling body, and the composer on the chat tab. Only the open tab's body is in
+ * the page. Palette and type are the brand's: Ivory ground, Bone for your own lines, Obsidian ink, Cormorant for the
+ * name, Urbanist for the rest; no cards, no shadow.
+ */
+/* Urbanist's "1" reads as a capital I in "Tasks 1" and "12 s": the panel draws only its digits in Jost, the brand's
+   sans, whose "1" carries a flag and whose weight sits with Urbanist's (Epilogue's digits read heavier). */
+@font-face {
+  font-family: "MP Digits";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("/fonts/jost-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0030-0039;
+}
+
+.matter-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  height: 100svh;
+  min-height: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "MP Digits", var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.mp-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px var(--admin-space-3);
+  padding: var(--admin-space-5) var(--admin-space-5) var(--admin-space-3);
+}
+
+.mp-head__name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.mp-head__close {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.mp-head__status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--admin-space-2);
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+/* Two lines at most: "Offline since ... Your message waits for the laptop." must be read whole on a phone. */
+.mp-head__text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.mp-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  border: 1px solid var(--muted-foreground);
+}
+
+.mp-head__status[data-tone="on"] .mp-dot {
+  background: var(--status-ok);
+  border-color: var(--status-ok);
+}
+
+.mp-head__status[data-tone="busy"] .mp-dot {
+  background: var(--foreground);
+  border-color: var(--foreground);
+}
+
+.mp-head__status[data-tone="busy"] {
+  color: var(--foreground);
+}
+
+.mp-tabs {
+  display: flex;
+  gap: var(--admin-space-4);
+  padding: 0 var(--admin-space-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+
+.mp-tab {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mp-tab[aria-selected="true"] {
+  border-bottom-color: var(--foreground);
+  color: var(--foreground);
+}
+
+.mp-tab__count {
+  color: var(--foreground);
+}
+
+.mp-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--admin-space-4) var(--admin-space-5);
+}
+
+.mp-body:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.mp-lines {
+  display: grid;
+  gap: var(--admin-space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mp-line {
+  display: grid;
+  gap: var(--admin-space-1);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.mp-line[data-from="human"] {
+  justify-self: end;
+  max-width: 85%;
+  padding: var(--admin-space-2) var(--admin-space-3);
+  background: var(--secondary);
+}
+
+.mp-line[data-from="system"] {
+  color: var(--muted-foreground);
+}
+
+.mp-line__meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--admin-space-2);
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+.mp-line__who {
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.mp-text {
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.mp-text > * {
+  margin: 0;
+}
+
+.mp-text > * + * {
+  margin-top: var(--admin-space-2);
+}
+
+.mp-text ul,
+.mp-text ol {
+  padding-left: 18px;
+}
+
+.mp-text ul {
+  list-style: disc;
+}
+
+.mp-text ol {
+  list-style: decimal;
+}
+
+.mp-text li + li {
+  margin-top: 2px;
+}
+
+.mp-text code {
+  padding: 0 4px;
+  background: var(--secondary);
+  font-size: 13px;
+}
+
+.mp-text__heading {
+  font-weight: 600;
+}
+
+.mp-waiting,
+.mp-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.mp-waiting {
+  margin-top: var(--admin-space-4);
+}
+
+.mp-tasks {
+  display: grid;
+  gap: var(--admin-space-5);
+}
+
+.mp-tasks ul {
+  display: grid;
+  gap: var(--admin-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mp-heading {
+  margin: 0 0 var(--admin-space-2);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.mp-task {
+  display: grid;
+  gap: 2px;
+  padding-left: var(--admin-space-3);
+  border-left: 2px solid var(--border);
+}
+
+.mp-task[data-state="running"] {
+  border-left-color: var(--foreground);
+}
+
+.mp-task__label {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.mp-task__meta {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.mp-older summary {
+  min-height: 44px;
+  display: list-item;
+  padding-block: var(--admin-space-3);
+  font-size: 13px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.mp-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--admin-space-2) var(--admin-space-3);
+  padding: var(--admin-space-3) var(--admin-space-5) var(--admin-space-5);
+  border-top: 1px solid var(--border);
+}
+
+.mp-composer textarea {
+  grid-column: 1 / -1;
+  min-height: 64px;
+  max-height: 180px;
+  padding: var(--admin-space-2) var(--admin-space-3);
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.mp-composer textarea:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 0;
+}
+
+.mp-composer__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 520px) {
+  .mp-head,
+  .mp-tabs,
+  .mp-body,
+  .mp-composer {
+    padding-inline: var(--admin-space-4);
+  }
+
+  .mp-line[data-from="human"] {
+    max-width: 92%;
+  }
+}
