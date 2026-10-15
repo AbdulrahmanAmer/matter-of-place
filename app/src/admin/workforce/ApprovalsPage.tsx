@@ -22,6 +22,30 @@ function bodyOf(content: Record<string, unknown>): string {
   return typeof content["body"] === "string" ? content["body"] : JSON.stringify(content, null, 2);
 }
 
+const reelLine: Record<NonNullable<AgentApproval["reel"]>["status"], string> = {
+  making:
+    "The reel is being made on the laptop. It appears here once it passes the gate and the review.",
+  pending: "The reel waits in Visuals for its own approval.",
+  approved: "The reel is approved in Visuals.",
+  rejected: "The reel was declined in Visuals.",
+};
+
+/** W7 item 20: the reel this proposal asked for, beside its text: its poster linking to the film, and where it is. */
+function ReelBeside({ reel }: { reel: NonNullable<AgentApproval["reel"]> }) {
+  return (
+    <figure className="wf-proposal__reel">
+      {reel.poster !== null && reel.video !== null ? (
+        <a href={reel.video} target="_blank" rel="noreferrer">
+          <img src={reel.poster} alt={`The reel "${reel.name}"`} width={108} height={192} />
+        </a>
+      ) : null}
+      <figcaption className="admin-field__hint">
+        Reel "{reel.name}". {reelLine[reel.status]}
+      </figcaption>
+    </figure>
+  );
+}
+
 function Proposal({ item }: { item: AgentApproval }) {
   const decide = useDecide();
   const [mode, setMode] = useState<Mode>("view");
@@ -68,6 +92,7 @@ function Proposal({ item }: { item: AgentApproval }) {
       ) : (
         <pre className="wf-proposal__content">{shown}</pre>
       )}
+      {item.reel === null ? null : <ReelBeside reel={item.reel} />}
       {item.state === "pending" ? (
         <>
           {mode === "decline" ? (
