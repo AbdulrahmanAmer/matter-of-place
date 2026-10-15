@@ -1,17 +1,6 @@
-import { Text } from "@react-email/components";
-import type { CSSProperties } from "react";
-import { themeHex } from "../../theme.gen.ts";
-import { fonts } from "../layout.tsx";
+import { cx, reading, serif } from "../style.ts";
 
-const paragraph: CSSProperties = {
-  margin: "0 0 20px",
-  fontFamily: fonts.body,
-  fontSize: "16px",
-  lineHeight: "1.75",
-  color: themeHex.foreground,
-};
-
-/** A line or two a person wrote: one paragraph for each line of the text. */
+/** A line or two a person wrote: one paragraph for each line of the text, set as the letter is. */
 export function Intro({ text }: { text: string }) {
   return (
     <>
@@ -19,9 +8,9 @@ export function Intro({ text }: { text: string }) {
         .split(/\n+/)
         .filter((line) => line.trim() !== "")
         .map((line, index) => (
-          <Text key={index} style={paragraph}>
+          <p key={index} className={cx(serif.className, "mop-reading")} style={reading}>
             {line}
-          </Text>
+          </p>
         ))}
     </>
   );

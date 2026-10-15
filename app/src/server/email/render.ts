@@ -126,7 +126,8 @@ const textVariables = (variables: Readonly<Record<string, unknown>>): Record<str
  * The one renderer (invariant 2): preview, test send and send all come through here. Subject, preheader and blocks come
  * from `row`; the template file of `row.key` only draws them, and a row whose key has no template file is drawn in
  * the plain shell. `variables` reach that file unchanged; only the string ones are interpolated, and a row with no
- * blocks renders only when its file draws its own content.
+ * blocks renders only when its file draws its own content, which such a file says by exporting `textParts` (every
+ * other file's `Email` is the shell with its running-header label, so it is no longer told apart by identity).
  */
 export async function renderTemplate(
   row: RenderRow,
@@ -137,7 +138,7 @@ export async function renderTemplate(
   if (!parsed.success) throw new NonRetryableError("template_body_invalid");
   const file = definitions.find((candidate) => candidate.definition.key === row.key);
   const Email = file?.Email ?? Message;
-  if (parsed.data.length === 0 && Email === Message)
+  if (parsed.data.length === 0 && file?.textParts === undefined)
     throw new NonRetryableError("template_body_invalid");
   const text = textVariables(variables);
   const subject = oneLine(interpolate(row.subject, text));

@@ -1,8 +1,14 @@
 // `node scripts/email-art.mjs`: draws the artwork of the emails as SVG and writes it as PNG to public/email/
 // (operator, 2026-10-12: "go all out on the emails, custom SVGs"). Mail clients strip inline SVG (Gmail, Outlook),
-// so the SVG is rendered here, at twice its display size, and the emails show the PNG from matterofplace.com.
-// The marks come from the outlined lockups of ../brand (no font needed to render them). Run it after a brand change
-// and commit the PNGs; nothing renders at send time.
+// so the SVG is rendered here, at two or three times its display size, and the emails show the PNG from
+// matterofplace.com. The marks come from the outlined logos of ../brand (no font needed to render them). Run it after a
+// brand change and commit the PNGs; nothing renders at send time.
+//
+// Since the redesign of 2026-10-15 an email draws one picture of the brand: the emblem and the wordmark side by side in
+// its running header, as the brand's horizontal lockup sets them. Both carry the Ivory of the page as their ground
+// instead of transparency: a client that darkens the page (Gmail's dark mode) never darkens a picture, and an Obsidian
+// mark on a transparent ground would vanish into it. The masthead, ornament and emblem of the 2026-10-12 shell are still
+// written, unchanged, because mail already sent shows them from the same addresses.
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,25 +55,76 @@ function place(mark, centreX, top, height) {
 }
 
 /**
+ * Places the part of a mark that lies inside `content` (in the mark's own units) at `left`, `top`, `height`.
+ * @param {Mark} mark
+ * @param {{ x: number, y: number, height: number }} content
+ * @param {number} left
+ * @param {number} top
+ * @param {number} height
+ */
+function placeContent(mark, content, left, top, height) {
+  const scale = height / content.height;
+  const x = left - content.x * scale;
+  const y = top - content.y * scale;
+  return `<g transform="translate(${x.toFixed(3)} ${y.toFixed(3)}) scale(${scale.toFixed(5)})">${mark.inner}</g>`;
+}
+
+/**
  * @param {string} name
  * @param {number} width
  * @param {number} height
  * @param {string} body
+ * @param {number} [density] pixels per display pixel
  */
-async function write(name, width, height, body) {
+async function write(name, width, height, body, density = 2) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${String(width)}" height="${String(height)}" viewBox="0 0 ${String(width)} ${String(height)}">${body}</svg>`;
-  await sharp(Buffer.from(svg), { density: 144 })
-    .resize(width * 2, height * 2)
+  await sharp(Buffer.from(svg), { density: 72 * density })
+    .resize(width * density, height * density)
     .png({ compressionLevel: 9 })
     .toFile(join(out, `${name}.png`));
-  console.log(`email-art: ${name}.png ${String(width * 2)}x${String(height * 2)}`);
+  console.log(`email-art: ${name}.png ${String(width * density)}x${String(height * density)}`);
 }
 
+const emblemObsidian = brandSvg("emblem/emblem-obsidian.svg");
+const wordmarkObsidian = brandSvg("wordmark/wordmark-horizontal-obsidian.svg");
+
+// The running header, drawn at three times its size for phone screens. The emblem's two planes fill x 8 to 60 and
+// y 5 to 70 of its 76-unit box; the wordmark's letters fill its whole box. At the header's 10 px wordmark the emblem is
+// 28 px, 2.8 times the letters, the ratio of the brand's horizontal lockup. The wordmark sits 3 px inside a 16 px
+// strip, tall enough for its alt text when a client shows that instead. `layout.tsx` draws both at these sizes.
+const LOCKUP = {
+  emblem: { width: 23, height: 28 },
+  wordmark: { width: 150, height: 16, inset: 3, letters: 10 },
+};
+
+await write(
+  "lockup-emblem",
+  LOCKUP.emblem.width,
+  LOCKUP.emblem.height,
+  `<rect width="${String(LOCKUP.emblem.width)}" height="${String(LOCKUP.emblem.height)}" fill="${IVORY}"/>` +
+    placeContent(emblemObsidian, { x: 8, y: 5, height: 65 }, 0.3, 0, LOCKUP.emblem.height),
+  3,
+);
+
+await write(
+  "lockup-wordmark",
+  LOCKUP.wordmark.width,
+  LOCKUP.wordmark.height,
+  `<rect width="${String(LOCKUP.wordmark.width)}" height="${String(LOCKUP.wordmark.height)}" fill="${IVORY}"/>` +
+    placeContent(
+      wordmarkObsidian,
+      { x: 0, y: 0, height: wordmarkObsidian.height },
+      0.4,
+      LOCKUP.wordmark.inset,
+      LOCKUP.wordmark.letters,
+    ),
+  3,
+);
+
+// The 2026-10-12 shell, kept for mail already sent (see the head of this file).
 const stacked = brandSvg("lockup/lockup-stacked-bone.svg");
 const emblemBone = brandSvg("emblem/emblem-bone.svg");
 
-// 1. The masthead: a 600 x 240 Obsidian band, the stacked lockup in Bone, a Sandstone hairline near the foot with a
-//    short gap under the mark, the way the site's footer sets the emblem on a line across the page.
 await write(
   "masthead",
   600,
@@ -78,7 +135,6 @@ await write(
     `<rect x="296" y="202" width="8" height="8" transform="rotate(45 300 206)" fill="none" stroke="${SANDSTONE}" stroke-width="0.8" opacity="0.8"/>`,
 );
 
-// 2. The ornament between sections: two hairlines and a diamond, on Ivory.
 await write(
   "ornament",
   600,
@@ -88,7 +144,6 @@ await write(
     `<rect x="295.5" y="11.5" width="9" height="9" transform="rotate(45 300 16)" fill="none" stroke="${SANDSTONE}" stroke-width="1"/>`,
 );
 
-// 3. The footer's emblem, Bone on Obsidian.
 await write(
   "emblem",
   48,

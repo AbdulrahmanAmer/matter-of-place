@@ -54,6 +54,7 @@ export function Email({ title, preheader, blocks, site, variables }: EmailProps)
       title={title}
       preheader={preheader}
       site={site}
+      label="Feature"
       afterFooter={parsed === undefined ? null : <Unsubscribe />}
     >
       {parsed === undefined ? null : <NewsletterBlock {...parsed.data} />}
