@@ -1450,7 +1450,7 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_id": string,"p_request_id": string }; Returns: undefined
                            },
 "claim_agent_run":
-{ Args: { "p_lease_seconds"?: number,"p_skip_live"?: boolean,"p_worker": string }; Returns: {
+{ Args: { "p_lease_seconds"?: number,"p_person_only"?: boolean,"p_skip_live"?: boolean,"p_worker": string }; Returns: {
               "agent_id": string,
 "cause": string,
 "cost_microusd": number,
