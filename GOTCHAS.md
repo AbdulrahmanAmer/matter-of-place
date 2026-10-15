@@ -8086,3 +8086,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before pushing a change to what an SQL function emits or returns, `git grep -n "<event type or function name>" app/tests/db app/tests/api` and update every exact assertion of it in the same commit; also `git grep -ln "function public.<name>" app/tests/mutations` and regenerate each `sql` entry that carries a whole copy of the function from today's file (only its own mutation removed), or the copy fails on the new key before it reaches its own reason (PR 410's second db run: `B9:b9g1-db-approve-audit` BAD, 216 of 217 ok). The db job is the only run that would catch a miss.
 - proof: `cd app && git grep -n "asset.rejected\|asset.approved" tests/db` lists the two files and their four payload assertions; the db job log of run 38686728451 ends `Tests  4 failed | 919 passed`.
 - added: 2026-10-15
+
+## P-3472 · `import.meta.dir` is Bun's: a script module that uses it at the top level fails to load under vitest (Node)
+- symptom: 2026-10-15, W7 E2a: `scripts/workforce/reel.ts` set `const REPO = resolve(import.meta.dir, "../../..")`; the runner (bun) is fine, but `bunx vitest run --project unit tests/unit/workforce-reel.test.ts` failed at collection with `TypeError: The "paths[0]" argument must be of type string. Received undefined`, and every test file that imports the module (`answer.ts` too) with it.
+- rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
+- proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
+- added: 2026-10-15

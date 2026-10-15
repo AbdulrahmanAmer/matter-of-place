@@ -260,10 +260,6 @@ function probeFile(mp4) {
 }
 
 /**
- * @param {string} raw the job JSON
- * @param {string | undefined} out a folder that receives the files in place of the upload
- */
-/**
  * The motion gate and the probe of a finished reel file; throws the first failed check.
  * @param {string} mp4
  * @param {(() => void) | undefined} [between] runs after the gate and before the probe
@@ -326,6 +322,10 @@ export async function renderRequested({ sceneDir, shotsDir, spec }) {
   return { ...filmed, poster: await extractPoster(filmed.mp4) };
 }
 
+/**
+ * @param {string} raw the job JSON
+ * @param {string | undefined} out a folder that receives the files in place of the upload
+ */
 async function render(raw, out) {
   const input = reelInput(readJob(raw));
   const spec = { ...input.spec, shots: await stage(input.spec.shots, input.fixture) };

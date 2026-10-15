@@ -16,7 +16,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { extname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { marketSlugSchema } from "../../src/domain/market.ts";
 import type { Json } from "../../src/db/index.ts";
@@ -24,7 +25,7 @@ import type { Db } from "../../src/server/lib/db.ts";
 import { projectName } from "./media.ts";
 
 export const STUDIO = join(homedir(), ".mop-workforce", "studio");
-const REPO = resolve(import.meta.dir, "../../..");
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 export const reelKinds = ["market", "story", "campaign", "brand"] as const;
 type ReelKind = (typeof reelKinds)[number];

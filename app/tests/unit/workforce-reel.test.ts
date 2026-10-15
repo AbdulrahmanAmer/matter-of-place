@@ -111,9 +111,10 @@ describe("the reel pass", () => {
     expect(await reelPass(deps({}, log, db), root)).toBe("reel The door: done (asset-1)");
     const { id } = brief(folder);
     expect(log.slice(0, 3)).toEqual(["design", "render", "review"]);
-    expect(log.filter((line) => line.startsWith("upload")).map((line) => line.slice(7, 7 + 46))).toEqual([
-      `requested/${String(id)}/reel.`,
-      `requested/${String(id)}/poster`,
+    const uploads = log.filter((line) => line.startsWith("upload ")).map((line) => line.slice(7));
+    expect(uploads).toEqual([
+      expect.stringMatching(new RegExp(`^requested/${String(id)}/reel\\.[0-9a-f]{8}\\.mp4$`)),
+      expect.stringMatching(new RegExp(`^requested/${String(id)}/poster\\.[0-9a-f]{8}\\.jpg$`)),
     ]);
     expect(db.calls).toMatchObject([
       {
