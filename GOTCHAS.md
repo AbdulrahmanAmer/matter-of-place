@@ -8165,3 +8165,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: gate on "no colleague run" only what must not overlap a run (moving the checkout). Work that runs as a process of its own takes its own lock (the reel's `working` brief, `reelWorking()`), and the checkout does not move while that lock is held.
 - proof: `bun app/scripts/matter/read.ts /api/admin/workforce/office` → runs[0] `{"agent_slug":"matter","cause":"schedule","state":"running"}` while the brief read `"state": "queued"`; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "says a reel is being made"` covers the new lock.
 - added: 2026-10-15
+
+## G-1451 · `process.kill(-pid)` throws ESRCH when the child was not spawned detached, and a stop that throws never settles
+- paths: app/scripts/workforce/cli.ts
+- content: process\.kill\(\s*-
+- severity: warn
+- symptom: 2026-10-15, PR 423 CI (Linux): "stops a colleague who prints nothing" and "still honours a hard cap" timed out at 20000 ms with `Error: kill ESRCH`. `killTree` called `process.kill(-pid, "SIGKILL")`; the child was spawned without `detached: true`, so it has no process group; the throw came inside the timer before `fail()`, so the promise never settled. The laptop uses `taskkill`, so weeks of runs here never reached that line.
+- rule: a negative pid needs a child spawned with `detached: true`; otherwise try `kill(-pid)`, fall back to `kill(pid)`, catch "already gone"; settle the promise before killing. A path that only runs on one OS is proven by that OS (CI's Linux), never by the laptop. The `content:` line makes the guard push this entry whenever a negative-pid kill is written in any file; the global hook `~/.claude/hooks/content-pitfalls.mjs` does the same in every project.
+- proof: run 38712728657 (PR 423, check job) → `Error: kill ESRCH`, `Test timed out in 20000ms`; `node .claude/hooks/gotcha-guard.test.mjs` → the two content cases ok.
+- added: 2026-10-15
+
+## P-3500 · A task-gate check that points at a build worktree breaks when the worktree is removed
+- symptom: 2026-10-15, after pruning merged worktrees the Stop hook failed step 6 (`exit 1: | Node.js v24.13.0`): its check ran `E:/mop-build/autonomy/.claude/hooks/task-gate.mjs`, a worktree just removed.
+- rule: a check runs code from main's copy (the runner `E:/mop-build/live`) or the root, never from a lane worktree; lanes are deleted after merge.
+- proof: `node .claude/hooks/task-gate.mjs status .claude/tasks/active.json` → `PASS   6` after repointing to `E:/mop-build/live`.
+- added: 2026-10-15
+
+## P-3501 · `git worktree remove` fails with "Filename too long" and leaves the folder behind
+- symptom: 2026-10-15, removing merged worktrees printed `error: failed to delete 'E:/mop-build/continuous': Filename too long` for four of eight; git dropped them from its list but node_modules stayed on disk (E: had 30 MB free).
+- rule: after `git worktree remove`, delete what is left with the long-path form `cmd /c "rd /s /q \\?\E:\mop-build\<name>"` (scratchpad rm-leftovers.ps1); check free space with `(Get-PSDrive E).Free`.
+- proof: rm-leftovers.ps1 → `deleted continuous` ... `E: free GB: 46.1`.
+- added: 2026-10-15

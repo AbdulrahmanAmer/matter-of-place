@@ -47,7 +47,9 @@ const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
 const BREAKER_FILE = join(HOME, "breaker.json");
 const WORKER = `${hostname()}:${String(process.pid)}`;
-const CLI_TIMEOUT_MS = 6 * 60_000;
+// No clock on a colleague's work (operator, 2026-10-15: a 6-minute limit threw away the chief of staff's real work at
+// 00:52). A run is stopped only when it prints nothing for this long, which with stream-json means it is stuck.
+const CLI_IDLE_MS = 15 * 60_000;
 const RUNS_PER_HOUR = 40;
 const HISTORY = 24;
 const models: Record<string, string> = {
@@ -81,7 +83,8 @@ function askClaude(
       "--model",
       model,
       "--output-format",
-      "json",
+      "stream-json",
+      "--verbose",
       "--strict-mcp-config",
       "--mcp-config",
       emptyMcpConfig(),
@@ -96,7 +99,7 @@ function askClaude(
     cwd,
     env: childEnv(),
     prompt,
-    timeoutMs: CLI_TIMEOUT_MS,
+    idleMs: CLI_IDLE_MS,
     who: "the colleague",
   });
 }
