@@ -8,6 +8,7 @@ import { buildRobots, isIndexableHost } from "../../src/server/seo/robots";
 const WORKERS = "holy-meadow-4327.workers.dev";
 const INDEXABLE_BODY = [
   "User-agent: *",
+  "Content-Signal: search=yes, ai-input=yes, ai-train=no",
   "Allow: /",
   "Disallow: /admin",
   "Disallow: /api",

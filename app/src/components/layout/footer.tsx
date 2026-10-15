@@ -78,7 +78,7 @@ export function Footer() {
 
         <div className="footer-grid">
           <nav className="footer-col footer-col-start" aria-label={groups.place}>
-            <h3>{groups.place}</h3>
+            <h2>{groups.place}</h2>
             <Link to="/properties">{t.nav.properties}</Link>
             <Link to="/$market" params={{ market: "california" }}>
               {t.nav.california}
@@ -91,20 +91,20 @@ export function Footer() {
             </Link>
           </nav>
           <nav className="footer-col footer-col-start" aria-label={groups.editorial}>
-            <h3>{groups.editorial}</h3>
+            <h2>{groups.editorial}</h2>
             <Link to="/stories">{t.nav.stories}</Link>
             <Link to="/editorial-standard">{t.nav.standard}</Link>
             <Link to="/about">{t.nav.about}</Link>
           </nav>
           <span className="footer-gap" aria-hidden="true" />
           <nav className="footer-col footer-col-end" aria-label={groups.professionals}>
-            <h3>{groups.professionals}</h3>
+            <h2>{groups.professionals}</h2>
             <Link to="/exposure">{t.nav.exposure}</Link>
             <Link to="/submit">{t.nav.submit}</Link>
             <Link to="/faq">{t.nav.faq}</Link>
           </nav>
           <nav className="footer-col footer-col-end" aria-label={groups.company}>
-            <h3>{groups.company}</h3>
+            <h2>{groups.company}</h2>
             <Link to="/contact">{t.nav.contact}</Link>
             <Link to="/privacy">{t.nav.privacy}</Link>
             <Link to="/terms">{t.nav.terms}</Link>
