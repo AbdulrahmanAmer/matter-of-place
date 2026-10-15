@@ -170,6 +170,8 @@ async function propertyCandidates(db: Db, since: string | null): Promise<Candida
   // Only the highest approved revision of a property stands for it.
   const latest = new Map<string, (typeof assets)[number]>();
   for (const asset of assets) {
+    // A newsletter block is always a property's; a brand visual (W8 item 1) never has this kind.
+    if (asset.property_id === null) continue;
     const held = latest.get(asset.property_id);
     if (held === undefined || asset.revision > held.revision) latest.set(asset.property_id, asset);
   }

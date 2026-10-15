@@ -2672,8 +2672,8 @@
     "id": "b9g1-captions-waiting",
     "test": "tests/unit/assets/service.test.ts",
     "file": "src/server/assets/service.ts",
-    "find": "captions_waiting: row.caption === null && waiting.has(row.property_id),",
-    "replace": "captions_waiting: false,",
+    "find": "      row.caption === null && row.property_id !== null && waiting.has(row.property_id),",
+    "replace": "      false,",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"marks a null caption\"",
     "expect": "× .*marks a null caption whose property has a queued write_captions job[\\s\\S]*-     true,\\n\\+     false,"
   },

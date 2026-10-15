@@ -11,7 +11,7 @@ import { targetsFor } from "./index.ts";
 // every enabled target channel is in `auto`; B9's approve_asset stays the only writer of the approval and the only
 // emitter of asset.approved (G20), and this module emits nothing: it fans the returned event out after the commit.
 
-type Reason = "not_pending" | "incomplete" | "lint_failed" | "no_target" | "tier_manual";
+type Reason = "not_pending" | "incomplete" | "lint_failed" | "no_target" | "tier_manual" | "brand";
 
 export type AutoApproval =
   { status: "approved"; eventId: string } | { status: "not_eligible"; reason: Reason };
@@ -49,6 +49,8 @@ export async function maybeAutoApprove(db: Db, assetId: string, now: Date): Prom
     return { status: "not_eligible", reason: "lint_failed" };
   }
 
+  // A brand visual (W8 item 1) is approved by a person or Matter, never by the tier rule of a property.
+  if (asset.property_id === null) return { status: "not_eligible", reason: "brand" };
   const [properties, settings, channels] = await Promise.all([
     db.from("properties").select("campaign_tier").eq("id", asset.property_id).limit(1),
     db.from("settings").select("value").eq("key", "linkedin"),

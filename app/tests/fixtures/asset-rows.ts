@@ -127,6 +127,8 @@ export function assetRow(overrides: Partial<Tables<"assets">> = {}): Tables<"ass
     kind: "cover",
     meta: {},
     property_id: PROPERTY_ID,
+    subject: "property",
+    brand_key: null,
     rejection_note: null,
     render_error: null,
     revision: 1,

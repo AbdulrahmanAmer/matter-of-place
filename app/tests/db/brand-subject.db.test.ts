@@ -41,7 +41,12 @@ describe("a brand visual", () => {
           db,
           "insert into public.assets (kind) values ('cover')",
         ),
-      }).toEqual({ brand: null, brandWithoutKey: CHECK, brandMalformedKey: CHECK, listingWithoutProperty: CHECK });
+      }).toEqual({
+        brand: null,
+        brandWithoutKey: CHECK,
+        brandMalformedKey: CHECK,
+        listingWithoutProperty: CHECK,
+      });
     });
   });
 

@@ -60,7 +60,11 @@ const notFound = () => new AppError("not_found", undefined, "This asset does not
  */
 async function waitingProperties(db: Db, rows: readonly AssetRow[]): Promise<Set<string>> {
   const ids = [
-    ...new Set(rows.filter((row) => row.caption === null).map((row) => row.property_id)),
+    ...new Set(
+      rows.flatMap((row) =>
+        row.caption === null && row.property_id !== null ? [row.property_id] : [],
+      ),
+    ),
   ];
   if (ids.length === 0) return new Set();
   const { data, error } = await db
@@ -82,7 +86,8 @@ function toAdmin(row: AssetRow, waiting: ReadonlySet<string>): AdminAsset {
   return adminAssetSchema.parse({
     ...row,
     files: filesSchema.parse(row.files).map((file) => ({ ...file, url: mediaUrl(file.media_key) })),
-    captions_waiting: row.caption === null && waiting.has(row.property_id),
+    captions_waiting:
+      row.caption === null && row.property_id !== null && waiting.has(row.property_id),
   });
 }
 
@@ -104,7 +109,8 @@ function noCount(): never {
 
 /** The rows `filters` matches, counted; `head` drops the rows and keeps the count. */
 function matching(db: Db, filters: AssetListFilters, head: boolean) {
-  let query = db.from("assets").select(COLUMNS, { count: "exact", head });
+  // Brand visuals (W8 item 1) join this screen in their own slice; until then it lists a property's visuals only.
+  let query = db.from("assets").select(COLUMNS, { count: "exact", head }).eq("subject", "property");
   if (filters.status !== undefined) query = query.eq("status", filters.status);
   if (filters.kind !== undefined) query = query.eq("kind", filters.kind);
   if (filters.property_id !== undefined) query = query.eq("property_id", filters.property_id);
@@ -146,7 +152,11 @@ export async function getAsset(
   input: { id: string },
 ): Promise<AdminAsset> {
   authorize(actor, "assets.get");
-  const { data, error } = await db.from("assets").select(COLUMNS).eq("id", input.id);
+  const { data, error } = await db
+    .from("assets")
+    .select(COLUMNS)
+    .eq("id", input.id)
+    .eq("subject", "property");
   if (error !== null) throw fromRpcError(error);
   const row = data[0];
   if (row === undefined) throw notFound();
@@ -220,6 +230,8 @@ async function captionIssues(
   if (error !== null) throw fromRpcError(error);
   const row = data[0];
   if (row === undefined) throw notFound();
+  // A brand visual's caption is linted against the brand catalog in its own slice (W8 item 1).
+  if (row.property_id === null) throw notFound();
   const property = await loadProperty(db, row.property_id);
   if (property === null) throw notFound();
   return CHANNELS.flatMap((channel) => {

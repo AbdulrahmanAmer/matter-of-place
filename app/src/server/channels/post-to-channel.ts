@@ -70,10 +70,9 @@ interface Run {
 }
 
 interface Subject {
-  asset: Pick<
-    Tables<"assets">,
-    "id" | "kind" | "files" | "caption" | "meta" | "approved_by" | "property_id"
-  >;
+  asset: Pick<Tables<"assets">, "id" | "kind" | "files" | "caption" | "meta" | "approved_by"> & {
+    property_id: string;
+  };
   property: Pick<Tables<"properties">, "slug" | "title" | "editorial_state" | "campaign_tier">;
 }
 
@@ -141,15 +140,18 @@ async function loadSubject(ctx: StepContext, assetId: string): Promise<Subject> 
   if (assets.error !== null) throw unavailable("assets");
   const asset = assets.data[0];
   if (asset === undefined) throw new NonRetryableError("asset_not_found");
+  // Brand visuals post through their own subject in W8 item 1's posting slice; until then they are refused here.
+  const propertyId = asset.property_id;
+  if (propertyId === null) throw new NonRetryableError("brand_asset_not_postable_yet");
   const properties = await ctx.db
     .from("properties")
     .select("slug, title, editorial_state, campaign_tier")
-    .eq("id", asset.property_id)
+    .eq("id", propertyId)
     .limit(1);
   if (properties.error !== null) throw unavailable("properties");
   const property = properties.data[0];
   if (property === undefined) throw new NonRetryableError("property_not_found");
-  return { asset, property };
+  return { asset: { ...asset, property_id: propertyId }, property };
 }
 
 async function loadChannelRows(ctx: StepContext): Promise<Map<string, ChannelRow>> {

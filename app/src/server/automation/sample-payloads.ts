@@ -80,6 +80,9 @@ async function assetEvent(
     db.from("assets").select("id, property_id, kind, rejection_note").eq("id", id),
     "asset",
   );
+  if (asset.property_id === null) {
+    throw new AppError("validation", undefined, "A brand visual has no property to sample from.");
+  }
   const property = await firstRow(
     db.from("properties").select("campaign_tier, market_slug").eq("id", asset.property_id),
     "property",
