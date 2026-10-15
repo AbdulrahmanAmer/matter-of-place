@@ -29,8 +29,8 @@ export const C = {
   sand: "#C9C0B2",
   embL: "#D8D4CC", // the emblem's left plane on Obsidian: Bone at 90 percent (brand/README.md)
   embS: "#696863", // the right plane: Bone at 40 percent
-  light: "#FFFDF8",
-  wash: "#F7F4EE",
+  light: "#F5F2EB", // Warm Ivory: the door light and the wash stay on the palette
+  wash: "#F5F2EB",
 };
 
 // ---------- time ----------
@@ -82,6 +82,7 @@ const Z_LIGHT_PLANE = 0.65,
   Z_SHADE_PLANE = 0.5,
   Z_LEAF = 0.1,
   Z_BACK = -0.52;
+const SEAM = 0.03; // the leaves overlap where they meet, so the closed door is one dark field
 const JAMB = 2.8,
   EAVE = 9.8,
   APEX = 10.8;
@@ -141,12 +142,6 @@ export function closeState(v, H = 1920) {
   const close = E.soft(clamp((v - 0.3) / 1.15));
   // From the doorway full of light, already framed on the mark's centre, straight back to the lockup distance.
   const p = E.sine(clamp(v / 2.4));
-  // Then the held lockup travels slowly sideways as one piece, so it is never a still screen (the gate's 1.0 s
-  // rule; a scale drift slow enough to read through measured too little): it eases up to 32 px a second.
-  const r = v - 1.6,
-    ramp = 0.6;
-  const dx =
-    r <= 0 ? 0 : -32 * (r < ramp ? (r * r) / (2 * ramp) : r - ramp / 2);
   const zf = lockDistance(H);
   const z = Z_CLOSE * Math.pow(zf / Z_CLOSE, p);
   return {
@@ -160,10 +155,8 @@ export function closeState(v, H = 1920) {
       p: [0, 6.5, z],
       q: [0, 6.5, 0],
       fov: FOV_LOCK,
-      sx: dx,
       sy: LOCKUP.markCY - H / 2,
     },
-    dx,
     // the lockup recedes with the camera: its scale is the mark's, 1 when the pull ends
     // measured to the mark's own planes (0.5 to 0.65 m in front of the origin), not to the origin
     k: (zf - Z_MARK) / (z - Z_MARK),
@@ -282,7 +275,7 @@ function planes(logo) {
 // Dust in the beam: fixed motes that drift, lit only where their ray back to the light passes the open doorway.
 const DUST = (() => {
   const r = lcg(91),
-    N = 520,
+    N = 220,
     a = new Float32Array(N * 4);
   for (let i = 0; i < N; i++) {
     a[i * 4] = (r() - 0.5) * 12;
@@ -292,6 +285,60 @@ const DUST = (() => {
   }
   return { a, N };
 })();
+
+/** Which grain field a frame shows: a different one each frame (30 fps), the same for the same frame every render. */
+export function grainFrame(t) {
+  return Math.round(t * 30) % GRAIN_FIELDS;
+}
+const GRAIN_FIELDS = 6;
+
+/** Six fine grain fields at half size, seeded, drawn doubled: light and dark specks a few levels either way. */
+function grainFields(W, H) {
+  const w = Math.ceil(W / 2),
+    h = Math.ceil(H / 2);
+  return Array.from({ length: GRAIN_FIELDS }, (_, f) => {
+    const cv = document.createElement("canvas");
+    cv.width = w;
+    cv.height = h;
+    const g = cv.getContext("2d"),
+      im = g.createImageData(w, h),
+      r = lcg(1009 + f * 7919);
+    for (let i = 0; i < w * h; i++) {
+      const n = (r() + r() + r()) / 1.5 - 1; // about normal, -1..1
+      const o = i * 4;
+      im.data[o] = im.data[o + 1] = im.data[o + 2] = n > 0 ? 255 : 0;
+      im.data[o + 3] = Math.round(Math.abs(n) * 20);
+    }
+    g.putImageData(im, 0, 0);
+    return cv;
+  });
+}
+
+/** Keeps the hull of a set of screen points (monotone chain), so a beam is one edged shape. */
+function convexHull(points) {
+  const p = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) =>
+    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower = [],
+    upper = [];
+  for (const q of p) {
+    while (
+      lower.length >= 2 &&
+      cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0
+    )
+      lower.pop();
+    lower.push(q);
+  }
+  for (const q of p.reverse()) {
+    while (
+      upper.length >= 2 &&
+      cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0
+    )
+      upper.pop();
+    upper.push(q);
+  }
+  return [...lower.slice(0, -1), ...upper.slice(0, -1)];
+}
 
 /** Draws the room for one state on a 2D context. `t` drives the dust; `mirror` draws the polished floor's reflection. */
 function drawRoom(ctx, st, t, P, W, H) {
@@ -340,18 +387,18 @@ function drawRoom(ctx, st, t, P, W, H) {
       quad(
         [
           [-JAMB, 0, Z_LEAF],
-          [-JAMB + lw, 0, Z_LEAF],
-          [-JAMB + lw, 11.3, Z_LEAF],
+          [-JAMB + lw + SEAM, 0, Z_LEAF],
+          [-JAMB + lw + SEAM, 11.3, Z_LEAF],
           [-JAMB, 11.3, Z_LEAF],
         ],
         C.obs,
       );
       quad(
         [
-          [JAMB - lw, 0, Z_LEAF],
+          [JAMB - lw - SEAM, 0, Z_LEAF],
           [JAMB, 0, Z_LEAF],
           [JAMB, 11.3, Z_LEAF],
-          [JAMB - lw, 11.3, Z_LEAF],
+          [JAMB - lw - SEAM, 11.3, Z_LEAF],
         ],
         C.obs,
       );
@@ -428,28 +475,17 @@ function drawRoom(ctx, st, t, P, W, H) {
   // light, added: the pool the doorway throws on the floor, the beam in the air, the dust inside it
   ctx.globalCompositeOperation = "lighter";
   const [Sx0, Sy, Sz0] = LIGHT;
-  const SAMPLES = [
-    [0, 0],
-    [-0.6, 0.3],
-    [0.6, -0.3],
-    [-0.3, -0.6],
-    [0.3, 0.6],
-    [-0.9, -0.1],
-    [0.9, 0.1],
-    [0.1, -0.9],
-  ];
-  for (const [ox, oz] of SAMPLES) {
-    const Sx = Sx0 + ox * 3.2,
-      Sz = Sz0 + oz * 3.6;
-    const pr = (x, y) => {
-      const k = Sy / (Sy - y);
-      return [Sx + (x - Sx) * k, 0.02, Sz + (0.5 - Sz) * k];
-    };
-    fill(
-      [[-w, 0.02, 0.5], [w, 0.02, 0.5], pr(w, ys), pr(0, APEX), pr(-w, ys)],
-      rgba(C.bone, (0.16 * I) / SAMPLES.length),
-    );
-  }
+  // the pool the doorway throws on the floor: one shape, one soft edge
+  const pr = (x, y) => {
+    const k = Sy / (Sy - y);
+    return [Sx0 + (x - Sx0) * k, 0.02, Sz0 + (0.5 - Sz0) * k];
+  };
+  ctx.filter = "blur(9px)";
+  fill(
+    [[-w, 0.02, 0.5], [w, 0.02, 0.5], pr(w, ys), pr(0, APEX), pr(-w, ys)],
+    rgba(C.bone, 0.13 * I),
+  );
+  ctx.filter = "none";
   const door = [
     [-w, 0],
     [w, 0],
@@ -457,20 +493,29 @@ function drawRoom(ctx, st, t, P, W, H) {
     [0, APEX],
     [-w, ys],
   ];
-  const SLICES = 40;
-  for (let i = SLICES - 1; i >= 0; i--) {
-    const z = 0.78 + ((17.4 - 0.78) * (i + 0.5)) / SLICES,
-      k = (z - Sz0) / (0.5 - Sz0);
-    const poly = clipAbove(
-      door.map(([x, y]) => [Sx0 + (x - Sx0) * k, Sy + (y - Sy) * k]),
-      0.03,
-    );
-    if (poly.length < 3) continue;
-    const c = 0.007 * I * (0.35 + 0.65 * D) * Math.exp(-(z - 0.78) / 9);
-    fill(
-      poly.map(([x, y]) => [x, y, z]),
-      rgba(C.bone, c),
-    );
+  // the beam in the air: the doorway's outline carried toward the camera, drawn as two edged volumes (near and far)
+  for (const [far, alpha] of [
+    [12, 0.045],
+    [5, 0.04],
+  ]) {
+    const section = (z) => {
+      const k = (z - Sz0) / (0.5 - Sz0);
+      return clipAbove(
+        door.map(([x, y]) => [Sx0 + (x - Sx0) * k, Sy + (y - Sy) * k]),
+        0.03,
+      ).map(([x, y]) => [x, y, z]);
+    };
+    const pts = [...section(0.78), ...section(far)]
+      .map(L.toCam)
+      .filter((c) => c[2] > NEAR)
+      .map(L.toScreen);
+    if (pts.length < 3) continue;
+    const hull = convexHull(pts);
+    ctx.fillStyle = rgba(C.bone, alpha * I * (0.35 + 0.65 * D));
+    ctx.beginPath();
+    hull.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.fill();
   }
   for (let i = 0; i < DUST.N; i++) {
     const bx = DUST.a[i * 4],
@@ -485,15 +530,17 @@ function drawRoom(ctx, st, t, P, W, H) {
       yd = Sy + (y - Sy) * u;
     if (!(Math.abs(xd) < w && yd > 0 && yd < APEX - Math.abs(xd) / JAMB))
       continue;
+    if (z > 9) continue;
     const b =
-      0.9 *
+      0.4 *
       I *
       clamp((w - Math.abs(xd)) / 0.6 + 0.25) *
       (0.45 + 0.55 * Math.sin(ph * 9.1 + t * 0.9) ** 2);
     const c = L.toCam([x, y, z]);
     if (c[2] < 0.3) continue;
     const [sx, sy] = L.toScreen(c),
-      r = clamp((0.022 * L.fpx) / c[2], 0.7, 4);
+      r = clamp((0.012 * L.fpx) / c[2], 0.5, 1.5);
+    if (sx < 80 || sx > W - 80) continue;
     ctx.fillStyle = rgba(C.bone, clamp(b));
     ctx.beginPath();
     ctx.arc(sx, sy, r, 0, Math.PI * 2);
@@ -504,7 +551,7 @@ function drawRoom(ctx, st, t, P, W, H) {
 
 function drawLockup(ctx, st, logo, letters, W, sans) {
   const about = (scale) => {
-    ctx.translate(W / 2 + st.dx, LOCKUP.markCY);
+    ctx.translate(W / 2, LOCKUP.markCY);
     ctx.scale(scale, scale);
     ctx.translate(-W / 2, -LOCKUP.markCY);
   };
@@ -602,6 +649,15 @@ export function doorMove(
       await document.fonts.load(`400 ${LOCKUP.urlSize}px ${sans}`);
     })(),
   );
+  let fields = [];
+  // the film's grain over the move's own frames, so even the held lockup is never a still screen
+  const grain = (t) => {
+    if (fields.length === 0) fields = grainFields(W, H);
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(fields[grainFrame(t)], 0, 0, W, H);
+    ctx.restore();
+  };
   const wash = (a) => {
     if (a <= 0) return;
     ctx.fillStyle = rgba(C.wash, clamp(a));
@@ -616,13 +672,17 @@ export function doorMove(
       drawRoom(ctx, st, t, P, W, H);
       drawLockup(ctx, st, logo, letters, W, sans);
       wash(st.wash);
+      grain(t);
       return;
     }
     let light = 0;
     if (open !== null && t >= open && t < open + OPEN_S + WASH_OUT) {
       const u = t - open,
         st = openState(u);
-      if (u < OPEN_S) drawRoom(ctx, st, t, P, W, H);
+      if (u < OPEN_S) {
+        drawRoom(ctx, st, t, P, W, H);
+        grain(t);
+      }
       light = st.wash;
     }
     if (close !== null && t >= close - WASH_IN)

@@ -8,6 +8,7 @@ import {
   OPEN_S,
   clipNear,
   closeState,
+  grainFrame,
   doorCues,
   lens,
   mix,
@@ -53,7 +54,7 @@ describe("W7 E3: the emblem as a door", () => {
         foot = L.toScreen(L.toCam([0, 0, 0.6]));
       expect(Math.abs(top[1] - (LOCKUP.markCY - (st.k * LOCKUP.markH) / 2))).toBeLessThan(2);
       expect(Math.abs(foot[1] - (LOCKUP.markCY + (st.k * LOCKUP.markH) / 2))).toBeLessThan(2);
-      expect(top[0]).toBeCloseTo(540 + st.dx, 3);
+      expect(top[0]).toBeCloseTo(540, 3);
     }
     // from the moment the name starts, the mark leaves it room and the address stays above the safe line
     const first = closeState(1.5),
@@ -66,10 +67,10 @@ describe("W7 E3: the emblem as a door", () => {
     expect(LOCKUP.urlSize).toBeGreaterThanOrEqual(32);
   });
 
-  it("never holds a still lockup: it travels sideways at a steady pace once settled", () => {
-    const pace = (closeState(3.0).dx - closeState(2.5).dx) / 0.5;
-    expect(pace).toBeCloseTo(-32, 5);
-    expect(closeState(1.5).dx).toBe(0);
+  it("never holds a still frame: the film's grain changes every frame, the same way every render", () => {
+    const frames = Array.from({ length: 12 }, (_, i) => grainFrame(2.5 + i / 30));
+    for (let i = 1; i < frames.length; i++) expect(frames[i]).not.toBe(frames[i - 1]);
+    expect(grainFrame(2.5)).toBe(grainFrame(2.5));
   });
 
   it("clips at the lens, so a floor that runs behind the camera never folds over the picture", () => {

@@ -36,13 +36,13 @@
     "expect": "× .*opens in five beats"
   },
   {
-    "id": "w7-e3-lockup-travels",
+    "id": "w7-e3-grain-every-frame",
     "test": "tests/unit/reel/door-move.test.ts",
     "file": "../launch/engine/moves/door.mjs",
-    "find": "    r <= 0 ? 0 : -32 * (r < ramp ? (r * r) / (2 * ramp) : r - ramp / 2);",
-    "replace": "    r <= 0 || ramp === 0 ? 0 : 0;",
+    "find": "  return Math.round(t * 30) % GRAIN_FIELDS;",
+    "replace": "  return Math.round(t * 0) % GRAIN_FIELDS;",
     "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
-    "expect": "× .*never holds a still lockup"
+    "expect": "× .*never holds a still frame"
   },
   {
     "id": "w7-e3-clip-near",
