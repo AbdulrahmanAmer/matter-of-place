@@ -243,6 +243,15 @@
     "expect": "× .*offers the fix of a typo domain and takes it in one click"
   },
   {
+    "id": "w9-1-reserved-names",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "  if (RESERVED.test(split.domain))\n",
+    "replace": "  if (RESERVED.test(split.domain) && false)\n",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*is never looked up and reads unknown, so the CI fixtures' addresses pass the form"
+  },
+  {
     "id": "w9-1-suggestion-silent",
     "test": "tests/unit/email-suggestion.test.tsx",
     "file": "src/components/forms/email-suggestion.tsx",

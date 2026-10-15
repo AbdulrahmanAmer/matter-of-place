@@ -519,14 +519,14 @@ describe("a form's address (W9 item 1)", () => {
     const lookups = vi.fn(() => Promise.reject(new TypeError("network")));
     vi.stubGlobal("fetch", lookups);
     const form = await handlePublic(
-      post("/api/public/echo", { email: "ann@example.com", n: 1 }),
+      post("/api/public/echo", { email: "ann@pacificbrokers.com", n: 1 }),
       "req-12345678",
       catalogDb(),
     );
     expect(form.status).toBe(201);
     expect(lookups).toHaveBeenCalledTimes(1);
     const plain = await handlePublic(
-      post("/api/public/echo-plain", { email: "ann@example.com", n: 1 }),
+      post("/api/public/echo-plain", { email: "ann@pacificbrokers.com", n: 1 }),
       "req-12345679",
       catalogDb(),
     );

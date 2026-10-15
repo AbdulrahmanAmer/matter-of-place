@@ -23,11 +23,14 @@ function doh(answers: Answers) {
 describe("the free check over DNS-over-HTTPS", () => {
   it("is ok for a domain with a mail host, and asks Cloudflare's resolver for its MX only", async () => {
     const stub = doh({
-      "example.com|MX": { Status: 0, Answer: [{ type: 15, data: "10 mx.example.com." }] },
+      "pacificbrokers.com|MX": {
+        Status: 0,
+        Answer: [{ type: 15, data: "10 mx.pacificbrokers.com." }],
+      },
     });
-    const check = await checkAddressFree("dana@example.com", stub.fetchImpl);
+    const check = await checkAddressFree("dana@pacificbrokers.com", stub.fetchImpl);
     expect(check.verdict).toBe("ok");
-    expect(stub.asked).toEqual(["example.com|MX"]);
+    expect(stub.asked).toEqual(["pacificbrokers.com|MX"]);
   });
 
   it("names a domain that does not exist (NXDOMAIN) as receiving no email, with the typo's fix", async () => {
@@ -38,33 +41,39 @@ describe("the free check over DNS-over-HTTPS", () => {
   });
 
   it("looks for an address record when the domain lists no mail host", async () => {
-    const empty = { Status: 0, Answer: [{ type: 5, data: "alias.example.com." }] };
+    const empty = { Status: 0, Answer: [{ type: 5, data: "alias.pacificbrokers.com." }] };
     const withA = doh({
-      "example.com|MX": empty,
-      "example.com|A": { Status: 0, Answer: [{ type: 1, data: "192.0.2.1" }] },
+      "pacificbrokers.com|MX": empty,
+      "pacificbrokers.com|A": { Status: 0, Answer: [{ type: 1, data: "192.0.2.1" }] },
     });
-    expect((await checkAddressFree("a@example.com", withA.fetchImpl)).verdict).toBe("ok");
+    expect((await checkAddressFree("a@pacificbrokers.com", withA.fetchImpl)).verdict).toBe("ok");
     const bare = doh({
-      "example.com|MX": empty,
-      "example.com|A": { Status: 0 },
-      "example.com|AAAA": { Status: 0 },
+      "pacificbrokers.com|MX": empty,
+      "pacificbrokers.com|A": { Status: 0 },
+      "pacificbrokers.com|AAAA": { Status: 0 },
     });
-    expect((await checkAddressFree("a@example.com", bare.fetchImpl)).verdict).toBe(
+    expect((await checkAddressFree("a@pacificbrokers.com", bare.fetchImpl)).verdict).toBe(
       "domain_has_no_mail",
     );
   });
 
   it("answers unknown when the resolver fails, errs or answers something unreadable", async () => {
-    expect((await checkAddressFree("a@example.com", doh({}).fetchImpl)).verdict).toBe("unknown");
+    expect((await checkAddressFree("a@pacificbrokers.com", doh({}).fetchImpl)).verdict).toBe(
+      "unknown",
+    );
     expect(
-      (await checkAddressFree("a@example.com", doh({ "example.com|MX": { Status: 2 } }).fetchImpl))
-        .verdict,
+      (
+        await checkAddressFree(
+          "a@pacificbrokers.com",
+          doh({ "pacificbrokers.com|MX": { Status: 2 } }).fetchImpl,
+        )
+      ).verdict,
     ).toBe("unknown");
     expect(
       (
         await checkAddressFree(
-          "a@example.com",
-          doh({ "example.com|MX": { nothing: true } }).fetchImpl,
+          "a@pacificbrokers.com",
+          doh({ "pacificbrokers.com|MX": { nothing: true } }).fetchImpl,
         )
       ).verdict,
     ).toBe("unknown");

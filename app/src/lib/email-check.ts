@@ -77,6 +77,7 @@ const typoEndings: Readonly<Record<string, string>> = {
 
 const LOCAL = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]{1,64}$/;
 const LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const RESERVED = /(^|\.)(example\.(com|net|org)|[a-z0-9-]+\.(test|example|invalid|localhost))$/;
 
 /** The address split at its last `@`, the domain lower-cased; null when it is not shaped like an address. */
 function parts(address: string): { local: string; domain: string } | null {
@@ -115,6 +116,14 @@ export async function checkEmail(address: string, deps: EmailCheckDeps): Promise
     };
   const suggestion = suggestAddress(address);
   const typo = suggestion === null ? "" : ` Did you mean ${suggestion}?`;
+  // RFC 2606 and 6761 keep these names for tests and examples (the CI fixtures write `@fixtures.invalid`); no person
+  // has a mailbox there, and the send step already skips them, so they are never looked up.
+  if (RESERVED.test(split.domain))
+    return {
+      verdict: "unknown",
+      suggestion,
+      reason: `${split.domain} is a name kept for tests and examples; it is not looked up.`,
+    };
   const hosts = await deps.mx(split.domain).catch(() => "unknown" as const);
   if (hosts === "unknown")
     return {
