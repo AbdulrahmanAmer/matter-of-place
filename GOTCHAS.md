@@ -8041,3 +8041,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node .claude/hooks/task-gate.test.mjs` prints five `ok` lines; `node .claude/hooks/task-gate.mjs status ~/.mop-workforce/matter/goal.json` lists W6 and W7 with their next open item.
 - enforced-by: .claude/hooks/task-gate.mjs (Stop hook), app/scripts/matter/live.ts (continueGoal)
 - added: 2026-10-15
+
+## P-3467 · Switching the desk's branch with work uncommitted carried it to the other branch, under a running check
+- symptom: 2026-10-15, Matter switched E:/mop-build/matter-desk from feat/w6-allowance-header to a new W7 branch while W6
+  item 2's edits were uncommitted and `bun run check` was running on them: the edits came along, ruling H106 went into
+  the W7 design commit, and the check's result measured a tree that changed under it.
+- rule: one worktree per piece of work in parallel (`git worktree add <dir> -b <branch> origin/main`); before any
+  `git switch` in a desk, `git status --short` is empty and no check runs in it.
+- proof: `git -C E:/mop-build/matter-desk worktree list` shows a worktree per open branch.
+- added: 2026-10-15
