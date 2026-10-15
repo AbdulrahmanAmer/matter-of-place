@@ -137,6 +137,15 @@ describe("public/_headers", () => {
     });
   });
 
+  it("lets mail apps load the brand fonts: /fonts/* drops same-site, allows cross-origin and CORS", () => {
+    expect(Object.fromEntries(rules.get("/fonts/*") ?? [])).toEqual({
+      "!Cross-Origin-Resource-Policy": "",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "public, max-age=604800",
+    });
+  });
+
   it("sets nothing but Cache-Control on /media/*, so no header repeats", () => {
     expect([...(rules.get("/media/*")?.keys() ?? [])]).toEqual(["Cache-Control"]);
   });
