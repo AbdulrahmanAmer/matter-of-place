@@ -34,7 +34,7 @@ import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.t
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
-import { groundingLines } from "./grounding.ts";
+import { groundingLines, requestSequence } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
@@ -180,6 +180,9 @@ async function context(
     // W9 item 3: the failed address and the phone, which the event does not carry.
     const facts = data?.type === "email.bounced" ? await bounceFacts(client, data) : null;
     if (facts !== null) parts.push(facts);
+    // W9 item 5: a run about a request follows the review sequence for the state the request is in.
+    const sequence = data === null ? null : await requestSequence(client, data);
+    if (sequence !== null) parts.push(sequence);
   }
   // P-3454: the line that woke the run, and the colleague's real open proposals, as facts before the thread.
   const [woke, pending] = await Promise.all([
