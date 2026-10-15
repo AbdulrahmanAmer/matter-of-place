@@ -311,7 +311,7 @@ export async function listRedirects(
     old_cursor?: string | undefined;
     path?: string | undefined;
   },
-  // W7 6: the test-a-link check lives in `redirect-links/service.ts` and is passed in by the route, so this service (which the
+  // W7 6: the test-a-link check lives in `settings/redirect-links/service.ts` and is passed in by the route, so this service (which the
   // job runner's Deno graph reaches) never loads the site's own modules (CI's deno check, PR 439).
   checkLink?: (db: Db, typed: string) => Promise<LinkCheck>,
 ): Promise<RedirectPage> {

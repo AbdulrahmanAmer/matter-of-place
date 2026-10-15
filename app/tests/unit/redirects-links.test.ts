@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { Database } from "../../src/db";
 import type { AdminActor } from "../../src/server/lib/admin-route";
-import { checkLink } from "../../src/server/redirect-links/service";
+import { checkLink } from "../../src/server/settings/redirect-links/service";
 import { listRedirects } from "../../src/server/settings/service";
 import { fakeDb } from "../fixtures/fake-db";
 

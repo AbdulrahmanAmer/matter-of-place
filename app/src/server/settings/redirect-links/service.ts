@@ -1,9 +1,9 @@
 // W7 6: where a typed link leads, by the site's own rules. Kept apart from `settings/service.ts` (which the job runner's Deno
 // graph reaches) because it loads the site's modules; only the Settings > Redirects route passes it in.
-import type { Db } from "../lib/db.ts";
-import { fromRpcError } from "../lib/admin-errors.ts";
-import { REDIRECT_COLUMNS } from "../settings/service.ts";
-import type { LinkCheck, LinkStep } from "../../domain/admin-settings.ts";
+import type { Db } from "../../lib/db.ts";
+import { fromRpcError } from "../../lib/admin-errors.ts";
+import { REDIRECT_COLUMNS } from "../service.ts";
+import type { LinkCheck, LinkStep } from "../../../domain/admin-settings.ts";
 
 /** The path of what was typed: a pasted address of the site, a path with a query or a path without its slash. */
 function typedPathname(typed: string): string {
@@ -24,8 +24,8 @@ const MAX_HOPS = 8;
 export async function checkLink(db: Db, typed: string): Promise<LinkCheck> {
   // Loaded when a link is tested: the site's own lookup rules, without the request pipeline and `env.ts` at import.
   const [{ loadRedirectMap }, { routePath }] = await Promise.all([
-    import("../public/redirects.ts"),
-    import("../lib/pipeline.ts"),
+    import("../../public/redirects.ts"),
+    import("../../lib/pipeline.ts"),
   ]);
   /** The key the site looks a path up by (`normalize` in `public/redirects.ts`): as routed, no trailing slash. */
   const siteKey = (pathname: string): string => {

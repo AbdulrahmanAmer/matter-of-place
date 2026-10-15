@@ -8,7 +8,7 @@ import {
   redirectRowSchema,
 } from "../../../domain/admin-settings";
 import { defineAdminRoute } from "../../../server/lib/admin-route";
-import { checkLink } from "../../../server/redirect-links/service";
+import { checkLink } from "../../../server/settings/redirect-links/service";
 import { archiveRedirect, listRedirects, putRedirect } from "../../../server/settings/service";
 
 export const Route = createFileRoute("/api/admin/settings/redirects")({
