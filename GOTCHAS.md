@@ -8157,3 +8157,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: gate on "no colleague run" only what must not overlap a run (moving the checkout). Work that runs as a process of its own takes its own lock (the reel's `working` brief, `reelWorking()`), and the checkout does not move while that lock is held.
 - proof: `bun app/scripts/matter/read.ts /api/admin/workforce/office` → runs[0] `{"agent_slug":"matter","cause":"schedule","state":"running"}` while the brief read `"state": "queued"`; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "says a reel is being made"` covers the new lock.
 - added: 2026-10-15
+
+## P-3481 · Under `--permission-mode dontAsk` a headless run is refused every tool it is not given with `--allowedTools`, so a designer told to write a scene writes nothing
+- symptom: 2026-10-15 11:14 to 11:20, the first real requested reel (`studio/2026-10-15-not-every-home`) failed `scene_missing: scene.html`: the designer run ended normally with an empty `scene/`. A probe with the same arguments (`claude -p ... --restricted --permission-mode dontAsk --disallowedTools Bash,...`) asked to write `probe.txt` answered `"permission_denials":[{"tool_name":"Write",...}]` and wrote nothing.
+- cause: `dontAsk` denies whatever is not allowed; `--disallowedTools` only removes tools, it allows none. Colleague runs never needed a file tool, so the gap never showed.
+- rule: a headless run that must read or write files names them in `--allowedTools` (`studioTools` in `scripts/workforce/reel.ts`: the designer Read, Write, Edit, Glob, Grep; the reviewer Read, Glob, Grep), keeps `--restricted` so writes stay in its working folder, and the run's caller checks the files exist before using them (the pass does: `scene_missing`).
+- proof: the same probe with `--allowedTools "Read,Write,Edit,Glob,Grep"` wrote `probe.txt` and was refused `../outside-probe.txt` ("the session is restricted to the working directory"), measured 2026-10-15; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "lets the designer write"`.
+- added: 2026-10-15
