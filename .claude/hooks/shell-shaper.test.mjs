@@ -57,6 +57,32 @@ it("sends a long command to the background, and keeps one already there", () => 
   }
 });
 
+it("refuses a bare wrangler call in Matter of Place while the shell holds a personal token (P-530)", () => {
+  const personal = { ...io, env: { CLOUDFLARE_API_TOKEN: "x" } };
+  const bare = "cd /e/mop-build/x/app && bun --env-file=../.env x wrangler secret put K --name matter-of-place";
+  assert.match(shape({ command: bare }, personal)?.deny ?? "", /P-530/);
+  assert.equal(shape({ command: `env -u CLOUDFLARE_API_TOKEN -u CLOUDFLARE_ACCOUNT_ID ${bare}` }, personal), null);
+  assert.equal(shape({ command: "node scratch/cfw.mjs secret list --name matter-of-place" , }, { ...personal, cwd: "E:/mop-build/x" }), null);
+  assert.equal(shape({ command: bare }, { ...io, env: {} }), null);
+  assert.equal(shape({ command: "cd /e/mop-build/x/app && grep -n account_id wrangler.toml" }, personal), null);
+  assert.equal(shape({ command: 'grep -n "account_id\\|^name" E:/mop-build/x/app/wrangler.toml' }, personal), null);
+  assert.equal(shape({ command: "cd /e/mop-build/x/app && node scripts/w.mjs --only hy-wrangler", run_in_background: true }, personal), null);
+  assert.equal(shape({ command: "cd /e/mop-build/x && printf '%s\\n' 'a hook refuses bare wrangler calls' >> STATE.md" }, personal), null);
+  assert.equal(shape({ command: "cd /e/mop-build/x && git commit -q -F - <<'EOF'\nfix: a wrangler call now fails\nEOF\ngit log -1" }, { ...personal, write: () => {} })?.deny, undefined);
+  assert.equal(shape({ command: "bunx wrangler whoami" }, { ...personal, cwd: "D:/other-project" }), null);
+});
+
+it("leaves a command that only reads or searches text about a long tool in the foreground", () => {
+  for (const reader of [
+    "cd /e/x/app && grep -n PENDING scripts/watchfail.mjs | head",
+    "git show origin/main:app/scripts/watchfail.mjs | sed -n 1,20p",
+    "sed -n 155,175p scripts/watchfail.mjs && ls node_modules",
+  ]) {
+    assert.equal(shape({ command: reader }, io), null, reader);
+  }
+  assert.equal(shape({ command: "grep -c x a.txt && node scripts/watchfail.mjs --only y" }, io)?.input.run_in_background, true);
+});
+
 it("backgrounds what was once backgrounded by hand, and any command with a time limit of a minute or more", () => {
   const learnedIo = { ...io, learned: ["gitleaks detect", "scoop install"] };
   assert.equal(shape({ command: "cd /e/x && gitleaks detect --source . --redact" }, learnedIo)?.input.run_in_background, true);
