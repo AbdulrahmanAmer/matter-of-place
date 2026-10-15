@@ -274,12 +274,23 @@ async function main(): Promise<void> {
   const added =
     flag === "--attach" && pulled.length > 0 ? await attach(client, id, folder, pulled) : 0;
   if (flag === "--attach") console.log(`attached ${String(added)}`);
-  await say(
-    [
-      `Pulled ${String(pulled.length)} photographs for request ${id} into the studio folder${added > 0 ? ` and added ${String(added)} to the request` : ""}.`,
-      ...problems.map((problem) => `Could not read ${problem}`),
-    ].join("\n"),
-  );
+  await say(pulledLine(id, pulled.length, added, problems.length));
+}
+
+/**
+ * The team-thread line after a pull (W8 review, third): counts only. The links are text the submitter typed and the
+ * reasons can quote the page, so neither enters a thread every colleague's prompt reads; they are in the studio
+ * folder's sources.json and on the request page, for a person.
+ */
+export function pulledLine(id: string, pulled: number, added: number, unread: number): string {
+  return [
+    `Pulled ${String(pulled)} photographs for request ${id} into the studio folder${added > 0 ? ` and added ${String(added)} to the request` : ""}.`,
+    ...(unread > 0
+      ? [
+          `${String(unread)} of its links could not be read; the reasons are in the studio folder's sources.json and the links on the request page.`,
+        ]
+      : []),
+  ].join("\n");
 }
 
 if (import.meta.main) await main();

@@ -21,8 +21,8 @@
     "id": "w9-3-facts-phone",
     "test": "tests/unit/workforce-bounce.test.ts",
     "file": "scripts/workforce/bounce.ts",
-    "find": "${data.submitter_name}'s phone: ${phoneOf(data.submitter_phone)}.",
-    "replace": "${data.submitter_name}'s phone: none given.",
+    "find": "The submitter's phone: ${phoneOf(data.submitter_phone)}.",
+    "replace": "The submitter's phone: none given.",
     "run": "bunx vitest run --project unit tests/unit/workforce-bounce.test.ts",
     "expect": "× .*names the request, the failed address, the phone and the page, and asks for the next step"
   },
@@ -30,8 +30,8 @@
     "id": "w9-3-blank-phone",
     "test": "tests/unit/workforce-bounce.test.ts",
     "file": "scripts/workforce/bounce.ts",
-    "find": "phone === null || phone.trim() === \"\" ? \"none given\" : phone;",
-    "replace": "phone ?? \"none given\";",
+    "find": "  phone === null || phone.trim() === \"\"\n    ? \"none given\"",
+    "replace": "  phone === null\n    ? \"none given\"",
     "run": "bunx vitest run --project unit tests/unit/workforce-bounce.test.ts",
     "expect": "× .*says when no phone was given, and that a complaint was marked as spam"
   },

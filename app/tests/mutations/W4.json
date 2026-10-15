@@ -48,6 +48,6 @@
     "test": "tests/db/email-replies.db.test.ts",
     "sql": "update public.agents set state = 'off' where slug = 'concierge'",
     "run": "bunx vitest run --project db tests/db/email-replies.db.test.ts",
-    "expect": "× .*keeps a reply's words inside the fence"
+    "expect": "× .*puts none of a reply's words in any thread"
   }
 ]
