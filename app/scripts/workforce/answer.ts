@@ -24,6 +24,8 @@ export const outcome = z.object({
   hire: z.array(hireInputSchema).default([]),
   // Matter only: one line it keeps in its capped notes.
   note: z.string().default(""),
+  // W8 0d: Matter's read of a held message decides whether its owner may answer it within its criteria.
+  allow: z.boolean().default(false),
   // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio.
   media: z.array(z.union([mediaRequestSchema, reelRequestSchema])).default([]),
   // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
@@ -55,5 +57,7 @@ export function readJsonAnswer(text: string): Outcome {
     note: "",
     media: [],
     actions: [],
+    // an answer that is not JSON decides nothing: a held message stays with a person (W8 0d)
+    allow: false,
   };
 }

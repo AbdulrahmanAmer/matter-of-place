@@ -66,7 +66,13 @@ export type AgentState = (typeof agentStates)[number];
  * The author ids the runner writes its own lines under (scripts/workforce/triage.ts and the system lines): a colleague
  * may not take one, or its lines would be read as an email, a held message or Matter's answer on one (W8 review).
  */
-export const reservedSlugs = ["email", "triage", "matter-on-held", "system"] as const;
+export const reservedSlugs = [
+  "email",
+  "triage",
+  "matter-on-held",
+  "matter-allows",
+  "system",
+] as const;
 
 const slug = z
   .string()
