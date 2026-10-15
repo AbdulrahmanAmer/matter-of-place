@@ -18,7 +18,11 @@
   Cross-Origin-Resource-Policy: cross-origin
   Cache-Control: public, max-age=604800
 
+# The brand fonts load inside mail apps (Apple Mail) from other origins: cross-origin, with CORS for @font-face.
 /fonts/*
+  ! Cross-Origin-Resource-Policy
+  Cross-Origin-Resource-Policy: cross-origin
+  Access-Control-Allow-Origin: *
   Cache-Control: public, max-age=604800
 
 /sw.js
