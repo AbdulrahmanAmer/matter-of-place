@@ -34,8 +34,17 @@ import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.t
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
-import { allowedFor } from "./criteria.ts";
-import { answerable, heldLine, shownBody, triageArgs, triageLines, triageRun } from "./triage.ts";
+import {
+  answerable,
+  HELD_AUTHOR,
+  heldLine,
+  ownsOutside,
+  ruleOutside,
+  shownBody,
+  triageArgs,
+  triageLines,
+  triageRun,
+} from "./triage.ts";
 import { groundingLines, requestSequence } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
@@ -163,29 +172,38 @@ const allowedProposal: Record<string, string> = {
   campaign_plan: "draft_campaign",
 };
 
-async function context(
+/**
+ * The situation a run's prompt is built from, and the triage of its outside message (W8 0b). Exported for the test
+ * that proves the prompt never holds outside text; `ask` is the tool-less triage call. Matter's own run on a held line
+ * (`matterReadsHeld`) is the one reader shown that line; every other reader sees it as a placeholder.
+ */
+export async function context(
   client: Db,
   run: { agent_id: string; cause: string; event_id: string | null; message_id: string | null },
   thread: string,
+  ask: (prompt: string) => Promise<string> = askTriage,
+  matterReadsHeld = false,
 ) {
   const parts: string[] = [];
   let event: { type: string; entity_id: string | null } | null = null;
   if (run.event_id !== null) {
-    const { data } = await client
+    const { data: rows } = await client
       .from("events")
       .select("type, payload, at, entity, entity_id")
       .eq("id", run.event_id)
-      .single();
+      .limit(1);
+    const data = rows?.[0] ?? null;
+    // W8 0b: an event that cannot be read is not guessed at; the run fails and says so (fails closed).
+    if (data === null) throw new Error("the event that woke this run could not be read");
     event = data;
-    if (data !== null)
-      parts.push(
-        `What woke you: the event ${data.type} at ${data.at}.\nIts data: ${JSON.stringify(data.payload)}`,
-      );
+    parts.push(
+      `What woke you: the event ${data.type} at ${data.at}.\nIts data: ${JSON.stringify(data.payload)}`,
+    );
     // W9 item 3: the failed address and the phone, which the event does not carry.
-    const facts = data?.type === "email.bounced" ? await bounceFacts(client, data) : null;
+    const facts = data.type === "email.bounced" ? await bounceFacts(client, data) : null;
     if (facts !== null) parts.push(facts);
     // W9 item 5: a run about a request follows the review sequence for the state the request is in.
-    const sequence = data === null ? null : await requestSequence(client, data);
+    const sequence = await requestSequence(client, data);
     if (sequence !== null) parts.push(sequence);
   }
   // P-3454: the line that woke the run, and the colleague's real open proposals, as facts before the thread.
@@ -196,8 +214,8 @@ async function context(
           .from("agent_messages")
           .select("author_id, author_name, author_kind, body")
           .eq("id", run.message_id)
-          .single()
-          .then(({ data }) => data),
+          .limit(1)
+          .then(({ data }) => data?.[0] ?? null),
     client
       .from("agent_approvals")
       .select("action, summary, created_at")
@@ -207,9 +225,15 @@ async function context(
       .then(({ data }) => data ?? []),
   ]);
   // W8 0b: an outside message reaches the prompt only as its triage; its text stays in the database for a person.
-  const triage = await triageRun(client, askTriage, event, woke);
+  const triage = await triageRun(client, ask, event, woke);
   if (triage !== null) parts.push(...triageLines(triage));
-  parts.push(...groundingLines(woke === null ? null : { ...woke, body: shownBody(woke) }, pending));
+  const wokeShown =
+    woke === null
+      ? null
+      : matterReadsHeld && woke.author_id === HELD_AUTHOR
+        ? woke
+        : { ...woke, body: shownBody(woke) };
+  parts.push(...groundingLines(wokeShown, pending));
   const { data: messages } = await client
     .from("agent_messages")
     .select("author_id, author_name, body, created_at")
@@ -329,14 +353,16 @@ async function runOnce(client: Db): Promise<boolean> {
   if (agent === undefined) return true;
   let thread = "team";
   let authorKind: string | null = null;
+  let wokeBy: string | null = null;
   if (run.message_id !== null) {
     const { data: message } = await client
       .from("agent_messages")
-      .select("thread, author_kind")
+      .select("thread, author_kind, author_id")
       .eq("id", run.message_id)
       .single();
     thread = message?.thread ?? "team";
     authorKind = message?.author_kind ?? null;
+    wokeBy = message?.author_id ?? null;
   }
   await client
     .from("agents")
@@ -346,23 +372,40 @@ async function runOnce(client: Db): Promise<boolean> {
   const cwd = join(HOME, "desks", agent.slug);
   mkdirSync(cwd, { recursive: true });
   try {
-    const { situation, triage } = await context(client, run, thread);
+    const matterReadsHeld = agent.slug === "matter" && wokeBy === HELD_AUTHOR;
+    const { situation, triage } = await context(client, run, thread, askTriage, matterReadsHeld);
+    // W8 0a/0d: an outside message is answered by its owner only; anyone else it woke does nothing with it.
+    if (triage !== null && !ownsOutside(triage, agent.slug)) {
+      await client
+        .from("agent_runs")
+        .update({
+          state: "done",
+          finished_at: new Date().toISOString(),
+          summary: "Not its owner (W8 0a)",
+        })
+        .eq("id", run.id);
+      return true;
+    }
     // W8 0d: a message outside its criteria, or one that tries to direct the AI, wakes no one to answer it: it is held
     // in the owner's thread for Matter, who reads it without power and decides. The run ends here, before any prompt.
+    // Every other reader of that thread sees the held line only as a placeholder (shownBody).
     if (triage !== null && !answerable(triage)) {
-      const { data: held } = await client
+      const { data: heldRows, error: heldError } = await client
         .from("agent_messages")
         .insert({
-          thread: agent.slug === "matter" ? "team" : agent.slug,
+          thread: agent.slug,
           author_kind: "system",
-          author_id: "triage",
+          author_id: HELD_AUTHOR,
           author_name: "Triage",
           body: heldLine(triage, agent.slug),
         })
-        .select("id")
-        .single();
+        .select("id");
+      const held = heldRows?.[0];
+      // A hold that cannot be written fails the run, so the message is never dropped in silence.
+      if (heldError !== null || held === undefined)
+        throw new Error("the held line could not be written");
       const matterRow = (agents ?? []).find((row) => row.slug === "matter");
-      if (held !== null && matterRow !== undefined && agent.slug !== "matter") {
+      if (matterRow !== undefined) {
         await client
           .from("agent_runs")
           .insert({ agent_id: matterRow.id, cause: "message", message_id: held.id });
@@ -405,7 +448,13 @@ async function runOnce(client: Db): Promise<boolean> {
         )
       : await askClaude(
           promptFor(
-            agent,
+            // W8 0c: a run about an outside message is not offered admin calls or hires at all.
+            triage === null
+              ? agent
+              : {
+                  ...agent,
+                  tools: agent.tools.filter((tool) => tool !== "admin_call" && tool !== "hire"),
+                },
             team,
             situation,
             lessons,
@@ -418,10 +467,21 @@ async function runOnce(client: Db): Promise<boolean> {
           cwd,
           agent.tools.includes("research"),
         );
-    const result = readJsonAnswer(answer.text);
+    // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no
+    // media, no colleague woken by a mention. What it drops is said in the thread.
+    const ruled = ruleOutside(readJsonAnswer(answer.text), triage);
+    const result = ruled.kept;
+    if (ruled.dropped.length > 0 && triage !== null) {
+      await say(
+        client,
+        thread,
+        `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage.source} (W8 0c).`,
+      );
+    }
     if (isMatter && power === "full") keepNote(result.note);
     // W2 step 5: Matter cannot run a skill in its safe mode; the daemon runs it, one at a time, and says where it is.
-    const media = isMatter ? result.media.slice(0, 2) : [];
+    // Only at full power (W8 review): a read run, woken by outside text, asks for no media.
+    const media = isMatter && power === "full" ? result.media.slice(0, 2) : [];
 
     if (result.reply !== "") {
       await client.from("agent_messages").insert({
@@ -436,7 +496,7 @@ async function runOnce(client: Db): Promise<boolean> {
       const targets = (agents ?? []).filter(
         (row) => handed.includes(row.slug) && row.state !== "off" && row.state !== "paused",
       );
-      if (targets.length > 0 && run.cause !== "message") {
+      if (targets.length > 0 && run.cause !== "message" && ruled.wakeMentioned) {
         const { data: last } = await client
           .from("agent_messages")
           .select("id")
@@ -484,15 +544,6 @@ async function runOnce(client: Db): Promise<boolean> {
     }
     for (const proposal of result.proposals) {
       if (!agent.tools.includes(allowedProposal[proposal.action] ?? "")) continue;
-      // W8 0c: for an outside message, only what its source allows; anything else is dropped and said.
-      if (triage !== null && !allowedFor(triage.source, proposal.action)) {
-        await say(
-          client,
-          thread,
-          `Not proposed: ${proposal.action} is not allowed for ${triage.source} (W8 0c).`,
-        );
-        continue;
-      }
       const content = proposal.content;
       await client.from("agent_approvals").insert({
         agent_id: agent.id,
@@ -517,7 +568,11 @@ async function runOnce(client: Db): Promise<boolean> {
       .update({
         state: "done",
         finished_at: new Date().toISOString(),
-        summary: (result.task || result.reply).slice(0, 300),
+        // W8 review: Matter's read of a held line is summed up in fixed words; its own words could carry the outside
+        // text into the live session's digest.
+        summary: matterReadsHeld
+          ? "Read an outside message held for Matter"
+          : (result.task || result.reply).slice(0, 300),
         session_id:
           "session" in answer && typeof answer.session === "string" ? answer.session : null,
         turns: 1,
