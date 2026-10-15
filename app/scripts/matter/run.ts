@@ -98,6 +98,7 @@ export function matterPrompt(input: {
       "- When he asks what you think, weigh the options against the numbers, the knowledge base and the brand rules, and recommend.",
     ].join("\n"),
     input.atlasText,
+    `Your system map, ${join(HOME, "system-map.md")} (the runner writes it after each merge it follows), follows every page and route to its service, its database functions, the tables they read and write, the jobs and events they make, and who wakes on each event. To answer where something lives or what it touches, search the map first and read the code only for detail.`,
     input.notes === ""
       ? "Your notes: none yet."
       : `Your notes (yours to keep, newest last):\n${input.notes}`,
