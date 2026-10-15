@@ -5,6 +5,12 @@ import {
   officeSchema,
   type HireInput,
 } from "../../domain/workforce";
+import {
+  decisionListSchema,
+  instructionTextSchema,
+  instructionVersionListSchema,
+  lessonListSchema,
+} from "../../domain/admin-team-memory";
 import { adminFetch } from "../ui/admin-fetch";
 
 // W1: the Office screens' calls to `/api/admin/workforce/*`.
@@ -58,4 +64,20 @@ export const postDecision = (
       ...(teach.reason === undefined ? {} : { reason: teach.reason }),
       ...(teach.editedBody === undefined ? {} : { edited_body: teach.editedBody }),
     }),
+  );
+
+// W7 item 4: the team's memory, read only.
+export const fetchDecisions = () =>
+  adminFetch("/api/admin/workforce/memory/decisions", decisionListSchema);
+
+export const fetchLessons = () =>
+  adminFetch("/api/admin/workforce/memory/lessons", lessonListSchema);
+
+export const fetchInstructionVersions = () =>
+  adminFetch("/api/admin/workforce/memory/instructions", instructionVersionListSchema);
+
+export const fetchInstructionText = (id: string) =>
+  adminFetch(
+    `/api/admin/workforce/memory/instructions/${encodeURIComponent(id)}`,
+    instructionTextSchema,
   );

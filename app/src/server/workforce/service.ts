@@ -7,6 +7,14 @@ import {
   type Office,
 } from "../../domain/workforce.ts";
 import { z } from "zod";
+import {
+  decisionStatuses,
+  lessonSources,
+  lessonStatuses,
+  type InstructionVersion,
+  type TeamDecision,
+  type TeamLesson,
+} from "../../domain/admin-team-memory.ts";
 import { scoreSchema, type agentUpdateSchema } from "../../domain/workforce.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
@@ -335,4 +343,120 @@ export async function decideApproval(
   });
   if (error !== null) throw fromRpcError(error);
   return { state };
+}
+
+// W7 item 4: the team's memory, read only (workforce.office). Each list is the newest rows up to a bound; the screen
+// filters what it has. A text here was written by an AI colleague: it travels as data and is shown as plain text.
+const MEMORY_LIMIT = 200;
+
+const oneOf = <T extends string>(allowed: readonly T[], value: string, otherwise: T): T =>
+  allowed.find((item) => item === value) ?? otherwise;
+
+/** The daily meeting's decisions: owner, due date, metric and whether it is open, done or missed. */
+export async function listDecisions(actor: AdminActor, db: Db): Promise<{ items: TeamDecision[] }> {
+  authorize(actor, "workforce.office");
+  const [decisions, agents] = await Promise.all([
+    db
+      .from("agent_decisions")
+      .select("id, meeting_on, owner_id, decision, due_on, metric, status, checked_at")
+      .order("meeting_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(MEMORY_LIMIT),
+    db.from("agents").select("id, slug, name"),
+  ]);
+  if (decisions.error !== null || agents.error !== null) throw unavailable("The decisions");
+  const owners = new Map(agents.data.map((row) => [row.id, row]));
+  return {
+    items: decisions.data.map((row) => ({
+      id: row.id,
+      meeting_on: row.meeting_on,
+      owner_slug: owners.get(row.owner_id)?.slug ?? "",
+      owner_name: owners.get(row.owner_id)?.name ?? "A colleague who left",
+      decision: row.decision,
+      due_on: row.due_on,
+      metric: row.metric,
+      status: oneOf(decisionStatuses, row.status, "open"),
+      checked_at: row.checked_at,
+    })),
+  };
+}
+
+/** What each colleague, or the whole team (no agent), was taught: its trigger and action, source, status and use. */
+export async function listLessons(actor: AdminActor, db: Db): Promise<{ items: TeamLesson[] }> {
+  authorize(actor, "workforce.office");
+  const [lessons, agents] = await Promise.all([
+    db
+      .from("agent_lessons")
+      .select("id, agent_id, trigger, action, source, status, uses, last_used_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(MEMORY_LIMIT),
+    db.from("agents").select("id, slug, name"),
+  ]);
+  if (lessons.error !== null || agents.error !== null) throw unavailable("The lessons");
+  const owners = new Map(agents.data.map((row) => [row.id, row]));
+  return {
+    items: lessons.data.map((row) => {
+      const owner = row.agent_id === null ? undefined : owners.get(row.agent_id);
+      return {
+        id: row.id,
+        agent_slug: owner?.slug ?? null,
+        agent_name: owner?.name ?? null,
+        trigger: row.trigger,
+        action: row.action,
+        source: oneOf(lessonSources, row.source, "matter"),
+        status: oneOf(lessonStatuses, row.status, "active"),
+        uses: row.uses,
+        last_used_at: row.last_used_at,
+        created_at: row.created_at,
+      };
+    }),
+  };
+}
+
+/** Every version of every colleague's instructions, newest first, without the text (see `instructionText`). */
+export async function listInstructionVersions(
+  actor: AdminActor,
+  db: Db,
+): Promise<{ items: InstructionVersion[] }> {
+  authorize(actor, "workforce.office");
+  const [versions, agents] = await Promise.all([
+    db
+      .from("agent_instruction_versions")
+      .select("id, agent_id, version, reason, approval_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(MEMORY_LIMIT),
+    db.from("agents").select("id, slug, name"),
+  ]);
+  if (versions.error !== null || agents.error !== null) {
+    throw unavailable("The instruction history");
+  }
+  const owners = new Map(agents.data.map((row) => [row.id, row]));
+  return {
+    items: versions.data.map((row) => ({
+      id: row.id,
+      agent_slug: owners.get(row.agent_id)?.slug ?? "",
+      agent_name: owners.get(row.agent_id)?.name ?? "A colleague who left",
+      version: row.version,
+      reason: row.reason,
+      approval_id: row.approval_id,
+      created_at: row.created_at,
+    })),
+  };
+}
+
+/** The text of one version, read when a person opens it. */
+export async function instructionText(
+  actor: AdminActor,
+  db: Db,
+  id: string,
+): Promise<{ id: string; instructions: string }> {
+  authorize(actor, "workforce.office");
+  const { data, error } = await db
+    .from("agent_instruction_versions")
+    .select("id, instructions")
+    .eq("id", id)
+    .maybeSingle();
+  if (error !== null) throw unavailable("That version");
+  if (data === null) throw new AppError("not_found", undefined, "That version does not exist.");
+  return { id: data.id, instructions: data.instructions };
 }

@@ -1,0 +1,281 @@
+[
+  {
+    "id": "w7-4-scope-decisions",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "  authorize(actor, \"workforce.office\");\n  const [decisions, agents]",
+    "replace": "  const [decisions, agents]",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*refuses the decisions service itself"
+  },
+  {
+    "id": "w7-4-scope-lessons",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "  authorize(actor, \"workforce.office\");\n  const [lessons, agents]",
+    "replace": "  const [lessons, agents]",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*refuses the lessons service itself"
+  },
+  {
+    "id": "w7-4-scope-versions",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "  authorize(actor, \"workforce.office\");\n  const [versions, agents]",
+    "replace": "  const [versions, agents]",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*refuses the instruction history service itself"
+  },
+  {
+    "id": "w7-4-scope-text",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "  authorize(actor, \"workforce.office\");\n  const { data, error } = await db\n    .from(\"agent_instruction_versions\")",
+    "replace": "  const { data, error } = await db\n    .from(\"agent_instruction_versions\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*refuses the text of a version to an actor"
+  },
+  {
+    "id": "w7-4-route-action-decisions",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/routes/api/admin/workforce.memory.decisions.ts",
+    "find": "        action: \"workforce.office\",",
+    "replace": "        action: \"workforce.hire\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*names each decision's owner"
+  },
+  {
+    "id": "w7-4-route-action-lessons",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/routes/api/admin/workforce.memory.lessons.ts",
+    "find": "        action: \"workforce.office\",",
+    "replace": "        action: \"workforce.hire\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*names whose a lesson is"
+  },
+  {
+    "id": "w7-4-route-action-versions",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/routes/api/admin/workforce.memory.instructions.ts",
+    "find": "        action: \"workforce.office\",",
+    "replace": "        action: \"workforce.hire\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*lists each version with its colleague"
+  },
+  {
+    "id": "w7-4-route-action-text",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/routes/api/admin/workforce.memory.instructions.$id.ts",
+    "find": "        action: \"workforce.office\",",
+    "replace": "        action: \"workforce.hire\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers the text of that one version"
+  },
+  {
+    "id": "w7-4-owner-gone",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "      owner_name: owners.get(row.owner_id)?.name ?? \"A colleague who left\",",
+    "replace": "      owner_name: owners.get(row.owner_id)?.name ?? \"\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*calls a decision whose owner is gone"
+  },
+  {
+    "id": "w7-4-status-fallback",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "  allowed.find((item) => item === value) ?? otherwise;",
+    "replace": "  value as T;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*reads an unknown status as open"
+  },
+  {
+    "id": "w7-4-team-lesson",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "        agent_slug: owner?.slug ?? null,",
+    "replace": "        agent_slug: owner?.slug ?? \"\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*names whose a lesson is"
+  },
+  {
+    "id": "w7-4-no-text-in-list",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": ".select(\"id, agent_id, version, reason, approval_id, created_at\")",
+    "replace": ".select(\"id, agent_id, version, instructions, reason, approval_id, created_at\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*lists each version with its colleague"
+  },
+  {
+    "id": "w7-4-memory-limit",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "const MEMORY_LIMIT = 200;",
+    "replace": "const MEMORY_LIMIT = 20;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*asks for the 200 newest decisions"
+  },
+  {
+    "id": "w7-4-text-by-id",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "    .eq(\"id\", id)",
+    "replace": "    .eq(\"id\", \"\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers the text of that one version"
+  },
+  {
+    "id": "w7-4-text-missing",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "  if (data === null) throw new AppError(\"not_found\", undefined, \"That version does not exist.\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 404 when the version does not exist"
+  },
+  {
+    "id": "w7-4-text-id-shape",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/domain/admin-team-memory.ts",
+    "find": "export const instructionIdSchema = z.object({ id: z.string().uuid() });",
+    "replace": "export const instructionIdSchema = z.object({ id: z.string() });",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*refuses an id that is not a uuid"
+  },
+  {
+    "id": "w7-4-default-tab",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/OfficePage.tsx",
+    "find": "const [tab, setTab] = useState(\"office\");",
+    "replace": "const [tab, setTab] = useState(\"decisions\");",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*opens on the floor and offers the three memory tabs"
+  },
+  {
+    "id": "w7-4-tab-label",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/OfficePage.tsx",
+    "find": "{ id: \"instructions\", label: \"Instruction history\" },",
+    "replace": "{ id: \"instructions\", label: \"Instructions\" },",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*opens on the floor and offers the three memory tabs"
+  },
+  {
+    "id": "w7-4-filter",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/DecisionsPanel.tsx",
+    "find": "filter === \"all\" ? items : items.filter((item) => item.status === filter);",
+    "replace": "items;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*filters the decisions to open, done or missed"
+  },
+  {
+    "id": "w7-4-filter-count",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/DecisionsPanel.tsx",
+    "find": "items.filter((item) => item.status === status).length;",
+    "replace": "items.filter((item) => item.status !== status).length;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*filters the decisions to open, done or missed"
+  },
+  {
+    "id": "w7-4-decision-row",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/DecisionsPanel.tsx",
+    "find": "                  <td>{item.owner_name}</td>\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*lists each decision with its owner, due date, metric and status"
+  },
+  {
+    "id": "w7-4-decision-text",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/DecisionsPanel.tsx",
+    "find": "<td className=\"wf-mem__wide\">{item.decision}</td>",
+    "replace": "<td className=\"wf-mem__wide\" dangerouslySetInnerHTML={{ __html: item.decision }} />",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*shows a decision's words as text"
+  },
+  {
+    "id": "w7-4-decisions-empty",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/DecisionsPanel.tsx",
+    "find": "No decision yet. The daily meeting writes its decisions here once it has met.",
+    "replace": "Nothing.",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*shows a calm empty state on each tab"
+  },
+  {
+    "id": "w7-4-lessons-whole-team",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/LessonsPanel.tsx",
+    "find": "{item.agent_name ?? \"The whole team\"}",
+    "replace": "{item.agent_name ?? \"\"}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*lists each lesson with whose it is"
+  },
+  {
+    "id": "w7-4-lessons-error",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/LessonsPanel.tsx",
+    "find": "The lessons could not be read. Try again in a moment.",
+    "replace": "Nothing.",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*says the memory could not be read when the read fails"
+  },
+  {
+    "id": "w7-4-never-used",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/memory-format.ts",
+    "find": "iso === null ? \"Never\" :",
+    "replace": "iso === null ? \"-\" :",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*lists each lesson with whose it is"
+  },
+  {
+    "id": "w7-4-history-grouping",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
+    "find": "const own = items.filter((item) => item.agent_slug === slug);",
+    "replace": "const own = items;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*groups the instruction history per colleague"
+  },
+  {
+    "id": "w7-4-text-on-demand",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
+    "find": "{open ? <VersionText id={version.id} /> : null}",
+    "replace": "<VersionText id={version.id} />",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*reads a version's text only when asked"
+  },
+  {
+    "id": "w7-4-approved-mark",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
+    "find": "{version.approval_id === null ? null : <span>Approved in Approvals</span>}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*groups the instruction history per colleague"
+  },
+  {
+    "id": "w7-4-version-text-as-text",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
+    "find": "<pre className=\"wf-mem__text\">{body}</pre>",
+    "replace": "<pre className=\"wf-mem__text\" dangerouslySetInnerHTML={{ __html: body }} />",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*shows a version's text as text, never as HTML"
+  },
+  {
+    "id": "w7-4-hide-text",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
+    "find": "{open ? \"Hide the text\" : \"Show the text\"}",
+    "replace": "Show the text",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*shows a version's text as text, never as HTML"
+  }
+]
