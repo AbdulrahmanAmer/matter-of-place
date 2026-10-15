@@ -44,6 +44,8 @@ const ROUTE_IDS: Record<number, string> = {
   28: "/admin/office",
   29: "/admin/approvals",
   30: "/admin/invoices/new",
+  // Operator, 2026-10-15: the Interest screen.
+  31: "/admin/interest/",
 };
 
 const everyRoute = () => true;
@@ -54,18 +56,18 @@ const screensShown = (sections: ReturnType<typeof visibleNav>) =>
   sections.flatMap((section) => section.entries.map((entry) => entry.screen));
 
 describe("the nav registry", () => {
-  it("holds 30 entries, one per screen, with the routeId list of the plan, W1 and the new-invoice form", () => {
-    expect(navEntries).toHaveLength(30);
+  it("holds 31 entries, one per screen, with the routeId list of the plan, W1, the new-invoice form and Interest", () => {
+    expect(navEntries).toHaveLength(31);
     expect(Object.fromEntries(navEntries.map((entry) => [entry.screen, entry.routeId]))).toEqual(
       ROUTE_IDS,
     );
   });
 
-  it("shows 24 screens in eight areas when every route and action exists (W3)", () => {
+  it("shows 25 screens in eight areas when every route and action exists (W3)", () => {
     const sections = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
     expect(sections.map((section) => section.group)).toEqual([...navGroups]);
-    expect(sections.map((section) => section.entries.length)).toEqual([2, 3, 3, 4, 3, 4, 3, 2]);
-    expect(screensShown(sections)).toHaveLength(24);
+    expect(sections.map((section) => section.entries.length)).toEqual([2, 4, 3, 4, 3, 4, 3, 2]);
+    expect(screensShown(sections)).toHaveLength(25);
   });
 
   it("names each area's screens for the work: Inbox, Listings, Automation and Settings", () => {
@@ -78,7 +80,7 @@ describe("the nav registry", () => {
       automation: labels("Automation"),
       settings: labels("Settings"),
     }).toEqual({
-      inbox: ["Approvals", "Requests", "Inquiries"],
+      inbox: ["Approvals", "Requests", "Inquiries", "Interest"],
       listings: ["Properties", "Photographs", "Visuals"],
       automation: ["Flows", "Emails", "Decline reasons", "History"],
       settings: ["Business", "Channels and schedules", "Team and access"],
@@ -93,7 +95,12 @@ describe("the nav registry", () => {
       request: tabsOf(4),
       areaOfRequest: areaOf(4),
       signIn: tabsOf(1),
-    }).toEqual({ requests: [29, 3, 11], request: [29, 3, 11], areaOfRequest: "Inbox", signIn: [] });
+    }).toEqual({
+      requests: [29, 3, 11, 31],
+      request: [29, 3, 11, 31],
+      areaOfRequest: "Inbox",
+      signIn: [],
+    });
     // An editor without the settings and team actions sees one Settings tab, so no tab strip.
     const editor = visibleNav({ hasRoute: everyRoute, actions: actionsOf("managing_editor") });
     expect(areaTabs(editor, 20)).toEqual([]);
@@ -120,7 +127,7 @@ describe("the nav registry", () => {
       actions: everyAction(),
     });
     expect(screensShown(sections)).not.toContain(23);
-    expect(screensShown(sections)).toHaveLength(23);
+    expect(screensShown(sections)).toHaveLength(24);
   });
 
   it("hides the team screen from a commercial actor", () => {

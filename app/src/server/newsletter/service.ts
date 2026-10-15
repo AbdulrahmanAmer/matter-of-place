@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { siteConfig } from "../../config/site.ts";
+import { interestSchema, type InterestView } from "../../domain/admin-newsletter.ts";
 import type { NewsletterBlock } from "../../domain/newsletter.ts";
 import { loadSiteContext } from "../email/context.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
@@ -32,6 +33,15 @@ const subscriberCsvColumns = [
 ] as const;
 
 const savedIssue = z.object({ id: z.string(), number: z.number().int() });
+
+/** One row of `newsletter_export_subscribers` as it really arrives: markets, source and dates may be null. */
+const exportRow = z.object({
+  email: z.string(),
+  markets: z.string().nullable(),
+  source: z.string().nullable(),
+  status: z.string(),
+  confirmed_at: z.string().nullable(),
+});
 
 const notFound = () => new AppError("not_found", undefined, "There is no such issue.");
 
@@ -202,6 +212,42 @@ function cell(value: string | null): string {
   const text = value ?? "";
   const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
   return /[",\r\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
+}
+
+/**
+ * Every interest signup with its markets, page and state, newest first, and the totals per market: the Interest
+ * screen. One read of `newsletter_export_subscribers`, so it writes the same one audit row (count only, never an
+ * address, G27) and takes the same right as the CSV.
+ */
+export async function listInterest(actor: AdminActor, db: Db): Promise<InterestView> {
+  authorize(actor, "newsletter.subscribers_export");
+  const { data, error } = await db.rpc("newsletter_export_subscribers", auditContext(actor));
+  if (error !== null) throw fromRpcError(error);
+  // The generated types say string, but a missing market list or date comes back null (array_to_string of null).
+  const signups = z
+    .array(exportRow)
+    .parse(data)
+    .map((row) => ({
+      email: row.email,
+      markets: row.markets === null || row.markets === "" ? [] : row.markets.split(";"),
+      source: row.source ?? "",
+      status: row.status === "confirmed" || row.status === "unsubscribed" ? row.status : "pending",
+      confirmed_at: row.confirmed_at === "" ? null : row.confirmed_at,
+    }))
+    .sort((a, b) => (b.confirmed_at ?? "").localeCompare(a.confirmed_at ?? ""));
+  const totals = new Map<string, { confirmed: number; pending: number }>();
+  for (const signup of signups) {
+    if (signup.status === "unsubscribed") continue;
+    for (const market of signup.markets.length === 0 ? ["place-notes"] : signup.markets) {
+      const total = totals.get(market) ?? { confirmed: 0, pending: 0 };
+      total[signup.status === "confirmed" ? "confirmed" : "pending"] += 1;
+      totals.set(market, total);
+    }
+  }
+  return interestSchema.parse({
+    signups,
+    markets: [...totals].map(([market, count]) => ({ market, ...count })),
+  });
 }
 
 /** Every subscriber as CSV, one audit row with the count (G27). */

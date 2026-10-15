@@ -64,6 +64,7 @@ import { Route as AdminAutomationRevisionsRouteImport } from './routes/admin/aut
 import { Route as AdminAutomationSettingsRouteImport } from './routes/admin/automation.settings'
 import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
 import { Route as AdminInquiriesIndexRouteImport } from './routes/admin/inquiries.index'
+import { Route as AdminInterestIndexRouteImport } from './routes/admin/interest.index'
 import { Route as AdminInvoicesIndexRouteImport } from './routes/admin/invoices.index'
 import { Route as AdminInvoicesIdRouteImport } from './routes/admin/invoices.$id'
 import { Route as AdminInvoicesNewRouteImport } from './routes/admin/invoices.new'
@@ -140,6 +141,7 @@ import { Route as ApiAdminMediaAttachRouteImport } from './routes/api/admin/medi
 import { Route as ApiAdminMediaReorderRouteImport } from './routes/api/admin/media.reorder'
 import { Route as ApiAdminMediaUploadUrlRouteImport } from './routes/api/admin/media.upload-url'
 import { Route as ApiAdminMediaVariantsStatusRouteImport } from './routes/api/admin/media.variants-status'
+import { Route as ApiAdminNewsletterInterestRouteImport } from './routes/api/admin/newsletter.interest'
 import { Route as ApiAdminNewsletterIssuesRouteImport } from './routes/api/admin/newsletter.issues'
 import { Route as ApiAdminNewsletterSubscribersRouteImport } from './routes/api/admin/newsletter.subscribers'
 import { Route as ApiAdminPaymentsIndexRouteImport } from './routes/api/admin/payments.index'
@@ -535,6 +537,11 @@ const AdminChannelsIndexRoute = AdminChannelsIndexRouteImport.update({
 const AdminInquiriesIndexRoute = AdminInquiriesIndexRouteImport.update({
   id: '/inquiries/',
   path: '/inquiries/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInterestIndexRoute = AdminInterestIndexRouteImport.update({
+  id: '/interest/',
+  path: '/interest/',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminInvoicesIndexRoute = AdminInvoicesIndexRouteImport.update({
@@ -947,6 +954,12 @@ const ApiAdminMediaVariantsStatusRoute =
   ApiAdminMediaVariantsStatusRouteImport.update({
     id: '/api/admin/media/variants-status',
     path: '/api/admin/media/variants-status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminNewsletterInterestRoute =
+  ApiAdminNewsletterInterestRouteImport.update({
+    id: '/api/admin/newsletter/interest',
+    path: '/api/admin/newsletter/interest',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiAdminNewsletterIssuesRoute =
@@ -1678,6 +1691,7 @@ export interface FileRoutesByFullPath {
   '/admin/audit/': typeof AdminAuditIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/inquiries/': typeof AdminInquiriesIndexRoute
+  '/admin/interest/': typeof AdminInterestIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
   '/admin/jobs/': typeof AdminJobsIndexRoute
   '/admin/markets/': typeof AdminMarketsIndexRoute
@@ -1723,6 +1737,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
   '/api/admin/media/upload-url': typeof ApiAdminMediaUploadUrlRoute
   '/api/admin/media/variants-status': typeof ApiAdminMediaVariantsStatusRoute
+  '/api/admin/newsletter/interest': typeof ApiAdminNewsletterInterestRoute
   '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
   '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
@@ -1920,6 +1935,7 @@ export interface FileRoutesByTo {
   '/admin/audit': typeof AdminAuditIndexRoute
   '/admin/channels': typeof AdminChannelsIndexRoute
   '/admin/inquiries': typeof AdminInquiriesIndexRoute
+  '/admin/interest': typeof AdminInterestIndexRoute
   '/admin/invoices': typeof AdminInvoicesIndexRoute
   '/admin/jobs': typeof AdminJobsIndexRoute
   '/admin/markets': typeof AdminMarketsIndexRoute
@@ -1965,6 +1981,7 @@ export interface FileRoutesByTo {
   '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
   '/api/admin/media/upload-url': typeof ApiAdminMediaUploadUrlRoute
   '/api/admin/media/variants-status': typeof ApiAdminMediaVariantsStatusRoute
+  '/api/admin/newsletter/interest': typeof ApiAdminNewsletterInterestRoute
   '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
   '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
@@ -2168,6 +2185,7 @@ export interface FileRoutesById {
   '/admin/audit/': typeof AdminAuditIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/inquiries/': typeof AdminInquiriesIndexRoute
+  '/admin/interest/': typeof AdminInterestIndexRoute
   '/admin/invoices/': typeof AdminInvoicesIndexRoute
   '/admin/jobs/': typeof AdminJobsIndexRoute
   '/admin/markets/': typeof AdminMarketsIndexRoute
@@ -2213,6 +2231,7 @@ export interface FileRoutesById {
   '/api/admin/media/reorder': typeof ApiAdminMediaReorderRoute
   '/api/admin/media/upload-url': typeof ApiAdminMediaUploadUrlRoute
   '/api/admin/media/variants-status': typeof ApiAdminMediaVariantsStatusRoute
+  '/api/admin/newsletter/interest': typeof ApiAdminNewsletterInterestRoute
   '/api/admin/newsletter/issues': typeof ApiAdminNewsletterIssuesRouteWithChildren
   '/api/admin/newsletter/subscribers': typeof ApiAdminNewsletterSubscribersRouteWithChildren
   '/api/admin/payments/$id': typeof ApiAdminPaymentsIdRouteWithChildren
@@ -2416,6 +2435,7 @@ export interface FileRouteTypes {
     | '/admin/audit/'
     | '/admin/channels/'
     | '/admin/inquiries/'
+    | '/admin/interest/'
     | '/admin/invoices/'
     | '/admin/jobs/'
     | '/admin/markets/'
@@ -2461,6 +2481,7 @@ export interface FileRouteTypes {
     | '/api/admin/media/reorder'
     | '/api/admin/media/upload-url'
     | '/api/admin/media/variants-status'
+    | '/api/admin/newsletter/interest'
     | '/api/admin/newsletter/issues'
     | '/api/admin/newsletter/subscribers'
     | '/api/admin/payments/$id'
@@ -2658,6 +2679,7 @@ export interface FileRouteTypes {
     | '/admin/audit'
     | '/admin/channels'
     | '/admin/inquiries'
+    | '/admin/interest'
     | '/admin/invoices'
     | '/admin/jobs'
     | '/admin/markets'
@@ -2703,6 +2725,7 @@ export interface FileRouteTypes {
     | '/api/admin/media/reorder'
     | '/api/admin/media/upload-url'
     | '/api/admin/media/variants-status'
+    | '/api/admin/newsletter/interest'
     | '/api/admin/newsletter/issues'
     | '/api/admin/newsletter/subscribers'
     | '/api/admin/payments/$id'
@@ -2905,6 +2928,7 @@ export interface FileRouteTypes {
     | '/admin/audit/'
     | '/admin/channels/'
     | '/admin/inquiries/'
+    | '/admin/interest/'
     | '/admin/invoices/'
     | '/admin/jobs/'
     | '/admin/markets/'
@@ -2950,6 +2974,7 @@ export interface FileRouteTypes {
     | '/api/admin/media/reorder'
     | '/api/admin/media/upload-url'
     | '/api/admin/media/variants-status'
+    | '/api/admin/newsletter/interest'
     | '/api/admin/newsletter/issues'
     | '/api/admin/newsletter/subscribers'
     | '/api/admin/payments/$id'
@@ -3135,6 +3160,7 @@ export interface RootRouteChildren {
   ApiAdminMediaReorderRoute: typeof ApiAdminMediaReorderRoute
   ApiAdminMediaUploadUrlRoute: typeof ApiAdminMediaUploadUrlRoute
   ApiAdminMediaVariantsStatusRoute: typeof ApiAdminMediaVariantsStatusRoute
+  ApiAdminNewsletterInterestRoute: typeof ApiAdminNewsletterInterestRoute
   ApiAdminNewsletterIssuesRoute: typeof ApiAdminNewsletterIssuesRouteWithChildren
   ApiAdminNewsletterSubscribersRoute: typeof ApiAdminNewsletterSubscribersRouteWithChildren
   ApiAdminPaymentsIdRoute: typeof ApiAdminPaymentsIdRouteWithChildren
@@ -3563,6 +3589,13 @@ declare module '@tanstack/react-router' {
       path: '/inquiries'
       fullPath: '/admin/inquiries/'
       preLoaderRoute: typeof AdminInquiriesIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/interest/': {
+      id: '/admin/interest/'
+      path: '/interest'
+      fullPath: '/admin/interest/'
+      preLoaderRoute: typeof AdminInterestIndexRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/invoices/': {
@@ -4095,6 +4128,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/media/variants-status'
       fullPath: '/api/admin/media/variants-status'
       preLoaderRoute: typeof ApiAdminMediaVariantsStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/newsletter/interest': {
+      id: '/api/admin/newsletter/interest'
+      path: '/api/admin/newsletter/interest'
+      fullPath: '/api/admin/newsletter/interest'
+      preLoaderRoute: typeof ApiAdminNewsletterInterestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/newsletter/issues': {
@@ -5016,6 +5056,7 @@ interface AdminRouteChildren {
   AdminAuditIndexRoute: typeof AdminAuditIndexRoute
   AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
   AdminInquiriesIndexRoute: typeof AdminInquiriesIndexRoute
+  AdminInterestIndexRoute: typeof AdminInterestIndexRoute
   AdminInvoicesIndexRoute: typeof AdminInvoicesIndexRoute
   AdminJobsIndexRoute: typeof AdminJobsIndexRoute
   AdminMarketsIndexRoute: typeof AdminMarketsIndexRoute
@@ -5052,6 +5093,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAuditIndexRoute: AdminAuditIndexRoute,
   AdminChannelsIndexRoute: AdminChannelsIndexRoute,
   AdminInquiriesIndexRoute: AdminInquiriesIndexRoute,
+  AdminInterestIndexRoute: AdminInterestIndexRoute,
   AdminInvoicesIndexRoute: AdminInvoicesIndexRoute,
   AdminJobsIndexRoute: AdminJobsIndexRoute,
   AdminMarketsIndexRoute: AdminMarketsIndexRoute,
@@ -5708,6 +5750,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminMediaReorderRoute: ApiAdminMediaReorderRoute,
   ApiAdminMediaUploadUrlRoute: ApiAdminMediaUploadUrlRoute,
   ApiAdminMediaVariantsStatusRoute: ApiAdminMediaVariantsStatusRoute,
+  ApiAdminNewsletterInterestRoute: ApiAdminNewsletterInterestRoute,
   ApiAdminNewsletterIssuesRoute: ApiAdminNewsletterIssuesRouteWithChildren,
   ApiAdminNewsletterSubscribersRoute:
     ApiAdminNewsletterSubscribersRouteWithChildren,

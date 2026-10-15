@@ -8,6 +8,7 @@ import {
   approveIssue,
   buildIssue,
   exportSubscribers,
+  listInterest,
   getIssue,
   listIssues,
   listSubscribers,
@@ -189,6 +190,37 @@ describe("newsletter service", () => {
     expect(rpcCalls("newsletter_export_subscribers").map(({ args }) => args[0])).toEqual([
       { p_actor: "user-managing_editor", p_actor_kind: "human", p_request_id: "req-1" },
     ]);
+  });
+
+  // The Interest screen (operator, 2026-10-15): the same right and the same audited read as the CSV.
+  it("lists interest newest first with totals per market, through one audited export read", async () => {
+    const { db, rpcCalls } = world();
+    const view = await listInterest(person("managing_editor"), db);
+    expect({
+      signups: view.signups.map((row) => [row.markets, row.source, row.status]),
+      markets: view.markets,
+      reads: rpcCalls("newsletter_export_subscribers").length,
+    }).toEqual({
+      signups: [
+        [["california", "florida"], "footer", "confirmed"],
+        [[], "interest:california", "pending"],
+      ],
+      markets: [
+        { market: "california", confirmed: 1, pending: 0 },
+        { market: "florida", confirmed: 1, pending: 0 },
+        { market: "place-notes", confirmed: 0, pending: 1 },
+      ],
+      reads: 1,
+    });
+  });
+
+  it("refuses commercial on the interest list with 403", async () => {
+    const { db, calls } = world();
+    expect(await refusal(listInterest(person("commercial"), db))).toEqual({
+      status: 403,
+      code: "forbidden",
+    });
+    expect(calls).toEqual([]);
   });
 });
 
