@@ -6,10 +6,12 @@ import {
   fetchDeclineReasons,
   fetchOriginal,
   fetchSubmission,
+  fetchSubmissionEmails,
   fetchSubmissions,
   fetchTimeline,
   markAssetsReceived,
   previewEmail,
+  resendEmail,
   startReview,
   withdraw,
   type Decision,
@@ -124,6 +126,29 @@ export function useWithdraw(id: string) {
         ),
         queryClient.invalidateQueries({ queryKey: adminKeys.payments.all() }),
       ]),
+  });
+}
+
+/** W9 item 2: the emails about this request; under the feature key, so every write on the request refreshes them. */
+export function useSubmissionEmails(id: string) {
+  return useQuery({
+    queryKey: [...adminKeys.submissions.all(), "emails", id],
+    queryFn: () => fetchSubmissionEmails(id),
+  });
+}
+
+/** Sends one email again to a corrected address; the request (its address) and its history move too. */
+export function useResendEmail(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ messageId, email }: { messageId: string; email: string }) =>
+      resendEmail(id, messageId, email),
+    onSettled: () =>
+      invalidateAfterWrite(
+        queryClient,
+        adminKeys.submissions.all(),
+        adminKeys.submissions.timeline(id),
+      ),
   });
 }
 

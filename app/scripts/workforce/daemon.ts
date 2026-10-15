@@ -5,7 +5,7 @@
 // No model key exists anywhere (H34): the CLI is the operator's own account. It prints no secret and no prompt.
 //   bun scripts/workforce/daemon.ts          one pass, then exit (the scheduled task runs it every minute)
 //   bun scripts/workforce/daemon.ts --loop   pass after pass until stopped (for watching it live)
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
@@ -32,7 +32,7 @@ import { makeVoiceover } from "./media.ts";
 import { nextReel, queueReel, reelWorking } from "./reel.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
-import { followMain } from "./follow.ts";
+import { followMain, mapDue } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
 import { groundingLines } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
@@ -48,7 +48,9 @@ const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
 const BREAKER_FILE = join(HOME, "breaker.json");
 const WORKER = `${hostname()}:${String(process.pid)}`;
-const CLI_TIMEOUT_MS = 6 * 60_000;
+// No clock on a colleague's work (operator, 2026-10-15: a 6-minute limit threw away the chief of staff's real work at
+// 00:52). A run is stopped only when it prints nothing for this long, which with stream-json means it is stuck.
+const CLI_IDLE_MS = 15 * 60_000;
 const RUNS_PER_HOUR = 40;
 const HISTORY = 24;
 const models: Record<string, string> = {
@@ -82,7 +84,8 @@ function askClaude(
       "--model",
       model,
       "--output-format",
-      "json",
+      "stream-json",
+      "--verbose",
       "--strict-mcp-config",
       "--mcp-config",
       emptyMcpConfig(),
@@ -97,7 +100,7 @@ function askClaude(
     cwd,
     env: childEnv(),
     prompt,
-    timeoutMs: CLI_TIMEOUT_MS,
+    idleMs: CLI_IDLE_MS,
     who: "the colleague",
   });
 }
@@ -698,6 +701,18 @@ async function pass(client: Db): Promise<void> {
     const followed = followMain(resolve(import.meta.dir, "../.."), join(HOME, "runner-app"));
     if (followed !== "unchanged" && followed !== "not the runner") {
       console.log(`${new Date().toISOString()} runner ${followed}`);
+    }
+    // W6 item 3: a child process, so the map is drawn by the code the runner just moved to, not the code loaded here.
+    if (mapDue(followed, existsSync(join(HOME, "matter", "system-map.md")))) {
+      const made = spawnSync("bun", [join(import.meta.dir, "../matter/system-map.ts")], {
+        cwd: resolve(import.meta.dir, "../.."),
+        windowsHide: true,
+        encoding: "utf8",
+        timeout: 120_000,
+      });
+      console.log(
+        `${new Date().toISOString()} ${made.status === 0 ? made.stdout.trim() : `system map failed: ${made.stderr.trim().slice(0, 300)}`}`,
+      );
     }
   }
   // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute. It
