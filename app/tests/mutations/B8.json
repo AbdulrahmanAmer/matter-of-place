@@ -482,7 +482,7 @@
     "find": "  \"subject_request.received\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/enqueue.test.ts",
-    "expect": "× .*holds the 18 types of the events check"
+    "expect": "× .*holds the 19 types of the events check"
   },
   {
     "id": "ap-dispatch",

@@ -36,6 +36,7 @@ import { groundingLines } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
+import { bounceFacts, wakes } from "./bounce.ts";
 import { refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
 import { liveAlive } from "../matter/live-alive.ts";
@@ -120,7 +121,7 @@ async function wakeOnEvents(client: Db): Promise<number> {
   const cursor = readCursor();
   const { data: events, error } = await client
     .from("events")
-    .select("id, type, at")
+    .select("id, type, at, entity")
     .gt("at", cursor)
     .order("at")
     .limit(50);
@@ -132,10 +133,8 @@ async function wakeOnEvents(client: Db): Promise<number> {
   const { data: agents } = await client.from("agents").select("id, wake_on, state");
   const rows = events.flatMap((event) =>
     (agents ?? [])
-      .filter(
-        (agent) =>
-          agent.state !== "off" && agent.state !== "paused" && agent.wake_on.includes(event.type),
-      )
+      // W9 item 3: a bounce wakes only the owner of the request or inquiry it is about.
+      .filter((agent) => wakes(agent, event))
       .map((agent) => ({ agent_id: agent.id, cause: "event", event_id: event.id })),
   );
   if (rows.length > 0) {
@@ -165,13 +164,16 @@ async function context(
   if (run.event_id !== null) {
     const { data } = await client
       .from("events")
-      .select("type, payload, at")
+      .select("type, payload, at, entity, entity_id")
       .eq("id", run.event_id)
       .single();
     if (data !== null)
       parts.push(
         `What woke you: the event ${data.type} at ${data.at}.\nIts data: ${JSON.stringify(data.payload)}`,
       );
+    // W9 item 3: the failed address and the phone, which the event does not carry.
+    const facts = data?.type === "email.bounced" ? await bounceFacts(client, data) : null;
+    if (facts !== null) parts.push(facts);
   }
   // P-3454: the line that woke the run, and the colleague's real open proposals, as facts before the thread.
   const [woke, pending] = await Promise.all([

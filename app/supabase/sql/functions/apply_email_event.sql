@@ -11,6 +11,7 @@ declare
   v_data jsonb := coalesce(p -> 'data', '{}'::jsonb);
   v_rank int;
   v_suppress text;
+  v_message record;
 begin
   -- Invariant 9: Resend sends every event of the account to every endpoint. A contact or broadcast event belongs here
   -- only when its audience is one of settings.resend.audiences (B11's key; without it every such event is dropped).
@@ -85,6 +86,27 @@ begin
     insert into public.email_suppressions (email, reason, at)
     values (v_email, v_suppress, now())
     on conflict (email) do nothing;
+  end if;
+
+  -- W9 item 3: the same bounce or complaint about a request or an inquiry wakes the colleague who owns it (the daemon
+  -- matches `email.bounced` to the owner of the entity). Ids only; the runner reads the address and phone itself.
+  if v_suppress is not null then
+    select m.id, m.template_key, m.entity, m.entity_id into v_message
+    from public.email_messages m
+    where m.resend_id = p ->> 'resend_email_id' and m.entity in ('submission', 'inquiry') and m.entity_id is not null;
+    if found then
+      perform public.emit_event(
+        'email.bounced', v_message.entity, v_message.entity_id,
+        jsonb_build_object(
+          v_message.entity || '_id', v_message.entity_id,
+          'message_id', v_message.id,
+          'template', v_message.template_key,
+          'reason', v_suppress,
+          'bounce_type', v_data ->> 'bounce_type'
+        ),
+        null
+      );
+    end if;
   end if;
 
   -- Opens are not engagement (mail privacy features fire them); a click is.
