@@ -1932,6 +1932,14 @@ first day of the new usage week; no step was cut from any plan.
   decision lets the owner propose a reply), 0e, 0f; 0g waits on the operator's Google Drive (W8 item 8); W8 items 1
   and 2 are Matter's now (operator, 2026-10-15). The floor pool of the door move reads as a band (review follow-up).
   Bank grew: P-3530, P-3531.
+- 2026-10-15 22:10 +0300: W7 item 5 built (PR 438, draft until Matter reads it): the Events panel in System > Jobs, last 50
+  events with type, time, entity, processed and the recipe that took each (jobs.event_id and jobs.recipe_id, names from
+  automation_recipes), plus the events in event_fanout_failures (attempts, next try, last error). Read route
+  `GET /api/admin/jobs/events` reuses the action `jobs.list`, so no matrix change and no migration; no payload is selected
+  (subscriber.created holds a sealed token). Proof: unit 5 and component 24 passed, registry W7-5.json 14 entries
+  WATCHED-FAIL OK, both tsc, eslint, prettier, knip exit 0. NOT DONE: a browser look at the real page (admin sign-in is a
+  magic link; rendered text observed in the component test only). Bank grew: P-3560 to P-3562.
+
 
 - 2026-10-15 W7 item 2 (PR 441, feat/w7-2-replies): the Sent emails screen has a Replies part: each `email_replies` row beside the
   email it answers (through `send_id`), owner, state, and buttons answered / ignored; opening a `new` reply marks it

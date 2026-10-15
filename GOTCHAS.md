@@ -8326,7 +8326,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
 - added: 2026-10-15
 
-
 ## P-3550 · After the launch switch mop-dev refuses every db test, so a new SQL function is proved on a native cluster holding a stub of only the tables it names
 - symptom: 2026-10-15, W7 item 2: the db test of `email_reply_mark`, run the P-312 way (the unmerged migration as `MOP_MUTATION_SQL` on mop-dev), died in `tests/db/global-setup.ts` with `Error: refusing: production database` (ruling H35 (6)); a fresh worktree has no `.env`, so the loader first printed `ENOENT ... w7-2\.env` (the fix is in P-051: load the main checkout's through its own loader).
 - cause: there is one database and it is production now; `assertNotProduction` refuses db tests against it, and only CI's stack runs them. The P-312 route is closed, and P-718's full restore of mop-dev's schema is heavy for one function.
@@ -8340,3 +8339,21 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a `sql` entry removes or replaces a whole statement (`perform 1;` for a whole `perform ...;`), generated from the real function file by a script that asserts its target occurs once, never typed by hand; after the verdict, read the red output once (apply the entry's sql to the stub cluster, run the test) and see the assertion's own diff (`expected [] to deeply equal [ Array(1) ]`), not a `syntax error`. When the real function changes, every `sql` entry that embeds a copy of it is regenerated in the same commit (a stale copy turns the new assertion red for the wrong reason).
 - proof: `psql -h 127.0.0.1 -p <stub port> -U postgres -d mop -f <the entry's sql>` prints no error, then `DEV_DB_URL=postgresql://postgres@127.0.0.1:<stub port>/mop node node_modules/vitest/vitest.mjs run --project db tests/db/email-reply-mark.db.test.ts -t "marks a reply answered"` → `AssertionError: expected [] to deeply equal [ Array(1) ]` for `w7-2-sql-audit` (measured 2026-10-16).
 - added: 2026-10-16
+
+## P-3560 · `findByRole("table")` is satisfied by the loading skeleton: a component test reads five empty rows
+- symptom: 2026-10-15 (W7 5), the Events panel test awaited `findByRole("table", { name: "Events" })` and then compared the rows' cells: it received five rows of `[""]`. `DataTable` draws its caption and five skeleton rows while `loading`, so the table exists before any data. A test that only waited for the table, "draws no failure table", would also have passed on the skeleton.
+- rule: a component test of a `DataTable` waits for a word of the data (`findByText`) before it reads the table or asserts something is absent.
+- proof: `cd app && bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx -t "EventsPanel"` → 6 passed; registry `w7-5-c-no-recipe` and `w7-5-c-failures-empty` go red.
+- added: 2026-10-15
+
+## P-3561 · A service's own `authorize` is invisible to a route test: the route's matrix check refuses first
+- symptom: 2026-10-15 (W7 5), removing `authorize(actor, "jobs.list")` from `listEvents` left `w7-5-scope` green (`WATCHED-FAIL BAD: stayed green`), because `defineAdminRoute` already answers 403 for the same action before the handler runs.
+- rule: the service's `authorize` line gets its own test that calls the service function directly with an out-of-scope actor and checks nothing was read.
+- proof: `node scripts/watchfail.mjs --registry tests/mutations --only w7-5-scope` → `WATCHED-FAIL OK` (from `app/`).
+- added: 2026-10-15
+
+## P-3562 · A type-aware eslint run on four files outlasted a ten-minute background limit under load
+- symptom: 2026-10-15 (W7 5), `tsc`, `tsc`, `eslint` and `prettier` chained in one background command were stopped at the 10-minute default with eslint unfinished. Run alone with `timeout` 3000000 it finished.
+- rule: start `eslint` as its own background command with the longest `timeout`; never replay the registry while it runs (the replay mutates the files eslint reads).
+- proof: `cd app && bunx eslint --max-warnings 0 src/server/jobs/events.ts` exits 0 given time.
+- added: 2026-10-15
