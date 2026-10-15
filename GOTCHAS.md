@@ -8054,6 +8054,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `git -C E:/mop-build/matter-desk worktree list` shows a worktree per open branch.
 - added: 2026-10-15
 
+## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
+- symptom: 2026-10-15, W7 E1: from the desk, `eval "$(node scripts/load-env.mjs --profile dev)"` exported nothing (the
+  desk has no `.env`; the loader reads the one two folders above `scripts/`), then with the main checkout's loader the
+  db project stopped in `tests/db/global-setup.ts` with `Error: refusing: production database`, also for a prelude-only
+  (P-312) run that rolls back.
+- cause: there is one database and it is production now (H35); `assertNotProduction` refuses every db test against it.
+- rule: a branch's new SQL is proven by CI's `db` job (ephemeral stack: `test:db`, then the `sql` and `unit` registry
+  replays of changed entries); locally run only the unit and component projects and their watched-fails, or a native
+  throwaway cluster (P-718). In a worktree without `.env`, load the profile with
+  `node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev` for anything that is not a db test.
+- proof: `sed -n 210,225p .github/workflows/ci.yml` shows `bun run test:db` and `watchfail.mjs ... --kinds unit,sql` in
+  the `db` job; the local run above ends `refusing: production database` at `scripts/lib/assert-not-production.mjs:60`.
+- added: 2026-10-15
+
 ## P-3469 · GNU sed reads `\`` as the start of the line, so "remove escaped backticks" put a backtick on every line
 - symptom: 2026-10-15, `sed -i 's/\\`/`/g' W8.md` meant to turn `\`` into ```; GNU sed treats `\`` as the start-of-buffer anchor, so every line gained a leading backtick. The broken plan was committed locally; the job was stopped before the push.
 - rule: never fix text with sed when it holds backticks or backslashes: write a node script with `split(a).join(b)` (checklist item 4), print a count of the lines still wrong, and read the file before committing.
@@ -8064,4 +8078,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-15, PR 390 went green three times; each time main had gained one of Matter's merges (types.ts, check-layout.mjs, a migration), the gate merged main in and waited again, then stopped after attempt 3. The third catch-up also put Matter's migration after this branch's, so the branch migration had to be regenerated past it.
 - rule: with Matter merging on his own, the gate loop allows eight catch-ups (`for attempt in 1..8` in the orchestrator's gate-loop.sh), and a branch that carries a migration is checked with `node scripts/check-migrations.mjs` after every catch-up; a generated migration (action_roles) is regenerated rather than restamped, so it also carries main's new rows.
 - proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
+- added: 2026-10-15
+
+## P-3471 · A key added to an event's payload in SQL breaks every older db test that asserts that payload with `toEqual`, and only CI sees it
+- symptom: 2026-10-15, PR 410 (W7 E1): `approve_asset` and `reject_asset` gained `subject` in the `asset.approved` and `asset.rejected` payloads; CI's db job failed 4 of 925 (`tests/db/assets.db.test.ts`, `tests/db/assets-service.db.test.ts`: `+ "subject": "property"`), one CI cycle lost. Locally the db project refuses since the launch switch (P-3468), so no local run could have shown it.
+- cause: B9's tests pin the whole payload with `toEqual`; the slice's own tests covered the new key, and nobody searched for the older assertions.
+- rule: before pushing a change to what an SQL function emits or returns, `git grep -n "<event type or function name>" app/tests/db app/tests/api` and update every exact assertion of it in the same commit; also `git grep -ln "function public.<name>" app/tests/mutations` and regenerate each `sql` entry that carries a whole copy of the function from today's file (only its own mutation removed), or the copy fails on the new key before it reaches its own reason (PR 410's second db run: `B9:b9g1-db-approve-audit` BAD, 216 of 217 ok). The db job is the only run that would catch a miss.
+- proof: `cd app && git grep -n "asset.rejected\|asset.approved" tests/db` lists the two files and their four payload assertions; the db job log of run 38686728451 ends `Tests  4 failed | 919 passed`.
 - added: 2026-10-15

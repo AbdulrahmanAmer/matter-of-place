@@ -50,6 +50,19 @@ const id = z.string().uuid();
 const payloadTier = z.enum(["Editorial", ...tiers]);
 const market = marketSlugSchema;
 const kind = z.enum(assetKinds);
+// An asset is a property's, or (W7 item 19, H107) a requested reel about a market, a story or the brand.
+const propertyAsset = z
+  .object({ asset_id: id, property_id: id, kind, tier: payloadTier, market })
+  .passthrough();
+const requestedAsset = z
+  .object({
+    asset_id: id,
+    subject: z.enum(["market", "story", "brand"]),
+    property_id: z.null(),
+    kind,
+    market: market.nullable(),
+  })
+  .passthrough();
 
 // One object per event type; `.passthrough()` lets a producer add fields. The planner reads only `tier`, `market`
 // and `kind`.
@@ -114,12 +127,11 @@ export const eventPayloadSchemas = {
       takedown: z.boolean(),
     })
     .passthrough(),
-  "asset.approved": z
-    .object({ asset_id: id, property_id: id, kind, tier: payloadTier, market })
-    .passthrough(),
-  "asset.rejected": z
-    .object({ asset_id: id, property_id: id, kind, tier: payloadTier, market, note: z.string() })
-    .passthrough(),
+  "asset.approved": z.union([propertyAsset, requestedAsset]),
+  "asset.rejected": z.union([
+    propertyAsset.extend({ note: z.string() }),
+    requestedAsset.extend({ note: z.string() }),
+  ]),
   "digest.due": z.object({ scheduled_for: z.string().datetime() }).passthrough(),
   "inquiry.received": z.object({ inquiry_id: id }).passthrough(),
   "subscriber.created": z

@@ -130,6 +130,23 @@ describe("step catalog", () => {
     ).toBe(false);
   });
 
+  it("parses the asset events of a requested reel, which has a subject and no property (W7 item 19)", () => {
+    const requested = {
+      asset_id: "00000000-0000-4000-8000-0000000000b4",
+      subject: "market",
+      property_id: null,
+      kind: "reel",
+      tier: null,
+      market: "california",
+    };
+    expect([
+      eventPayloadSchemas["asset.approved"].safeParse(requested).success,
+      eventPayloadSchemas["asset.rejected"].safeParse({ ...requested, note: "Too fast." }).success,
+      eventPayloadSchemas["asset.approved"].safeParse({ ...requested, subject: "property" })
+        .success,
+    ]).toEqual([true, true, false]);
+  });
+
   it("keeps fields a producer adds to a payload", () => {
     const parsed = eventPayloadSchemas["inquiry.received"].parse({
       ...eventPayloadExamples["inquiry.received"],
