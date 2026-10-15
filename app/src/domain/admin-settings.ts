@@ -107,10 +107,52 @@ export const redirectRowSchema = z.object({
 
 export type RedirectRow = z.infer<typeof redirectRowSchema>;
 
-/** `GET settings/redirects`: active rows in `from_path` order, the cursor the last `from_path` of the page before. */
-export const redirectListInput = adminPageSchema;
+/** One old address of a renamed property (`slug_history`), read only, with the page the property has now. */
+const oldAddressSchema = z.object({
+  slug: z.string(),
+  property_id: z.string().uuid(),
+  title: z.string(),
+  current_slug: z.string(),
+  /** False while the property is not published: the site shows nothing at the old address either. */
+  live: z.boolean(),
+});
 
-export const redirectPageSchema = adminPageAnswer(redirectRowSchema);
+export type OldAddress = z.infer<typeof oldAddressSchema>;
+
+/** One hop of a tested link: a redirect row, or the old address of a renamed property. */
+const linkStepSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  status: z.number().int(),
+  source: z.enum(["redirect", "old_address"]),
+});
+
+export type LinkStep = z.infer<typeof linkStepSchema>;
+
+/** Where a typed path leads on the site: the hops in order (none means no redirect), and whether they ran in a circle. */
+const linkCheckSchema = z.object({
+  path: z.string(),
+  steps: z.array(linkStepSchema),
+  loop: z.boolean(),
+});
+
+export type LinkCheck = z.infer<typeof linkCheckSchema>;
+
+/**
+ * `GET settings/redirects`: active rows in `from_path` order, the cursor the last `from_path` of the page before.
+ * It also pages `slug_history` by `old_cursor` (the last old slug), and answers `path` as `check` when one is sent.
+ */
+export const redirectListInput = adminPageSchema.extend({
+  old_cursor: z.string().min(1).max(200).optional(),
+  path: z.string().trim().min(1).max(200).optional(),
+});
+
+export const redirectPageSchema = adminPageAnswer(redirectRowSchema).extend({
+  old_addresses: adminPageAnswer(oldAddressSchema),
+  check: linkCheckSchema.nullable(),
+});
+
+export type RedirectPage = z.infer<typeof redirectPageSchema>;
 
 /** `PUT settings/redirects` as sent. Loose on purpose: the rules are `redirectSchema`'s, answered `invalid_redirect`. */
 export const redirectPutInput = z
