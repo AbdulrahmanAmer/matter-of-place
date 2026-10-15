@@ -105,3 +105,64 @@ Files are joined in name order by `build.js`. The names of the exporter's per-su
 The prices and package names on screen are facts that date.
 
 The voice-over, its timing and the settings of its mix are in `voice-over.md`.
+
+## The delivered package (exported from the cloud session, 15 October 2026)
+
+The one-file player, the tools and the final soundtrack sit beside the source above. The soundtrack is the code-made score with the voice-over mixed in; no clean voice-only file came with it.
+
+### Watch it
+
+Double-click `matter-of-place-product-launch.html`. It opens in your browser and draws the film live in 3D. The sound starts off: press the button marked Sound off to hear the soundtrack with the voice-over. It works offline, in Chrome, Safari, Firefox or Edge. On a slow computer it lowers the picture's resolution to keep the motion smooth; the MP4 is the full-quality version.
+
+### What is in it
+
+| File | What it is |
+|---|---|
+| `matter-of-place-product-launch.html` | The whole film in one file: the code, the 3D library, the type, and the final soundtrack |
+| `src/film/` | The picture, eleven files joined in name order: helpers (`00_lib.js`), models and materials (`01_world.js`), the camera, light and floors (`0_core.js`), then one file per place: the door (`1_hall.js`), the gallery (`2_gallery.js`), the three markets (`3_markets.js`), the packages (`4_packages.js`), the wall (`5_wall.js`); which place and camera at each moment (`6_direct.js`); every title (`7_titles.js`); and start-up and finishing (`8_main.js`) |
+| `src/score.js` | The music, synthesized from code: pads, mallet, pulse, sub hits, ticks and risers, with an accent on every cut |
+| `src/page.html` | The player page |
+| `logo.json`, `fonts/fonts.json` | The logo and the type, as data |
+| `sound/matter-of-place-soundtrack.wav` | The final soundtrack: the music with the voice-over mixed in, exactly as delivered (`.mp3` beside it is the copy the one-file player carries) |
+| `build.js`, `stills.js`, `audio.js`, `export.js`, `encode.sh`, `add-voice.sh`, `make-player.js`, `pagetest.js`, `hits.py` | The tools: build the film, look at stills, render the music, render the frames, make the MP4, put the voice on it, make the one-file player, test the page, check the music's accents |
+| `package.json` | The two libraries the tools need |
+
+### Change something
+
+- Prices and package names: `src/film/4_packages.js`, near the top (`PKG`).
+- Market names: `src/film/3_markets.js`. The opening line: `src/film/1_hall.js`. The feature page's text: `src/film/2_gallery.js`. Every other title: `src/film/7_titles.js`.
+- Shot times: `src/film/0_core.js`. The music's events in `src/score.js` have their times typed as numbers, so move them by hand after a retime.
+- The type is subset to plain English characters and a dozen marks. A new word with é or £ in it needs the fonts remade first (the tool for that, `fonts.py`, is in the Brand Film Kit).
+
+Then rebuild and look:
+
+```bash
+npm install                      # once
+npx playwright install chromium  # once: the browser the tools draw in
+npm run build                    # dist/dev.html, dist/page.html, dist/page_test.html
+npm run stills                   # out/sheet.jpg: fifteen moments of the film, timecodes burned in
+npm run player                   # matter-of-place-product-launch.html again, with your change and the soundtrack
+```
+
+The soundtrack is fixed audio, so a change that moves things in time needs the voice-over mixed again (the voice tools are in the Brand Film Kit).
+
+### Make the MP4 again
+
+It needs Node.js 18 or newer, ffmpeg, and about an hour of computer time. The commands are for macOS or Linux; on Windows use WSL.
+
+```bash
+npm install
+npx playwright install chromium
+npm run build
+cp dist/dev.html dist/render.html
+FILM_PAGE=dist/render.html nohup node export.js 60 0 1800 0 2 > x0.log 2>&1 &
+FILM_PAGE=dist/render.html nohup node export.js 60 0 1800 1 2 > x1.log 2>&1 &
+# when both logs say "finished" (tail -n 1 x0.log x1.log):
+node audio.js                                          # out/score.wav, the music
+bash encode.sh matter-of-place-product-launch 60 6000  # out/matter-of-place-product-launch.mp4, music only
+bash add-voice.sh                                      # out/matter-of-place-product-launch-vo.mp4, with the voice-over
+```
+
+Each frame is the average of several renders (that is where the motion blur, the depth of field and the soft shadows come from), so rendering is slow without a graphics card.
+
+Checked on 15 October 2026: built from this folder, frames come out byte for byte the same as the delivered film's, apart from a few frames in the opening door shot that differ by one shade in a few pixels. The music matches to the last bit of rounding. `add-voice.sh`, run on the delivered film, gives back the delivered film with voice byte for byte.

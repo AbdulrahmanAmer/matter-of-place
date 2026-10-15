@@ -1,0 +1,17 @@
+{
+  "name": "matter-of-place-product-launch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Matter of Place, Product Launch: the 30-second film as code",
+  "scripts": {
+    "build": "node build.js",
+    "stills": "node stills.js \"0.4,2,5,7,9.5,11.9,13.5,16,18,19.5,21,23,25.5,28,29.5\" 5 640 sheet",
+    "score": "node audio.js",
+    "test": "node pagetest.js",
+    "player": "node make-player.js"
+  },
+  "dependencies": {
+    "playwright": "1.56.0",
+    "three": "0.128.0"
+  }
+}
