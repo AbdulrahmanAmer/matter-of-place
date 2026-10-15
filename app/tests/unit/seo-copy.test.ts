@@ -6,6 +6,7 @@ import {
   archiveDescription,
   marketDescription,
   marketGuideDescription,
+  marketGuideTitle,
   pageDescription,
   pageDescriptionKeys,
   propertyDescription,
@@ -52,14 +53,43 @@ const sample = {
 };
 const longWord = "Architecture ".repeat(30).trim();
 
+// Ruling H112: "luxury" names what an agent markets, so the Exposure page may say it; no other page, and no data text.
+const LUXURY_ALLOWED = new Set(["exposure"]);
+
 describe("page descriptions", () => {
   it.each(pageDescriptionKeys)("%s follows the copy rules", (key) => {
-    expect(copyRuleBreaks(pageDescription(key))).toEqual([]);
+    const text = pageDescription(key);
+    expect(
+      copyRuleBreaks(LUXURY_ALLOWED.has(key) ? text.replace(/\bluxury\b/gi, "plain") : text),
+    ).toEqual([]);
+  });
+
+  it("says luxury on the Exposure page only (H112)", () => {
+    expect(pageDescriptionKeys.filter((key) => /\bluxury\b/i.test(pageDescription(key)))).toEqual([
+      "exposure",
+    ]);
   });
 
   it("gives every page its own description", () => {
     const all = pageDescriptionKeys.map((key) => pageDescription(key));
     expect(new Set(all).size).toBe(all.length);
+  });
+});
+
+describe("the market guides' titles", () => {
+  it("name the architecture people search for, short enough for the site name under 60", () => {
+    const titles = markets.map((market) => marketGuideTitle(market));
+    expect(titles).toEqual(
+      markets.map((market) =>
+        market.slug === "new-york"
+          ? "Historic and Modern Homes in New York"
+          : `Architect-Designed Homes in ${market.name}`,
+      ),
+    );
+    for (const title of titles) {
+      expect(`${title} | Matter of Place`.length).toBeLessThanOrEqual(60);
+      expect(BANNED.test(title)).toBe(false);
+    }
   });
 });
 

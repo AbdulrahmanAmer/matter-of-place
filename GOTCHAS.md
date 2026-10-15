@@ -8071,26 +8071,32 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
 - added: 2026-10-15
 
-## P-3513 · Edge's command-line screenshot is written in seconds, then Edge holds on for a minute, keeps its profile locked and cannot open a phone-width window
-- symptom: 2026-10-15, the email gallery (`app/scripts/email-gallery.ts`): one `msedge --headless=new --screenshot` took 68 s; the next shot with the same `--user-data-dir` failed with `Lock file can not be created! Error code: 32`; and `--window-size=390,6000` drew the page cut off on the right, while the same HTML in Edge driven by Playwright at a 390 px viewport measured `scrollWidth 390`.
-- cause: headless Edge on Windows lingers after it writes the file, its helpers keep the profile open, and its window keeps a desktop minimum width.
-- rule: draw every email through Playwright with `channel: "msedge"`, run by Node: since the email houses (2026-10-15) the gallery takes all its pictures that way (`app/scripts/lib/email-gallery-shots.mjs`) and never starts Edge's command line. If the command line is ever needed again, end Edge's process tree (`taskkill /PID <pid> /T /F`) as soon as its stderr says `bytes written to file` and give every shot its own profile folder in the OS temp dir.
-- proof: `cd app && bun run scripts/email-gallery.ts received` prints `received <n> bytes` and `desktop: 1 emails, no sideways scroll` within a minute.
-- renumbered: was a second P-3481 (the number the `dontAsk` entry keeps); found by `node workspace/05-plans/check-gotchas.mjs` after the merge of 2026-10-15.
+## P-3490 · E: filled up under a second `bun install`: "Failed to install 132 packages" exit 0, then ENOSPC on every Write
+- symptom: 2026-10-15, W9: the second worktree's `bun install --frozen-lockfile` printed `801 packages installed` and `Failed to install 132 packages` and exited 0; the next Write failed `ENOSPC: no space left on device`, and `df -h /e` showed `200G 200G 0 100%`. About forty worktrees under `E:\mop-build` each hold their own `app/node_modules`.
+- cause: bun reports a partial install as success, and every lane copies the whole dependency tree.
+- rule: before a second install on this laptop run `df -h /e`; a lane built from the same `origin/main` (same `bun.lock`) links to an installed lane instead of installing: `cmd //c "mklink /J E:\\mop-build\\<new>\\app\\node_modules E:\\mop-build\\<installed>\\app\\node_modules"`. Remove the linked lane before the one it points at, and never `git worktree remove` the installed lane while a junction points at it. Treat "Failed to install" as a failure whatever the exit code.
+- proof: `df -h /e` → `Avail 0` before; after removing the broken copy and linking, `ls E:/mop-build/w9-2/app/node_modules/.bin | head -1` → `acorn.bunx` and the lane's vitest runs.
 - added: 2026-10-15
 
-## P-3482 · Drive E: was full: about seventy worktrees under E:/mop-build each carry their own node_modules
-- symptom: 2026-10-15 09:12 +0300, `sed -i` in the email worktree failed with `No space left on device`; `df -h /e` printed `200G 200G 1.6M 100%`, and E:/mop-build held about seventy worktree folders.
-- rule: a long job writes its scratch (browser profiles, renders) to the OS temp dir on C:, never under a worktree; run `df -h /e` before a heavy job; a worktree is removed by the session that made it (`git worktree remove`), never by another.
-- proof: `df -h /e | tail -1` printed `200G 200G 71M 100%` at 09:20 +0300, after the gallery's Edge profiles moved to C:.
+## P-3491 · `git reset --soft origin/main` in a lane took a newer main than the one merged: the commit undid 13 files of main
+- symptom: 2026-10-15, W9 item 2: after `git merge origin/main` the lane squashed with `git reset --soft origin/main && git commit`; `git diff --name-only origin/main` then listed `send-email.ts`, `settings.ts`, `services/http/index.ts` and ten tests the item never touched. The pushed commit carried older copies of them.
+- cause: every worktree shares one set of remote refs, and another session's `git fetch` in `E:\Matter Of Place` moved `origin/main` between the merge and the reset. The reset took the new main as parent while the index still held the tree merged with the old one.
+- rule: never squash onto a moving ref name. Pin it first (`base=$(git rev-parse origin/main)`), merge `$base`, reset to `$base`; before every push check `git diff --name-only $base HEAD` lists only the item's files. To repair without a force-push: `git diff --binary <old main> HEAD > item.patch`, `git read-tree -u --reset <new main>`, `git apply --3way item.patch`, commit on top.
+- proof: `git -C E:/mop-build/w9-2 diff --name-only d981cf6f 96ca1f46 | wc -l` → `27`, the item's files only (`49d5e668` alone showed 40).
 - added: 2026-10-15
 
-## P-3483 · A table of fixed width with `max-width: 100%` does not shrink to a phone screen
-- symptom: 2026-10-15, the first redesigned email column was `width:600px; max-width:100%`; in Edge at a 390 px viewport the page measured `scrollWidth 604` and the letter ran off the screen.
-- cause: a browser does not apply `max-width` to a table whose width is fixed.
-- rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-col{width:100%!important}` (the houses of 2026-10-15); every email is drawn at 375 px by `app/scripts/lib/email-gallery-shots.mjs`, which refuses a sideways scroll.
-- proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone: 1 emails, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-col` rule and the same run goes red on `received: scrollWidth <n> at 375 px`.
-- enforced-by: app/scripts/lib/email-gallery-shots.mjs
+## P-3492 · A form check that asks outside DNS refused CI's own test addresses: `.invalid` has no name and example.com publishes a null MX
+- symptom: 2026-10-15, W9 item 1 (#412): the db job's api tests failed `expected 422 to be 201` and `no token number 0` in `subscribers.api.test.ts` and `submissions.api.test.ts` once the public pipeline refused addresses on domains that receive no email.
+- cause: the fixtures post `@fixtures.invalid`, `@example.invalid` and `@example.com`; DNS-over-HTTPS answers NXDOMAIN for `.invalid` and a null MX (`0 .`) for example.com, so the honest verdict was `domain_has_no_mail`. Unit tests stub fetch, so only CI, with the network, saw it.
+- rule: any check that consults the outside world about an address or a host answers "not looked up" for the RFC 2606/6761 names (`*.test`, `*.example`, `*.invalid`, `*.localhost`, `example.com/net/org`) before it calls out, as `src/lib/email-check.ts` `RESERVED` does; and a unit test's sample domain is a plausible real one, never example.com, or the guard turns the test vacuous.
+- proof: `cd app && bunx vitest run --project unit tests/unit/email-check.test.ts -t "never looked up"` passes; registry `W9:w9-1-reserved-names` turns it red.
+- added: 2026-10-15
+
+## P-3493 · CI's db job replays every registry entry whose file the PR touches, so an entry already stale on main fails the PR that edits its file
+- symptom: 2026-10-15, W9 item 3 (#415): the db job ended `watchfail: replayed 127: ok 126, bad 0, stale 1` with `STALE B8:en-emit: find occurs 0 times in src/server/lib/events.ts`; the PR had only added one line to that file's list.
+- cause: `p_entity_id: event.entityId,` had become `...(event.entityId === null ? {} : { p_entity_id: event.entityId })` on main long before; nothing replays an entry until a PR touches its file (`--changed`).
+- rule: before pushing a change to a file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` and repair every STALE it names for that file, including entries that were stale before you came; replay each with `--only <id>`.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only en-emit` → `WATCHED-FAIL OK B8:en-emit`.
 - added: 2026-10-15
 
 ## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
@@ -8154,6 +8160,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node --env-file=.env gsc-all.mjs` from E:/mop-build/live lists all 18 sitemap pages with verdict and last crawl.
 - added: 2026-10-15
 
+## P-3481 · Under `--permission-mode dontAsk` a headless run is refused every tool it is not given with `--allowedTools`, so a designer told to write a scene writes nothing
+- symptom: 2026-10-15 11:14 to 11:20, the first real requested reel (`studio/2026-10-15-not-every-home`) failed `scene_missing: scene.html`: the designer run ended normally with an empty `scene/`. A probe with the same arguments (`claude -p ... --restricted --permission-mode dontAsk --disallowedTools Bash,...`) asked to write `probe.txt` answered `"permission_denials":[{"tool_name":"Write",...}]` and wrote nothing.
+- cause: `dontAsk` denies whatever is not allowed; `--disallowedTools` only removes tools, it allows none. Colleague runs never needed a file tool, so the gap never showed.
+- rule: a headless run that must read or write files names them in `--allowedTools` (`studioTools` in `scripts/workforce/reel.ts`: the designer Read, Write, Edit, Glob, Grep; the reviewer Read, Glob, Grep), keeps `--restricted` so writes stay in its working folder, and the run's caller checks the files exist before using them (the pass does: `scene_missing`).
+- proof: the same probe with `--allowedTools "Read,Write,Edit,Glob,Grep"` wrote `probe.txt` and was refused `../outside-probe.txt` ("the session is restricted to the working directory"), measured 2026-10-15; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "lets the designer write"`.
+- added: 2026-10-15
+
+## P-3482 · Drive E: was full: about seventy worktrees under E:/mop-build each carry their own node_modules
+- symptom: 2026-10-15 09:12 +0300, `sed -i` in the email worktree failed with `No space left on device`; `df -h /e` printed `200G 200G 1.6M 100%`, and E:/mop-build held about seventy worktree folders.
+- rule: a long job writes its scratch (browser profiles, renders) to the OS temp dir on C:, never under a worktree; run `df -h /e` before a heavy job; a worktree is removed by the session that made it (`git worktree remove`), never by another.
+- proof: `df -h /e | tail -1` printed `200G 200G 71M 100%` at 09:20 +0300, after the gallery's Edge profiles moved to C:.
+- added: 2026-10-15
+
+## P-3483 · A table of fixed width with `max-width: 100%` does not shrink to a phone screen
+- symptom: 2026-10-15, the first redesigned email column was `width:600px; max-width:100%`; in Edge at a 390 px viewport the page measured `scrollWidth 604` and the letter ran off the screen.
+- cause: a browser does not apply `max-width` to a table whose width is fixed.
+- rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-col{width:100%!important}` (the houses of 2026-10-15); every email is drawn at 375 px by `app/scripts/lib/email-gallery-shots.mjs`, which refuses a sideways scroll.
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone: 1 emails, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-col` rule and the same run goes red on `received: scrollWidth <n> at 375 px`.
+- enforced-by: app/scripts/lib/email-gallery-shots.mjs
+- added: 2026-10-15
+
 ## P-3478 · `import.meta.dir` is Bun's: a script module that uses it at the top level fails to load under vitest (Node)
 - symptom: 2026-10-15, W7 E2a: `scripts/workforce/reel.ts` set `const REPO = resolve(import.meta.dir, "../../..")`; the runner (bun) is fine, but `bunx vitest run --project unit tests/unit/workforce-reel.test.ts` failed at collection with `TypeError: The "paths[0]" argument must be of type string. Received undefined`, and every test file that imports the module (`answer.ts` too) with it.
 - rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
@@ -8167,11 +8194,46 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `bun app/scripts/matter/read.ts /api/admin/workforce/office` → runs[0] `{"agent_slug":"matter","cause":"schedule","state":"running"}` while the brief read `"state": "queued"`; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "says a reel is being made"` covers the new lock.
 - added: 2026-10-15
 
-## P-3481 · Under `--permission-mode dontAsk` a headless run is refused every tool it is not given with `--allowedTools`, so a designer told to write a scene writes nothing
-- symptom: 2026-10-15 11:14 to 11:20, the first real requested reel (`studio/2026-10-15-not-every-home`) failed `scene_missing: scene.html`: the designer run ended normally with an empty `scene/`. A probe with the same arguments (`claude -p ... --restricted --permission-mode dontAsk --disallowedTools Bash,...`) asked to write `probe.txt` answered `"permission_denials":[{"tool_name":"Write",...}]` and wrote nothing.
-- cause: `dontAsk` denies whatever is not allowed; `--disallowedTools` only removes tools, it allows none. Colleague runs never needed a file tool, so the gap never showed.
-- rule: a headless run that must read or write files names them in `--allowedTools` (`studioTools` in `scripts/workforce/reel.ts`: the designer Read, Write, Edit, Glob, Grep; the reviewer Read, Glob, Grep), keeps `--restricted` so writes stay in its working folder, and the run's caller checks the files exist before using them (the pass does: `scene_missing`).
-- proof: the same probe with `--allowedTools "Read,Write,Edit,Glob,Grep"` wrote `probe.txt` and was refused `../outside-probe.txt` ("the session is restricted to the working directory"), measured 2026-10-15; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "lets the designer write"`.
+## G-1451 · `process.kill(-pid)` throws ESRCH when the child was not spawned detached, and a stop that throws never settles
+- paths: app/scripts/workforce/cli.ts
+- content: process\.kill\(\s*-
+- severity: warn
+- symptom: 2026-10-15, PR 423 CI (Linux): "stops a colleague who prints nothing" and "still honours a hard cap" timed out at 20000 ms with `Error: kill ESRCH`. `killTree` called `process.kill(-pid, "SIGKILL")`; the child was spawned without `detached: true`, so it has no process group; the throw came inside the timer before `fail()`, so the promise never settled. The laptop uses `taskkill`, so weeks of runs here never reached that line.
+- rule: a negative pid needs a child spawned with `detached: true`; otherwise try `kill(-pid)`, fall back to `kill(pid)`, catch "already gone"; settle the promise before killing. A path that only runs on one OS is proven by that OS (CI's Linux), never by the laptop. The `content:` line makes the guard push this entry whenever a negative-pid kill is written in any file; the global hook `~/.claude/hooks/content-pitfalls.mjs` does the same in every project.
+- proof: run 38712728657 (PR 423, check job) → `Error: kill ESRCH`, `Test timed out in 20000ms`; `node .claude/hooks/gotcha-guard.test.mjs` → the two content cases ok.
+- added: 2026-10-15
+
+## P-3500 · A task-gate check that points at a build worktree breaks when the worktree is removed
+- symptom: 2026-10-15, after pruning merged worktrees the Stop hook failed step 6 (`exit 1: | Node.js v24.13.0`): its check ran `E:/mop-build/autonomy/.claude/hooks/task-gate.mjs`, a worktree just removed.
+- rule: a check runs code from main's copy (the runner `E:/mop-build/live`) or the root, never from a lane worktree; lanes are deleted after merge.
+- proof: `node .claude/hooks/task-gate.mjs status .claude/tasks/active.json` → `PASS   6` after repointing to `E:/mop-build/live`.
+- added: 2026-10-15
+
+## P-3501 · `git worktree remove` fails with "Filename too long" and leaves the folder behind
+- symptom: 2026-10-15, removing merged worktrees printed `error: failed to delete 'E:/mop-build/continuous': Filename too long` for four of eight; git dropped them from its list but node_modules stayed on disk (E: had 30 MB free).
+- rule: after `git worktree remove`, delete what is left with the long-path form `cmd /c "rd /s /q \\?\E:\mop-build\<name>"` (scratchpad rm-leftovers.ps1); check free space with `(Get-PSDrive E).Free`.
+- proof: rm-leftovers.ps1 → `deleted continuous` ... `E: free GB: 46.1`.
+- added: 2026-10-15
+
+## P-3479 · The audit robot's Search Console reader aborts under Node on this laptop, and its key is in neither load profile
+- symptom: 2026-10-15, the operator's search assignment: `node workspace/audits/tools/gsc.mjs` printed `Not measured: gsc (GOOGLE_SA_JSON_B64 unset)` with both `load-env.mjs --profile dev` and `--profile ops`; with the key loaded (shell export, then inside Node from the runner's `.env`) it ended `exit 127` and `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76` (Node 24.13 on Windows), the moment it reached the network. Under Bun it signed in, then stopped at `"" cannot be parsed as a URL` (no `SITE_URL`).
+- cause: the key `GOOGLE_SA_JSON_B64` lives only in the runner's `.env` (`E:\mop-build\live\.env`); Node 24 on Windows aborts in libuv when this tool's fetch and exit race; the tool reads the site from `SITE_URL` or `--url`.
+- rule: read Search Console with Bun, the key loaded inside the process from the runner's `.env` (never exported, never printed), and `--url https://matterofplace.com`. The account sees one property, `sc-domain:matterofplace.com` (siteRestrictedUser). A site this new has its queries withheld: read pages and dates for a baseline, and live searches for keyword choice.
+- proof: `bun <wrapper> E:/mop-build/live/.env workspace/audits/tools/gsc.mjs --url https://matterofplace.com` → `Not measured: gsc (Search Console has no queries for sc-domain:matterofplace.com in 28 days)`, exit 0; a 90-day `searchAnalytics/query` by page → `/` 1 impression (position 2), `/stories` 1 (position 40), all on 2026-10-12 (measured 2026-10-15).
+- added: 2026-10-15
+
+## P-3494 · `workspace/audits/keywords.json` is pinned by its count in `tests/unit/audit/gsc.test.ts`, and no test names the file
+- symptom: 2026-10-15, the search assignment added 9 owned terms (24 to 33); the full check failed `gsc collect > signs the token request ... and writes keywords` with `- "total": 24, + "total": 33`, one check cycle lost. A grep of `app/tests` for `keywords.json` found nothing: the test reaches the file through `workspace/audits/tools/gsc.mjs`.
+- rule: a change to the audit robot's data files (`workspace/audits/*.json`) greps `app/tests/unit/audit` for the tool that reads it (`gsc.test.ts` for keywords) and updates its pinned count in the same commit, with a comment saying where the number comes from.
+- proof: `cd app && bunx vitest run --project unit tests/unit/audit/gsc.test.ts` → `Tests  ... passed` with `total: 33`; with 24 it fails as above (measured 2026-10-15).
+- added: 2026-10-15
+
+## P-3513 · Edge's command-line screenshot is written in seconds, then Edge holds on for a minute, keeps its profile locked and cannot open a phone-width window
+- symptom: 2026-10-15, the email gallery (`app/scripts/email-gallery.ts`): one `msedge --headless=new --screenshot` took 68 s; the next shot with the same `--user-data-dir` failed with `Lock file can not be created! Error code: 32`; and `--window-size=390,6000` drew the page cut off on the right, while the same HTML in Edge driven by Playwright at a 390 px viewport measured `scrollWidth 390`.
+- cause: headless Edge on Windows lingers after it writes the file, its helpers keep the profile open, and its window keeps a desktop minimum width.
+- rule: draw every email through Playwright with `channel: "msedge"`, run by Node: since the email houses (2026-10-15) the gallery takes all its pictures that way (`app/scripts/lib/email-gallery-shots.mjs`) and never starts Edge's command line. If the command line is ever needed again, end Edge's process tree (`taskkill /PID <pid> /T /F`) as soon as its stderr says `bytes written to file` and give every shot its own profile folder in the OS temp dir.
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `received <n> bytes` and `desktop: 1 emails, no sideways scroll` within a minute.
+- renumbered: was a second P-3481 (the number the `dontAsk` entry keeps); found by `node workspace/05-plans/check-gotchas.mjs` after the merge of 2026-10-15.
 - added: 2026-10-15
 
 ## G-1470 · Cells of one table row share its height: a 2 px hairline cell beside a line of text is drawn as a block
@@ -8202,27 +8264,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bun run layout` exits 0 with `public/email/door-night.gif` in the tree.
 - added: 2026-10-15
 
-## G-1451 · `process.kill(-pid)` throws ESRCH when the child was not spawned detached, and a stop that throws never settles
-- paths: app/scripts/workforce/cli.ts
-- content: process\.kill\(\s*-
-- severity: warn
-- symptom: 2026-10-15, PR 423 CI (Linux): "stops a colleague who prints nothing" and "still honours a hard cap" timed out at 20000 ms with `Error: kill ESRCH`. `killTree` called `process.kill(-pid, "SIGKILL")`; the child was spawned without `detached: true`, so it has no process group; the throw came inside the timer before `fail()`, so the promise never settled. The laptop uses `taskkill`, so weeks of runs here never reached that line.
-- rule: a negative pid needs a child spawned with `detached: true`; otherwise try `kill(-pid)`, fall back to `kill(pid)`, catch "already gone"; settle the promise before killing. A path that only runs on one OS is proven by that OS (CI's Linux), never by the laptop. The `content:` line makes the guard push this entry whenever a negative-pid kill is written in any file; the global hook `~/.claude/hooks/content-pitfalls.mjs` does the same in every project.
-- proof: run 38712728657 (PR 423, check job) → `Error: kill ESRCH`, `Test timed out in 20000ms`; `node .claude/hooks/gotcha-guard.test.mjs` → the two content cases ok.
-- added: 2026-10-15
-
-## P-3500 · A task-gate check that points at a build worktree breaks when the worktree is removed
-- symptom: 2026-10-15, after pruning merged worktrees the Stop hook failed step 6 (`exit 1: | Node.js v24.13.0`): its check ran `E:/mop-build/autonomy/.claude/hooks/task-gate.mjs`, a worktree just removed.
-- rule: a check runs code from main's copy (the runner `E:/mop-build/live`) or the root, never from a lane worktree; lanes are deleted after merge.
-- proof: `node .claude/hooks/task-gate.mjs status .claude/tasks/active.json` → `PASS   6` after repointing to `E:/mop-build/live`.
-- added: 2026-10-15
-
-## P-3501 · `git worktree remove` fails with "Filename too long" and leaves the folder behind
-- symptom: 2026-10-15, removing merged worktrees printed `error: failed to delete 'E:/mop-build/continuous': Filename too long` for four of eight; git dropped them from its list but node_modules stayed on disk (E: had 30 MB free).
-- rule: after `git worktree remove`, delete what is left with the long-path form `cmd /c "rd /s /q \\?\E:\mop-build\<name>"` (scratchpad rm-leftovers.ps1); check free space with `(Get-PSDrive E).Free`.
-- proof: rm-leftovers.ps1 → `deleted continuous` ... `E: free GB: 46.1`.
-- added: 2026-10-15
-
 ## P-3514 · A `--changed` replay of a change to the email tests selects about 230 entries: about four hours on this laptop, alphabetical, the new entries last
 - symptom: 2026-10-15, email houses (PR 426): `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` selected about 233 entries (B5 126, B11 37, B9 25, email-redesign 17, email-houses 14), because the change touched `render.test.ts`, `lint.test.ts`, `send-email.test.ts` and the templates; it ran at about one entry a minute, in registry-file order, so the 14 new and 24 retargeted entries would have come after three hours. Stopped mid-entry, it left its mutation in `standalone.tsx` (P-3444).
 - rule: replay in order of risk: the new and retargeted entries first, from an ordered set built outside the repository (`--registry <dir>` takes any folder of registry files), then the rest; never stop a replay without `git status` and a `git checkout -- <file>` of what it left mutated, and never commit while one runs. The long tail can be left to CI's db job, which replays the same selection (`--kinds unit,sql`) in about five minutes; the manual entries it skips are replayed by hand.
@@ -8241,41 +8282,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `scripts/lib/email-shots-page.mjs` calls `chromium.launch()`, which wants the headless shell of the installed Playwright (1.64.0, build 1248); nothing installs browsers on this laptop when Playwright moves, and CI never runs the script (the entry is manual for that reason).
 - rule: before replaying by hand an entry whose run starts Playwright's Chromium (`bun run email:shots`), run `cd app && bunx playwright install chromium-headless-shell`, then the control `bun run email:shots`, which must exit 0; a `wrong reason` whose output says `Executable doesn't exist` is this, not a weak assertion.
 - proof: after the install, `cd app && bun run email:shots` exited 0 with `ok received 600x1949` and fifteen more `ok` lines, and the hand replay of `b5-shots-overflow-600` printed `WATCHED-FAIL OK src/templates/email/blocks/band.tsx` (2026-10-15).
-- added: 2026-10-15
-
-## P-3490 · E: filled up under a second `bun install`: "Failed to install 132 packages" exit 0, then ENOSPC on every Write
-- symptom: 2026-10-15, W9: the second worktree's `bun install --frozen-lockfile` printed `801 packages installed` and `Failed to install 132 packages` and exited 0; the next Write failed `ENOSPC: no space left on device`, and `df -h /e` showed `200G 200G 0 100%`. About forty worktrees under `E:\mop-build` each hold their own `app/node_modules`.
-- cause: bun reports a partial install as success, and every lane copies the whole dependency tree.
-- rule: before a second install on this laptop run `df -h /e`; a lane built from the same `origin/main` (same `bun.lock`) links to an installed lane instead of installing: `cmd //c "mklink /J E:\\mop-build\\<new>\\app\\node_modules E:\\mop-build\\<installed>\\app\\node_modules"`. Remove the linked lane before the one it points at, and never `git worktree remove` the installed lane while a junction points at it. Treat "Failed to install" as a failure whatever the exit code.
-- proof: `df -h /e` → `Avail 0` before; after removing the broken copy and linking, `ls E:/mop-build/w9-2/app/node_modules/.bin | head -1` → `acorn.bunx` and the lane's vitest runs.
-- added: 2026-10-15
-
-## P-3491 · `git reset --soft origin/main` in a lane took a newer main than the one merged: the commit undid 13 files of main
-- symptom: 2026-10-15, W9 item 2: after `git merge origin/main` the lane squashed with `git reset --soft origin/main && git commit`; `git diff --name-only origin/main` then listed `send-email.ts`, `settings.ts`, `services/http/index.ts` and ten tests the item never touched. The pushed commit carried older copies of them.
-- cause: every worktree shares one set of remote refs, and another session's `git fetch` in `E:\Matter Of Place` moved `origin/main` between the merge and the reset. The reset took the new main as parent while the index still held the tree merged with the old one.
-- rule: never squash onto a moving ref name. Pin it first (`base=$(git rev-parse origin/main)`), merge `$base`, reset to `$base`; before every push check `git diff --name-only $base HEAD` lists only the item's files. To repair without a force-push: `git diff --binary <old main> HEAD > item.patch`, `git read-tree -u --reset <new main>`, `git apply --3way item.patch`, commit on top.
-- proof: `git -C E:/mop-build/w9-2 diff --name-only d981cf6f 96ca1f46 | wc -l` → `27`, the item's files only (`49d5e668` alone showed 40).
-- added: 2026-10-15
-
-## P-3492 · A form check that asks outside DNS refused CI's own test addresses: `.invalid` has no name and example.com publishes a null MX
-- symptom: 2026-10-15, W9 item 1 (#412): the db job's api tests failed `expected 422 to be 201` and `no token number 0` in `subscribers.api.test.ts` and `submissions.api.test.ts` once the public pipeline refused addresses on domains that receive no email.
-- cause: the fixtures post `@fixtures.invalid`, `@example.invalid` and `@example.com`; DNS-over-HTTPS answers NXDOMAIN for `.invalid` and a null MX (`0 .`) for example.com, so the honest verdict was `domain_has_no_mail`. Unit tests stub fetch, so only CI, with the network, saw it.
-- rule: any check that consults the outside world about an address or a host answers "not looked up" for the RFC 2606/6761 names (`*.test`, `*.example`, `*.invalid`, `*.localhost`, `example.com/net/org`) before it calls out, as `src/lib/email-check.ts` `RESERVED` does; and a unit test's sample domain is a plausible real one, never example.com, or the guard turns the test vacuous.
-- proof: `cd app && bunx vitest run --project unit tests/unit/email-check.test.ts -t "never looked up"` passes; registry `W9:w9-1-reserved-names` turns it red.
-- added: 2026-10-15
-
-## P-3493 · CI's db job replays every registry entry whose file the PR touches, so an entry already stale on main fails the PR that edits its file
-- symptom: 2026-10-15, W9 item 3 (#415): the db job ended `watchfail: replayed 127: ok 126, bad 0, stale 1` with `STALE B8:en-emit: find occurs 0 times in src/server/lib/events.ts`; the PR had only added one line to that file's list.
-- cause: `p_entity_id: event.entityId,` had become `...(event.entityId === null ? {} : { p_entity_id: event.entityId })` on main long before; nothing replays an entry until a PR touches its file (`--changed`).
-- rule: before pushing a change to a file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` and repair every STALE it names for that file, including entries that were stale before you came; replay each with `--only <id>`.
-- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only en-emit` → `WATCHED-FAIL OK B8:en-emit`.
-- added: 2026-10-15
-
-## P-3479 · The audit robot's Search Console reader aborts under Node on this laptop, and its key is in neither load profile
-- symptom: 2026-10-15, the operator's search assignment: `node workspace/audits/tools/gsc.mjs` printed `Not measured: gsc (GOOGLE_SA_JSON_B64 unset)` with both `load-env.mjs --profile dev` and `--profile ops`; with the key loaded (shell export, then inside Node from the runner's `.env`) it ended `exit 127` and `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76` (Node 24.13 on Windows), the moment it reached the network. Under Bun it signed in, then stopped at `"" cannot be parsed as a URL` (no `SITE_URL`).
-- cause: the key `GOOGLE_SA_JSON_B64` lives only in the runner's `.env` (`E:\mop-build\live\.env`); Node 24 on Windows aborts in libuv when this tool's fetch and exit race; the tool reads the site from `SITE_URL` or `--url`.
-- rule: read Search Console with Bun, the key loaded inside the process from the runner's `.env` (never exported, never printed), and `--url https://matterofplace.com`. The account sees one property, `sc-domain:matterofplace.com` (siteRestrictedUser). A site this new has its queries withheld: read pages and dates for a baseline, and live searches for keyword choice.
-- proof: `bun <wrapper> E:/mop-build/live/.env workspace/audits/tools/gsc.mjs --url https://matterofplace.com` → `Not measured: gsc (Search Console has no queries for sc-domain:matterofplace.com in 28 days)`, exit 0; a 90-day `searchAnalytics/query` by page → `/` 1 impression (position 2), `/stories` 1 (position 40), all on 2026-10-12 (measured 2026-10-15).
 - added: 2026-10-15
 
 ## P-3520 · The gate's catch-up merged into a stale worktree, the push was refused in silence, and it printed "main merged" eight times
