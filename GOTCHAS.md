@@ -8400,3 +8400,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run `bun run layout` from `app/` before every push that adds a file; a file in an existing folder is added to that folder's row in `scripts/check-layout.mjs`, a new folder needs its STANDARDS row too (or the file goes under an existing folder, as PR 439's did). The builders' How block says so.
 - proof: `cd app && bun run layout` → `layout: OK (3451 files)` on PR 443 with `settings-terminal.json` in the `scripts/workforce` row, and `outside the folder map` without it (2026-10-16).
 - added: 2026-10-16
+
+## P-3580 · A new feature folder passed every local check and was missing from the folder map: CI's layout check fails with "outside the folder map"
+- symptom: 2026-10-16, PR 442 (W7 3): `bun run layout` printed `app/src/admin/campaigns/CampaignsPage.tsx: outside the folder map` for 8 files (`src/admin/campaigns`, `src/server/campaigns`, `tests/unit/campaigns`). The first build ran tsc, eslint, prettier and the tests but not `layout`, so the branch would have failed CI's check.
+- rule: a new folder under `src/admin`, `src/server` or `tests/unit` is added to `ADMIN_FEATURES`, `SERVER_DOMAINS` or `UNIT_AREAS` in `app/scripts/check-layout.mjs` in the same change, and `bun run layout` runs before the first push.
+- proof: `cd app && bun run layout` → `layout: OK`; with `campaigns` removed from `ADMIN_FEATURES` it lists the `src/admin/campaigns` files as outside the folder map.
+- added: 2026-10-16
+
+## P-3581 · A date taken with `new Date().toISOString().slice(0, 10)` is the UTC day, so a market's state flips hours early or late
+- symptom: 2026-10-16, PR 442 review: the Campaigns list showed a California campaign ending Nov 5 as `Ended` at 5 PM Pacific on Nov 5 (UTC is already Nov 6), and a New York campaign starting Oct 5 as `Running` from 9 PM Eastern on Oct 4.
+- rule: the day of a market is `dayInZone(now, marketTimezone(slug))` from `src/domain/market-time.ts`; never slice an ISO string for a business date (R29: business dates use an explicit IANA zone).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-3-screen-market-day` → `WATCHED-FAIL OK` (the zone replaced by UTC turns `keeps a California campaign running through the evening of its last day` red); `--only w7-3-market-day-zone` likewise for `dayInZone`.
+- added: 2026-10-16
