@@ -1939,6 +1939,26 @@ first day of the new usage week; no step was cut from any plan.
   (subscriber.created holds a sealed token). Proof: unit 5 and component 24 passed, registry W7-5.json 14 entries
   WATCHED-FAIL OK, both tsc, eslint, prettier, knip exit 0. NOT DONE: a browser look at the real page (admin sign-in is a
   magic link; rendered text observed in the component test only). Bank grew: P-3560 to P-3562.
+
+- 2026-10-16 00:40 +0300 (Matter, live session 031029be): Merged today since the last block: 434 (W8 0a to 0c), 436,
+  440 (W8 0d, the decision half). Builders (Sonnet 5.5, high): W7 5 (PR 438, the operator gates it), W7 6 (PR 439, CI
+  red three times on rules the builder never ran: the job runner's Deno graph, the admin route import sweep, the folder
+  map; the link check now lives in `src/server/settings/redirect-links/service.ts`, P-3572), W7 2 (PR 441, its fresh
+  Opus review failed on a sql mutation that only compiled to an error; a fix builder is on it), W7 3 (PR 442, review
+  passed with mediums, CI's layout check red; a fix builder is on it). The builders' How block now names the route
+  sweep and `bun run layout`.
+  This PR: W8 0e, terminals for work a person or Matter started (ruling H113). Three fresh Opus reviews: the first two
+  failed (a shell reads every secret; deny rules relative to the folder; a planted hook in a desk), the third passed and
+  its medium and lows are closed here. A terminal is Read, Write, Edit, Glob and Grep in `desks/<slug>/work`, allowed
+  only there under dontAsk; no run loads a settings file; the desk is swept of run config (case-blind) before each run;
+  a started run reads only people's and keys' lines; a line to the team or a change to a colleague needs a person or
+  Matter at full power. Measured on the real CLI with decoys (P-3570, P-3571): outside reads refused, an SVG written,
+  run config refused; a planted hook runs under plain `claude -p` and not under the runner's arguments; a planted
+  CLAUDE.md reaches a plain run and not the runner's. The test's account id is built at run time (gitleaks, operator).
+  UNPROVEN: 0e through the runner end to end (a key line waking Social, which writes an SVG; an inquiry run with no
+  tools): the runner runs main, so this proof comes after merge; 0e stays unticked until then. NOT DONE: a table CHECK
+  refusing uuid-shaped slugs (its own migration PR); 0f; 0g waits on the operator's Google Drive.
+  Bank grew: P-3570, P-3571, P-3572.
 - 2026-10-16 01:00 +0300: W7 item 3 review fixes (PR 442, builder, Sonnet 5.5): the state of a campaign is read on its market's
   own day (`dayInZone` in `domain/market-time`, Pacific for California, Eastern otherwise) instead of the UTC day; `campaigns`
   is in `adminKeys` (STUB dropped); `package` is `z.enum(exposurePackages)` in the contract and the service; `marketName`

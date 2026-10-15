@@ -494,6 +494,42 @@
     "expect": "× .*starts a colleague run about an outside message shut off"
   },
   {
+    "id": "w8-0e-person-or-key",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  return woke.author_kind === \"agent\" && keyAccount && ACCOUNT_ID.test(woke.author_id ?? \"\");",
+    "replace": "  return woke.author_kind === \"agent\" && ACCOUNT_ID.test(woke.author_id ?? \"\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*knows a person's line and a line from an unrevoked operator key"
+  },
+  {
+    "id": "w8-0e-message-only",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (cause !== \"message\") return false;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*knows a person's line and a line from an unrevoked operator key"
+  },
+  {
+    "id": "w8-0e-never-outside",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    terminal: !outside && startedInside && agent.slug !== \"matter\",",
+    "replace": "    terminal: startedInside && agent.slug !== \"matter\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*gives a started colleague run file tools in its desk"
+  },
+  {
+    "id": "w8-0e-outside-first",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (outside) return [...base, ...isolatedArgs(HOME)];",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*gives a started colleague run file tools in its desk"
+  },
+  {
     "id": "w8-0d-allowed-answers",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/triage.ts",
@@ -555,5 +591,167 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*lets no colleague take a name"
+  },
+  {
+    "id": "w8-0e-terminal-no-shell",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      ...[\"--tools\", \"Read,Write,Edit,Glob,Grep\", \"--setting-sources\", \"\"],",
+    "replace": "      ...[\"--tools\", \"Read,Write,Edit,Glob,Grep,Bash\", \"--setting-sources\", \"\"],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*gives a started colleague run file tools in its desk"
+  },
+  {
+    "id": "w8-0e-terminal-restricted",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      ...[\"--strict-mcp-config\", \"--mcp-config\", emptyMcpConfig(), \"--restricted\"],",
+    "replace": "      ...[\"--strict-mcp-config\", \"--mcp-config\", emptyMcpConfig()],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*gives a started colleague run file tools in its desk"
+  },
+  {
+    "id": "w8-0e-inside-lines-only",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    (line.author_kind === \"agent\" && ACCOUNT_ID.test(line.author_id))\n",
+    "replace": "    line.author_kind === \"agent\"\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*reads only people's and keys' lines"
+  },
+  {
+    "id": "w8-0e-history-filter",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "            .filter((message) => !startedInside || insideLine(message))",
+    "replace": "            .filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*reads only people's and keys' lines"
+  },
+  {
+    "id": "w8-0e-key-unrevoked",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    .eq(\"user_id\", woke.author_id ?? \"\")\n    .is(\"revoked_at\", null);",
+    "replace": "    .eq(\"user_id\", woke.author_id ?? \"\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*counts a key only while it stands"
+  },
+  {
+    "id": "w8-0e-team-line-person",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  return !steers || decidedBy !== null || proposedAt === \"full\";",
+    "replace": "  return true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*makes a line to the team or a change to a colleague only for a person"
+  },
+  {
+    "id": "w8-0e-team-line-wired",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (!teamLineAllowed(call, row.decided_by, await proposedAt(client, row.run_id)))\n",
+    "replace": "  if (false)\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*makes a line to the team or a change to a colleague only for a person"
+  },
+  {
+    "id": "w8-0e-proposed-power",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  return matterPower(run.cause, line?.author_kind ?? null);",
+    "replace": "  return \"full\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*makes a line to the team or a change to a colleague only for a person"
+  },
+  {
+    "id": "w8-0e-settings-sources",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    // W8 0e (second review): no settings file loads, so nothing a terminal wrote in a desk (a hook in .claude/) runs.\n    \"--setting-sources\",\n    \"\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*loads no settings file into a run without a terminal"
+  },
+  {
+    "id": "w8-0e-desk-sweep",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    if (RUN_CONFIG.has(entry.name.toLowerCase())) rmSync(path, { recursive: true, force: true });\n    else if",
+    "replace": "    if",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*sweeps what configures a run out of the whole desk"
+  },
+  {
+    "id": "w8-0e-own-work-folder",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  return terminal ? join(desk, \"work\") : desk;",
+    "replace": "  return desk;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*sweeps what configures a run out of the whole desk"
+  },
+  {
+    "id": "w8-0e-hire-slug",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "src/domain/workforce.ts",
+    "find": "  slug: hireSlug,\n",
+    "replace": "  slug,\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*never hires a name shaped like an account id"
+  },
+  {
+    "id": "w8-0e-sweep-any-case",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "RUN_CONFIG.has(entry.name.toLowerCase())",
+    "replace": "RUN_CONFIG.has(entry.name)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*sweeps what configures a run out of the whole desk"
+  },
+  {
+    "id": "w8-0e-colleague-change",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    (call.method !== \"GET\" && path.startsWith(\"/api/admin/workforce/agents\"));",
+    "replace": "    false;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*makes a line to the team or a change to a colleague only for a person"
+  },
+  {
+    "id": "w8-0e-full-power-matter-only",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (agent?.slug !== \"matter\") return \"read\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*makes a line to the team or a change to a colleague only for a person"
+  },
+  {
+    "id": "w8-0e-started-inside-for",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  return startedFromInside(cause, woke, await keyAccountLive(client, woke));",
+    "replace": "  return startedFromInside(cause, woke, true);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*decides who started a run and launches it from that"
+  },
+  {
+    "id": "w8-0e-launch-folder",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    cwd: deskFor(home, slug, shape.terminal),",
+    "replace": "    cwd: deskFor(home, slug, true),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*decides who started a run and launches it from that"
+  },
+  {
+    "id": "w8-0e-launch-args",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    args: colleagueArgs(model, shape.research, outside, shape.terminal),",
+    "replace": "    args: colleagueArgs(model, shape.research, outside, true),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*decides who started a run and launches it from that"
   }
 ]
