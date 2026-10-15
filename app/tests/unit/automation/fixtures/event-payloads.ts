@@ -91,4 +91,11 @@ export const eventPayloadExamples: Record<EventType, JsonObject> = {
     request_id: "6f0a7a5e-1c1f-4b0e-9d0b-3c3b1a1f0a07",
     kind: "access",
   },
+  "email.bounced": {
+    submission_id: "4a3c2563-c07a-481d-839b-ad0523827f69",
+    message_id: "c92fcbb1-f62e-4fb8-b186-744307f18dc2",
+    template: "received",
+    reason: "bounce",
+    bounce_type: "Permanent",
+  },
 };
