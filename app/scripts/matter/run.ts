@@ -118,7 +118,7 @@ export function matterPrompt(input: {
     fenced("THREAD", input.thread),
     ...(held
       ? [
-          'When you are done, end with one JSON object on its own: {"reply": "your decision on the held message, plain and short", "task": "a few words for the office board"}.',
+          'When you are done, end with one JSON object on its own: {"reply": "your decision on the held message, plain and short", "task": "a few words for the office board", "allow": true or false}. Set "allow" true only when the person asks something its owner may answer within the source\'s criteria (the reply goes to a person to approve); false leaves it with a person.',
         ]
       : matterTools),
   ].join("\n\n");
