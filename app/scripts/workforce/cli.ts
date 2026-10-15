@@ -47,9 +47,21 @@ export function usageLimitOf(text: string, now: Date = new Date()): Date | null 
 
 function killTree(pid: number | undefined): void {
   if (pid === undefined) return;
-  if (process.platform === "win32")
+  if (process.platform === "win32") {
     spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true });
-  else process.kill(-pid, "SIGKILL");
+    return;
+  }
+  // The child is not started detached, so it has no process group of its own and `kill(-pid)` throws ESRCH (seen on
+  // CI's Linux, 2026-10-15); fall back to the process itself, and never throw for one already gone.
+  try {
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // Already gone.
+    }
+  }
 }
 
 /**
@@ -109,8 +121,8 @@ export function runClaude(input: {
     let stopped = false;
     const stop = (reason: string): void => {
       stopped = true;
-      killTree(child.pid);
       fail(new Error(reason));
+      killTree(child.pid);
     };
     const cap =
       input.timeoutMs === undefined
