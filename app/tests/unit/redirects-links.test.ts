@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { Database } from "../../src/db";
 import type { AdminActor } from "../../src/server/lib/admin-route";
+import { checkLink } from "../../src/server/settings/redirect-links";
 import { listRedirects } from "../../src/server/settings/service";
 import { fakeDb } from "../fixtures/fake-db";
 
@@ -63,10 +64,13 @@ function client(options: {
 }
 
 const read = (db: ReturnType<typeof client>, input: { path?: string; limit?: number } = {}) =>
-  listRedirects(admin, db, {
-    limit: input.limit ?? 50,
-    ...(input.path ? { path: input.path } : {}),
-  });
+  listRedirects(
+    admin,
+    db,
+    { limit: input.limit ?? 50, ...(input.path ? { path: input.path } : {}) },
+    // the route passes the check in (redirect-links.ts), as here
+    checkLink,
+  );
 
 describe("listRedirects, old property addresses", () => {
   it("lists each old slug with the title and current slug of its property, and whether it is published", async () => {

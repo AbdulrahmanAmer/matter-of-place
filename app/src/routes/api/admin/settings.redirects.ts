@@ -8,6 +8,7 @@ import {
   redirectRowSchema,
 } from "../../../domain/admin-settings";
 import { defineAdminRoute } from "../../../server/lib/admin-route";
+import { checkLink } from "../../../server/settings/redirect-links";
 import { archiveRedirect, listRedirects, putRedirect } from "../../../server/settings/service";
 
 export const Route = createFileRoute("/api/admin/settings/redirects")({
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/api/admin/settings/redirects")({
         action: "settings.redirects_get",
         input: redirectListInput,
         output: redirectPageSchema,
-        handler: (ctx, input) => listRedirects(ctx.actor, ctx.db, input),
+        handler: (ctx, input) => listRedirects(ctx.actor, ctx.db, input, checkLink),
       }),
       PUT: defineAdminRoute({
         method: "PUT",

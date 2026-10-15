@@ -21,15 +21,15 @@
     "id": "w7-6-no-path-no-check",
     "test": "tests/unit/redirects-links.test.ts",
     "file": "src/server/settings/service.ts",
-    "find": "    path === undefined ? Promise.resolve(null) : checkLink(db, path),",
-    "replace": "    checkLink(db, path ?? \"/\"),",
+    "find": "    path === undefined || checkLink === undefined ? Promise.resolve(null) : checkLink(db, path),",
+    "replace": "    checkLink === undefined ? Promise.resolve(null) : checkLink(db, path ?? \"/\"),",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
     "expect": "× .*answers no check, and reads no table for it"
   },
   {
     "id": "w7-6-row-source",
     "test": "tests/unit/redirects-links.test.ts",
-    "file": "src/server/settings/service.ts",
+    "file": "src/server/settings/redirect-links.ts",
     "find": "      source: fromRows.has(key) ? \"redirect\" : \"old_address\",",
     "replace": "      source: \"old_address\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
@@ -38,7 +38,7 @@
   {
     "id": "w7-6-published-only",
     "test": "tests/unit/redirects-links.test.ts",
-    "file": "src/server/settings/service.ts",
+    "file": "src/server/settings/redirect-links.ts",
     "find": "    properties: properties.data.filter((row) => row.editorial_state === \"published\"),",
     "replace": "    properties: properties.data,",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
@@ -47,7 +47,7 @@
   {
     "id": "w7-6-active-rows-only",
     "test": "tests/unit/redirects-links.test.ts",
-    "file": "src/server/settings/service.ts",
+    "file": "src/server/settings/redirect-links.ts",
     "find": "  const active = rows.data.filter((row) => row.archived_at === null);",
     "replace": "  const active = rows.data;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
@@ -56,7 +56,7 @@
   {
     "id": "w7-6-pasted-address",
     "test": "tests/unit/redirects-links.test.ts",
-    "file": "src/server/settings/service.ts",
+    "file": "src/server/settings/redirect-links.ts",
     "find": "    return new URL(typed, \"https://site.invalid\").pathname;",
     "replace": "    return typed;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
@@ -65,7 +65,7 @@
   {
     "id": "w7-6-circle",
     "test": "tests/unit/redirects-links.test.ts",
-    "file": "src/server/settings/service.ts",
+    "file": "src/server/settings/redirect-links.ts",
     "find": "    if (seen.has(key) || steps.length >= MAX_HOPS) {",
     "replace": "    if (steps.length >= MAX_HOPS) {",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
