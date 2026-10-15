@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminKeys, invalidateAfterWrite } from "../query";
 import {
   archiveRedirect,
@@ -35,11 +35,19 @@ export const useSaveProducts = () => useSettingsWrite(putProducts);
 /** The dry run of the plans writes nothing, so nothing is read again after it. */
 export const usePreviewProducts = () => useMutation({ mutationFn: previewProducts });
 
-/** One page of the redirects of screen 24, under the settings key so every settings write reads it again. */
-export function useRedirects(cursor: string | null) {
+/**
+ * The redirects of screen 24: a page of the rows, a page of old property addresses and the answer for the link typed,
+ * under the settings key so every settings write reads them again. The last answer stays on screen while the next loads.
+ */
+export function useRedirects(request: {
+  cursor: string | null;
+  oldCursor: string | null;
+  path: string | null;
+}) {
   return useQuery({
-    queryKey: adminKeys.settings.list({ redirects: cursor }),
-    queryFn: () => fetchRedirects(cursor),
+    queryKey: adminKeys.settings.list({ redirects: request }),
+    queryFn: () => fetchRedirects(request),
+    placeholderData: keepPreviousData,
   });
 }
 
