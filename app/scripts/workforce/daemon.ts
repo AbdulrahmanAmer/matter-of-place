@@ -30,7 +30,7 @@ import { knowledgeBlock } from "./knowledge.ts";
 import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
 import { nextReel, queueReel, reelWorking } from "./reel.ts";
-import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
+import { breakerUntil, type CliUsage, isolatedArgs, runClaude, UsageLimitError } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
@@ -88,31 +88,36 @@ function emptyMcpConfig(): string {
   return file;
 }
 
+/**
+ * A colleague's command line. A run about an outside message (W8 fifth review) is shut off like the triage: no tool,
+ * no setting source (so none of the operator's settings, hooks or skills load into it), no MCP server.
+ */
+export function colleagueArgs(model: string, research: boolean, outside: boolean): string[] {
+  const base = ["-p", "--model", model, "--output-format", "stream-json", "--verbose"];
+  if (outside) return [...base, ...isolatedArgs(HOME)];
+  return [
+    ...base,
+    "--strict-mcp-config",
+    "--mcp-config",
+    emptyMcpConfig(),
+    // H101: no shell, no web fetch, files only inside the desk; anything not allowed is refused, never asked.
+    "--restricted",
+    "--permission-mode",
+    "dontAsk",
+    // W2 step 7: a colleague with the research tool may search the web, and nothing more.
+    ...(research ? ["--allowedTools", "WebSearch"] : []),
+  ];
+}
+
 function askClaude(
   prompt: string,
   model: string,
   cwd: string,
   research = false,
+  outside = false,
 ): Promise<{ text: string; session?: string; usage?: CliUsage }> {
   return runClaude({
-    args: [
-      "-p",
-      "--model",
-      model,
-      "--output-format",
-      "stream-json",
-      "--verbose",
-      "--strict-mcp-config",
-      "--mcp-config",
-      emptyMcpConfig(),
-      // H101: no shell, no web fetch, none of the operator's own settings, files only inside the desk; anything
-      // not allowed is refused, never asked.
-      "--restricted",
-      "--permission-mode",
-      "dontAsk",
-      // W2 step 7: a colleague with the research tool may search the web, and nothing more.
-      ...(research ? ["--allowedTools", "WebSearch"] : []),
-    ],
+    args: colleagueArgs(model, research, outside),
     cwd,
     env: childEnv(),
     prompt,
@@ -572,6 +577,7 @@ async function runOnce(client: Db): Promise<boolean> {
             "claude-sonnet-5-5",
           cwd,
           shape.research,
+          triage !== null,
         );
     // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps

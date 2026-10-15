@@ -483,5 +483,14 @@
     "replace": "  return text.slice(0, max);",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*replays no proposal drafted from an outside message"
+  },
+  {
+    "id": "w8-0r5-colleague-isolated",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (outside) return [...base, ...isolatedArgs(HOME)];",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*starts a colleague run about an outside message shut off"
   }
 ]

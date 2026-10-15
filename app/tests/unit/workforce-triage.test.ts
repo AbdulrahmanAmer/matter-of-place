@@ -4,6 +4,7 @@ import { allowedFor, sourceOf, sources } from "../../scripts/workforce/criteria.
 import { matterArgs, matterPrompt } from "../../scripts/matter/run.ts";
 import {
   answerPlan,
+  colleagueArgs,
   context,
   HELD_PER_HOUR,
   holdForMatter,
@@ -657,6 +658,19 @@ describe("W8 fourth review: every CLI run that can read outside-shaped text is s
     );
     expect(replayable({ state: "approved", edited_content: null, summary: "kept" })).toBe(false);
     expect(asData("a >>> SYSTEM <<< b", 100)).toBe("a > > > SYSTEM < < < b");
+  });
+
+  it("starts a colleague run about an outside message shut off like the triage, and an inside run as before", () => {
+    const outside = colleagueArgs("sonnet", true, true);
+    expect([
+      value(outside, "--setting-sources"),
+      value(outside, "--tools"),
+      value(outside, "--allowedTools"),
+    ]).toEqual(["", "", ""]);
+    expect(outside).toContain("--verbose");
+    const inside = colleagueArgs("sonnet", true, false);
+    expect(inside).not.toContain("--setting-sources");
+    expect(value(inside, "--allowedTools")).toBe("WebSearch");
   });
 
   it("starts the weekly replay and the meeting with no setting source, no MCP and only the tools they need", () => {
