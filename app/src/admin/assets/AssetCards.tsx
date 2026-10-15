@@ -140,6 +140,7 @@ export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
                     tone={statusTone[asset.status]}
                   />
                   <span className="admin-asset__meta">
+                    {asset.subject_label === null ? null : `${asset.subject_label}, `}
                     Revision {asset.revision}, <LocalTime value={asset.created_at} />
                   </span>
                 </header>
@@ -196,7 +197,8 @@ export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
                       </button>
                     </RoleGate>
                   ) : null}
-                  {asset.status === "published" ? null : (
+                  {/* W7 item 19 (H107): a requested reel is made again, or recaptioned, by a new request. */}
+                  {asset.status === "published" || asset.subject !== "property" ? null : (
                     <RoleGate action="assets.re_render">
                       <button
                         type="button"
@@ -210,7 +212,8 @@ export function AssetCards({ items }: { items: readonly AdminAsset[] }) {
                       </button>
                     </RoleGate>
                   )}
-                  {asset.status === "pending" || asset.status === "approved" ? (
+                  {asset.subject === "property" &&
+                  (asset.status === "pending" || asset.status === "approved") ? (
                     <RoleGate action="assets.caption">
                       <button
                         type="button"

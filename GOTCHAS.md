@@ -3599,6 +3599,8 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: re-run of 37235569634: production success; `curl -s -o /dev/null -w '%{http_code}' https://matter-of-place.holy-meadow-4327.workers.dev/` → 200; `/properties | grep -ci illustrative` → 0.
 - added: 2026-10-05
 - hit again: 2026-10-08, B7 g1 (step 8): the first deploy of the new preview Worker pr-245 (run 37775917827) failed its smoke on one route, `FAIL .../stories: status 404; no x-request-id; no nosniff`, every other route ok; `curl -D -` on `/stories` six minutes later answered 200 with our headers, and `gh run rerun 37775917827 --failed` passed `preview` in 8m11s. A first preview deploy of a pull request is the same edge race as a first production deploy.
+- hit again: 2026-10-15, PR 398's production deploy (run 38681149258), not a first version: every page ok, then `FAIL .../assets/1UgyGJtQ.js: status 404; cache-control public, s-maxage=60`; the rollback put PR 400's version back, so the merge silently did not ship. The same file answered 200 a few minutes later and `gh run rerun 38681149258 --failed` passed. The H1 follow-up had never landed: `request()` retried only a refused connection. Now `smoke.mjs` asks a 404 asset again every 5 s, six times in all, before it counts; a missing file still fails.
+- enforced-by: app/scripts/smoke.mjs (ASSET_ATTEMPTS), tests/unit/smoke.test.ts "asks an asset that answers 404 again", registry fix-smoke-race.json
 
 ## P-522 · The terminal status line (`ccusage statusline`) took about two of the eight cores all day and leaked sixteen idle copies; the lanes were being measured against a processor a quarter spent
 - symptom: the processor read 99 to 100 percent at five lanes and five was called the cap. A per-process sample over five seconds showed `ccusage.exe` at 24 percent of the machine (about 25 CPU-seconds per status-line refresh, refreshing continuously, parsing every session transcript each time) and sixteen `node ... ccusage/src/cli.js statusline` wrappers from 02:05 to 21:20 of earlier days, idle, 42 MB each.
@@ -5006,6 +5008,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-12, W3 (PR 336): the `--changed origin/main` replay ran while the branch was behind main, so its diff against main was main's own new work (it selected one footer entry) and none of the 14 B7, B8b and B18 entries the admin rework left STALE or BAD; CI's db job found them. Order: `git merge origin/main` first, then the replay; a replay that selects fewer entries than the files you touched is the sign.
 - hit again: 2026-10-08, B10 g9 round 3: three entries of `app/tests/mutations/B10.json` (`b10g9-rs-db-error-throws`, `-usage`, `-vault`) were STALE after the fix round rewrote `isPlatformError`, because their `find` was the old line and only the one-id replays of the 31 entries on `reconcile-social.ts` and `reconcile.ts` showed it. The cost was listed under P-2454, which holds the defect, not the replay rule; this entry is the one to open. Proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b10g9-rs-db-error-throws` → `WATCHED-FAIL OK`.
 - hit again: 2026-10-09, B7 g4: step 14 took the ten `team.*` lines out of `routesPending` in `tests/unit/admin-routes-parity.test.ts`, and the CI `db` job's mutation replay on PR 250 (run 37868492649) ended `replayed 212: ok 211, bad 0, stale 1` on `STALE B7:b7-g1-routes-pending-literal: find occurs 0 times` (its `find` was the `"team.users_list"` line). The entry now anchors on the `"settings.get"` line; both entries on that file (`b7-g1-routes-pending-literal`, `b11-g6-routes-pending-stale`) replayed `WATCHED-FAIL OK` with `--only`. A step that removes `routesPending` lines replays every entry whose `file` is the parity test before the push.
+- hit again: 2026-10-15, Matter, PR 404: a `smoke.test.ts` table case ("an asset that answers 404") moved into a new fake-timer test; only the new entry was replayed with `--only`, and CI's db job ended `WATCHED-FAIL BAD: wrong reason (B1b:smoke-asset-status)` (its `expect` named the old title). The edit-impact hook did not flag it: it reads a title only from an `expect` of the form `× .*title`, and B1b's older entries have no `.*`. Moving or renaming a test title means `--changed origin/main`, never `--only`.
 
 ## P-539 · `watchfail --changed origin/main` skipped a branch's own new registry entry once a merge of main made its target file equal to main's; the entry was stale and only the reviewer saw it
 - symptom: 2026-10-08 04:00, B11 step 7 (review af38d8a4): after `git merge origin/main`, `tests/unit/admin-routes-parity.test.ts` on slice/b11 equalled main's, so `--changed origin/main` listed no diff for it and never selected the branch's new entry `b11-g6-routes-pending-stale`, whose `find` still named the pre-merge list end (`"automation.templates_send_test",
@@ -8083,4 +8086,61 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-column{width:100%!important}`; every email is drawn at 390 px by `app/scripts/lib/email-gallery-phone.mjs`, which refuses a sideways scroll.
 - proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone received 390 px, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-column` rule and the same run goes red on `received: scrollWidth <n> at 390 px` (`WATCHED-FAIL OK`, 2026-10-15).
 - enforced-by: app/scripts/lib/email-gallery-phone.mjs
+- added: 2026-10-15
+
+## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
+- symptom: 2026-10-15, W7 E1: from the desk, `eval "$(node scripts/load-env.mjs --profile dev)"` exported nothing (the
+  desk has no `.env`; the loader reads the one two folders above `scripts/`), then with the main checkout's loader the
+  db project stopped in `tests/db/global-setup.ts` with `Error: refusing: production database`, also for a prelude-only
+  (P-312) run that rolls back.
+- cause: there is one database and it is production now (H35); `assertNotProduction` refuses every db test against it.
+- rule: a branch's new SQL is proven by CI's `db` job (ephemeral stack: `test:db`, then the `sql` and `unit` registry
+  replays of changed entries); locally run only the unit and component projects and their watched-fails, or a native
+  throwaway cluster (P-718). In a worktree without `.env`, load the profile with
+  `node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev` for anything that is not a db test.
+- proof: `sed -n 210,225p .github/workflows/ci.yml` shows `bun run test:db` and `watchfail.mjs ... --kinds unit,sql` in
+  the `db` job; the local run above ends `refusing: production database` at `scripts/lib/assert-not-production.mjs:60`.
+- added: 2026-10-15
+
+## P-3471 · A key added to an event's payload in SQL breaks every older db test that asserts that payload with `toEqual`, and only CI sees it
+- symptom: 2026-10-15, PR 410 (W7 E1): `approve_asset` and `reject_asset` gained `subject` in the `asset.approved` and `asset.rejected` payloads; CI's db job failed 4 of 925 (`tests/db/assets.db.test.ts`, `tests/db/assets-service.db.test.ts`: `+ "subject": "property"`), one CI cycle lost. Locally the db project refuses since the launch switch (P-3468), so no local run could have shown it.
+- cause: B9's tests pin the whole payload with `toEqual`; the slice's own tests covered the new key, and nobody searched for the older assertions.
+- rule: before pushing a change to what an SQL function emits or returns, `git grep -n "<event type or function name>" app/tests/db app/tests/api` and update every exact assertion of it in the same commit; also `git grep -ln "function public.<name>" app/tests/mutations` and regenerate each `sql` entry that carries a whole copy of the function from today's file (only its own mutation removed), or the copy fails on the new key before it reaches its own reason (PR 410's second db run: `B9:b9g1-db-approve-audit` BAD, 216 of 217 ok). The db job is the only run that would catch a miss.
+- proof: `cd app && git grep -n "asset.rejected\|asset.approved" tests/db` lists the two files and their four payload assertions; the db job log of run 38686728451 ends `Tests  4 failed | 919 passed`.
+- added: 2026-10-15
+
+## P-3472 · Zoho warns "verified domain, unauthenticated sender" on our own Resend mail although SPF, DKIM and DMARC all pass
+- symptom: 2026-10-15, admin notices from hello@notify.matterofplace.com showed Zoho's banner. Headers of message 1792039925838153400: `spf=pass`, `dkim=pass` (d=notify.matterofplace.com), `dmarc=pass`. The banner is Zoho's own check for mail claiming the organisation's domain that does not leave through Zoho's servers.
+- rule: our sending subdomains (notify., notes.) are on Zoho Admin › Security & Compliance › Spam Control › Allowed List › Domains (the operator added them; changing a mail security setting is the operator's click, never the agent's). The Allowed List keeps the SPF and DKIM checks; never use the Trusted List, which skips them. Read the headers with the `/messages/<id>/header` endpoint before changing anything.
+- proof: Zoho Allowed Domains lists `notes.matterofplace.com` and `notify.matterofplace.com`; the next admin notice carries no banner.
+- added: 2026-10-15
+
+## P-3473 · Port 25 is blocked from this laptop, through the ISP and through Cloudflare WARP alike
+- symptom: 2026-10-15, SMTP probes to Google, Outlook, Yahoo and Zoho MX on port 25 timed out both directly and with WARP on (Traffic and DNS); port 587 is open.
+- rule: mailbox probing (W9) answers `unknown` when its reachability check on port 25 fails; it never treats a timeout as a bad address. Real probing needs a host whose network allows port 25 (a VPS or another machine). Bounces reach the agents through Resend's webhook instead.
+- proof: `node <scratchpad>/port25.mjs` prints `timeout` for every MX on 25 and `open` on 587.
+- added: 2026-10-15
+
+## P-3474 · An in-session Agent cannot be shown to run at max effort; a headless `claude -p --effort max` can
+- symptom: 2026-10-15, the email redesign was started as an in-session Agent with effort max; the operator pointed out the setting did not reach it. Relaunched as `claude -p --model claude-opus-5-5 --effort max`, confirmed on the process command line.
+- rule: when the operator names a model and effort for a worker, run it headless with `--model` and `--effort` and prove both from the running process (`Get-CimInstance Win32_Process | ? CommandLine -match effort`).
+- proof: the process command line of the email redesign run shows `--effort max`.
+- added: 2026-10-15
+
+## P-3475 · Images in our emails were blocked by Cross-Origin-Resource-Policy: same-site
+- symptom: 2026-10-15, logos and photographs did not render in mail clients; `/email/*` was served with the site-wide `Cross-Origin-Resource-Policy: same-site`.
+- rule: `public/_headers` gives `/email/*` `! Cross-Origin-Resource-Policy` and `Cross-Origin-Resource-Policy: cross-origin` (PR 407); any new path that mail clients load (images, the open pixel) needs the same exception, tested by `tests/unit/headers.test.ts`.
+- proof: `curl -sI https://matterofplace.com/email/<file> | grep -i cross-origin-resource` prints `cross-origin`.
+- added: 2026-10-15
+
+## P-3476 · The public site schema doubles as the settings type, so a new settings field fails the public read path unless it has a default
+- symptom: 2026-10-15, PR 408 added `billing_email` and `listings_email` to `settings.site.contact`; CI failed `http-adapter`, `site-read-path` and B18 `b18-g3-http-refuse` with `ZodError: contact.billing_email Required`, because the cached public state predates the field.
+- rule: a field added to `src/domain/settings.ts` that the public site also parses gets `.default(null)` (or a default) in `src/services/http/index.ts`, and `tests/unit/site-read-path.test.ts` lists it.
+- proof: `cd app && npx vitest run tests/unit/http-adapter.test.ts tests/unit/site-read-path.test.ts` → 33 passed; `node scripts/replay.mjs B18:b18-g3-http-refuse` → WATCHED-FAIL OK.
+- added: 2026-10-15
+
+## P-3477 · Google opened on the wrong account, then index requests were clicked through without reading the page
+- symptom: 2026-10-15, Search Console opened on the default Google account ("you don't have access"); then indexing was requested page after page in one batch without reading what each page said ("No referring sitemaps detected", a referring page outside the sitemap). The operator stopped both.
+- rule: Matter of Place's Google account is slot `/u/4/` in Edge. In any console, read and scroll the whole page and report it before pressing an action button; one page at a time. Index state for many pages comes from the URL Inspection API (scratchpad gsc-state.mjs, the service account is a restricted user), not from clicking.
+- proof: `node --env-file=.env gsc-all.mjs` from E:/mop-build/live lists all 18 sitemap pages with verdict and last crawl.
 - added: 2026-10-15

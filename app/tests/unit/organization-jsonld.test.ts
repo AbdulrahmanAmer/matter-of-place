@@ -4,7 +4,13 @@ import { emptySiteSettings, type SiteSettings } from "../../src/domain/settings"
 import { organizationJsonLd } from "../../src/lib/seo";
 
 const full: SiteSettings = {
-  contact: { email: "hello@example.com", phone: "+1 212 555 0100", privacy_email: null },
+  contact: {
+    email: "hello@example.com",
+    phone: "+1 212 555 0100",
+    privacy_email: null,
+    billing_email: null,
+    listings_email: null,
+  },
   legal: { entity: "Matter of Place LLC", address: "1 Example Street, New York, NY 10001" },
   social: {
     instagram: "https://instagram.com/matterofplace",

@@ -199,6 +199,19 @@ describe("what decides before any platform call", () => {
     expect(posts).toEqual([]);
   });
 
+  it("a requested reel about a market posts nothing and writes no row (W7 item 19)", async () => {
+    const { db, posts } = world({
+      kind: "reel",
+      asset: { subject: "market", property_id: null, market_slug: "california" },
+    });
+    const meta = adapter("instagram");
+    expect(await postToChannel(ctxOf(db), meta, ASSET, LIVE)).toEqual({
+      status: "done",
+      result: "skipped_not_a_property_asset",
+    });
+    expect([posts, meta.publish.mock.calls]).toEqual([[], []]);
+  });
+
   it("a disabled channel returns skipped_disabled and writes no row", async () => {
     const { db, posts } = world({ kind: "cover", enabled: { facebook: false } });
     expect(await postToChannel(ctxOf(db), adapter("facebook"), ASSET, LIVE)).toEqual({

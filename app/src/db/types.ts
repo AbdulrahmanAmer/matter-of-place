@@ -287,14 +287,14 @@ isOneToOne: false
                   ]
                 },"assets": {
                   Row: {
-                    "alt_text": string | null,"approved_at": string | null,"approved_by": string | null,"caption": string | null,"created_at": string,"files": NonNullable<Json>,"id": string,"job_id": string | null,"kind": Database["public"]['Enums']["asset_kind"],"meta": NonNullable<Json>,"property_id": string,"rejection_note": string | null,"render_error": string | null,"revision": number,"status": Database["public"]['Enums']["asset_status"],"updated_at": string
+                    "alt_text": string | null,"approved_at": string | null,"approved_by": string | null,"caption": string | null,"created_at": string,"files": NonNullable<Json>,"id": string,"job_id": string | null,"kind": Database["public"]['Enums']["asset_kind"],"market_slug": string | null,"meta": NonNullable<Json>,"property_id": string | null,"rejection_note": string | null,"render_error": string | null,"revision": number,"status": Database["public"]['Enums']["asset_status"],"story_id": string | null,"subject": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "alt_text"?: string | null,"approved_at"?: string | null,"approved_by"?: string | null,"caption"?: string | null,"created_at"?: string,"files"?: NonNullable<Json>,"id"?: string,"job_id"?: string | null,"kind": Database["public"]['Enums']["asset_kind"],"meta"?: NonNullable<Json>,"property_id": string,"rejection_note"?: string | null,"render_error"?: string | null,"revision"?: number,"status"?: Database["public"]['Enums']["asset_status"],"updated_at"?: string
+                    "alt_text"?: string | null,"approved_at"?: string | null,"approved_by"?: string | null,"caption"?: string | null,"created_at"?: string,"files"?: NonNullable<Json>,"id"?: string,"job_id"?: string | null,"kind": Database["public"]['Enums']["asset_kind"],"market_slug"?: string | null,"meta"?: NonNullable<Json>,"property_id"?: string | null,"rejection_note"?: string | null,"render_error"?: string | null,"revision"?: number,"status"?: Database["public"]['Enums']["asset_status"],"story_id"?: string | null,"subject"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "alt_text"?: string | null,"approved_at"?: string | null,"approved_by"?: string | null,"caption"?: string | null,"created_at"?: string,"files"?: NonNullable<Json>,"id"?: string,"job_id"?: string | null,"kind"?: Database["public"]['Enums']["asset_kind"],"meta"?: NonNullable<Json>,"property_id"?: string,"rejection_note"?: string | null,"render_error"?: string | null,"revision"?: number,"status"?: Database["public"]['Enums']["asset_status"],"updated_at"?: string
+                    "alt_text"?: string | null,"approved_at"?: string | null,"approved_by"?: string | null,"caption"?: string | null,"created_at"?: string,"files"?: NonNullable<Json>,"id"?: string,"job_id"?: string | null,"kind"?: Database["public"]['Enums']["asset_kind"],"market_slug"?: string | null,"meta"?: NonNullable<Json>,"property_id"?: string | null,"rejection_note"?: string | null,"render_error"?: string | null,"revision"?: number,"status"?: Database["public"]['Enums']["asset_status"],"story_id"?: string | null,"subject"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -303,6 +303,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "jobs"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "assets_market_slug_fkey"
+      columns: ["market_slug"]
+isOneToOne: false
+      referencedRelation: "markets"
+      referencedColumns: ["slug"]
     },{
       foreignKeyName: "assets_property_id_fkey"
       columns: ["property_id"]
@@ -315,6 +321,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "submission_list"
       referencedColumns: ["property_id"]
+    },{
+      foreignKeyName: "assets_story_id_fkey"
+      columns: ["story_id"]
+isOneToOne: false
+      referencedRelation: "stories"
+      referencedColumns: ["id"]
     }
                   ]
                 },"audit_log": {
@@ -1972,6 +1984,9 @@ isOneToOne: false
 "record_fanout_failure":
 { Args: { "p_error": string,"p_event_id": string }; Returns: undefined
                            },
+"record_requested_reel":
+{ Args: { "p_alt_text": string,"p_caption": string,"p_files": Json,"p_market"?: string,"p_meta": Json,"p_property"?: string,"p_story"?: string,"p_subject": string }; Returns: string
+                           },
 "record_vendor_usage":
 { Args: { "p_limit"?: number,"p_line": string,"p_note"?: string,"p_used": number }; Returns: string
                            },
@@ -2279,12 +2294,15 @@ isOneToOne: false
 "id": string,
 "job_id": string | null,
 "kind": Database["public"]['Enums']["asset_kind"],
+"market_slug": string | null,
 "meta": NonNullable<Json>,
-"property_id": string,
+"property_id": string | null,
 "rejection_note": string | null,
 "render_error": string | null,
 "revision": number,
 "status": Database["public"]['Enums']["asset_status"],
+"story_id": string | null,
+"subject": string,
 "updated_at": string
             }
                           SetofOptions: {

@@ -45,7 +45,13 @@ const agent: AdminActor = {
 };
 
 const SITE_WITHOUT_ENTITY = {
-  contact: { email: "hello@example.test", phone: null, privacy_email: null },
+  contact: {
+    email: "hello@example.test",
+    phone: null,
+    privacy_email: null,
+    billing_email: null,
+    listings_email: null,
+  },
   legal: { entity: null, address: "1 Test Street, Testville, CA 90000" },
   social: { instagram: null, x: null, linkedin: null },
 };
