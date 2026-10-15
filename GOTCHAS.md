@@ -2103,6 +2103,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a unit test that needs `env.ts` (directly, or through `db.ts`) stubs the variables first and loads the module with a dynamic import after `vi.resetModules()` (`vi.stubEnv("MOP_ENV", "local")`, `vi.stubEnv("RATE_LIMIT_SALT", "salt")`, then `await import(...)`); a test that only needs the type `Db` imports it with `import type`, which loads nothing. Code the job runner shares reads variables with `readVar`, never `env.ts` (G39).
 - proof: `cd app && bunx vitest run --project unit tests/unit/env.test.ts tests/unit/db.test.ts` passes; with the stubs removed from the head of `env.test.ts` it fails at load with the error above (measured 2026-10-03, B3 g1).
 - added: 2026-10-03
+- hit again: 2026-10-16, W7 item 6: `src/server/settings/service.ts` imported `routePath` from `lib/pipeline.ts` and `loadRedirectMap` from `public/redirects.ts`; `pipeline.ts` imports `headers.ts`, which imports `env.ts`, so every test that statically imports the service loaded `env.ts` before `stubAuthEnv()` ran and `tests/unit/admin-redirects.test.ts` answered `GET 503 auth_unavailable` instead of `403 human_only` (unit tests of the new code were green; only the old route test went red). Fix: the two imports are dynamic inside `checkLink`, as `channels/auto-approve.ts` does. Before importing a server module into a service, `grep -n "env\"" ` its import chain (`pipeline`, `headers`, `db`, `session`) and load it lazily if it reaches `env.ts`; run the neighbouring route test of the service, not only your own.
 
 ## G-301 · `AbortSignal.timeout` on a Storage `fetch` also cuts the response body, so `readPublicObject` and the delete batches carry no timeout
 - paths: app/src/server/lib/media-store.ts
@@ -8314,6 +8315,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run --project unit tests/unit/follow.test.ts` → `waits for a run this checkout executes, never for the live session's own goal run` passes; the replaced count makes it fail (registry `runner-follow-live.json`).
 - added: 2026-10-15
 
+## P-3572 · Code split out of an admin service must stay a `service.ts`, and must not be reached by the job runner
+- symptom: 2026-10-15, PR 439: `settings/service.ts` loaded the site's modules lazily for the test-a-link box, and CI's Deno check over the job runner (which reaches that service) failed; the check moved to `settings/redirect-links.ts`, and the next CI failed `tests/unit/admin-authz-sweep.test.ts` (`import only the wrapper, services and domain`), because an admin route file may import only `server/lib/admin-route`, `server/**/service`, `domain/**`, the router and zod.
+- rule: a helper an admin route needs that must stay out of the job runner's graph lives in its own `service.ts` under its area's folder (`src/server/<area>/<name>/service.ts`; a new top folder under `src/server` also needs a STANDARDS row and the folder map, `bun run layout`) and is passed into the shared service by the route; a function there shaped `(actor, db, ...)` is probed by the sweep and must refuse a roleless actor before any database read.
+- proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts` and `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` both pass with `src/server/settings/redirect-links/service.ts`; with the route importing `server/settings/redirect-links` the sweep fails with `expected [ Array(1) ] to deeply equal []`.
+- added: 2026-10-15
+
+## P-3530 · A child process started through a shell drops empty arguments, so the next flag becomes the value
+- symptom: 2026-10-15, the W8 0b proof that the triage starts with no tools: `spawnSync("claude", [..., "--allowedTools", "", "--verbose"], { shell: true })` answered `Error: When using --print, --output-format=stream-json requires --verbose`; the shell had dropped `""` and `--verbose` became the value of `--allowedTools`. The runner itself (`scripts/workforce/cli.ts`) spawns without a shell, so the first proof measured the harness, not the triage.
+- rule: a proof of a CLI's arguments starts the program the way the runner does: by its path, `shell` off (`C:/Users/DELL/.local/bin/claude.exe` here), never through `shell: true` or a string command.
+- proof: the same arguments without a shell → `exit 0`, init event `tools [] mcp_servers []` (scratchpad triage-tools-proof.ts, 2026-10-15).
+- added: 2026-10-15
+
+## P-3532 · A test that passes on the laptop because `~/.mop-workforce` exists failed in CI with ENOENT
+- symptom: 2026-10-15, PR 434: `isolatedArgs` (`app/scripts/workforce/cli.ts`) wrote `no-mcp.json` into `~/.mop-workforce`; every local run passed (the runner made that folder long ago) and CI's check failed three tests with `ENOENT: no such file or directory, open '/home/runner/.mop-workforce/no-mcp.json'`.
+- rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
+- proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
+- added: 2026-10-15
+
 ## P-3560 · `findByRole("table")` is satisfied by the loading skeleton: a component test reads five empty rows
 - symptom: 2026-10-15 (W7 5), the Events panel test awaited `findByRole("table", { name: "Events" })` and then compared the rows' cells: it received five rows of `[""]`. `DataTable` draws its caption and five skeleton rows while `loading`, so the table exists before any data. A test that only waited for the table, "draws no failure table", would also have passed on the skeleton.
 - rule: a component test of a `DataTable` waits for a word of the data (`findByText`) before it reads the table or asserts something is absent.
@@ -8330,16 +8349,4 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-15 (W7 5), `tsc`, `tsc`, `eslint` and `prettier` chained in one background command were stopped at the 10-minute default with eslint unfinished. Run alone with `timeout` 3000000 it finished.
 - rule: start `eslint` as its own background command with the longest `timeout`; never replay the registry while it runs (the replay mutates the files eslint reads).
 - proof: `cd app && bunx eslint --max-warnings 0 src/server/jobs/events.ts` exits 0 given time.
-- added: 2026-10-15
-
-## P-3530 · A child process started through a shell drops empty arguments, so the next flag becomes the value
-- symptom: 2026-10-15, the W8 0b proof that the triage starts with no tools: `spawnSync("claude", [..., "--allowedTools", "", "--verbose"], { shell: true })` answered `Error: When using --print, --output-format=stream-json requires --verbose`; the shell had dropped `""` and `--verbose` became the value of `--allowedTools`. The runner itself (`scripts/workforce/cli.ts`) spawns without a shell, so the first proof measured the harness, not the triage.
-- rule: a proof of a CLI's arguments starts the program the way the runner does: by its path, `shell` off (`C:/Users/DELL/.local/bin/claude.exe` here), never through `shell: true` or a string command.
-- proof: the same arguments without a shell → `exit 0`, init event `tools [] mcp_servers []` (scratchpad triage-tools-proof.ts, 2026-10-15).
-- added: 2026-10-15
-
-## P-3532 · A test that passes on the laptop because `~/.mop-workforce` exists failed in CI with ENOENT
-- symptom: 2026-10-15, PR 434: `isolatedArgs` (`app/scripts/workforce/cli.ts`) wrote `no-mcp.json` into `~/.mop-workforce`; every local run passed (the runner made that folder long ago) and CI's check failed three tests with `ENOENT: no such file or directory, open '/home/runner/.mop-workforce/no-mcp.json'`.
-- rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
-- proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
 - added: 2026-10-15

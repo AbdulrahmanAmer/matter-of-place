@@ -60,9 +60,20 @@ export function previewProducts(products: ProductsSetting) {
   );
 }
 
-/** One page of active redirects; `cursor` is the `next_cursor` of the page before. */
-export function fetchRedirects(cursor: string | null) {
-  const search = cursor === null ? "" : `?${new URLSearchParams({ cursor }).toString()}`;
+/**
+ * One page of active redirects (`cursor` is the `next_cursor` of the page before), one page of old property
+ * addresses (`old_cursor`), and, when `path` is typed, where that path leads.
+ */
+export function fetchRedirects(request: {
+  cursor: string | null;
+  oldCursor: string | null;
+  path: string | null;
+}) {
+  const query = new URLSearchParams();
+  if (request.cursor !== null) query.set("cursor", request.cursor);
+  if (request.oldCursor !== null) query.set("old_cursor", request.oldCursor);
+  if (request.path !== null) query.set("path", request.path);
+  const search = query.size === 0 ? "" : `?${query.toString()}`;
   return adminFetch(`/api/admin/settings/redirects${search}`, redirectPageSchema);
 }
 
