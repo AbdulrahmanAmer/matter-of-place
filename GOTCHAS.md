@@ -8079,3 +8079,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: with Matter merging on his own, the gate loop allows eight catch-ups (`for attempt in 1..8` in the orchestrator's gate-loop.sh), and a branch that carries a migration is checked with `node scripts/check-migrations.mjs` after every catch-up; a generated migration (action_roles) is regenerated rather than restamped, so it also carries main's new rows.
 - proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
 - added: 2026-10-15
+
+## P-3471 · A key added to an event's payload in SQL breaks every older db test that asserts that payload with `toEqual`, and only CI sees it
+- symptom: 2026-10-15, PR 410 (W7 E1): `approve_asset` and `reject_asset` gained `subject` in the `asset.approved` and `asset.rejected` payloads; CI's db job failed 4 of 925 (`tests/db/assets.db.test.ts`, `tests/db/assets-service.db.test.ts`: `+ "subject": "property"`), one CI cycle lost. Locally the db project refuses since the launch switch (P-3468), so no local run could have shown it.
+- cause: B9's tests pin the whole payload with `toEqual`; the slice's own tests covered the new key, and nobody searched for the older assertions.
+- rule: before pushing a change to what an SQL function emits or returns, `git grep -n "<event type or function name>" app/tests/db app/tests/api` and update every exact assertion of it in the same commit; the db job is the only run that would catch a miss.
+- proof: `cd app && git grep -n "asset.rejected\|asset.approved" tests/db` lists the two files and their four payload assertions; the db job log of run 38686728451 ends `Tests  4 failed | 919 passed`.
+- added: 2026-10-15

@@ -218,6 +218,7 @@ describe("approve_asset", () => {
           kind: "cover",
           tier: "Campaign",
           market: "florida",
+          subject: "property",
         },
       },
     ]);
@@ -334,6 +335,7 @@ describe("reject_asset", () => {
           kind: "story",
           tier: "Feature",
           market: "florida",
+          subject: "property",
           note: "Too dark.",
         },
       },
