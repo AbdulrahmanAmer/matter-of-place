@@ -8343,3 +8343,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
 - proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
 - added: 2026-10-15
+
+## P-3590 · A mutation of a threshold stays green when the test's inputs are decided by another threshold
+- symptom: 2026-10-16 (W7 9), the registry entry `w7-9-strangers-apart` raised `SAME_PICTURE_BITS` (the limit for two images of different addresses) to 64 to make "keeps two different pictures apart" red; the replay printed `WATCHED-FAIL BAD: wrong reason`. The test's two addresses (`IMG_1234_1024.jpg`, `IMG_1235_1024.jpg`) share a size family, so `samePicture` used `SAME_FAMILY_BITS` and the mutated limit never applied.
+- rule: before writing a mutation of a constant that one of several branches reads, trace which branch the test's inputs take (`app/scripts/workforce/pull-images.ts`: same family → `SAME_FAMILY_BITS`, else `SAME_PICTURE_BITS`) and mutate that one; one entry per branch the tests reach.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-9-strangers-apart` → `mutated scripts/workforce/pull-images.ts:154  const SAME_FAMILY_BITS = 64;` and `WATCHED-FAIL OK W7-9:w7-9-strangers-apart`.
+- added: 2026-10-16

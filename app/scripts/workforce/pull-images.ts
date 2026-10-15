@@ -23,8 +23,10 @@ const BUCKET = "submissions";
 const PAGE_MS = 20_000;
 const IMAGE_MS = 30_000;
 const MAX_IMAGES = 40;
-// Pictures come in several sizes each, so more files are read than are kept.
+// Pictures come in several sizes each, so more files are read than are kept; all of them are held until the pictures
+// are grouped, so the bytes held are capped too.
 const MAX_FETCHED = 120;
+export const MAX_HELD_BYTES = 300_000_000;
 // Below this a picture is an icon, a logo or a thumbnail, not a photograph of the house.
 const MIN_BYTES = 30_000;
 const MAX_BYTES = 25_000_000;
@@ -173,10 +175,7 @@ export function onePerPicture<T extends Picture>(images: readonly T[]): { kept: 
 }
 
 /** An image's size and shape hash, or null when it cannot be decoded. */
-export async function describePicture(
-  bytes: Uint8Array,
-  url: string,
-): Promise<Picture | null> {
+export async function describePicture(bytes: Uint8Array, url: string): Promise<Picture | null> {
   try {
     const { width, height } = await sharp(bytes).metadata();
     const grey = await sharp(bytes).greyscale().resize(9, 8, { fit: "fill" }).raw().toBuffer();
@@ -272,15 +271,16 @@ export function keepPictures(read: readonly Fetched[], folder: string): Pulled[]
 }
 
 /** Pulls every photograph its links show into the studio folder; returns what came and what could not be read. */
-export async function pullImages(request: {
-  id: string;
-  links: readonly string[];
-}): Promise<{ pulled: Pulled[]; problems: string[]; folder: string }> {
-  const folder = join(STUDIO, request.id);
+export async function pullImages(
+  request: { id: string; links: readonly string[] },
+  { studio = STUDIO, heldLimit = MAX_HELD_BYTES } = {},
+): Promise<{ pulled: Pulled[]; problems: string[]; folder: string }> {
+  const folder = join(studio, request.id);
   mkdirSync(folder, { recursive: true });
   const read: Fetched[] = [];
   const problems: string[] = [];
   const seen = new Set<string>();
+  let held = 0;
   for (const link of request.links) {
     const page = await fetchPage(link);
     if (typeof page === "string") {
@@ -295,7 +295,7 @@ export async function pullImages(request: {
     const urls = imageUrls(page.html, page.finalUrl);
     let fromPage = 0;
     for (const url of urls) {
-      if (read.length >= MAX_FETCHED) break;
+      if (read.length >= MAX_FETCHED || held >= heldLimit) break;
       const bytes = await fetchImage(url, page.finalUrl);
       const type = bytes === null ? null : sniffImageType(bytes);
       if (
@@ -303,6 +303,7 @@ export async function pullImages(request: {
         (type !== "image/jpeg" && type !== "image/png" && type !== "image/webp")
       )
         continue;
+      held += bytes.byteLength;
       const sha256 = createHash("sha256").update(bytes).digest("hex");
       if (seen.has(sha256)) continue;
       seen.add(sha256);

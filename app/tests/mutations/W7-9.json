@@ -1,0 +1,308 @@
+[
+  {
+    "id": "w7-9-family-size-marks",
+    "test": "tests/unit/workforce-one-picture.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "  /^\\d{3,4}$/.test(token) ||",
+    "replace": "  false ||",
+    "run": "bunx vitest run --project unit tests/unit/workforce-one-picture.test.ts",
+    "expect": "× .*gives every Zillow size of one picture one family"
+  },
+  {
+    "id": "w7-9-dhash-bits",
+    "test": "tests/unit/workforce-one-picture.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "        byte = (byte << 1) | (left < right ? 1 : 0);",
+    "replace": "        byte = (byte << 1) | 0;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-one-picture.test.ts",
+    "expect": "× .*hashes one picture alike at every size"
+  },
+  {
+    "id": "w7-9-hash-distance",
+    "test": "tests/unit/workforce-one-picture.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "    for (; xor > 0; xor >>= 1) bits += xor & 1;",
+    "replace": "    for (; xor > 0; xor >>= 1) bits += 0;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-one-picture.test.ts",
+    "expect": "× .*hashes one picture alike at every size"
+  },
+  {
+    "id": "w7-9-keep-largest",
+    "test": "tests/unit/workforce-one-picture.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "(a, b) => area(b) - area(a) || b.bytes - a.bytes",
+    "replace": "(a, b) => area(a) - area(b) || a.bytes - b.bytes",
+    "run": "bunx vitest run --project unit tests/unit/workforce-one-picture.test.ts",
+    "expect": "× .*keeps one of three sizes of a picture"
+  },
+  {
+    "id": "w7-9-shape-alone",
+    "test": "tests/unit/workforce-one-picture.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "const SAME_PICTURE_BITS = 8;",
+    "replace": "const SAME_PICTURE_BITS = -1;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-one-picture.test.ts",
+    "expect": "× .*tells sizes of an uploaded picture by shape alone"
+  },
+  {
+    "id": "w7-9-strangers-apart",
+    "test": "tests/unit/workforce-one-picture.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "const SAME_FAMILY_BITS = 16;",
+    "replace": "const SAME_FAMILY_BITS = 64;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-one-picture.test.ts",
+    "expect": "× .*keeps two different pictures apart even"
+  },
+  {
+    "id": "w7-9-family-loosens",
+    "test": "tests/unit/workforce-one-picture.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "const SAME_FAMILY_BITS = 16;",
+    "replace": "const SAME_FAMILY_BITS = 8;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-one-picture.test.ts",
+    "expect": "× .*lets a size family absorb a re-cropped size"
+  },
+  {
+    "id": "w7-9-pull-groups",
+    "test": "tests/unit/workforce-one-picture.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "  return onePerPicture(read)",
+    "replace": "  return read.map((kept) => ({ kept, also: [] }))",
+    "run": "bunx vitest run --project unit tests/unit/workforce-one-picture.test.ts",
+    "expect": "× .*pulls eight files of two pictures as two files"
+  },
+  {
+    "id": "w7-9-pull-budget",
+    "test": "tests/unit/workforce-one-picture.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "      if (read.length >= MAX_FETCHED || held >= heldLimit) break;",
+    "replace": "      if (read.length >= MAX_FETCHED) break;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-one-picture.test.ts",
+    "expect": "× .*stops reading once the bytes it holds reach"
+  },
+  {
+    "id": "w7-9-desk-work-copy",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "        : [join(desk, \"requests\", row.id), join(desk, \"work\", \"requests\", row.id)];",
+    "replace": "        : [join(desk, \"requests\", row.id)];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*writes request.md, the sequence and one photo"
+  },
+  {
+    "id": "w7-9-desk-one-per-picture",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  for (const { kept } of onePerPicture(read)) {",
+    "replace": "  for (const kept of read) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*writes request.md, the sequence and one photo"
+  },
+  {
+    "id": "w7-9-desk-no-story",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "    `Request: ${field(row.id)}`,",
+    "replace": "    `Request: ${field(row.id)} ${String(Reflect.get(row, \"story\"))}`,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*puts only our record's structured facts"
+  },
+  {
+    "id": "w7-9-desk-strip-exif",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "    const clean = await stripExif(kept.data, kept.mime).catch(() => null);",
+    "replace": "    const clean = await Promise.resolve(kept.data).catch(() => null);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*removes the photographs' metadata"
+  },
+  {
+    "id": "w7-9-field-hidden-marks",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  return plain(text.replace(/[\\p{Cc}\\p{Cf}]/gu, \" \")).slice(0, FIELD_MAX);",
+    "replace": "  return plain(text).slice(0, FIELD_MAX);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*cleans each string field to one capped line"
+  },
+  {
+    "id": "w7-9-field-cap",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  return plain(text.replace(/[\\p{Cc}\\p{Cf}]/gu, \" \")).slice(0, FIELD_MAX);",
+    "replace": "  return plain(text.replace(/[\\p{Cc}\\p{Cf}]/gu, \" \"));",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*cleans each string field to one capped line"
+  },
+  {
+    "id": "w7-9-rent-reading",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  return price < RENT_BELOW ? \"rent\" : \"sale\";",
+    "replace": "  return \"sale\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*reads a price as a sale price, a monthly rent"
+  },
+  {
+    "id": "w7-9-short-id",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  const prefixes = [...text.matchAll(SHORT_ID)]",
+    "replace": "  const prefixes = [...text.matchAll(UUID)]",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*finds the request a line names by its full id"
+  },
+  {
+    "id": "w7-9-line-section",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "      viaEvent || !existsSync(SEQUENCE_FILE)",
+    "replace": "      true || !existsSync(SEQUENCE_FILE)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*resolves a short id, adds the sequence's section"
+  },
+  {
+    "id": "w7-9-unknown-id",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  const lines = unknown.map(",
+    "replace": "  const lines = [].map(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*resolves a short id, adds the sequence's section"
+  },
+  {
+    "id": "w7-9-toolless",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "          (toolless",
+    "replace": "          (false",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*tells a run with no file tool to work from the facts"
+  },
+  {
+    "id": "w7-9-matter-facts-only",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "      slug === \"matter\"",
+    "replace": "      slug === \"nobody\"",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*tells a run with no file tool to work from the facts"
+  },
+  {
+    "id": "w7-9-colleague-fails-closed",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  if (error !== null || slug === undefined)",
+    "replace": "  if (error !== null)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*fails the run when the colleague it is for"
+  },
+  {
+    "id": "w7-9-desk-budget",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "    if (held >= heldLimit) {",
+    "replace": "    if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*holds at most the byte budget of photographs"
+  },
+  {
+    "id": "w7-9-retry-unread",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "      last.unread === 0 &&\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*reads the photographs again only when they change"
+  },
+  {
+    "id": "w7-9-photo-cache",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "      last.signature === signature &&",
+    "replace": "      false &&",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*reads the photographs again only when they change"
+  },
+  {
+    "id": "w7-9-event-entity",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "    ...(event?.entity === \"submission\" && event.entity_id !== null ? [event.entity_id] : []),",
+    "replace": "    ...(event !== null && event.entity_id !== null ? [event.entity_id] : []),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*gives nothing for a run about no request"
+  },
+  {
+    "id": "w7-9-context-desk",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (triage === null || owns(triage.source))",
+    "replace": "  if (false)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*briefs the Editor a person asked to review request"
+  },
+  {
+    "id": "w7-9-context-new-work",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    parts.push(...(await newWorkLines(client, owns)));",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*briefs the Editor a person asked to review request"
+  },
+  {
+    "id": "w7-9-price-band",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": "  if (price < 2_000_000) return \"under $2M\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*names a price by its band, never its figure"
+  },
+  {
+    "id": "w7-9-inquiry-slug",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": "    if (inquiry.subject_kind !== \"property\" || !SLUG.test(slug) || slug.length > 80)",
+    "replace": "    if (inquiry.subject_kind !== \"property\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*lists requests and inquiries in short form"
+  },
+  {
+    "id": "w7-9-owners-only",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": "  if (!owns(\"submission\") && !owns(\"inquiry\")) return [];",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*goes to the Editor and the Concierge only"
+  },
+  {
+    "id": "w7-9-once-a-pass",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": "  thisPass ??= readNewWork(client);",
+    "replace": "  thisPass = readNewWork(client);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*reads the newest work once a pass"
+  },
+  {
+    "id": "w7-9-next-pass",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": "  thisPass = null;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*reads the newest work once a pass"
+  },
+  {
+    "id": "w7-9-unread-says-so",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": "    return \"The newest requests and inquiries could not be read this pass; say so if a briefing needs them.\";",
+    "replace": "    throw new Error(\"unread\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*says the newest work could not be read"
+  }
+]

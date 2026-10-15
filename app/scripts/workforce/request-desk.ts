@@ -14,7 +14,7 @@ import type { Db } from "../../src/server/lib/db.ts";
 import { sniffImageType } from "../../src/server/submissions/reconcile.ts";
 import { stripExif } from "../lib/strip-exif.ts";
 import { SEQUENCE_FILE, sequenceSection } from "./grounding.ts";
-import { describePicture, onePerPicture, type Picture } from "./pull-images.ts";
+import { describePicture, MAX_HELD_BYTES, onePerPicture, type Picture } from "./pull-images.ts";
 import { plain } from "./triage.ts";
 
 const BUCKET = "submissions";
@@ -75,9 +75,13 @@ export function namedRequests(text: string): { ids: string[]; prefixes: string[]
   return { ids: [...new Set(ids)], prefixes: [...new Set(prefixes)] };
 }
 
-/** A structured string field as a desk or a prompt shows it: one cleaned line, capped. */
+/**
+ * A structured string field as a desk or a prompt shows it: one cleaned line (`plain`), without control or format
+ * characters (a right-to-left override, a zero-width space), capped.
+ */
 export function field(value: string | number | null | undefined): string {
-  return plain(value === null || value === undefined ? "" : String(value)).slice(0, FIELD_MAX);
+  const text = value === null || value === undefined ? "" : String(value);
+  return plain(text.replace(/[\p{Cc}\p{Cf}]/gu, " ")).slice(0, FIELD_MAX);
 }
 
 /** How a price reads: a sale price, a monthly rent (under `RENT_BELOW`), or none given. */
@@ -125,7 +129,9 @@ export function requestFacts(row: RequestRow, media: number, pictures: number): 
     `Rights: confirmed ${day(row.rights_confirmed_at)} (terms of ${field(row.rights_version)})`,
     `Photographs attached: ${String(media)} files, ${String(pictures)} pictures in photos/`,
     `Links given: ${links.length === 0 ? "none" : `${links.join(", ")} (their addresses are on the request page)`}`,
-    ...(row.duplicate_of === null ? [] : [`Possible duplicate of request ${field(row.duplicate_of)}`]),
+    ...(row.duplicate_of === null
+      ? []
+      : [`Possible duplicate of request ${field(row.duplicate_of)}`]),
   ];
 }
 
@@ -146,12 +152,14 @@ interface MediaRow {
 
 /**
  * The request's attached photographs into `photos/`: one file per picture (the largest of each, as the pull keeps
- * them), re-encoded without metadata (`stripExif`), read again only when the attached media change.
+ * them), re-encoded without metadata (`stripExif`), read again when the attached media change or some were unread.
+ * At most `heldLimit` bytes are held at once; past it a photograph is counted as unread.
  */
 async function writePhotos(
   client: Db,
   media: readonly MediaRow[],
   folder: string,
+  heldLimit: number,
 ): Promise<{ pictures: number; unread: number }> {
   const stamp = join(folder, ".media.json");
   const signature = media.map((row) => `${row.id}:${row.sha256 ?? ""}`).join(",");
@@ -162,20 +170,25 @@ async function writePhotos(
       last !== null &&
       "signature" in last &&
       last.signature === signature &&
-      "pictures" in last &&
-      typeof last.pictures === "number" &&
       "unread" in last &&
-      typeof last.unread === "number"
+      last.unread === 0 &&
+      "pictures" in last &&
+      typeof last.pictures === "number"
     )
-      return { pictures: last.pictures, unread: last.unread };
+      return { pictures: last.pictures, unread: 0 };
   }
   rmSync(folder, { recursive: true, force: true });
   mkdirSync(folder, { recursive: true });
   const read: (Picture & { data: Uint8Array; mime: string })[] = [];
   let unread = 0;
+  let held = 0;
   for (const row of media) {
+    if (held >= heldLimit) {
+      unread += 1;
+      continue;
+    }
     const { data, error } = await client.storage.from(BUCKET).download(row.storage_path);
-    const bytes = error === null && data !== null ? new Uint8Array(await data.arrayBuffer()) : null;
+    const bytes = error === null ? new Uint8Array(await data.arrayBuffer()) : null;
     const mime = bytes === null ? null : sniffImageType(bytes);
     const picture =
       bytes === null || mime === null
@@ -185,6 +198,7 @@ async function writePhotos(
       unread += 1;
       continue;
     }
+    held += bytes.byteLength;
     read.push({ ...picture, data: bytes, mime });
   }
   let pictures = 0;
@@ -209,7 +223,7 @@ export async function writeRequestDesk(
   client: Db,
   row: RequestRow,
   folders: readonly string[],
-  sequenceFile = SEQUENCE_FILE,
+  { sequenceFile = SEQUENCE_FILE, heldLimit = MAX_HELD_BYTES } = {},
 ): Promise<{ facts: string[]; pictures: number; unread: number }> {
   const { data, error } = await client
     .from("submission_media")
@@ -217,14 +231,15 @@ export async function writeRequestDesk(
     .eq("submission_id", row.id)
     .order("sort_order")
     .limit(MAX_MEDIA);
-  if (error !== null) throw new Error("the photographs of the request this run is about could not be read");
+  if (error !== null)
+    throw new Error("the photographs of the request this run is about could not be read");
   const media = data.filter((item) => item.submission_id === row.id && item.uploaded_at !== null);
   const [first, ...copies] = folders;
   if (first === undefined) {
     return { facts: requestFacts(row, media.length, 0), pictures: 0, unread: 0 };
   }
   mkdirSync(first, { recursive: true });
-  const photos = await writePhotos(client, media, join(first, "photos"));
+  const photos = await writePhotos(client, media, join(first, "photos"), heldLimit);
   const facts = requestFacts(row, media.length, photos.pictures);
   writeFileSync(
     join(first, "request.md"),
@@ -300,11 +315,14 @@ export async function requestDesk(
   if (rows.length === 0) return lines;
   const { data: agents, error } = await client.from("agents").select("id, slug").eq("id", agentId);
   const slug = agents?.find((agent) => agent.id === agentId)?.slug;
-  if (error !== null || slug === undefined) throw new Error("the colleague of this run could not be read");
+  if (error !== null || slug === undefined)
+    throw new Error("the colleague of this run could not be read");
   const desk = join(home, "desks", slug);
   for (const row of rows) {
     const folders =
-      slug === "matter" ? [] : [join(desk, "requests", row.id), join(desk, "work", "requests", row.id)];
+      slug === "matter"
+        ? []
+        : [join(desk, "requests", row.id), join(desk, "work", "requests", row.id)];
     const made = await writeRequestDesk(client, row, folders);
     lines.push(`The request this run is about, from our record:\n${factsBlock(made.facts)}`);
     if (slug !== "matter") {
