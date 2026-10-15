@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { Dialog } from "../ui/Dialog";
-import type { AgentMessage } from "../../domain/workforce";
-import { formatInZone, marketTimezone } from "../../domain/market-time";
+import type { AgentMessage, Allowance } from "../../domain/workforce";
+import { formatInZone, marketTimezone, OFFICE_ZONE } from "../../domain/market-time";
 import { MessageText } from "./MessageText";
 import { presenceOf, type Presence } from "./presence";
 import { ago, took } from "./when";
@@ -29,6 +29,7 @@ export interface MatterPanelViewProps {
   chat: readonly AgentMessage[];
   team: readonly AgentMessage[];
   tasks: readonly PanelTask[];
+  allowance: Allowance | null;
   now: number;
   tab: PanelTab;
   draft: string;
@@ -62,6 +63,13 @@ function statusLine(presence: Presence) {
             : `Offline since ${formatInZone(presence.since, marketTimezone(null), "dayTime")}. Your message waits for the laptop.`,
       };
   }
+}
+
+/** W6 item 2: how much of the weekly Claude allowance the staff have used, as the runner last read it. */
+function allowanceLine(allowance: Allowance | null): string {
+  return allowance === null
+    ? "Allowance not measured"
+    : `Week ${String(Math.round(allowance.week))}% used, resets ${formatInZone(allowance.resets_at, OFFICE_ZONE, "dayTime")}`;
 }
 
 function Lines({ messages, now }: { messages: readonly AgentMessage[]; now: number }) {
@@ -169,6 +177,7 @@ export function MatterPanelView(props: MatterPanelViewProps) {
             {status.text}
           </span>
         </p>
+        <p className="mp-head__allowance">{allowanceLine(props.allowance)}</p>
         <button
           type="button"
           className="admin-button admin-button--quiet mp-head__close"
@@ -291,6 +300,7 @@ export function MatterPanel({ open, onClose }: { open: boolean; onClose: () => v
         chat={chat.data?.items ?? []}
         team={team.data?.items ?? []}
         tasks={(office.data?.activity ?? []).filter((task) => task.agent_slug === "matter")}
+        allowance={office.data?.allowance ?? null}
         now={now}
         tab={tab}
         draft={draft}

@@ -57,6 +57,14 @@
   color: var(--muted-foreground);
 }
 
+/* W6 item 2: the weekly allowance, a quiet third line under the status. */
+.mp-head__allowance {
+  grid-column: 1;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
 /* Two lines at most: "Offline since ... Your message waits for the laptop." must be read whole on a phone. */
 .mp-head__text {
   display: -webkit-box;
