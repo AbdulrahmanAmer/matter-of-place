@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
   nextReel,
@@ -72,7 +73,9 @@ function deps(
 }
 
 const studio = () => mkdtempSync(join(tmpdir(), "studio-"));
-const brief = (folder: string) => JSON.parse(readFileSync(join(folder, "brief.json"), "utf8"));
+const briefRead = z.object({ id: z.string() }).passthrough();
+const brief = (folder: string) =>
+  briefRead.parse(JSON.parse(readFileSync(join(folder, "brief.json"), "utf8")));
 
 describe("a reel request (W7 item 19)", () => {
   it("names the subject its kind needs, and is read from an answer beside a voice-over", () => {
@@ -122,8 +125,8 @@ describe("the reel pass", () => {
     expect(log.slice(0, 3)).toEqual(["design", "render", "review"]);
     const uploads = log.filter((line) => line.startsWith("upload ")).map((line) => line.slice(7));
     expect(uploads).toEqual([
-      expect.stringMatching(new RegExp(`^requested/${String(id)}/reel\\.[0-9a-f]{8}\\.mp4$`)),
-      expect.stringMatching(new RegExp(`^requested/${String(id)}/poster\\.[0-9a-f]{8}\\.jpg$`)),
+      expect.stringMatching(new RegExp(`^requested/${id}/reel\\.[0-9a-f]{8}\\.mp4$`)),
+      expect.stringMatching(new RegExp(`^requested/${id}/poster\\.[0-9a-f]{8}\\.jpg$`)),
     ]);
     expect(db.calls).toMatchObject([
       {
