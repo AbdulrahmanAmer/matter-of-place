@@ -398,8 +398,8 @@
     "id": "w8-0r4-plan-media",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    media: full ? result.media.slice(0, 2) : [],",
-    "replace": "    media: result.media.slice(0, 2),",
+    "find": "    media: isMatter && !full ? [] : mediaFor(result.media, isMatter, agent.tools),",
+    "replace": "    media: mediaFor(result.media, isMatter, agent.tools),",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*leaves inside work as before"
   },

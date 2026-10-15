@@ -5,10 +5,14 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
+  briefId,
   COPY_RULE,
   GATE_RULES,
+  mediaFor,
   nextReel,
   queueReel,
+  REEL_TOOL_LINE,
+  withReel,
   REVISIONS,
   reelPass,
   reelRequestSchema,
@@ -327,5 +331,29 @@ describe("the subject's own photographs (H110)", () => {
       mediaRow(2).media_key,
     ]);
     expect(await shotsFor(fakeDb(), brand)).toEqual([]);
+  });
+});
+
+describe("Social and Campaigns ask for a reel (W7 item 20)", () => {
+  const voice = { skill: "qwen-voiceover", name: "v" };
+  const reel = { skill: "reel", name: "r" };
+
+  it("takes one reel from a colleague with request_reel, nothing from one without, and Matter's as before", () => {
+    expect(mediaFor([voice, reel, reel], false, ["chat", "request_reel"])).toEqual([reel]);
+    expect(mediaFor([reel], false, ["chat", "draft_post"])).toEqual([]);
+    expect(mediaFor([voice, reel, reel], true, [])).toEqual([voice, reel]);
+  });
+
+  it("attaches the run's reel to a post or a plan only, and tells the colleague how to ask", () => {
+    const asked = { request_id: "r1", name: "Coast" };
+    expect(withReel("social_post", { body: "b" }, asked)).toEqual({ body: "b", reel: asked });
+    expect(withReel("campaign_plan", { body: "b" }, asked)).toEqual({ body: "b", reel: asked });
+    expect(withReel("reply_inquiry", { body: "b" }, asked)).toEqual({ body: "b" });
+    expect(withReel("social_post", { body: "b" }, null)).toEqual({ body: "b" });
+    expect(REEL_TOOL_LINE).toMatch(
+      /needs motion, ask for a reel.*"skill": "reel".*shown beside your proposal/,
+    );
+    const folder = queueReel(brand, from, studio());
+    expect(briefId(folder)).toBe(brief(folder).id);
   });
 });

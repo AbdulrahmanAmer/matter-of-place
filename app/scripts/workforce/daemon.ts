@@ -29,10 +29,18 @@ import { childEnv, loadEnvFile, serviceDb as db } from "./env.ts";
 import { knowledgeBlock } from "./knowledge.ts";
 import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
-import { nextReel, queueReel, reelWorking } from "./reel.ts";
+import {
+  briefId,
+  mediaFor,
+  nextReel,
+  queueReel,
+  REEL_TOOL_LINE,
+  reelWorking,
+  withReel,
+} from "./reel.ts";
 import { breakerUntil, type CliUsage, isolatedArgs, runClaude, UsageLimitError } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
-import { followMain, mapDue } from "./follow.ts";
+import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
 import type { SourceName } from "./criteria.ts";
 import {
@@ -210,8 +218,9 @@ export function answerPlan(input: {
         ? null
         : `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage === null ? "a held outside message" : triage.source} (W8 0c).`,
     keepNote: full,
-    // W2 step 5: Matter cannot run a skill in its safe mode; the daemon runs it. Only at full power (W8 review).
-    media: full ? result.media.slice(0, 2) : [],
+    // W2 step 5 and W7 item 20: Matter at full power, or a colleague with `request_reel` (one reel); a Matter read
+    // run asks for no media (W8 review), and a triaged run has none left after the ruling.
+    media: isMatter && !full ? [] : mediaFor(result.media, isMatter, agent.tools),
     reply:
       result.reply === ""
         ? null
@@ -437,6 +446,7 @@ function promptFor(
           `To change something in the admin, add to your JSON an "actions" list: {"method", "path" with the real id, "body", "why"}. Only these routes are yours: ${(colleagueRoutes[agent.slug] ?? []).join(", ")}. Read the record first. Each waits in Approvals until a person approves it; you never make it yourself.`,
         ]
       : []),
+    ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
   ].join("\n\n");
@@ -596,6 +606,7 @@ async function runOnce(client: Db): Promise<boolean> {
     if (plan.dropped !== null) await say(client, place.thread, plan.dropped);
     if (plan.keepNote) keepNote(result.note);
     const media = plan.media;
+    let reel: { request_id: string; name: string } | null = null;
 
     if (plan.reply !== null) {
       await client.from("agent_messages").insert({
@@ -630,6 +641,8 @@ async function runOnce(client: Db): Promise<boolean> {
       if (request.skill === "reel") {
         // W7 item 19: a reel takes many minutes, so it waits in the studio for the reel pass, never inside a run.
         const folder = queueReel(request, { agent: agent.slug, thread });
+        const requestId = briefId(folder);
+        if (requestId !== null) reel = { request_id: requestId, name: request.name };
         await say(client, thread, `The reel "${request.name}" is queued in the studio: ${folder}`);
         continue;
       }
@@ -657,13 +670,15 @@ async function runOnce(client: Db): Promise<boolean> {
       await proposeCalls(client, agent, run.id, thread, allowed);
     }
     for (const proposal of plan.proposals) {
+      // W7 item 20: a post or a plan of this run carries the reel it asked for; the hash covers what is stored.
+      const content = withReel(proposal.action, proposal.content, reel);
       await client.from("agent_approvals").insert({
         agent_id: agent.id,
         run_id: run.id,
         action: proposal.action,
         summary: proposal.summary,
-        content: proposal.content,
-        content_hash: createHash("sha256").update(JSON.stringify(proposal.content)).digest("hex"),
+        content,
+        content_hash: createHash("sha256").update(JSON.stringify(content)).digest("hex"),
       });
     }
     if (agent.tools.includes("hire")) {
@@ -921,13 +936,10 @@ async function pass(client: Db): Promise<void> {
     return;
   }
   // Gap audit item 6: between runs the runner moves to the newest main; the next pass runs the new code.
-  const { count: inFlight } = await client
-    .from("agent_runs")
-    .select("id", { count: "exact", head: true })
-    .eq("state", "running");
+  const { data: running } = await client.from("agent_runs").select("worker").eq("state", "running");
   // A reel being made runs from this checkout, so the runner does not move under it (W7 item 19).
   const reelBusy = reelWorking();
-  if (inFlight === 0 && !reelBusy) {
+  if (!runnerBusy(running ?? []) && !reelBusy) {
     const followed = followMain(resolve(import.meta.dir, "../.."), join(HOME, "runner-app"));
     if (followed !== "unchanged" && followed !== "not the runner") {
       console.log(`${new Date().toISOString()} runner ${followed}`);

@@ -14,6 +14,7 @@ import { auditContext } from "../lib/audit.ts";
 import { authorize } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError } from "../lib/errors.ts";
+import { mediaUrl } from "../lib/media-store.ts";
 
 // W1: the admin side of the AI employees. The laptop daemon (scripts/workforce/daemon.ts) does the work; this file
 // lists, hires, changes and talks to them, and records the decisions of people on their proposals. Reads go to the
@@ -219,6 +220,51 @@ export async function updateAgent(
   return { id };
 }
 
+/** What a post or a plan carries when its run asked for a reel (W7 item 20, `withReel` in scripts/workforce/reel.ts). */
+const askedReel = z.object({ request_id: z.string().min(1), name: z.string() });
+const reelFile = z.object({ role: z.string(), media_key: z.string() });
+const askedOf = (content: unknown) =>
+  askedReel.safeParse(z.object({ reel: z.unknown() }).safeParse(content).data?.reel).data;
+
+/**
+ * The reels the listed proposals asked for, by request id: `making` until the runner records the asset (its
+ * `meta.request_id`), then the asset's status and its two files on our media address.
+ */
+async function reelsOf(
+  db: Db,
+  asked: readonly z.infer<typeof askedReel>[],
+): Promise<Map<string, NonNullable<AgentApproval["reel"]>>> {
+  const reels = new Map<string, NonNullable<AgentApproval["reel"]>>();
+  if (asked.length === 0) return reels;
+  const { data, error } = await db
+    .from("assets")
+    .select("status, files, meta")
+    .in(
+      "meta->>request_id",
+      asked.map((item) => item.request_id),
+    );
+  if (error !== null) throw unavailable("The reels");
+  for (const item of asked) {
+    reels.set(item.request_id, { ...item, status: "making", video: null, poster: null });
+  }
+  for (const row of data) {
+    const requestId = z.object({ request_id: z.string() }).safeParse(row.meta).data?.request_id;
+    const known = requestId === undefined ? undefined : reels.get(requestId);
+    if (requestId === undefined || known === undefined) continue;
+    const files = z.array(reelFile).safeParse(row.files).data ?? [];
+    const keyOf = (role: string) => files.find((file) => file.role === role)?.media_key;
+    const video = keyOf("video");
+    const poster = keyOf("poster");
+    reels.set(requestId, {
+      ...known,
+      status: row.status === "approved" || row.status === "rejected" ? row.status : "pending",
+      video: video === undefined ? null : mediaUrl(video),
+      poster: poster === undefined ? null : mediaUrl(poster),
+    });
+  }
+  return reels;
+}
+
 export async function listApprovals(
   actor: AdminActor,
   db: Db,
@@ -236,12 +282,20 @@ export async function listApprovals(
   ]);
   if (error !== null || agents.error !== null) throw unavailable("The approvals");
   const slugOf = new Map(agents.data.map((row) => [row.id, row.slug]));
+  const reels = await reelsOf(
+    db,
+    data.flatMap((row) => {
+      const asked = askedOf(row.content);
+      return asked === undefined ? [] : [asked];
+    }),
+  );
   return {
     items: data.map((row) => ({
       id: row.id,
       agent_slug: slugOf.get(row.agent_id) ?? "",
       action: row.action,
       summary: row.summary,
+      reel: reels.get(askedOf(row.content)?.request_id ?? "") ?? null,
       content: z.record(z.unknown()).safeParse(row.content).data ?? {},
       content_hash: row.content_hash,
       state:

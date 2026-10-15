@@ -13,3 +13,6 @@ producer-run*.log
 film/stills/
 film/product/
 film/media/
+
+# the door move rendered alone (W7 E3 proof): rendered on the laptop, never committed; door-sheet.jpg is its stills
+engine/moves/demo/out/

@@ -20,6 +20,18 @@ const same = (a: string, b: string) =>
   resolve(a).replaceAll("\\", "/").toLowerCase() === resolve(b).replaceAll("\\", "/").toLowerCase();
 
 /** `app` is the runner's app folder; `marker` the file install.ps1 wrote with that folder's path. */
+/** The worker name Matter's live session writes on its own runs (`scripts/matter/live.ts`). */
+export const LIVE_WORKER_PREFIX = "matter-live@";
+
+/**
+ * Whether a running run keeps the runner from moving to the newest main: only a run this checkout executes. The live
+ * session's goal run holds a six-hour lease and runs in its own process, so counting it kept the runner on old code for
+ * the whole session (2026-10-15: PRs 431 and 432 merged and the runner stayed behind for hours).
+ */
+export function runnerBusy(running: readonly { worker: string | null }[]): boolean {
+  return running.some((run) => !(run.worker ?? "").startsWith(LIVE_WORKER_PREFIX));
+}
+
 export function followMain(app: string, marker: string): Followed {
   if (!existsSync(marker) || !same(readFileSync(marker, "utf8").trim(), app))
     return "not the runner";

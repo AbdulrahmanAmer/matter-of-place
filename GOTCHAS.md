@@ -8313,3 +8313,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a proof of a CLI's arguments starts the program the way the runner does: by its path, `shell` off (`C:/Users/DELL/.local/bin/claude.exe` here), never through `shell: true` or a string command.
 - proof: the same arguments without a shell → `exit 0`, init event `tools [] mcp_servers []` (scratchpad triage-tools-proof.ts, 2026-10-15).
 - added: 2026-10-15
+
+## P-3531 · The live session's goal run kept the runner from following main for the whole session
+- symptom: 2026-10-15, PRs 431 and 432 merged and deployed, yet the runner checkout (`E:/mop-build/live`) stayed on 6becc9de and `daemon.log` logged no `runner moved` for hours. Every pass counted `agent_runs` in state `running` before `followMain`; the only one was the live session's goal run (`scripts/matter/live.ts`, worker `matter-live@<host>`, a six-hour lease), which runs in its own process, not from the runner's checkout.
+- rule: the runner waits only for runs its own checkout executes (`runnerBusy` in `scripts/workforce/follow.ts` skips workers starting `LIVE_WORKER_PREFIX`). After a merge the live session needs on the runner, check `git -C E:/mop-build/live log --oneline -1` against `origin/main` before waiting on the runner.
+- proof: `cd app && bunx vitest run --project unit tests/unit/follow.test.ts` → `waits for a run this checkout executes, never for the live session's own goal run` passes; the replaced count makes it fail (registry `runner-follow-live.json`).
+- added: 2026-10-15

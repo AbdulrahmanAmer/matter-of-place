@@ -17,6 +17,7 @@ import { breakerUntil, usageLimitOf } from "../workforce/cli.ts";
 import { refreshPolicy, staffPolicy } from "../workforce/config.ts";
 import { proposeCalls, say } from "../workforce/daemon.ts";
 import { childEnv, serviceDb } from "../workforce/env.ts";
+import { LIVE_WORKER_PREFIX } from "../workforce/follow.ts";
 import { applyHires } from "../workforce/hiring.ts";
 import { HEARTBEAT_FILE } from "./live-alive.ts";
 import { DESK, keepNote, matterArgs, matterInputs, matterPrompt } from "./run.ts";
@@ -38,7 +39,7 @@ const ROTATE_MS = 7 * 24 * 60 * 60_000;
 // The supervisor's own code: a merge that changes none of it leaves the session running.
 const OWN_CODE = ["app/scripts/matter", "app/scripts/workforce", ".claude/hooks/task-gate.mjs"];
 const BREAKER_FILE = join(HOME, "breaker.json");
-const WORKER = `matter-live@${hostname()}`;
+const WORKER = `${LIVE_WORKER_PREFIX}${hostname()}`;
 const POLL_MS = 3_000;
 const STALL_MS = 20 * 60_000;
 // How often an idle supervisor asks git for the runner's commit (W5 item 5).

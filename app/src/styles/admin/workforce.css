@@ -522,6 +522,21 @@
   white-space: pre-wrap;
 }
 
+/* W7 item 20: the reel a post or a plan asked for, beside its text. */
+.wf-proposal__reel {
+  display: flex;
+  gap: var(--admin-space-4);
+  align-items: flex-end;
+  margin: 0;
+}
+
+.wf-proposal__reel img {
+  inline-size: 108px;
+  block-size: 192px;
+  object-fit: cover;
+  background: var(--secondary);
+}
+
 .wf-proposal__actions {
   display: flex;
   flex-wrap: wrap;

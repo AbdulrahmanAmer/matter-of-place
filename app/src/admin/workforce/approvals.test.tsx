@@ -91,4 +91,39 @@ describe("Approvals", () => {
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Edit, then approve" })).toBeNull();
   });
+
+  it("shows the reel a post asked for beside its text, while it is made and once it waits in Visuals (W7 item 20)", async () => {
+    serve([
+      {
+        ...item("p5", "social_post", "A first look at the coast."),
+        agent_slug: "social",
+        reel: { request_id: "r1", name: "Coast", status: "making", video: null, poster: null },
+      },
+      {
+        ...item("p6", "campaign_plan", "Three weeks in Florida."),
+        agent_slug: "campaigns",
+        reel: {
+          request_id: "r2",
+          name: "Florida",
+          status: "pending",
+          video: "/media/requested/r2/reel.aaaaaaaa.mp4",
+          poster: "/media/requested/r2/poster.bbbbbbbb.jpg",
+        },
+      },
+    ]);
+    expect(
+      await screen.findByText(/Reel "Coast"\. The reel is being made on the laptop/),
+    ).toBeTruthy();
+    expect(screen.getByText(/Reel "Florida"\. The reel waits in Visuals/)).toBeTruthy();
+    const poster = screen.getByRole("img", { name: 'The reel "Florida"' });
+    expect([
+      poster.getAttribute("src"),
+      poster.closest("a")?.getAttribute("href"),
+      screen.queryByRole("img", { name: 'The reel "Coast"' }),
+    ]).toEqual([
+      "/media/requested/r2/poster.bbbbbbbb.jpg",
+      "/media/requested/r2/reel.aaaaaaaa.mp4",
+      null,
+    ]);
+  });
 });
