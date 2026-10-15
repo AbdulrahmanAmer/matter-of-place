@@ -1,0 +1,92 @@
+[
+  {
+    "id": "w7-e3-mix-nests",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "../launch/engine/moves/door.mjs",
+    "find": "      .toString(16)\n      .padStart(2, \"0\"),",
+    "replace": "      .toString(10)\n      .padStart(2, \"0\"),",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*mixes colours that mix again"
+  },
+  {
+    "id": "w7-e3-lock-distance",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "../launch/engine/moves/door.mjs",
+    "find": "  return (13 * fpx) / LOCKUP.markH;",
+    "replace": "  return (12 * fpx) / LOCKUP.markH;",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*lands the door's 3D mark"
+  },
+  {
+    "id": "w7-e3-close-from-light",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "../launch/engine/moves/door.mjs",
+    "find": "    wash: v < 0 ? seg(v, -WASH_IN, WASH_IN, E.inq) : 1 - seg(v, 0, 0.4, E.lin),",
+    "replace": "    wash: v < 0 ? seg(v, -WASH_IN, WASH_IN, E.inq) : 0,",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*opens in five beats"
+  },
+  {
+    "id": "w7-e3-door-opens-first",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "../launch/engine/moves/door.mjs",
+    "find": "  const D = E.door(clamp(u / 1.3));",
+    "replace": "  const D = E.door(clamp((u - 0.5) / 1.3));",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*opens in five beats"
+  },
+  {
+    "id": "w7-e3-lockup-travels",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "../launch/engine/moves/door.mjs",
+    "find": "    r <= 0 ? 0 : -32 * (r < ramp ? (r * r) / (2 * ramp) : r - ramp / 2);",
+    "replace": "    r <= 0 || ramp === 0 ? 0 : 0;",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*never holds a still lockup"
+  },
+  {
+    "id": "w7-e3-clip-near",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "../launch/engine/moves/door.mjs",
+    "find": "    const ia = a[2] >= NEAR,\n      ib = b[2] >= NEAR;",
+    "replace": "    const ia = true,\n      ib = true;",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*clips at the lens"
+  },
+  {
+    "id": "w7-e3-cue-times",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "../launch/engine/moves/door.mjs",
+    "find": "      t: close + 1.5,\n      type: \"paper\",",
+    "replace": "      t: close + 1.6,\n      type: \"paper\",",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*puts the move in the designer's brief"
+  },
+  {
+    "id": "w7-e3-rule-in-brief",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    DOOR_RULE,\n    GATE_RULES,",
+    "replace": "    GATE_RULES,",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*puts the move in the designer's brief"
+  },
+  {
+    "id": "w7-e3-reference-door",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  \"launch/engine/moves/door.mjs\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*copies the move and the study"
+  },
+  {
+    "id": "w7-e3-sheet-last-frame",
+    "test": "tests/unit/reel/door-move.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "+eq(n\\\\,${String(frames - 1)})",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/door-move.test.ts",
+    "expect": "× .*shows the reviewer the film's last frame"
+  }
+]
