@@ -30,10 +30,19 @@
     "id": "w7-e2-review-refuses",
     "test": "tests/unit/workforce-reel.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "if (!verdict.pass) throw new Error(",
-    "replace": "if (false) throw new Error(",
+    "find": "        if (verdict.pass) {",
+    "replace": "        if (true) {",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*uploads nothing and says why"
+  },
+  {
+    "id": "w7-e2-review-revision",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "      if (revisions >= REVISIONS) throw new Error(refusal);",
+    "replace": "      throw new Error(refusal);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*gives the designer the reviewer's refusal"
   },
   {
     "id": "w7-e2-voice-before-work",
