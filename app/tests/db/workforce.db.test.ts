@@ -286,4 +286,23 @@ describe("learning from decisions", () => {
       { slug: "test-scout-yes", model: "opus", tools: ["read_business", "chat"] },
     ]);
   });
+
+  it("records the week's Claude allowance as a vendor line without touching the catalog (W6 item 2)", async () => {
+    const read = await withRollback(async (db) => {
+      const version = "select (public.public_state() ->> 'catalog_version') as v";
+      const before = await db.query<{ v: string }>(version);
+      await db.query(
+        "select public.record_vendor_usage('claude_week', 94, 100, '2026-10-21T16:00:00.000Z')",
+      );
+      const after = await db.query<{ v: string }>(version);
+      const row = await db.query<{ used: string; limit_value: string; note: string }>(
+        "select used, limit_value, note from public.vendor_usage where line = 'claude_week'",
+      );
+      return { row: row.rows[0], same: before.rows[0]?.v === after.rows[0]?.v };
+    });
+    expect(read).toEqual({
+      row: { used: "94", limit_value: "100", note: "2026-10-21T16:00:00.000Z" },
+      same: true,
+    });
+  });
 });
