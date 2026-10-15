@@ -3,8 +3,8 @@
     "id": "ei-a-email-cross-origin",
     "test": "tests/unit/headers.test.ts",
     "file": "public/_headers",
-    "find": "  ! Cross-Origin-Resource-Policy\n  Cross-Origin-Resource-Policy: cross-origin\n",
-    "replace": "",
+    "find": "/email/*\n  ! Cross-Origin-Resource-Policy\n  Cross-Origin-Resource-Policy: cross-origin\n",
+    "replace": "/email/*\n",
     "run": "bunx vitest run --project unit tests/unit/headers.test.ts",
     "expect": "× .*lets mail clients show the email images"
   }
