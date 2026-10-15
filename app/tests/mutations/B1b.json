@@ -3024,7 +3024,7 @@
     "find": "if (asset.answer.status !== 200)",
     "replace": "if (asset.answer.status === 0)",
     "run": "bunx vitest run tests/unit/smoke.test.ts",
-    "expect": "× fails on an asset that answers 404"
+    "expect": "× .*asks an asset that answers 404 again for half a minute before it fails"
   },
   {
     "id": "smoke-asset-nosniff",
