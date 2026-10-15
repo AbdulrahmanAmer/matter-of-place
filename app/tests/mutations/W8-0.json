@@ -141,5 +141,122 @@
     "replace": ".map((message) => `${message.author_name}: ${message.body}`)",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*builds the owner's prompt with the triage only"
+  },
+  {
+    "id": "w8-0r-held-keeps-nothing",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "const may = (action: string) => triage !== \"held\" && allowedFor(triage.source, action);",
+    "replace": "const may = (action: string) => triage === \"held\" || allowedFor(triage.source, action);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*keeps no proposal, call, hire or media"
+  },
+  {
+    "id": "w8-0r-held-answer-masked",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (line.author_id === HELD_READ_AUTHOR)",
+    "replace": "  if (line.author_id === \"never\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*offers a held read no tool"
+  },
+  {
+    "id": "w8-0r-held-read-no-tools",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "...(held ? [\"--tools\", \"\"] : []),",
+    "replace": "...[],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*offers a held read no tool"
+  },
+  {
+    "id": "w8-0r-held-prompt-no-actions",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "    ...(held\n",
+    "replace": "    ...(false\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*offers a held read no tool"
+  },
+  {
+    "id": "w8-0r-held-answer-author",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (matterReadsHeld) return { thread, author_id: HELD_READ_AUTHOR };",
+    "replace": "  if (matterReadsHeld) return { thread, author_id: agentSlug };",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*writes Matter's held answer masked"
+  },
+  {
+    "id": "w8-0r-reply-owner-thread",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "thread: triage === null ? thread : agentSlug,",
+    "replace": "thread,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*writes Matter's held answer masked"
+  },
+  {
+    "id": "w8-0r-prompt-data-no-token",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "/token|secret|password/i.test(key) ? undefined : value,",
+    "replace": "value,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*shows no token"
+  },
+  {
+    "id": "w8-0r-daemon-prompt-data",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "Its data: ${promptData(data.payload)}",
+    "replace": "Its data: ${JSON.stringify(data.payload)}",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*builds the owner's prompt with the triage only"
+  },
+  {
+    "id": "w8-0r-held-line-plain",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "From: ${plain(triage.who)}.",
+    "replace": "From: ${triage.who}.",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*plain fields in the held line"
+  },
+  {
+    "id": "w8-0r-woke-unreadable",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "if (line === undefined)\n              throw new Error(\"the line that woke this run could not be read\");",
+    "replace": "if (line === undefined) return null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*fails a run whose waking line cannot be read"
+  },
+  {
+    "id": "w8-0r-hold-needs-matter",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "if (matterRow === undefined) throw new Error(\"Matter is not in the team, so nothing can be held\");",
+    "replace": "if (matterRow === undefined) return;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*holds for Matter in the owner's thread"
+  },
+  {
+    "id": "w8-0r-hold-queue-fails",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "if (queueError !== null) throw new Error(\"Matter's run on the held line could not be queued\");",
+    "replace": "void queueError;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*holds for Matter in the owner's thread"
+  },
+  {
+    "id": "w8-0r-bounce-domain",
+    "test": "tests/unit/workforce-bounce.test.ts",
+    "file": "scripts/workforce/bounce.ts",
+    "find": "? `an address at ${email.trim().split(\"@\")[1] ?? \"\"}`",
+    "replace": "? email.trim()",
+    "run": "bunx vitest run --project unit tests/unit/workforce-bounce.test.ts",
+    "expect": "× .*names the request, the failed address, the phone and the page"
   }
 ]

@@ -274,7 +274,8 @@ export async function checkNewAddresses(client: Db, home: string): Promise<numbe
       author_kind: "system",
       author_id: "system",
       author_name: "Matter of Place",
-      body: `The address of ${item.kind} ${item.id} (${address}) will not be mailed: ${check.reason} Ask the person for the right address.`,
+      // W8 review: the domain only; the part before the @ is text the person typed.
+      body: `The address of ${item.kind} ${item.id} (at ${address.split("@")[1] ?? "no domain"}) will not be mailed: ${check.reason} Ask the person for the right address.`,
     });
   }
   const latest =
