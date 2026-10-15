@@ -33,8 +33,10 @@ const AFTER_RESULT_MS = 60_000;
 // Jay, 2026-10-13: a long session costs more each turn and compaction drops facts, so the session rotates and a
 // state file Matter keeps current seeds the next one.
 const STATE_FILE = join(MATTER_HOME, "live-state.md");
-const ROTATE_TURNS = 6;
-const ROTATE_MS = 24 * 60 * 60_000;
+// Continuous (operator, 2026-10-15): Claude Code compacts a long session itself; only a week-old session is replaced.
+const ROTATE_MS = 7 * 24 * 60 * 60_000;
+// The supervisor's own code: a merge that changes none of it leaves the session running.
+const OWN_CODE = ["app/scripts/matter", "app/scripts/workforce", ".claude/hooks/task-gate.mjs"];
 const BREAKER_FILE = join(HOME, "breaker.json");
 const WORKER = `matter-live@${hostname()}`;
 const POLL_MS = 3_000;
@@ -212,8 +214,13 @@ export function isIdle(active: number, open: number): boolean {
  * started on, it ends the session and exits; the scheduled task starts the new supervisor a minute later, which resumes
  * the kept session. An unreadable head (empty) never moves it.
  */
-export function shouldMove(idle: boolean, headNow: string, headAtStart: string): boolean {
-  return idle && headNow !== "" && headNow !== headAtStart;
+export function shouldMove(
+  idle: boolean,
+  headNow: string,
+  headAtStart: string,
+  ownCodeChanged = true,
+): boolean {
+  return idle && headNow !== "" && headNow !== headAtStart && ownCodeChanged;
 }
 
 /** Whether the supervisor's once-a-minute touch of Matter's row is due (his panel's "online"). */
@@ -256,10 +263,7 @@ export function nextGoalStep(
 }
 
 export function shouldRotate(record: SessionRecord | null, now: number): boolean {
-  return (
-    record !== null &&
-    (record.turns >= ROTATE_TURNS || now - Date.parse(record.startedAt) > ROTATE_MS)
-  );
+  return record !== null && now - Date.parse(record.startedAt) > ROTATE_MS;
 }
 
 /** What a new session starts from: the state Matter kept, or a line saying there is none. */
@@ -297,6 +301,18 @@ function lockOrExit(): void {
       process.exit(0);
   }
   writeFileSync(LOCK_FILE, String(process.pid));
+}
+
+/** Whether the supervisor's own code differs between two commits; an unreadable answer counts as changed. */
+function ownCodeChanged(from: string, to: string): boolean {
+  const result = spawnSync(
+    "git",
+    ["-C", resolve(here, "../../.."), "diff", "--quiet", from, to, "--", ...OWN_CODE],
+    {
+      windowsHide: true,
+    },
+  );
+  return result.status !== 0;
 }
 
 function runnerHead(): string {
@@ -646,7 +662,15 @@ class Supervisor {
         this.headCheckedAt = Date.now();
         // New code on the runner: exit while idle (a live session included, which once kept old code for three hours),
         // and the scheduled task starts the new supervisor a minute later.
-        if (shouldMove(idle, runnerHead(), this.head)) {
+        const headNow = runnerHead();
+        if (
+          shouldMove(
+            idle,
+            headNow,
+            this.head,
+            headNow !== this.head && ownCodeChanged(this.head, headNow),
+          )
+        ) {
           console.log(`${new Date().toISOString()} live: new runner code, moving to it`);
           killTree(this.child?.pid);
           process.exit(0);
