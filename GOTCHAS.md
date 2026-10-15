@@ -8343,3 +8343,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
 - proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
 - added: 2026-10-15
+
+## P-3671 · A select policy that opens a row to a client opens every column of it, staff notes included
+- symptom: 2026-10-16, W6 item 7's first diff gave `authenticated` five client select policies (contacts, submissions, submission_media, payments, campaign_reports) keyed on the client's contact. The security review hook flagged it at once: a client holding their own access token (it is in their cookie) could call PostgREST directly and read `contacts.notes`, `submissions.notes`, `decline_note`, the address hashes, reviewer ids and `payments.notes` of their own rows.
+- cause: RLS chooses rows, not columns, and `authenticated` already holds table-wide SELECT for the staff policies, so a row a policy lets through comes back whole. Column grants would also cut staff.
+- rule: never open a base table with internal columns to a non-staff person through a policy; give them a security definer function, service role only, that returns a fixed list of fields and takes the verified session's user id (`account_room`, ruling H113 (2)). The RLS matrix then lists that person as refused on every table, their own rows included, and a `sql` registry entry that adds the policy back must turn the matrix red.
+- proof: `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:55472/mopm env -u CLOUDFLARE_API_TOKEN node scripts/watchfail.mjs --registry tests/mutations --only w6-7-rls-own-rows` → `WATCHED-FAIL OK` (the policy added back fails `as a client, on their own rows`).
+- added: 2026-10-16
+
+## P-3672 · A worktree has no `.env`, so `load-env.mjs --profile dev` exits with ENOENT; a native database built from the migrations needs neither it nor mop-dev
+- symptom: 2026-10-16, W6 item 7 in `E:/mop-build/od-w6-7`: `eval "$(node scripts/load-env.mjs --profile dev)"` printed `ENOENT: no such file or directory, open 'E:\mop-build\od-w6-7\.env'` and left `DEV_DB_URL` unset, so P-718's dump of mop-dev could not start (and after the launch switch mop-dev refuses db tests anyway, H35).
+- cause: `load-env.mjs` reads the `.env` at the root of its own checkout; a worktree is a separate root and `.env` is git-ignored.
+- rule: build the throwaway database from the branch's own migrations instead: a native PostgreSQL 18 cluster (`initdb`, `pg_ctl` on its own port), stubs for `auth.users`/`auth.uid()`, the `anon`/`authenticated`/`service_role` roles, `pgmq` (create, send, read, delete, metrics_all), `cron`, `vault`, `net` and `storage`, then every file of `supabase/migrations` in order with the three `create extension` lines of pg_cron, pgmq and pg_net removed. It matches CI's from-zero build better than a dump and touches no cloud project. The native cluster's time zone is the laptop's (Cairo, +03): a test that prints a `timestamptz` sets `set local time zone 'UTC'`, as PostgREST sessions are.
+- proof: `cd app && bash <scratch>/apply-migrations.sh mopm` → `applied 137 files to mopm` (W6 item 7, 2026-10-16); `DEV_DB_URL=postgresql://postgres@127.0.0.1:55472/mopm env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/rls.db.test.ts tests/db/account.db.test.ts` passes; without the UTC line the room case printed `2026-10-02T13:00:00+03:00`.
+- added: 2026-10-16
+
+## P-3673 · The edge stores `/<page>?<query>` under the page's path, so a page whose address carries a token or a person's data must never be server-rendered or stored
+- symptom: 2026-10-16, W6 item 7: `/account/confirm?token_hash=...` and the signed-in `/account` are public-site pages, and `cachedResponse` (`src/server/public/cache.ts`) stores a page's HTML for every visitor unless the answer is `no-store`, carries a cookie or is a 5xx; `_site.privacy-request.tsx` notes the stored copy ignores the query.
+- cause: `neverCached` (`src/server/lib/pipeline.ts`) exempts only `/admin`, `/api/admin`, `/api/hooks`, previews and non-GET requests.
+- rule: a public route that shows one person's data, or reads a token from its address, sets `ssr: false` and `headers: () => ({ "cache-control": "private, no-store" })`, and its server functions are POST (never stored) with `private, no-store` on the answer, as the two account routes and `src/lib/account.functions.ts` do.
+- proof: `cd app && grep -c "private, no-store" src/routes/_site.account.index.tsx src/routes/_site.account.confirm.tsx src/lib/account.functions.ts` → `1` each.
+- added: 2026-10-16

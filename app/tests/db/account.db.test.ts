@@ -1,0 +1,179 @@
+// W6 item 7, ruling H113: the client room's one read. A client is the auth user whose confirmed email is a contact's
+// email; `account_room` answers that contact's requests and nothing else, and only the service role may call it.
+import { describe, expect, it } from "vitest";
+import { asRole, createAuthUser, withRollback, type Db } from "../fixtures/db";
+
+/** An auth user with `email`, confirmed unless `confirmed` is false. */
+async function person(db: Db, email: string, confirmed = true): Promise<string> {
+  const id = await createAuthUser(db);
+  await db.query(
+    "update auth.users set email = $2, email_confirmed_at = case when $3 then now() end where id = $1",
+    [id, email, confirmed],
+  );
+  return id;
+}
+
+async function contact(db: Db, email: string, archived = false): Promise<string> {
+  const { rows } = await db.query<{ id: string }>(
+    `insert into public.contacts (kind, name, email, archived_at)
+     values ('owner', 'Test Owner', $1, case when $2 then now() end) returning id`,
+    [email, archived],
+  );
+  return rows[0]?.id ?? "";
+}
+
+async function request(
+  db: Db,
+  contactId: string,
+  address: string,
+  receivedAt: string,
+): Promise<string> {
+  const { rows } = await db.query<{ id: string }>(
+    `insert into public.submissions (
+       address, city, state, zip, property_type, submitter_kind, submitter_name, submitter_email, story, significance,
+       package, source_path, rights_version, rights_confirmed_at, rights_ip_hash, contact_id, received_at, notes
+     ) values (
+       $1, 'Berkeley', 'California', '94702', 'Residence', 'owner', 'Test Owner', 'owner@example.test', 'x', 'x',
+       'The Feature', '/submit', 'test-v1', now(), 'test-hash', $2, $3, array['{"text": "staff only"}'::jsonb]
+     ) returning id`,
+    [address, contactId, receivedAt],
+  );
+  return rows[0]?.id ?? "";
+}
+
+async function room(db: Db, user: string): Promise<unknown> {
+  // Times print in the session's zone; PostgREST sessions are UTC, and so is this one.
+  await db.query("set local time zone 'UTC'");
+  const { rows } = await db.query<{ room: unknown }>("select public.account_room($1) as room", [
+    user,
+  ]);
+  return rows[0]?.room;
+}
+
+interface Room {
+  name: string;
+  requests: { id: string; address: string }[];
+}
+
+const isRoom = (value: unknown): value is Room =>
+  typeof value === "object" && value !== null && "requests" in value;
+
+const requestIds = (value: unknown): string[] =>
+  isRoom(value) ? value.requests.map((entry) => entry.id) : [];
+
+describe("account_room", () => {
+  it("lists the client's own requests by address and state, newest first, and no staff field", async () => {
+    const { answer, older, newer } = await withRollback(async (db) => {
+      const user = await person(db, "test-account-a@example.test");
+      const own = await contact(db, "test-account-a@example.test");
+      const older = await request(db, own, "1 Older Way", "2026-10-01T10:00:00Z");
+      const newer = await request(db, own, "2 Newer Way", "2026-10-02T10:00:00Z");
+      return { answer: await room(db, user), older, newer };
+    });
+    expect(answer).toEqual({
+      name: "Test Owner",
+      requests: [
+        {
+          id: newer,
+          address: "2 Newer Way",
+          city: "Berkeley",
+          state: "California",
+          workflow_state: "Submitted",
+          received_at: "2026-10-02T10:00:00+00:00",
+        },
+        {
+          id: older,
+          address: "1 Older Way",
+          city: "Berkeley",
+          state: "California",
+          workflow_state: "Submitted",
+          received_at: "2026-10-01T10:00:00+00:00",
+        },
+      ],
+    });
+  });
+
+  it("a client cannot read another client's request, through the room or the table", async () => {
+    const seen = await withRollback(async (db) => {
+      const a = await person(db, "test-account-a@example.test");
+      const ownContact = await contact(db, "test-account-a@example.test");
+      const otherContact = await contact(db, "test-account-b@example.test");
+      const own = await request(db, ownContact, "1 Own Way", "2026-10-01T10:00:00Z");
+      const others = await request(db, otherContact, "9 Other Way", "2026-10-03T10:00:00Z");
+      const viaRoom = requestIds(await room(db, a));
+      await asRole(db, "authenticated", a);
+      const viaTable = await db.query<{ id: string }>(
+        "select id from public.submissions where id = any ($1::uuid[])",
+        [[own, others]],
+      );
+      return { viaRoom, viaTable: viaTable.rows, own, others };
+    });
+    expect({ viaRoom: seen.viaRoom, viaTable: seen.viaTable }).toEqual({
+      viaRoom: [seen.own],
+      viaTable: [],
+    });
+  });
+
+  it("a signed-in person calls neither the room nor the mapping", async () => {
+    const codes = await withRollback(async (db) => {
+      const a = await person(db, "test-account-a@example.test");
+      await contact(db, "test-account-a@example.test");
+      await asRole(db, "authenticated", a);
+      const attempt = async (sql: string): Promise<string> => {
+        await db.query("savepoint attempt");
+        try {
+          await db.query(sql, [a]);
+          return "ran";
+        } catch (error) {
+          return error instanceof Error && "code" in error ? String(error.code) : "error";
+        } finally {
+          await db.query("rollback to savepoint attempt");
+        }
+      };
+      return {
+        room: await attempt("select public.account_room($1)"),
+        mapping: await attempt("select app.contact_of($1)"),
+      };
+    });
+    expect(codes).toEqual({ room: "42501", mapping: "42501" });
+  });
+
+  it("a session with no matching contact has no room", async () => {
+    const answer = await withRollback(async (db) => {
+      const user = await person(db, "test-account-nobody@example.test");
+      await contact(db, "test-account-someone-else@example.test");
+      return room(db, user);
+    });
+    expect(answer).toBeNull();
+  });
+
+  it("an unconfirmed email has no room", async () => {
+    const answer = await withRollback(async (db) => {
+      const user = await person(db, "test-account-a@example.test", false);
+      await contact(db, "test-account-a@example.test");
+      return room(db, user);
+    });
+    expect(answer).toBeNull();
+  });
+
+  it("an archived contact has no room", async () => {
+    const answer = await withRollback(async (db) => {
+      const user = await person(db, "test-account-a@example.test");
+      await contact(db, "test-account-a@example.test", true);
+      return room(db, user);
+    });
+    expect(answer).toBeNull();
+  });
+
+  it("the email matches ignoring case", async () => {
+    const answer = await withRollback(async (db) => {
+      const user = await person(db, "Test-Account-A@Example.test");
+      const own = await contact(db, "test-account-a@example.test");
+      await request(db, own, "1 Own Way", "2026-10-01T10:00:00Z");
+      return room(db, user);
+    });
+    expect(isRoom(answer) ? answer.requests.map((entry) => entry.address) : []).toEqual([
+      "1 Own Way",
+    ]);
+  });
+});
