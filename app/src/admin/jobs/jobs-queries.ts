@@ -71,7 +71,7 @@ export function useDeadJobs(type: string | undefined) {
 /** The Events panel's one read: the last events and the ones that failed to plan. */
 export function useEvents() {
   return useQuery({
-    queryKey: [...adminKeys.jobs.all(), "events"],
+    queryKey: adminKeys.jobs.list({ panel: "events" }),
     queryFn: fetchEvents,
   });
 }

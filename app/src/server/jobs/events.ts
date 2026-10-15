@@ -40,6 +40,8 @@ interface EventsAnswer {
   failures: FanoutFailure[];
 }
 
+const present = <T>(value: T | null): value is T => value !== null;
+
 /** The recipes that planned jobs for each event, each once, in the order the jobs name them. */
 async function recipesByEvent(db: Db, eventIds: string[]): Promise<Map<string, EventRecipe[]>> {
   const byEvent = new Map<string, EventRecipe[]>();
@@ -50,13 +52,17 @@ async function recipesByEvent(db: Db, eventIds: string[]): Promise<Map<string, E
     .in("event_id", eventIds)
     .not("recipe_id", "is", null);
   if (jobs.error !== null) throw fromRpcError(jobs.error);
-  const recipeIds = [...new Set(jobs.data.flatMap((job) => job.recipe_id ?? []))];
+  const planned = jobs.data.flatMap((job) =>
+    present(job.event_id) && present(job.recipe_id)
+      ? [{ eventId: job.event_id, recipeId: job.recipe_id }]
+      : [],
+  );
+  const recipeIds = [...new Set(planned.map((job) => job.recipeId))];
   if (recipeIds.length === 0) return byEvent;
   const recipes = await db.from("automation_recipes").select("id, name").in("id", recipeIds);
   if (recipes.error !== null) throw fromRpcError(recipes.error);
   const names = new Map(recipes.data.map((recipe) => [recipe.id, recipe.name]));
-  for (const { event_id: eventId, recipe_id: recipeId } of jobs.data) {
-    if (eventId === null || recipeId === null) continue;
+  for (const { eventId, recipeId } of planned) {
     const taken = byEvent.get(eventId) ?? [];
     if (!taken.some((recipe) => recipe.id === recipeId)) {
       taken.push({ id: recipeId, name: names.get(recipeId) ?? "A recipe that no longer exists" });
@@ -74,9 +80,7 @@ async function fanoutFailures(db: Db): Promise<FanoutFailure[]> {
     .order("next_at", { ascending: true })
     .limit(FAILURE_LIMIT);
   if (error !== null) throw fromRpcError(error);
-  return data.flatMap(({ events, ...failure }) =>
-    events === null ? [] : [{ ...failure, ...events }],
-  );
+  return data.map(({ events, ...failure }) => ({ ...failure, ...events }));
 }
 
 /** `GET /api/admin/jobs/events`: the 50 newest events with their recipes, and every event that failed to plan. */

@@ -1913,3 +1913,11 @@ first day of the new usage week; no step was cut from any plan.
   UNPROVEN; rows an admin edited keep their words. NOT DONE: send one real email through each house and look at it in
   Gmail and Outlook; the operator's Meta app, social accounts and the Fairfield owner's right address. Bank grew:
   G-1451, P-3500, P-3501, P-3520 to P-3523.
+
+- 2026-10-15 22:10 +0300: W7 item 5 built (PR 438, draft until Matter reads it): the Events panel in System > Jobs, last 50
+  events with type, time, entity, processed and the recipe that took each (jobs.event_id and jobs.recipe_id, names from
+  automation_recipes), plus the events in event_fanout_failures (attempts, next try, last error). Read route
+  `GET /api/admin/jobs/events` reuses the action `jobs.list`, so no matrix change and no migration; no payload is selected
+  (subscriber.created holds a sealed token). Proof: unit 5 and component 24 passed, registry W7-5.json 14 entries
+  WATCHED-FAIL OK, both tsc, eslint, prettier, knip exit 0. NOT DONE: a browser look at the real page (admin sign-in is a
+  magic link; rendered text observed in the component test only). Bank grew: P-3560 to P-3562.

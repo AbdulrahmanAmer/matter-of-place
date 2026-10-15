@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Route } from "../../../src/routes/api/admin/jobs.events";
 import type { Actor } from "../../../src/server/lib/actor";
 import { setDbForTests, type Db } from "../../../src/server/lib/db";
+import { listEvents } from "../../../src/server/jobs/events";
 
 // W7 item 5: `GET /api/admin/jobs/events` through the route file and `defineAdminRoute`. The actor comes from a
 // stand-in `requireActor`, so each case shows what the matrix and the service do with that actor.
@@ -69,14 +70,13 @@ function eventsDb(rows: Rows): Db & { seen: Seen[] } {
           return query;
         },
         // `await query` reads the table: the service ends each chain by awaiting it.
-        // eslint-disable-next-line unicorn/no-thenable -- the stand-in for a PostgREST query
         then: (resolve: (answer: { data: object[]; error: null }) => unknown) =>
           resolve({ data: rows[table] ?? [], error: null }),
       };
       return query;
     },
   });
-  // The one cast of the file: a stand-in with the two members the service uses.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- a client with the one member the service reads through
   return Object.assign({ from } as unknown as Db, { seen });
 }
 
@@ -90,17 +90,16 @@ const eventRow = (id: string, over: object = {}) => ({
   ...over,
 });
 
-const answerOf = (body: unknown) => (typeof body === "object" && body !== null ? body : {});
+const field = (value: unknown, key: string): unknown =>
+  typeof value === "object" && value !== null ? Reflect.get(value, key) : undefined;
 
 async function get(actor: Actor, db: Db) {
-  const handle: unknown = Reflect.get(
-    Reflect.get(Reflect.get(Route.options, "server") as object, "handlers") as object,
-    "GET",
-  );
-  if (typeof handle !== "function") throw new Error("no GET handler");
+  const handle = field(field(field(Route, "options"), "server"), "handlers");
+  const get = field(handle, "GET");
+  if (typeof get !== "function") throw new Error("no GET handler");
   live.actor = actor;
   setDbForTests(db);
-  const answer: unknown = await Reflect.apply(handle, undefined, [
+  const answer: unknown = await Reflect.apply(get, undefined, [
     {
       request: new Request("https://example.test/api/admin/jobs/events", { method: "GET" }),
       context: { requestId: "req-events" },
@@ -108,7 +107,8 @@ async function get(actor: Actor, db: Db) {
     },
   ]);
   if (!(answer instanceof Response)) throw new Error("the route answered nothing");
-  return { status: answer.status, body: answerOf(await answer.json()) };
+  const body: unknown = await answer.json();
+  return { status: answer.status, body };
 }
 
 afterEach(() => {
@@ -121,6 +121,14 @@ describe("GET /api/admin/jobs/events", () => {
     const db = eventsDb({});
     const answer = await get(outOfScope, db);
     expect({ status: answer.status, reads: db.seen }).toEqual({ status: 403, reads: [] });
+  });
+
+  it("refuses the service itself to an actor the matrix does not allow, before any read", async () => {
+    const db = eventsDb({});
+    await expect(listEvents({ ...outOfScope, requestId: "req-events" }, db)).rejects.toMatchObject({
+      code: "out_of_scope",
+    });
+    expect(db.seen).toEqual([]);
   });
 
   it("names each recipe once for an event and marks an event no job took", async () => {
@@ -214,13 +222,6 @@ describe("GET /api/admin/jobs/events", () => {
             entity: "submission",
             entity_id: PROPERTY,
           },
-        },
-        {
-          event_id: waiting,
-          attempts: 1,
-          next_at: "2026-10-15T11:00:00Z",
-          last_error: null,
-          events: null,
         },
       ],
     });

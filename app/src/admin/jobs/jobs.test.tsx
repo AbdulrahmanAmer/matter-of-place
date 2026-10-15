@@ -418,13 +418,14 @@ describe("EventsPanel", () => {
 
   it("lists each event with its type, entity, whether it was processed and the recipe that took it", async () => {
     mountPanel({ [`GET ${EVENTS}`]: answer });
-    const table = within(await screen.findByRole("table", { name: "Events" }));
+    await screen.findByText("Property published");
+    const table = within(screen.getByRole("table", { name: "Events" }));
     const rows = table.getAllByRole("row").slice(1);
     expect(
       rows.map((row) =>
         within(row)
           .getAllByRole("cell")
-          .map((cell) => cell.textContent?.trim()),
+          .map((cell) => cell.textContent.trim()),
       ),
     ).toEqual([
       [
@@ -459,8 +460,8 @@ describe("EventsPanel", () => {
 
   it("draws no failure table when every event planned", async () => {
     mountPanel({ [`GET ${EVENTS}`]: { events: [event(PLANNED)], failures: [] } });
-    await screen.findByRole("table", { name: "Events" });
-    expect(screen.queryByRole("table", { name: "Events that failed to plan" })).toBeNull();
+    await screen.findByText("property.published");
+    expect(screen.queryByText(/failed to plan/)).toBeNull();
   });
 
   it("says so when no event has happened", async () => {

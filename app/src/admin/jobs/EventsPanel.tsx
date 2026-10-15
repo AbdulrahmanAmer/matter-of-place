@@ -70,15 +70,13 @@ export function EventsPanel() {
         What happened on the site, and which recipe took it. An event no recipe could plan is listed
         first and tried again.
       </p>
-      {failures.length === 0 ? null : (
-        <DataTable
-          caption="Events that failed to plan"
-          columns={failureColumns}
-          rows={failures}
-          rowId={(row) => row.event_id}
-          empty={null}
-        />
-      )}
+      <DataTable
+        caption="Events that failed to plan"
+        columns={failureColumns}
+        rows={failures}
+        rowId={(row) => row.event_id}
+        empty={null}
+      />
       <DataTable
         caption="Events"
         columns={eventColumns}

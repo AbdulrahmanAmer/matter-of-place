@@ -8313,3 +8313,21 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the runner waits only for runs its own checkout executes (`runnerBusy` in `scripts/workforce/follow.ts` skips workers starting `LIVE_WORKER_PREFIX`). After a merge the live session needs on the runner, check `git -C E:/mop-build/live log --oneline -1` against `origin/main` before waiting on the runner.
 - proof: `cd app && bunx vitest run --project unit tests/unit/follow.test.ts` → `waits for a run this checkout executes, never for the live session's own goal run` passes; the replaced count makes it fail (registry `runner-follow-live.json`).
 - added: 2026-10-15
+
+## P-3560 · `findByRole("table")` is satisfied by the loading skeleton: a component test reads five empty rows
+- symptom: 2026-10-15 (W7 5), the Events panel test awaited `findByRole("table", { name: "Events" })` and then compared the rows' cells: it received five rows of `[""]`. `DataTable` draws its caption and five skeleton rows while `loading`, so the table exists before any data. A test that only waited for the table, "draws no failure table", would also have passed on the skeleton.
+- rule: a component test of a `DataTable` waits for a word of the data (`findByText`) before it reads the table or asserts something is absent.
+- proof: `cd app && bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx -t "EventsPanel"` → 6 passed; registry `w7-5-c-no-recipe` and `w7-5-c-failures-empty` go red.
+- added: 2026-10-15
+
+## P-3561 · A service's own `authorize` is invisible to a route test: the route's matrix check refuses first
+- symptom: 2026-10-15 (W7 5), removing `authorize(actor, "jobs.list")` from `listEvents` left `w7-5-scope` green (`WATCHED-FAIL BAD: stayed green`), because `defineAdminRoute` already answers 403 for the same action before the handler runs.
+- rule: the service's `authorize` line gets its own test that calls the service function directly with an out-of-scope actor and checks nothing was read.
+- proof: `node scripts/watchfail.mjs --registry tests/mutations --only w7-5-scope` → `WATCHED-FAIL OK` (from `app/`).
+- added: 2026-10-15
+
+## P-3562 · A type-aware eslint run on four files outlasted a ten-minute background limit under load
+- symptom: 2026-10-15 (W7 5), `tsc`, `tsc`, `eslint` and `prettier` chained in one background command were stopped at the 10-minute default with eslint unfinished. Run alone with `timeout` 3000000 it finished.
+- rule: start `eslint` as its own background command with the longest `timeout`; never replay the registry while it runs (the replay mutates the files eslint reads).
+- proof: `cd app && bunx eslint --max-warnings 0 src/server/jobs/events.ts` exits 0 given time.
+- added: 2026-10-15
