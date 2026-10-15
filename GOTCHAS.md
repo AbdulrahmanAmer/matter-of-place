@@ -8398,3 +8398,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: run `bun run layout` from `app/` before every push that adds a file; a file in an existing folder is added to that folder's row in `scripts/check-layout.mjs`, a new folder needs its STANDARDS row too (or the file goes under an existing folder, as PR 439's did). The builders' How block says so.
 - proof: `cd app && bun run layout` → `layout: OK (3451 files)` on PR 443 with `settings-terminal.json` in the `scripts/workforce` row, and `outside the folder map` without it (2026-10-16).
 - added: 2026-10-16
+
+## P-3577 · Claude Code permission rules for a Windows path on another drive, and what one Bash rule allows
+- symptom: 2026-10-16, W8 0i: a colleague needed to write `G:\My Drive\...` and run one render script and nothing else; the rule syntax for an absolute Windows path was unknown and `Edit(//G:/...)` did nothing.
+- rule: name an absolute path as `//<lower-case drive>/<path>` (`Edit(//g/My Drive/Matter of Place/Social Media/**)`, `Read(//e/mop-build/x/**)`), give the run `--add-dir <folder>` for every folder outside its working directory, and allow a script with `Bash(<exact command prefix>:*)` under `--permission-mode dontAsk`: that command runs and every other command (`cat`, `ls`, `node -e`, a chained `... && cat <file>`, a redirect) is refused. An empty-string argument (`--setting-sources ""`) is dropped by a shell: spawn the CLI without `shell: true` (P-3530).
+- proof: `bun E:/mop-build/.tmp/probe-toolkit/probe.ts` (Haiku, decoys only): `slashlower: drive write WRITTEN; escape write refused; allowed read read; denied read refused; tool ran`, with `//G:/...` `drive write refused`; `bun E:/mop-build/.tmp/probe-toolkit/probe2.ts` → commands 1 to 6 REFUSED, only a plain redirect into the working folder ran (2026-10-16).
+- added: 2026-10-16
