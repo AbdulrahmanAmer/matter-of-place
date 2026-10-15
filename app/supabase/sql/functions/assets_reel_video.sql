@@ -7,6 +7,10 @@ as $$
 begin
   -- B12: approving a reel puts it on the dossier, so a newer approved revision replaces the film; rejecting the
   -- approved one takes it down. A revision superseded by rerender_asset keeps the film until the next approval.
+  -- W7 item 19 (H107): a reel about a market, a story or the brand has no dossier to go on.
+  if new.property_id is null then
+    return null;
+  end if;
   if new.status = 'approved' and old.status <> 'approved' then
     perform public.attach_reel(new.property_id, new.id);
   elsif new.status = 'rejected' and old.status in ('approved', 'published')

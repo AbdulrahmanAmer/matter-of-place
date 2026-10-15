@@ -43,7 +43,13 @@ const adminAssetFileSchema = assetFileSchema.extend({ url: z.string() });
 
 export const adminAssetSchema = z.object({
   id: uuid,
-  property_id: uuid,
+  /** W7 item 19 (H107): what the asset is about; only a property's asset has `property_id`. */
+  subject: z.enum(["property", "market", "story", "brand"]).default("property"),
+  property_id: uuid.nullable(),
+  market_slug: z.string().nullable().default(null),
+  story_id: uuid.nullable().default(null),
+  /** What a requested reel is about, by name ("California", a story's title, "Matter of Place"); null for a property's. */
+  subject_label: z.string().nullable().default(null),
   kind: z.enum(assetKinds),
   revision: z.number().int(),
   status: z.enum(assetStatuses),

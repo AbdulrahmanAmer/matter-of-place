@@ -19,6 +19,8 @@ const allSet = {
     email: "hello@example.test",
     phone: "+1 310 555 0100",
     privacy_email: "p@example.test",
+    billing_email: "b@example.test",
+    listings_email: "l@example.test",
   },
   legal: { entity: "Example Holdings LLC", address: "1 Example Way\nLos Angeles, CA 90001" },
   social: {
@@ -38,7 +40,13 @@ describe("siteSettingsSchema", () => {
       contact: { email: "  ", phone: "", privacy_email: "  p@example.test " },
       legal: { entity: " Example Holdings LLC ", address: "\n" },
     });
-    expect(parsed.contact).toEqual({ email: null, phone: null, privacy_email: "p@example.test" });
+    expect(parsed.contact).toEqual({
+      email: null,
+      phone: null,
+      privacy_email: "p@example.test",
+      billing_email: null,
+      listings_email: null,
+    });
     expect(parsed.legal).toEqual({ entity: "Example Holdings LLC", address: null });
   });
 
@@ -50,6 +58,8 @@ describe("siteSettingsSchema", () => {
         email: "hello@matterofplace.com",
         phone: null,
         privacy_email: "privacy@matterofplace.com",
+        billing_email: null,
+        listings_email: null,
       },
       legal: { entity: null, address: null },
       social: { instagram: null, x: null, linkedin: null },
@@ -58,7 +68,13 @@ describe("siteSettingsSchema", () => {
 
   it("fills a partial or empty object with nulls", () => {
     const nulls = {
-      contact: { email: null, phone: null, privacy_email: null },
+      contact: {
+        email: null,
+        phone: null,
+        privacy_email: null,
+        billing_email: null,
+        listings_email: null,
+      },
       legal: { entity: null, address: null },
       social: { instagram: null, x: null, linkedin: null },
     };

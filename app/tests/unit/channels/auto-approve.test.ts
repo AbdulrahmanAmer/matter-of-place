@@ -87,6 +87,11 @@ describe("maybeAutoApprove", () => {
     ],
     ["an asset without alt text", { asset: { alt_text: null } }, "incomplete"],
     ["an asset whose only target is off", { enabled: { instagram: false } }, "no_target"],
+    [
+      "a requested reel about a market (W7 item 19)",
+      { asset: { subject: "market", property_id: null, market_slug: "california" } },
+      "not_a_property",
+    ],
   ] as const)("never approves %s", async (_label, options: WorldOptions, reason) => {
     const { db } = pending(options);
     expect(await maybeAutoApprove(db, ASSET, NOW)).toEqual({ status: "not_eligible", reason });

@@ -26,12 +26,15 @@ import { lintCaption, type CaptionChannel } from "./voice.ts";
 // right after the commit; a failed plan leaves the event unprocessed for the job runner's sweep.
 
 const COLUMNS =
-  "id, property_id, kind, revision, status, caption, alt_text, meta, files, rejection_note, render_error, job_id, approved_at, created_at, updated_at";
+  "id, subject, property_id, market_slug, story_id, kind, revision, status, caption, alt_text, meta, files, rejection_note, render_error, job_id, approved_at, created_at, updated_at";
 
 type AssetRow = Pick<
   Tables<"assets">,
   | "id"
+  | "subject"
   | "property_id"
+  | "market_slug"
+  | "story_id"
   | "kind"
   | "revision"
   | "status"
@@ -60,7 +63,11 @@ const notFound = () => new AppError("not_found", undefined, "This asset does not
  */
 async function waitingProperties(db: Db, rows: readonly AssetRow[]): Promise<Set<string>> {
   const ids = [
-    ...new Set(rows.filter((row) => row.caption === null).map((row) => row.property_id)),
+    ...new Set(
+      rows.flatMap((row) =>
+        row.caption === null && row.property_id !== null ? [row.property_id] : [],
+      ),
+    ),
   ];
   if (ids.length === 0) return new Set();
   const { data, error } = await db
@@ -78,12 +85,58 @@ async function waitingProperties(db: Db, rows: readonly AssetRow[]): Promise<Set
   );
 }
 
-function toAdmin(row: AssetRow, waiting: ReadonlySet<string>): AdminAsset {
+/**
+ * W7 item 19 (H107): the name of what each requested reel among `rows` is about, by asset id: the market's name, the
+ * story's title, or the brand. One read of each table, only when a row names it.
+ */
+async function subjectLabels(db: Db, rows: readonly AssetRow[]): Promise<Map<string, string>> {
+  const slugs = [
+    ...new Set(rows.flatMap((row) => (row.market_slug === null ? [] : [row.market_slug]))),
+  ];
+  const storyIds = [
+    ...new Set(rows.flatMap((row) => (row.story_id === null ? [] : [row.story_id]))),
+  ];
+  const [markets, stories] = await Promise.all([
+    slugs.length === 0 ? null : db.from("markets").select("slug, name").in("slug", slugs),
+    storyIds.length === 0 ? null : db.from("stories").select("id, title").in("id", storyIds),
+  ]);
+  if (markets?.error) throw fromRpcError(markets.error);
+  if (stories?.error) throw fromRpcError(stories.error);
+  const marketName = new Map((markets?.data ?? []).map((market) => [market.slug, market.name]));
+  const storyTitle = new Map((stories?.data ?? []).map((story) => [story.id, story.title]));
+  return new Map(
+    rows.flatMap((row): [string, string][] => {
+      if (row.subject === "brand") return [[row.id, "Matter of Place"]];
+      const label =
+        row.market_slug === null
+          ? storyTitle.get(row.story_id ?? "")
+          : marketName.get(row.market_slug);
+      return label === undefined ? [] : [[row.id, label]];
+    }),
+  );
+}
+
+function toAdmin(
+  row: AssetRow,
+  waiting: ReadonlySet<string>,
+  labels: ReadonlyMap<string, string>,
+): AdminAsset {
   return adminAssetSchema.parse({
     ...row,
+    subject_label: labels.get(row.id) ?? null,
     files: filesSchema.parse(row.files).map((file) => ({ ...file, url: mediaUrl(file.media_key) })),
-    captions_waiting: row.caption === null && waiting.has(row.property_id),
+    captions_waiting:
+      row.caption === null && row.property_id !== null && waiting.has(row.property_id),
   });
+}
+
+/** The extras a page of rows needs: whose captions wait on the laptop, and what each requested reel is about. */
+async function adminRows(db: Db, rows: readonly AssetRow[]): Promise<AdminAsset[]> {
+  const [waiting, labels] = await Promise.all([
+    waitingProperties(db, rows),
+    subjectLabels(db, rows),
+  ]);
+  return rows.map((row) => toAdmin(row, waiting, labels));
 }
 
 async function planEvent(db: Db, eventId: string): Promise<void> {
@@ -135,8 +188,7 @@ export async function listAssets(
   }
   if (error !== null) throw fromRpcError(error);
   if (count === null) return noCount();
-  const waiting = await waitingProperties(db, data);
-  return { items: data.map((row) => toAdmin(row, waiting)), total: count };
+  return { items: await adminRows(db, data), total: count };
 }
 
 /** `GET /api/admin/assets/:id`. */
@@ -150,7 +202,9 @@ export async function getAsset(
   if (error !== null) throw fromRpcError(error);
   const row = data[0];
   if (row === undefined) throw notFound();
-  return toAdmin(row, await waitingProperties(db, [row]));
+  const [asset] = await adminRows(db, [row]);
+  if (asset === undefined) throw notFound();
+  return asset;
 }
 
 /**
@@ -220,6 +274,10 @@ async function captionIssues(
   if (error !== null) throw fromRpcError(error);
   const row = data[0];
   if (row === undefined) throw notFound();
+  // W7 item 19 (H107): the lint checks a caption against its property; a requested reel is changed by a new request.
+  if (row.property_id === null) {
+    throw new AppError("validation", undefined, "A requested reel is changed by a new request.");
+  }
   const property = await loadProperty(db, row.property_id);
   if (property === null) throw notFound();
   return CHANNELS.flatMap((channel) => {

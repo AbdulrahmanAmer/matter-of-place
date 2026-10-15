@@ -1,0 +1,71 @@
+[
+  {
+    "id": "w7-e1-subject-check",
+    "kind": "sql",
+    "test": "tests/db/requested-reel.db.test.ts",
+    "sql": "alter table public.assets drop constraint assets_subject_columns;",
+    "run": "bunx vitest run --project db tests/db/requested-reel.db.test.ts -t \"refuses a subject without its column\"",
+    "expect": "× .*refuses a subject without its column"
+  },
+  {
+    "id": "w7-e1-approve-subject",
+    "kind": "sql",
+    "test": "tests/db/requested-reel.db.test.ts",
+    "sql": "create or replace function public.approve_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null,\n  p_evidence jsonb default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  -- B10 invariant 4: an agent, or the system (a null actor and kind, G43), approves only with the evidence of\n  -- mayApprove; that evidence is kept in the audit row's note.\n  if p_actor_kind is distinct from 'human' and p_evidence is null then\n    raise exception 'manual_approval' using errcode = '42501';\n  end if;\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status <> 'pending' then\n    raise exception 'asset_not_pending' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  where p.id = v_asset.property_id;\n\n  -- The guard trigger assets_approve_guard runs here and refuses an incomplete asset.\n  update public.assets set status = 'approved', approved_by = p_actor, approved_at = now() where id = p_asset;\n\n  -- G6: an approved cover is the property's Open Graph image. A cover with no main file leaves the key as it is.\n  if v_asset.kind = 'cover' then\n    update public.properties p\n    set og_image_key = coalesce(\n      (select f ->> 'media_key' from jsonb_array_elements(v_asset.files) f where f ->> 'role' = 'main' limit 1),\n      p.og_image_key\n    )\n    where p.id = v_asset.property_id;\n  end if;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (\n    p_actor, p_actor_kind, 'assets.approve', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'approved'), p_request_id,\n    p_evidence::text\n  );\n  return public.emit_event(\n    'asset.approved', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier, 'market', v_market\n    ),\n    p_actor\n  );\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/requested-reel.db.test.ts -t \"approve_asset approves it\"",
+    "expect": "× .*approve_asset approves it and emits asset.approved"
+  },
+  {
+    "id": "w7-e1-rerender-refused",
+    "kind": "sql",
+    "test": "tests/db/requested-reel.db.test.ts",
+    "sql": "create or replace function public.rerender_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_latest public.assets;\n  v_new public.assets;\n  v_property record;\n  v_type text;\n  v_key text;\n  v_data jsonb;\n  v_job uuid;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:' || v_asset.property_id::text || ':' || v_asset.kind::text));\n  select * into v_latest\n  where a.property_id = v_asset.property_id and a.kind = v_asset.kind\n  order by a.revision desc\n  limit 1;\n\n  -- A second call while the new revision is still pending answers with that revision and its job.\n  if v_latest.revision > v_asset.revision and v_latest.status = 'pending' then\n    return jsonb_build_object('asset_id', v_latest.id, 'job_id', v_latest.job_id);\n  end if;\n\n  -- B9 invariant 3: the kind names the job type; the render kinds are heavy, the newsletter kinds are light (G4).\n  v_type := case v_asset.kind\n    when 'cover' then 'render_cover'\n    when 'carousel' then 'render_carousel'\n    when 'story' then 'render_story'\n    when 'reel' then 'render_reel'\n    when 'newsletter_block' then 'build_newsletter_block'\n    when 'standalone_email' then 'build_newsletter_block'\n  end;\n  if v_type is null then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  select p.slug, p.campaign_tier, p.market_slug into v_property\n  where p.id = v_asset.property_id;\n\n  v_new := public.upsert_asset_stub(v_asset.property_id, v_asset.kind, v_latest.revision + 1, null);\n  update public.assets\n  set caption = v_latest.caption,\n    alt_text = v_latest.alt_text,\n    meta = jsonb_strip_nulls(jsonb_build_object(\n      'captions', v_latest.meta -> 'captions',\n      'slide_alts', v_latest.meta -> 'slide_alts',\n      'max_slides', v_latest.meta -> 'max_slides',\n      'caption_lint', v_latest.meta -> 'caption_lint'\n    ))\n  where id = v_new.id;\n  update public.assets\n  set status = 'rejected', rejection_note = 'superseded'\n  where id = v_latest.id and status <> 'rejected';\n\n  v_data := jsonb_build_object(\n    'property_id', v_asset.property_id, 'slug', v_property.slug, 'tier', v_property.campaign_tier,\n    'market', v_property.market_slug, 'revision', v_new.revision\n  );\n  if v_asset.kind in ('newsletter_block', 'standalone_email') then\n    v_data := v_data || jsonb_build_object('kind', v_asset.kind);\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_asset.kind::text || ':' || v_new.revision::text;\n  else\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_new.revision::text;\n  end if;\n  v_job := public.enqueue_job(\n    v_type, jsonb_build_object('params', '{}'::jsonb, 'data', v_data), v_key,\n    p_heavy => v_type <> 'build_newsletter_block'\n  );\n  if v_job is null then\n    select j.id into v_job from public.jobs j where j.idempotency_key = v_key;\n  end if;\n  update public.assets set job_id = v_job where id = v_new.id;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.re_render', 'assets', v_new.id,\n    jsonb_build_object('asset_id', v_latest.id, 'revision', v_latest.revision),\n    jsonb_build_object('asset_id', v_new.id, 'revision', v_new.revision, 'job_id', v_job),\n    p_request_id\n  );\n  return jsonb_build_object('asset_id', v_new.id, 'job_id', v_job);\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/requested-reel.db.test.ts -t \"refuses to re-render it\"",
+    "expect": "× .*refuses to re-render it"
+  },
+  {
+    "id": "w7-e1-post-skip",
+    "test": "tests/unit/channels/post-to-channel.test.ts",
+    "file": "src/server/channels/post-to-channel.ts",
+    "find": "  if (subject === null) return done(\"skipped_not_a_property_asset\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts -t \"a requested reel about a market\"",
+    "expect": "× .*a requested reel about a market posts nothing"
+  },
+  {
+    "id": "w7-e1-auto-approve-skip",
+    "test": "tests/unit/channels/auto-approve.test.ts",
+    "file": "src/server/channels/auto-approve.ts",
+    "find": "  if (asset.property_id === null) return { status: \"not_eligible\", reason: \"not_a_property\" };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/channels/auto-approve.test.ts -t \"a requested reel about a market\"",
+    "expect": "× .*a requested reel about a market"
+  },
+  {
+    "id": "w7-e1-event-requested",
+    "test": "tests/unit/automation/catalog.test.ts",
+    "file": "src/domain/events.ts",
+    "find": "  \"asset.approved\": z.union([propertyAsset, requestedAsset]),",
+    "replace": "  \"asset.approved\": propertyAsset,",
+    "run": "bunx vitest run --project unit tests/unit/automation/catalog.test.ts -t \"a requested reel\"",
+    "expect": "× .*parses the asset events of a requested reel"
+  },
+  {
+    "id": "w7-e1-subject-label",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "{asset.subject_label === null ? null : `${asset.subject_label}, `}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"names what a requested reel is about\"",
+    "expect": "× .*names what a requested reel is about"
+  },
+  {
+    "id": "w7-e1-no-rerender-requested",
+    "test": "src/admin/assets/assets.test.tsx",
+    "file": "src/admin/assets/AssetCards.tsx",
+    "find": "{asset.status === \"published\" || asset.subject !== \"property\" ? null : (",
+    "replace": "{asset.status === \"published\" ? null : (",
+    "run": "bunx vitest run --project component src/admin/assets/assets.test.tsx -t \"names what a requested reel is about\"",
+    "expect": "× .*names what a requested reel is about"
+  }
+]

@@ -35,11 +35,12 @@ begin
     p_actor, p_actor_kind, 'assets.reject', 'assets', p_asset,
     jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'rejected'), p_request_id, p_note
   );
+  -- W7 item 19 (H107): a reel about a market, a story or the brand has no property; its subject and own market go out.
   return public.emit_event(
     'asset.rejected', 'asset', p_asset,
     jsonb_build_object(
-      'asset_id', p_asset, 'property_id', v_asset.property_id, 'kind', v_asset.kind, 'tier', v_tier,
-      'market', v_market, 'note', p_note
+      'asset_id', p_asset, 'subject', v_asset.subject, 'property_id', v_asset.property_id, 'kind', v_asset.kind,
+      'tier', v_tier, 'market', coalesce(v_market, v_asset.market_slug), 'note', p_note
     ),
     p_actor
   );
