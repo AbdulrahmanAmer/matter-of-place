@@ -14,7 +14,8 @@ import { z } from "zod";
 import type { Db } from "../../src/server/lib/db.ts";
 import { readJsonAnswer } from "../workforce/answer.ts";
 import { breakerUntil, usageLimitOf } from "../workforce/cli.ts";
-import { proposeCalls } from "../workforce/daemon.ts";
+import { refreshPolicy, staffPolicy } from "../workforce/config.ts";
+import { proposeCalls, say } from "../workforce/daemon.ts";
 import { childEnv, serviceDb } from "../workforce/env.ts";
 import { applyHires } from "../workforce/hiring.ts";
 import { HEARTBEAT_FILE } from "./live-alive.ts";
@@ -350,6 +351,9 @@ class Supervisor {
   }
 
   private start(): void {
+    // W6 item 1: a new session takes the model the weekly allowance allows now.
+    const { policy, changed } = refreshPolicy();
+    if (changed) void say(this.client, "team", policy.reason);
     const session = readSession()?.id ?? null;
     this.seeded = session !== null;
     const env = childEnv();
@@ -569,6 +573,8 @@ class Supervisor {
     const idle = isIdle(this.active.length, this.open.size);
     if (!shouldContinue({ idle, now, lastResultAt: this.lastResultAt, goalAt: this.goalAt }))
       return;
+    // W6 item 1: his goal is work a person set; it pauses only when the allowance is over 90%.
+    if (staffPolicy().backlog === "off") return;
     this.goalAt = now;
     const step = nextGoalStep(GOAL_FILE);
     if (step === null) return;

@@ -36,7 +36,8 @@ import { groundingLines } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
-import { workforceConfig } from "./config.ts";
+import { refreshPolicy, staffPolicy } from "./config.ts";
+import { underCeiling } from "./usage-policy.ts";
 import { liveAlive } from "../matter/live-alive.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
@@ -274,12 +275,15 @@ async function runOnce(client: Db): Promise<boolean> {
     .gte("started_at", hourAgo);
   if ((count ?? 0) >= RUNS_PER_HOUR) return false;
 
+  const policy = staffPolicy();
   const { data: claimed, error } = await client.rpc("claim_agent_run", {
     p_worker: WORKER,
     // Longer than Matter's longest run (45 minutes at full power), so no other runner claims a run still in work.
     p_lease_seconds: 3000,
     // W5: while Matter's live session runs, a person's line to Matter is its work.
     p_skip_live: liveAlive(),
+    // W6 item 1: with the weekly allowance over 90%, only a person's own line is answered.
+    p_person_only: policy.personOnly,
   });
   if (error !== null) throw new Error("workforce: the claim failed");
   const run = claimed[0];
@@ -344,7 +348,9 @@ async function runOnce(client: Db): Promise<boolean> {
             staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
             knowledgeBlock(situation),
           ),
-          models[agent.model] ?? models["sonnet"] ?? "claude-sonnet-5-5",
+          models[underCeiling(agent.model, policy.colleagueCeiling)] ??
+            models["sonnet"] ??
+            "claude-sonnet-5-5",
           cwd,
           agent.tools.includes("research"),
         );
@@ -644,6 +650,10 @@ async function pass(client: Db): Promise<void> {
     .eq("slug", "matter")
     .neq("state", "working");
   mkdirSync(HOME, { recursive: true });
+  // W6 item 1: the staff policy follows the weekly allowance; a change is said once in the team thread.
+  const { policy, changed, unreadable } = refreshPolicy();
+  if (unreadable) console.log(`${new Date().toISOString()} usage: unreadable`);
+  if (changed) await say(client, "team", policy.reason);
   const until = breakerUntil(BREAKER_FILE);
   if (until !== null) {
     console.log(
@@ -687,8 +697,8 @@ async function pass(client: Db): Promise<void> {
     ran += 1;
   }
   // W2 contract 12: with nothing waiting, one colleague works its open decisions (its backlog).
-  // W5: the backlog is a laptop switch; off until the Claude allowance resets (decided with Jay, 2026-10-13).
-  if (ran === 0 && workforceConfig().backlog) await wakeBacklog(client);
+  // W6 item 1: only with the allowance under 70% (or an override) do colleagues start work of their own.
+  if (ran === 0 && policy.backlog === "all") await wakeBacklog(client);
 }
 
 async function main(): Promise<void> {
