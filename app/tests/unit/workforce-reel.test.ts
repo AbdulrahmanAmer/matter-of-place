@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
+  COPY_RULE,
   GATE_RULES,
   nextReel,
   queueReel,
@@ -12,6 +13,7 @@ import {
   reelPass,
   reelRequestSchema,
   reelWorking,
+  reviewPrompt,
   scenePrompt,
   shotsFor,
   studioArgs,
@@ -284,6 +286,22 @@ describe("the reel pass", () => {
       state: "queued",
     };
     expect(scenePrompt(queued, [])).toContain(GATE_RULES);
+  });
+
+  it("keeps the words to the request and teaches the reviewer to read stills from a moving film", () => {
+    const queued: Brief = {
+      id: "8d5f2c1e-1a2b-4c3d-9e8f-0a1b2c3d4e5f",
+      at: "2026-10-15T09:00:00Z",
+      request: brand,
+      from,
+      state: "queued",
+    };
+    expect(scenePrompt(queued, [])).toContain(COPY_RULE);
+    expect(COPY_RULE).toMatch(/only the requested titles.*No other words/);
+    const review = reviewPrompt(queued);
+    expect(review).toMatch(/partly risen inside its mask.*is motion, not a fault/);
+    expect(review).toMatch(/flat lighter or darker shape.*is not a gradient/);
+    expect(review).toContain("words beyond the requested titles and the closing lockup");
   });
 });
 

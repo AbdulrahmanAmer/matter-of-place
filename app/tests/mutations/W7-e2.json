@@ -102,9 +102,27 @@
     "id": "w7-e2-gate-rules-in-brief",
     "test": "tests/unit/workforce-reel.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "    GATE_RULES,\n    \"Write exactly three files",
-    "replace": "    \"Write exactly three files",
+    "find": "    GATE_RULES,\n    COPY_RULE,",
+    "replace": "    COPY_RULE,",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*tells the designer what the gate measures"
+  },
+  {
+    "id": "w7-e2-copy-rule-in-brief",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    COPY_RULE,\n    \"Write exactly three files",
+    "replace": "    \"Write exactly three files",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*keeps the words to the request"
+  },
+  {
+    "id": "w7-e2-reviewer-reads-motion",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "is motion, not a fault; refuse a title only when",
+    "replace": "is a fault; refuse a title also when",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*keeps the words to the request"
   }
 ]
