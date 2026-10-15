@@ -4,9 +4,12 @@ import {
   redirectArchivedSchema,
   redirectRowSchema,
   redirectSchema,
+  type LinkCheck,
   type NotificationsInput,
+  type OldAddress,
   type ProductsPreview,
   type RedirectArchived,
+  type RedirectPage,
   type RedirectPutInput,
   type RedirectRow,
   type SettingsAnswer,
@@ -242,15 +245,13 @@ export async function putNotifications(
 // Redirects (step 15a, invariant 16). The rules run here before any write and again in `put_redirect`; both answer
 // `invalid_redirect`. B2's trigger on `redirects` raises `catalog_version` with each write (F25 a).
 
-const REDIRECT_COLUMNS = "id, from_path, to_path, status";
+export const REDIRECT_COLUMNS = "id, from_path, to_path, status";
 
-/** `GET settings/redirects`: one page of active rows in `from_path` order, on B2's partial unique index. */
-export async function listRedirects(
-  actor: AdminActor,
+/** One page of active rows in `from_path` order, on B2's partial unique index. */
+async function redirectRows(
   db: Db,
   input: { limit: number; cursor?: string | undefined },
 ): Promise<{ items: RedirectRow[]; next_cursor: string | null }> {
-  authorize(actor, "settings.redirects_get");
   let query = db.from("redirects").select(REDIRECT_COLUMNS).is("archived_at", null);
   if (input.cursor !== undefined) query = query.gt("from_path", input.cursor);
   const { data, error } = await query.order("from_path").limit(input.limit + 1);
@@ -260,6 +261,68 @@ export async function listRedirects(
     items,
     next_cursor: data.length > input.limit ? (items.at(-1)?.from_path ?? null) : null,
   };
+}
+
+/** One page of `slug_history` in slug order, each old slug with the title and current slug of its property. */
+async function oldAddressRows(
+  db: Db,
+  input: { limit: number; cursor?: string | undefined },
+): Promise<{ items: OldAddress[]; next_cursor: string | null }> {
+  let query = db.from("slug_history").select("slug, property_id");
+  if (input.cursor !== undefined) query = query.gt("slug", input.cursor);
+  const history = await query.order("slug").limit(input.limit + 1);
+  if (history.error !== null) throw fromRpcError(history.error);
+  const page = history.data.slice(0, input.limit);
+  const ids = [...new Set(page.map((row) => row.property_id))];
+  const found =
+    ids.length === 0
+      ? { data: [], error: null }
+      : await db.from("properties").select("id, slug, title, editorial_state").in("id", ids);
+  if (found.error !== null) throw fromRpcError(found.error);
+  const items = page.flatMap(({ slug, property_id }) => {
+    const property = found.data.find((row) => row.id === property_id);
+    if (property === undefined) return [];
+    return [
+      {
+        slug,
+        property_id,
+        title: property.title,
+        current_slug: property.slug,
+        live: property.editorial_state === "published",
+      },
+    ];
+  });
+  return {
+    items,
+    next_cursor: history.data.length > input.limit ? (page.at(-1)?.slug ?? null) : null,
+  };
+}
+
+/**
+ * `GET settings/redirects`: one page of active rows, one page of old property addresses (`slug_history`), both read
+ * only here, and the answer for `path` when the test-a-link box sent one.
+ */
+export async function listRedirects(
+  actor: AdminActor,
+  db: Db,
+  input: {
+    limit: number;
+    cursor?: string | undefined;
+    old_cursor?: string | undefined;
+    path?: string | undefined;
+  },
+  // W7 6: the test-a-link check lives in `settings/redirect-links/service.ts` and is passed in by the route, so this service (which the
+  // job runner's Deno graph reaches) never loads the site's own modules (CI's deno check, PR 439).
+  checkLink?: (db: Db, typed: string) => Promise<LinkCheck>,
+): Promise<RedirectPage> {
+  authorize(actor, "settings.redirects_get");
+  const { limit, cursor, old_cursor, path } = input;
+  const [redirects, old_addresses, check] = await Promise.all([
+    redirectRows(db, { limit, cursor }),
+    oldAddressRows(db, { limit, cursor: old_cursor }),
+    path === undefined || checkLink === undefined ? Promise.resolve(null) : checkLink(db, path),
+  ]);
+  return { ...redirects, old_addresses, check };
 }
 
 /** `PUT settings/redirects`: adds a row, or changes the active row `id`, once it passes `redirectSchema`. */
