@@ -138,6 +138,18 @@ describe("workforce write functions", () => {
     });
   });
 
+  it("refuses a handle shaped like an account id in workforce_hire, by the table's own check (W8 0e)", async () => {
+    const refused = await withRollback((db) =>
+      failure(
+        db,
+        `select public.workforce_hire('abcdef12-4d5e-4f60-8a7b-9c0d1e2f3a4b', 'Mimic', 'Researcher', '', 'haiku', '{}',
+          '{chat}', null, 'human', 'req-1')`,
+        [],
+      ),
+    );
+    expect(refused).toContain("agents_slug_not_account_id");
+  });
+
   it("an update changes only the fields it names", async () => {
     const row = await withRollback(async (db) => {
       await db.query(
