@@ -1,0 +1,83 @@
+[
+  {
+    "id": "w6-map-sql-calls",
+    "test": "tests/unit/matter-system-map.test.ts",
+    "file": "scripts/matter/system-map.ts",
+    "find": "    if (seen.has(called) || !functions.has(called)) continue;",
+    "replace": "    continue;",
+    "run": "bunx vitest run --project unit tests/unit/matter-system-map.test.ts",
+    "expect": "× .*follows a route to its service, its database functions"
+  },
+  {
+    "id": "w6-map-local-helpers",
+    "test": "tests/unit/matter-system-map.test.ts",
+    "file": "scripts/matter/system-map.ts",
+    "find": "if (helper !== null && helper !== body) merge(",
+    "replace": "if (false) merge(",
+    "run": "bunx vitest run --project unit tests/unit/matter-system-map.test.ts",
+    "expect": "× .*follows a route to its service, its database functions"
+  },
+  {
+    "id": "w6-map-wakes",
+    "test": "tests/unit/matter-system-map.test.ts",
+    "file": "scripts/matter/system-map.ts",
+    "find": ".filter((agent) => (agent.wake_on ?? []).includes(type))",
+    "replace": ".filter(() => false)",
+    "run": "bunx vitest run --project unit tests/unit/matter-system-map.test.ts",
+    "expect": "× .*follows a route to its service, its database functions"
+  },
+  {
+    "id": "w6-map-public-pages",
+    "test": "tests/unit/matter-system-map.test.ts",
+    "file": "scripts/matter/system-map.ts",
+    "find": "if (route !== undefined) api.add(",
+    "replace": "if (false) api.add(",
+    "run": "bunx vitest run --project unit tests/unit/matter-system-map.test.ts",
+    "expect": "× .*follows the public route table and the pages"
+  },
+  {
+    "id": "w6-map-unmapped-handler",
+    "test": "tests/unit/matter-system-map.test.ts",
+    "file": "scripts/matter/system-map.ts",
+    "find": "      if (service === null || effects === null) {",
+    "replace": "      if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/matter-system-map.test.ts",
+    "expect": "× .*lists what it cannot follow under Unmapped"
+  },
+  {
+    "id": "w6-map-unmapped-live",
+    "test": "tests/unit/matter-system-map.test.ts",
+    "file": "scripts/matter/system-map.ts",
+    "find": "  if (live === null) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/matter-system-map.test.ts",
+    "expect": "× .*lists what it cannot follow under Unmapped"
+  },
+  {
+    "id": "w6-map-every-file",
+    "test": "tests/unit/matter-system-map.test.ts",
+    "file": "scripts/matter/system-map.ts",
+    "find": "if (text.includes(\"handlePublic(\")) continue;",
+    "replace": "if (text.includes(\"(\")) continue;",
+    "run": "bunx vitest run --project unit tests/unit/matter-system-map.test.ts -t \"of the app itself\"",
+    "expect": "× .*maps every route file and every page of the app itself"
+  },
+  {
+    "id": "w6-map-due-after-move",
+    "test": "tests/unit/matter-system-map.test.ts",
+    "file": "scripts/workforce/follow.ts",
+    "find": "  return followed === \"moved\" || followed === \"moved and installed\" || !mapExists;",
+    "replace": "  return !mapExists;",
+    "run": "bunx vitest run --project unit tests/unit/matter-system-map.test.ts",
+    "expect": "× .*writes it after the runner moves to a new main"
+  },
+  {
+    "id": "w6-map-in-prompt",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "`Your system map, ${join(HOME, \"system-map.md\")}",
+    "replace": "`Your notes map, ${join(HOME, \"notes.md\")}",
+    "run": "bunx vitest run --project unit tests/unit/matter.test.ts",
+    "expect": "× .*names the system map right after the atlas"
+  }
+]

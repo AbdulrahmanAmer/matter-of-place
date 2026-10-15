@@ -1,9 +1,11 @@
 import { z } from "zod";
 import type { EmailTemplateKey } from "../../domain/email.ts";
+import { newsletterBlocksSchema } from "../../domain/newsletter.ts";
 import { invoiceSnapshotSchema } from "../../domain/payments.ts";
 import { NonRetryableError, type JsonObject } from "../jobs/types.ts";
 import type { Db } from "../lib/db.ts";
 import { readVar } from "../lib/runtime-env.ts";
+import { withUtm } from "../newsletter/render.ts";
 import { openToken } from "../subscribers/confirm-email.ts";
 import { loadSiteContext, resolveAdminRecipients, type SiteContext } from "./context.ts";
 import { formatCount, formatDate, formatPercent, formatUsd } from "./format.ts";
@@ -159,6 +161,7 @@ const defaultRecipient: Partial<Record<EmailTemplateKey, string>> = {
   subject_ack: "requester",
   admin_notify: "admins",
   campaign_report: "submitter",
+  newsletter_welcome: "subscriber",
 };
 
 const recipientMissing = () => new NonRetryableError("recipient_missing");
@@ -351,10 +354,10 @@ const marketName: Record<string, string> = {
   florida: "Florida",
 };
 
-/** `California`, `California and Florida`, `California, New York and Florida`. */
-function sentenceList(items: string[]): string {
+/** `California`, `California and Florida`, `California, New York and Florida` (or `or` in place of `and`). */
+function sentenceList(items: string[], conjunction: "and" | "or" = "and"): string {
   const last = items.at(-1) ?? "";
-  return items.length < 2 ? last : `${items.slice(0, -1).join(", ")} and ${last}`;
+  return items.length < 2 ? last : `${items.slice(0, -1).join(", ")} ${conjunction} ${last}`;
 }
 
 /** The shape `env.ts` holds the Worker's key to: base64 of 32 bytes. */
@@ -617,6 +620,178 @@ async function campaignReport({ db, data }: Resolve): Promise<Variables> {
   };
 }
 
+// ---- newsletter_welcome --------------------------------------------------------------------------------------------
+
+/** Statuses after which a message reached Resend; the same set `send_email` treats as out. */
+const OUT_STATUSES = ["sent", "delivered", "bounced", "complained"];
+
+/** The emails that carry a confirm link: the click that confirmed a subscriber came from the latest one sent. */
+const CONFIRMATIONS = ["interest_confirm", "newsletter_confirm", "repermission"];
+
+const WELCOME = "newsletter_welcome";
+
+const messageRows = z.array(
+  z.object({ template_key: z.string(), status: z.string(), created_at: z.string() }),
+);
+
+/**
+ * The welcome answers a sign-up once (operator, 2026-10-15: "sent once, right after a person confirms"). A click on a
+ * re-permission link confirms the row again and emits the same event, so the latest confirmation sent decides: after a
+ * re-permission ask nothing is sent, and a welcome already out since the latest sign-up confirmation is not sent again.
+ * An interest signup who later asks for Place Notes confirms a new sign-up, and is welcomed to Place Notes.
+ */
+async function assertFirstWelcome(db: Db, subscriberId: string): Promise<void> {
+  const result = await db
+    .from("email_messages")
+    .select("template_key, status, created_at")
+    .eq("entity", "subscriber")
+    .eq("entity_id", subscriberId)
+    .in("template_key", [...CONFIRMATIONS, WELCOME])
+    .order("created_at", { ascending: false })
+    .limit(50);
+  const newestFirst = messageRows
+    .parse(rowsOf(result, "email_messages"))
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  const confirmation = newestFirst.find((message) => CONFIRMATIONS.includes(message.template_key));
+  if (confirmation?.template_key === "repermission") throw new SkipSend("repermission");
+  const welcome = newestFirst.find(
+    (message) => message.template_key === WELCOME && OUT_STATUSES.includes(message.status),
+  );
+  if (welcome === undefined) return;
+  if (
+    confirmation === undefined ||
+    Date.parse(welcome.created_at) >= Date.parse(confirmation.created_at)
+  ) {
+    throw new SkipSend("already_welcomed");
+  }
+}
+
+/**
+ * What a confirmed subscriber will receive, in the words the welcome sets in `what_you_receive`. An interest signup
+ * hears once, when the first home of its market is published (`market_open`); a Place Notes reader gets the issue,
+ * and the Campaign email of a home in a market it follows (`standalone`, sent to that market's readers).
+ */
+function receiving(interestOnly: boolean, names: string[]): string {
+  if (interestOnly) {
+    const when =
+      names.length === 1
+        ? `once, when Matter of Place publishes its first home in ${sentenceList(names)}`
+        : `once for each of ${sentenceList(names)}, when Matter of Place publishes its first home there`;
+    return `We will write to you ${when}. Place Notes, our letter about every two weeks, is a separate sign-up on the site.`;
+  }
+  const notes =
+    "Place Notes will reach you about every two weeks, with the homes and stories published since the last issue.";
+  return names.length === 0
+    ? notes
+    : `${notes} When a single home in ${sentenceList(names, "or")} has a letter of its own, it will reach you too.`;
+}
+
+const NO_PIECE: Variables = {
+  latest_number: "",
+  latest_title: "",
+  latest_line: "",
+  latest_url: "",
+};
+
+const sentIssue = z.object({
+  number: z.number().int(),
+  status: z.string(),
+  blocks: newsletterBlocksSchema,
+});
+
+/** The first sentence of a deck: the slot gives one line. */
+const firstSentence = (text: string): string => /^.*?[.?!](?=\s|$)/.exec(text)?.[0] ?? text;
+
+/**
+ * The welcome's slot: the lead piece of the latest Place Notes issue sent that is still published (a story or a
+ * property, skipping the intro), with its address on the site; four empty strings while no issue has gone out. An issue
+ * whose stored blocks do not parse is passed over rather than failing the welcome.
+ */
+async function latestPiece(db: Db, site: () => Promise<SiteContext>): Promise<Variables> {
+  const result = await db
+    .from("newsletter_issues")
+    .select("number, status, blocks")
+    .eq("status", "sent")
+    .order("number", { ascending: false })
+    .limit(1);
+  const issue = rowsOf(result, "newsletter_issues")
+    .flatMap((row) => {
+      const parsed = sentIssue.safeParse(row);
+      return parsed.success && parsed.data.status === "sent" ? [parsed.data] : [];
+    })
+    .sort((a, b) => b.number - a.number)[0];
+  if (issue === undefined) return NO_PIECE;
+  const pieces = issue.blocks.flatMap((block) => (block.type === "intro" ? [] : [block]));
+  const ids = (type: "story" | "property") =>
+    pieces.flatMap((block) =>
+      block.type !== type ? [] : [block.type === "story" ? block.story_id : block.property_id],
+    );
+  const [stories, properties] = await Promise.all([
+    db.from("stories").select("id, slug, editorial_state, archived_at").in("id", ids("story")),
+    db
+      .from("properties")
+      .select("id, slug, editorial_state, taken_down_at")
+      .in("id", ids("property")),
+  ]);
+  const storySlugs = new Map(
+    rowsOf(stories, "stories")
+      .filter((row) => row.editorial_state === "published" && row.archived_at === null)
+      .map((row) => [row.id, row.slug]),
+  );
+  const propertySlugs = new Map(
+    rowsOf(properties, "properties")
+      .filter((row) => row.editorial_state === "published" && row.taken_down_at === null)
+      .map((row) => [row.id, row.slug]),
+  );
+  const lead = pieces
+    .map((block) =>
+      block.type === "story"
+        ? { block, path: "stories", slug: storySlugs.get(block.story_id) }
+        : { block, path: "property", slug: propertySlugs.get(block.property_id) },
+    )
+    .find((piece) => piece.slug !== undefined);
+  if (lead?.slug === undefined) return NO_PIECE;
+  const { siteUrl } = await site();
+  return {
+    latest_number: String(issue.number),
+    latest_title: lead.block.title,
+    latest_line: firstSentence(lead.block.deck),
+    latest_url: withUtm(`${siteUrl}/${lead.path}/${lead.slug}`, "welcome", lead.slug),
+  };
+}
+
+const welcomeSubscriber = z.object({
+  source: z.string(),
+  markets: z.array(z.string()),
+  confirmed_at: z.string().nullable(),
+  unsubscribed_at: z.string().nullable(),
+  archived_at: z.string().nullable(),
+});
+
+async function newsletterWelcome({ db, data, site }: Resolve): Promise<Variables> {
+  const id = need(data, "subscriber_id");
+  const result = await db
+    .from("subscribers")
+    .select("source, markets, confirmed_at, unsubscribed_at, archived_at")
+    .eq("id", id)
+    .limit(1);
+  const subscriber = welcomeSubscriber.parse(found(rowsOf(result, "subscribers")[0], "subscriber"));
+  const { source, markets, confirmed_at, unsubscribed_at, archived_at } = subscriber;
+  if (confirmed_at === null || unsubscribed_at !== null || archived_at !== null) {
+    throw new SkipSend("not_subscribed");
+  }
+  const interestOnly = source.startsWith("interest:");
+  const names = markets.flatMap((slug) => own(marketName, slug) ?? []);
+  // An interest signup with no market is waiting for nothing: no market opening will ever write to it.
+  if (interestOnly && names.length === 0) throw new SkipSend("no_market");
+  await assertFirstWelcome(db, id);
+  return {
+    what_you_receive: receiving(interestOnly, names),
+    market_names: sentenceList(names),
+    ...(await latestPiece(db, site)),
+  };
+}
+
 const resolvers: Record<EmailTemplateKey, (resolve: Resolve) => Promise<Variables>> = {
   received: submitted,
   accepted: submitted,
@@ -634,6 +809,7 @@ const resolvers: Record<EmailTemplateKey, (resolve: Resolve) => Promise<Variable
   market_open: () => Promise.resolve({}),
   subject_ack: subjectAck,
   campaign_report: campaignReport,
+  newsletter_welcome: newsletterWelcome,
 };
 
 /**

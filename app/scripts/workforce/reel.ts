@@ -109,6 +109,21 @@ function writeBrief(folder: string, brief: Brief): void {
 /** A reel still `working` after this long was left by a process that died; its folder is marked failed. */
 export const STALE_MS = 3 * 60 * 60_000;
 
+/**
+ * True while a reel is being made (a `working` brief younger than STALE_MS). The runner then starts no second one and
+ * does not move its checkout to new code, since the reel's process runs from that folder.
+ */
+export function reelWorking(studio: string = STUDIO, now: Date = new Date()): boolean {
+  if (!existsSync(studio)) return false;
+  return readdirSync(studio, { withFileTypes: true }).some((entry) => {
+    if (!entry.isDirectory()) return false;
+    const brief = readBrief(join(studio, entry.name));
+    return (
+      brief?.state === "working" && now.getTime() - Date.parse(brief.started ?? brief.at) < STALE_MS
+    );
+  });
+}
+
 /** The oldest queued request; null while one is being made (one at a time on this laptop) or none waits. */
 export function nextReel(
   studio: string = STUDIO,
@@ -246,6 +261,13 @@ export const REFERENCE = [
   "launch/reel/STORYBOARD.md",
 ] as const;
 
+/**
+ * What the motion gate (`launch/tools/motion-gate.mjs`, as `render-reel.mjs` runs it for a reel) measures; a film that
+ * misses any of these is refused before review. The first real reel failed on coverage at 46.3%.
+ */
+export const GATE_RULES =
+  "The motion gate measures the final file and refuses it unless: at least 85% of frames differ from the one before (keep the camera, a photograph or the light always moving; a held title still drifts), no still run longer than 1.0 s, 3 to 8 hard cuts, an average shot of 2.0 to 5.5 s, the sound at -18 LUFS (within 1.5) with a true peak at or below -1 dBTP, and no sustained pitch (the score is noise-based sound design, never a held tone).";
+
 /** The designer's brief: the request, the house rules that govern (H108, H110) and the files a scene must hold. */
 export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string })[]): string {
   const { request } = brief;
@@ -258,8 +280,19 @@ export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string
     "Read first, in reference/: DIRECTION.md (the Product Launch film: study its process and craft, never copy its layout or shots), MOTION-BIBLE.md, and the engine (film.js, audio.js). reel/ is the property reel, shown only as an example of the engine's API.",
     "House rules that govern (ruling H110): Cormorant Garamond for display, Jost for labels; palette Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2 (accents only), Mineral Grey #575751, Warm Grey #8B877F. Ink follows the paper; one italic word per title; titles rise through masks, never bounce, fade, scale or glow; eased camera, no shake; cuts on an 80 BPM grid (0.75 s); no gradients, no glow, no music (S36): the score is synthesized sound design in cues.mjs only. Copy: calm, brief, no em dashes, no hyperbole, no promise of leads or sales.",
     "Format: 1080 x 1920, 30 fps, 15 to 25 seconds, 3 to 8 cuts, every line that must be read inside the central safe area (about 950 x 980 px, clear of the top 270 px and bottom 670 px), and at least 32 px.",
+    GATE_RULES,
     "Write exactly three files in scene/: scene.html (the page; fonts from /app/public/fonts/, tokens from /app/src/styles/tokens.css), scene.mjs (imports /launch/engine/runtime/film.js by that absolute path, reads ?spec= and ?cues=, draws the spec's titles and shots by their src), and cues.mjs (run as `node cues.mjs <spec.json> <out.json>`, writing the sound cue list audio.js plays, with the same duration as the scene).",
     'End with one JSON object on its own: {"duration_s": <seconds>, "note": "one line on the idea"}.',
+  ].join("\n\n");
+}
+
+/** The second chance: what the gate refused, and the same rules. The idea stays; the scene is revised in place. */
+export function revisePrompt(refusal: string): string {
+  return [
+    `Your scene in scene/ was filmed and the motion gate refused it: ${refusal}.`,
+    GATE_RULES,
+    "Revise scene/scene.mjs (and cues.mjs if the sound failed) so the film passes every check. Keep the idea, the titles and the house rules; change the motion, the cuts or the sound, not the design's intent.",
+    'End with one JSON object on its own: {"duration_s": <seconds>, "note": "what you changed"}.',
   ].join("\n\n");
 }
 
@@ -347,7 +380,16 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
       if (!existsSync(join(folder, "scene", file))) throw new Error(`scene_missing: ${file}`);
     }
     const spec = { kind: "requested_reel", titles: request.titles, shots: placed };
-    const filmed = await deps.render(folder, spec);
+    // The motion gate judges the film; the designer revises once with its refusal, and a second refusal stops the reel.
+    let filmed;
+    try {
+      filmed = await deps.render(folder, spec);
+    } catch (failure: unknown) {
+      const refusal = failure instanceof Error ? failure.message : String(failure);
+      if (!refusal.startsWith("gate_failed")) throw failure;
+      await deps.design(folder, revisePrompt(refusal));
+      filmed = await deps.render(folder, spec);
+    }
     const final =
       lines.length === 0 || deps.voice === null
         ? filmed.mp4
@@ -402,19 +444,27 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
   }
 }
 
-/** A CLI run confined to the studio folder: no shell, no web, no MCP servers; refused, never asked (H101). */
-function studioArgs(model: string, extraRefused: string): string[] {
+/** The file tools each studio run is given; under `dontAsk` a tool not named here is refused (P-3481). */
+export const studioTools = {
+  designer: "Read,Write,Edit,Glob,Grep",
+  reviewer: "Read,Glob,Grep",
+} as const;
+
+/**
+ * A CLI run confined to the studio folder (`--restricted` refuses a write outside it): no shell, no web, no MCP
+ * servers, and only the file tools of its role; anything else is refused, never asked (H101).
+ */
+export function studioArgs(model: string, role: keyof typeof studioTools): string[] {
   const noMcp = join(STUDIO, "no-mcp.json");
-  if (!existsSync(noMcp)) writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));
+  if (!existsSync(noMcp)) {
+    mkdirSync(STUDIO, { recursive: true });
+    writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));
+  }
   return [
     ...["-p", "--model", model, "--output-format", "json"],
     ...["--strict-mcp-config", "--mcp-config", noMcp, "--restricted"],
-    ...[
-      "--permission-mode",
-      "dontAsk",
-      "--disallowedTools",
-      `Bash,WebFetch,WebSearch,NotebookEdit${extraRefused}`,
-    ],
+    ...["--permission-mode", "dontAsk", "--allowedTools", studioTools[role]],
+    ...["--disallowedTools", "Bash,WebFetch,WebSearch,NotebookEdit"],
   ];
 }
 
@@ -437,7 +487,7 @@ async function realDeps(): Promise<ReelDeps> {
     design: async (folder, prompt) =>
       (
         await runClaude({
-          args: studioArgs("sonnet", ""),
+          args: studioArgs("sonnet", "designer"),
           cwd: folder,
           env: childEnv(),
           prompt,
@@ -482,7 +532,7 @@ async function realDeps(): Promise<ReelDeps> {
       if (sheet.status !== 0) throw new Error("review_sheet_failed");
       return (
         await runClaude({
-          args: studioArgs("opus", ",Write,Edit"),
+          args: studioArgs("opus", "reviewer"),
           cwd: folder,
           env: childEnv(),
           prompt,

@@ -1,5 +1,5 @@
 import { variablesByKey } from "../../domain/email.ts";
-import { Message } from "./blocks.tsx";
+import { letter } from "./blocks.tsx";
 import type { EmailDefinition } from "./layout.tsx";
 
 // The one notice an interest signup receives when its market opens (B11 invariant 14, G15). Seeded as the
@@ -24,4 +24,4 @@ export const definition: EmailDefinition = {
   ],
 };
 
-export const Email = Message;
+export const Email = letter("Markets");

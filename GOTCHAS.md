@@ -603,6 +603,7 @@ Entry template
 - rule: a lane is made with `git worktree add --detach E:/mop-build/<lane> origin/main`, then `cp .env` into it (it is ignored there too), `bun install --frozen-lockfile` in its `app/`, and `supabase link --project-ref "$DEV_SUPABASE_PROJECT_REF"` in its `app/` before any CLI command that needs the link. Before a slice starts in a lane, move it to the newest main: `git -C E:/mop-build/<lane> fetch -q origin && git -C E:/mop-build/<lane> checkout --detach origin/main`. A builder in a lane never reads, edits or runs git in `E:/Matter Of Place`. The guard now finds the tree a file belongs to by walking up to the folder that holds `GOTCHAS.md` and `.git`.
 - proof: `node .claude/hooks/gotcha-guard.test.mjs` → `gotcha-guard: OK (6 cases)`; with the old hook the two lane cases print `FAIL ... silent`.
 - added: 2026-10-02
+- hit again: 2026-10-15, W9 item 1: the first vitest run in a fresh worktree died with `Cannot find package 'vitest'` (no `bun install` yet, 172 s), and `eval "$(node scripts/load-env.mjs --profile dev)"` printed `ENOENT ... w9-1\.env`. A lane that must not hold a copy of `.env` loads the main checkout's through its own loader, `eval "$(node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev)"`, which reads `E:\Matter Of Place\.env` and checks out nothing there.
 
 ## P-052 · Headless Chrome with the GPU on does not render the same pixels twice
 - symptom: three runs of the brand generator rewrote 2 to 5 PNG files each time with no input changed; one 256 px image rendered 40 times in one Chrome session gave 19 different hashes. A sub-agent had reported "second run changes nothing"; that run was luck.
@@ -989,6 +990,7 @@ Entry template
 - proof: `cd app && mkdir -p scratch && printf 'export const value = "x"\n' > scratch/zz-scratch.mjs && bunx eslint --max-warnings 0 scratch/zz-scratch.mjs; echo $?` prints `Insert ';'  prettier/prettier` and `1` (then `rm -rf scratch`); from `app/`, a `../scratch/zz-bare.mjs` holding `import { ESLint } from "eslint"` exits 1 with `ERR_MODULE_NOT_FOUND` and the `createRequire` form prints `function` (2026-10-02); a scratch config naming the setup file without `server.fs.strict: false` prints the `/@fs/` error and with it `Tests  1 passed (1)`; the one-test Playwright probe prints `Cannot find module '@playwright/test'` through `bunx` and `1 passed` through `NODE_PATH="$PWD/node_modules" node node_modules/@playwright/test/cli.js` (2026-10-03).
 - merged: P-100, P-403, P-411
 - hit again: 2026-10-04, B3 g7: a scratchpad probe with `import pg from "pg"`, run from `app/`, died with `ERR_MODULE_NOT_FOUND`; `createRequire` from the working folder fixed it (`const pg = createRequire(process.cwd() + "/")("pg")`). The cwd does not decide where a bare import resolves; the script's own folder does.
+- hit again: 2026-10-15, email redesign: scratch scripts in `app/out/` (git-ignored, so `git status` looked clean) were linted by `bun run check`; lint failed on `prettier/prettier` in five `out/*.mjs` files after a 9 m 36 s run. Git-ignored is not lint-ignored: scratch goes to the OS temp dir.
 - added: 2026-10-02
 
 ## P-088 · A proof someone else cannot re-run is not a proof: scratch scripts are git-ignored and get deleted
@@ -8054,6 +8056,46 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `git -C E:/mop-build/matter-desk worktree list` shows a worktree per open branch.
 - added: 2026-10-15
 
+## P-3469 · GNU sed reads `\`` as the start of the line, so "remove escaped backticks" put a backtick on every line
+- symptom: 2026-10-15, `sed -i 's/\\`/`/g' W8.md` meant to turn `\`` into ```; GNU sed treats `\`` as the start-of-buffer anchor, so every line gained a leading backtick. The broken plan was committed locally; the job was stopped before the push.
+- rule: never fix text with sed when it holds backticks or backslashes: write a node script with `split(a).join(b)` (checklist item 4), print a count of the lines still wrong, and read the file before committing.
+- proof: `printf 'a\nb\n' | sed 's/\\`/x/'` prints `xa` and `xb`.
+- added: 2026-10-15
+
+## P-3470 · The merge gate gave up after three catch-ups while Matter kept merging
+- symptom: 2026-10-15, PR 390 went green three times; each time main had gained one of Matter's merges (types.ts, check-layout.mjs, a migration), the gate merged main in and waited again, then stopped after attempt 3. The third catch-up also put Matter's migration after this branch's, so the branch migration had to be regenerated past it.
+- rule: with Matter merging on his own, the gate loop allows eight catch-ups (`for attempt in 1..8` in the orchestrator's gate-loop.sh), and a branch that carries a migration is checked with `node scripts/check-migrations.mjs` after every catch-up; a generated migration (action_roles) is regenerated rather than restamped, so it also carries main's new rows.
+- proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
+- added: 2026-10-15
+
+## P-3490 · E: filled up under a second `bun install`: "Failed to install 132 packages" exit 0, then ENOSPC on every Write
+- symptom: 2026-10-15, W9: the second worktree's `bun install --frozen-lockfile` printed `801 packages installed` and `Failed to install 132 packages` and exited 0; the next Write failed `ENOSPC: no space left on device`, and `df -h /e` showed `200G 200G 0 100%`. About forty worktrees under `E:\mop-build` each hold their own `app/node_modules`.
+- cause: bun reports a partial install as success, and every lane copies the whole dependency tree.
+- rule: before a second install on this laptop run `df -h /e`; a lane built from the same `origin/main` (same `bun.lock`) links to an installed lane instead of installing: `cmd //c "mklink /J E:\\mop-build\\<new>\\app\\node_modules E:\\mop-build\\<installed>\\app\\node_modules"`. Remove the linked lane before the one it points at, and never `git worktree remove` the installed lane while a junction points at it. Treat "Failed to install" as a failure whatever the exit code.
+- proof: `df -h /e` → `Avail 0` before; after removing the broken copy and linking, `ls E:/mop-build/w9-2/app/node_modules/.bin | head -1` → `acorn.bunx` and the lane's vitest runs.
+- added: 2026-10-15
+
+## P-3491 · `git reset --soft origin/main` in a lane took a newer main than the one merged: the commit undid 13 files of main
+- symptom: 2026-10-15, W9 item 2: after `git merge origin/main` the lane squashed with `git reset --soft origin/main && git commit`; `git diff --name-only origin/main` then listed `send-email.ts`, `settings.ts`, `services/http/index.ts` and ten tests the item never touched. The pushed commit carried older copies of them.
+- cause: every worktree shares one set of remote refs, and another session's `git fetch` in `E:\Matter Of Place` moved `origin/main` between the merge and the reset. The reset took the new main as parent while the index still held the tree merged with the old one.
+- rule: never squash onto a moving ref name. Pin it first (`base=$(git rev-parse origin/main)`), merge `$base`, reset to `$base`; before every push check `git diff --name-only $base HEAD` lists only the item's files. To repair without a force-push: `git diff --binary <old main> HEAD > item.patch`, `git read-tree -u --reset <new main>`, `git apply --3way item.patch`, commit on top.
+- proof: `git -C E:/mop-build/w9-2 diff --name-only d981cf6f 96ca1f46 | wc -l` → `27`, the item's files only (`49d5e668` alone showed 40).
+- added: 2026-10-15
+
+## P-3492 · A form check that asks outside DNS refused CI's own test addresses: `.invalid` has no name and example.com publishes a null MX
+- symptom: 2026-10-15, W9 item 1 (#412): the db job's api tests failed `expected 422 to be 201` and `no token number 0` in `subscribers.api.test.ts` and `submissions.api.test.ts` once the public pipeline refused addresses on domains that receive no email.
+- cause: the fixtures post `@fixtures.invalid`, `@example.invalid` and `@example.com`; DNS-over-HTTPS answers NXDOMAIN for `.invalid` and a null MX (`0 .`) for example.com, so the honest verdict was `domain_has_no_mail`. Unit tests stub fetch, so only CI, with the network, saw it.
+- rule: any check that consults the outside world about an address or a host answers "not looked up" for the RFC 2606/6761 names (`*.test`, `*.example`, `*.invalid`, `*.localhost`, `example.com/net/org`) before it calls out, as `src/lib/email-check.ts` `RESERVED` does; and a unit test's sample domain is a plausible real one, never example.com, or the guard turns the test vacuous.
+- proof: `cd app && bunx vitest run --project unit tests/unit/email-check.test.ts -t "never looked up"` passes; registry `W9:w9-1-reserved-names` turns it red.
+- added: 2026-10-15
+
+## P-3493 · CI's db job replays every registry entry whose file the PR touches, so an entry already stale on main fails the PR that edits its file
+- symptom: 2026-10-15, W9 item 3 (#415): the db job ended `watchfail: replayed 127: ok 126, bad 0, stale 1` with `STALE B8:en-emit: find occurs 0 times in src/server/lib/events.ts`; the PR had only added one line to that file's list.
+- cause: `p_entity_id: event.entityId,` had become `...(event.entityId === null ? {} : { p_entity_id: event.entityId })` on main long before; nothing replays an entry until a PR touches its file (`--changed`).
+- rule: before pushing a change to a file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` and repair every STALE it names for that file, including entries that were stale before you came; replay each with `--only <id>`.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only en-emit` → `WATCHED-FAIL OK B8:en-emit`.
+- added: 2026-10-15
+
 ## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
 - symptom: 2026-10-15, W7 E1: from the desk, `eval "$(node scripts/load-env.mjs --profile dev)"` exported nothing (the
   desk has no `.env`; the loader reads the one two folders above `scripts/`), then with the main checkout's loader the
@@ -8068,29 +8110,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
   the `db` job; the local run above ends `refusing: production database` at `scripts/lib/assert-not-production.mjs:60`.
 - added: 2026-10-15
 
-## P-3469 · GNU sed reads `\`` as the start of the line, so "remove escaped backticks" put a backtick on every line
-- symptom: 2026-10-15, `sed -i 's/\\`/`/g' W8.md` meant to turn `\`` into ```; GNU sed treats `\`` as the start-of-buffer anchor, so every line gained a leading backtick. The broken plan was committed locally; the job was stopped before the push.
-- rule: never fix text with sed when it holds backticks or backslashes: write a node script with `split(a).join(b)` (checklist item 4), print a count of the lines still wrong, and read the file before committing.
-- proof: `printf 'a\nb\n' | sed 's/\\`/x/'` prints `xa` and `xb`.
-- added: 2026-10-15
-
-## P-3470 · The merge gate gave up after three catch-ups while Matter kept merging
-- symptom: 2026-10-15, PR 390 went green three times; each time main had gained one of Matter's merges (types.ts, check-layout.mjs, a migration), the gate merged main in and waited again, then stopped after attempt 3. The third catch-up also put Matter's migration after this branch's, so the branch migration had to be regenerated past it.
-- rule: with Matter merging on his own, the gate loop allows eight catch-ups (`for attempt in 1..8` in the orchestrator's gate-loop.sh), and a branch that carries a migration is checked with `node scripts/check-migrations.mjs` after every catch-up; a generated migration (action_roles) is regenerated rather than restamped, so it also carries main's new rows.
-- proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
-- added: 2026-10-15
-
 ## P-3471 · A key added to an event's payload in SQL breaks every older db test that asserts that payload with `toEqual`, and only CI sees it
 - symptom: 2026-10-15, PR 410 (W7 E1): `approve_asset` and `reject_asset` gained `subject` in the `asset.approved` and `asset.rejected` payloads; CI's db job failed 4 of 925 (`tests/db/assets.db.test.ts`, `tests/db/assets-service.db.test.ts`: `+ "subject": "property"`), one CI cycle lost. Locally the db project refuses since the launch switch (P-3468), so no local run could have shown it.
 - cause: B9's tests pin the whole payload with `toEqual`; the slice's own tests covered the new key, and nobody searched for the older assertions.
 - rule: before pushing a change to what an SQL function emits or returns, `git grep -n "<event type or function name>" app/tests/db app/tests/api` and update every exact assertion of it in the same commit; also `git grep -ln "function public.<name>" app/tests/mutations` and regenerate each `sql` entry that carries a whole copy of the function from today's file (only its own mutation removed), or the copy fails on the new key before it reaches its own reason (PR 410's second db run: `B9:b9g1-db-approve-audit` BAD, 216 of 217 ok). The db job is the only run that would catch a miss.
 - proof: `cd app && git grep -n "asset.rejected\|asset.approved" tests/db` lists the two files and their four payload assertions; the db job log of run 38686728451 ends `Tests  4 failed | 919 passed`.
-- added: 2026-10-15
-
-## P-3478 · `import.meta.dir` is Bun's: a script module that uses it at the top level fails to load under vitest (Node)
-- symptom: 2026-10-15, W7 E2a: `scripts/workforce/reel.ts` set `const REPO = resolve(import.meta.dir, "../../..")`; the runner (bun) is fine, but `bunx vitest run --project unit tests/unit/workforce-reel.test.ts` failed at collection with `TypeError: The "paths[0]" argument must be of type string. Received undefined`, and every test file that imports the module (`answer.ts` too) with it.
-- rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
-- proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
 - added: 2026-10-15
 
 ## P-3472 · Zoho warns "verified domain, unauthenticated sender" on our own Resend mail although SPF, DKIM and DMARC all pass
@@ -8127,4 +8151,66 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-15, Search Console opened on the default Google account ("you don't have access"); then indexing was requested page after page in one batch without reading what each page said ("No referring sitemaps detected", a referring page outside the sitemap). The operator stopped both.
 - rule: Matter of Place's Google account is slot `/u/4/` in Edge. In any console, read and scroll the whole page and report it before pressing an action button; one page at a time. Index state for many pages comes from the URL Inspection API (scratchpad gsc-state.mjs, the service account is a restricted user), not from clicking.
 - proof: `node --env-file=.env gsc-all.mjs` from E:/mop-build/live lists all 18 sitemap pages with verdict and last crawl.
+- added: 2026-10-15
+
+## P-3481 · Under `--permission-mode dontAsk` a headless run is refused every tool it is not given with `--allowedTools`, so a designer told to write a scene writes nothing
+- symptom: 2026-10-15 11:14 to 11:20, the first real requested reel (`studio/2026-10-15-not-every-home`) failed `scene_missing: scene.html`: the designer run ended normally with an empty `scene/`. A probe with the same arguments (`claude -p ... --restricted --permission-mode dontAsk --disallowedTools Bash,...`) asked to write `probe.txt` answered `"permission_denials":[{"tool_name":"Write",...}]` and wrote nothing.
+- cause: `dontAsk` denies whatever is not allowed; `--disallowedTools` only removes tools, it allows none. Colleague runs never needed a file tool, so the gap never showed.
+- rule: a headless run that must read or write files names them in `--allowedTools` (`studioTools` in `scripts/workforce/reel.ts`: the designer Read, Write, Edit, Glob, Grep; the reviewer Read, Glob, Grep), keeps `--restricted` so writes stay in its working folder, and the run's caller checks the files exist before using them (the pass does: `scene_missing`).
+- proof: the same probe with `--allowedTools "Read,Write,Edit,Glob,Grep"` wrote `probe.txt` and was refused `../outside-probe.txt` ("the session is restricted to the working directory"), measured 2026-10-15; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "lets the designer write"`.
+- added: 2026-10-15
+
+## P-3482 · Drive E: was full: about seventy worktrees under E:/mop-build each carry their own node_modules
+- symptom: 2026-10-15 09:12 +0300, `sed -i` in the email worktree failed with `No space left on device`; `df -h /e` printed `200G 200G 1.6M 100%`, and E:/mop-build held about seventy worktree folders.
+- rule: a long job writes its scratch (browser profiles, renders) to the OS temp dir on C:, never under a worktree; run `df -h /e` before a heavy job; a worktree is removed by the session that made it (`git worktree remove`), never by another.
+- proof: `df -h /e | tail -1` printed `200G 200G 71M 100%` at 09:20 +0300, after the gallery's Edge profiles moved to C:.
+- added: 2026-10-15
+
+## P-3483 · A table of fixed width with `max-width: 100%` does not shrink to a phone screen
+- symptom: 2026-10-15, the first redesigned email column was `width:600px; max-width:100%`; in Edge at a 390 px viewport the page measured `scrollWidth 604` and the letter ran off the screen.
+- cause: a browser does not apply `max-width` to a table whose width is fixed.
+- rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-column{width:100%!important}`; every email is drawn at 390 px by `app/scripts/lib/email-gallery-phone.mjs`, which refuses a sideways scroll.
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone received 390 px, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-column` rule and the same run goes red on `received: scrollWidth <n> at 390 px` (`WATCHED-FAIL OK`, 2026-10-15).
+- enforced-by: app/scripts/lib/email-gallery-phone.mjs
+- added: 2026-10-15
+
+## P-3478 · `import.meta.dir` is Bun's: a script module that uses it at the top level fails to load under vitest (Node)
+- symptom: 2026-10-15, W7 E2a: `scripts/workforce/reel.ts` set `const REPO = resolve(import.meta.dir, "../../..")`; the runner (bun) is fine, but `bunx vitest run --project unit tests/unit/workforce-reel.test.ts` failed at collection with `TypeError: The "paths[0]" argument must be of type string. Received undefined`, and every test file that imports the module (`answer.ts` too) with it.
+- rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
+- proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
+- added: 2026-10-15
+
+## P-3480 · Work the runner gates on "no colleague run in flight" never happens while Matter's live session runs
+- symptom: 2026-10-15 11:10, a brand reel queued in the studio after PR 419 went live stayed `queued` for four minutes of passes; `daemon.log` showed no `reel pass started`. The office's runs list held Matter's own `schedule` run, `running` since 08:09Z: the live session.
+- cause: `daemon.ts` started the reel pass inside `if (inFlight === 0)`, the follow-main gate; Matter's live session is an `agent_runs` row in `running` for its whole life, so `inFlight` is almost never 0 while Matter works.
+- rule: gate on "no colleague run" only what must not overlap a run (moving the checkout). Work that runs as a process of its own takes its own lock (the reel's `working` brief, `reelWorking()`), and the checkout does not move while that lock is held.
+- proof: `bun app/scripts/matter/read.ts /api/admin/workforce/office` → runs[0] `{"agent_slug":"matter","cause":"schedule","state":"running"}` while the brief read `"state": "queued"`; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "says a reel is being made"` covers the new lock.
+- added: 2026-10-15
+
+## G-1451 · `process.kill(-pid)` throws ESRCH when the child was not spawned detached, and a stop that throws never settles
+- paths: app/scripts/workforce/cli.ts
+- content: process\.kill\(\s*-
+- severity: warn
+- symptom: 2026-10-15, PR 423 CI (Linux): "stops a colleague who prints nothing" and "still honours a hard cap" timed out at 20000 ms with `Error: kill ESRCH`. `killTree` called `process.kill(-pid, "SIGKILL")`; the child was spawned without `detached: true`, so it has no process group; the throw came inside the timer before `fail()`, so the promise never settled. The laptop uses `taskkill`, so weeks of runs here never reached that line.
+- rule: a negative pid needs a child spawned with `detached: true`; otherwise try `kill(-pid)`, fall back to `kill(pid)`, catch "already gone"; settle the promise before killing. A path that only runs on one OS is proven by that OS (CI's Linux), never by the laptop. The `content:` line makes the guard push this entry whenever a negative-pid kill is written in any file; the global hook `~/.claude/hooks/content-pitfalls.mjs` does the same in every project.
+- proof: run 38712728657 (PR 423, check job) → `Error: kill ESRCH`, `Test timed out in 20000ms`; `node .claude/hooks/gotcha-guard.test.mjs` → the two content cases ok.
+- added: 2026-10-15
+
+## P-3500 · A task-gate check that points at a build worktree breaks when the worktree is removed
+- symptom: 2026-10-15, after pruning merged worktrees the Stop hook failed step 6 (`exit 1: | Node.js v24.13.0`): its check ran `E:/mop-build/autonomy/.claude/hooks/task-gate.mjs`, a worktree just removed.
+- rule: a check runs code from main's copy (the runner `E:/mop-build/live`) or the root, never from a lane worktree; lanes are deleted after merge.
+- proof: `node .claude/hooks/task-gate.mjs status .claude/tasks/active.json` → `PASS   6` after repointing to `E:/mop-build/live`.
+- added: 2026-10-15
+
+## P-3501 · `git worktree remove` fails with "Filename too long" and leaves the folder behind
+- symptom: 2026-10-15, removing merged worktrees printed `error: failed to delete 'E:/mop-build/continuous': Filename too long` for four of eight; git dropped them from its list but node_modules stayed on disk (E: had 30 MB free).
+- rule: after `git worktree remove`, delete what is left with the long-path form `cmd /c "rd /s /q \\?\E:\mop-build\<name>"` (scratchpad rm-leftovers.ps1); check free space with `(Get-PSDrive E).Free`.
+- proof: rm-leftovers.ps1 → `deleted continuous` ... `E: free GB: 46.1`.
+- added: 2026-10-15
+
+## P-3479 · The audit robot's Search Console reader aborts under Node on this laptop, and its key is in neither load profile
+- symptom: 2026-10-15, the operator's search assignment: `node workspace/audits/tools/gsc.mjs` printed `Not measured: gsc (GOOGLE_SA_JSON_B64 unset)` with both `load-env.mjs --profile dev` and `--profile ops`; with the key loaded (shell export, then inside Node from the runner's `.env`) it ended `exit 127` and `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76` (Node 24.13 on Windows), the moment it reached the network. Under Bun it signed in, then stopped at `"" cannot be parsed as a URL` (no `SITE_URL`).
+- cause: the key `GOOGLE_SA_JSON_B64` lives only in the runner's `.env` (`E:\mop-build\live\.env`); Node 24 on Windows aborts in libuv when this tool's fetch and exit race; the tool reads the site from `SITE_URL` or `--url`.
+- rule: read Search Console with Bun, the key loaded inside the process from the runner's `.env` (never exported, never printed), and `--url https://matterofplace.com`. The account sees one property, `sc-domain:matterofplace.com` (siteRestrictedUser). A site this new has its queries withheld: read pages and dates for a baseline, and live searches for keyword choice.
+- proof: `bun <wrapper> E:/mop-build/live/.env workspace/audits/tools/gsc.mjs --url https://matterofplace.com` → `Not measured: gsc (Search Console has no queries for sc-domain:matterofplace.com in 28 days)`, exit 0; a 90-day `searchAnalytics/query` by page → `/` 1 impression (position 2), `/stories` 1 (position 40), all on 2026-10-12 (measured 2026-10-15).
 - added: 2026-10-15

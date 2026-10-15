@@ -5,7 +5,7 @@
 // No model key exists anywhere (H34): the CLI is the operator's own account. It prints no secret and no prompt.
 //   bun scripts/workforce/daemon.ts          one pass, then exit (the scheduled task runs it every minute)
 //   bun scripts/workforce/daemon.ts --loop   pass after pass until stopped (for watching it live)
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
@@ -29,15 +29,16 @@ import { childEnv, loadEnvFile, serviceDb as db } from "./env.ts";
 import { knowledgeBlock } from "./knowledge.ts";
 import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
-import { nextReel, queueReel } from "./reel.ts";
+import { nextReel, queueReel, reelWorking } from "./reel.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
-import { followMain } from "./follow.ts";
+import { followMain, mapDue } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
 import { groundingLines } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
+import { checkNewAddresses, refusedAddress } from "./email-check.ts";
 import { refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
 import { liveAlive } from "../matter/live-alive.ts";
@@ -46,7 +47,9 @@ const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
 const BREAKER_FILE = join(HOME, "breaker.json");
 const WORKER = `${hostname()}:${String(process.pid)}`;
-const CLI_TIMEOUT_MS = 6 * 60_000;
+// No clock on a colleague's work (operator, 2026-10-15: a 6-minute limit threw away the chief of staff's real work at
+// 00:52). A run is stopped only when it prints nothing for this long, which with stream-json means it is stuck.
+const CLI_IDLE_MS = 15 * 60_000;
 const RUNS_PER_HOUR = 40;
 const HISTORY = 24;
 const models: Record<string, string> = {
@@ -80,7 +83,8 @@ function askClaude(
       "--model",
       model,
       "--output-format",
-      "json",
+      "stream-json",
+      "--verbose",
       "--strict-mcp-config",
       "--mcp-config",
       emptyMcpConfig(),
@@ -95,7 +99,7 @@ function askClaude(
     cwd,
     env: childEnv(),
     prompt,
-    timeoutMs: CLI_TIMEOUT_MS,
+    idleMs: CLI_IDLE_MS,
     who: "the colleague",
   });
 }
@@ -633,9 +637,13 @@ async function makeApprovedCalls(client: Db): Promise<void> {
       .from("agent_approvals")
       .update({ content: { ...content, outcome: { state: "making" } } })
       .eq("id", row.id);
-    const outcome = call.success
-      ? await makeCall(call.data, key, ADMIN_BASE)
-      : { status: 0, ok: false, message: "the call could not be read" };
+    // W9 item 1: a call that would mail an address the check refuses is not made.
+    const refusal = call.success ? await refusedAddress(call.data.body) : null;
+    const outcome = !call.success
+      ? { status: 0, ok: false, message: "the call could not be read" }
+      : refusal !== null
+        ? { status: 0, ok: false, message: `not made, the address is refused: ${refusal}` }
+        : await makeCall(call.data, key, ADMIN_BASE);
     await client
       .from("agent_approvals")
       .update({ content: { ...content, outcome: { ...outcome, at: new Date().toISOString() } } })
@@ -685,21 +693,36 @@ async function pass(client: Db): Promise<void> {
     .from("agent_runs")
     .select("id", { count: "exact", head: true })
     .eq("state", "running");
-  if (inFlight === 0) {
+  // A reel being made runs from this checkout, so the runner does not move under it (W7 item 19).
+  const reelBusy = reelWorking();
+  if (inFlight === 0 && !reelBusy) {
     const followed = followMain(resolve(import.meta.dir, "../.."), join(HOME, "runner-app"));
     if (followed !== "unchanged" && followed !== "not the runner") {
       console.log(`${new Date().toISOString()} runner ${followed}`);
     }
-    // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute.
-    if (nextReel() !== null) {
-      spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
+    // W6 item 3: a child process, so the map is drawn by the code the runner just moved to, not the code loaded here.
+    if (mapDue(followed, existsSync(join(HOME, "matter", "system-map.md")))) {
+      const made = spawnSync("bun", [join(import.meta.dir, "../matter/system-map.ts")], {
         cwd: resolve(import.meta.dir, "../.."),
-        detached: true,
-        stdio: "ignore",
         windowsHide: true,
-      }).unref();
-      console.log(`${new Date().toISOString()} reel pass started`);
+        encoding: "utf8",
+        timeout: 120_000,
+      });
+      console.log(
+        `${new Date().toISOString()} ${made.status === 0 ? made.stdout.trim() : `system map failed: ${made.stderr.trim().slice(0, 300)}`}`,
+      );
     }
+  }
+  // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute. It
+  // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480).
+  if (!reelBusy && nextReel() !== null) {
+    spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
+      cwd: resolve(import.meta.dir, "../.."),
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    }).unref();
+    console.log(`${new Date().toISOString()} reel pass started`);
   }
   await makeApprovedCalls(client);
   // W4: replies to our email reach their colleague; a mailbox that fails never stops the runs.
@@ -708,6 +731,12 @@ async function pass(client: Db): Promise<void> {
     return 0;
   });
   if (replies > 0) console.log(`${new Date().toISOString()} replies ${String(replies)}`);
+  // W9 item 1: where port 25 opens, each new address is probed once and a refused one is never mailed.
+  const refused = await checkNewAddresses(client, HOME).catch((failure: unknown) => {
+    console.log(`email check: ${failure instanceof Error ? failure.message : String(failure)}`);
+    return 0;
+  });
+  if (refused > 0) console.log(`${new Date().toISOString()} refused addresses ${String(refused)}`);
   // W5 item 13: our public pages' text in every desk, once a day, so a colleague can quote the site it works for.
   const { data: staff } = await client.from("agents").select("slug");
   const pages = await writeSitePages(

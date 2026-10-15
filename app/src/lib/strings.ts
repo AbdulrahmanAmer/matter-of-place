@@ -89,6 +89,9 @@ const en = {
     /** Beside a field the browser found empty or malformed when the form was sent. */
     fieldRequired: "Please fill in this field.",
     fieldInvalid: "Please check this entry.",
+    /** Under an email field whose domain looks like a typo (W9 item 1): "Did you mean ann@gmail.com?" */
+    emailTypo: "Did you mean",
+    emailTypoUse: "Use {address}",
     /** When the details were refused but none of them is a field the form shows (the submit wizard). */
     invalidUnplaced: "Some of the details were not accepted. Please look through each step.",
     /** Beside a field of the submit wizard that was refused, by what was wrong with it. */
