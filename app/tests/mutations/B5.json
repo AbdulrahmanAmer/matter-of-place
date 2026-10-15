@@ -2249,7 +2249,7 @@
     "run": "bun run email:shots",
     "expect": "received: scrollWidth 7[0-9]{2} at 600 px",
     "kind": "manual",
-    "note": "Needs a Chromium binary (bun run email:shots renders the templates in a browser); CI's db job has none, so it is replayed by hand on the laptop: 2026-10-06 the builder saw \"received: scrollWidth 7xx at 600 px\" with the minWidth mutation."
+    "note": "Needs a Chromium binary (bun run email:shots renders the templates in a browser); CI's db job has none, so it is replayed by hand on the laptop: 2026-10-06 the builder saw \"received: scrollWidth 7xx at 600 px\" with the minWidth mutation. 2026-10-15 (email houses, the column now in blocks/band.tsx): after bunx playwright install chromium-headless-shell (P-3516), node scripts/watchfail.mjs --file src/templates/email/blocks/band.tsx with this find, replace, run and expect printed WATCHED-FAIL OK."
   },
   {
     "id": "b5-shots-lint-stops",
