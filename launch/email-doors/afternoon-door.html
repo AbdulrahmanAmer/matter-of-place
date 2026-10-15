@@ -1,0 +1,161 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;padding:0;background:#EEEAE1}canvas{display:block}</style></head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// The Matter of Place door by day: the same door the film opens at night, set in a Bone wall in the afternoon.
+// The emblem's two planes are the surround (in the logo's own on-light tones), the closed leaves sit flush in the
+// opening, and the sun is outside. Nothing is lit until the leaves part: first a blade of sun at the seam (a door
+// ajar), then the opening fills with daylight and the door's own gabled shape is thrown forward onto the floor,
+// sheared by a low sun, its edges softening with distance. No glow anywhere: the only light is where the sun lands.
+// render({ tau, night }): tau 0..1 runs the shot (the camera dollies in, the door opens); tau = 0 is the flat logo.
+const cv = document.getElementById('c'), x = cv.getContext('2d');
+let W = 600, H = 300, K = 2;
+window.size = (w, h, k) => { W = w; H = h; K = k; cv.width = w * k; cv.height = h * k; cv.style.width = w + 'px'; cv.style.height = h + 'px'; };
+window.size(600, 300, 2);
+
+// geometry in metres, from the emblem's own units (the film's mapping: 0.2 m per unit, the floor at unit 70)
+const em = (ex, ey) => [(ex - 34) * 0.2, (70 - ey) * 0.2];
+const PS = [[8, 5], [60, 5], [60, 70], [48, 64], [48, 21], [34, 16], [30, 16.4], [9, 6.2]].map(([a, b]) => em(a, b));
+const PL = [[8, 5], [34, 16], [20, 21], [20, 64], [8, 70]].map(([a, b]) => em(a, b));
+const ZS = 0.5, ZL = 0.65, ZB = -0.5, ZD = 0.1;        // wall face, the proud plane, back of the wall, the leaves
+const HW = 2.8, AP = 10.8, SH = 9.8, LEAF = 11.3;      // half width of the opening, apex, shoulders, leaf height
+
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm = (a) => { const l = Math.hypot(...a); return [a[0] / l, a[1] / l, a[2] / l]; };
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const sm = (a, b, u) => { const k = clamp((u - a) / (b - a)); return k * k * (3 - 2 * k); };
+const io = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const lerp = (a, b, t) => a + (b - a) * t;
+const mix = (c1, c2, t) => c1.map((v, i) => v + (c2[i] - v) * t);
+const rgb = (c, a = 1) => `rgba(${c.map((v) => Math.round(v)).join(',')},${a})`;
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+
+// S and L are the emblem's own tones (frame 1 is the logo, exactly); S2 and L2 are the same two planes once they are
+// stone in a sunlit room: Sandstone and Warm Grey, the order of the logo kept (the left plane is the darker one)
+const DAY = {
+  wall: hex('#EEEAE1'), S: hex('#96938D'), L: hex('#272724'), S2: hex('#C9C0B2'), L2: hex('#8B877F'),
+  light: hex('#FFFDF8'),                                           // the film's light colour: the sunlit room beyond
+  niche: hex('#E9E5DB'), leafOpen: hex('#DCD6CB'), jamb: hex('#DDD7CB'), jambLit: hex('#F8F4EB'), soffit: hex('#D3CCBF'),
+  patch: hex('#FFFDF8'), patchK: 0.9,
+};
+const NIGHT = {
+  wall: hex('#11110F'), S: hex('#696863'), L: hex('#D8D4CC'), S2: hex('#3A3935'), L2: hex('#575751'),
+  light: hex('#DDD4C3'),                                           // lamplight from the next room, never white
+  niche: hex('#161614'), leafOpen: hex('#2A2925'), jamb: hex('#24231F'), jambLit: hex('#7E776B'), soffit: hex('#1E1D1A'),
+  patch: hex('#DDD4C3'), patchK: 0.3,
+};
+
+function camera(pos, tgt, fov) {
+  const f = norm(sub(tgt, pos)), r = norm(cross(f, [0, 1, 0])), u = cross(r, f), F = (H / 2) / Math.tan((fov * Math.PI) / 360);
+  return (p) => { const d = sub(p, pos), zc = dot(d, f); return [W / 2 + (dot(d, r) / zc) * F, H / 2 - (dot(d, u) / zc) * F]; };
+}
+function path(pts) { x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); }
+function fill(P, pts3, col) { path(pts3.map(P)); x.fillStyle = col; x.fill(); }
+
+// convex polygon clipping (Sutherland-Hodgman), 2D
+function clipConvex(subject, clip) {
+  let area = 0;
+  for (let i = 0; i < clip.length; i++) { const a = clip[i], b = clip[(i + 1) % clip.length]; area += a[0] * b[1] - b[0] * a[1]; }
+  const s = Math.sign(area) || 1;
+  let out = subject;
+  for (let i = 0; i < clip.length && out.length; i++) {
+    const A = clip[i], B = clip[(i + 1) % clip.length], inp = out;
+    const side = (p) => s * ((B[0] - A[0]) * (p[1] - A[1]) - (B[1] - A[1]) * (p[0] - A[0]));
+    out = [];
+    for (let j = 0; j < inp.length; j++) {
+      const P = inp[j], Q = inp[(j + 1) % inp.length], sp = side(P), sq = side(Q);
+      if (sp >= 0) out.push(P);
+      if ((sp >= 0) !== (sq >= 0)) { const t = sp / (sp - sq); out.push([P[0] + (Q[0] - P[0]) * t, P[1] + (Q[1] - P[1]) * t]); }
+    }
+  }
+  return out;
+}
+
+// the sun: low, behind the wall and to the left, so the light travels toward the camera and to the right
+const SUN = norm([0.47, -0.74, 1]);
+const SUN_SAMPLES = Array.from({ length: 24 }, (_, i) => {
+  const h = (n, b) => { let f = 1, r = 0; while (n > 0) { f /= b; r += f * (n % b); n = Math.floor(n / b); } return r; };
+  const a = h(i + 1, 2) * Math.PI * 2, rr = Math.sqrt(h(i + 1, 3)) * 0.04;    // a small disc of directions: the penumbra
+  return norm([SUN[0] + Math.cos(a) * rr, SUN[1] + Math.sin(a) * rr, SUN[2]]);
+});
+const gap = (w) => { const top = AP - ((AP - SH) * w) / HW; return [[-w, 0], [w, 0], [w, top], [0, AP], [-w, top]]; };
+const toFloor = (L, [px, py], pz) => { const t = py / -L[1]; return [px + L[0] * t, pz + L[2] * t]; };
+
+const mask = document.createElement('canvas'), tint = document.createElement('canvas');
+window.render = function (s) {
+  const tau = s.tau ?? 1, C = s.night ? NIGHT : DAY;
+  mask.width = tint.width = cv.width; mask.height = tint.height = cv.height;
+  // the camera: an exponential dolly so the zoom feels even, eased at both ends; it rises a little and tips down to
+  // find the floor in front of the door
+  const e = io(clamp(tau)), z = s.z0 ?? 118, z1 = s.z1 ?? 48;
+  const pos = [0, lerp(6.5, s.y1 ?? 7.2, e), z * Math.pow(z1 / z, e)], tgt = [0, lerp(6.5, s.ty1 ?? 4.4, e), 0];
+  const P = camera(pos, tgt, s.fov ?? 28);
+  // the door: shut and flat while the camera travels, then a crack of sun, then the leaves swing open
+  const crack = sm(0.42, 0.6, tau), open = io(clamp((tau - 0.6) / 0.38));
+  const w = s.w ?? (0.05 * crack + (HW - 0.05) * open);
+  const depth = sm(0.15, 0.7, tau);                     // how much the doorway reads as a recess rather than a print
+  const lit = w > 0.0005;
+
+  x.setTransform(K, 0, 0, K, 0, 0);
+  x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.filter = 'none';
+  x.fillStyle = rgb(C.wall); x.fillRect(0, 0, W, H);
+
+  // inside the opening, behind the face of the wall (the light plane stands proud of the wall above its cut foot)
+  const front = [[-HW, 0, ZS], [HW, 0, ZS], [HW, SH, ZS], [0, AP, ZS], [-HW, SH, ZL], [-HW, 1.2, ZL], [-HW, 1.2, ZS]];
+  x.save(); path(front.map(P)); x.clip();
+  x.fillStyle = rgb(C.light); x.fillRect(0, 0, W, H);
+  const jamb = (z0, z1, k) => {
+    const shade = rgb(mix(C.wall, C.jamb, depth)), litJ = rgb(mix(mix(C.wall, C.jamb, depth), C.jambLit, k * open));
+    fill(P, [[-HW, 0, z0], [-HW, 0, z1], [-HW, SH, z1], [-HW, SH, z0]], shade);
+    fill(P, [[HW, 0, z0], [HW, 0, z1], [HW, SH, z1], [HW, SH, z0]], litJ);
+    const so = rgb(mix(C.wall, C.soffit, depth));
+    fill(P, [[-HW, SH, z0], [0, AP, z0], [0, AP, z1], [-HW, SH, z1]], so);
+    fill(P, [[0, AP, z0], [HW, SH, z0], [HW, SH, z1], [0, AP, z1]], so);
+  };
+  jamb(ZB, ZD, 1);
+  // the leaves: flush and the colour of the wall while shut, turning to shadow as they swing away into the light
+  const lw = Math.max(HW - w, 0);
+  if (lw > 0.0001) {
+    const lc = rgb(mix(mix(C.wall, C.niche, depth), C.leafOpen, open));
+    fill(P, [[-HW, 0, ZD], [-HW + lw, 0, ZD], [-HW + lw, LEAF, ZD], [-HW, LEAF, ZD]], lc);
+    fill(P, [[HW - lw, 0, ZD], [HW, 0, ZD], [HW, LEAF, ZD], [HW - lw, LEAF, ZD]], lc);
+  }
+  jamb(ZD, ZL, 0.5);
+  fill(P, [[-HW, 0, ZD], [HW, 0, ZD], [HW, 0, ZS], [-HW, 0, ZS]], rgb(mix(C.wall, C.jamb, depth * 0.5)));   // the threshold
+  x.restore();
+
+  // the face of the wall: the emblem's two planes, the logo's flat tones turning to stone as the room fills with sun
+  const stone = s.stone ?? sm(0.3, 0.97, tau);
+  fill(P, PS.map(([a, b]) => [a, b, ZS]), rgb(mix(C.S, C.S2, stone)));
+  fill(P, PL.map(([a, b]) => [a, b, ZL]), rgb(mix(C.L, C.L2, stone)));
+
+  // the sun on the floor: the opening's light, the beam clipped by both faces of the wall, once per direction on the
+  // sun's disc so the edge softens the further it falls from the door
+  if (lit) {
+    const m = mask.getContext('2d');
+    m.setTransform(K, 0, 0, K, 0, 0); m.clearRect(0, 0, W, H); m.globalCompositeOperation = 'lighter';
+    m.fillStyle = `rgba(255,255,255,${1 / SUN_SAMPLES.length})`;
+    const g = gap(w);
+    for (const L of SUN_SAMPLES) {
+      const a = g.map((p) => toFloor(L, p, ZS)), b = g.map((p) => toFloor(L, p, ZB));
+      let poly = clipConvex(a, b);
+      poly = clipConvex(poly, [[-50, ZD], [50, ZD], [50, 200], [-50, 200]]);   // the floor in front of the leaves
+      if (poly.length < 3) continue;
+      m.beginPath(); poly.forEach(([fx, fz], i) => { const [sx, sy] = P([fx, 0, fz]); i ? m.lineTo(sx, sy) : m.moveTo(sx, sy); }); m.closePath(); m.fill();
+    }
+    const t = tint.getContext('2d');
+    t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-over'; t.clearRect(0, 0, tint.width, tint.height);
+    t.fillStyle = rgb(C.patch); t.fillRect(0, 0, tint.width, tint.height);
+    t.globalCompositeOperation = 'destination-in'; t.drawImage(mask, 0, 0);
+    x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = C.patchK; x.drawImage(tint, 0, 0); x.globalAlpha = 1;
+    x.setTransform(K, 0, 0, K, 0, 0);
+  }
+  return { w, crack, open, depth };
+};
+window.render({ tau: 1 });
+</script>
+</body></html>

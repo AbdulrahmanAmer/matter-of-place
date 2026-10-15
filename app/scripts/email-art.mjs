@@ -121,6 +121,25 @@ await write(
   3,
 );
 
+// The colophon of the three houses (2026-10-15): the wordmark alone, 180 by 12, on the Bone of the colophon and, for
+// Apple Mail's dark mode, on Obsidian. The letters fill the strip; the ground is the paper, never transparency.
+const BONE = "#EEEAE1";
+const wordmarkBone = brandSvg("wordmark/wordmark-horizontal-bone.svg");
+const COLOPHON = { width: 180, height: 12 };
+for (const [name, ground, mark] of /** @type {const} */ ([
+  ["wordmark-obsidian", BONE, wordmarkObsidian],
+  ["wordmark-bone", OBSIDIAN, wordmarkBone],
+])) {
+  await write(
+    name,
+    COLOPHON.width,
+    COLOPHON.height,
+    `<rect width="${String(COLOPHON.width)}" height="${String(COLOPHON.height)}" fill="${ground}"/>` +
+      placeContent(mark, { x: 0, y: 0, height: mark.height }, 0, 0, COLOPHON.height),
+    3,
+  );
+}
+
 // The 2026-10-12 shell, kept for mail already sent (see the head of this file).
 const stacked = brandSvg("lockup/lockup-stacked-bone.svg");
 const emblemBone = brandSvg("emblem/emblem-bone.svg");

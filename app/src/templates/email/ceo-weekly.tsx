@@ -5,13 +5,14 @@ import { formatDate } from "../../server/email/format.ts";
 import type { RenderedEmail } from "../../server/email/render.ts";
 import type { WeeklyKpis } from "../../server/kpi/collect.ts";
 import { kpiLines, type KpiLine, type KpiWeek } from "../../server/kpi/definitions.ts";
-import { themeHex } from "../theme.gen.ts";
-import { footerLines, Layout } from "./layout.tsx";
-import { cx, display, label, reading, sans, serif } from "./style.ts";
+import { Row } from "./blocks/band.tsx";
+import { Light } from "./house/light.tsx";
+import { footerLines } from "./layout.tsx";
+import { cx, GUTTER, ink, label, reading, sans, serif } from "./style.ts";
 
-// The CEO's weekly numbers (B11 invariant 12): one table of the eight KPIs with their change against the week
-// before, then the properties asked about most. React Email code, not a template row, set in the shell's faces: the
-// measures in Jost, read across a Sandstone hairline per row.
+// The CEO's weekly numbers (B11 invariant 12), internal mail in the light house: one table of the eight KPIs with their
+// change against the week before, then the properties asked about most. React Email code, not a template row: the
+// measures in Jost, read across a Sandstone hairline per row, the way the light house sets facts.
 
 interface CeoWeeklyProps {
   title: string;
@@ -22,95 +23,122 @@ interface CeoWeeklyProps {
   site: SiteContext;
 }
 
-const rule = `1px solid ${themeHex.accent}`;
+const rule = `1px solid ${ink.sandstone}`;
 
 const cell: CSSProperties = {
-  padding: "12px 12px 12px 0",
+  padding: "11px 12px 11px 0",
   borderTop: rule,
   fontFamily: sans.fontFamily,
   fontSize: "14px",
-  lineHeight: "1.5",
+  lineHeight: "21px",
   textAlign: "left",
   verticalAlign: "top",
-  color: themeHex.foreground,
+  color: ink.obsidian,
 };
 
 const head: CSSProperties = {
   ...label,
   ...cell,
-  fontSize: "10px",
-  color: themeHex.mutedForeground,
+  fontSize: "9.5px",
+  letterSpacing: "0.28em",
+  color: ink.mineral,
 };
 
 const day = (date: string): string => formatDate(`${date}T00:00:00Z`);
 
+function Numbers({ period, lines, top }: Pick<CeoWeeklyProps, "period" | "lines" | "top">) {
+  return (
+    <Row padding={`22px ${String(GUTTER)}px 0`}>
+      <p
+        className={cx(serif.className, "mop-t-read", "mop-ink2")}
+        style={{
+          ...reading,
+          fontSize: "18px",
+          lineHeight: "28px",
+          margin: "0 0 24px",
+          color: ink.mineral,
+        }}
+      >
+        {period}
+      </p>
+      <table style={{ width: "100%", margin: "0 0 30px", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th scope="col" className={cx(sans.className, "mop-ruled")} style={head}>
+              Measure
+            </th>
+            <th scope="col" className={cx(sans.className, "mop-ruled")} style={head}>
+              This week
+            </th>
+            <th scope="col" className={cx(sans.className, "mop-ruled")} style={head}>
+              Change
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((line) => (
+            <tr key={line.key}>
+              <th
+                scope="row"
+                className={cx(sans.className, "mop-ruled", "mop-ink")}
+                style={{ ...cell, fontWeight: "normal" }}
+              >
+                {line.label}
+              </th>
+              <td className={cx(sans.className, "mop-ruled", "mop-ink")} style={cell}>
+                {line.value}
+              </td>
+              <td
+                className={cx(sans.className, "mop-ruled", "mop-ink2")}
+                style={{ ...cell, color: ink.mineral }}
+              >
+                {line.change}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {top.length === 0 ? null : (
+        <>
+          <p
+            className={cx(sans.className, "mop-ink2")}
+            style={{ ...label, margin: "0 0 10px", color: ink.mineral }}
+          >
+            Properties asked about most
+          </p>
+          {top.map((property) => (
+            <p
+              key={property.slug}
+              className={cx(serif.className, "mop-t-read", "mop-ink")}
+              style={{
+                ...reading,
+                fontSize: "18px",
+                lineHeight: "28px",
+                margin: "0 0 4px",
+                color: ink.obsidian,
+              }}
+            >
+              {property.title}: {String(property.count)}
+            </p>
+          ))}
+        </>
+      )}
+    </Row>
+  );
+}
+
 function CeoWeekly({ title, preheader, period, lines, top, site }: CeoWeeklyProps) {
   return (
-    <Layout title={title} preheader={preheader} site={site} label="For the team">
-      <div style={{ overflow: "hidden", padding: "0 0 6px", margin: "0 0 16px" }}>
-        <h1 className={cx(serif.className, "mop-display", "mop-rise")} style={display}>
-          The week in <em style={{ fontStyle: "italic" }}>numbers</em>
-        </h1>
-      </div>
-      <div className="mop-follow">
-        <p
-          className={cx(serif.className, "mop-reading")}
-          style={{ ...reading, margin: "0 0 26px" }}
-        >
-          {period}
-        </p>
-        <table style={{ width: "100%", margin: "0 0 30px", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th scope="col" className={sans.className} style={head}>
-                Measure
-              </th>
-              <th scope="col" className={sans.className} style={head}>
-                This week
-              </th>
-              <th scope="col" className={sans.className} style={head}>
-                Change
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {lines.map((line) => (
-              <tr key={line.key}>
-                <th
-                  scope="row"
-                  className={sans.className}
-                  style={{ ...cell, fontWeight: "normal" }}
-                >
-                  {line.label}
-                </th>
-                <td className={sans.className} style={cell}>
-                  {line.value}
-                </td>
-                <td className={sans.className} style={{ ...cell, color: themeHex.mutedForeground }}>
-                  {line.change}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {top.length === 0 ? null : (
-          <>
-            <p className={sans.className} style={{ ...label, margin: "0 0 10px" }}>
-              Properties asked about most
-            </p>
-            {top.map((property) => (
-              <p
-                key={property.slug}
-                className={cx(serif.className, "mop-reading")}
-                style={{ ...reading, margin: "0 0 4px", color: themeHex.foreground }}
-              >
-                {property.title}: {String(property.count)}
-              </p>
-            ))}
-          </>
-        )}
-      </div>
-    </Layout>
+    <Light
+      title={title}
+      preheader={preheader}
+      site={site}
+      blocks={[{ type: "heading", text: "The week in numbers" }]}
+      variables={{}}
+      label="For the team"
+      instrument={<Numbers period={period} lines={lines} top={top} />}
+      note="Sent to the team every Monday by the Matter of Place admin."
+    />
   );
 }
 

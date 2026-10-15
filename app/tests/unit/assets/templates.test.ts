@@ -248,7 +248,7 @@ describe("the standalone email", () => {
 
   it("draws no property block when it is given none", async () => {
     const { html } = await renderTemplate(standalone, variables, site);
-    expect(html).not.toContain("View the property");
+    expect(html).not.toContain("View the home");
     expect(html).not.toContain(block.title);
     expect(html).not.toContain('<img src="https://matterofplace.com/media');
   });

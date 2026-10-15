@@ -2510,8 +2510,8 @@
     "id": "c5n-block-absent",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/templates/email/standalone.tsx",
-    "find": "{parsed === undefined ? null : <NewsletterBlock {...parsed.data} />}",
-    "replace": "<NewsletterBlock title=\"x\" deck=\"\" image_key=\"k\" image_url=\"https://matterofplace.com/media/k\" link=\"https://matterofplace.com/\" {...parsed?.data} />",
+    "find": "        parsed === undefined ? null : (\n          <Row padding={`40px ${String(GUTTER)}px 0`} align=\"center\">\n            <NewsletterBlock {...parsed.data} />",
+    "replace": "        (\n          <Row padding={`40px ${String(GUTTER)}px 0`} align=\"center\">\n            <NewsletterBlock title=\"x\" deck=\"\" image_key=\"k\" image_url=\"https://matterofplace.com/media/k\" link=\"https://matterofplace.com/\" {...parsed?.data} />",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "FAIL .*draws no property block when it is given none"
   },

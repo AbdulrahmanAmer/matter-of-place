@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { variablesByKey } from "../../domain/email.ts";
 import { NewsletterBlock } from "../social/NewsletterBlock.tsx";
-import { Blocks } from "./blocks.tsx";
-import { Unsubscribe, UNSUBSCRIBE_URL } from "./blocks/footer.tsx";
-import { Layout, type EmailDefinition, type EmailProps, type TextParts } from "./layout.tsx";
+import { Row } from "./blocks/band.tsx";
+import { UNSUBSCRIBE_URL } from "./blocks/footer.tsx";
+import { Afternoon } from "./house/afternoon.tsx";
+import type { EmailDefinition, EmailProps, TextParts } from "./layout.tsx";
+import { GUTTER } from "./style.ts";
 
 export const definition: EmailDefinition = {
   key: "standalone",
@@ -41,24 +43,27 @@ export function textParts(variables: EmailProps["variables"]): TextParts {
 }
 
 /**
- * The Campaign email: the property block of the `standalone_email` asset (`meta.block`, passed as the variable
- * `block`), then the row's own blocks, and the unsubscribe link below the layout's legal lines. Without `block`
- * the property block and the link are left out. Both are component code, so `interpolate` never touches them.
+ * The Campaign email, correspondence on Afternoon's wall: the property block of the `standalone_email` asset
+ * (`meta.block`, passed as the variable `block`) hung as a framed print under the door, then the row's own blocks, and
+ * the unsubscribe link in the colophon. Without `block` the property block and the link are left out. Both are
+ * component code, so `interpolate` never touches them.
  */
-export function Email({ title, preheader, blocks, site, variables }: EmailProps) {
-  const given = variables["block"];
+export function Email(props: EmailProps) {
+  const given = props.variables["block"];
   const parsed = given === undefined ? undefined : block.safeParse(given);
   if (parsed?.success === false) throw new Error("standalone_block_invalid");
   return (
-    <Layout
-      title={title}
-      preheader={preheader}
-      site={site}
-      label="Feature"
-      afterFooter={parsed === undefined ? null : <Unsubscribe />}
-    >
-      {parsed === undefined ? null : <NewsletterBlock {...parsed.data} />}
-      <Blocks blocks={blocks} />
-    </Layout>
+    <Afternoon
+      {...props}
+      label="A home"
+      instrument={
+        parsed === undefined ? null : (
+          <Row padding={`40px ${String(GUTTER)}px 0`} align="center">
+            <NewsletterBlock {...parsed.data} />
+          </Row>
+        )
+      }
+      unsubscribe={parsed === undefined ? undefined : UNSUBSCRIBE_URL}
+    />
   );
 }

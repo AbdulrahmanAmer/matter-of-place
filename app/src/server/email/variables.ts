@@ -2,8 +2,10 @@ import { z } from "zod";
 import type { EmailTemplateKey } from "../../domain/email.ts";
 import { newsletterBlocksSchema } from "../../domain/newsletter.ts";
 import { invoiceSnapshotSchema } from "../../domain/payments.ts";
+import { variantKey } from "../assets/spec.ts";
 import { NonRetryableError, type JsonObject } from "../jobs/types.ts";
 import type { Db } from "../lib/db.ts";
+import { mediaUrl } from "../lib/media-store.ts";
 import { readVar } from "../lib/runtime-env.ts";
 import { withUtm } from "../newsletter/render.ts";
 import { openToken } from "../subscribers/confirm-email.ts";
@@ -287,7 +289,12 @@ const invoiceTerms = invoiceSnapshotSchema.pick({
   terms: true,
   billing_email: true,
   instructions: true,
+  issue_date: true,
+  due_date: true,
 });
+
+/** A date of the snapshot (`2026-10-15`) as the email reads it: `October 15, 2026`. */
+const snapshotDate = (date: string): string => formatDate(`${date}T00:00:00Z`);
 
 async function invoice({ db, data }: Resolve): Promise<Variables> {
   const paymentId = text(data, "payment_id");
@@ -311,7 +318,7 @@ async function invoice({ db, data }: Resolve): Promise<Variables> {
   if (payment.invoice_snapshot === null) throw new NonRetryableError("snapshot_missing");
   const snapshot = invoiceTerms.safeParse(payment.invoice_snapshot);
   if (!snapshot.success) throw new NonRetryableError("snapshot_malformed");
-  const { terms, billing_email, instructions } = snapshot.data;
+  const { terms, billing_email, instructions, issue_date, due_date } = snapshot.data;
   const chosen = instructions.find((method) => method.id === payment.preferred_method);
   const described = instructions.filter((method) => method.instructions !== "");
   return {
@@ -326,6 +333,8 @@ async function invoice({ db, data }: Resolve): Promise<Variables> {
         ? chosen.instructions
         : described.map((method) => `${method.label}: ${method.instructions}`).join("\n"),
     billing_email,
+    issue_date: snapshotDate(issue_date),
+    due_date: snapshotDate(due_date),
   };
 }
 
@@ -691,7 +700,25 @@ const NO_PIECE: Variables = {
   latest_title: "",
   latest_line: "",
   latest_url: "",
+  latest_image: "",
 };
+
+/**
+ * The picture of a piece for the welcome's slot: the Open Graph rendition (a JPEG every client draws) of the photograph
+ * the row holds, at its public https address; empty when it holds none, its key is not a stored master, or no public
+ * base is set, so the template shows the film's house in its place (orchestrator ruling, 2026-10-15).
+ */
+function pieceImage(master: string | null): string {
+  if (master === null) return "";
+  let url: string;
+  try {
+    url = mediaUrl(variantKey(master, "og"), { absolute: true });
+  } catch {
+    // A key that is not a stored master names no rendition (`media_key_unexpected`): the slot shows the film's house.
+    return "";
+  }
+  return url.startsWith("https://") ? url : "";
+}
 
 const sentIssue = z.object({
   number: z.number().int(),
@@ -727,36 +754,40 @@ async function latestPiece(db: Db, site: () => Promise<SiteContext>): Promise<Va
       block.type !== type ? [] : [block.type === "story" ? block.story_id : block.property_id],
     );
   const [stories, properties] = await Promise.all([
-    db.from("stories").select("id, slug, editorial_state, archived_at").in("id", ids("story")),
+    db
+      .from("stories")
+      .select("id, slug, image, editorial_state, archived_at")
+      .in("id", ids("story")),
     db
       .from("properties")
-      .select("id, slug, editorial_state, taken_down_at")
+      .select("id, slug, hero_image, editorial_state, taken_down_at")
       .in("id", ids("property")),
   ]);
-  const storySlugs = new Map(
+  const publishedStories = new Map(
     rowsOf(stories, "stories")
       .filter((row) => row.editorial_state === "published" && row.archived_at === null)
-      .map((row) => [row.id, row.slug]),
+      .map((row) => [row.id, { slug: row.slug, image: row.image }]),
   );
-  const propertySlugs = new Map(
+  const publishedProperties = new Map(
     rowsOf(properties, "properties")
       .filter((row) => row.editorial_state === "published" && row.taken_down_at === null)
-      .map((row) => [row.id, row.slug]),
+      .map((row) => [row.id, { slug: row.slug, image: row.hero_image }]),
   );
   const lead = pieces
     .map((block) =>
       block.type === "story"
-        ? { block, path: "stories", slug: storySlugs.get(block.story_id) }
-        : { block, path: "property", slug: propertySlugs.get(block.property_id) },
+        ? { block, path: "stories", row: publishedStories.get(block.story_id) }
+        : { block, path: "property", row: publishedProperties.get(block.property_id) },
     )
-    .find((piece) => piece.slug !== undefined);
-  if (lead?.slug === undefined) return NO_PIECE;
+    .find((piece) => piece.row !== undefined);
+  if (lead?.row === undefined) return NO_PIECE;
   const { siteUrl } = await site();
   return {
     latest_number: String(issue.number),
     latest_title: lead.block.title,
     latest_line: firstSentence(lead.block.deck),
-    latest_url: withUtm(`${siteUrl}/${lead.path}/${lead.slug}`, "welcome", lead.slug),
+    latest_url: withUtm(`${siteUrl}/${lead.path}/${lead.row.slug}`, "welcome", lead.row.slug),
+    latest_image: pieceImage(lead.row.image),
   };
 }
 

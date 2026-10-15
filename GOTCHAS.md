@@ -1253,6 +1253,7 @@ Entry template
 - hit again: 2026-10-07, B6 g1 review: the first full `bun run check` timed out at `hygiene.test.ts` (`lint gives prettier/prettier the options of .prettierrc for it`, its own 20 s limit) while other agents ran on the machine; alone the file gave `Tests  63 passed (63)`, and the second full run printed `quiet: ok`, exit 0. It cost a second full run of about 4 minutes. The slice's gotchasAdded named only P-2303 although the branch added P-2300, P-2301, P-2302 and P-2303: list every entry the branch added.
 - hit again: 2026-10-08, B6 g1 step 7: `bun run check` run beside `bun run build` and a registry replay (and two other lanes' vitest runs) exited 1 with `[vitest-pool-runner]: Timeout waiting for worker to respond`; alone, the same check passed. Run check by itself (P-059).
 - hit again: 2026-10-10, H1 g5 review: inside the full `bun run check` the case `finds a run-twice test for every implemented type with an outside effect` (tests/unit/automation/step-specs.test.ts) hit the script's 60000 ms limit (`Error: Test timed out in 60000ms.`, `Tests 1 failed | 3928 passed (3929)`, exit 1) in a group that did not touch the file, with other lanes loading the laptop; alone, `bunx vitest run tests/unit/automation/step-specs.test.ts` passed 8 tests but took `Duration 72.39s`, so the case is slow by itself and a loaded run crosses 60 s. It is a likely, unconfirmed cause of the author's first unexplained red `check` (P-2128 hit-again line). Rule: a red `check` whose only failure is this case is load; run the file alone with `--testTimeout=180000` before looking for a fault, and do not edit the file from a group that does not own it. Proof: `grep -c "hit again: 2026-10-10, H1 g5 review: inside the full" GOTCHAS.md` prints 1; `cd app && bunx vitest run tests/unit/automation/step-specs.test.ts --testTimeout=180000` → `8 passed`.
+- hit again: 2026-10-15, email houses (PR 426): the full `bun run check` on the merged tree took 52 minutes beside other lanes (eslint alone about 28) and ended `Test Files  1 failed | 415 passed (416)`, `Tests  1 failed | 4652 passed (4653)`, `Errors  8 errors`: eight component files never started (`Failed to start forks worker ... Timeout waiting for worker to respond`) and `workforce-cli.test.ts > lets a colleague who keeps working run past the silence limit` failed with `the colleague went silent for 0 minutes` (its 400 ms silence limit). Alone, the nine files gave `Tests  6 passed (6)` and `Tests  160 passed (160)`; CI's check job is the clean measurement of the same tree.
 
 ## P-120 · Ruling H42 (1)'s measurement was confounded: PRs 21 and 23 had no check because main holds no workflow, and PR 23 changed a file that is not a document
 - symptom: H42 (1) says a documents-only pull request has no check, "measured on PRs 21 and 23", because every changed path is under `paths-ignore`. `gh pr view 23 --json files` lists `.claude/workflows/build-slice.js`, which matches none of `workspace/**`, `launch/**`, `**/*.md`, and `origin/main` holds no workflow at all, so neither PR could have had a check whatever it changed.
@@ -1708,6 +1709,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - added: 2026-10-02
 - hit again: 2026-10-04, B3b g3: after the push PR 122 showed `CONFLICTING`; `git merge origin/main` ran, and the bank's merge driver kept ours for P-008 and reordered entries ("compare by hand"). `GOTCHAS.md` was rebuilt as main's text plus the lane's lines and checked entry by entry against main (`missing [], added [P-1304], changed [P-008, P-320, P-327], lostLines []`). After any merge that touches the bank, compare it with `origin/main` entry by entry before the commit.
 - hit again: 2026-10-06, B17 g5: the group merged origin/main at its start (08:05 +0300); by its push at 10:43 main had moved 13 commits, GitHub showed PR 142 `CONFLICTING` / `DIRTY` (GOTCHAS.md, which GitHub merges without the entry driver) and `actions/runs?head_sha=c1a5811...` counted 0 runs after five minutes. `git merge origin/main` (clean locally through the driver) and a second push gave `MERGEABLE` and three runs. Before a push that ends a long group, run `git fetch -q origin && git rev-list --count HEAD..origin/main` and merge first when it is not 0.
+- hit again: 2026-10-15, email houses (PR 426): `gh pr checks 426` printed `no checks reported on the 'feat/email-two-houses' branch` for the twenty minutes after the PR opened (10:43Z) and the session put it down to the Actions allowance (P-3456) without reading `mergeable_state`; `gh pr view 426 --json mergeable,mergeStateStatus` then printed `"mergeStateStatus":"DIRTY","mergeable":"CONFLICTING"` while `git merge-tree --write-tree --name-only f2985229 origin/main` printed only a tree id (no conflict through the local driver). Main had moved 30 commits; the merge brought it in (`main lines missing on branch: 6`, all six lines this lane had edited, `missing lines new on main: 0`) and also asked for a restamp, because main's newest migration (20261015100001) now sorted after the lane's.
 
 ## P-137 · A Worker name deployed for the first time answers Cloudflare's own 404 now and then for about 20 seconds
 - symptom: probe PR #44's preview smoked `pr-44` two seconds after its first deploy: every URL answered 404 with `cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0` and no header of ours. With a wait for one answer of ours (PR #50), the next twelve requests still mixed that 404 with our answers.
@@ -3988,12 +3990,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - added: 2026-10-05
 
 ## G-500 · React 19 hoists a preload link for an email's first `<img>` into the head, and a test that edits the rendered HTML hits that link first
-- paths: app/src/templates/email/layout.tsx
+- paths: app/src/templates/email/layout.tsx, app/src/templates/email/blocks/picture.tsx
 - severity: warn
 - symptom: B5 g1 step 3: the lint test "fires img-src on image with relative src" stayed green with `expected [] to include 'img-src'`. The fixture ran `html.replace("https://matterofplace.com/apple-touch-icon.png", "/apple-touch-icon.png")`, and the first copy of that address in the HTML was not the `<img>`: React 19 had put `<link rel="preload" as="image" href="https://matterofplace.com/apple-touch-icon.png"/>` in the `<head>` (and an email has no use for a link tag).
 - cause: React 19's server renderer emits a resource hint for the first `<img>` it renders unless the image is `loading="lazy"`; mail clients ignore the attribute, so it costs nothing there.
-- rule: keep `loading="lazy"` on the first `<Img>` of `layout.tsx`, the masthead since 2026-10-12 (a comment beside it says why), and write a fixture that edits rendered HTML with `replaceAll` or against the tag, never with a first-match `replace` of an address that appears twice.
-- proof: `cd app && bun run scripts/email-test.ts render received > /dev/null && grep -c 'rel="preload"' out/email-received.html` → `0`; with the `loading="lazy"` line removed from `layout.tsx` the same two commands print `1` (measured 2026-10-05).
+- rule: keep `loading="lazy"` on every picture of an email, which since the houses of 2026-10-15 are all drawn by `blocks/picture.tsx` (a comment beside it says why), and write a fixture that edits rendered HTML with `replaceAll` or against the tag, never with a first-match `replace` of an address that appears twice.
+- proof: `cd app && bun run scripts/email-test.ts render received > /dev/null && grep -c 'rel="preload"' out/email-received.html` → `0`; with the `loading="lazy"` line removed from `blocks/picture.tsx` the same two commands print `1`.
+- hit again: 2026-10-15, email houses: a test that found "Review comes before" with `indexOf` from the start of the HTML landed in the hidden preheader, which repeats the email's first words, and measured the wrong shot; text in the body is searched after `<body` or after the anchor before it (`indexOf(text, from)`).
 - added: 2026-10-05
 
 ## P-1204 · An email render timing on this laptop moves tenfold with what else it runs: take three runs and write the load beside the figure
@@ -8068,32 +8071,26 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
 - added: 2026-10-15
 
-## P-3490 · E: filled up under a second `bun install`: "Failed to install 132 packages" exit 0, then ENOSPC on every Write
-- symptom: 2026-10-15, W9: the second worktree's `bun install --frozen-lockfile` printed `801 packages installed` and `Failed to install 132 packages` and exited 0; the next Write failed `ENOSPC: no space left on device`, and `df -h /e` showed `200G 200G 0 100%`. About forty worktrees under `E:\mop-build` each hold their own `app/node_modules`.
-- cause: bun reports a partial install as success, and every lane copies the whole dependency tree.
-- rule: before a second install on this laptop run `df -h /e`; a lane built from the same `origin/main` (same `bun.lock`) links to an installed lane instead of installing: `cmd //c "mklink /J E:\\mop-build\\<new>\\app\\node_modules E:\\mop-build\\<installed>\\app\\node_modules"`. Remove the linked lane before the one it points at, and never `git worktree remove` the installed lane while a junction points at it. Treat "Failed to install" as a failure whatever the exit code.
-- proof: `df -h /e` → `Avail 0` before; after removing the broken copy and linking, `ls E:/mop-build/w9-2/app/node_modules/.bin | head -1` → `acorn.bunx` and the lane's vitest runs.
+## P-3513 · Edge's command-line screenshot is written in seconds, then Edge holds on for a minute, keeps its profile locked and cannot open a phone-width window
+- symptom: 2026-10-15, the email gallery (`app/scripts/email-gallery.ts`): one `msedge --headless=new --screenshot` took 68 s; the next shot with the same `--user-data-dir` failed with `Lock file can not be created! Error code: 32`; and `--window-size=390,6000` drew the page cut off on the right, while the same HTML in Edge driven by Playwright at a 390 px viewport measured `scrollWidth 390`.
+- cause: headless Edge on Windows lingers after it writes the file, its helpers keep the profile open, and its window keeps a desktop minimum width.
+- rule: draw every email through Playwright with `channel: "msedge"`, run by Node: since the email houses (2026-10-15) the gallery takes all its pictures that way (`app/scripts/lib/email-gallery-shots.mjs`) and never starts Edge's command line. If the command line is ever needed again, end Edge's process tree (`taskkill /PID <pid> /T /F`) as soon as its stderr says `bytes written to file` and give every shot its own profile folder in the OS temp dir.
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `received <n> bytes` and `desktop: 1 emails, no sideways scroll` within a minute.
+- renumbered: was a second P-3481 (the number the `dontAsk` entry keeps); found by `node workspace/05-plans/check-gotchas.mjs` after the merge of 2026-10-15.
 - added: 2026-10-15
 
-## P-3491 · `git reset --soft origin/main` in a lane took a newer main than the one merged: the commit undid 13 files of main
-- symptom: 2026-10-15, W9 item 2: after `git merge origin/main` the lane squashed with `git reset --soft origin/main && git commit`; `git diff --name-only origin/main` then listed `send-email.ts`, `settings.ts`, `services/http/index.ts` and ten tests the item never touched. The pushed commit carried older copies of them.
-- cause: every worktree shares one set of remote refs, and another session's `git fetch` in `E:\Matter Of Place` moved `origin/main` between the merge and the reset. The reset took the new main as parent while the index still held the tree merged with the old one.
-- rule: never squash onto a moving ref name. Pin it first (`base=$(git rev-parse origin/main)`), merge `$base`, reset to `$base`; before every push check `git diff --name-only $base HEAD` lists only the item's files. To repair without a force-push: `git diff --binary <old main> HEAD > item.patch`, `git read-tree -u --reset <new main>`, `git apply --3way item.patch`, commit on top.
-- proof: `git -C E:/mop-build/w9-2 diff --name-only d981cf6f 96ca1f46 | wc -l` → `27`, the item's files only (`49d5e668` alone showed 40).
+## P-3482 · Drive E: was full: about seventy worktrees under E:/mop-build each carry their own node_modules
+- symptom: 2026-10-15 09:12 +0300, `sed -i` in the email worktree failed with `No space left on device`; `df -h /e` printed `200G 200G 1.6M 100%`, and E:/mop-build held about seventy worktree folders.
+- rule: a long job writes its scratch (browser profiles, renders) to the OS temp dir on C:, never under a worktree; run `df -h /e` before a heavy job; a worktree is removed by the session that made it (`git worktree remove`), never by another.
+- proof: `df -h /e | tail -1` printed `200G 200G 71M 100%` at 09:20 +0300, after the gallery's Edge profiles moved to C:.
 - added: 2026-10-15
 
-## P-3492 · A form check that asks outside DNS refused CI's own test addresses: `.invalid` has no name and example.com publishes a null MX
-- symptom: 2026-10-15, W9 item 1 (#412): the db job's api tests failed `expected 422 to be 201` and `no token number 0` in `subscribers.api.test.ts` and `submissions.api.test.ts` once the public pipeline refused addresses on domains that receive no email.
-- cause: the fixtures post `@fixtures.invalid`, `@example.invalid` and `@example.com`; DNS-over-HTTPS answers NXDOMAIN for `.invalid` and a null MX (`0 .`) for example.com, so the honest verdict was `domain_has_no_mail`. Unit tests stub fetch, so only CI, with the network, saw it.
-- rule: any check that consults the outside world about an address or a host answers "not looked up" for the RFC 2606/6761 names (`*.test`, `*.example`, `*.invalid`, `*.localhost`, `example.com/net/org`) before it calls out, as `src/lib/email-check.ts` `RESERVED` does; and a unit test's sample domain is a plausible real one, never example.com, or the guard turns the test vacuous.
-- proof: `cd app && bunx vitest run --project unit tests/unit/email-check.test.ts -t "never looked up"` passes; registry `W9:w9-1-reserved-names` turns it red.
-- added: 2026-10-15
-
-## P-3493 · CI's db job replays every registry entry whose file the PR touches, so an entry already stale on main fails the PR that edits its file
-- symptom: 2026-10-15, W9 item 3 (#415): the db job ended `watchfail: replayed 127: ok 126, bad 0, stale 1` with `STALE B8:en-emit: find occurs 0 times in src/server/lib/events.ts`; the PR had only added one line to that file's list.
-- cause: `p_entity_id: event.entityId,` had become `...(event.entityId === null ? {} : { p_entity_id: event.entityId })` on main long before; nothing replays an entry until a PR touches its file (`--changed`).
-- rule: before pushing a change to a file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` and repair every STALE it names for that file, including entries that were stale before you came; replay each with `--only <id>`.
-- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only en-emit` → `WATCHED-FAIL OK B8:en-emit`.
+## P-3483 · A table of fixed width with `max-width: 100%` does not shrink to a phone screen
+- symptom: 2026-10-15, the first redesigned email column was `width:600px; max-width:100%`; in Edge at a 390 px viewport the page measured `scrollWidth 604` and the letter ran off the screen.
+- cause: a browser does not apply `max-width` to a table whose width is fixed.
+- rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-col{width:100%!important}` (the houses of 2026-10-15); every email is drawn at 375 px by `app/scripts/lib/email-gallery-shots.mjs`, which refuses a sideways scroll.
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone: 1 emails, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-col` rule and the same run goes red on `received: scrollWidth <n> at 375 px`.
+- enforced-by: app/scripts/lib/email-gallery-shots.mjs
 - added: 2026-10-15
 
 ## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
@@ -8108,6 +8105,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
   `node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev` for anything that is not a db test.
 - proof: `sed -n 210,225p .github/workflows/ci.yml` shows `bun run test:db` and `watchfail.mjs ... --kinds unit,sql` in
   the `db` job; the local run above ends `refusing: production database` at `scripts/lib/assert-not-production.mjs:60`.
+- hit again: 2026-10-15, email houses (PR 426): the local `--changed origin/main` replay selected the file entry
+  `b11-g3-market-open-seed-differs` (its target, `market-open.tsx`, changed; its run is `vitest --project db`) and it
+  came out `BAD: wrong reason`, the red run ending in `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN`
+  before any test; such an entry is left to CI's db job and named in the report, never counted as proven locally.
 - added: 2026-10-15
 
 ## P-3471 · A key added to an event's payload in SQL breaks every older db test that asserts that payload with `toEqual`, and only CI sees it
@@ -8153,27 +8154,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node --env-file=.env gsc-all.mjs` from E:/mop-build/live lists all 18 sitemap pages with verdict and last crawl.
 - added: 2026-10-15
 
-## P-3481 · Under `--permission-mode dontAsk` a headless run is refused every tool it is not given with `--allowedTools`, so a designer told to write a scene writes nothing
-- symptom: 2026-10-15 11:14 to 11:20, the first real requested reel (`studio/2026-10-15-not-every-home`) failed `scene_missing: scene.html`: the designer run ended normally with an empty `scene/`. A probe with the same arguments (`claude -p ... --restricted --permission-mode dontAsk --disallowedTools Bash,...`) asked to write `probe.txt` answered `"permission_denials":[{"tool_name":"Write",...}]` and wrote nothing.
-- cause: `dontAsk` denies whatever is not allowed; `--disallowedTools` only removes tools, it allows none. Colleague runs never needed a file tool, so the gap never showed.
-- rule: a headless run that must read or write files names them in `--allowedTools` (`studioTools` in `scripts/workforce/reel.ts`: the designer Read, Write, Edit, Glob, Grep; the reviewer Read, Glob, Grep), keeps `--restricted` so writes stay in its working folder, and the run's caller checks the files exist before using them (the pass does: `scene_missing`).
-- proof: the same probe with `--allowedTools "Read,Write,Edit,Glob,Grep"` wrote `probe.txt` and was refused `../outside-probe.txt` ("the session is restricted to the working directory"), measured 2026-10-15; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "lets the designer write"`.
-- added: 2026-10-15
-
-## P-3482 · Drive E: was full: about seventy worktrees under E:/mop-build each carry their own node_modules
-- symptom: 2026-10-15 09:12 +0300, `sed -i` in the email worktree failed with `No space left on device`; `df -h /e` printed `200G 200G 1.6M 100%`, and E:/mop-build held about seventy worktree folders.
-- rule: a long job writes its scratch (browser profiles, renders) to the OS temp dir on C:, never under a worktree; run `df -h /e` before a heavy job; a worktree is removed by the session that made it (`git worktree remove`), never by another.
-- proof: `df -h /e | tail -1` printed `200G 200G 71M 100%` at 09:20 +0300, after the gallery's Edge profiles moved to C:.
-- added: 2026-10-15
-
-## P-3483 · A table of fixed width with `max-width: 100%` does not shrink to a phone screen
-- symptom: 2026-10-15, the first redesigned email column was `width:600px; max-width:100%`; in Edge at a 390 px viewport the page measured `scrollWidth 604` and the letter ran off the screen.
-- cause: a browser does not apply `max-width` to a table whose width is fixed.
-- rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-column{width:100%!important}`; every email is drawn at 390 px by `app/scripts/lib/email-gallery-phone.mjs`, which refuses a sideways scroll.
-- proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone received 390 px, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-column` rule and the same run goes red on `received: scrollWidth <n> at 390 px` (`WATCHED-FAIL OK`, 2026-10-15).
-- enforced-by: app/scripts/lib/email-gallery-phone.mjs
-- added: 2026-10-15
-
 ## P-3478 · `import.meta.dir` is Bun's: a script module that uses it at the top level fails to load under vitest (Node)
 - symptom: 2026-10-15, W7 E2a: `scripts/workforce/reel.ts` set `const REPO = resolve(import.meta.dir, "../../..")`; the runner (bun) is fine, but `bunx vitest run --project unit tests/unit/workforce-reel.test.ts` failed at collection with `TypeError: The "paths[0]" argument must be of type string. Received undefined`, and every test file that imports the module (`answer.ts` too) with it.
 - rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
@@ -8185,6 +8165,41 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `daemon.ts` started the reel pass inside `if (inFlight === 0)`, the follow-main gate; Matter's live session is an `agent_runs` row in `running` for its whole life, so `inFlight` is almost never 0 while Matter works.
 - rule: gate on "no colleague run" only what must not overlap a run (moving the checkout). Work that runs as a process of its own takes its own lock (the reel's `working` brief, `reelWorking()`), and the checkout does not move while that lock is held.
 - proof: `bun app/scripts/matter/read.ts /api/admin/workforce/office` → runs[0] `{"agent_slug":"matter","cause":"schedule","state":"running"}` while the brief read `"state": "queued"`; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "says a reel is being made"` covers the new lock.
+- added: 2026-10-15
+
+## P-3481 · Under `--permission-mode dontAsk` a headless run is refused every tool it is not given with `--allowedTools`, so a designer told to write a scene writes nothing
+- symptom: 2026-10-15 11:14 to 11:20, the first real requested reel (`studio/2026-10-15-not-every-home`) failed `scene_missing: scene.html`: the designer run ended normally with an empty `scene/`. A probe with the same arguments (`claude -p ... --restricted --permission-mode dontAsk --disallowedTools Bash,...`) asked to write `probe.txt` answered `"permission_denials":[{"tool_name":"Write",...}]` and wrote nothing.
+- cause: `dontAsk` denies whatever is not allowed; `--disallowedTools` only removes tools, it allows none. Colleague runs never needed a file tool, so the gap never showed.
+- rule: a headless run that must read or write files names them in `--allowedTools` (`studioTools` in `scripts/workforce/reel.ts`: the designer Read, Write, Edit, Glob, Grep; the reviewer Read, Glob, Grep), keeps `--restricted` so writes stay in its working folder, and the run's caller checks the files exist before using them (the pass does: `scene_missing`).
+- proof: the same probe with `--allowedTools "Read,Write,Edit,Glob,Grep"` wrote `probe.txt` and was refused `../outside-probe.txt` ("the session is restricted to the working directory"), measured 2026-10-15; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "lets the designer write"`.
+- added: 2026-10-15
+
+## G-1470 · Cells of one table row share its height: a 2 px hairline cell beside a line of text is drawn as a block
+- paths: app/src/templates/email/**
+- severity: warn
+- symptom: 2026-10-15, email houses: the received email's dash counter (three 44 x 2 px cells beside the "02 / 03" label in the same row) came out of the gallery as three 15 px black blocks.
+- cause: a table row is as tall as its tallest cell, and a cell's background colour fills the whole row height, whatever `height` and `line-height` the hairline cell sets.
+- rule: a hairline or a dash lives in a table of its own, nested in one cell of the text row (as `blocks/stage.tsx` sets the dashes), never as a sibling cell of a line of text.
+- proof: in `app/src/templates/email/blocks/stage.tsx` move the dash cells out of their nested table into the counter's row and run `cd app && bun run scripts/email-gallery.ts received`: `workspace/08-email-redesign/v2/received-desktop.png` shows blocks where the dashes were.
+- added: 2026-10-15
+
+## P-3510 · A full-page screenshot leaves a lazy picture far down the page empty
+- symptom: 2026-10-15, the v2 email gallery: `newsletter_welcome-desktop.png` showed the three market bands and the colophon's wordmark as empty colour, while the pictures near the top had loaded.
+- cause: every email picture carries `loading="lazy"` (G-500), Chromium loads a lazy image only near the viewport, and `page.screenshot({ fullPage: true })` does not scroll.
+- rule: the gallery strips ` loading="lazy"` from the copies it photographs (`eager()` in `app/scripts/email-gallery.ts`); the HTML that is sent keeps it.
+- proof: `cd app && bun run scripts/email-gallery.ts newsletter_welcome` shows the California, New York and Florida stills and the wordmark in `workspace/08-email-redesign/v2/newsletter_welcome-desktop.png`; with `eager(html)` replaced by `html` in `withLocalFiles` they are empty.
+- added: 2026-10-15
+
+## P-3511 · Three email-render habits that each cost a test round in the houses build
+- symptom: 2026-10-15: (1) `{PRODUCT_LINE} California, New York and Florida.` rendered as two text nodes with `<!-- -->` between them, so a test looking for the sentence missed it in 20 emails; (2) a dark-mode rule `.mop-btn{background-color:#eeeae1!important;border-color:...}` failed `tests/unit/newsletter/render.test.ts` "takes every inline colour from the theme", which reads every `[;"]color|background|border:` of the whole HTML, style blocks included, with `!important` on the value; (3) the colophon's wordmark wrapped in a link failed the email lint, `link-text <a href="https://matterofplace.com"> has no visible text`.
+- rule: a sentence made of a constant and words is one template literal; a head style block keeps one declaration to a rule, so a colour always follows a brace (`DARK` in `app/src/templates/email/style.ts`); a picture is never the only content of a link, the site's address follows in words.
+- proof: `cd app && bunx vitest run --project unit tests/unit/email/shell.test.ts tests/unit/newsletter/render.test.ts` passes; each habit reversed turns one of them red, and `bun run scripts/build-auth-templates.ts` prints the `link-text` finding for a linked wordmark.
+- added: 2026-10-15
+
+## P-3512 · The folder map took only PNG under `app/public/email/`
+- symptom: 2026-10-15, the houses add two door GIFs and four film stills (JPEG) to `public/email/`; `scripts/check-layout.mjs` allowed `public/email/*.png` only.
+- rule: `public/email/*.{png,gif,jpg}` is the pattern; a new kind of file a mail client loads also needs the cross-origin exception of P-3475, which `/email/*` already has. A replaced picture gets a new file name: `/email/*` is cached for seven days and mail already sent keeps loading the old address.
+- proof: `cd app && bun run layout` exits 0 with `public/email/door-night.gif` in the tree.
 - added: 2026-10-15
 
 ## G-1451 · `process.kill(-pid)` throws ESRCH when the child was not spawned detached, and a stop that throws never settles
@@ -8208,9 +8223,81 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: rm-leftovers.ps1 → `deleted continuous` ... `E: free GB: 46.1`.
 - added: 2026-10-15
 
+## P-3514 · A `--changed` replay of a change to the email tests selects about 230 entries: about four hours on this laptop, alphabetical, the new entries last
+- symptom: 2026-10-15, email houses (PR 426): `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` selected about 233 entries (B5 126, B11 37, B9 25, email-redesign 17, email-houses 14), because the change touched `render.test.ts`, `lint.test.ts`, `send-email.test.ts` and the templates; it ran at about one entry a minute, in registry-file order, so the 14 new and 24 retargeted entries would have come after three hours. Stopped mid-entry, it left its mutation in `standalone.tsx` (P-3444).
+- rule: replay in order of risk: the new and retargeted entries first, from an ordered set built outside the repository (`--registry <dir>` takes any folder of registry files), then the rest; never stop a replay without `git status` and a `git checkout -- <file>` of what it left mutated, and never commit while one runs. The long tail can be left to CI's db job, which replays the same selection (`--kinds unit,sql`) in about five minutes; the manual entries it skips are replayed by hand.
+- proof: `cd app && node scripts/watchfail.mjs --registry <folder holding the new and retargeted entries>` ends with `watchfail: replayed N: ok N, bad 0, stale 0` before the long tail starts; PR 426's db job (run 38727948275) printed `watchfail: replayed 231: ok 231, bad 0, stale 0; manual 2 not replayed; 5755 not selected` between 11:34:38Z and 11:39:49Z.
+- added: 2026-10-15
+
+## P-3515 · Words an email block draws are asserted outside `tests/unit/email`: the targeted run passed and CI's check failed
+- symptom: 2026-10-15, email houses (PR 426): the newsletter block's button moved from "View the property" to "View the home"; `tests/unit/newsletter/render.test.ts` and `tests/unit/assets/templates.test.ts` were updated and the targeted run printed `Tests  581 passed (581)`, but CI's `check` job (run 38727948275) failed on `tests/unit/scripts/newsletter-test-send.test.ts > newsletter-test-send --dry > draws the sample issue with its intro, property block and story, and opens no connection` (`expected false to be true`; `Tests  1 failed | 4819 passed (4820)`): its order list still held "View the property".
+- cause: the targeted run took the email, newsletter, KPI and template test folders; the script tests draw the same block through `scripts/newsletter-test-send.ts`. The full local `check` that would have caught it had been stopped to merge main.
+- rule: before changing words an email or a block draws, `git grep -n "<old words>" -- app/tests app/scripts` and change every hit in the same commit; a targeted vitest run is not the gate, the full `bun run check` (or CI's check job) is.
+- proof: `git grep -n "View the property" -- app/tests app/scripts` prints nothing after the fix; `cd app && bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts` → `Tests  14 passed (14)`; registry entry `houses-test-send-button` (tests/mutations/email-houses.json) changes the block's button words and watches that test fail.
+- added: 2026-10-15
+
+## P-3516 · `bun run email:shots` cannot start on this laptop until Playwright's own headless shell of the app's version is installed
+- symptom: 2026-10-15, email houses: the hand replay of B5's manual entry `b5-shots-overflow-600` (`run: bun run email:shots`) printed `WATCHED-FAIL BAD: wrong reason`; its red run held `browserType.launch: Executable doesn't exist at C:\Users\DELL\AppData\Local\ms-playwright\chromium_headless_shell-1248\chrome-headless-shell-win64\chrome-headless-shell.exe`, while `ms-playwright` held builds 1194 to 1243 only.
+- cause: `scripts/lib/email-shots-page.mjs` calls `chromium.launch()`, which wants the headless shell of the installed Playwright (1.64.0, build 1248); nothing installs browsers on this laptop when Playwright moves, and CI never runs the script (the entry is manual for that reason).
+- rule: before replaying by hand an entry whose run starts Playwright's Chromium (`bun run email:shots`), run `cd app && bunx playwright install chromium-headless-shell`, then the control `bun run email:shots`, which must exit 0; a `wrong reason` whose output says `Executable doesn't exist` is this, not a weak assertion.
+- proof: after the install, `cd app && bun run email:shots` exited 0 with `ok received 600x1949` and fifteen more `ok` lines, and the hand replay of `b5-shots-overflow-600` printed `WATCHED-FAIL OK src/templates/email/blocks/band.tsx` (2026-10-15).
+- added: 2026-10-15
+
+## P-3490 · E: filled up under a second `bun install`: "Failed to install 132 packages" exit 0, then ENOSPC on every Write
+- symptom: 2026-10-15, W9: the second worktree's `bun install --frozen-lockfile` printed `801 packages installed` and `Failed to install 132 packages` and exited 0; the next Write failed `ENOSPC: no space left on device`, and `df -h /e` showed `200G 200G 0 100%`. About forty worktrees under `E:\mop-build` each hold their own `app/node_modules`.
+- cause: bun reports a partial install as success, and every lane copies the whole dependency tree.
+- rule: before a second install on this laptop run `df -h /e`; a lane built from the same `origin/main` (same `bun.lock`) links to an installed lane instead of installing: `cmd //c "mklink /J E:\\mop-build\\<new>\\app\\node_modules E:\\mop-build\\<installed>\\app\\node_modules"`. Remove the linked lane before the one it points at, and never `git worktree remove` the installed lane while a junction points at it. Treat "Failed to install" as a failure whatever the exit code.
+- proof: `df -h /e` → `Avail 0` before; after removing the broken copy and linking, `ls E:/mop-build/w9-2/app/node_modules/.bin | head -1` → `acorn.bunx` and the lane's vitest runs.
+- added: 2026-10-15
+
+## P-3491 · `git reset --soft origin/main` in a lane took a newer main than the one merged: the commit undid 13 files of main
+- symptom: 2026-10-15, W9 item 2: after `git merge origin/main` the lane squashed with `git reset --soft origin/main && git commit`; `git diff --name-only origin/main` then listed `send-email.ts`, `settings.ts`, `services/http/index.ts` and ten tests the item never touched. The pushed commit carried older copies of them.
+- cause: every worktree shares one set of remote refs, and another session's `git fetch` in `E:\Matter Of Place` moved `origin/main` between the merge and the reset. The reset took the new main as parent while the index still held the tree merged with the old one.
+- rule: never squash onto a moving ref name. Pin it first (`base=$(git rev-parse origin/main)`), merge `$base`, reset to `$base`; before every push check `git diff --name-only $base HEAD` lists only the item's files. To repair without a force-push: `git diff --binary <old main> HEAD > item.patch`, `git read-tree -u --reset <new main>`, `git apply --3way item.patch`, commit on top.
+- proof: `git -C E:/mop-build/w9-2 diff --name-only d981cf6f 96ca1f46 | wc -l` → `27`, the item's files only (`49d5e668` alone showed 40).
+- added: 2026-10-15
+
+## P-3492 · A form check that asks outside DNS refused CI's own test addresses: `.invalid` has no name and example.com publishes a null MX
+- symptom: 2026-10-15, W9 item 1 (#412): the db job's api tests failed `expected 422 to be 201` and `no token number 0` in `subscribers.api.test.ts` and `submissions.api.test.ts` once the public pipeline refused addresses on domains that receive no email.
+- cause: the fixtures post `@fixtures.invalid`, `@example.invalid` and `@example.com`; DNS-over-HTTPS answers NXDOMAIN for `.invalid` and a null MX (`0 .`) for example.com, so the honest verdict was `domain_has_no_mail`. Unit tests stub fetch, so only CI, with the network, saw it.
+- rule: any check that consults the outside world about an address or a host answers "not looked up" for the RFC 2606/6761 names (`*.test`, `*.example`, `*.invalid`, `*.localhost`, `example.com/net/org`) before it calls out, as `src/lib/email-check.ts` `RESERVED` does; and a unit test's sample domain is a plausible real one, never example.com, or the guard turns the test vacuous.
+- proof: `cd app && bunx vitest run --project unit tests/unit/email-check.test.ts -t "never looked up"` passes; registry `W9:w9-1-reserved-names` turns it red.
+- added: 2026-10-15
+
+## P-3493 · CI's db job replays every registry entry whose file the PR touches, so an entry already stale on main fails the PR that edits its file
+- symptom: 2026-10-15, W9 item 3 (#415): the db job ended `watchfail: replayed 127: ok 126, bad 0, stale 1` with `STALE B8:en-emit: find occurs 0 times in src/server/lib/events.ts`; the PR had only added one line to that file's list.
+- cause: `p_entity_id: event.entityId,` had become `...(event.entityId === null ? {} : { p_entity_id: event.entityId })` on main long before; nothing replays an entry until a PR touches its file (`--changed`).
+- rule: before pushing a change to a file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` and repair every STALE it names for that file, including entries that were stale before you came; replay each with `--only <id>`.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only en-emit` → `WATCHED-FAIL OK B8:en-emit`.
+- added: 2026-10-15
+
 ## P-3479 · The audit robot's Search Console reader aborts under Node on this laptop, and its key is in neither load profile
 - symptom: 2026-10-15, the operator's search assignment: `node workspace/audits/tools/gsc.mjs` printed `Not measured: gsc (GOOGLE_SA_JSON_B64 unset)` with both `load-env.mjs --profile dev` and `--profile ops`; with the key loaded (shell export, then inside Node from the runner's `.env`) it ended `exit 127` and `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76` (Node 24.13 on Windows), the moment it reached the network. Under Bun it signed in, then stopped at `"" cannot be parsed as a URL` (no `SITE_URL`).
 - cause: the key `GOOGLE_SA_JSON_B64` lives only in the runner's `.env` (`E:\mop-build\live\.env`); Node 24 on Windows aborts in libuv when this tool's fetch and exit race; the tool reads the site from `SITE_URL` or `--url`.
 - rule: read Search Console with Bun, the key loaded inside the process from the runner's `.env` (never exported, never printed), and `--url https://matterofplace.com`. The account sees one property, `sc-domain:matterofplace.com` (siteRestrictedUser). A site this new has its queries withheld: read pages and dates for a baseline, and live searches for keyword choice.
 - proof: `bun <wrapper> E:/mop-build/live/.env workspace/audits/tools/gsc.mjs --url https://matterofplace.com` → `Not measured: gsc (Search Console has no queries for sc-domain:matterofplace.com in 28 days)`, exit 0; a 90-day `searchAnalytics/query` by page → `/` 1 impression (position 2), `/stories` 1 (position 40), all on 2026-10-12 (measured 2026-10-15).
+- added: 2026-10-15
+
+## P-3520 · The gate's catch-up merged into a stale worktree, the push was refused in silence, and it printed "main merged" eight times
+- symptom: 2026-10-15 13:50, PR 417 attempts 1 to 8 each said `branch w9-image-pull: main merged, head f3f35766` and the merge gate kept answering `rebase first (main gained .claude/hooks/gotcha-guard.mjs)`. The branch was checked out in the W9 builder's old worktree `E:/mop-build/w9-2`, whose copy had diverged from `origin/w9-image-pull` (the re-stamp was pushed from another folder); the catch-up merged there and `git push` was refused, its error sent to /dev/null.
+- rule: the gate loop (scratchpad gate-loop.sh) fast-forwards a found worktree to `origin/<branch>` first and stops with "diverged" if it cannot; a merge that fails without a conflict and a refused push are reported, never printed as success. Builders' worktrees are removed (or reset to the remote) once their PRs are open, so no stale copy holds the branch.
+- proof: `git -C E:/mop-build/w9-2 log --oneline origin/w9-image-pull..HEAD` listed only main merges and `HEAD..origin/w9-image-pull` the re-stamp; after the reset and the gate fix, `PR 417 MERGED 6bc5e7d9`.
+- added: 2026-10-15
+
+## P-3521 · A fresh worktree has no `.env`, so `eval "$(load-env ...)" 2>/dev/null` loads nothing and the shell's OmniSkipX SUPABASE_URL stays
+- symptom: 2026-10-15 15:45, a `supabase config diff` from a new worktree printed `url: https://ypylnlwqariuqjujswzh.supabase.co`: another business's production project (G-901 hit again). `load-env.mjs` had failed with `ENOENT ... pullimg\.env`, hidden by `2>/dev/null`. The CLI stopped at `ProjectRefNotLinkedError`, so nothing reached that project.
+- rule: never hide load-env's stderr; after loading, check `SUPABASE_URL` and `DEV_SUPABASE_PROJECT_REF` name `hbokkmpgpqhrnemgsqra` and refuse otherwise (scratchpad cfg-diff.sh does both); load from a tree that holds the `.env` (the runner's `E:/mop-build/live/app/scripts/load-env.mjs --profile dev`, read only) and pass `--project-ref hbokkmpgpqhrnemgsqra` to every CLI call.
+- proof: cfg-diff.sh prints `project: mop-dev (hbokkmpgpqhrnemgsqra)` before any CLI call.
+- added: 2026-10-15
+
+## P-3522 · The Supabase CLI's own login is another account: `config diff` says access denied for mop-dev
+- symptom: 2026-10-15, `bunx supabase config diff --project-ref hbokkmpgpqhrnemgsqra` → `ConfigDiffReadStatusError: Access denied ... your account does not have permission to view its configuration`.
+- rule: export our account's token from the root's `.env.ops` (`node "E:/Matter Of Place/app/scripts/load-env.mjs" --profile ops`, which holds SUPABASE_ACCESS_TOKEN) before `config diff` or `config push`. `config diff` compares settings only, not the template files `content_path` names: after a template change it says `update: 0` and the push is still needed; prove the push by comparing the Management API's `mailer_templates_*_content` with the files (scratchpad auth-template-check.sh).
+- proof: auth-template-check.sh → `magic-link.html: LIVE = main (live 11597 chars, main 11597)`, `invite.html: LIVE = main (live 11632 chars, main 11632)`.
+- added: 2026-10-15
+
+## P-3523 · `/tmp` is a different folder for Git Bash and for Node on Windows
+- symptom: 2026-10-15, a script wrote `/tmp/authcfg.json` from bash and read it from Node: `ENOENT ... E:\tmp\authcfg.json`. Bash maps `/tmp` to its own temp folder; Node resolves `/tmp` against the current drive.
+- rule: a file shared between bash and Node uses a full Windows path (the session scratchpad), never `/tmp`.
+- proof: the same check with the scratchpad path printed both template comparisons.
 - added: 2026-10-15

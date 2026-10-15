@@ -207,6 +207,8 @@ describe("resolveVariables", () => {
       preferred_method: "Bank transfer",
       payment_instructions: "Transfer to the account on the invoice.",
       billing_email: "billing@matterofplace.com",
+      issue_date: "October 7, 2026",
+      due_date: "October 21, 2026",
     });
     expect(db.calls.filter((call) => call.name === "settings")).toEqual([]);
   });

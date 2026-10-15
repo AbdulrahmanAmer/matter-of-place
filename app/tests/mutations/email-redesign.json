@@ -96,16 +96,16 @@
     "find": "subject: \"Welcome to Matter of Place\",",
     "replace": "subject: \"Welcome\",",
     "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
-    "expect": "FAIL .*equals the row its migration inserts"
+    "expect": "FAIL .*equals the row its migrations leave"
   },
   {
     "id": "shell-alt",
     "test": "tests/unit/email/shell.test.ts",
-    "file": "src/templates/email/layout.tsx",
+    "file": "src/templates/email/house/threshold.tsx",
     "find": "alt=\"Matter of Place\"",
     "replace": "alt=\"\"",
     "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
-    "expect": "FAIL .*pictures the house once"
+    "expect": "FAIL .*received opens on the door of its house"
   },
   {
     "id": "shell-reduced-motion",
@@ -138,8 +138,8 @@
     "id": "shell-fonts",
     "test": "tests/unit/email/shell.test.ts",
     "file": "src/templates/email/style.ts",
-    "find": "return [`@media screen{${fonts}}`, FACES_AND_PHONE, MOTION];",
-    "replace": "return [fonts, FACES_AND_PHONE, MOTION];",
+    "find": "return [`@media screen{${fonts}}`, FACES_AND_PHONE, DARK, MOTION];",
+    "replace": "return [fonts, FACES_AND_PHONE, DARK, MOTION];",
     "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
     "expect": "FAIL .*names the brand faces on the site's own origin"
   },
@@ -148,10 +148,10 @@
     "kind": "manual",
     "test": "scripts/email-gallery.ts",
     "file": "src/templates/email/style.ts",
-    "find": "  \".mop-column{width:100%!important}\",",
+    "find": "  \".mop-col{width:100%!important}\",",
     "replace": "",
     "run": "bun run scripts/email-gallery.ts received",
-    "expect": "received: scrollWidth [0-9]+ at 390 px",
-    "note": "Needs the installed Edge (the gallery photographs with it); CI has none, so it is replayed by hand on the laptop. 2026-10-15: node scripts/watchfail.mjs --file src/templates/email/style.ts with this find and run printed WATCHED-FAIL OK."
+    "expect": "received: scrollWidth [0-9]+ at 375 px",
+    "note": "Needs the installed Edge (the gallery photographs with it through Playwright); CI has none, so it is replayed by hand on the laptop. 2026-10-15 (email houses): node scripts/watchfail.mjs --file src/templates/email/style.ts with this find and run printed WATCHED-FAIL OK."
   }
 ]
