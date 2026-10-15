@@ -2492,8 +2492,8 @@
     "id": "c5n-block-deck",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/templates/social/NewsletterBlock.tsx",
-    "find": "<td style={deck}>{props.deck}</td>",
-    "replace": "<td style={deck}></td>",
+    "find": "{props.deck}",
+    "replace": "{null}",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "FAIL .*draws the property block it is given"
   },
@@ -2591,7 +2591,7 @@
     "id": "c5n-empty-default",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/server/email/render.ts",
-    "find": "parsed.data.length === 0 && Email === Message",
+    "find": "parsed.data.length === 0 && file?.textParts === undefined",
     "replace": "false",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "FAIL .*is refused for a key whose template only draws"
@@ -2600,8 +2600,8 @@
     "id": "c5n-block-width",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/templates/social/NewsletterBlock.tsx",
-    "find": "width={IMAGE_WIDTH}",
-    "replace": "data-width={IMAGE_WIDTH}",
+    "find": "width={MEASURE}",
+    "replace": "data-width={MEASURE}",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "FAIL .*passes the email gate on the block it draws"
   },

@@ -989,6 +989,7 @@ Entry template
 - proof: `cd app && mkdir -p scratch && printf 'export const value = "x"\n' > scratch/zz-scratch.mjs && bunx eslint --max-warnings 0 scratch/zz-scratch.mjs; echo $?` prints `Insert ';'  prettier/prettier` and `1` (then `rm -rf scratch`); from `app/`, a `../scratch/zz-bare.mjs` holding `import { ESLint } from "eslint"` exits 1 with `ERR_MODULE_NOT_FOUND` and the `createRequire` form prints `function` (2026-10-02); a scratch config naming the setup file without `server.fs.strict: false` prints the `/@fs/` error and with it `Tests  1 passed (1)`; the one-test Playwright probe prints `Cannot find module '@playwright/test'` through `bunx` and `1 passed` through `NODE_PATH="$PWD/node_modules" node node_modules/@playwright/test/cli.js` (2026-10-03).
 - merged: P-100, P-403, P-411
 - hit again: 2026-10-04, B3 g7: a scratchpad probe with `import pg from "pg"`, run from `app/`, died with `ERR_MODULE_NOT_FOUND`; `createRequire` from the working folder fixed it (`const pg = createRequire(process.cwd() + "/")("pg")`). The cwd does not decide where a bare import resolves; the script's own folder does.
+- hit again: 2026-10-15, email redesign: scratch scripts in `app/out/` (git-ignored, so `git status` looked clean) were linted by `bun run check`; lint failed on `prettier/prettier` in five `out/*.mjs` files after a 9 m 36 s run. Git-ignored is not lint-ignored: scratch goes to the OS temp dir.
 - added: 2026-10-02
 
 ## P-088 · A proof someone else cannot re-run is not a proof: scratch scripts are git-ignored and get deleted
@@ -8149,4 +8150,31 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-15, Search Console opened on the default Google account ("you don't have access"); then indexing was requested page after page in one batch without reading what each page said ("No referring sitemaps detected", a referring page outside the sitemap). The operator stopped both.
 - rule: Matter of Place's Google account is slot `/u/4/` in Edge. In any console, read and scroll the whole page and report it before pressing an action button; one page at a time. Index state for many pages comes from the URL Inspection API (scratchpad gsc-state.mjs, the service account is a restricted user), not from clicking.
 - proof: `node --env-file=.env gsc-all.mjs` from E:/mop-build/live lists all 18 sitemap pages with verdict and last crawl.
+- added: 2026-10-15
+
+## P-3481 · Edge's command-line screenshot is written in seconds, then Edge holds on for a minute, keeps its profile locked and cannot open a phone-width window
+- symptom: 2026-10-15, the email gallery (`app/scripts/email-gallery.ts`): one `msedge --headless=new --screenshot` took 68 s; the next shot with the same `--user-data-dir` failed with `Lock file can not be created! Error code: 32`; and `--window-size=390,6000` drew the page cut off on the right, while the same HTML in Edge driven by Playwright at a 390 px viewport measured `scrollWidth 390`.
+- cause: headless Edge on Windows lingers after it writes the file, its helpers keep the profile open, and its window keeps a desktop minimum width.
+- rule: end Edge's process tree (`taskkill /PID <pid> /T /F`) as soon as its stderr says `bytes written to file`; give every shot its own profile folder in the OS temp dir; draw any width under a desktop window through Playwright with `channel: "msedge"`, run by Node (`app/scripts/lib/email-gallery-phone.mjs`).
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `received <n> bytes` and `phone received 390 px, no sideways scroll` within a minute.
+- added: 2026-10-15
+
+## P-3482 · Drive E: was full: about seventy worktrees under E:/mop-build each carry their own node_modules
+- symptom: 2026-10-15 09:12 +0300, `sed -i` in the email worktree failed with `No space left on device`; `df -h /e` printed `200G 200G 1.6M 100%`, and E:/mop-build held about seventy worktree folders.
+- rule: a long job writes its scratch (browser profiles, renders) to the OS temp dir on C:, never under a worktree; run `df -h /e` before a heavy job; a worktree is removed by the session that made it (`git worktree remove`), never by another.
+- proof: `df -h /e | tail -1` printed `200G 200G 71M 100%` at 09:20 +0300, after the gallery's Edge profiles moved to C:.
+- added: 2026-10-15
+
+## P-3483 · A table of fixed width with `max-width: 100%` does not shrink to a phone screen
+- symptom: 2026-10-15, the first redesigned email column was `width:600px; max-width:100%`; in Edge at a 390 px viewport the page measured `scrollWidth 604` and the letter ran off the screen.
+- cause: a browser does not apply `max-width` to a table whose width is fixed.
+- rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-column{width:100%!important}`; every email is drawn at 390 px by `app/scripts/lib/email-gallery-phone.mjs`, which refuses a sideways scroll.
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone received 390 px, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-column` rule and the same run goes red on `received: scrollWidth <n> at 390 px` (`WATCHED-FAIL OK`, 2026-10-15).
+- enforced-by: app/scripts/lib/email-gallery-phone.mjs
+- added: 2026-10-15
+
+## P-3478 · `import.meta.dir` is Bun's: a script module that uses it at the top level fails to load under vitest (Node)
+- symptom: 2026-10-15, W7 E2a: `scripts/workforce/reel.ts` set `const REPO = resolve(import.meta.dir, "../../..")`; the runner (bun) is fine, but `bunx vitest run --project unit tests/unit/workforce-reel.test.ts` failed at collection with `TypeError: The "paths[0]" argument must be of type string. Received undefined`, and every test file that imports the module (`answer.ts` too) with it.
+- rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
+- proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
 - added: 2026-10-15
