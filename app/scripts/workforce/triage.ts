@@ -419,6 +419,65 @@ export function outsideWords(
 }
 
 /**
+ * W8 0e: whether a person or Matter started a run. A signed-in person's line (`human`), or a line posted through the
+ * admin API with an operator-issued key (`agent`, its author id an account the runner found among the unrevoked
+ * `agent_keys`, `keyAccount`). A slug can never pass for an account: uuid-shaped slugs are refused at hiring.
+ */
+export function startedFromInside(
+  cause: string,
+  woke: { author_kind: string | null; author_id: string | null },
+  keyAccount: boolean,
+): boolean {
+  if (cause !== "message") return false;
+  if (woke.author_kind === "human") return true;
+  return woke.author_kind === "agent" && keyAccount && ACCOUNT_ID.test(woke.author_id ?? "");
+}
+export const ACCOUNT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * W8 0e (second review): the only lines a run started from inside reads in its history: a person's, and a key's.
+ * A colleague's or Matter's line may carry words that passed through an outside message, so none is read.
+ */
+export function insideLine(line: { author_kind: string; author_id: string }): boolean {
+  return (
+    line.author_kind === "human" ||
+    (line.author_kind === "agent" && ACCOUNT_ID.test(line.author_id))
+  );
+}
+
+/** W8 0e: whether the account behind a key's line holds an unrevoked agent key (`startedFromInside`'s `keyAccount`). */
+export async function keyAccountLive(
+  db: Db,
+  woke: { author_kind: string | null; author_id: string | null },
+): Promise<boolean> {
+  if (woke.author_kind !== "agent" || !ACCOUNT_ID.test(woke.author_id ?? "")) return false;
+  const { count } = await db
+    .from("agent_keys")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", woke.author_id ?? "")
+    .is("revoked_at", null);
+  return (count ?? 0) > 0;
+}
+
+/**
+ * W8 0e (second and third reviews): a call that reaches a colleague's next run is made only when a person decided it,
+ * or when a Matter run at full power proposed it: a line to the team (it wakes colleagues with a terminal) and a change
+ * to a colleague (its instructions are in every later prompt). A read-only Matter run's proposal, approved by Matter
+ * itself, never does either.
+ */
+export function teamLineAllowed(
+  call: { method: string; path: string },
+  decidedBy: string | null,
+  proposedAt: "full" | "read",
+): boolean {
+  const path = call.path.split("?")[0] ?? "";
+  const steers =
+    (call.method === "POST" && path === "/api/admin/workforce/messages") ||
+    (call.method !== "GET" && path.startsWith("/api/admin/workforce/agents"));
+  return !steers || decidedBy !== null || proposedAt === "full";
+}
+
+/**
  * W8 0a and 0d (fourth review): what the runner does with a run before any prompt. A run with no outside message is
  * `inside`; one that does not own the message ends (`not_owner`); one whose message is outside its criteria or tries
  * to direct the AI is held for Matter (`hold`); the owner of an ordinary message answers it within the criteria.
@@ -443,14 +502,18 @@ export function runShape<T extends { slug: string; tools: readonly string[] }>(
   thread: string,
   triage: Triage | null,
   matterReadsHeld: boolean,
+  startedInside = false,
 ): {
   agent: T;
   research: boolean;
   rule: Triage | "held" | null;
   place: { thread: string; author_id: string };
+  terminal: boolean;
 } {
   const outside = triage !== null || matterReadsHeld;
   return {
+    // W8 0e: a colleague run a person or Matter started gets a terminal; one about outside text never does.
+    terminal: !outside && startedInside && agent.slug !== "matter",
     agent: outside
       ? { ...agent, tools: agent.tools.filter((tool) => tool !== "admin_call" && tool !== "hire") }
       : agent,

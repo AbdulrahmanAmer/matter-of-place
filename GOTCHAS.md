@@ -2103,6 +2103,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a unit test that needs `env.ts` (directly, or through `db.ts`) stubs the variables first and loads the module with a dynamic import after `vi.resetModules()` (`vi.stubEnv("MOP_ENV", "local")`, `vi.stubEnv("RATE_LIMIT_SALT", "salt")`, then `await import(...)`); a test that only needs the type `Db` imports it with `import type`, which loads nothing. Code the job runner shares reads variables with `readVar`, never `env.ts` (G39).
 - proof: `cd app && bunx vitest run --project unit tests/unit/env.test.ts tests/unit/db.test.ts` passes; with the stubs removed from the head of `env.test.ts` it fails at load with the error above (measured 2026-10-03, B3 g1).
 - added: 2026-10-03
+- hit again: 2026-10-16, W7 item 6: `src/server/settings/service.ts` imported `routePath` from `lib/pipeline.ts` and `loadRedirectMap` from `public/redirects.ts`; `pipeline.ts` imports `headers.ts`, which imports `env.ts`, so every test that statically imports the service loaded `env.ts` before `stubAuthEnv()` ran and `tests/unit/admin-redirects.test.ts` answered `GET 503 auth_unavailable` instead of `403 human_only` (unit tests of the new code were green; only the old route test went red). Fix: the two imports are dynamic inside `checkLink`, as `channels/auto-approve.ts` does. Before importing a server module into a service, `grep -n "env\"" ` its import chain (`pipeline`, `headers`, `db`, `session`) and load it lazily if it reaches `env.ts`; run the neighbouring route test of the service, not only your own.
 
 ## G-301 · `AbortSignal.timeout` on a Storage `fetch` also cuts the response body, so `readPublicObject` and the delete batches carry no timeout
 - paths: app/src/server/lib/media-store.ts
@@ -8308,10 +8309,34 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: the same check with the scratchpad path printed both template comparisons.
 - added: 2026-10-15
 
+## P-3530 · A child process started through a shell drops empty arguments, so the next flag becomes the value
+- symptom: 2026-10-15, the W8 0b proof that the triage starts with no tools: `spawnSync("claude", [..., "--allowedTools", "", "--verbose"], { shell: true })` answered `Error: When using --print, --output-format=stream-json requires --verbose`; the shell had dropped `""` and `--verbose` became the value of `--allowedTools`. The runner itself (`scripts/workforce/cli.ts`) spawns without a shell, so the first proof measured the harness, not the triage.
+- rule: a proof of a CLI's arguments starts the program the way the runner does: by its path, `shell` off (`C:/Users/DELL/.local/bin/claude.exe` here), never through `shell: true` or a string command.
+- proof: the same arguments without a shell → `exit 0`, init event `tools [] mcp_servers []` (scratchpad triage-tools-proof.ts, 2026-10-15).
+- added: 2026-10-15
+
 ## P-3531 · The live session's goal run kept the runner from following main for the whole session
 - symptom: 2026-10-15, PRs 431 and 432 merged and deployed, yet the runner checkout (`E:/mop-build/live`) stayed on 6becc9de and `daemon.log` logged no `runner moved` for hours. Every pass counted `agent_runs` in state `running` before `followMain`; the only one was the live session's goal run (`scripts/matter/live.ts`, worker `matter-live@<host>`, a six-hour lease), which runs in its own process, not from the runner's checkout.
 - rule: the runner waits only for runs its own checkout executes (`runnerBusy` in `scripts/workforce/follow.ts` skips workers starting `LIVE_WORKER_PREFIX`). After a merge the live session needs on the runner, check `git -C E:/mop-build/live log --oneline -1` against `origin/main` before waiting on the runner.
 - proof: `cd app && bunx vitest run --project unit tests/unit/follow.test.ts` → `waits for a run this checkout executes, never for the live session's own goal run` passes; the replaced count makes it fail (registry `runner-follow-live.json`).
+- added: 2026-10-15
+
+## P-3532 · A test that passes on the laptop because `~/.mop-workforce` exists failed in CI with ENOENT
+- symptom: 2026-10-15, PR 434: `isolatedArgs` (`app/scripts/workforce/cli.ts`) wrote `no-mcp.json` into `~/.mop-workforce`; every local run passed (the runner made that folder long ago) and CI's check failed three tests with `ENOENT: no such file or directory, open '/home/runner/.mop-workforce/no-mcp.json'`.
+- rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
+- proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
+- added: 2026-10-15
+
+## P-3570 · A Claude Code permission rule with no leading `./`, `~/` or `//` is relative to the run's folder
+- symptom: 2026-10-15, W8 0e review 2: the terminal's settings denied `Read(**/.env*)` and `Read(**/creds/**)` to keep secrets out; those patterns match only inside the working folder, so the workspace `.env` and every login under the home folder stayed readable as far as the deny list went.
+- rule: confine a headless run by what it is allowed, not by what it is denied: `--permission-mode dontAsk` with `allow: ["Read(./**)", "Edit(./**)"]` refuses every read, Grep, Glob and write outside the run's folder. Deny rules are a second layer and name `~/` or `./` paths only; the terminal test refuses a deny path rule without one.
+- proof: `bun E:/mop-build/.tmp/probe-0e/probe.ts E:/mop-build/w8-0e/app` on Haiku: a decoy outside the folder and one in `~/.mop-workforce` refused (Read, Grep and Glob), a `.env.local` inside refused, `draft.svg` written, `.claude/settings.json`, `CLAUDE.md` and a file outside the folder refused (results in `E:/mop-build/.tmp/probe-0e/results.txt`).
+- added: 2026-10-15
+
+## P-3571 · A hook planted in a run's folder runs under plain `claude -p`; `--restricted` and `--setting-sources ""` each stop it
+- symptom: 2026-10-15, W8 0e review 2: a terminal could leave `.claude/settings.json` with a hook in a colleague's desk, and the next run in that desk would load it.
+- rule: every colleague run passes `--setting-sources ""` (the outside and terminal runs already did), the runner sweeps `.claude`, `CLAUDE.md`, `CLAUDE.local.md` and `.mcp.json` out of the desk before each run (`deskFor`), and a terminal works in `desks/<slug>/work`. A probe of a hook needs a control that fires, or it measures nothing: the first probe's control kept `--restricted` and never fired.
+- proof: `bun E:/mop-build/.tmp/probe-0e/hook-control.ts E:/mop-build/w8-0e/app` → `plain: HOOK RAN`, `restricted: hook did not run`, `sources_project: HOOK RAN`, `sources_empty: hook did not run` (measured 2026-10-15). And a planted memory file: `bun E:/mop-build/.tmp/probe-0e/claudemd.ts E:/mop-build/w8-0e/app` → a plain run reads `CLAUDE.md` and `claude.md` (Windows ignores case, so the sweep compares names in lower case), a run with the runner's arguments reads neither (measured 2026-10-16).
 - added: 2026-10-15
 
 ## P-3560 · `findByRole("table")` is satisfied by the loading skeleton: a component test reads five empty rows
@@ -8332,14 +8357,32 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx eslint --max-warnings 0 src/server/jobs/events.ts` exits 0 given time.
 - added: 2026-10-15
 
-## P-3530 · A child process started through a shell drops empty arguments, so the next flag becomes the value
-- symptom: 2026-10-15, the W8 0b proof that the triage starts with no tools: `spawnSync("claude", [..., "--allowedTools", "", "--verbose"], { shell: true })` answered `Error: When using --print, --output-format=stream-json requires --verbose`; the shell had dropped `""` and `--verbose` became the value of `--allowedTools`. The runner itself (`scripts/workforce/cli.ts`) spawns without a shell, so the first proof measured the harness, not the triage.
-- rule: a proof of a CLI's arguments starts the program the way the runner does: by its path, `shell` off (`C:/Users/DELL/.local/bin/claude.exe` here), never through `shell: true` or a string command.
-- proof: the same arguments without a shell → `exit 0`, init event `tools [] mcp_servers []` (scratchpad triage-tools-proof.ts, 2026-10-15).
+## P-3576 · A new file anywhere under `app/` fails CI's first step until the folder map names it
+- symptom: 2026-10-16: three PRs in one evening went red in 23 to 30 seconds on `layout: <file>: outside the folder map` (PR 442's `src/admin/campaigns/*`, PR 439's `src/server/redirect-links/service.ts`, PR 443's `scripts/workforce/settings-terminal.json`), each after a full local round of tests, typecheck, lint and watched-fails that never ran the layout check.
+- rule: run `bun run layout` from `app/` before every push that adds a file; a file in an existing folder is added to that folder's row in `scripts/check-layout.mjs`, a new folder needs its STANDARDS row too (or the file goes under an existing folder, as PR 439's did). The builders' How block says so.
+- proof: `cd app && bun run layout` → `layout: OK (3451 files)` on PR 443 with `settings-terminal.json` in the `scripts/workforce` row, and `outside the folder map` without it (2026-10-16).
+- added: 2026-10-16
+
+## P-3572 · Code split out of an admin service must stay a `service.ts`, and must not be reached by the job runner
+- symptom: 2026-10-15, PR 439: `settings/service.ts` loaded the site's modules lazily for the test-a-link box, and CI's Deno check over the job runner (which reaches that service) failed; the check moved to `settings/redirect-links.ts`, and the next CI failed `tests/unit/admin-authz-sweep.test.ts` (`import only the wrapper, services and domain`), because an admin route file may import only `server/lib/admin-route`, `server/**/service`, `domain/**`, the router and zod.
+- rule: a helper an admin route needs that must stay out of the job runner's graph lives in its own `service.ts` under its area's folder (`src/server/<area>/<name>/service.ts`; a new top folder under `src/server` also needs a STANDARDS row and the folder map, `bun run layout`) and is passed into the shared service by the route; a function there shaped `(actor, db, ...)` is probed by the sweep and must refuse a roleless actor before any database read.
+- proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts` and `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` both pass with `src/server/settings/redirect-links/service.ts`; with the route importing `server/settings/redirect-links` the sweep fails with `expected [ Array(1) ] to deeply equal []`.
 - added: 2026-10-15
 
-## P-3532 · A test that passes on the laptop because `~/.mop-workforce` exists failed in CI with ENOENT
-- symptom: 2026-10-15, PR 434: `isolatedArgs` (`app/scripts/workforce/cli.ts`) wrote `no-mcp.json` into `~/.mop-workforce`; every local run passed (the runner made that folder long ago) and CI's check failed three tests with `ENOENT: no such file or directory, open '/home/runner/.mop-workforce/no-mcp.json'`.
-- rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
-- proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
-- added: 2026-10-15
+## P-3573 · `watchfail.mjs --only` takes the bare entry id; `PLAN:id` selects nothing and prints nothing
+- symptom: 2026-10-15, W8 0e: a loop of `node scripts/watchfail.mjs --registry tests/mutations --only W8-0:<id>` over eleven entries printed no line at all, which a grep for `WATCHED` turned into silence that looked like a pass.
+- rule: pass the id as written in the registry (`--only w8-0e-hire-slug`); the `W8-0:` prefix appears only in the output. A loop that greps the output also greps `replayed` so an empty selection shows as `replayed 0`.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0r4-gate-hold` → `WATCHED-FAIL OK W8-0:w8-0r4-gate-hold` and `replayed 1`; with `--only W8-0:w8-0r4-gate-hold` → nothing replayed (measured 2026-10-15).
+- added: 2026-10-16
+
+## P-3574 · `builders/launch.sh` starts the builder but never returns while the laptop is loaded
+- symptom: 2026-10-15, render window: both `bash ~/.mop-workforce/builders/launch.sh <item> <worktree>` calls ran past their 10- and 30-minute limits and were stopped; the first builder was running, the second had never been started because the script never reached it.
+- rule: launch one builder per background command, never two in a row in one command, and prove it from its log instead of the launcher's last line: `run.jsonl` grows and its init event names the model (`python E:/mop-build/.tmp/builder-result.py <run.jsonl>`). Stopping the launcher's wrapper does not stop the builder.
+- proof: `ls -la ~/.mop-workforce/builders/w7-3-fix/run.jsonl` grew from 257732 to 315924 bytes after its launcher was stopped, and its init event reads `model: claude-sonnet-5-5` (2026-10-16).
+- added: 2026-10-16
+
+## P-3575 · A registry entry that mutates a migration file never turns a db test red: the database is built before
+- symptom: 2026-10-16, PR 444: the entry for a new CHECK replaced the constraint in the migration file; a fresh Opus review showed the db test reads a database already migrated (`DEV_DB_URL`, and CI's db job runs `db:reset` before the replay), so the replay would report `stayed green` and turn CI's db job red.
+- rule: a constraint, policy or function in the database is watched with a `kind: "sql"` entry that undoes it in the test's database (`alter table ... drop constraint ...`), as `tests/mutations/B2.json` does for `properties_slug_format`; a file mutation is for code the test itself loads.
+- proof: `tests/mutations/W8-0-slug.json` entry `w8-0e-slug-check-table` is `kind: "sql"` with `alter table public.agents drop constraint agents_slug_not_account_id`; CI's db job replays it (mop-dev refuses db tests from the laptop, H35).
+- added: 2026-10-16
