@@ -9,7 +9,7 @@ import { marketQuery } from "../lib/queries";
 import { breadcrumbLd } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
-import { marketGuideDescription } from "../lib/seo-copy";
+import { marketGuideDescription, marketGuideTitle } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/$market/guide")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_site/$market/guide")({
   head: ({ loaderData: market, matches }) => {
     if (!market) return unavailableHead("Guide");
     return pageHead({
-      title: `${market.name} guide`,
+      title: marketGuideTitle(market),
       description: marketGuideDescription(market),
       path: `/${market.slug}/guide`,
       image: ogImageFor({ key: `market-${market.slug}`, ogStatic: ogStaticOf(matches) }),

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "seo-guide-title",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "\"new-york\": \"Historic and Modern Homes\",",
+    "replace": "\"new-york\": \"Historic and Modern Homes for Sale Across the Whole\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "× .*name the architecture people search for"
+  },
+  {
+    "id": "seo-luxury-exposure-only",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "for luxury listings in California",
+    "replace": "for listings in California",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "× .*says luxury on the Exposure page only"
+  },
+  {
+    "id": "seo-guide-description-rules",
+    "test": "tests/unit/seo-copy.test.ts",
+    "file": "src/lib/seo-copy.ts",
+    "find": "each reviewed before it is published.`,",
+    "replace": "each a luxury home.`,",
+    "run": "bunx vitest run --project unit tests/unit/seo-copy.test.ts",
+    "expect": "× .*keep to the copy rules for every bundled"
+  }
+]

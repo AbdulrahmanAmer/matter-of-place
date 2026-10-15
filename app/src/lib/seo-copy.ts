@@ -60,9 +60,31 @@ export function marketDescription(market: Pick<Market, "intro"> & { regions: Nam
   ]);
 }
 
-export function marketGuideDescription(market: Pick<Market, "name"> & { regions: Named }): string {
+// The operator's search assignment (2026-10-15, ruling H112): each guide is titled with what people search for in its
+// market, the architecture first, never price. Our words for the kind of house each market's guide answers.
+const guideHomes: Record<Market["slug"], string> = {
+  california: "Architect-designed and mid-century modern homes",
+  "new-york": "Historic and architect-designed homes",
+  florida: "Mid-century modern and historic homes",
+};
+
+const guideTitleHomes: Record<Market["slug"], string> = {
+  california: "Architect-Designed Homes",
+  "new-york": "Historic and Modern Homes",
+  florida: "Architect-Designed Homes",
+};
+
+/** The guide's title before the site name: under 42 characters, so the whole title stays under 60. */
+export function marketGuideTitle(market: Pick<Market, "name" | "slug">): string {
+  return `${guideTitleHomes[market.slug]} in ${market.name}`;
+}
+
+export function marketGuideDescription(
+  market: Pick<Market, "name" | "slug"> & { regions: Named },
+): string {
   return compose([
-    `Neighborhoods, what clients ask for, and how we work in ${market.name}: ${names(market.regions)}.`,
+    `${guideHomes[market.slug]} in ${market.name}: ${names(market.regions)}, each reviewed before it is published.`,
+    `A guide to its places and how we work.`,
   ]);
 }
 
@@ -90,7 +112,9 @@ const pageDescriptions = {
     "A quiet selection of residences across California, Florida and New York, searchable by place, type and architecture.",
   "stories.index":
     "Architecture, interiors and places across California, New York and Florida, from the Matter of Place editorial desks.",
-  exposure: "How a property is presented and distributed, all after editorial review.",
+  // H112: the one page description that may say "luxury", the trade's own word for what an agent is marketing.
+  exposure:
+    "Editorial pages, Place Notes and targeted media for luxury listings in California, New York and Florida, reviewed before any payment.",
   submit:
     "Submit an existing residential property in California, New York or Florida for editorial review.",
   about: `An independent real-estate media platform for exceptional residential property in California, New York and Florida. A product of ${siteConfig.parentCompany}.`,

@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_site/exposure")({
     (await queryClient.query({ ...siteQuery(), staleTime: "static" })).products,
   head: ({ loaderData, matches }) =>
     pageHead({
-      title: "Property Exposure",
+      title: "Luxury Listing Exposure Beyond the MLS",
       description: pageDescription("exposure"),
       path: "/exposure",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
@@ -31,7 +31,7 @@ function ExposurePage() {
       <PageIntro
         eyebrow="PROPERTY EXPOSURE"
         title="Exceptional properties deserve context."
-        text="Editorial presentation, carried further through owned and precision-distribution channels."
+        text="For agents and owners who want a luxury listing seen beyond the MLS, chosen for its architecture and setting, not its price. Editorial presentation, carried further through owned and precision-distribution channels."
       />
       <div className="fp exposure-body">
         <section className="fp-block exposure-products" aria-labelledby="products">
