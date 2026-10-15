@@ -12,6 +12,12 @@
 /media/*
   Cache-Control: public, max-age=604800
 
+# The email images are shown inside other sites (webmail): the site-wide same-site rule is removed and replaced here.
+/email/*
+  ! Cross-Origin-Resource-Policy
+  Cross-Origin-Resource-Policy: cross-origin
+  Cache-Control: public, max-age=604800
+
 /fonts/*
   Cache-Control: public, max-age=604800
 

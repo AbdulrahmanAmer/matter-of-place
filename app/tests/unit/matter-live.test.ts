@@ -97,7 +97,7 @@ describe("the stream the supervisor reads", () => {
 });
 
 describe("rotation and the heartbeat", () => {
-  it("rotates a session after six turns or a day, and counts turns on the same session", () => {
+  it("keeps a session through any number of turns, replaces it after a week, and counts turns on the same session", () => {
     const now = new Date("2026-10-13T10:00:00Z");
     const first = nextSession(null, "s-1", now);
     const second = nextSession(first, "s-1", now);
@@ -105,12 +105,13 @@ describe("rotation and the heartbeat", () => {
     expect({
       counts: [first.turns, second.turns, other.turns],
       rotate: [
-        shouldRotate({ ...second, turns: 5 }, now.getTime()),
         shouldRotate({ ...second, turns: 6 }, now.getTime()),
+        shouldRotate({ ...second, turns: 500 }, now.getTime()),
         shouldRotate({ ...second, startedAt: "2026-10-12T09:00:00Z" }, now.getTime()),
+        shouldRotate({ ...second, startedAt: "2026-10-05T09:00:00Z" }, now.getTime()),
         shouldRotate(null, now.getTime()),
       ],
-    }).toEqual({ counts: [1, 2, 1], rotate: [false, true, true, false] });
+    }).toEqual({ counts: [1, 2, 1], rotate: [false, false, false, true, false] });
   });
 
   it("calls the supervisor alive only while its heartbeat is under a minute old", () => {
@@ -170,6 +171,13 @@ describe("moving to new runner code", () => {
       shouldMove(true, "a", "a"),
       shouldMove(true, "", "a"),
     ]).toEqual([true, false, false, false]);
+  });
+
+  it("stays on its session when the new commit changes none of its own code", () => {
+    expect([shouldMove(true, "b", "a", false), shouldMove(true, "b", "a", true)]).toEqual([
+      false,
+      true,
+    ]);
   });
 });
 
