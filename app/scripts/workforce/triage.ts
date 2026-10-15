@@ -461,7 +461,7 @@ export function runShape<T extends { slug: string; tools: readonly string[] }>(
 }
 
 /** A described field as a colleague sees it: one line, no handle, no fence marks, never empty. */
-function plain(field: string): string {
+export function plain(field: string): string {
   const text = field
     .replace(/[\r\n]+/g, " ")
     .replaceAll("@", "")

@@ -62,6 +62,8 @@ import {
   type Triage,
 } from "./triage.ts";
 import { groundingLines, requestSequence } from "./grounding.ts";
+import { requestDesk } from "./request-desk.ts";
+import { forgetNewWork, newWorkLines } from "./new-work.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
@@ -293,7 +295,7 @@ export async function context(
   owns: (source: SourceName) => boolean = () => true,
 ) {
   const parts: string[] = [];
-  let event: { type: string; entity_id: string | null } | null = null;
+  let event: { type: string; entity: string | null; entity_id: string | null } | null = null;
   if (run.event_id !== null) {
     const { data: rows } = await client
       .from("events")
@@ -348,6 +350,10 @@ export async function context(
         ? woke
         : { ...woke, body: shownBody(woke) };
   parts.push(...groundingLines(wokeShown, pending));
+  // W7 item 9: a run about a request receives the request itself (request-desk.ts), named by its event or its line.
+  const line = woke === null ? null : shownBody(woke);
+  if (triage === null || owns(triage.source))
+    parts.push(...(await requestDesk(client, run.agent_id, event, line, triage !== null)));
   // W8 fourth review: a run about an outside message sees the triage, its own pending list and the site's facts, and
   // nothing of the company's inside (no thread history, decisions or counts), so no reply can carry them.
   if (triage === null) {
@@ -393,6 +399,8 @@ export async function context(
     parts.push(
       `The business right now: ${String(requests.count ?? 0)} new requests, ${String(inquiries.count ?? 0)} inquiries in total, ${String(properties.count ?? 0)} published properties.`,
     );
+    // W7 item 9: the newest requests and inquiries themselves, for their owners (new-work.ts).
+    parts.push(...(await newWorkLines(client, owns)));
   }
   // W5 item 13: our own products, prices and markets, so no reply brackets a price it could have read.
   parts.push(await readSiteFacts());
@@ -962,6 +970,7 @@ async function pass(client: Db): Promise<void> {
     .eq("slug", "matter")
     .neq("state", "working");
   mkdirSync(HOME, { recursive: true });
+  forgetNewWork();
   // W6 item 1: the staff policy follows the weekly allowance; a change is said once in the team thread.
   const { policy, changed, reading } = refreshPolicy();
   if (reading === null) {
