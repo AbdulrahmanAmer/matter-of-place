@@ -81,13 +81,14 @@ async function readCounts(ctx: StepContext): Promise<HealthCounts> {
 // Later slices append one entry each (B14 added usage_gauges); the provider checks come last.
 export const healthChecks: readonly HealthCheck[] = [
   {
-    // Ruling H34 (6): a caption job waits for the laptop runner, and a day of waiting needs a person.
+    // Ruling H34 (6): a caption job waits for the laptop's runner, the scheduled task "MOP Captions" every ten
+    // minutes (W8 item 3); two hours of waiting means the task or the laptop is down.
     name: "captions_waiting",
     async run(ctx) {
       const age = (await ctx.counts()).local_oldest_age_s;
-      if (age === null || age < DAY_S) return ok("no caption job waiting a day");
+      if (age === null || age < 2 * HOUR_S) return ok("no caption job waiting two hours");
       return fail(
-        `caption job waiting ${String(Math.floor(age / HOUR_S))} hours: run bun run captions on the laptop or type the captions by hand`,
+        `caption job waiting ${String(Math.floor(age / HOUR_S))} hours: the laptop's MOP Captions task is not running (is the laptop on?), or type the captions by hand`,
       );
     },
   },
