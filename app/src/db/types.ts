@@ -1637,6 +1637,9 @@ isOneToOne: false
 "email_message_finish":
 { Args: { "p_error"?: string,"p_id": string,"p_resend_id"?: string,"p_status": string }; Returns: undefined
                            },
+"email_reply_mark":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_reply_id": string,"p_request_id": string,"p_state": string }; Returns: string
+                           },
 "email_reply_record":
 { Args: { "p_body": string,"p_from": string,"p_name": string,"p_provider_id": string,"p_received_at": string,"p_subject": string }; Returns: string
                            },

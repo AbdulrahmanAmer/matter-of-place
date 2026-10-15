@@ -3,12 +3,14 @@ import { deliveryLine, emailStates } from "../../domain/admin-emails";
 import { Field } from "../ui/Field";
 import { LocalTime } from "../ui/LocalTime";
 import { useUrlFilters } from "../ui/use-url-filters";
+import { RepliesPart } from "./RepliesPart";
 import { useSentEmails } from "./sent-emails-queries";
 
 // W9 item 2 and W7 item 1 (operator, 2026-10-15: "we need to be able to see from the admin dashboard if an email is
 // wrong or bounced"): every email we sent, to whom and what became of it, and the addresses nothing more goes to.
+// W7 item 2: the replies people wrote back, beside the emails they answer.
 
-const filterNames = ["status", "search"] as const;
+const filterNames = ["status", "search", "reply"] as const;
 
 const ENTITY_PATH: Readonly<Record<string, string>> = { submission: "/admin/requests/" };
 
@@ -29,8 +31,15 @@ export function SentEmailsPage() {
       <h1>Sent emails</h1>
       <p className="admin-lead">
         Every email we sent, newest first, and what became of it. An address that bounced or
-        complained is on the do-not-send list below.
+        complained is on the do-not-send list below. Replies come first.
       </p>
+      <RepliesPart
+        state={filters.values.reply}
+        onState={(next) => {
+          filters.setFilters({ ...filters.values, reply: next });
+        }}
+      />
+      <h2>Emails we sent</h2>
       <form
         className="admin-toolbar"
         role="search"
