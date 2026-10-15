@@ -34,13 +34,11 @@ import { auditContext } from "../lib/audit.ts";
 import { authorize, type ActorKind } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError, fromZod } from "../lib/errors.ts";
-import { routePath } from "../lib/pipeline.ts";
 import {
   applyInvoiceSettings,
   invoiceReadiness,
   type InvoiceSettings,
 } from "../payments/invoice-settings.ts";
-import { loadRedirectMap } from "../public/redirects.ts";
 import { getPublicState, type PublicState } from "../public/state.ts";
 import { previewProducts, productsOf, putProducts, seedProducts } from "./products.ts";
 import { siteReadiness } from "./readiness.ts";
@@ -301,12 +299,6 @@ async function oldAddressRows(
   };
 }
 
-/** The key the site looks a path up by (`normalize` in `public/redirects.ts`): as routed, no trailing slash. */
-function siteKey(pathname: string): string {
-  const path = routePath(pathname);
-  return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
-}
-
 /** The path of what was typed: a pasted address of the site, a path with a query or a path without its slash. */
 function typedPathname(typed: string): string {
   try {
@@ -324,14 +316,24 @@ const MAX_HOPS = 8;
  * until one answers nothing, comes back to a path it has been through, or reaches `MAX_HOPS`.
  */
 async function checkLink(db: Db, typed: string): Promise<LinkCheck> {
+  // Loaded when a link is tested: the site's own lookup rules, without the request pipeline and `env.ts` at import.
+  const [{ loadRedirectMap }, { routePath }] = await Promise.all([
+    import("../public/redirects.ts"),
+    import("../lib/pipeline.ts"),
+  ]);
+  /** The key the site looks a path up by (`normalize` in `public/redirects.ts`): as routed, no trailing slash. */
+  const siteKey = (pathname: string): string => {
+    const path = routePath(pathname);
+    return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+  };
   const [rows, history, properties] = await Promise.all([
     db.from("redirects").select(`${REDIRECT_COLUMNS}, archived_at`),
     db.from("slug_history").select("slug, property_id"),
     db.from("properties").select("id, slug, editorial_state"),
   ]);
-  for (const read of [rows, history, properties]) {
-    if (read.error !== null) throw fromRpcError(read.error);
-  }
+  if (rows.error !== null) throw fromRpcError(rows.error);
+  if (history.error !== null) throw fromRpcError(history.error);
+  if (properties.error !== null) throw fromRpcError(properties.error);
   // The site's catalog holds the active rows and the published properties; the same two rules are applied here.
   const active = rows.data.filter((row) => row.archived_at === null);
   const map = loadRedirectMap({

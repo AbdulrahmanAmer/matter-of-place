@@ -162,24 +162,26 @@ function LinkTester({
           </button>
         </div>
       </form>
-      {check === null ? null : (
-        <div role="status">
-          {check.steps.length === 0 ? (
-            <p>{`No redirect: the site answers ${check.path} as it is.`}</p>
-          ) : (
-            <ol>
-              {check.steps.map((step) => (
-                <li key={step.from}>
-                  {`${step.from} goes to ${step.to} (${String(step.status)}, ${
-                    step.source === "redirect" ? "redirect" : "old property address"
-                  }).`}
-                </li>
-              ))}
-            </ol>
-          )}
-          {check.loop ? <p>These addresses lead in a circle.</p> : null}
-        </div>
-      )}
+      <div role="group" aria-label="Link test result" aria-live="polite">
+        {check === null ? null : (
+          <>
+            {check.steps.length === 0 ? (
+              <p>{`No redirect: the site answers ${check.path} as it is.`}</p>
+            ) : (
+              <ol>
+                {check.steps.map((step) => (
+                  <li key={step.from}>
+                    {`${step.from} goes to ${step.to} (${String(step.status)}, ${
+                      step.source === "redirect" ? "redirect" : "old property address"
+                    }).`}
+                  </li>
+                ))}
+              </ol>
+            )}
+            {check.loop ? <p>These addresses lead in a circle.</p> : null}
+          </>
+        )}
+      </div>
     </>
   );
 }

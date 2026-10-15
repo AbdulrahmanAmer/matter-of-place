@@ -169,6 +169,7 @@ describe("screen 24, redirects", () => {
       [`GET ${LIST}`]: answer({ old_addresses: { items: oldAddresses, next_cursor: null } }),
     });
     const table = await screen.findByRole("table", { name: "Old property addresses" });
+    await within(table).findByText("/property/old-ridge");
     const lines = within(table)
       .getAllByRole("row")
       .slice(1)
@@ -198,8 +199,10 @@ describe("screen 24, redirects", () => {
     );
     const table = await screen.findByRole("table", { name: "Old property addresses" });
     await within(table).findByText("/property/old-ridge");
-    const next = screen.getAllByRole("button", { name: /next/i });
-    fireEvent.click(next[next.length - 1] as HTMLElement);
+    // The old addresses are the second table of the section, so their pager is the second "next".
+    const next = screen.getAllByRole("button", { name: /next/i }).at(-1);
+    if (next === undefined) throw new Error("no pager");
+    fireEvent.click(next);
     await screen.findByText("/property/old-cove");
     expect(requested).toEqual([`GET ${LIST}`, `GET ${LIST}?old_cursor=old-ridge`]);
   });
@@ -219,12 +222,11 @@ describe("screen 24, redirects", () => {
     const empty = screen.getByText("Type an address to test.");
     fireEvent.change(screen.getByLabelText("Address to test"), { target: { value: " /summer " } });
     fireEvent.click(screen.getByRole("button", { name: "Test link" }));
-    const status = await screen.findByRole("status");
+    const result = screen.getByRole("group", { name: "Link test result" });
+    const hops = await within(result).findAllByRole("listitem");
     expect({
       empty: empty.textContent,
-      hops: within(status)
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
+      hops: hops.map((item) => item.textContent),
       requested,
     }).toEqual({
       empty: "Type an address to test.",
@@ -256,11 +258,11 @@ describe("screen 24, redirects", () => {
     const box = screen.getByLabelText("Address to test");
     fireEvent.change(box, { target: { value: "/nothing" } });
     fireEvent.click(screen.getByRole("button", { name: "Test link" }));
-    const none = (await screen.findByRole("status")).textContent;
+    const none = await screen.findByText("No redirect: the site answers /nothing as it is.");
     fireEvent.change(box, { target: { value: "/a" } });
     fireEvent.click(screen.getByRole("button", { name: "Test link" }));
     await screen.findByText("These addresses lead in a circle.");
-    expect(none).toBe("No redirect: the site answers /nothing as it is.");
+    expect(none.textContent).toBe("No redirect: the site answers /nothing as it is.");
   });
 
   it("hides the last answer while the next path is being checked", async () => {
@@ -273,12 +275,13 @@ describe("screen 24, redirects", () => {
     const box = screen.getByLabelText("Address to test");
     fireEvent.change(box, { target: { value: "/nothing" } });
     fireEvent.click(screen.getByRole("button", { name: "Test link" }));
-    await screen.findByRole("status");
+    await screen.findByText("No redirect: the site answers /nothing as it is.");
     vi.stubGlobal("fetch", () => new Promise<Response>(() => undefined));
     fireEvent.change(box, { target: { value: "/later" } });
     fireEvent.click(screen.getByRole("button", { name: "Test link" }));
+    const result = screen.getByRole("group", { name: "Link test result" });
     await waitFor(() => {
-      expect(screen.queryByRole("status")).toBeNull();
+      expect(result.textContent).toBe("");
     });
   });
 });
