@@ -332,20 +332,20 @@ describe("backup_fresh", () => {
 });
 
 describe("captions_waiting", () => {
-  it("is fail at 25 hours, with one health.failed naming it", async () => {
-    const { db, result } = await run({ counts: { local_oldest_age_s: 25 * 3600 } });
+  it("is fail at 3 hours, with one health.failed naming it", async () => {
+    const { db, result } = await run({ counts: { local_oldest_age_s: 3 * 3600 } });
     expect(checksOf(result).find((check) => check.name === "captions_waiting")).toEqual({
       name: "captions_waiting",
       status: "fail",
       message:
-        "caption job waiting 25 hours: run bun run captions on the laptop or type the captions by hand",
+        "caption job waiting 3 hours: the laptop's MOP Captions task is not running (is the laptop on?), or type the captions by hand",
     });
     expect(JSON.stringify(emitted(db))).toContain('"summary":"1 checks failed: captions_waiting"');
     expect(emitted(db)).toHaveLength(1);
   });
 
-  it("is ok at 23 hours and while no caption job waits", async () => {
-    const waiting = await run({ counts: { local_oldest_age_s: 23 * 3600 } });
+  it("is ok at 1 hour and while no caption job waits", async () => {
+    const waiting = await run({ counts: { local_oldest_age_s: 3600 } });
     const none = await run({ counts: { local_oldest_age_s: null } });
     expect([
       statusOf(waiting.result, "captions_waiting"),

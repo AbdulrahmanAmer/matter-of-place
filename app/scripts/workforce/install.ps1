@@ -13,7 +13,7 @@ Set-Content -Path (Join-Path $home2 "runner-app") -Value $app -NoNewline
 $vbs = Join-Path $PSScriptRoot "hidden-run.vbs"
 $action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument ("`"" + $vbs + "`" `"" + $app + "`"")
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1)
-$settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries `
+$settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -Priority 5 `
   -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 50)
 Register-ScheduledTask -TaskName "MOP Workforce" -Action $action -Trigger $trigger -Settings $settings `
   -Description "Matter of Place AI colleagues: one pass a minute (scripts/workforce/daemon.ts)." -Force | Out-Null
@@ -24,7 +24,7 @@ Write-Output "task: MOP Workforce registered (every minute, hidden)"
 $liveAction = New-ScheduledTaskAction -Execute "wscript.exe" `
   -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\matter\live.ts live")
 $liveTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
-$liveSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries `
+$liveSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -Priority 5 `
   -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Seconds 0)
 Register-ScheduledTask -TaskName "MOP Matter Live" -Action $liveAction -Trigger $liveTrigger -Settings $liveSettings `
   -Description "Matter of Place: Matter's live session (scripts/matter/live.ts), kept running." -Force | Out-Null
@@ -43,7 +43,7 @@ Write-Output "task: MOP Usage registered (daily at 06:00, run once now)"
 $auditAction = New-ScheduledTaskAction -Execute "wscript.exe" `
   -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\audit-routine.ts audit")
 $auditTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Saturday -At "09:00"
-$auditSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries `
+$auditSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -Priority 5 `
   -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 100)
 Register-ScheduledTask -TaskName "MOP Audit" -Action $auditAction -Trigger $auditTrigger -Settings $auditSettings `
   -Description "Matter of Place: the Saturday audit routine (workspace/audits/ROUTINE-PROMPT.md)." -Force | Out-Null
@@ -56,6 +56,16 @@ $reviewTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At "10:00"
 Register-ScheduledTask -TaskName "MOP Review" -Action $reviewAction -Trigger $reviewTrigger -Settings $auditSettings `
   -Description "Matter of Place: the AI staff's weekly review (lessons, instructions, the week's numbers)." -Force | Out-Null
 Write-Output "task: MOP Review registered (Sunday 10:00 local)"
+
+# 5b. W8 item 3: the scheduled task "MOP Captions": the captions runner (scripts/captions-runner.ts, ruling H34) every
+#    ten minutes, so a published property's captions are written without anyone running a command. It stops when no job
+#    is due; the health check captions_waiting names a job waiting two hours.
+$captionsAction = New-ScheduledTaskAction -Execute "wscript.exe" `
+  -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\captions-runner.ts captions")
+$captionsTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 10)
+Register-ScheduledTask -TaskName "MOP Captions" -Action $captionsAction -Trigger $captionsTrigger -Settings $auditSettings `
+  -Description "Matter of Place: captions and alt texts of published properties, through the operator's Claude account." -Force | Out-Null
+Write-Output "task: MOP Captions registered (every ten minutes, hidden)"
 
 # 6. The scheduled task "MOP Meeting": the team's daily meeting at 17:45 local (W2 step 7, scripts/workforce/meeting.ts);
 #    the decisions land by 18:00 Cairo time, and Windows follows Egypt's clock changes.
