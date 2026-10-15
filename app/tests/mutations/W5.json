@@ -21,7 +21,7 @@
     "id": "w5-c-config-until",
     "test": "tests/unit/matter-live.test.ts",
     "file": "scripts/workforce/config.ts",
-    "find": "  if (until !== null && !(until.getTime() > now.getTime())) return { ...DEFAULTS };",
+    "find": "  if (until !== null && !(until.getTime() > now.getTime())) return {};",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
     "expect": "× .*uses the file's model and backlog until its date"

@@ -18,11 +18,13 @@ import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, fenced, matterInputs } from "../matter/run.ts";
 import { staffCharterFrom } from "./charter.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
+import { staffPolicy } from "./config.ts";
 import { childEnv, serviceDb as client } from "./env.ts";
 import { costMicroUsd, inputTokens } from "./growth.ts";
 import { applyHires } from "./hiring.ts";
 import { knowledgeBlock, remember } from "./knowledge.ts";
 import { scorecard, scorecardText } from "./scorecard.ts";
+import { underCeiling } from "./usage-policy.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const PLAN = resolve(dirname(fileURLToPath(import.meta.url)), "../../../workspace/05-plans/W2.md");
@@ -104,7 +106,7 @@ async function ask(
     args: [
       "-p",
       "--model",
-      models[model] ?? "claude-sonnet-5-5",
+      models[underCeiling(model, staffPolicy().colleagueCeiling)] ?? "claude-sonnet-5-5",
       "--output-format",
       "json",
       "--strict-mcp-config",
