@@ -65,9 +65,9 @@ describe("page descriptions", () => {
   });
 
   it("says luxury on the Exposure page only (H112)", () => {
-    expect(pageDescriptionKeys.filter((key) => /\bluxury\b/i.test(pageDescription(key)))).toEqual(
-      ["exposure"],
-    );
+    expect(pageDescriptionKeys.filter((key) => /\bluxury\b/i.test(pageDescription(key)))).toEqual([
+      "exposure",
+    ]);
   });
 
   it("gives every page its own description", () => {
