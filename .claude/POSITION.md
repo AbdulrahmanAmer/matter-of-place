@@ -1883,3 +1883,17 @@ first day of the new usage week; no step was cut from any plan.
   proxyware removed (74 files, 12 folders, born 2025-12-31 17:53); the operator restores Winlogon Shell to explorer.exe
   as administrator. Open with the operator: the post and video brief, the Meta app, whether to remove uTorrent, and the
   studio-folder and triage design for W8's foundation.
+
+- 2026-10-15 09:40 +0300: Merged 406 (film direction), 407 (email images CORP), 409 (W9 plan), 411 (Matter keeps one
+  continuous session: no six-turn rotation, a move to new code only when his own code changed). PR 408 (Reply-To per
+  kind: billing@, listings@, privacy@) fixed and green on attempt 1, in the gate. Colleagues renamed (data, slugs kept):
+  Eleanor Hart (chief), Julian Reyes (editor), Clara Benton (concierge), Maya Okafor (social), Theo Lindqvist
+  (campaigns), Iris Calloway (newsletter), Samuel Park (analyst); client mail still signs as Matter of Place.
+  Mail: DMARC on matterofplace.com moved from p=none to p=quarantine (sp=quarantine, relaxed alignment, rua admin@),
+  TLS-RPT added; SPF, DKIM (Zoho and Resend on root, notify., notes.), MX and the newsletter's one-click unsubscribe were
+  already right; Zoho Allowed Domains holds notify. and notes. (P-3472). Search: 15 of 18 sitemap pages indexed
+  (markets, stories and the three guides crawled minutes after the requests); contact, legal, place-notes requested.
+  The sitemap is consistent by design: market, region and /properties pages are `noindex, follow` while empty, so they
+  are left out. NOT DONE: Cloudflare Crawler Hints (the API token cannot set it, 10405; dashboard toggle), Bing
+  Webmaster Tools, social links for the Organization sameAs (settings.site.social is empty), Google Postmaster Tools.
+  Running: email redesign (Opus max, headless), W9 builder (Opus high). Bank grew: P-3472 to P-3477.
