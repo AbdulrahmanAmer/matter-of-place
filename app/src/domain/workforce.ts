@@ -82,6 +82,13 @@ const slug = z
     "That name is kept for the runner's own lines",
   );
 
+// W8 0e: a slug shaped like an account id could pass for an operator's key in a thread, so none is hired. Reading
+// stays tolerant (second review): a row already stored never breaks the list of agents.
+const hireSlug = slug.refine(
+  (value) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value),
+  "A name cannot look like an account id",
+);
+
 const agentSchema = z.object({
   id: z.string().uuid(),
   slug,
@@ -100,7 +107,7 @@ const agentSchema = z.object({
 export type Agent = z.infer<typeof agentSchema>;
 
 export const hireInputSchema = z.object({
-  slug,
+  slug: hireSlug,
   name: z.string().trim().min(1).max(80),
   role: z.string().trim().min(1).max(120),
   instructions: z.string().trim().max(8000).default(""),
