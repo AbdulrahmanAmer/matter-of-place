@@ -1,5 +1,5 @@
 // The photographs of `scripts/email-gallery.ts`: Node, not Bun, because Playwright cannot start a browser from Bun on
-// this machine (see email-shots-page.mjs); the installed Edge draws every width, a phone's included (P-3481).
+// this machine (see email-shots-page.mjs); the installed Edge draws every width, a phone's included (P-3513).
 //   node scripts/lib/email-gallery-shots.mjs <pages dir> <shots dir> <key>...
 // For each key: `<key>-on.html` at an 800 px reading pane (`-desktop.png`) and on a 375 px phone (`-phone.png`), and
 // `<key>-off.html`, which loads no picture and no web font, at 800 px (`-imagesoff.png`). Each page is drawn as a

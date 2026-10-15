@@ -8,7 +8,7 @@
 // photograph from the files the site serves, with each door GIF shown at its last frame (the designed state a reader
 // sees once it has played); `<key>-off.html` loads nothing, as Outlook or Gmail with pictures blocked shows it.
 // lib/email-gallery-shots.mjs photographs them in the installed Edge through Playwright (Node: Playwright cannot start a
-// browser from Bun here, P-3481) into workspace/08-email-redesign/v2/: `<key>-desktop.png` in an 800 px reading pane,
+// browser from Bun here, P-3513) into workspace/08-email-redesign/v2/: `<key>-desktop.png` in an 800 px reading pane,
 // `<key>-phone.png` on a 375 px phone, `<key>-imagesoff.png`, and refuses any sideways scroll. The two GIFs are copied
 // beside them and index.html shows every email by house. It prints `<key> <bytes> bytes` and exits 1 when an email is
 // 100,000 bytes or more (Gmail clips at 102 KB) or has a lint finding. No database, no key, no network.

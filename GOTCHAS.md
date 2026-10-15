@@ -8069,11 +8069,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
 - added: 2026-10-15
 
-## P-3481 · Edge's command-line screenshot is written in seconds, then Edge holds on for a minute, keeps its profile locked and cannot open a phone-width window
+## P-3513 · Edge's command-line screenshot is written in seconds, then Edge holds on for a minute, keeps its profile locked and cannot open a phone-width window
 - symptom: 2026-10-15, the email gallery (`app/scripts/email-gallery.ts`): one `msedge --headless=new --screenshot` took 68 s; the next shot with the same `--user-data-dir` failed with `Lock file can not be created! Error code: 32`; and `--window-size=390,6000` drew the page cut off on the right, while the same HTML in Edge driven by Playwright at a 390 px viewport measured `scrollWidth 390`.
 - cause: headless Edge on Windows lingers after it writes the file, its helpers keep the profile open, and its window keeps a desktop minimum width.
-- rule: end Edge's process tree (`taskkill /PID <pid> /T /F`) as soon as its stderr says `bytes written to file`; give every shot its own profile folder in the OS temp dir; draw any width under a desktop window through Playwright with `channel: "msedge"`, run by Node (`app/scripts/lib/email-gallery-phone.mjs`).
-- proof: `cd app && bun run scripts/email-gallery.ts received` prints `received <n> bytes` and `phone received 390 px, no sideways scroll` within a minute.
+- rule: draw every email through Playwright with `channel: "msedge"`, run by Node: since the email houses (2026-10-15) the gallery takes all its pictures that way (`app/scripts/lib/email-gallery-shots.mjs`) and never starts Edge's command line. If the command line is ever needed again, end Edge's process tree (`taskkill /PID <pid> /T /F`) as soon as its stderr says `bytes written to file` and give every shot its own profile folder in the OS temp dir.
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `received <n> bytes` and `desktop: 1 emails, no sideways scroll` within a minute.
+- renumbered: was a second P-3481 (the number the `dontAsk` entry keeps); found by `node workspace/05-plans/check-gotchas.mjs` after the merge of 2026-10-15.
 - added: 2026-10-15
 
 ## P-3482 · Drive E: was full: about seventy worktrees under E:/mop-build each carry their own node_modules

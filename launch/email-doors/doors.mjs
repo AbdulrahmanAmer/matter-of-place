@@ -21,8 +21,8 @@ const PLAYER = resolve(here, "../brand-film-kit/reference/product-launch/matter-
 const ff = (args) => execFileSync("ffmpeg", ["-y", "-loglevel", "error", ...args], { stdio: "inherit" });
 
 /** Frames in order, each held 1/fps, the first and the last held longer; a palette GIF that plays once. */
-function gif({ frames, out, w, h, fps, holdFirst, holdLast, colors, dither, prep }) {
-  const work = `${out}_work`;
+function gif({ frames, out, work, w, h, fps, holdFirst, holdLast, colors, dither, prep }) {
+  // The scratch of the GIF stays in the work folder, never beside the picture in app/public/email.
   rmSync(work, { recursive: true, force: true });
   mkdirSync(work, { recursive: true });
   const list = frames.map((src, i) => {
@@ -67,7 +67,7 @@ async function day(workDir) {
   }
   writeFileSync(join(publicEmail, "door-day-dark.png"), Buffer.from(await shot({ tau: 1, night: true }), "base64"));
   await browser.close();
-  gif({ frames, out: join(publicEmail, "door-day.gif"), w: 1200, h: 600, fps: 15, holdFirst: 1.4, holdLast: 3.0, colors: 160, dither: "sierra2_4a" });
+  gif({ frames, out: join(publicEmail, "door-day.gif"), work: join(workDir, "gif"), w: 1200, h: 600, fps: 15, holdFirst: 1.4, holdLast: 3.0, colors: 160, dither: "sierra2_4a" });
 }
 
 /** Threshold: the film's hall from the closed mark to the open door, 40 frames, dollying in (film-door-zoom). */
@@ -93,7 +93,9 @@ async function night(workDir) {
       const sm = (a, b, u) => { const k = Math.min(1, Math.max(0, (u - a) / (b - a))); return k * k * (3 - 2 * k); };
       const D = Film._dbg(), cam = D.cam;
       const s = 28.95 - 1.5 * sm(0.22, 0.97, tau);   // the door: the film's lockup played backwards, closed mark to open door
-      const e = io(tau), z = 122.48 * Math.pow(46 / 122.48, e), y = 5.75 + (4.6 - 5.75) * e, look = 5.75 + (5.35 - 5.75) * e;
+      // The dolly runs from 100 to 60 units: the framing of the committed door-night.gif (its first and last frames
+      // measured against these, 2026-10-15), an exponential path so the zoom feels even, eased at both ends.
+      const e = io(tau), z = 100 * Math.pow(60 / 100, e), y = 5.75 + (4.6 - 5.75) * e, look = 5.75 + (5.35 - 5.75) * e;
       x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "source-over";
       for (let k = 0; k < SUB; k++) {
         const j = SUB > 1 ? { x: hal(k + 1, 2) - 0.5, y: hal(k + 1, 3) - 0.5, u: hal(k + 1, 19) * 2 - 1, v: hal(k + 1, 29) * 2 - 1, w: hal(k + 1, 23), i: k } : {};
@@ -123,6 +125,7 @@ async function night(workDir) {
   gif({
     frames,
     out: join(publicEmail, "door-night.gif"),
+    work: join(workDir, "gif"),
     w: 600,
     h: 440,
     fps: 15,

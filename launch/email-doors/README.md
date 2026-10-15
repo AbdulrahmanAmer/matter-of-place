@@ -19,4 +19,8 @@ node launch/email-doors/doors.mjs night %TEMP%/door-night   # needs the GPU: Web
 
 Then run `bun run scripts/email-gallery.ts` in `app/` and look at `workspace/08-email-redesign/v2/index.html`. A new GIF
 gets a new file name: `/email/*` is cached for seven days, and mail already sent keeps loading the old address.
-Measured 2026-10-15: `door-day.gif` 125 KB, `door-night.gif` 555 KB (both under the 1 MB ceiling).
+Measured 2026-10-15: the committed `door-day.gif` is 125 KB and `door-night.gif` 555 KB (both under the 1 MB ceiling).
+Run again on this laptop the same day, `day` drew the same picture in 102 KB and `night` the same scenes in 675 KB: the
+Chrome build (`findChrome`) and the GPU path change the bytes, not the picture, so a rerun is a deliberate change of
+the files, looked at before it is committed. `night`'s camera (100 to 60) was measured against the committed GIF's
+first and last frames, whose bright areas it matches to a few pixels.
