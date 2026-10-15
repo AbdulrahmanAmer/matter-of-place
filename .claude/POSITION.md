@@ -1835,3 +1835,24 @@ first day of the new usage week; no step was cut from any plan.
   admin sign-in on this browser to be looked at.
 - Waiting outside our hands: weekly allowance reset Saturday 07:00 (items 13, 14, W6); first real listing (11, 15,
   16); social accounts. Repo still public until the operator switches it back.
+
+- Session 2026-10-15 (Opus 5.5, account dave@omnikom.io, goal: "finish all the remaining parts for real so we can let matter
+  of place run freely and matter working on building anything else that we need"):
+  - Runner stall fixed: hung wscript launchers stopped; every MOP scheduled task now Priority 5 (was 7, starved at 100% CPU).
+    Pause of 2026-10-13 lifted (`~/.mop-workforce/config.json` back to defaults, backup config.paused-2026-10-13.json).
+  - Merged: PR 378 (staff read our site facts and page text, `scripts/workforce/site-facts.ts`), PR 379 (Matter panel remade
+    from scratch: `src/admin/workforce/MatterPanel.tsx`, MessageText.tsx, when.ts; presence touched each minute by
+    `scripts/matter/live.ts`), PR 380 (Brand Film Kit in `launch/brand-film-kit/`, skills brand-film, brand-film-vo-script,
+    brand-film-vo-mix in `.claude/skills/`, reading the repo copy first), PR 381 (`workspace/05-plans/W7.md`: what has no
+    screen and what the staff cannot see, the operator's list for Matter).
+  - Live data change: recipe "Signup confirmed" (subscriber.confirmed) version 2 has step notify_admin_signup ("New interest
+    signup"); before it had no steps, so a confirmed interest signup reached no one.
+  - W5 item 13: all seven colleagues have completed a real assignment; the Editor's and the Chief's were re-run after PR 378
+    and finished (4 proposals reached Approvals; the operator saw them).
+  - Form audit: submission, inquiry and privacy request each email the person and notify the admins and have a screen;
+    interest signup was the only gap (notice added; screen in branch feat/interest-screen, E:/mop-build/interest).
+  - NOT DONE: Interest screen (`/admin/interest`, server `listInterest`, route `api/admin/newsletter.interest.ts`) in its
+    local checks, not pushed. W6 and W7 wait for the operator's line to Matter (ruling H101: only a person's line starts him).
+  - PERSON: Campaigns "Wakes on" subscriber.confirmed (W7 item 14), Meta app for Instagram, the post and video brief, the
+    first real listing, repo back to private when building stops.
+  - UNPROVEN: a real email reply reaching a colleague (W5 item 6); a failing health check reaching the operator (item 19).
