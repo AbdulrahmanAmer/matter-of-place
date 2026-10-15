@@ -40,8 +40,39 @@ const jobEventSchema = z.object({
 
 const jobDetailSchema = jobSchema.extend({ events: z.array(jobEventSchema) });
 
+const eventEntity = {
+  entity: z.string().nullable(),
+  entity_id: z.string().nullable(),
+};
+
+/** The Events panel: no payload is ever sent, so a sealed token in one cannot reach the screen. */
+const eventsSchema = z.object({
+  events: z.array(
+    z.object({
+      id: z.string(),
+      type: z.string(),
+      at: z.string(),
+      ...eventEntity,
+      processed: z.boolean(),
+      recipes: z.array(z.object({ id: z.string(), name: z.string() })),
+    }),
+  ),
+  failures: z.array(
+    z.object({
+      event_id: z.string(),
+      type: z.string(),
+      at: z.string(),
+      ...eventEntity,
+      attempts: z.number(),
+      next_at: z.string(),
+      last_error: z.string().nullable(),
+    }),
+  ),
+});
+
 export type Job = z.infer<typeof jobSchema>;
 export type JobDetail = z.infer<typeof jobDetailSchema>;
+export type EventsAnswer = z.infer<typeof eventsSchema>;
 
 const jobPath = (id: string) => `/api/admin/jobs/${id}`;
 
@@ -52,6 +83,11 @@ export function fetchJobs(query: Readonly<Record<string, string>>) {
     `/api/admin/jobs${search === "" ? "" : `?${search}`}`,
     adminPageAnswer(jobSchema),
   );
+}
+
+/** The last events, the recipes that took each, and the events that failed to plan. */
+export function fetchEvents() {
+  return adminFetch("/api/admin/jobs/events", eventsSchema);
 }
 
 export function fetchJob(id: string) {

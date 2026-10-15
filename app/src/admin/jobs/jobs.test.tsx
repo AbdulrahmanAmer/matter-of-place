@@ -8,6 +8,7 @@ import { AdminMeContext, type AdminMe } from "../ui/admin-me";
 import { mountRoutes, pageRoute } from "../ui/test-router";
 import { ToastProvider } from "../ui/Toast";
 import type { Job } from "./jobs-queries";
+import { EventsPanel } from "./EventsPanel";
 import { JobsPage } from "./JobsPage";
 import { JobsTable } from "./JobsTable";
 
@@ -369,5 +370,130 @@ describe("JobsPage", () => {
         expect(writes(requested)).toEqual([approveRoute]);
       });
     });
+  });
+});
+
+describe("EventsPanel", () => {
+  const EVENTS = "/api/admin/jobs/events";
+  const PLANNED = "e0000000-0000-4000-8000-000000000001";
+  const UNTAKEN = "e0000000-0000-4000-8000-000000000002";
+  const WAITING_EVENT = "e0000000-0000-4000-8000-000000000003";
+  const STUCK = "e0000000-0000-4000-8000-000000000004";
+
+  const event = (id: string, over: object = {}) => ({
+    id,
+    type: "property.published",
+    at: "2026-10-15T10:00:00Z",
+    entity: "property",
+    entity_id: PROPERTY,
+    processed: true,
+    recipes: [],
+    ...over,
+  });
+
+  const answer = {
+    events: [
+      event(PLANNED, { recipes: [{ id: "r1", name: "Property published" }] }),
+      event(UNTAKEN, { type: "inquiry.created", entity: null, entity_id: null }),
+      event(WAITING_EVENT, { type: "story.published", processed: false }),
+    ],
+    failures: [
+      {
+        event_id: STUCK,
+        type: "submission.created",
+        at: "2026-10-15T09:00:00Z",
+        entity: "submission",
+        entity_id: OTHER_PROPERTY,
+        attempts: 3,
+        next_at: "2026-10-15T11:00:00Z",
+        last_error: "no_recipe_matched",
+      },
+    ],
+  };
+
+  const mountPanel = (answers: Record<string, unknown>) => {
+    serve(answers);
+    render(providers(readerActions, <EventsPanel />));
+  };
+
+  it("lists each event with its type, entity, whether it was processed and the recipe that took it", async () => {
+    mountPanel({ [`GET ${EVENTS}`]: answer });
+    const table = within(await screen.findByRole("table", { name: "Events" }));
+    const rows = table.getAllByRole("row").slice(1);
+    expect(
+      rows.map((row) =>
+        within(row)
+          .getAllByRole("cell")
+          .map((cell) => cell.textContent?.trim()),
+      ),
+    ).toEqual([
+      [
+        "property.published",
+        expect.stringContaining("2026"),
+        "property 3f2a9c1d",
+        "Yes",
+        "Property published",
+      ],
+      ["inquiry.created", expect.stringContaining("2026"), "The site", "Yes", "No recipe took it"],
+      [
+        "story.published",
+        expect.stringContaining("2026"),
+        "property 3f2a9c1d",
+        "Not yet",
+        "Not planned yet",
+      ],
+    ]);
+  });
+
+  it("lists an event that failed to plan with its attempts, next try and last error", async () => {
+    mountPanel({ [`GET ${EVENTS}`]: answer });
+    const table = within(await screen.findByRole("table", { name: "Events that failed to plan" }));
+    const row = within(table.getAllByRole("row")[1] ?? document.body);
+    expect(row.getByText("submission.created")).toBeTruthy();
+    expect(row.getByText("3")).toBeTruthy();
+    expect(row.getByText("no_recipe_matched")).toBeTruthy();
+    expect(row.getByRole("link", { name: "submission 9b8e7d6c" }).getAttribute("href")).toBe(
+      `/admin/jobs?entity=${OTHER_PROPERTY}`,
+    );
+  });
+
+  it("draws no failure table when every event planned", async () => {
+    mountPanel({ [`GET ${EVENTS}`]: { events: [event(PLANNED)], failures: [] } });
+    await screen.findByRole("table", { name: "Events" });
+    expect(screen.queryByRole("table", { name: "Events that failed to plan" })).toBeNull();
+  });
+
+  it("says so when no event has happened", async () => {
+    mountPanel({ [`GET ${EVENTS}`]: { events: [], failures: [] } });
+    expect(await screen.findByText("No events yet")).toBeTruthy();
+  });
+
+  it("shows the message when the events cannot be read", async () => {
+    mountPanel({
+      [`GET ${EVENTS}`]: Response.json(
+        { error: { code: "internal", message: "Events are down." } },
+        { status: 500 },
+      ),
+    });
+    expect(await screen.findByText(/Events are down/)).toBeTruthy();
+  });
+
+  it("is part of the Jobs screen, under the table", async () => {
+    serve({
+      [`GET ${LIST}`]: page([system]),
+      [`GET ${DEAD_LIST}`]: page([]),
+      [`GET ${EVENTS}`]: answer,
+    });
+    mountRoutes(
+      () => providers(readerActions, <Outlet />),
+      "/admin/jobs/",
+      (root) => [pageRoute(root, "/admin/jobs/", () => <JobsPage />)],
+    );
+    const heading = await screen.findByRole("heading", { name: "Events" });
+    const tables = (await screen.findAllByRole("table")).map(
+      (table) => table.getAttribute("aria-label") ?? table.querySelector("caption")?.textContent,
+    );
+    expect(heading).toBeTruthy();
+    expect(tables).toContain("Events");
   });
 });

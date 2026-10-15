@@ -4,6 +4,7 @@ import { adminKeys, invalidateAfterWrite } from "../query";
 import {
   approveJob,
   cancelJob,
+  fetchEvents,
   fetchJob,
   fetchJobs,
   retryBulk,
@@ -64,6 +65,14 @@ export function useDeadJobs(type: string | undefined) {
   return useQuery({
     queryKey: adminKeys.jobs.list(query),
     queryFn: () => fetchJobs(query),
+  });
+}
+
+/** The Events panel's one read: the last events and the ones that failed to plan. */
+export function useEvents() {
+  return useQuery({
+    queryKey: [...adminKeys.jobs.all(), "events"],
+    queryFn: fetchEvents,
   });
 }
 
