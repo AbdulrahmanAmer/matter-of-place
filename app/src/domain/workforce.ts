@@ -166,12 +166,21 @@ const activitySchema = z.object({
   finished_at: z.string().nullable(),
 });
 
+/** W6 item 2: the weekly Claude allowance the runner last read on the laptop (`vendor_usage` line `claude_week`). */
+const allowanceSchema = z.object({
+  week: z.number(),
+  resets_at: z.string(),
+  measured_at: z.string(),
+});
+export type Allowance = z.infer<typeof allowanceSchema>;
+
 export const officeSchema = z.object({
   agents: z.array(agentSchema),
   runs: z.array(runSchema),
   pending_approvals: z.number().int().nonnegative(),
   week: z.array(scoreSchema).default([]),
   activity: z.array(activitySchema).default([]),
+  allowance: allowanceSchema.nullable().default(null),
 });
 export type Office = z.infer<typeof officeSchema>;
 

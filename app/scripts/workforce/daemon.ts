@@ -651,8 +651,19 @@ async function pass(client: Db): Promise<void> {
     .neq("state", "working");
   mkdirSync(HOME, { recursive: true });
   // W6 item 1: the staff policy follows the weekly allowance; a change is said once in the team thread.
-  const { policy, changed, unreadable } = refreshPolicy();
-  if (unreadable) console.log(`${new Date().toISOString()} usage: unreadable`);
+  const { policy, changed, reading } = refreshPolicy();
+  if (reading === null) {
+    console.log(`${new Date().toISOString()} usage: unreadable`);
+  } else {
+    // W6 item 2: the Office's header reads this line (a vendor line: a settings write would bump the catalog).
+    const { error } = await client.rpc("record_vendor_usage", {
+      p_line: "claude_week",
+      p_used: reading.weekPercent,
+      p_limit: 100,
+      p_note: reading.resetsAt.toISOString(),
+    });
+    if (error !== null) console.log(`${new Date().toISOString()} usage: not recorded`);
+  }
   if (changed) await say(client, "team", policy.reason);
   const until = breakerUntil(BREAKER_FILE);
   if (until !== null) {

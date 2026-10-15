@@ -121,7 +121,8 @@ describe("the staff policy from the weekly allowance", () => {
       true,
       false,
     ]);
-    expect(unreadable).toMatchObject({ unreadable: true, policy: { matterModel: OPUS, week: 1 } });
+    expect(unreadable).toMatchObject({ reading: null, policy: { matterModel: OPUS, week: 1 } });
+    expect(switched.reading).toEqual({ weekPercent: 1, resetsAt: new Date(RESET * 1000) });
     expect(JSON.parse(readFileSync(files.policy, "utf8"))).toMatchObject({
       backlog: "all",
       week: 1,
