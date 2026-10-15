@@ -8343,3 +8343,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
 - proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
 - added: 2026-10-15
+
+## P-3573 · `watchfail.mjs --only` takes the bare entry id; `PLAN:id` selects nothing and prints nothing
+- symptom: 2026-10-15, W8 0e: a loop of `node scripts/watchfail.mjs --registry tests/mutations --only W8-0:<id>` over eleven entries printed no line at all, which a grep for `WATCHED` turned into silence that looked like a pass.
+- rule: pass the id as written in the registry (`--only w8-0e-hire-slug`); the `W8-0:` prefix appears only in the output. A loop that greps the output also greps `replayed` so an empty selection shows as `replayed 0`.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0r4-gate-hold` → `WATCHED-FAIL OK W8-0:w8-0r4-gate-hold` and `replayed 1`; with `--only W8-0:w8-0r4-gate-hold` → nothing replayed (measured 2026-10-15).
+- added: 2026-10-16
+
+## P-3574 · `builders/launch.sh` starts the builder but never returns while the laptop is loaded
+- symptom: 2026-10-15, render window: both `bash ~/.mop-workforce/builders/launch.sh <item> <worktree>` calls ran past their 10- and 30-minute limits and were stopped; the first builder was running, the second had never been started because the script never reached it.
+- rule: launch one builder per background command, never two in a row in one command, and prove it from its log instead of the launcher's last line: `run.jsonl` grows and its init event names the model (`python E:/mop-build/.tmp/builder-result.py <run.jsonl>`). Stopping the launcher's wrapper does not stop the builder.
+- proof: `ls -la ~/.mop-workforce/builders/w7-3-fix/run.jsonl` grew from 257732 to 315924 bytes after its launcher was stopped, and its init event reads `model: claude-sonnet-5-5` (2026-10-16).
+- added: 2026-10-16

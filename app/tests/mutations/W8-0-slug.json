@@ -1,0 +1,11 @@
+[
+  {
+    "id": "w8-0e-slug-check-table",
+    "test": "tests/db/workforce.db.test.ts",
+    "file": "supabase/migrations/20261015213455_agents_slug_not_account_id.sql",
+    "find": "  check (slug !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');",
+    "replace": "  check (true);",
+    "run": "bunx vitest run --project db tests/db/workforce.db.test.ts",
+    "expect": "× .*refuses a handle shaped like an account id"
+  }
+]
