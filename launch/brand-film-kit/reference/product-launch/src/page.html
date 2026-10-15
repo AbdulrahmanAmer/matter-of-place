@@ -1,0 +1,263 @@
+<title>Matter of Place Product Launch</title>
+<style>
+/* Layout: one film stage, a control rail beneath it, and the ten shots as a timeline row. */
+:root {
+  --bg: #EEEAE1;        /* bone */
+  --fg: #11110F;        /* obsidian */
+  --muted: #625F58;
+  --line: rgba(17, 17, 15, 0.17);
+  --rail: #F6F3EC;      /* ivory */
+  --accent: #7A6C54;    /* sandstone, deepened for text on bone */
+  --stage: #11110F;
+  --on-stage: #EEEAE1;
+  --serif: "MoP Serif", Georgia, "Times New Roman", serif;
+  --sans: "MoP Sans", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #11110F; --fg: #EEEAE1; --muted: #9E9A91; --line: rgba(238, 234, 225, 0.17); --rail: #191917; --accent: #C6B8A0; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #11110F; --fg: #EEEAE1; --muted: #9E9A91; --line: rgba(238, 234, 225, 0.17); --rail: #191917; --accent: #C6B8A0; color-scheme: dark; }
+/*__FONTS__*/
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }      /* the page must not rely on its host for this: the fallback and the icons are switched with the hidden attribute */
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(16px, 4vw, 44px); padding-block: clamp(20px, 3.4vw, 40px) 56px; display: grid; gap: clamp(16px, 2.2vw, 26px); }
+.mast { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; }
+.mast h1 { margin: 0; font-family: var(--serif); font-size: clamp(26px, 3.2vw, 36px); font-weight: 300; line-height: 1.1; letter-spacing: -0.01em; text-wrap: balance; }
+.caps { margin: 0; font-size: 11.5px; font-weight: 500; letter-spacing: 0.26em; text-transform: uppercase; color: var(--muted); }
+
+.player { border: 1px solid var(--line); background: var(--rail); min-width: 0; }
+.stage { background: var(--stage); line-height: 0; }
+.frame { position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden; isolation: isolate; background: var(--stage); }
+.frame canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+#gl { cursor: pointer; }
+#hud { pointer-events: none; }
+/* grain and vignette sit over the picture so the compositor carries them, not the per-frame draw */
+.vig, .grain { position: absolute; inset: 0; pointer-events: none; }
+.vig { background: radial-gradient(circle farthest-corner at 50% 50%, rgba(0, 0, 0, 0) 43.6%, rgba(0, 0, 0, 0.8625) 100%); opacity: 0.26; }
+.grain i { position: absolute; inset: -400px; background-repeat: repeat; will-change: transform; }
+.grain i:first-child { mix-blend-mode: overlay; opacity: 0.1; }
+.grain i:last-child { mix-blend-mode: screen; opacity: 0.02; }
+.fallback { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; padding: 24px; text-align: center; line-height: 1.5; color: var(--on-stage); font-family: var(--serif); font-size: clamp(16px, 2.4vw, 24px); font-weight: 300; }
+.player:fullscreen { display: grid; grid-template-rows: minmax(0, 1fr) auto; border: 0; background: #000; }
+.player:fullscreen .stage { display: grid; place-items: center; min-height: 0; background: #000; }
+.player:fullscreen .frame { width: min(100%, calc((100vh - 60px) * 16 / 9)); }
+
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 12px; border-top: 1px solid var(--line); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: 500 11.5px/1 var(--sans); letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--fg); }
+.btn[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn svg { width: 12px; height: 12px; fill: currentColor; }
+.btn.icon { width: 36px; padding: 0; }
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.seek { position: relative; flex: 1 1 220px; min-width: 0; height: 36px; display: grid; align-items: center; }
+.seek input { -webkit-appearance: none; appearance: none; position: relative; z-index: 1; width: 100%; height: 36px; margin: 0; background: transparent; cursor: pointer; }
+.seek input::-webkit-slider-runnable-track { height: 2px; background: linear-gradient(to right, var(--fg) var(--p, 0%), var(--line) var(--p, 0%)); }
+.seek input::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -5px; border-radius: 50%; background: var(--fg); }
+.seek input::-moz-range-track { height: 2px; background: var(--line); }
+.seek input::-moz-range-progress { height: 2px; background: var(--fg); }
+.seek input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--fg); }
+.ticks { position: absolute; inset: 0; pointer-events: none; }
+.ticks i { position: absolute; top: calc(50% + 6px); width: 1px; height: 7px; background: var(--muted); }
+.time { min-width: 5.6em; font-size: 12.5px; font-weight: 500; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+
+.shots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px 14px; }
+.shots li { min-width: 0; }
+.shots button { display: grid; gap: 4px; width: 100%; padding: 12px 0 0; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+.shots button:hover { border-top-color: var(--fg); }
+.shots button[aria-current="true"] { border-top-color: var(--fg); box-shadow: inset 0 1px 0 var(--fg); }
+.shots .tc { font-size: 11.5px; font-weight: 500; letter-spacing: 0.16em; font-variant-numeric: tabular-nums; color: var(--muted); }
+.shots button[aria-current="true"] .tc { color: var(--accent); }
+.shots .nm { font-family: var(--serif); font-size: 21px; font-weight: 300; line-height: 1.15; }
+.shots .ln { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.note { margin: 0; max-width: 65ch; font-size: 13px; color: var(--muted); }
+@media (max-width: 860px) { .shots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 520px) {
+  .shots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .btn { padding: 0 10px; letter-spacing: 0.14em; }
+  .time { min-width: 0; text-align: left; }
+  .seek { flex-basis: 180px; }
+}
+</style>
+
+<main class="wrap">
+  <header class="mast">
+    <h1>Product Launch</h1>
+    <p class="caps">Matter of Place · 30 seconds · 16:9</p>
+  </header>
+
+  <section class="player" id="player" aria-label="Matter of Place product launch film">
+    <div class="stage" id="stage"><div class="frame" id="frame">
+      <canvas id="gl" width="1920" height="1080" role="img" aria-label="A 30-second film. In a dark hall with a polished floor, a doorway shaped like the Matter of Place emblem opens and light pours through, with the line: Not every home is accepted. The camera goes through it into a bright gallery of architectural models on plinths, rises to a plan view while all but one sink back into the floor and leave only their outlines, then comes down to orbit the chosen house until a frame squares up around it. The photograph becomes a page; as night falls the page sends cards out along four lanes, one each for Instagram, X, LinkedIn and Place Notes. The film cuts between California, New York and Florida. Four exposure packages rise on a dark stage with their prices. Price never equals merit. The camera pulls back through the doorway, which closes and becomes the emblem above the wordmark.">Matter of Place product launch film.</canvas>
+      <canvas id="hud" width="1920" height="1080" aria-hidden="true"></canvas>
+      <div class="vig" id="vig"></div>
+      <div class="grain" id="grain"><i></i><i></i></div>
+      <p class="fallback" id="fallback" hidden>This film is drawn in 3D and needs WebGL, which this browser has turned off. The MP4 plays everywhere.</p>
+    </div></div>
+    <div class="bar">
+      <button class="btn icon" id="play" type="button" aria-label="Pause">
+        <svg id="ico-pause" viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1" width="3" height="10"/><rect x="7.5" y="1" width="3" height="10"/></svg>
+        <svg id="ico-play" viewBox="0 0 12 12" aria-hidden="true" hidden><path d="M2.5 1 10.5 6 2.5 11Z"/></svg>
+      </button>
+      <div class="seek">
+        <input id="seek" type="range" min="0" max="30" step="0.01" value="0" aria-label="Position in film, seconds">
+        <div class="ticks" id="ticks" aria-hidden="true"></div>
+      </div>
+      <output class="time" id="time" for="seek">0:00.0 / 0:30</output>
+      <button class="btn" id="sound" type="button" aria-pressed="false">Sound off</button>
+      <button class="btn" id="full" type="button">Full screen</button>
+    </div>
+  </section>
+
+  <ol class="shots" id="shots" aria-label="Shots in the film">
+    <li><button type="button" data-t="0"><span class="tc">0:00</span><span class="nm">The door</span><span class="ln">Not every home is accepted.</span></button></li>
+    <li><button type="button" data-t="3.75"><span class="tc">0:03.7</span><span class="nm">Submissions</span><span class="ln">A low glide over the plinths.</span></button></li>
+    <li><button type="button" data-t="6.75"><span class="tc">0:06.7</span><span class="nm">Curate</span><span class="ln">Seen in plan. One is kept; the rest become drawings.</span></button></li>
+    <li><button type="button" data-t="9.75"><span class="tc">0:09.7</span><span class="nm">Frame</span><span class="ln">An orbit that ends in the photograph.</span></button></li>
+    <li><button type="button" data-t="12"><span class="tc">0:12</span><span class="nm">Publish</span><span class="ln">The photograph becomes a page.</span></button></li>
+    <li><button type="button" data-t="15"><span class="tc">0:15</span><span class="nm">Distribute</span><span class="ln">Four lanes of cards, at nightfall.</span></button></li>
+    <li><button type="button" data-t="17.25"><span class="tc">0:17.2</span><span class="nm">Markets</span><span class="ln">California, New York, Florida.</span></button></li>
+    <li><button type="button" data-t="21.75"><span class="tc">0:21.7</span><span class="nm">Packages</span><span class="ln">Four, paid only after acceptance.</span></button></li>
+    <li><button type="button" data-t="24.75"><span class="tc">0:24.7</span><span class="nm">Principle</span><span class="ln">Price never equals merit.</span></button></li>
+    <li><button type="button" data-t="27"><span class="tc">0:27</span><span class="nm">Lockup</span><span class="ln">The door becomes the mark.</span></button></li>
+  </ol>
+
+  <p class="note">Drawn live in 3D from the supplied emblem and wordmark. Space plays and pauses, the bar scrubs, and the sound is off until you turn it on. The MP4 is the same film rendered offline at 1080p and 60 frames a second, with depth of field, motion blur and softer shadows.</p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+if (!window.THREE) { document.getElementById('fallback').hidden = false; }
+else {
+__FILM_JS__
+
+window.Launch = Launch; window.Film = Launch; window.Score = Score;
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const gl = $('gl'), hudC = $('hud'), hctx = hudC.getContext('2d'), stage = $('stage'), player = $('player');
+  const btnPlay = $('play'), icoPlay = $('ico-play'), icoPause = $('ico-pause'), seek = $('seek'), timeOut = $('time'), btnSound = $('sound'), btnFull = $('full');
+  const shots = Array.from(document.querySelectorAll('#shots button')), beats = shots.map(b => parseFloat(b.dataset.t));
+  const vig = $('vig'), grains = Array.from(document.querySelectorAll('#grain i'));
+  const DUR = Launch.DUR;
+  let t = 0, playing = false, last = 0, dirty = true, scrubbing = false, resume = false, ok = false;
+  let ac = null, out = null, buf = null, src = null, soundOn = false, aStart = 0, aOffset = 0;
+  let quality = 1, slow = 0, gScale = 1, gKey = -1, vKey = -1;
+
+  $('ticks').innerHTML = beats.map(b => `<i style="left:calc(6px + (100% - 12px) * ${b / DUR})"></i>`).join('');
+  try { const url = `url(${Launch.grainTile().toDataURL('image/png')})`; grains.forEach(g => { g.style.backgroundImage = url; }); } catch (e) {}
+
+  function fit() {
+    if (!ok) return;
+    const w = gl.clientWidth || stage.clientWidth || 960, dpr = window.devicePixelRatio || 1;
+    const r = Math.min(1.5, Math.max(0.5, (w * dpr) / Launch.W)) * quality;
+    const cw = Math.round(Launch.W * r), ch = Math.round(Launch.H * r);
+    if (gl.width !== cw || gl.height !== ch) Launch.size(cw, ch);
+    if (hudC.width !== cw || hudC.height !== ch) { hudC.width = cw; hudC.height = ch; }
+    Launch.setRatio(cw / Launch.W);
+    gScale = w / Launch.W; gKey = -1;
+    grains.forEach(g => { g.style.backgroundSize = Math.max(64, 384 * gScale) + 'px'; });
+    dirty = true;
+  }
+  function overlays() {
+    const k = Math.floor(t * 24);
+    if (k !== gKey) { gKey = k; const s = Launch.grainShift(t), m = Math.max(64, 384 * gScale) / 256; grains.forEach((g, i) => { g.style.transform = `translate3d(${(-((s[i] * m) % 380)).toFixed(1)}px,${(-((s[1 - i] * m) % 380)).toFixed(1)}px,0)`; }); }
+    const v = Math.round(Launch.vignette(t) * 200);
+    if (v !== vKey) { vKey = v; vig.style.opacity = (v / 200).toFixed(3); }
+  }
+  function draw() { Launch.render(t); Launch.hud(hctx, t); overlays(); }
+
+  function stopAudio() { if (src) { try { src.stop(); } catch (e) {} try { src.disconnect(); } catch (e) {} src = null; } }
+  function startAudio(at) {
+    stopAudio();
+    if (!soundOn || !buf || !ac) return;
+    src = ac.createBufferSource(); src.buffer = buf; src.connect(out);
+    aStart = ac.currentTime + 0.04; aOffset = at; src.start(aStart, Math.min(at, DUR - 0.01));
+  }
+  function play() { if (playing || !ok) return; if (t >= DUR - 0.02) t = 0; playing = true; startAudio(t); ui(); }
+  function pause() { if (!playing) return; playing = false; stopAudio(); ui(); }
+  function seekTo(v) { t = Math.min(DUR, Math.max(0, v)); dirty = true; if (playing) startAudio(t); }
+
+  function ui() {
+    icoPlay.toggleAttribute('hidden', playing); icoPause.toggleAttribute('hidden', !playing);
+    btnPlay.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    if (!scrubbing) seek.value = t.toFixed(2);
+    seek.style.setProperty('--p', (t / DUR) * 100 + '%');
+    const ds = Math.min(DUR * 10, Math.floor(t * 10 + 1e-6)), txt = `0:${String(Math.floor(ds / 10)).padStart(2, '0')}.${ds % 10} / 0:30`;
+    if (timeOut.textContent !== txt) timeOut.textContent = txt;
+    let cur = 0; for (let i = 0; i < beats.length; i++) if (t >= beats[i] - 0.001) cur = i;
+    shots.forEach((b, i) => { const on = i === cur; if ((b.getAttribute('aria-current') === 'true') !== on) { if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); } });
+  }
+  function loop(ts) {
+    if (playing) {
+      // if this device can't keep up, give up resolution before giving up frames
+      slow = ts - last > 36 ? slow + 1 : Math.max(0, slow - 0.25);
+      if (slow > 30 && quality > 0.45) { quality *= 0.75; slow = 0; fit(); }
+      if (src && ac) t = aOffset + Math.max(0, ac.currentTime - aStart);
+      else t += Math.min(0.1, Math.max(0, (ts - last) / 1000));
+      if (t >= DUR) { t = t % DUR; startAudio(t); }
+      dirty = true;
+    }
+    last = ts;
+    if (dirty && ok) { draw(); ui(); dirty = false; }
+    requestAnimationFrame(loop);
+  }
+  async function toggleSound() {
+    if (soundOn) { soundOn = false; stopAudio(); btnSound.textContent = 'Sound off'; btnSound.setAttribute('aria-pressed', 'false'); return; }
+    try {
+      if (!ac) { const AC = window.AudioContext || window.webkitAudioContext; ac = new AC(); out = ac.createGain(); out.connect(ac.destination); }
+      const resumed = ac.state === 'suspended' ? ac.resume() : null;
+      btnSound.textContent = 'Loading';
+      if (resumed) await resumed;
+      if (!buf) buf = await Score.render(ac.sampleRate);
+      soundOn = true; btnSound.textContent = 'Sound on'; btnSound.setAttribute('aria-pressed', 'true');
+      if (playing) startAudio(t);
+    } catch (e) { soundOn = false; btnSound.textContent = 'No sound here'; btnSound.setAttribute('aria-pressed', 'false'); }
+  }
+
+  btnPlay.addEventListener('click', () => (playing ? pause() : play()));
+  gl.addEventListener('click', () => (playing ? pause() : play()));
+  btnSound.addEventListener('click', toggleSound);
+  btnFull.addEventListener('click', () => {
+    if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
+    if (player.requestFullscreen) player.requestFullscreen().catch(() => {});
+  });
+  document.addEventListener('fullscreenchange', () => { btnFull.textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; requestAnimationFrame(fit); });
+  seek.addEventListener('pointerdown', () => { scrubbing = true; if (playing) { resume = true; pause(); } });
+  seek.addEventListener('input', () => seekTo(parseFloat(seek.value)));
+  const release = () => { if (!scrubbing) return; scrubbing = false; if (resume) { resume = false; play(); } };
+  seek.addEventListener('pointerup', release); seek.addEventListener('pointercancel', release); seek.addEventListener('change', release);
+  shots.forEach(b => b.addEventListener('click', () => { seekTo(parseFloat(b.dataset.t)); play(); }));
+  document.addEventListener('keydown', e => {
+    const tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'BUTTON' || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === ' ' || e.key === 'k') { e.preventDefault(); playing ? pause() : play(); }
+    else if (e.key === 'm') toggleSound();
+  });
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(stage); else window.addEventListener('resize', fit);
+  gl.addEventListener('webglcontextlost', e => { e.preventDefault(); });
+  gl.addEventListener('webglcontextrestored', () => { Launch.lost(); dirty = true; });
+
+  // a handle for anything that wants to drive the film from outside
+  window.matterOfPlaceFilm = window.film = { play, pause, seek: seekTo, get time() { return t; }, duration: DUR };
+
+  async function start(saved) {
+    saved = saved || {};
+    try { await Promise.all(Launch.fonts.map(fn => document.fonts.load(fn, 'Aa'))); } catch (e) {}
+    Launch.resetMeasure();
+    // phones get smaller shadow maps: five lit worlds are a lot of memory otherwise
+    const small = Math.min(window.innerWidth, window.innerHeight) < 620 || (navigator.maxTouchPoints > 1 && window.innerWidth < 1100);
+    try { Launch.init(gl, { aa: true, soft: true, shadow: small ? 1024 : 2048 }); ok = true; } catch (e) { $('fallback').hidden = false; hudC.hidden = true; ui(); return; }
+    fit();
+    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    t = typeof saved.t === 'number' ? saved.t : still ? 29.2 : 0;
+    dirty = true;
+    if (!still && saved.playing !== false) play(); else ui();
+    requestAnimationFrame(ts => { last = ts; loop(ts); });
+  }
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) hot.snapshot(() => ({ t, playing }));
+  if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
+})();
+}
+</script>
