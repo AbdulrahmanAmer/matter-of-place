@@ -180,6 +180,8 @@ const MEDIA_HOMES = [
   "workspace/03-diagrams/img/",
   "workspace/08-visual-pass/pairs/",
   "workspace/08-creative/options/",
+  // Every email drawn with pictures on and off by scripts/email-gallery.ts (the email redesign, 2026-10-15).
+  "workspace/08-email-redesign/",
   "brand/",
   "launch/",
 ];

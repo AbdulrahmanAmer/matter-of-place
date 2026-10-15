@@ -44,6 +44,11 @@ export const emailWords: Record<EmailTemplateKey, EmailWords> = {
     to: "a new Place Notes reader",
     topic: "Readers",
   },
+  newsletter_welcome: {
+    name: "Welcome",
+    to: "someone who has just confirmed, once",
+    topic: "Readers",
+  },
   repermission: {
     name: "Still want Place Notes?",
     to: "readers who have not opened in a long while",
