@@ -15,8 +15,9 @@ const lane = mkdtempSync(join(tmpdir(), "mop-lane-"));
 copyFileSync(join(root, "GOTCHAS.md"), join(lane, "GOTCHAS.md"));
 writeFileSync(join(lane, ".git"), "gitdir: stand-in for a worktree\n");
 
-const ask = (file_path) => {
-  const r = spawnSync("node", [hook], { input: JSON.stringify({ tool_name: "Edit", tool_input: { file_path } }), encoding: "utf8" });
+const ask = (file_path, new_string) => {
+  const tool_input = new_string === undefined ? { file_path } : { file_path, old_string: "x", new_string };
+  const r = spawnSync("node", [hook], { input: JSON.stringify({ tool_name: "Edit", tool_input }), encoding: "utf8" });
   if (!r.stdout.trim()) return "silent";
   const h = JSON.parse(r.stdout).hookSpecificOutput;
   return h.permissionDecision === "deny" ? "deny" : "context";
@@ -28,10 +29,13 @@ const cases = [
   ["lane, generated route tree", join(lane, "app/src/routeTree.gen.ts"), "deny"],
   ["lane, wordmark component", join(lane, "app/src/components/brand/wordmark.tsx"), "context"],
   ["outside any tree", join(tmpdir(), "mop-outside-file.txt"), "silent"],
+  // A `content:` entry (G-1451) fires on what is written, in a file no `paths:` names.
+  ["content, a negative-pid kill in any file", join(root, "README.md"), "context", "else process.kill(-pid, 'SIGKILL');"],
+  ["content, a plain kill in the same file", join(root, "README.md"), "silent", "process.kill(pid, 'SIGTERM');"],
 ];
 let bad = 0;
-for (const [name, file, want] of cases) {
-  const got = ask(file);
+for (const [name, file, want, text] of cases) {
+  const got = ask(file, text);
   if (got !== want) bad++;
   console.log(`${got === want ? "ok  " : "FAIL"} ${name}: ${got}${got === want ? "" : ` (expected ${want})`}`);
 }
