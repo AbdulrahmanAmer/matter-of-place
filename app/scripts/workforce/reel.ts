@@ -287,11 +287,19 @@ export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string
 }
 
 /** The second chance: what the gate refused, and the same rules. The idea stays; the scene is revised in place. */
+/** How many times a refused film goes back to the designer before the reel stops. */
+export const REVISIONS = 2;
+
 export function revisePrompt(refusal: string): string {
+  const reviewer = refusal.startsWith("review_refused");
   return [
-    `Your scene in scene/ was filmed and the motion gate refused it: ${refusal}.`,
+    reviewer
+      ? `Your scene in scene/ was filmed, passed the motion gate, and a fresh reviewer looking at its stills refused it: ${refusal}.`
+      : `Your scene in scene/ was filmed and the motion gate refused it: ${refusal}.`,
     GATE_RULES,
-    "Revise scene/scene.mjs (and cues.mjs if the sound failed) so the film passes every check. Keep the idea, the titles and the house rules; change the motion, the cuts or the sound, not the design's intent.",
+    reviewer
+      ? "Fix every point the reviewer named in scene/scene.mjs (keep each title whole and inside the safe area, clear of busy picture and of other labels; no frame may be empty or show a half-drawn line, since titles rise and leave through masks and never fade). Keep the idea, the titles and the house rules, and keep the film passing the gate."
+      : "Revise scene/scene.mjs (and cues.mjs if the sound failed) so the film passes every check. Keep the idea, the titles and the house rules; change the motion, the cuts or the sound, not the design's intent.",
     'End with one JSON object on its own: {"duration_s": <seconds>, "note": "what you changed"}.',
   ].join("\n\n");
 }
@@ -380,22 +388,32 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
       if (!existsSync(join(folder, "scene", file))) throw new Error(`scene_missing: ${file}`);
     }
     const spec = { kind: "requested_reel", titles: request.titles, shots: placed };
-    // The motion gate judges the film; the designer revises once with its refusal, and a second refusal stops the reel.
-    let filmed;
-    try {
-      filmed = await deps.render(folder, spec);
-    } catch (failure: unknown) {
-      const refusal = failure instanceof Error ? failure.message : String(failure);
-      if (!refusal.startsWith("gate_failed")) throw failure;
+    // The motion gate and then the fresh reviewer judge each film; a refusal from either goes back to the designer, at
+    // most REVISIONS times in all, and the next refusal stops the reel (the first that passed the gate was refused in
+    // review for a clipped title, a crowded frame and a half-rendered line).
+    let made: { filmed: Awaited<ReturnType<ReelDeps["render"]>>; final: string } | null = null;
+    for (let revisions = 0; made === null; revisions += 1) {
+      let refusal: string;
+      try {
+        const filmed = await deps.render(folder, spec);
+        const final =
+          lines.length === 0 || deps.voice === null
+            ? filmed.mp4
+            : await deps.voice(folder, filmed.mp4, lines);
+        const verdict = readVerdict(await deps.review(folder, final, reviewPrompt(brief)));
+        if (verdict.pass) {
+          made = { filmed, final };
+          break;
+        }
+        refusal = `review_refused: ${verdict.reasons.join("; ")}`;
+      } catch (failure: unknown) {
+        refusal = failure instanceof Error ? failure.message : String(failure);
+        if (!refusal.startsWith("gate_failed")) throw failure;
+      }
+      if (revisions >= REVISIONS) throw new Error(refusal);
       await deps.design(folder, revisePrompt(refusal));
-      filmed = await deps.render(folder, spec);
     }
-    const final =
-      lines.length === 0 || deps.voice === null
-        ? filmed.mp4
-        : await deps.voice(folder, filmed.mp4, lines);
-    const verdict = readVerdict(await deps.review(folder, final, reviewPrompt(brief)));
-    if (!verdict.pass) throw new Error(`review_refused: ${verdict.reasons.join("; ")}`);
+    const { filmed, final } = made;
 
     const video = deps.readFile(final);
     const files = [
