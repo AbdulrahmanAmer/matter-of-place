@@ -18,6 +18,26 @@ import { readLearned, signatures } from "./background-learner.mjs";
 const LONG =
   /(\bvitest\b|\bbun run (check|test|test:db|build|knip|typecheck|lint|jscpd)\b|\bbunx (tsc|vitest|eslint|knip|playwright)\b|\btsc --noEmit\b|watchfail\.mjs|local-ci\.mjs|deploy-local\.mjs|gate-loop\.sh|\bbun install\b|\bnpm (ci|install)\b|playwright test|supabase (db push|functions deploy)|wrangler deploy|bundle-check\.mjs)/;
 
+// A command that only reads or searches text (grep watchfail.mjs, git show x:local-ci.mjs) names a long tool without
+// running it, so LONG is tested only on the pieces that run something else.
+const READER = /^(grep|rg|sed|awk|cat|head|tail|wc|ls|echo|printf|cut|sort|uniq|tr|jq|git (show|log|diff|grep|blame|status))\b/;
+
+/** Whether any piece of the command (split at ; && || | and newlines) that is not a reader matches the pattern. */
+function runs(command, pattern, quotedCounts = true) {
+  // A quoted argument (a grep pattern with \| in it) is one word, never a place to split. Its text counts for a long
+  // command (`bash "$S/gate-loop.sh"`) but not for a program name (a log line that mentions wrangler).
+  const quoted = [];
+  return command
+    .replace(/<<-?\s*['"]?(\w+)['"]?([^\n]*)\n[\s\S]*?\n\1[ \t]*(?=\n|$)/g, (_, tag, rest) => `<<${tag}${rest}`)
+    .replace(/"(?:[^"\\]|\\.)*"|'[^']*'/g, (q) => `\u0000${String(quoted.push(q) - 1)}\u0000`)
+    .split(/&&|\|\||[;|\n]/)
+    .map((piece) => piece.replace(/\u0000(\d+)\u0000/g, (_, i) => (quotedCounts ? quoted[Number(i)] : '""')))
+    .map((piece) => piece.trim().replace(/^(\w+=\S*\s+)+/, "").replace(/^cd\s+\S+\s*$/, ""))
+    .some((piece) => piece !== "" && !READER.test(piece) && pattern.test(piece));
+}
+
+const runsLong = (command) => runs(command, LONG);
+
 /** Undo bash's double-quote escapes: inside "...", only \\ \" \$ \` and a backslash-newline are escapes. */
 function unescapeDouble(text) {
   return text.replace(/\\([\\"$`\n])/g, (_, ch) => (ch === "\n" ? "" : ch));
@@ -127,12 +147,25 @@ export function shape(input, io = {}) {
   if (/(\bpython3?\s+-c\b|<<-?\s*\w+\s*\n)/.test(command) && command.includes("\\")) {
     return { deny: "An inline python script or an unquoted heredoc with a backslash cannot be rewritten safely (P-008): write it to a file with the Write tool and run the file." };
   }
+  // Matter of Place P-530, hit twice: the shell holds the operator's personal Cloudflare token, and `bun --env-file`
+  // does not replace a variable that is already set, so a wrangler call meant for the project writes to another account.
+  const env = io.env ?? process.env;
+  if (
+    runs(command, /(^|\s)wrangler(\s|$)/, false) &&
+    /matter of place|mop-build/i.test(`${cwd} ${command}`) &&
+    (env.CLOUDFLARE_API_TOKEN ?? "") !== "" &&
+    !/env -u CLOUDFLARE_API_TOKEN|CLOUDFLARE_API_TOKEN=|\bcfw?\.mjs\b/.test(command)
+  ) {
+    return {
+      deny: "This shell holds the personal Cloudflare token, and `bun --env-file` does not replace it (P-530): wrangler would act on the wrong account. Run it as `env -u CLOUDFLARE_API_TOKEN -u CLOUDFLARE_ACCOUNT_ID <command that loads .env into wrangler's own process>`, or through the project runner that reads the pair from .env.",
+    };
+  }
   // Long by the list, by what the operator once backgrounded by hand (background-learned.json), or by the command's own
   // stated time limit of a minute or more.
   const learned = io.learned ?? readLearned();
   const longByLimit = [...command.matchAll(/\btimeout\s+(\d+)\b/g)].some((m) => Number(m[1]) >= 60);
   const longByLearning = signatures(command).some((sig) => learned.includes(sig));
-  const background = input.run_in_background !== true && (LONG.test(command) || longByLimit || longByLearning);
+  const background = input.run_in_background !== true && (runsLong(command) || longByLimit || longByLearning);
   if (notes.length === 0 && !background) return null;
   if (background) notes.push("long command sent to the background");
   return { input: { ...input, command, ...(background ? { run_in_background: true } : {}) }, notes };

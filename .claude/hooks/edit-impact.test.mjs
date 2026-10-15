@@ -1,7 +1,7 @@
 // node .claude/hooks/edit-impact.test.mjs: each case is one of the failures of 2026-10-13 the hook must have caught.
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
-import { expectedTitle, exportedNames, findings } from "./edit-impact.mjs";
+import { expectedTitle, exportedNames, findings, importsFrom, templatedTitles } from "./edit-impact.mjs";
 
 const root = resolve("E:/repo");
 const at = (p) => resolve(root, p);
@@ -63,6 +63,13 @@ it("flags an export nothing else uses (knip: activitySchema)", () => {
 it("names the companion of .env.example (runbook-lint) and of a new table (the RLS seed row)", () => {
   assert.ok(run({ file: at("app/.env.example"), text: "X=" }).some((l) => l.includes("rotation.md")));
   assert.ok(run({ file: at("app/supabase/migrations/1_x.sql"), text: "create table public.t (id int);" }).some((l) => l.includes("rls.db.test.ts")));
+  // PR 375: watchfail.mjs read process.env.X and the scripts tsc (TS4111) failed CI's check job.
+  assert.ok(run({ file: at("app/scripts/watchfail.mjs"), text: "const a = 1;" }).some((l) => l.includes("tsconfig.scripts.json")));
+});
+
+it("reads an import from a dotted file name (a stem with a dot once broke the import regex)", () => {
+  assert.deepEqual([...importsFrom('import { a, b as c } from "./x.config";', "x.config").names], ["a", "b"]);
+  assert.equal(importsFrom('import { a } from "./xyconfig";', "x.config").any, false);
 });
 
 it("reads export names and expected titles", () => {
@@ -82,3 +89,13 @@ for (const [name, fn] of cases) {
   }
 }
 process.exit(failed === 0 ? 0 : 1);
+
+it("matches a concrete title against an it.each title with a placeholder (rls matrix: as $label)", () => {
+  const [re] = templatedTitles('it.each(probes)("as $label, every table and operation matches the matrix", async () => {});');
+  assert.ok(re?.test("as commercial, every table and operation matches the matrix"));
+  assert.equal(re?.test("as commercial, every view matches"), false);
+});
+
+it("names the index import of a new admin stylesheet (PR 379: matter-panel.css out of alphabetical order)", () => {
+  assert.ok(run({ file: at("app/src/styles/admin/matter-panel.css"), text: ".a {}" }).some((l) => l.includes("alphabetical")));
+});

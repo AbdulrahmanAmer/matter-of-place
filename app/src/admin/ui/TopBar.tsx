@@ -1,7 +1,7 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { activeScreen, areaLabels, areaOf, navEntries } from "../nav";
-import { SideChat } from "../workforce/SideChat";
+import { MatterPanel } from "../workforce/MatterPanel";
 import { AccountMenu } from "./AccountMenu";
 import { AdminSearch } from "./AdminSearch";
 import { useAdminMe } from "./admin-me";
@@ -43,7 +43,7 @@ export function TopBar() {
           >
             Matter
           </button>
-          <SideChat
+          <MatterPanel
             open={chatOpen}
             onClose={() => {
               setChatOpen(false);

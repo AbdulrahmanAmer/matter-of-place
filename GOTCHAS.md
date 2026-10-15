@@ -8003,3 +8003,34 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: resolve a conflict with the Edit tool, then `grep -c '^<<<<<<<'` the file, and only then commit; chain with `&&`, never `;`, when a later step commits. Start a full check with `timeout: 7200000`. On the loaded laptop a vitest timeout of the 60 s kind is load, not a fault: rerun that file alone, and let CI decide.
 - proof: `grep -rn '^<<<<<<<' app/scripts` prints nothing after the merge; `tail /tmp/w4-test.log` shows `Test Files  1 failed | 400 passed (401)` with `Test timed out in 60000ms`.
 - added: 2026-10-13
+
+## P-3461 · Scheduled tasks at the default priority 7 starve when the laptop sits at 100% CPU
+- symptom: 2026-10-15, the workforce runner and Matter's live session made no progress for hours: the laptop ran at 100% CPU (another project's scripts, duplicated), and every MOP scheduled task ran at Windows' task default, priority 7 (below normal), so they got almost no time. Hung `wscript` launchers with no child also held MultipleInstances IgnoreNew, so no new pass started.
+- rule: every MOP scheduled task is registered at Priority 5; after a stall, look for `wscript.exe` with no child before anything else, and stop it.
+- proof: `Get-ScheduledTask -TaskName "MOP *" | % { $_.TaskName + " " + $_.Settings.Priority }` prints 5 for each.
+- added: 2026-10-15
+
+## P-3462 · Component (jsdom) tests cannot start a worker on the loaded laptop; CI is their proof
+- symptom: 2026-10-15, `bunx vitest run` of the panel's and the Interest screen's component tests failed locally with "Failed to start forks worker" / "threads worker" while the laptop was at 100% CPU; the same tests passed in CI. Vitest 5 has no `--poolOptions` flag.
+- rule: on the loaded laptop run component tests with `--pool=forks --maxWorkers=1` once; if the worker still does not start, push and let CI's check job be the proof, and say UNPROVEN until it is green.
+- proof: PR 379's check job green on 77997640 with `src/admin/workforce/matter-panel.test.tsx` in it.
+- added: 2026-10-15
+
+## P-3463 · A new admin stylesheet must be imported in alphabetical order
+- symptom: 2026-10-15, PR 379: `./matter-panel.css` was imported after media.css in `src/styles/admin/index.css`; `tests/unit/admin-motion.test.ts` checks the imports are sorted and failed one CI round.
+- rule: insert a new admin stylesheet import in its alphabetical place.
+- proof: `grep -n "@import" app/src/styles/admin/index.css` lists the files sorted.
+- enforced-by: tests/unit/admin-motion.test.ts, .claude/hooks/edit-impact.mjs (companion "admin stylesheet alphabetical import")
+- added: 2026-10-15
+
+## P-3464 · A new file under scripts/workforce failed CI's folder map
+- symptom: 2026-10-15, PR 378: `scripts/workforce/site-facts.ts` was new and `scripts/check-layout.mjs` refused it as "outside the folder map"; one CI round.
+- rule: a new file in a mapped folder gets its line in `scripts/check-layout.mjs` in the same commit; run `node scripts/check-layout.mjs` before pushing.
+- proof: `node scripts/check-layout.mjs` prints `layout: OK`.
+- added: 2026-10-15
+
+## P-3465 · Git Bash rewrites `origin/main:path`, so `git cat-file -e origin/main:.claude/x` says a file is missing when it is not
+- symptom: 2026-10-15, a loop of `git cat-file -e origin/main:.claude/hooks/$f` in Git Bash printed "NOT on main" for every hook; the shell had turned the `rev:path` argument into a Windows path (`origin\main;.claude\...`). The hooks were on main. A PR almost went up to add files that were already there.
+- rule: in Git Bash, read a file at a revision from a worktree checked out at that revision (`git -C <worktree> ls-files`, `cmp`), or set `MSYS_NO_PATHCONV=1` on the git command; never trust a "missing" from a `rev:path` argument without a second check.
+- proof: `MSYS_NO_PATHCONV=1 git cat-file -e origin/main:.claude/hooks/edit-impact.mjs && echo present` prints `present`.
+- added: 2026-10-15
