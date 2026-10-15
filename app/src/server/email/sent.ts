@@ -8,13 +8,13 @@ import {
   type resendEmailInputSchema,
   type SentEmail,
   type SubmissionEmails,
-} from "../../domain/admin-emails";
-import { fromRpcError } from "../lib/admin-errors";
-import type { AdminActor } from "../lib/admin-route";
-import { auditContext } from "../lib/audit";
-import { authorize } from "../lib/authz";
-import type { Db } from "../lib/db";
-import { AppError } from "../lib/errors";
+} from "../../domain/admin-emails.ts";
+import { fromRpcError } from "../lib/admin-errors.ts";
+import type { AdminActor } from "../lib/admin-route.ts";
+import { auditContext } from "../lib/audit.ts";
+import { authorize } from "../lib/authz.ts";
+import type { Db } from "../lib/db.ts";
+import { AppError } from "../lib/errors.ts";
 
 // W9 item 2: what became of every email we sent. Reads `email_messages`, the bounce and complaint events Resend sent
 // (`email_events`, written by the webhook through `apply_email_event`) and the do-not-send list; the one write is
