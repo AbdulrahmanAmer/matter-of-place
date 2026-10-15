@@ -533,7 +533,11 @@ export const schemaManifest: Record<string, Record<string, string>> = {
   },
   assets: {
     id: "uuid",
-    property_id: "uuid",
+    // W7 item 19 (H107): a requested reel's subject may be a market, a story or the brand, with no property.
+    property_id: "uuid?",
+    subject: "text",
+    market_slug: "text?",
+    story_id: "uuid?",
     kind: "asset_kind",
     revision: "integer",
     files: "jsonb",

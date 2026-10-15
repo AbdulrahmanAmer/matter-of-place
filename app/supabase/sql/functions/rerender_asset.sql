@@ -23,6 +23,10 @@ begin
   if not found then
     raise exception 'not_found' using errcode = 'P0002';
   end if;
+  -- W7 item 19 (H107): a reel about a market, a story or the brand is never re-rendered; a new request is the path.
+  if v_asset.subject <> 'property' then
+    raise exception 'requested_asset' using errcode = '22023';
+  end if;
   perform pg_advisory_xact_lock(hashtext('assets:' || v_asset.property_id::text || ':' || v_asset.kind::text));
   select * into v_latest
   from public.assets a

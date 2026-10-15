@@ -989,6 +989,7 @@ Entry template
 - proof: `cd app && mkdir -p scratch && printf 'export const value = "x"\n' > scratch/zz-scratch.mjs && bunx eslint --max-warnings 0 scratch/zz-scratch.mjs; echo $?` prints `Insert ';'  prettier/prettier` and `1` (then `rm -rf scratch`); from `app/`, a `../scratch/zz-bare.mjs` holding `import { ESLint } from "eslint"` exits 1 with `ERR_MODULE_NOT_FOUND` and the `createRequire` form prints `function` (2026-10-02); a scratch config naming the setup file without `server.fs.strict: false` prints the `/@fs/` error and with it `Tests  1 passed (1)`; the one-test Playwright probe prints `Cannot find module '@playwright/test'` through `bunx` and `1 passed` through `NODE_PATH="$PWD/node_modules" node node_modules/@playwright/test/cli.js` (2026-10-03).
 - merged: P-100, P-403, P-411
 - hit again: 2026-10-04, B3 g7: a scratchpad probe with `import pg from "pg"`, run from `app/`, died with `ERR_MODULE_NOT_FOUND`; `createRequire` from the working folder fixed it (`const pg = createRequire(process.cwd() + "/")("pg")`). The cwd does not decide where a bare import resolves; the script's own folder does.
+- hit again: 2026-10-15, email redesign: scratch scripts in `app/out/` (git-ignored, so `git status` looked clean) were linted by `bun run check`; lint failed on `prettier/prettier` in five `out/*.mjs` files after a 9 m 36 s run. Git-ignored is not lint-ignored: scratch goes to the OS temp dir.
 - added: 2026-10-02
 
 ## P-088 · A proof someone else cannot re-run is not a proof: scratch scripts are git-ignored and get deleted
@@ -8066,9 +8067,93 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
 - added: 2026-10-15
 
-## P-3473 · The audit robot's Search Console reader aborts under Node on this laptop, and its key is in neither load profile
+## P-3479 · The audit robot's Search Console reader aborts under Node on this laptop, and its key is in neither load profile
 - symptom: 2026-10-15, the operator's search assignment: `node workspace/audits/tools/gsc.mjs` printed `Not measured: gsc (GOOGLE_SA_JSON_B64 unset)` with both `load-env.mjs --profile dev` and `--profile ops`; with the key loaded (shell export, then inside Node from the runner's `.env`) it ended `exit 127` and `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76` (Node 24.13 on Windows), the moment it reached the network. Under Bun it signed in, then stopped at `"" cannot be parsed as a URL` (no `SITE_URL`).
 - cause: the key `GOOGLE_SA_JSON_B64` lives only in the runner's `.env` (`E:\mop-build\live\.env`); Node 24 on Windows aborts in libuv when this tool's fetch and exit race; the tool reads the site from `SITE_URL` or `--url`.
 - rule: read Search Console with Bun, the key loaded inside the process from the runner's `.env` (never exported, never printed), and `--url https://matterofplace.com`. The account sees one property, `sc-domain:matterofplace.com` (siteRestrictedUser). A site this new has its queries withheld: read pages and dates for a baseline, and live searches for keyword choice.
 - proof: `bun <wrapper> E:/mop-build/live/.env workspace/audits/tools/gsc.mjs --url https://matterofplace.com` → `Not measured: gsc (Search Console has no queries for sc-domain:matterofplace.com in 28 days)`, exit 0; a 90-day `searchAnalytics/query` by page → `/` 1 impression (position 2), `/stories` 1 (position 40), all on 2026-10-12 (measured 2026-10-15).
+- added: 2026-10-15
+
+## P-3481 · Edge's command-line screenshot is written in seconds, then Edge holds on for a minute, keeps its profile locked and cannot open a phone-width window
+- symptom: 2026-10-15, the email gallery (`app/scripts/email-gallery.ts`): one `msedge --headless=new --screenshot` took 68 s; the next shot with the same `--user-data-dir` failed with `Lock file can not be created! Error code: 32`; and `--window-size=390,6000` drew the page cut off on the right, while the same HTML in Edge driven by Playwright at a 390 px viewport measured `scrollWidth 390`.
+- cause: headless Edge on Windows lingers after it writes the file, its helpers keep the profile open, and its window keeps a desktop minimum width.
+- rule: end Edge's process tree (`taskkill /PID <pid> /T /F`) as soon as its stderr says `bytes written to file`; give every shot its own profile folder in the OS temp dir; draw any width under a desktop window through Playwright with `channel: "msedge"`, run by Node (`app/scripts/lib/email-gallery-phone.mjs`).
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `received <n> bytes` and `phone received 390 px, no sideways scroll` within a minute.
+- added: 2026-10-15
+
+## P-3482 · Drive E: was full: about seventy worktrees under E:/mop-build each carry their own node_modules
+- symptom: 2026-10-15 09:12 +0300, `sed -i` in the email worktree failed with `No space left on device`; `df -h /e` printed `200G 200G 1.6M 100%`, and E:/mop-build held about seventy worktree folders.
+- rule: a long job writes its scratch (browser profiles, renders) to the OS temp dir on C:, never under a worktree; run `df -h /e` before a heavy job; a worktree is removed by the session that made it (`git worktree remove`), never by another.
+- proof: `df -h /e | tail -1` printed `200G 200G 71M 100%` at 09:20 +0300, after the gallery's Edge profiles moved to C:.
+- added: 2026-10-15
+
+## P-3483 · A table of fixed width with `max-width: 100%` does not shrink to a phone screen
+- symptom: 2026-10-15, the first redesigned email column was `width:600px; max-width:100%`; in Edge at a 390 px viewport the page measured `scrollWidth 604` and the letter ran off the screen.
+- cause: a browser does not apply `max-width` to a table whose width is fixed.
+- rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-column{width:100%!important}`; every email is drawn at 390 px by `app/scripts/lib/email-gallery-phone.mjs`, which refuses a sideways scroll.
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone received 390 px, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-column` rule and the same run goes red on `received: scrollWidth <n> at 390 px` (`WATCHED-FAIL OK`, 2026-10-15).
+- enforced-by: app/scripts/lib/email-gallery-phone.mjs
+- added: 2026-10-15
+
+## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
+- symptom: 2026-10-15, W7 E1: from the desk, `eval "$(node scripts/load-env.mjs --profile dev)"` exported nothing (the
+  desk has no `.env`; the loader reads the one two folders above `scripts/`), then with the main checkout's loader the
+  db project stopped in `tests/db/global-setup.ts` with `Error: refusing: production database`, also for a prelude-only
+  (P-312) run that rolls back.
+- cause: there is one database and it is production now (H35); `assertNotProduction` refuses every db test against it.
+- rule: a branch's new SQL is proven by CI's `db` job (ephemeral stack: `test:db`, then the `sql` and `unit` registry
+  replays of changed entries); locally run only the unit and component projects and their watched-fails, or a native
+  throwaway cluster (P-718). In a worktree without `.env`, load the profile with
+  `node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev` for anything that is not a db test.
+- proof: `sed -n 210,225p .github/workflows/ci.yml` shows `bun run test:db` and `watchfail.mjs ... --kinds unit,sql` in
+  the `db` job; the local run above ends `refusing: production database` at `scripts/lib/assert-not-production.mjs:60`.
+- added: 2026-10-15
+
+## P-3471 · A key added to an event's payload in SQL breaks every older db test that asserts that payload with `toEqual`, and only CI sees it
+- symptom: 2026-10-15, PR 410 (W7 E1): `approve_asset` and `reject_asset` gained `subject` in the `asset.approved` and `asset.rejected` payloads; CI's db job failed 4 of 925 (`tests/db/assets.db.test.ts`, `tests/db/assets-service.db.test.ts`: `+ "subject": "property"`), one CI cycle lost. Locally the db project refuses since the launch switch (P-3468), so no local run could have shown it.
+- cause: B9's tests pin the whole payload with `toEqual`; the slice's own tests covered the new key, and nobody searched for the older assertions.
+- rule: before pushing a change to what an SQL function emits or returns, `git grep -n "<event type or function name>" app/tests/db app/tests/api` and update every exact assertion of it in the same commit; also `git grep -ln "function public.<name>" app/tests/mutations` and regenerate each `sql` entry that carries a whole copy of the function from today's file (only its own mutation removed), or the copy fails on the new key before it reaches its own reason (PR 410's second db run: `B9:b9g1-db-approve-audit` BAD, 216 of 217 ok). The db job is the only run that would catch a miss.
+- proof: `cd app && git grep -n "asset.rejected\|asset.approved" tests/db` lists the two files and their four payload assertions; the db job log of run 38686728451 ends `Tests  4 failed | 919 passed`.
+- added: 2026-10-15
+
+## P-3472 · Zoho warns "verified domain, unauthenticated sender" on our own Resend mail although SPF, DKIM and DMARC all pass
+- symptom: 2026-10-15, admin notices from hello@notify.matterofplace.com showed Zoho's banner. Headers of message 1792039925838153400: `spf=pass`, `dkim=pass` (d=notify.matterofplace.com), `dmarc=pass`. The banner is Zoho's own check for mail claiming the organisation's domain that does not leave through Zoho's servers.
+- rule: our sending subdomains (notify., notes.) are on Zoho Admin › Security & Compliance › Spam Control › Allowed List › Domains (the operator added them; changing a mail security setting is the operator's click, never the agent's). The Allowed List keeps the SPF and DKIM checks; never use the Trusted List, which skips them. Read the headers with the `/messages/<id>/header` endpoint before changing anything.
+- proof: Zoho Allowed Domains lists `notes.matterofplace.com` and `notify.matterofplace.com`; the next admin notice carries no banner.
+- added: 2026-10-15
+
+## P-3473 · Port 25 is blocked from this laptop, through the ISP and through Cloudflare WARP alike
+- symptom: 2026-10-15, SMTP probes to Google, Outlook, Yahoo and Zoho MX on port 25 timed out both directly and with WARP on (Traffic and DNS); port 587 is open.
+- rule: mailbox probing (W9) answers `unknown` when its reachability check on port 25 fails; it never treats a timeout as a bad address. Real probing needs a host whose network allows port 25 (a VPS or another machine). Bounces reach the agents through Resend's webhook instead.
+- proof: `node <scratchpad>/port25.mjs` prints `timeout` for every MX on 25 and `open` on 587.
+- added: 2026-10-15
+
+## P-3474 · An in-session Agent cannot be shown to run at max effort; a headless `claude -p --effort max` can
+- symptom: 2026-10-15, the email redesign was started as an in-session Agent with effort max; the operator pointed out the setting did not reach it. Relaunched as `claude -p --model claude-opus-5-5 --effort max`, confirmed on the process command line.
+- rule: when the operator names a model and effort for a worker, run it headless with `--model` and `--effort` and prove both from the running process (`Get-CimInstance Win32_Process | ? CommandLine -match effort`).
+- proof: the process command line of the email redesign run shows `--effort max`.
+- added: 2026-10-15
+
+## P-3475 · Images in our emails were blocked by Cross-Origin-Resource-Policy: same-site
+- symptom: 2026-10-15, logos and photographs did not render in mail clients; `/email/*` was served with the site-wide `Cross-Origin-Resource-Policy: same-site`.
+- rule: `public/_headers` gives `/email/*` `! Cross-Origin-Resource-Policy` and `Cross-Origin-Resource-Policy: cross-origin` (PR 407); any new path that mail clients load (images, the open pixel) needs the same exception, tested by `tests/unit/headers.test.ts`.
+- proof: `curl -sI https://matterofplace.com/email/<file> | grep -i cross-origin-resource` prints `cross-origin`.
+- added: 2026-10-15
+
+## P-3476 · The public site schema doubles as the settings type, so a new settings field fails the public read path unless it has a default
+- symptom: 2026-10-15, PR 408 added `billing_email` and `listings_email` to `settings.site.contact`; CI failed `http-adapter`, `site-read-path` and B18 `b18-g3-http-refuse` with `ZodError: contact.billing_email Required`, because the cached public state predates the field.
+- rule: a field added to `src/domain/settings.ts` that the public site also parses gets `.default(null)` (or a default) in `src/services/http/index.ts`, and `tests/unit/site-read-path.test.ts` lists it.
+- proof: `cd app && npx vitest run tests/unit/http-adapter.test.ts tests/unit/site-read-path.test.ts` → 33 passed; `node scripts/replay.mjs B18:b18-g3-http-refuse` → WATCHED-FAIL OK.
+- added: 2026-10-15
+
+## P-3477 · Google opened on the wrong account, then index requests were clicked through without reading the page
+- symptom: 2026-10-15, Search Console opened on the default Google account ("you don't have access"); then indexing was requested page after page in one batch without reading what each page said ("No referring sitemaps detected", a referring page outside the sitemap). The operator stopped both.
+- rule: Matter of Place's Google account is slot `/u/4/` in Edge. In any console, read and scroll the whole page and report it before pressing an action button; one page at a time. Index state for many pages comes from the URL Inspection API (scratchpad gsc-state.mjs, the service account is a restricted user), not from clicking.
+- proof: `node --env-file=.env gsc-all.mjs` from E:/mop-build/live lists all 18 sitemap pages with verdict and last crawl.
+- added: 2026-10-15
+
+## P-3478 · `import.meta.dir` is Bun's: a script module that uses it at the top level fails to load under vitest (Node)
+- symptom: 2026-10-15, W7 E2a: `scripts/workforce/reel.ts` set `const REPO = resolve(import.meta.dir, "../../..")`; the runner (bun) is fine, but `bunx vitest run --project unit tests/unit/workforce-reel.test.ts` failed at collection with `TypeError: The "paths[0]" argument must be of type string. Received undefined`, and every test file that imports the module (`answer.ts` too) with it.
+- rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
+- proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
 - added: 2026-10-15

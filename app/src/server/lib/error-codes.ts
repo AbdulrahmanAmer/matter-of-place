@@ -71,6 +71,10 @@ export const errorCodes = {
   invalid_status: 422,
   // B12: an approved reel attaches to the dossier only with its video, its poster and its duration.
   reel_files_missing: 422,
+  // W7 item 19 (H107): a requested reel is recorded only with its files, and is made again by a new request, never
+  // re-rendered.
+  requested_reel_files: 422,
+  requested_asset: 422,
   // B10: a social channel is enabled only with proof of its credentials (invariant 9).
   credentials_unverified: 422,
   channel_locked: 422,
