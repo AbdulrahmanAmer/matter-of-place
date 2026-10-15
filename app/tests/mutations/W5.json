@@ -48,8 +48,8 @@
     "id": "w5-h-editor-route",
     "test": "tests/unit/colleague-calls.test.ts",
     "file": "scripts/workforce/colleague-calls.ts",
-    "find": "  editor: [\"PATCH /api/admin/properties/$id\"],",
-    "replace": "  editor: [\"POST /api/admin/properties/$id/publish\"],",
+    "find": "  editor: [\"PATCH /api/admin/properties/$id\", \"POST /api/admin/submissions/$id/note\"],",
+    "replace": "  editor: [\"POST /api/admin/properties/$id/publish\", \"POST /api/admin/submissions/$id/note\"],",
     "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
     "expect": "× .*lets the Editor propose the property write-up"
   },

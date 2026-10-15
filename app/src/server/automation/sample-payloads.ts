@@ -116,6 +116,11 @@ const subscriberRow = (db: Db, id: string) => firstRow(subscriberIdQuery(db, id)
 
 const builders: Record<EventType, Builder> = {
   "submission.received": async (db, id) => ({ submission_id: (await submissionRow(db, id)).id }),
+  // A dry run of a bounce about the request it names: its confirmation, as the Fairfield one (W9 item 3).
+  "email.bounced": async (db, id) => {
+    const row = await submissionRow(db, id);
+    return { submission_id: row.id, message_id: row.id, template: "received", reason: "bounce" };
+  },
   "submission.declined": async (db, id) => {
     const row = await submissionRow(db, id);
     return {
@@ -291,6 +296,12 @@ const placeholders: Partial<Record<EventType, JsonObject>> = {
   "subscriber.created": { subscriber_id: SAMPLE_ID, sealed_token: SAMPLE_SEALED_TOKEN },
   "subscriber.confirmed": { subscriber_id: SAMPLE_ID },
   "subject_request.received": { request_id: SAMPLE_ID, kind: "access" },
+  "email.bounced": {
+    submission_id: SAMPLE_ID,
+    message_id: SAMPLE_ID,
+    template: "received",
+    reason: "bounce",
+  },
 };
 
 /** Builds the payload of `trigger` from the row `entityId` names; a system event needs no row. */

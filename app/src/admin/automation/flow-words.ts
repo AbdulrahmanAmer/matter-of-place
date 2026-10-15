@@ -35,6 +35,7 @@ const words: Record<string, EventWords> = {
   "payment.marked": { when: "a payment is recorded", topic: "Money" },
   "subject_request.received": { when: "someone asks about their personal data", topic: "Care" },
   "health.failed": { when: "the daily health check fails", topic: "Care" },
+  "email.bounced": { when: "an email to a request or an inquiry bounces", topic: "Care" },
 };
 
 /** "a property is published", or the recipe's own name in lower case when the event is new. */
