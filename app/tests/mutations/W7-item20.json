@@ -1,0 +1,47 @@
+[
+  {
+    "id": "w7-20-colleague-may-ask",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  return tools.includes(\"request_reel\")",
+    "replace": "  return tools.includes(\"never\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*takes one reel from a colleague with request_reel"
+  },
+  {
+    "id": "w7-20-reel-on-post",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "const REEL_ACTIONS = new Set([\"social_post\", \"campaign_plan\"]);",
+    "replace": "const REEL_ACTIONS = new Set([\"social_post\"]);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*attaches the run's reel to a post or a plan only"
+  },
+  {
+    "id": "w7-20-service-reads-reel",
+    "test": "tests/unit/workforce-approval-reels.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "      status: row.status === \"approved\" || row.status === \"rejected\" ? row.status : \"pending\",",
+    "replace": "      status: \"making\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-approval-reels.test.ts",
+    "expect": "× .*reads a recorded reel's status and files"
+  },
+  {
+    "id": "w7-20-no-query-without-reel",
+    "test": "tests/unit/workforce-approval-reels.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "  if (asked.length === 0) return reels;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-approval-reels.test.ts",
+    "expect": "× .*asks nothing of the assets when no proposal asked"
+  },
+  {
+    "id": "w7-20-card-shows-reel",
+    "test": "src/admin/workforce/approvals.test.tsx",
+    "file": "src/admin/workforce/ApprovalsPage.tsx",
+    "find": "      {item.reel === null ? null : <ReelBeside reel={item.reel} />}",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/workforce/approvals.test.tsx",
+    "expect": "× .*shows the reel a post asked for beside its text"
+  }
+]

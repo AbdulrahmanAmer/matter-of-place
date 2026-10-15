@@ -29,7 +29,15 @@ import { childEnv, loadEnvFile, serviceDb as db } from "./env.ts";
 import { knowledgeBlock } from "./knowledge.ts";
 import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
-import { nextReel, queueReel, reelWorking } from "./reel.ts";
+import {
+  briefId,
+  mediaFor,
+  nextReel,
+  queueReel,
+  REEL_TOOL_LINE,
+  reelWorking,
+  withReel,
+} from "./reel.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue } from "./follow.ts";
@@ -273,6 +281,7 @@ function promptFor(
           `To change something in the admin, add to your JSON an "actions" list: {"method", "path" with the real id, "body", "why"}. Only these routes are yours: ${(colleagueRoutes[agent.slug] ?? []).join(", ")}. Read the record first. Each waits in Approvals until a person approves it; you never make it yourself.`,
         ]
       : []),
+    ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
   ].join("\n\n");
@@ -368,7 +377,9 @@ async function runOnce(client: Db): Promise<boolean> {
     const result = readJsonAnswer(answer.text);
     if (isMatter && power === "full") keepNote(result.note);
     // W2 step 5: Matter cannot run a skill in its safe mode; the daemon runs it, one at a time, and says where it is.
-    const media = isMatter ? result.media.slice(0, 2) : [];
+    // W7 item 20: Social and Campaigns (tool `request_reel`) may ask for one reel per run.
+    const media = mediaFor(result.media, isMatter, agent.tools);
+    let reel: { request_id: string; name: string } | null = null;
 
     if (result.reply !== "") {
       await client.from("agent_messages").insert({
@@ -403,6 +414,8 @@ async function runOnce(client: Db): Promise<boolean> {
       if (request.skill === "reel") {
         // W7 item 19: a reel takes many minutes, so it waits in the studio for the reel pass, never inside a run.
         const folder = queueReel(request, { agent: agent.slug, thread });
+        const requestId = briefId(folder);
+        if (requestId !== null) reel = { request_id: requestId, name: request.name };
         await say(client, thread, `The reel "${request.name}" is queued in the studio: ${folder}`);
         continue;
       }
@@ -431,14 +444,15 @@ async function runOnce(client: Db): Promise<boolean> {
     }
     for (const proposal of result.proposals) {
       if (!agent.tools.includes(allowedProposal[proposal.action] ?? "")) continue;
-      const content = proposal.content;
+      // W7 item 20: a post or a plan of this run carries the reel it asked for; the hash covers what is stored.
+      const content = withReel(proposal.action, proposal.content, reel);
       await client.from("agent_approvals").insert({
         agent_id: agent.id,
         run_id: run.id,
         action: proposal.action,
         summary: proposal.summary,
         content,
-        content_hash: createHash("sha256").update(JSON.stringify(proposal.content)).digest("hex"),
+        content_hash: createHash("sha256").update(JSON.stringify(content)).digest("hex"),
       });
     }
     if (agent.tools.includes("hire")) {

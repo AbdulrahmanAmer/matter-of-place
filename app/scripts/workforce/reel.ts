@@ -94,6 +94,42 @@ export function queueReel(
   return folder;
 }
 
+/**
+ * W7 item 20: who may ask for a reel. Matter may, and a colleague given `request_reel` (Social, Campaigns) may ask for
+ * one per run; anyone else's reel requests are dropped. Voice-overs stay Matter's.
+ */
+export function mediaFor<T extends { skill: string }>(
+  media: readonly T[],
+  isMatter: boolean,
+  tools: readonly string[],
+): T[] {
+  if (isMatter) return media.slice(0, 2);
+  return tools.includes("request_reel")
+    ? media.filter((item) => item.skill === "reel").slice(0, 1)
+    : [];
+}
+
+/** The line a colleague with `request_reel` reads in its brief: when to ask, how, and what the person then sees. */
+export const REEL_TOOL_LINE =
+  'When a post or a plan needs motion, ask for a reel: add to your JSON a "media" list with one {"skill": "reel", "name": "short name", "kind": "market|story|campaign|brand", "titles": ["each on-screen line"], "market": "california|new-york|florida" for a market reel, "property_id" for a campaign, "story_id" for a story}. It is made on the laptop, gated and reviewed, and shown beside your proposal of this run in Approvals; nothing is posted until a person approves both.';
+
+/** The proposals that show a reel beside their text. */
+const REEL_ACTIONS = new Set(["social_post", "campaign_plan"]);
+
+/** A proposal's content with the run's reel attached, when it is a post or a plan and a reel was asked for. */
+export function withReel<T extends object>(
+  action: string,
+  content: T,
+  reel: { request_id: string; name: string } | null,
+): T | (T & { reel: { request_id: string; name: string } }) {
+  return reel === null || !REEL_ACTIONS.has(action) ? content : { ...content, reel };
+}
+
+/** A queued request's id, read from its folder (null when the brief cannot be read). */
+export function briefId(folder: string): string | null {
+  return readBrief(folder)?.id ?? null;
+}
+
 function readBrief(folder: string): Brief | null {
   try {
     return briefSchema.parse(JSON.parse(readFileSync(join(folder, "brief.json"), "utf8")));
@@ -447,7 +483,14 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
       p_files: files,
       p_caption: request.titles.join(" "),
       p_alt_text: `A vertical film: ${request.name}.`,
-      p_meta: { request, gate: filmed.gate, studio: folder, requested_by: brief.from.agent },
+      p_meta: {
+        request,
+        // W7 item 20: Approvals finds the reel a proposal asked for by this id.
+        request_id: brief.id,
+        gate: filmed.gate,
+        studio: folder,
+        requested_by: brief.from.agent,
+      },
       ...(request.property_id === undefined ? {} : { p_property: request.property_id }),
       ...(request.market === undefined ? {} : { p_market: request.market }),
       ...(request.story_id === undefined ? {} : { p_story: request.story_id }),

@@ -17,6 +17,8 @@ export const agentTools = [
   "draft_campaign",
   // W5 item 12 (H102 (5)): proposes admin changes on its own routes, made after a person's yes.
   "admin_call",
+  // W7 item 20: asks for a reel that is shown beside its post or plan in Approvals (Social, Campaigns).
+  "request_reel",
 ] as const;
 export type AgentTool = (typeof agentTools)[number];
 
@@ -30,6 +32,7 @@ export const agentToolLabels: Record<AgentTool, string> = {
   research: "Searches the web for the market and the competition",
   draft_campaign: "Drafts paid campaigns and budgets for approval",
   admin_call: "Proposes admin changes on its own routes, made after a person's yes",
+  request_reel: "Asks for a reel, shown beside its post or plan for approval",
 };
 
 /** What wakes an employee, in the words of the office. */
@@ -126,6 +129,15 @@ const runSchema = z.object({
 });
 export type AgentRun = z.infer<typeof runSchema>;
 
+/** A reel beside a proposal: `making` until the runner records it, then its asset's status and its two files. */
+const approvalReelSchema = z.object({
+  request_id: z.string(),
+  name: z.string(),
+  status: z.enum(["making", "pending", "approved", "rejected"]),
+  video: z.string().nullable(),
+  poster: z.string().nullable(),
+});
+
 export const approvalSchema = z.object({
   id: z.string().uuid(),
   agent_slug: z.string(),
@@ -137,6 +149,8 @@ export const approvalSchema = z.object({
   // W2 step 6: why it was declined, and the person's own version when it was approved with changes.
   reason: z.string().nullable().default(null),
   edited_content: z.record(z.unknown()).nullable().default(null),
+  // W7 item 20: the reel the proposal asked for, while it is made and once it waits in Visuals.
+  reel: approvalReelSchema.nullable().default(null),
   created_at: z.string(),
 });
 export type AgentApproval = z.infer<typeof approvalSchema>;
