@@ -2,9 +2,10 @@ import { render } from "@react-email/render";
 import { createElement } from "react";
 import { z } from "zod";
 import { emailBlockSchema, type EmailBlock, type EmailTemplateRow } from "../../domain/email.ts";
-import { Message, SIGNATURE } from "../../templates/email/blocks.tsx";
+import { SIGNATURE } from "../../templates/email/blocks.tsx";
 import { definitions } from "../../templates/email/index.ts";
 import { footerLines, type TextParts } from "../../templates/email/layout.tsx";
+import { Message } from "../../templates/email/message.tsx";
 import { NonRetryableError } from "../jobs/types.ts";
 import type { SiteContext } from "./context.ts";
 

@@ -1,7 +1,7 @@
-import { cx, display, reading, sans, serif, textLink } from "../style.ts";
+import { cx, ink, reading, sans, serif, textLink } from "../style.ts";
 import { Intro } from "./intro.tsx";
 
-/** A story of the issue: what a person wrote above it, its title and deck, and the way to the story. */
+/** A story of the issue, on Afternoon's axis: what a person wrote above it, its title and deck, and the way to it. */
 export function Story({
   title: heading,
   deck: summary,
@@ -16,21 +16,41 @@ export function Story({
   return (
     <>
       {text === undefined ? null : <Intro text={text} />}
-      <h2
-        className={cx(serif.className, "mop-title")}
-        style={{ ...display, fontSize: "30px", lineHeight: "1.15", margin: "0 0 12px" }}
+      <p
+        className={cx(serif.className, "mop-t-state", "mop-ink")}
+        style={{
+          margin: "0 0 12px",
+          fontFamily: serif.fontFamily,
+          fontSize: "30px",
+          fontWeight: 300,
+          lineHeight: "36px",
+          color: ink.obsidian,
+          textAlign: "center",
+        }}
       >
         {heading}
-      </h2>
+      </p>
       {summary === "" ? null : (
         <p
-          className={cx(serif.className, "mop-reading")}
-          style={{ ...reading, margin: "0 0 20px" }}
+          className={cx(serif.className, "mop-t-read", "mop-ink2")}
+          style={{
+            ...reading,
+            fontSize: "19px",
+            lineHeight: "30px",
+            margin: "0 auto 20px",
+            maxWidth: "440px",
+            color: ink.mineral,
+            textAlign: "center",
+          }}
         >
           {summary}
         </p>
       )}
-      <a href={href} className={sans.className} style={textLink}>
+      <a
+        href={href}
+        className={cx(sans.className, "mop-ink")}
+        style={textLink(ink.obsidian, ink.sandstone)}
+      >
         Read the story
       </a>
     </>

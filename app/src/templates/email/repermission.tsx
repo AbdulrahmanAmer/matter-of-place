@@ -1,6 +1,6 @@
 import { variablesByKey } from "../../domain/email.ts";
-import { letter } from "./blocks.tsx";
-import type { EmailDefinition } from "./layout.tsx";
+import { Afternoon } from "./house/afternoon.tsx";
+import type { EmailDefinition, EmailProps } from "./layout.tsx";
 
 export const definition: EmailDefinition = {
   key: "repermission",
@@ -23,4 +23,7 @@ export const definition: EmailDefinition = {
   ],
 };
 
-export const Email = letter("Place Notes");
+/** Correspondence: a short letter asking once whether to keep writing. */
+export function Email(props: EmailProps) {
+  return <Afternoon {...props} label="Place Notes" />;
+}

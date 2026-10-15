@@ -1,6 +1,6 @@
 import { variablesByKey } from "../../domain/email.ts";
-import { letter } from "./blocks.tsx";
-import type { EmailDefinition } from "./layout.tsx";
+import { Light } from "./house/light.tsx";
+import type { EmailDefinition, EmailProps } from "./layout.tsx";
 
 export const definition: EmailDefinition = {
   key: "inquiry_forward",
@@ -12,7 +12,13 @@ export const definition: EmailDefinition = {
     { type: "heading", text: "A message about {{property_title}}" },
     { type: "paragraph", text: "{{inquirer_name}} wrote to you through Matter of Place:" },
     { type: "paragraph", text: "{{message}}" },
-    { type: "paragraph", text: "You can reach them at {{inquirer_contact}}." },
+    {
+      type: "facts",
+      rows: [
+        { label: "From", value: "{{inquirer_name}}" },
+        { label: "Reach them at", value: "{{inquirer_contact}}" },
+      ],
+    },
     {
       type: "paragraph",
       text: "Matter of Place passes the message on and does not take part in the conversation.",
@@ -21,4 +27,13 @@ export const definition: EmailDefinition = {
   ],
 };
 
-export const Email = letter("Inquiry");
+/** Internal in kind: a forwarded message, read and answered quickly. */
+export function Email(props: EmailProps) {
+  return (
+    <Light
+      {...props}
+      label="An inquiry"
+      note="Forwarded because this home was published from your submission."
+    />
+  );
+}

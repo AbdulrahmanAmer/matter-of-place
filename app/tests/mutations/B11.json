@@ -999,9 +999,9 @@
   {
     "id": "b11-g4-render-unsubscribe-inert",
     "test": "tests/unit/newsletter/render.test.ts",
-    "file": "src/templates/email/blocks/footer.tsx",
-    "find": "Unsubscribe({ href = UNSUBSCRIBE_URL }",
-    "replace": "Unsubscribe({ href = \"#\" }",
+    "file": "src/templates/email/place-notes.tsx",
+    "find": "unsubscribe={UNSUBSCRIBE_URL}",
+    "replace": "unsubscribe=\"#\"",
     "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
     "expect": "FAIL.*keeps Resend's unsubscribe variable as the unsubscribe link"
   },
@@ -1017,9 +1017,9 @@
   {
     "id": "b11-g4-render-footer-no-entity",
     "test": "tests/unit/newsletter/render.test.ts",
-    "file": "src/templates/email/layout.tsx",
-    "find": "{legalLines.map((text) => (",
-    "replace": "{legalLines.slice(0, 0).map((text) => (",
+    "file": "src/templates/email/blocks/colophon.tsx",
+    "find": "const legal = [site.entity, site.address].filter((line) => line !== null).join(\", \");",
+    "replace": "const legal = [site.entity, site.address].slice(0, 0).join(\", \");",
     "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
     "expect": "FAIL.*shows the legal entity and the postal address of the site context"
   },
@@ -1054,8 +1054,8 @@
     "id": "b11-g4-render-intro-unescaped",
     "test": "tests/unit/newsletter/render.test.ts",
     "file": "src/templates/email/blocks/intro.tsx",
-    "find": "style={reading}>\n            {line}\n          </p>",
-    "replace": "style={reading} dangerouslySetInnerHTML={{ __html: line }} />",
+    "find": "style={centred}>\n            {line}\n          </p>",
+    "replace": "style={centred} dangerouslySetInnerHTML={{ __html: line }} />",
     "run": "bunx vitest run --project unit tests/unit/newsletter/render.test.ts",
     "expect": "FAIL.*escapes what a person typed"
   },
@@ -2844,8 +2844,8 @@
     "id": "b11-c459-footer-link-render",
     "test": "tests/unit/email/render.test.ts",
     "file": "src/templates/email/standalone.tsx",
-    "find": "afterFooter={parsed === undefined ? null : <Unsubscribe />}",
-    "replace": "afterFooter={null}",
+    "find": "unsubscribe={parsed === undefined ? undefined : UNSUBSCRIBE_URL}",
+    "replace": "unsubscribe={undefined}",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "FAIL.*unsubscribe link only when it is given a block"
   },
@@ -2853,8 +2853,8 @@
     "id": "b11-c459-footer-link-send",
     "test": "tests/unit/newsletter/standalone.test.ts",
     "file": "src/templates/email/standalone.tsx",
-    "find": "afterFooter={parsed === undefined ? null : <Unsubscribe />}",
-    "replace": "afterFooter={null}",
+    "find": "unsubscribe={parsed === undefined ? undefined : UNSUBSCRIBE_URL}",
+    "replace": "unsubscribe={undefined}",
     "run": "bunx vitest run --project unit tests/unit/newsletter/standalone.test.ts",
     "expect": "FAIL.*sends the real render with the unsubscribe variable"
   },
@@ -2923,8 +2923,8 @@
     "id": "b11-c459-footer-link-templates",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/templates/email/standalone.tsx",
-    "find": "afterFooter={parsed === undefined ? null : <Unsubscribe />}",
-    "replace": "afterFooter={null}",
+    "find": "unsubscribe={parsed === undefined ? undefined : UNSUBSCRIBE_URL}",
+    "replace": "unsubscribe={undefined}",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "FAIL.*draws the property block it is given, from an empty body"
   },

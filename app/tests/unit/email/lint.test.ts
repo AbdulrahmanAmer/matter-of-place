@@ -89,7 +89,7 @@ describe("lintEmail", () => {
       name: "image without alt",
       rule: "img-alt",
       key: "received",
-      change: (m) => ({ ...m, html: m.html.replace('alt=""', "") }),
+      change: (m) => ({ ...m, html: m.html.replaceAll('alt="Matter of Place"', "") }),
     },
     {
       name: "image with relative src",
@@ -97,9 +97,9 @@ describe("lintEmail", () => {
       key: "received",
       change: (m) => ({
         ...m,
-        html: m.html.replace(
-          "https://matterofplace.com/email/lockup-wordmark.png",
-          "/email/lockup-wordmark.png",
+        html: m.html.replaceAll(
+          "https://matterofplace.com/email/door-night.gif",
+          "/email/door-night.gif",
         ),
       }),
     },
@@ -107,7 +107,7 @@ describe("lintEmail", () => {
       name: "image with no width",
       rule: "img-width",
       key: "received",
-      change: (m) => ({ ...m, html: m.html.replace('width="23"', 'width="auto"') }),
+      change: (m) => ({ ...m, html: m.html.replaceAll('width="180"', 'width="auto"') }),
     },
     {
       name: "http link",
