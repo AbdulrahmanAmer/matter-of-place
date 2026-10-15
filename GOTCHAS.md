@@ -8050,3 +8050,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
   `git switch` in a desk, `git status --short` is empty and no check runs in it.
 - proof: `git -C E:/mop-build/matter-desk worktree list` shows a worktree per open branch.
 - added: 2026-10-15
+
+## P-3469 · GNU sed reads `\`` as the start of the line, so "remove escaped backticks" put a backtick on every line
+- symptom: 2026-10-15, `sed -i 's/\\`/`/g' W8.md` meant to turn `\`` into ```; GNU sed treats `\`` as the start-of-buffer anchor, so every line gained a leading backtick. The broken plan was committed locally; the job was stopped before the push.
+- rule: never fix text with sed when it holds backticks or backslashes: write a node script with `split(a).join(b)` (checklist item 4), print a count of the lines still wrong, and read the file before committing.
+- proof: `printf 'a\nb\n' | sed 's/\\`/x/'` prints `xa` and `xb`.
+- added: 2026-10-15
+
+## P-3470 · The merge gate gave up after three catch-ups while Matter kept merging
+- symptom: 2026-10-15, PR 390 went green three times; each time main had gained one of Matter's merges (types.ts, check-layout.mjs, a migration), the gate merged main in and waited again, then stopped after attempt 3. The third catch-up also put Matter's migration after this branch's, so the branch migration had to be regenerated past it.
+- rule: with Matter merging on his own, the gate loop allows eight catch-ups (`for attempt in 1..8` in the orchestrator's gate-loop.sh), and a branch that carries a migration is checked with `node scripts/check-migrations.mjs` after every catch-up; a generated migration (action_roles) is regenerated rather than restamped, so it also carries main's new rows.
+- proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
+- added: 2026-10-15
