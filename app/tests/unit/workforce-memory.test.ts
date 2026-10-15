@@ -252,7 +252,10 @@ describe("GET /api/admin/workforce/memory/lessons", () => {
   it("names whose a lesson is, and leaves the name empty for one taught to the whole team", async () => {
     const db = memoryDb({
       agents: team,
-      agent_lessons: [lesson(L1), lesson(L2, { agent_id: null, source: "matter", uses: 0, last_used_at: null })],
+      agent_lessons: [
+        lesson(L1),
+        lesson(L2, { agent_id: null, source: "matter", uses: 0, last_used_at: null }),
+      ],
     });
     const answer = await get(lessonsRoute, "/api/admin/workforce/memory/lessons", person, db);
     expect(answer.body).toEqual({
@@ -311,7 +314,10 @@ describe("GET /api/admin/workforce/memory/instructions", () => {
   it("lists each version with its colleague, reason and date, and never its text", async () => {
     const db = memoryDb({
       agents: team,
-      agent_instruction_versions: [version(VERSION), version("a0000000-0000-4000-8000-000000000002", { agent_id: GONE, version: 1 })],
+      agent_instruction_versions: [
+        version(VERSION),
+        version("a0000000-0000-4000-8000-000000000002", { agent_id: GONE, version: 1 }),
+      ],
     });
     const answer = await get(versionsRoute, "/api/admin/workforce/memory/instructions", person, db);
     const call = db.seen.find((seen) => seen.table === "agent_instruction_versions");
@@ -371,9 +377,15 @@ describe("GET /api/admin/workforce/memory/instructions/:id", () => {
 
   it("refuses an id that is not a uuid with 422 and reads nothing", async () => {
     const db = memoryDb({});
-    const answer = await get(versionRoute, "/api/admin/workforce/memory/instructions/x", person, db, {
-      id: "x",
-    });
+    const answer = await get(
+      versionRoute,
+      "/api/admin/workforce/memory/instructions/x",
+      person,
+      db,
+      {
+        id: "x",
+      },
+    );
     expect({ status: answer.status, reads: db.seen }).toEqual({ status: 422, reads: [] });
   });
 });

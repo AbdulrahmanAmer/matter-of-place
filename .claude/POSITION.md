@@ -1939,3 +1939,16 @@ first day of the new usage week; no step was cut from any plan.
   (subscriber.created holds a sealed token). Proof: unit 5 and component 24 passed, registry W7-5.json 14 entries
   WATCHED-FAIL OK, both tsc, eslint, prettier, knip exit 0. NOT DONE: a browser look at the real page (admin sign-in is a
   magic link; rendered text observed in the component test only). Bank grew: P-3560 to P-3562.
+- 2026-10-16 01:40 +0300: W7 item 4 built on overdrive/w7-4 (no pull request, Matter merges into overdrive/finish): Office has four
+  tabs (The floor, Decisions, Lessons, Instruction history), read only, over four routes
+  `GET /api/admin/workforce/memory/{decisions,lessons,instructions,instructions/:id}` on the existing action `workforce.office`
+  (no matrix change, no migration); schemas in `src/domain/admin-team-memory.ts`, services in `src/server/workforce/service.ts`
+  (newest 200 rows per list; the text of an instruction version is read only when a person opens it, shown as plain text).
+  Proof: unit `tests/unit/workforce-memory.test.ts` 14 and component `src/admin/workforce/team-memory.test.tsx` 10 passed,
+  registry `W7-4.json` 34 entries WATCHED-FAIL OK, admin-authz-sweep and mutation-registry tests passed, both tsc exit 0.
+  NOT DONE: a browser look at the real page (admin sign-in is a magic link; rendered text observed in component tests only);
+  the live rows were not read. Stray empty file `E:\tmp_edit_office.mjs` left by a mistyped redirect (the sandbox refused the
+  delete; a person may remove it). Bank grew: P-3580 to P-3582.
+  Correction to the block above (2026-10-16 01:55 +0300, W7 item 4): its time is 01:28, not 01:40; the registry `W7-4.json` has
+  31 entries (the 34 replayed included three neighbours), all WATCHED-FAIL OK, replayed twice; eslint, prettier, knip, layout
+  and both tsc exit 0 after the final edits.

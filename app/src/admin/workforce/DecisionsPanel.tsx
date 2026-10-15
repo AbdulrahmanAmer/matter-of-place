@@ -21,7 +21,9 @@ export function DecisionsPanel() {
   return (
     <section className="wf-mem" aria-labelledby="wf-decisions-title">
       <h2 id="wf-decisions-title">Decisions</h2>
-      <p className="wf-mem__lead">What the daily meeting settled, who owns it and how it will be checked.</p>
+      <p className="wf-mem__lead">
+        What the daily meeting settled, who owns it and how it will be checked.
+      </p>
       <div className="wf-mem__filters" role="group" aria-label="Show decisions">
         <button
           type="button"

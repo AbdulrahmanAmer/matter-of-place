@@ -150,7 +150,11 @@ describe("Office: the team's memory", () => {
     await openTab("Decisions");
     const row = (await screen.findByText("Post two reels a week")).closest("tr");
     if (row === null) throw new Error("no row");
-    expect(within(row).getAllByRole("cell").map((cell) => cell.textContent)).toEqual([
+    expect(
+      within(row)
+        .getAllByRole("cell")
+        .map((cell) => cell.textContent),
+    ).toEqual([
       "Post two reels a week",
       "Maya Okafor",
       "Oct 22, 2026",
@@ -249,7 +253,11 @@ describe("Office: the team's memory", () => {
     const cells = screen
       .getAllByRole("row")
       .slice(1)
-      .map((row) => within(row).getAllByRole("cell").map((cell) => cell.textContent));
+      .map((row) =>
+        within(row)
+          .getAllByRole("cell")
+          .map((cell) => cell.textContent),
+      );
     expect(cells).toEqual([
       [
         "Maya Okafor",
@@ -284,16 +292,19 @@ describe("Office: the team's memory", () => {
     await openTab("Instruction history");
     await screen.findByText("Taught to open with the place");
     const groups = screen.getAllByRole("heading", { level: 3 }).map((heading) => {
-      const group = heading.closest(".wf-mem__colleague");
+      const group = heading.closest<HTMLElement>(".wf-mem__colleague");
+      if (group === null) throw new Error("a colleague's heading sits outside its group");
       return [
         heading.textContent,
-        within(group as HTMLElement)
+        within(group)
           .getAllByRole("listitem")
           .map((item) => item.querySelector("strong")?.textContent),
       ];
     });
     const before = asked.filter((path) => /instructions\/[^/]+$/.test(path));
-    fireEvent.click(screen.getAllByRole("button", { name: "Show the text" })[0] as HTMLElement);
+    const [newest] = screen.getAllByRole("button", { name: "Show the text" });
+    if (newest === undefined) throw new Error("no version to open");
+    fireEvent.click(newest);
     const text = await screen.findByText(/Open with the place\.\s+Never ask a question\./);
     expect({
       groups,
@@ -320,10 +331,11 @@ describe("Office: the team's memory", () => {
     await openTab("Instruction history");
     fireEvent.click(await screen.findByRole("button", { name: "Show the text" }));
     const pre = await screen.findByText(/Write like a person\./);
+    const pwned: unknown = Reflect.get(window, "pwned");
     expect({
       text: pre.textContent,
       elements: pre.querySelectorAll("script, b").length,
-      pwned: Reflect.get(window, "pwned"),
+      pwned,
     }).toEqual({
       text: "Write like a person.<script>window.pwned = 1</script><b>x</b>",
       elements: 0,

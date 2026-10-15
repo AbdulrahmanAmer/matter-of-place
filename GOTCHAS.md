@@ -8343,3 +8343,21 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
 - proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
 - added: 2026-10-15
+
+## P-3580 · A component test of `OfficePage` crashes on a bare render: its `Link` needs a router, its conversation needs `scrollIntoView`
+- symptom: 2026-10-16 (W7 4), `render(<OfficePage />)` under `AdminProviders` failed all ten cases with `Cannot read properties of null (reading 'isServer')` from `useLinkProps`; once routed, the conversation threw `end.current?.scrollIntoView is not a function` (jsdom has no layout).
+- rule: mount the page with `mountRoutes` and `pageRoute` from `src/admin/ui/test-router.tsx` (a route for `/admin/office/` and one for `/admin/approvals/`), wait for the first element with `findBy`, and set `Element.prototype.scrollIntoView = () => undefined` in `beforeEach`.
+- proof: `cd app && bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx` → `10 passed`.
+- added: 2026-10-16
+
+## P-3581 · A malformed id on an admin route answers 422, not 400; a test written from memory of the status is red
+- symptom: 2026-10-16 (W7 4), the case "an id that is not a uuid" expected 400 and got `{ status: 422, reads: [] }`.
+- rule: `defineAdminRoute` answers a failed input parse with 422 (`validation_failed`); write the expected status from one real run, not from memory.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-memory.test.ts -t "not a uuid"` → `1 passed`.
+- added: 2026-10-16
+
+## P-3582 · A shell redirect to a relative path climbed out of the worktree and left a file in `E:\`
+- symptom: 2026-10-16 (W7 4), `cat > ../../../tmp_edit_office.mjs` from `app/` created an empty file at `E:\tmp_edit_office.mjs`, and the sandbox then refused to delete it (outside the worktree).
+- rule: never redirect to a relative path with `..`; scripts and logs go to `/tmp/<name>` or to a file made with the Write tool inside the worktree, and `git status` after a surprise redirect.
+- proof: `ls /e/tmp_edit_office.mjs` → the stray empty file, for the operator to remove (a human, not this session).
+- added: 2026-10-16
