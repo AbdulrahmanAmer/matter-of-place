@@ -18,7 +18,7 @@ import type { SiteContext } from "../../../src/server/email/context";
 import { interpolate, renderTemplate, type RenderRow } from "../../../src/server/email/render";
 import { definitionRow, definitions } from "../../../src/templates/email/index";
 import { themeHex } from "../../../src/templates/theme.gen";
-import { afterHouses, HOUSES_MIGRATION, inserted } from "./stored-rows";
+import { afterHouses, HOUSES_MIGRATION, inserted } from "../../fixtures/email-rows";
 
 const accepted = (value: unknown): boolean => emailBlockSchema.safeParse(value).success;
 

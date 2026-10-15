@@ -57,6 +57,12 @@ export const variable = (variables: EmailProps["variables"], name: string): stri
   return typeof given === "string" ? given : "";
 };
 
+/** Where a home stands, as Threshold pins it under the door: its city and its state. */
+export const cityState = (variables: EmailProps["variables"]): string =>
+  [variable(variables, "city"), variable(variables, "state")]
+    .filter((part) => part !== "")
+    .join(" · ");
+
 export function Shell({
   title,
   preheader,

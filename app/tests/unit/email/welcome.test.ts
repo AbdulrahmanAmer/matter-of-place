@@ -7,7 +7,7 @@ import { resolveRecipient, resolveVariables, SkipSend } from "../../../src/serve
 import { definitionRow } from "../../../src/templates/email/index";
 import { definition } from "../../../src/templates/email/newsletter-welcome";
 import { fakeDb, type FakeDbOptions } from "../../fixtures/fake-db";
-import { afterHouses, inserted } from "./stored-rows";
+import { afterHouses, inserted } from "../../fixtures/email-rows";
 
 // The welcome a subscriber gets once, right after confirming (operator, 2026-10-15): what it promises to each kind of
 // reader, when it is not sent again, the slot it draws from the latest Place Notes issue, and the row its migration

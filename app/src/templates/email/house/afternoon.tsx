@@ -5,7 +5,7 @@ import { Row } from "../blocks/band.tsx";
 import { Colophon } from "../blocks/colophon.tsx";
 import { Picture } from "../blocks/picture.tsx";
 import { Shell, type EmailProps } from "../layout.tsx";
-import { COLUMN, cx, GUTTER, hairline, ink, label, placardTitle, sans, serif } from "../style.ts";
+import { COLUMN, cx, hairline, ink, label, placardTitle, sans, serif, SIDE } from "../style.ts";
 
 // AFTERNOON, the house of correspondence, a letter from us: an invoice, a decision, a note about a privacy request, the
 // Place Notes issue (operator, 2026-10-15). One Bone wall in afternoon light, no bands and no boxes, everything hung on
@@ -47,7 +47,6 @@ export function Afternoon({
 }: AfternoonProps) {
   const { lines, rest } = opening(blocks);
   const [heading, subtitle] = lines;
-  const side = `${String(GUTTER)}px`;
   return (
     <Shell title={title} preheader={preheader} site={site} page={ink.bone}>
       <table
@@ -87,7 +86,7 @@ export function Afternoon({
                       night
                     />
                   </Row>
-                  <Row padding={`14px ${side} 0`} align="center">
+                  <Row padding={`14px ${SIDE} 0`} align="center">
                     {placard}
                     {kind === undefined ? null : (
                       <p
@@ -162,7 +161,7 @@ export function Afternoon({
                   </Row>
                   {instrument}
                   {rest.length === 0 ? null : (
-                    <Row padding={`44px ${side} 0`} align="center">
+                    <Row padding={`44px ${SIDE} 0`} align="center">
                       <Blocks blocks={rest} house="afternoon" />
                     </Row>
                   )}

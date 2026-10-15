@@ -61,6 +61,16 @@ export const ink = {
 /** The paper a part is set on, and what reads on it. */
 export type Tone = "dark" | "light";
 
+/** The papers a band is set on: Threshold's two values, Bone for the colophon, Sandstone for a market. */
+export const PAPER = {
+  dark: ink.obsidian,
+  light: ink.ivory,
+  bone: ink.bone,
+  sand: ink.sandstone,
+} as const;
+
+export type Paper = keyof typeof PAPER;
+
 /** The ink of each tone: the text, the quieter text, and the hairlines. */
 export const on = {
   light: { text: ink.obsidian, quiet: ink.mineral, rule: ink.sandstone },
@@ -73,6 +83,8 @@ export const on = {
 export const COLUMN = 600;
 export const GUTTER = 40;
 export const MEASURE = COLUMN - 2 * GUTTER;
+/** The side margin as a padding length, for the rows of every house. */
+export const SIDE = `${String(GUTTER)}px`;
 /** Afternoon's centred schedules and amounts. */
 export const NARROW = 460;
 

@@ -1,17 +1,7 @@
 import type { ReactNode } from "react";
-import { COLUMN, ink } from "../style.ts";
+import { COLUMN, PAPER, type Paper } from "../style.ts";
 
 const table = { role: "presentation", cellPadding: 0, cellSpacing: 0, border: 0 } as const;
-
-/** The papers a band is set on: Threshold's two values, Bone for the colophon, Sandstone for a market. */
-export const PAPER = {
-  dark: ink.obsidian,
-  light: ink.ivory,
-  bone: ink.bone,
-  sand: ink.sandstone,
-} as const;
-
-export type Paper = keyof typeof PAPER;
 
 /**
  * One of Threshold's shots: a band of colour the width of the window, holding the 600 px column; its `children` are

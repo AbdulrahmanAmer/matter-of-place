@@ -1,6 +1,6 @@
 import { variablesByKey } from "../../domain/email.ts";
 import { Threshold } from "./house/threshold.tsx";
-import { variable, type EmailDefinition, type EmailProps } from "./layout.tsx";
+import { cityState, type EmailDefinition, type EmailProps } from "./layout.tsx";
 
 export const definition: EmailDefinition = {
   key: "received",
@@ -35,14 +35,11 @@ export const definition: EmailDefinition = {
 
 /** A moment: the home passes through the door, then the stack shows it in review. */
 export function Email(props: EmailProps) {
-  const place = [variable(props.variables, "city"), variable(props.variables, "state")]
-    .filter((part) => part !== "")
-    .join(" · ");
   return (
     <Threshold
       {...props}
       label="In review"
-      place={place}
+      place={cityState(props.variables)}
       stage={{ steps: ["Received.", "In review.", "A decision."], at: 1 }}
       note="This confirms a submission made at matterofplace.com."
     />

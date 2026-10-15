@@ -1,19 +1,21 @@
 import { variablesByKey } from "../../domain/email.ts";
 import { ART, type Art } from "./art.ts";
-import { Band, PAPER, Row, type Paper } from "./blocks/band.tsx";
+import { Band, Row } from "./blocks/band.tsx";
 import { Picture } from "./blocks/picture.tsx";
 import { Threshold } from "./house/threshold.tsx";
 import { variable, type EmailDefinition, type EmailProps, type TextParts } from "./layout.tsx";
 import {
   cx,
-  GUTTER,
   ink,
   label,
   MEASURE,
+  PAPER,
+  type Paper,
   reading,
   sans,
   serif,
   shotTitle,
+  SIDE,
   textLink,
 } from "./style.ts";
 
@@ -90,8 +92,6 @@ export function textParts(variables: EmailProps["variables"]): TextParts {
 const unsubscribeHref = (address: string | null): string | null =>
   address === null ? null : `mailto:${address}?subject=Unsubscribe`;
 
-const side = `${String(GUTTER)}px`;
-
 /** An Open Graph rendition is 1200 by 630; the film's still is 3 by 2. */
 const PIECE: Pick<Art, "width" | "height"> = { width: MEASURE, height: 273 };
 
@@ -102,12 +102,12 @@ function Latest({ variables, siteUrl }: { variables: EmailProps["variables"]; si
   const quiet = { ...label, color: ink.mineral } as const;
   return (
     <Band paper="light">
-      <Row padding={`72px ${side} 0`}>
+      <Row padding={`72px ${SIDE} 0`}>
         <p className={cx(sans.className, "mop-ink2")} style={quiet}>
           {piece === null ? "Place Notes" : `From Place Notes No. ${piece.number}`}
         </p>
       </Row>
-      <Row padding={`22px ${side} 0`}>
+      <Row padding={`22px ${SIDE} 0`}>
         {image === null ? (
           <Picture
             src={`${siteUrl}${ART.house.path}`}
@@ -129,7 +129,7 @@ function Latest({ variables, siteUrl }: { variables: EmailProps["variables"]; si
         )}
       </Row>
       {piece === null ? (
-        <Row padding={`26px ${side} 72px`}>
+        <Row padding={`26px ${SIDE} 72px`}>
           <p
             className={cx(serif.className, "mop-t-read", "mop-ink")}
             style={{ ...reading, margin: 0, fontStyle: "italic", color: ink.obsidian }}
@@ -138,7 +138,7 @@ function Latest({ variables, siteUrl }: { variables: EmailProps["variables"]; si
           </p>
         </Row>
       ) : (
-        <Row padding={`28px ${side} 72px`}>
+        <Row padding={`28px ${SIDE} 72px`}>
           <p
             className={cx(serif.className, "mop-t-shot", "mop-ink")}
             style={{ ...shotTitle, fontSize: "36px", lineHeight: "40px", color: ink.obsidian }}
@@ -194,7 +194,7 @@ function Markets({ siteUrl }: { siteUrl: string }) {
         return (
           <Band key={market.name} paper={market.paper}>
             {index === 0 ? (
-              <Row padding={`64px ${side} 0`}>
+              <Row padding={`64px ${SIDE} 0`}>
                 <p className={sans.className} style={{ ...label, color: ink.mineral }}>
                   Three markets only
                 </p>
@@ -210,7 +210,7 @@ function Markets({ siteUrl }: { siteUrl: string }) {
                 bleed
               />
             </Row>
-            <Row padding={`22px ${side} 56px`}>
+            <Row padding={`22px ${SIDE} 56px`}>
               <p
                 className={cx(sans.className, !dark && market.paper === "light" && "mop-ink2")}
                 style={{ ...label, margin: "0 0 6px", color: dark ? ink.sandstone : ink.mineral }}

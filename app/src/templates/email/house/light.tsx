@@ -5,7 +5,7 @@ import { Band, Row } from "../blocks/band.tsx";
 import { Colophon } from "../blocks/colophon.tsx";
 import { Picture } from "../blocks/picture.tsx";
 import { Shell, type EmailProps } from "../layout.tsx";
-import { cx, GUTTER, hairline, ink, label, lightTitle, sans, serif } from "../style.ts";
+import { cx, hairline, ink, label, lightTitle, sans, serif, SIDE } from "../style.ts";
 
 // THRESHOLD LIGHT, for the mail the operator and the team read several times a day: an alert, the weekly numbers, a
 // campaign report, a forwarded inquiry (operator, 2026-10-15). The same house as Threshold, without its dark cinema:
@@ -41,13 +41,12 @@ export function Light({
 }: LightProps) {
   const { lines, rest } = opening(blocks);
   const [heading, subtitle] = lines;
-  const side = `${String(GUTTER)}px`;
   return (
     <Shell title={title} preheader={preheader} site={site} page={ink.bone}>
       <table {...table} width="100%" style={{ width: "100%" }}>
         <tbody>
           <Band paper="light">
-            <Row padding={`40px ${side} 0`}>
+            <Row padding={`40px ${SIDE} 0`}>
               <table {...table} width="100%">
                 <tbody>
                   <tr>
@@ -100,7 +99,7 @@ export function Light({
                 </tbody>
               </table>
             </Row>
-            <Row padding={`22px ${side} 0`}>
+            <Row padding={`22px ${SIDE} 0`}>
               <table {...table} width="100%">
                 <tbody>
                   <tr>
@@ -111,7 +110,7 @@ export function Light({
                 </tbody>
               </table>
             </Row>
-            <Row padding={`34px ${side} 0`}>
+            <Row padding={`34px ${SIDE} 0`}>
               {heading === undefined ? null : (
                 <p
                   className={cx(serif.className, "mop-t-light", "mop-ink")}
@@ -140,7 +139,7 @@ export function Light({
             </Row>
             {instrument}
             {rest.length === 0 ? null : (
-              <Row padding={`28px ${side} 0`}>
+              <Row padding={`28px ${SIDE} 0`}>
                 <Blocks blocks={rest} house="light" />
               </Row>
             )}

@@ -1,13 +1,13 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import { emailTemplateSchema, type EmailBlock } from "../../../src/domain/email";
+import { emailTemplateSchema, type EmailBlock } from "../../src/domain/email";
 
 // The email rows as the migrations leave them, read from the migration files: what a template file's definition must
 // equal, since what is sent is always the row (invariant 1). A row is inserted once (B5's seed, then each later key's
 // own migration); the email houses migration of 2026-10-15 moves a row that still holds its seed to the copy of its
 // file, and adds two variables.
 
-export interface StoredRow {
+interface StoredRow {
   key: string;
   class: string;
   subject: string;
@@ -19,7 +19,7 @@ export interface StoredRow {
 export const HOUSES_MIGRATION = "20261015094613_email_houses.sql";
 
 const migration = (name: string): string =>
-  readFileSync(new URL(`../../../supabase/migrations/${name}`, import.meta.url), "utf8");
+  readFileSync(new URL(`../../supabase/migrations/${name}`, import.meta.url), "utf8");
 
 const unquote = (value: string | undefined): string => (value ?? "").replaceAll("''", "'");
 

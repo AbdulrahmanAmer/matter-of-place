@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 import type { EmailBlock } from "../../../domain/email.ts";
 import { ART } from "../art.ts";
 import { Blocks, emphasised, opening, sections } from "../blocks.tsx";
-import { Band, Row, type Paper } from "../blocks/band.tsx";
+import { Band, Row } from "../blocks/band.tsx";
 import { Colophon } from "../blocks/colophon.tsx";
 import { Picture } from "../blocks/picture.tsx";
 import { Stage, type StageSpec } from "../blocks/stage.tsx";
 import { Shell, type EmailProps } from "../layout.tsx";
-import { cx, doorLine, GUTTER, ink, label, sans, serif } from "../style.ts";
+import { cx, doorLine, ink, label, type Paper, sans, serif, SIDE } from "../style.ts";
 
 // THRESHOLD, the house of the moments, when something has happened: a submission received, a home accepted, a door
 // opened to Place Notes, a sign-in (operator, 2026-10-15). Cut like the film, on value: full-width shots that flip
@@ -114,7 +114,6 @@ export function Threshold({
   const { lines, rest } = opening(blocks);
   const entering = lines.length === 2 ? lines[0] : undefined;
   const leaving = lines.at(-1);
-  const side = `${String(GUTTER)}px`;
   return (
     <Shell title={title} preheader={preheader} site={site} page={ink.bone}>
       <table {...table} width="100%" style={{ width: "100%" }}>
@@ -123,7 +122,7 @@ export function Threshold({
             {entering === undefined ? (
               <Row padding="40px 0 0" bleed />
             ) : (
-              <Row padding={`64px ${side} 0`}>
+              <Row padding={`64px ${SIDE} 0`}>
                 <DoorLine text={entering} delay="mop-d3" />
               </Row>
             )}
@@ -138,17 +137,17 @@ export function Threshold({
               />
             </Row>
             {leaving === undefined ? null : (
-              <Row padding={`4px ${side} 0`} align={entering === undefined ? "left" : "right"}>
+              <Row padding={`4px ${SIDE} 0`} align={entering === undefined ? "left" : "right"}>
                 <DoorLine text={leaving} delay="mop-d4" />
               </Row>
             )}
-            <Row padding={`44px ${side} 40px`}>
+            <Row padding={`44px ${SIDE} 40px`}>
               <Pins status={status} place={place === "" ? undefined : place} />
             </Row>
           </Band>
           {shots(rest, stage).map((shot, index) => (
             <Band key={index} paper={shot.paper}>
-              <Row padding={shot.paper === "dark" ? `84px ${side} 60px` : `72px ${side} 50px`}>
+              <Row padding={shot.paper === "dark" ? `84px ${SIDE} 60px` : `72px ${SIDE} 50px`}>
                 {shot.stage === undefined ? null : <Stage {...shot.stage} />}
                 <Blocks
                   blocks={shot.blocks}
