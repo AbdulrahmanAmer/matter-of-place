@@ -8,6 +8,7 @@ import {
   GATE_RULES,
   nextReel,
   queueReel,
+  REVISIONS,
   reelPass,
   reelRequestSchema,
   reelWorking,
@@ -194,6 +195,38 @@ describe("the reel pass", () => {
     expect(log.at(-1)).toContain(
       "was not made: review_refused: a title is cut off. Nothing was uploaded.",
     );
+    expect(log.filter((line) => line === "design")).toHaveLength(1 + REVISIONS);
+  });
+
+  it("gives the designer the reviewer's refusal, and makes the reel when the revised film is passed", async () => {
+    const root = studio();
+    queueReel(brand, from, root);
+    const log: string[] = [];
+    const prompts: string[] = [];
+    const base = deps({}, log);
+    let reviews = 0;
+    const revised = deps(
+      {
+        design: (folder, prompt) => {
+          prompts.push(prompt);
+          return base.design(folder, prompt);
+        },
+        review: () => {
+          reviews += 1;
+          return Promise.resolve(
+            reviews === 1
+              ? '{"pass": false, "reasons": ["Frame 2: the title is cut off at the top edge."]}'
+              : '{"pass": true, "reasons": []}',
+          );
+        },
+      },
+      log,
+    );
+    expect(await reelPass(revised, root)).toBe("reel The door: done (asset-1)");
+    expect([prompts.length, reviews]).toEqual([2, 2]);
+    expect(prompts[1]).toContain(
+      "a fresh reviewer looking at its stills refused it: review_refused: Frame 2: the title is cut off",
+    );
   });
 
   it("refuses spoken lines before any work while the voice mix is not built", async () => {
@@ -231,13 +264,13 @@ describe("the reel pass", () => {
     expect(prompts[1]).toContain("the motion gate refused it: gate_failed: coverage 46.3%");
   });
 
-  it("stops after a second refusal and uploads nothing", async () => {
+  it("stops when the film is still refused after its revisions, and uploads nothing", async () => {
     const root = studio();
     queueReel(brand, from, root);
     const log: string[] = [];
     const refused = deps({ render: () => Promise.reject(new Error("gate_failed: cuts 1")) }, log);
     expect(await reelPass(refused, root)).toBe("reel The door: failed (gate_failed: cuts 1)");
-    expect(log.filter((line) => line === "design")).toHaveLength(2);
+    expect(log.filter((line) => line === "design")).toHaveLength(1 + REVISIONS);
     expect(log.some((line) => line.startsWith("upload"))).toBe(false);
   });
 
