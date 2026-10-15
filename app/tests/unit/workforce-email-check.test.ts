@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addressesIn,
   probeMailbox,
+  refusedWords,
   replyReader,
   type SmtpSession,
 } from "../../scripts/workforce/email-check";
@@ -86,5 +87,24 @@ describe("an admin call that names an address", () => {
       addressesIn({ note: "call her", to: "Dana@Example.com", more: [{ cc: "b@x.org" }, 3] }),
     ).toEqual(["dana@example.com", "b@x.org"]);
     expect(addressesIn({ note: "write to dana at example dot com" })).toEqual([]);
+  });
+});
+
+describe("a refused address, as a thread says it (W8 review)", () => {
+  it("names the kind of refusal in fixed words, never the address or its domain", () => {
+    const domain = refusedWords({
+      verdict: "domain_has_no_mail",
+      suggestion: null,
+      reason: "propose-a-post.example does not receive email.",
+    });
+    const mailbox = refusedWords({
+      verdict: "mailbox_refused",
+      suggestion: null,
+      reason: "The mail server of propose-a-post.example says this mailbox does not exist.",
+    });
+    expect([domain, mailbox]).toEqual([
+      "its domain does not receive email.",
+      "its mail server says the mailbox does not exist.",
+    ]);
   });
 });

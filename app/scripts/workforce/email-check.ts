@@ -204,7 +204,8 @@ export function addressesIn(body: unknown): string[] {
 export async function refusedAddress(body: unknown): Promise<string | null> {
   for (const address of new Set(addressesIn(body))) {
     const check = await checkAddress(address);
-    if (isRefused(check)) return `${address}: ${check.reason}`;
+    // W8 fourth review: fixed words; the address and the check's reason (it names the domain) stay off every thread.
+    if (isRefused(check)) return `an address in the call: ${refusedWords(check)}`;
   }
   return null;
 }

@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runClaude, type CliUsage } from "../workforce/cli.ts";
+import { isolatedArgs, runClaude, type CliUsage } from "../workforce/cli.ts";
 import { staffPolicy } from "../workforce/config.ts";
 import { atlas } from "./atlas.ts";
 
@@ -184,6 +184,9 @@ export function matterArgs(power: MatterPower, held = false): string[] {
     "--permission-mode",
     "dontAsk",
   ];
+  // W8 review: a read of a held outside message decides in words, shut off like the triage: no tool, no setting
+  // source, no MCP server.
+  if (held) return [...base.slice(0, 5), ...isolatedArgs(join(homedir(), ".mop-workforce"))];
   return power === "full"
     ? [...base, "--settings", join(here, "settings-full.json")]
     : [
@@ -194,8 +197,6 @@ export function matterArgs(power: MatterPower, held = false): string[] {
         join(here, "settings.json"),
         "--disallowedTools",
         "Bash,Write,Edit,NotebookEdit,WebFetch",
-        // W8 review: a read of a held outside message decides in words; it has no tool to search or read with.
-        ...(held ? ["--tools", ""] : []),
       ];
 }
 

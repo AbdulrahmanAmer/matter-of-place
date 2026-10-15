@@ -11,9 +11,9 @@
   {
     "id": "w8-0b-no-tools",
     "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/triage.ts",
-    "find": "\"--allowedTools\", \"\"]",
-    "replace": "\"--allowedTools\", \"Read\"]",
+    "file": "scripts/workforce/cli.ts",
+    "find": "    ...[\"--permission-mode\", \"dontAsk\", \"--allowedTools\", allowed],",
+    "replace": "    ...[\"--permission-mode\", \"dontAsk\", \"--allowedTools\", \"Read\"],",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*gives the triage no tool at all"
   },
@@ -91,8 +91,8 @@
   {
     "id": "w8-0b-no-builtin-tools",
     "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/triage.ts",
-    "find": "      ...[\"--tools\", \"\", \"--setting-sources\", \"\"],",
+    "file": "scripts/workforce/cli.ts",
+    "find": "    ...[\"--tools\", allowed, \"--setting-sources\", \"\"],",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*gives the triage no built-in tool"
@@ -164,8 +164,8 @@
     "id": "w8-0r-held-read-no-tools",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/matter/run.ts",
-    "find": "...(held ? [\"--tools\", \"\"] : []),",
-    "replace": "...[],",
+    "find": "  if (held) return [...base.slice(0, 5), ...isolatedArgs(join(homedir(), \".mop-workforce\"))];",
+    "replace": "  if (held === null) return [];",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*offers a held read no tool"
   },
@@ -191,8 +191,8 @@
     "id": "w8-0r-reply-owner-thread",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/triage.ts",
-    "find": "thread: triage === null ? thread : agentSlug,",
-    "replace": "thread,",
+    "find": "    : { thread: agentSlug, author_id: `${OUTSIDE_REPLY_PREFIX}${agentSlug}` };",
+    "replace": "    : { thread, author_id: agentSlug };",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*writes Matter's held answer masked"
   },
@@ -330,5 +330,158 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*never asks the triage for a run that does not own"
+  },
+  {
+    "id": "w8-0r4-replay-isolated",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/review.ts",
+    "find": "    ...isolatedArgs(join(homedir(), \".mop-workforce\")),",
+    "replace": "    \"--strict-mcp-config\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*starts the weekly replay and the meeting"
+  },
+  {
+    "id": "w8-0r4-meeting-isolated",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    ...isolatedArgs(HOME, research ? \"WebSearch\" : \"\"),",
+    "replace": "    ...(research ? [\"--allowedTools\", \"WebSearch\"] : []),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*starts the weekly replay and the meeting"
+  },
+  {
+    "id": "w8-0r4-restricted",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/cli.ts",
+    "find": "    ...[\"--strict-mcp-config\", \"--mcp-config\", noMcp, \"--restricted\"],",
+    "replace": "    ...[\"--strict-mcp-config\", \"--mcp-config\", noMcp],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*starts the weekly replay and the meeting"
+  },
+  {
+    "id": "w8-0r4-refused-words",
+    "test": "tests/unit/workforce-email-check.test.ts",
+    "file": "scripts/workforce/email-check.ts",
+    "find": "    ? \"its domain does not receive email.\"",
+    "replace": "    ? check.reason",
+    "run": "bunx vitest run --project unit tests/unit/workforce-email-check.test.ts",
+    "expect": "× .*names the kind of refusal in fixed words"
+  },
+  {
+    "id": "w8-0r4-gate-owner",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (!ownsOutside(triage, agentSlug)) return \"not_owner\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*decides before any prompt"
+  },
+  {
+    "id": "w8-0r4-gate-hold",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  return answerable(triage) ? \"answer\" : \"hold\";",
+    "replace": "  return \"answer\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*decides before any prompt"
+  },
+  {
+    "id": "w8-0r4-plan-rule",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  const ruled = ruleOutside(input.answer, shape.rule);",
+    "replace": "  const ruled = ruleOutside(input.answer, null);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*keeps from a triaged run one allowed proposal"
+  },
+  {
+    "id": "w8-0r4-plan-media",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    media: full ? result.media.slice(0, 2) : [],",
+    "replace": "    media: result.media.slice(0, 2),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*keeps from a triaged run one allowed proposal"
+  },
+  {
+    "id": "w8-0r4-plan-wake",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    wake: input.cause !== \"message\" && ruled.wakeMentioned,",
+    "replace": "    wake: input.cause !== \"message\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*keeps from a triaged run one allowed proposal"
+  },
+  {
+    "id": "w8-0r4-plan-proposal-words",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        summary: fixed?.proposal(proposal.action) ?? proposal.summary,",
+    "replace": "        summary: proposal.summary,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*keeps from a triaged run one allowed proposal"
+  },
+  {
+    "id": "w8-0r4-plan-run-words",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    summary: fixed?.run ?? (result.task || result.reply).slice(0, 300),",
+    "replace": "    summary: (result.task || result.reply).slice(0, 300),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*keeps from a triaged run one allowed proposal"
+  },
+  {
+    "id": "w8-0r4-plan-reply-place",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "            thread: shape.place.thread,",
+    "replace": "            thread: \"team\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*keeps from a triaged run one allowed proposal"
+  },
+  {
+    "id": "w8-0r4-outside-reply-fenced",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (line.author_id.startsWith(OUTSIDE_REPLY_PREFIX))",
+    "replace": "  if (line.author_id.startsWith(\"never:\"))",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*fences a reply drafted from an outside message"
+  },
+  {
+    "id": "w8-0r4-triaged-sees-no-inside",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (triage === null) {\n    const { data: messages } = await client",
+    "replace": "  if (triage === null || triage !== null) {\n    const { data: messages } = await client",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*builds the owner's prompt with the triage only"
+  },
+  {
+    "id": "w8-0r4-held-cap",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (heldThisHour >= HELD_PER_HOUR) {",
+    "replace": "  if (heldThisHour < 0) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*runs Matter on at most HELD_PER_HOUR"
+  },
+  {
+    "id": "w8-0r4-replay-skips-outside",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/review.ts",
+    "find": "    (row.state === \"rejected\" || row.edited_content !== null) &&\n    !row.summary.endsWith(OUTSIDE_SUMMARY_MARK)",
+    "replace": "    row.state === \"rejected\" || row.edited_content !== null",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*replays no proposal drafted from an outside message"
+  },
+  {
+    "id": "w8-0r4-replay-fence-escaped",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/review.ts",
+    "find": "  return text.slice(0, max).replaceAll(\">>>\", \"> > >\").replaceAll(\"<<<\", \"< < <\");",
+    "replace": "  return text.slice(0, max);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*replays no proposal drafted from an outside message"
   }
 ]
