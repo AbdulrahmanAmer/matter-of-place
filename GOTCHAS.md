@@ -8028,3 +8028,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a new file in a mapped folder gets its line in `scripts/check-layout.mjs` in the same commit; run `node scripts/check-layout.mjs` before pushing.
 - proof: `node scripts/check-layout.mjs` prints `layout: OK`.
 - added: 2026-10-15
+
+## P-3465 · Git Bash rewrites `origin/main:path`, so `git cat-file -e origin/main:.claude/x` says a file is missing when it is not
+- symptom: 2026-10-15, a loop of `git cat-file -e origin/main:.claude/hooks/$f` in Git Bash printed "NOT on main" for every hook; the shell had turned the `rev:path` argument into a Windows path (`origin\main;.claude\...`). The hooks were on main. A PR almost went up to add files that were already there.
+- rule: in Git Bash, read a file at a revision from a worktree checked out at that revision (`git -C <worktree> ls-files`, `cmp`), or set `MSYS_NO_PATHCONV=1` on the git command; never trust a "missing" from a `rev:path` argument without a second check.
+- proof: `MSYS_NO_PATHCONV=1 git cat-file -e origin/main:.claude/hooks/edit-impact.mjs && echo present` prints `present`.
+- added: 2026-10-15
