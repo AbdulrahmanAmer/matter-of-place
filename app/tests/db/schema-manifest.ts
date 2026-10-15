@@ -533,7 +533,9 @@ export const schemaManifest: Record<string, Record<string, string>> = {
   },
   assets: {
     id: "uuid",
-    property_id: "uuid",
+    property_id: "uuid?",
+    subject: "asset_subject",
+    brand_key: "text?",
     kind: "asset_kind",
     revision: "integer",
     files: "jsonb",
@@ -683,7 +685,9 @@ export const schemaManifest: Record<string, Record<string, string>> = {
   social_posts: {
     id: "uuid",
     asset_id: "uuid",
-    property_id: "uuid",
+    property_id: "uuid?",
+    subject: "asset_subject",
+    brand_key: "text?",
     channel: "text",
     status: "social_post_status",
     scheduled_at: "timestamptz",
