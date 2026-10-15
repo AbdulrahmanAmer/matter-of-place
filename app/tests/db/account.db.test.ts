@@ -141,6 +141,8 @@ describe("account_room", () => {
   it("a session with no matching contact has no room", async () => {
     const answer = await withRollback(async (db) => {
       const user = await person(db, "test-account-nobody@example.test");
+      // Another person is a client, so a mapping that ignored whose session it is would find their room.
+      await person(db, "test-account-someone-else@example.test");
       await contact(db, "test-account-someone-else@example.test");
       return room(db, user);
     });
