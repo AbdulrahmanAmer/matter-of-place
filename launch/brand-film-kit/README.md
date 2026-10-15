@@ -1,6 +1,6 @@
 # Brand Film Kit
 
-A copy of everything on the Brand Film Kit page (version of 4 October 2026), plus the three skills that use it.
+A copy of everything on the Brand Film Kit page (version of 15 October 2026), plus the three skills that use it.
 
 ## What is in it
 
@@ -12,6 +12,10 @@ A copy of everything on the Brand Film Kit page (version of 4 October 2026), plu
 | `skills/` | The three skills as written: `brand-film` (making a film), `brand-film-vo-script` (writing the voice-over), `brand-film-vo-mix` (cleaning and mixing the voice). |
 
 The finished films and audio files are not in here; they are the files delivered in the conversation.
+
+## Making Product Launch again, exactly
+
+`reference/product-launch/README.md` gives the commands that rebuild the film and render it the way it was rendered, and `voice-over.md` beside it gives the exact settings and steps for the voice-over. Both were checked against the delivered files: the voice-over comes out byte for byte the same, and the film's frames do too, apart from a few frames in the opening door shot that differ by one shade in a few pixels.
 
 ## How it is used
 
