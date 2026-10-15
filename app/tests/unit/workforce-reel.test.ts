@@ -282,6 +282,8 @@ describe("the reel pass", () => {
 
   it("tells the designer what the gate measures before the first film", () => {
     expect(GATE_RULES).toMatch(/85% of frames.*1\.0 s.*3 to 8 hard cuts.*-18 LUFS/);
+    // the sixth reel cut three times and the gate saw two: the brief says how a cut is measured
+    expect(GATE_RULES).toMatch(/scene score over 0\.30: flip the value at every cut/);
     const queued: Brief = {
       id: "8d5f2c1e-1a2b-4c3d-9e8f-0a1b2c3d4e5f",
       at: "2026-10-15T09:00:00Z",

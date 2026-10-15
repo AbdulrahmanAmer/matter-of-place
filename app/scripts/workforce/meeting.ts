@@ -17,7 +17,7 @@ import { hireInputSchema } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, fenced, matterInputs } from "../matter/run.ts";
 import { staffCharterFrom } from "./charter.ts";
-import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
+import { breakerUntil, isolatedArgs, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { staffPolicy } from "./config.ts";
 import { childEnv, serviceDb as client } from "./env.ts";
 import { costMicroUsd, inputTokens } from "./growth.ts";
@@ -95,6 +95,21 @@ export function cairoDate(now: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(now);
 }
 
+/**
+ * The meeting's command line (W8 fourth review): shut off from the operator's settings; the analyst keeps web search
+ * and nothing else, every other voice no tool at all.
+ */
+export function meetingArgs(model: string, research: boolean): string[] {
+  return [
+    "-p",
+    "--model",
+    models[underCeiling(model, staffPolicy().colleagueCeiling)] ?? "claude-sonnet-5-5",
+    "--output-format",
+    "json",
+    ...isolatedArgs(HOME, research ? "WebSearch" : ""),
+  ];
+}
+
 async function ask(
   prompt: string,
   model: string,
@@ -103,15 +118,7 @@ async function ask(
   const desk = join(HOME, "desks", "meeting");
   mkdirSync(desk, { recursive: true });
   return runClaude({
-    args: [
-      "-p",
-      "--model",
-      models[underCeiling(model, staffPolicy().colleagueCeiling)] ?? "claude-sonnet-5-5",
-      "--output-format",
-      "json",
-      "--strict-mcp-config",
-      ...(research ? ["--allowedTools", "WebSearch"] : []),
-    ],
+    args: meetingArgs(model, research),
     cwd: desk,
     env: childEnv(),
     prompt,

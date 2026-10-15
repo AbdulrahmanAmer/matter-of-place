@@ -301,10 +301,11 @@ export const REFERENCE = [
 
 /**
  * What the motion gate (`launch/tools/motion-gate.mjs`, as `render-reel.mjs` runs it for a reel) measures; a film that
- * misses any of these is refused before review. The first real reel failed on coverage at 46.3%.
+ * misses any of these is refused before review. The first real reel failed on coverage at 46.3%; the sixth on cuts:
+ * three cut in the scene, two seen, one joining two dark framings of the same room.
  */
 export const GATE_RULES =
-  "The motion gate measures the final file and refuses it unless: at least 85% of frames differ from the one before (keep the camera, a photograph or the light always moving; a held title still drifts), no still run longer than 1.0 s, 3 to 8 hard cuts, an average shot of 2.0 to 5.5 s, the sound at -18 LUFS (within 1.5) with a true peak at or below -1 dBTP, and no sustained pitch (the score is noise-based sound design, never a held tone).";
+  "The motion gate measures the final file and refuses it unless: at least 85% of frames differ from the one before (keep the camera, a photograph or the light always moving; a held title still drifts), no still run longer than 1.0 s, 3 to 8 hard cuts (a cut counts only when the picture changes strongly, a scene score over 0.30: flip the value at every cut, dark to light or light to dark, as the film does; a cut between two dark framings of the same room is not seen, and the door move's passes through light are not cuts), an average shot of 2.0 to 5.5 s, the sound at -18 LUFS (within 1.5) with a true peak at or below -1 dBTP, and no sustained pitch (the score is noise-based sound design, never a held tone).";
 
 /** The designer's brief: the request, the house rules that govern (H108, H110) and the files a scene must hold. */
 export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string })[]): string {

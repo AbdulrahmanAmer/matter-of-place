@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { imageUrls, unreadable } from "../../scripts/workforce/pull-images";
+import { imageUrls, pulledLine, unreadable } from "../../scripts/workforce/pull-images";
 
 // W9 item 4: what a listing page offers as photographs, and when a person must open it instead.
 
@@ -39,5 +39,17 @@ describe("a page a person must open", () => {
     );
     expect(unreadable(404, PAGE, "")).toBe("the page answered 404");
     expect(unreadable(200, PAGE, "<img src=a.jpg>")).toBeNull();
+  });
+});
+
+describe("the team line after a pull (W8 review)", () => {
+  it("says counts only: no link the submitter typed and no reason a page gave", () => {
+    const line = pulledLine("r1", 3, 2, 1);
+    expect(line).toBe(
+      "Pulled 3 photographs for request r1 into the studio folder and added 2 to the request.\n1 of its links could not be read; the reasons are in the studio folder's sources.json and the links on the request page.",
+    );
+    expect(pulledLine("r1", 0, 0, 0)).toBe(
+      "Pulled 0 photographs for request r1 into the studio folder.",
+    );
   });
 });

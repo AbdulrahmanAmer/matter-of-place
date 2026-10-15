@@ -124,5 +124,14 @@
     "replace": "is a fault; refuse a title also when",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*keeps the words to the request"
+  },
+  {
+    "id": "w7-e2-cut-measured",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "a scene score over 0.30: flip the value at every cut",
+    "replace": "a scene change",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*tells the designer what the gate measures"
   }
 ]

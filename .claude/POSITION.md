@@ -1913,3 +1913,22 @@ first day of the new usage week; no step was cut from any plan.
   UNPROVEN; rows an admin edited keep their words. NOT DONE: send one real email through each house and look at it in
   Gmail and Outlook; the operator's Meta app, social accounts and the Fairfield owner's right address. Bank grew:
   G-1451, P-3500, P-3501, P-3520 to P-3523.
+
+- 2026-10-15 21:00 +0300 (Matter, live session 031029be): Merged and deployed today: 410 (E1 the subject), 419 (E2a the
+  reel request), 421, 424, 427, 430 (the reel pass, gate rules, review), 422 (the system map, W6 item 3), 429 (search
+  titles, H112), 431 (W7 item 20: request_reel, the reel beside a post or a plan in Approvals), 432 (W7 E3: the emblem
+  as a door, launch/engine/moves/door.mjs, the first signature move: open 3.75 s, close 3.25 s, the lockup under the
+  film's grain; alone it passes the motion gate at 100% coverage; a fresh-eyes review refused the first version on six
+  points, all fixed, then passed; launch/STUDY.md), 433 (the runner follows main while the live session works: its goal
+  run no longer counts, P-3531). This PR: the brief says how the gate counts a cut, and W7 items 19 and 20 and W6
+  item 3 are ticked (operator: tick what is merged), each with what stays unproven.
+  W8 section 0 (0a to 0c): PR feat/w8-0-triage, five fresh Opus security reviews (four failed, all fixed; the fifth
+  passed). Every CLI run that can read outside-shaped text starts isolated (`isolatedArgs`); the triage starts with
+  tools [] and mcp_servers [] on the real CLI (P-3530: a shell drops empty arguments, so the first proof measured the
+  harness).
+  UNPROVEN: a requested reel passing review and in Visuals (the sixth, the first with the door move, was refused by the
+  gate on cuts, 2 of 3 seen; this PR's brief answers it, then a requeue). BLOCKED on content, not on a person: market,
+  story and campaign reels (no property and no story in the admin yet). NOT DONE: W8 0d's second half (Matter's
+  decision lets the owner propose a reply), 0e, 0f; 0g waits on the operator's Google Drive (W8 item 8); W8 items 1
+  and 2 are Matter's now (operator, 2026-10-15). The floor pool of the door move reads as a band (review follow-up).
+  Bank grew: P-3530, P-3531.

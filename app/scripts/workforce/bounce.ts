@@ -13,9 +13,20 @@ const ownerEvent: Readonly<Record<string, string>> = {
   inquiry: "inquiry.received",
 };
 
-/** A phone as the form left it: null or blank (the Fairfield request holds "") reads "none given". */
+/**
+ * W8 0b (security review, 2026-10-15): a bounce run is not triaged, so it carries only what a pattern can vouch for,
+ * never words a person typed (name, street, city): a phone of digits and phone marks. The address is "on the page"
+ * (all of it, domain included, is text the person chose; W8 review), which a person opens.
+ */
+const PHONE = /^[+()\d\s.-]{6,24}$/;
 const phoneOf = (phone: string | null): string =>
-  phone === null || phone.trim() === "" ? "none given" : phone;
+  phone === null || phone.trim() === ""
+    ? "none given"
+    : PHONE.test(phone.trim())
+      ? phone.trim()
+      : "given, on the page";
+const addressOf = (email: string | null): string =>
+  email === null || email.trim() === "" ? "none given" : "on the page";
 
 /** Whether an event wakes a colleague: on duty, the type in its `wake_on`, and for a bounce, the owner of its source. */
 export function wakes(
@@ -45,15 +56,13 @@ export async function bounceFacts(
   if (event.entity === "submission") {
     const { data } = await client
       .from("submissions")
-      .select(
-        "submitter_name, submitter_email, submitter_phone, address, city, state, workflow_state",
-      )
+      .select("submitter_email, submitter_phone, workflow_state")
       .eq("id", event.entity_id)
       .maybeSingle();
     if (data === null) return null;
     return [
-      `The ${template} email about request ${event.entity_id} (${data.address}, ${data.city}, ${data.state}; ${data.workflow_state}) ${reason}.`,
-      `The failed address: ${data.submitter_email}. ${data.submitter_name}'s phone: ${phoneOf(data.submitter_phone)}.`,
+      `The ${template} email about request ${event.entity_id} (${data.workflow_state}) ${reason}.`,
+      `The failed address: ${addressOf(data.submitter_email)}. The submitter's phone: ${phoneOf(data.submitter_phone)}.`,
       `The request page: ${ADMIN}/requests/${event.entity_id}`,
       next,
     ].join("\n");
@@ -61,13 +70,13 @@ export async function bounceFacts(
   if (event.entity === "inquiry") {
     const { data } = await client
       .from("inquiries")
-      .select("name, email, phone")
+      .select("email, phone")
       .eq("id", event.entity_id)
       .maybeSingle();
     if (data === null) return null;
     return [
       `The ${template} email about inquiry ${event.entity_id} ${reason}.`,
-      `The failed address: ${data.email}. ${data.name}'s phone: ${phoneOf(data.phone)}.`,
+      `The failed address: ${addressOf(data.email)}. The person's phone: ${phoneOf(data.phone)}.`,
       `The inquiries page: ${ADMIN}/inquiries`,
       next,
     ].join("\n");

@@ -8320,3 +8320,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a helper an admin route needs that must stay out of the job runner's graph lives in its own `src/server/<area>/service.ts` and is passed into the shared service by the route; a function there shaped `(actor, db, ...)` is probed by the sweep and must refuse a roleless actor before any database read.
 - proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts` and `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` both pass with `src/server/redirect-links/service.ts`; with the route importing `server/settings/redirect-links` the sweep fails with `expected [ Array(1) ] to deeply equal []`.
 - added: 2026-10-15
+
+## P-3530 · A child process started through a shell drops empty arguments, so the next flag becomes the value
+- symptom: 2026-10-15, the W8 0b proof that the triage starts with no tools: `spawnSync("claude", [..., "--allowedTools", "", "--verbose"], { shell: true })` answered `Error: When using --print, --output-format=stream-json requires --verbose`; the shell had dropped `""` and `--verbose` became the value of `--allowedTools`. The runner itself (`scripts/workforce/cli.ts`) spawns without a shell, so the first proof measured the harness, not the triage.
+- rule: a proof of a CLI's arguments starts the program the way the runner does: by its path, `shell` off (`C:/Users/DELL/.local/bin/claude.exe` here), never through `shell: true` or a string command.
+- proof: the same arguments without a shell → `exit 0`, init event `tools [] mcp_servers []` (scratchpad triage-tools-proof.ts, 2026-10-15).
+- added: 2026-10-15
+
+## P-3532 · A test that passes on the laptop because `~/.mop-workforce` exists failed in CI with ENOENT
+- symptom: 2026-10-15, PR 434: `isolatedArgs` (`app/scripts/workforce/cli.ts`) wrote `no-mcp.json` into `~/.mop-workforce`; every local run passed (the runner made that folder long ago) and CI's check failed three tests with `ENOENT: no such file or directory, open '/home/runner/.mop-workforce/no-mcp.json'`.
+- rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
+- proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
+- added: 2026-10-15
