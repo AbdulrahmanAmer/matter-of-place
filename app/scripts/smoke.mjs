@@ -24,6 +24,10 @@ const TIMEOUT_MS = 20_000;
 // GOTCHAS P-054: a script run from the laptop retries a failed connection three times.
 const ATTEMPTS = 3;
 const PAUSE_MS = 1_000;
+// GOTCHAS P-520: seconds after an upload the new HTML can name an asset an edge does not serve
+// yet, so a 404 on it is asked again for about half a minute before it counts.
+const ASSET_ATTEMPTS = 6;
+const ASSET_PAUSE_MS = 5_000;
 
 /**
  * @typedef {(url: string, init: RequestInit) => Promise<Response>} FetchLike
@@ -170,7 +174,15 @@ export async function runSmoke(baseUrl, options, fetchImpl) {
   const script = ASSET_SCRIPT.exec(home)?.[1];
   if (script === undefined) report(new URL("/", base).href, ["no /assets/*.js in the HTML"]);
   else {
-    const asset = await call(script, "HEAD");
+    let asset = await call(script, "HEAD");
+    for (
+      let attempt = 1;
+      attempt < ASSET_ATTEMPTS && typeof asset.answer !== "string" && asset.answer.status === 404;
+      attempt += 1
+    ) {
+      await pause(ASSET_PAUSE_MS);
+      asset = await call(script, "HEAD");
+    }
     if (typeof asset.answer === "string") report(asset.url, [asset.answer]);
     else {
       const cacheControl = asset.answer.headers.get("cache-control") ?? "";
