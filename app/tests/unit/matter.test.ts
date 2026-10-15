@@ -82,12 +82,14 @@ describe("Matter's run", () => {
 describe("Matter's presence in the side chat", () => {
   const now = Date.parse("2026-10-12T06:00:00Z");
   const at = (minutesAgo: number) => new Date(now - minutesAgo * 60_000).toISOString();
+  // Matter's panel (2026-10-15): "working" is his own state, no longer "a message of yours waits".
   it("is online within three minutes of the runner's pass, working while a message waits, offline after", () => {
+    const seen = { onTeam: true, now, task: null };
     expect([
-      presenceOf({ onTeam: true, lastSeen: at(1), now, waiting: false }).kind,
-      presenceOf({ onTeam: true, lastSeen: at(1), now, waiting: true }).kind,
-      presenceOf({ onTeam: true, lastSeen: at(5), now, waiting: true }),
-      presenceOf({ onTeam: false, lastSeen: null, now, waiting: false }).kind,
+      presenceOf({ ...seen, lastSeen: at(1), state: "idle" }).kind,
+      presenceOf({ ...seen, lastSeen: at(1), state: "working" }).kind,
+      presenceOf({ ...seen, lastSeen: at(5), state: "working" }),
+      presenceOf({ onTeam: false, lastSeen: null, now, state: null, task: null }).kind,
     ]).toEqual(["online", "working", { kind: "offline", since: at(5) }, "absent"]);
   });
 });
