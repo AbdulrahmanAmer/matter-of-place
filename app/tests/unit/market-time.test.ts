@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatInZone, marketTimezone, toUtc } from "../../src/domain/market-time";
+import { dayInZone, formatInZone, marketTimezone, toUtc } from "../../src/domain/market-time";
 
 // GD-06: the database stores UTC; a screen shows the market's wall time with its zone named, across both
 // daylight-saving changes (2026: 8 March and 1 November).
@@ -61,5 +61,25 @@ describe("market time", () => {
       "2026-07-01T16:00:00.000Z",
     ]);
     expect(() => toUtc("2026-07-01", "America/New_York")).toThrow(RangeError);
+  });
+
+  it("names the calendar day in the market's zone, not the UTC day", () => {
+    const pacific = marketTimezone("california");
+    const eastern = marketTimezone("new-york");
+    expect([
+      dayInZone(new Date("2026-11-06T01:00:00Z"), pacific),
+      dayInZone(new Date("2026-11-06T01:00:00Z"), eastern),
+      dayInZone(new Date("2026-11-06T09:00:00Z"), pacific),
+      dayInZone(new Date("2026-03-08T09:59:00Z"), pacific),
+      dayInZone(new Date("2026-03-08T10:00:00Z"), pacific),
+      dayInZone(new Date("2026-01-01T04:59:00Z"), eastern),
+    ]).toEqual([
+      "2026-11-05",
+      "2026-11-05",
+      "2026-11-06",
+      "2026-03-08",
+      "2026-03-08",
+      "2025-12-31",
+    ]);
   });
 });

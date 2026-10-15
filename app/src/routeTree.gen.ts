@@ -62,6 +62,7 @@ import { Route as AdminAutomationReasonsRouteImport } from './routes/admin/autom
 import { Route as AdminAutomationRecipesRouteImport } from './routes/admin/automation.recipes'
 import { Route as AdminAutomationRevisionsRouteImport } from './routes/admin/automation.revisions'
 import { Route as AdminAutomationSettingsRouteImport } from './routes/admin/automation.settings'
+import { Route as AdminCampaignsIndexRouteImport } from './routes/admin/campaigns.index'
 import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
 import { Route as AdminEmailsIndexRouteImport } from './routes/admin/emails.index'
 import { Route as AdminInquiriesIndexRouteImport } from './routes/admin/inquiries.index'
@@ -85,6 +86,7 @@ import { Route as AdminSettingsIndexRouteImport } from './routes/admin/settings.
 import { Route as AdminStoriesIndexRouteImport } from './routes/admin/stories.index'
 import { Route as AdminStoriesIdRouteImport } from './routes/admin/stories.$id'
 import { Route as AdminTeamIndexRouteImport } from './routes/admin/team.index'
+import { Route as ApiAdminCampaignsRouteImport } from './routes/api/admin/campaigns'
 import { Route as ApiAdminDashboardRouteImport } from './routes/api/admin/dashboard'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
 import { Route as ApiAdminReportsRouteImport } from './routes/api/admin/reports'
@@ -532,6 +534,11 @@ const AdminAutomationSettingsRoute = AdminAutomationSettingsRouteImport.update({
   path: '/automation/settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCampaignsIndexRoute = AdminCampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminChannelsIndexRoute = AdminChannelsIndexRouteImport.update({
   id: '/channels/',
   path: '/channels/',
@@ -670,6 +677,11 @@ const AdminTeamIndexRoute = AdminTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiAdminCampaignsRoute = ApiAdminCampaignsRouteImport.update({
+  id: '/api/admin/campaigns',
+  path: '/api/admin/campaigns',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminDashboardRoute = ApiAdminDashboardRouteImport.update({
   id: '/api/admin/dashboard',
@@ -1698,6 +1710,7 @@ export interface FileRoutesByFullPath {
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
+  '/api/admin/campaigns': typeof ApiAdminCampaignsRoute
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
@@ -1721,6 +1734,7 @@ export interface FileRoutesByFullPath {
   '/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/audit/': typeof AdminAuditIndexRoute
+  '/admin/campaigns/': typeof AdminCampaignsIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/emails/': typeof AdminEmailsIndexRoute
   '/admin/inquiries/': typeof AdminInquiriesIndexRoute
@@ -1947,6 +1961,7 @@ export interface FileRoutesByTo {
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
+  '/api/admin/campaigns': typeof ApiAdminCampaignsRoute
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
@@ -1970,6 +1985,7 @@ export interface FileRoutesByTo {
   '/stories': typeof SiteStoriesIndexRoute
   '/admin/assets': typeof AdminAssetsIndexRoute
   '/admin/audit': typeof AdminAuditIndexRoute
+  '/admin/campaigns': typeof AdminCampaignsIndexRoute
   '/admin/channels': typeof AdminChannelsIndexRoute
   '/admin/emails': typeof AdminEmailsIndexRoute
   '/admin/inquiries': typeof AdminInquiriesIndexRoute
@@ -2202,6 +2218,7 @@ export interface FileRoutesById {
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
+  '/api/admin/campaigns': typeof ApiAdminCampaignsRoute
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
@@ -2225,6 +2242,7 @@ export interface FileRoutesById {
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/audit/': typeof AdminAuditIndexRoute
+  '/admin/campaigns/': typeof AdminCampaignsIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/emails/': typeof AdminEmailsIndexRoute
   '/admin/inquiries/': typeof AdminInquiriesIndexRoute
@@ -2457,6 +2475,7 @@ export interface FileRouteTypes {
     | '/admin/properties/$id'
     | '/admin/requests/$id'
     | '/admin/stories/$id'
+    | '/api/admin/campaigns'
     | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
@@ -2480,6 +2499,7 @@ export interface FileRouteTypes {
     | '/stories/'
     | '/admin/assets/'
     | '/admin/audit/'
+    | '/admin/campaigns/'
     | '/admin/channels/'
     | '/admin/emails/'
     | '/admin/inquiries/'
@@ -2706,6 +2726,7 @@ export interface FileRouteTypes {
     | '/admin/properties/$id'
     | '/admin/requests/$id'
     | '/admin/stories/$id'
+    | '/api/admin/campaigns'
     | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
@@ -2729,6 +2750,7 @@ export interface FileRouteTypes {
     | '/stories'
     | '/admin/assets'
     | '/admin/audit'
+    | '/admin/campaigns'
     | '/admin/channels'
     | '/admin/emails'
     | '/admin/inquiries'
@@ -2960,6 +2982,7 @@ export interface FileRouteTypes {
     | '/admin/properties/$id'
     | '/admin/requests/$id'
     | '/admin/stories/$id'
+    | '/api/admin/campaigns'
     | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
@@ -2983,6 +3006,7 @@ export interface FileRouteTypes {
     | '/_site/stories/'
     | '/admin/assets/'
     | '/admin/audit/'
+    | '/admin/campaigns/'
     | '/admin/channels/'
     | '/admin/emails/'
     | '/admin/inquiries/'
@@ -3173,6 +3197,7 @@ export interface RootRouteChildren {
   DotwellKnownSecurityDottxtRoute: typeof DotwellKnownSecurityDottxtRoute
   ApiConsentRoute: typeof ApiConsentRoute
   MediaSplatRoute: typeof MediaSplatRoute
+  ApiAdminCampaignsRoute: typeof ApiAdminCampaignsRoute
   ApiAdminDashboardRoute: typeof ApiAdminDashboardRoute
   ApiAdminMeRoute: typeof ApiAdminMeRouteWithChildren
   ApiAdminReportsRoute: typeof ApiAdminReportsRouteWithChildren
@@ -3641,6 +3666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAutomationSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/campaigns/': {
+      id: '/admin/campaigns/'
+      path: '/campaigns'
+      fullPath: '/admin/campaigns/'
+      preLoaderRoute: typeof AdminCampaignsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/channels/': {
       id: '/admin/channels/'
       path: '/channels'
@@ -3801,6 +3833,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/team/'
       preLoaderRoute: typeof AdminTeamIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/admin/campaigns': {
+      id: '/api/admin/campaigns'
+      path: '/api/admin/campaigns'
+      fullPath: '/api/admin/campaigns'
+      preLoaderRoute: typeof ApiAdminCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/admin/dashboard': {
       id: '/api/admin/dashboard'
@@ -5153,6 +5192,7 @@ interface AdminRouteChildren {
   AdminStoriesIdRoute: typeof AdminStoriesIdRoute
   AdminAssetsIndexRoute: typeof AdminAssetsIndexRoute
   AdminAuditIndexRoute: typeof AdminAuditIndexRoute
+  AdminCampaignsIndexRoute: typeof AdminCampaignsIndexRoute
   AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
   AdminEmailsIndexRoute: typeof AdminEmailsIndexRoute
   AdminInquiriesIndexRoute: typeof AdminInquiriesIndexRoute
@@ -5191,6 +5231,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminStoriesIdRoute: AdminStoriesIdRoute,
   AdminAssetsIndexRoute: AdminAssetsIndexRoute,
   AdminAuditIndexRoute: AdminAuditIndexRoute,
+  AdminCampaignsIndexRoute: AdminCampaignsIndexRoute,
   AdminChannelsIndexRoute: AdminChannelsIndexRoute,
   AdminEmailsIndexRoute: AdminEmailsIndexRoute,
   AdminInquiriesIndexRoute: AdminInquiriesIndexRoute,
@@ -5801,6 +5842,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownSecurityDottxtRoute: DotwellKnownSecurityDottxtRoute,
   ApiConsentRoute: ApiConsentRoute,
   MediaSplatRoute: MediaSplatRoute,
+  ApiAdminCampaignsRoute: ApiAdminCampaignsRoute,
   ApiAdminDashboardRoute: ApiAdminDashboardRoute,
   ApiAdminMeRoute: ApiAdminMeRouteWithChildren,
   ApiAdminReportsRoute: ApiAdminReportsRouteWithChildren,
