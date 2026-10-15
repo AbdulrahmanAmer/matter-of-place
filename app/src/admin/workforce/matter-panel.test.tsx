@@ -123,7 +123,7 @@ describe("Matter's panel", () => {
     expect([
       metas,
       within(body).getByText("Earlier (1)").tagName,
-      screen.getByRole("tab", { selected: false, name: /Tasks/ }).textContent,
+      screen.getByRole("tab", { selected: true }).textContent,
     ]).toEqual([
       ["running 3 min", "took 12 s, 20 min ago", "took 1 min, Tue, Oct 13, 04:40 ET"],
       "SUMMARY",

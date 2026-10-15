@@ -12,6 +12,7 @@
 @import "./dashboard.css";
 @import "./invoices.css";
 @import "./jobs.css";
+@import "./matter-panel.css";
 @import "./media.css";
 @import "./newsletter.css";
 @import "./properties.css";
@@ -20,4 +21,3 @@
 @import "./settings.css";
 @import "./ui.css";
 @import "./workforce.css";
-@import "./matter-panel.css";
