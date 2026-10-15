@@ -204,12 +204,6 @@ describe("runSmoke", () => {
       line: `FAIL ${PREVIEW}${ASSET}: cache-control public, max-age=31536000, expected immutable, max-age=31536000`,
     },
     {
-      name: "an asset that answers 404",
-      key: `HEAD ${ASSET}`,
-      change: (a: Answer) => (a.status = 404),
-      line: `FAIL ${PREVIEW}${ASSET}: status 404`,
-    },
-    {
       name: "an asset without nosniff",
       key: `HEAD ${ASSET}`,
       change: (a: Answer) => (a.headers["x-content-type-options"] = null),
@@ -352,6 +346,30 @@ describe("runSmoke", () => {
       contact: 3,
       failed: [`FAIL ${PREVIEW}/submit: no answer after 3 attempts: connect ECONNREFUSED`],
     });
+  });
+
+  it("asks an asset that answers 404 again for half a minute before it fails (P-520)", async () => {
+    vi.useFakeTimers();
+    const run = async (missing: number) => {
+      const lines: string[] = [];
+      const answers = recorded();
+      const { fetchImpl } = server(answers);
+      let heads = 0;
+      const racing = (url: string, init: RequestInit) => {
+        if (init.method === "HEAD" && new URL(url).pathname === ASSET) {
+          heads += 1;
+          edit(answers, `HEAD ${ASSET}`, (a) => (a.status = heads <= missing ? 404 : 200));
+        }
+        return fetchImpl(url, init);
+      };
+      const done = runSmoke(PREVIEW, { print: (line) => lines.push(line) }, racing);
+      await vi.runAllTimersAsync();
+      return { code: await done, heads, failed: lines.filter((line) => line.startsWith("FAIL")) };
+    };
+    expect([await run(2), await run(6)]).toEqual([
+      { code: 0, heads: 3, failed: [] },
+      { code: 1, heads: 6, failed: [`FAIL ${PREVIEW}${ASSET}: status 404`] },
+    ]);
   });
 });
 

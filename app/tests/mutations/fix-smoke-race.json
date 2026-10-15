@@ -1,0 +1,11 @@
+[
+  {
+    "id": "smoke-asset-race",
+    "test": "tests/unit/smoke.test.ts",
+    "file": "scripts/smoke.mjs",
+    "find": "asset.answer.status === 404;",
+    "replace": "asset.answer.status === 0;",
+    "run": "bunx vitest run --project unit tests/unit/smoke.test.ts",
+    "expect": "× .*asks an asset that answers 404 again for half a minute before it fails"
+  }
+]
