@@ -4,7 +4,7 @@
 // is `result.json` overwritten, which the workflow's `post-callback.mjs` step posts. By hand:
 // `bun scripts/render-reel.mjs --fixture --out <dir>` renders the fixture property and touches no network.
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { basename, extname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -263,29 +263,73 @@ function probeFile(mp4) {
  * @param {string} raw the job JSON
  * @param {string | undefined} out a folder that receives the files in place of the upload
  */
-async function render(raw, out) {
-  const input = reelInput(readJob(raw));
-  const spec = { ...input.spec, shots: await stage(input.spec.shots, input.fixture) };
-  const specFile = join(WORK, "spec.json");
-  writeFileSync(specFile, JSON.stringify(spec));
-  node([join(LAUNCH, "reel/cues.mjs"), specFile, join(WORK, "cues.json")]);
-  const query = `spec=${SERVED}/spec.json&cues=${SERVED}/cues.json`;
-  const workers = String(Math.min(4, availableParallelism()));
-  node([
-    ...[join(LAUNCH, "engine/capture.mjs"), SCENE, "--query", query, "--workers", workers],
-    ...["--w", String(W), "--h", String(H), "--out", join(WORK, "frames")],
-  ]);
-  node([join(LAUNCH, "engine/audio.mjs"), SCENE, join(WORK, "audio.wav"), "--query", query]);
-  node([join(LAUNCH, "engine/encode.mjs"), WORK, "--name", "reel.mp4", "--maxrate", "3500"]);
-
-  const mp4 = join(WORK, "reel.mp4");
+/**
+ * The motion gate and the probe of a finished reel file; throws the first failed check.
+ * @param {string} mp4
+ * @param {(() => void) | undefined} [between] runs after the gate and before the probe
+ */
+export function gateReel(mp4, between) {
   const gate = motionGate(mp4);
   const gateFailure = gateError(gate);
   if (gateFailure !== null) throw new Error(gateFailure);
-  node([join(LAUNCH, "engine/probe.mjs"), "flat", join(WORK, "audio-norm.wav")]);
+  between?.();
   const probe = probeFile(mp4);
   const probeFailure = probeError(probe);
   if (probeFailure !== null) throw new Error(probeFailure);
+  return { gate, probe };
+}
+
+/**
+ * One scene filmed in WORK: its cue script scores the spec, the engine captures, mixes and encodes, and the gate and
+ * probe judge the file. The property reel and a requested reel (W7 E2) both go through here.
+ * @param {{ scene: string, cues: string, spec: unknown }} input the scene page and its cue script, under ROOT
+ */
+function film({ scene, cues, spec }) {
+  const specFile = join(WORK, "spec.json");
+  writeFileSync(specFile, JSON.stringify(spec));
+  node([cues, specFile, join(WORK, "cues.json")]);
+  const query = `spec=${SERVED}/spec.json&cues=${SERVED}/cues.json`;
+  const workers = String(Math.min(4, availableParallelism()));
+  node([
+    ...[join(LAUNCH, "engine/capture.mjs"), scene, "--query", query, "--workers", workers],
+    ...["--w", String(W), "--h", String(H), "--out", join(WORK, "frames")],
+  ]);
+  node([join(LAUNCH, "engine/audio.mjs"), scene, join(WORK, "audio.wav"), "--query", query]);
+  node([join(LAUNCH, "engine/encode.mjs"), WORK, "--name", "reel.mp4", "--maxrate", "3500"]);
+  const mp4 = join(WORK, "reel.mp4");
+  return {
+    mp4,
+    ...gateReel(mp4, () =>
+      node([join(LAUNCH, "engine/probe.mjs"), "flat", join(WORK, "audio-norm.wav")]),
+    ),
+  };
+}
+
+/**
+ * W7 E2: a requested reel, rendered on the laptop from a scene of its own (the studio folder's `scene/`: scene.html,
+ * scene.mjs, cues.mjs, ruling H108) and its photographs (`shots/`). Both are copied under WORK so the engine serves
+ * them from ROOT; nothing is uploaded and no callback is posted. Answers the file, its poster and the gate's report.
+ * @param {{ sceneDir: string, shotsDir: string, spec: { shots: { file: string }[] } }} input
+ */
+export async function renderRequested({ sceneDir, shotsDir, spec }) {
+  rmSync(WORK, { recursive: true, force: true });
+  mkdirSync(WORK, { recursive: true });
+  cpSync(sceneDir, join(WORK, "scene"), { recursive: true });
+  cpSync(shotsDir, join(WORK, "shots"), { recursive: true });
+  const shots = spec.shots.map((shot) => ({ ...shot, src: `${SERVED}/shots/${shot.file}` }));
+  const filmed = film({
+    scene: join(WORK, "scene/scene.html"),
+    cues: join(WORK, "scene/cues.mjs"),
+    spec: { ...spec, shots },
+  });
+  rmSync(join(WORK, "frames"), { recursive: true, force: true });
+  return { ...filmed, poster: await extractPoster(filmed.mp4) };
+}
+
+async function render(raw, out) {
+  const input = reelInput(readJob(raw));
+  const spec = { ...input.spec, shots: await stage(input.spec.shots, input.fixture) };
+  const { mp4, gate, probe } = film({ scene: SCENE, cues: join(LAUNCH, "reel/cues.mjs"), spec });
 
   const video = readFileSync(mp4);
   const poster = await extractPoster(mp4);

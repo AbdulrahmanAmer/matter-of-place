@@ -1,0 +1,65 @@
+[
+  {
+    "id": "w7-e2-kind-needs-subject",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "if (field !== undefined && request[field] === undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*names the subject its kind needs"
+  },
+  {
+    "id": "w7-e2-answer-reads-reel",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "z.union([mediaRequestSchema, reelRequestSchema])",
+    "replace": "z.union([mediaRequestSchema, mediaRequestSchema])",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*names the subject its kind needs"
+  },
+  {
+    "id": "w7-e2-one-at-a-time",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "< STALE_MS) return null;",
+    "replace": "< 0) return null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*waits in its own studio folder"
+  },
+  {
+    "id": "w7-e2-review-refuses",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "if (!verdict.pass) throw new Error(",
+    "replace": "if (false) throw new Error(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*uploads nothing and says why"
+  },
+  {
+    "id": "w7-e2-voice-before-work",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "if (lines.length > 0 && deps.voice === null) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*refuses spoken lines before any work"
+  },
+  {
+    "id": "w7-e2-market-four",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "if (shots.length < MARKET_MIN) throw",
+    "replace": "if (shots.length < 0) throw",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*refuses a market reel with fewer than four"
+  },
+  {
+    "id": "w7-e2-brand-subject",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  brand: \"brand\",\n} as const",
+    "replace": "  brand: \"property\",\n} as const",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*designs, films, has it reviewed"
+  }
+]
