@@ -11,8 +11,6 @@ export const localSite: SiteService = {
         email: siteConfig.contact.email,
         phone: siteConfig.contact.phone,
         privacy_email: null,
-        billing_email: null,
-        listings_email: null,
       },
       legal: { entity: siteConfig.legal.entity, address: siteConfig.legal.address },
       social: { instagram: siteConfig.social.instagram, x: null, linkedin: null },

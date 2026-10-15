@@ -30,6 +30,7 @@ export const adminKeys = {
   team: feature("team"),
   settings: feature("settings"),
   audit: feature("audit"),
+  emails: feature("emails"),
   people: feature("people"),
   payments: feature("payments"),
   jobs: feature("jobs"),

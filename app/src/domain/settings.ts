@@ -38,8 +38,6 @@ export const siteSettingsSchema = z.object({
       email: emailLeaf,
       phone: leaf(z.string().min(6).max(30).regex(/\d/, "Include at least one digit")),
       privacy_email: emailLeaf,
-      billing_email: emailLeaf,
-      listings_email: emailLeaf,
     })
     .default({}),
   legal: z
@@ -83,8 +81,6 @@ export function privacyLines(site: SiteSettings): string[] {
 type SiteFieldKey =
   | "contact.email"
   | "contact.privacy_email"
-  | "contact.billing_email"
-  | "contact.listings_email"
   | "contact.phone"
   | "legal.entity"
   | "legal.address"
@@ -114,20 +110,6 @@ export const siteFieldSpecs: readonly SiteFieldSpec[] = [
     key: "contact.privacy_email",
     label: "Privacy request email",
     help: "Where privacy requests are sent when the form cannot be used. Falls back to the contact email.",
-    required: false,
-    input: "email",
-  },
-  {
-    key: "contact.billing_email",
-    label: "Billing email",
-    help: "The reply address of invoices. Falls back to the contact email.",
-    required: false,
-    input: "email",
-  },
-  {
-    key: "contact.listings_email",
-    label: "Listings email",
-    help: "The reply address of every email about a submitted property and of client reports. Falls back to the contact email.",
     required: false,
     input: "email",
   },

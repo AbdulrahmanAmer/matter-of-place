@@ -1,0 +1,110 @@
+[
+  {
+    "id": "w9-2-request-only",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/emails/service.ts",
+    "find": "      .eq(\"entity_id\", input.id)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*lists only this request's emails, with the bounce type and the do-not-send state"
+  },
+  {
+    "id": "w9-2-permanent-words",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/domain/admin-emails.ts",
+    "find": "if (email.bounce_type === \"Permanent\")",
+    "replace": "if (email.bounce_type === \"Hard\")",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*reads the Fairfield bounce plainly"
+  },
+  {
+    "id": "w9-2-request-404",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/emails/service.ts",
+    "find": "if (request.data === null) {",
+    "replace": "if (request.data === undefined) {",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*answers 404 for a request that does not exist"
+  },
+  {
+    "id": "w9-2-resend-args",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/emails/service.ts",
+    "find": "    p_email: input.email,",
+    "replace": "    p_email: input.email.toUpperCase(),",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*passes the request, the email and the corrected address to resend_submission_email"
+  },
+  {
+    "id": "w9-2-resend-authorize",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/emails/service.ts",
+    "find": "authorize(actor, \"submissions.resend_email\");",
+    "replace": "authorize(actor, \"submissions.get\");",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*refuses a role that may only read, before any call"
+  },
+  {
+    "id": "w9-2-resend-refusal",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/emails/service.ts",
+    "find": "  if (error !== null) throw fromRpcError(error);\n  return { job_id: z.string().uuid().parse(data) };",
+    "replace": "  if (error !== null) throw new AppError(\"server\", undefined, \"x\");\n  return { job_id: z.string().uuid().parse(data) };",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*answers the do-not-send refusal of the database as 409 with its words"
+  },
+  {
+    "id": "w9-2-list-authorize",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/emails/service.ts",
+    "find": "authorize(actor, \"audit.list\");",
+    "replace": "authorize(actor, \"submissions.get\");",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*lists every email with its delivery and the do-not-send list"
+  },
+  {
+    "id": "w9-2-complaint-words",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/domain/admin-emails.ts",
+    "find": "return `${name} was marked as spam by the person.`;",
+    "replace": "return `${name} complained.`;",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*names a transient bounce, a complaint, a skip and a failure plainly"
+  },
+  {
+    "id": "w9-2-panel-suppressed",
+    "test": "src/admin/requests/EmailsPanel.test.tsx",
+    "file": "src/admin/requests/EmailsPanel.tsx",
+    "find": "{emails.suppression === null ? null : (",
+    "replace": "{emails.suppression !== null ? null : (",
+    "run": "bunx vitest run --project component src/admin/requests/EmailsPanel.test.tsx",
+    "expect": "× .*says the confirmation bounced and that nothing more goes to the address"
+  },
+  {
+    "id": "w9-2-panel-resend",
+    "test": "src/admin/requests/EmailsPanel.test.tsx",
+    "file": "src/admin/requests/EmailsPanel.tsx",
+    "find": "void onResend(email.id, corrected.trim())",
+    "replace": "void onResend(email.id, address)",
+    "run": "bunx vitest run --project component src/admin/requests/EmailsPanel.test.tsx",
+    "expect": "× .*sends the email again to the corrected address"
+  },
+  {
+    "id": "w9-2-panel-right",
+    "test": "src/admin/requests/EmailsPanel.test.tsx",
+    "file": "src/admin/requests/EmailsPanel.tsx",
+    "find": "canResend={canResend && resendableStates.includes(email.status)}",
+    "replace": "canResend={resendableStates.includes(email.status)}",
+    "run": "bunx vitest run --project component src/admin/requests/EmailsPanel.test.tsx",
+    "expect": "× .*offers no resend to a person without the right"
+  },
+  {
+    "id": "w9-2-nav-sent-emails",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "routeId: \"/admin/emails/\",",
+    "replace": "routeId: \"/admin/mail/\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
+    "expect": "× .*holds 32 entries, one per screen"
+  }
+]

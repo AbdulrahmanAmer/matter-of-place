@@ -8054,6 +8054,25 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `git -C E:/mop-build/matter-desk worktree list` shows a worktree per open branch.
 - added: 2026-10-15
 
+## P-3469 · GNU sed reads `\`` as the start of the line, so "remove escaped backticks" put a backtick on every line
+- symptom: 2026-10-15, `sed -i 's/\\`/`/g' W8.md` meant to turn `\`` into ```; GNU sed treats `\`` as the start-of-buffer anchor, so every line gained a leading backtick. The broken plan was committed locally; the job was stopped before the push.
+- rule: never fix text with sed when it holds backticks or backslashes: write a node script with `split(a).join(b)` (checklist item 4), print a count of the lines still wrong, and read the file before committing.
+- proof: `printf 'a\nb\n' | sed 's/\\`/x/'` prints `xa` and `xb`.
+- added: 2026-10-15
+
+## P-3470 · The merge gate gave up after three catch-ups while Matter kept merging
+- symptom: 2026-10-15, PR 390 went green three times; each time main had gained one of Matter's merges (types.ts, check-layout.mjs, a migration), the gate merged main in and waited again, then stopped after attempt 3. The third catch-up also put Matter's migration after this branch's, so the branch migration had to be regenerated past it.
+- rule: with Matter merging on his own, the gate loop allows eight catch-ups (`for attempt in 1..8` in the orchestrator's gate-loop.sh), and a branch that carries a migration is checked with `node scripts/check-migrations.mjs` after every catch-up; a generated migration (action_roles) is regenerated rather than restamped, so it also carries main's new rows.
+- proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
+- added: 2026-10-15
+
+## P-3490 · E: filled up under a second `bun install`: "Failed to install 132 packages" exit 0, then ENOSPC on every Write
+- symptom: 2026-10-15, W9: the second worktree's `bun install --frozen-lockfile` printed `801 packages installed` and `Failed to install 132 packages` and exited 0; the next Write failed `ENOSPC: no space left on device`, and `df -h /e` showed `200G 200G 0 100%`. About forty worktrees under `E:\mop-build` each hold their own `app/node_modules`.
+- cause: bun reports a partial install as success, and every lane copies the whole dependency tree.
+- rule: before a second install on this laptop run `df -h /e`; a lane built from the same `origin/main` (same `bun.lock`) links to an installed lane instead of installing: `cmd //c "mklink /J E:\\mop-build\\<new>\\app\\node_modules E:\\mop-build\\<installed>\\app\\node_modules"`. Remove the linked lane before the one it points at, and never `git worktree remove` the installed lane while a junction points at it. Treat "Failed to install" as a failure whatever the exit code.
+- proof: `df -h /e` → `Avail 0` before; after removing the broken copy and linking, `ls E:/mop-build/w9-2/app/node_modules/.bin | head -1` → `acorn.bunx` and the lane's vitest runs.
+- added: 2026-10-15
+
 ## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
 - symptom: 2026-10-15, W7 E1: from the desk, `eval "$(node scripts/load-env.mjs --profile dev)"` exported nothing (the
   desk has no `.env`; the loader reads the one two folders above `scripts/`), then with the main checkout's loader the
@@ -8066,18 +8085,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
   `node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev` for anything that is not a db test.
 - proof: `sed -n 210,225p .github/workflows/ci.yml` shows `bun run test:db` and `watchfail.mjs ... --kinds unit,sql` in
   the `db` job; the local run above ends `refusing: production database` at `scripts/lib/assert-not-production.mjs:60`.
-- added: 2026-10-15
-
-## P-3469 · GNU sed reads `\`` as the start of the line, so "remove escaped backticks" put a backtick on every line
-- symptom: 2026-10-15, `sed -i 's/\\`/`/g' W8.md` meant to turn `\`` into ```; GNU sed treats `\`` as the start-of-buffer anchor, so every line gained a leading backtick. The broken plan was committed locally; the job was stopped before the push.
-- rule: never fix text with sed when it holds backticks or backslashes: write a node script with `split(a).join(b)` (checklist item 4), print a count of the lines still wrong, and read the file before committing.
-- proof: `printf 'a\nb\n' | sed 's/\\`/x/'` prints `xa` and `xb`.
-- added: 2026-10-15
-
-## P-3470 · The merge gate gave up after three catch-ups while Matter kept merging
-- symptom: 2026-10-15, PR 390 went green three times; each time main had gained one of Matter's merges (types.ts, check-layout.mjs, a migration), the gate merged main in and waited again, then stopped after attempt 3. The third catch-up also put Matter's migration after this branch's, so the branch migration had to be regenerated past it.
-- rule: with Matter merging on his own, the gate loop allows eight catch-ups (`for attempt in 1..8` in the orchestrator's gate-loop.sh), and a branch that carries a migration is checked with `node scripts/check-migrations.mjs` after every catch-up; a generated migration (action_roles) is regenerated rather than restamped, so it also carries main's new rows.
-- proof: `grep -n "attempt" gate-1015*.log` shows PR 390 attempts 1 to 3; `node scripts/check-migrations.mjs` prints `migration-order: OK (119 on main, 1 added)` after the regenerate.
 - added: 2026-10-15
 
 ## P-3471 · A key added to an event's payload in SQL breaks every older db test that asserts that payload with `toEqual`, and only CI sees it

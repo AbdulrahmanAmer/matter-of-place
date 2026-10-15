@@ -56,14 +56,7 @@ const goneOnGone = async <T>(promise: Promise<T>): Promise<T | { gone: true }> =
 const text = z.string().nullable();
 /** The body the server already validated; the type ties it to `PublicSite`, which the server builds. */
 const publicSiteSchema: z.ZodType<PublicSite, z.ZodTypeDef, unknown> = z.object({
-  contact: z.object({
-    email: text,
-    phone: text,
-    privacy_email: text,
-    // Added 2026-10-15; a body from before then has neither, so each reads as unset.
-    billing_email: text.default(null),
-    listings_email: text.default(null),
-  }),
+  contact: z.object({ email: text, phone: text, privacy_email: text }),
   legal: z.object({ entity: text, address: text }),
   social: z.object({ instagram: text, x: text, linkedin: text }),
   illustrativeContent: z.boolean(),

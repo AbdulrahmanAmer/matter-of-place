@@ -37,26 +37,14 @@ import { Route as termsRoute } from "../../src/routes/_site.terms";
 import { staticSitemapPaths } from "../../src/server/seo/sitemap";
 
 const UNSET: PublicSite = {
-  contact: {
-    email: null,
-    phone: null,
-    privacy_email: null,
-    billing_email: null,
-    listings_email: null,
-  },
+  contact: { email: null, phone: null, privacy_email: null },
   legal: { entity: null, address: null },
   social: { instagram: null, x: null, linkedin: null },
   illustrativeContent: false,
   products: [],
 };
 const SET: PublicSite = {
-  contact: {
-    email: "hello@example.test",
-    phone: "+1 555 010 0100",
-    privacy_email: null,
-    billing_email: null,
-    listings_email: null,
-  },
+  contact: { email: "hello@example.test", phone: "+1 555 010 0100", privacy_email: null },
   legal: { entity: "Example Test LLC", address: "1 Test Street, Testville, CA 90000" },
   social: {
     instagram: "https://www.instagram.com/exampletest",

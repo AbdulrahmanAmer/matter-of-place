@@ -1520,7 +1520,7 @@
     "find": "routeId: \"/admin/team/\",",
     "replace": "routeId: \"/admin/teams/\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*holds 31 entries, one per screen"
+    "expect": "× .*holds 32 entries, one per screen"
   },
   {
     "id": "b7-g3-nav-groups",
@@ -1529,7 +1529,7 @@
     "find": "  \"Clients\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 25 screens in eight areas"
+    "expect": "× .*shows 26 screens in eight areas"
   },
   {
     "id": "b7-g3-nav-work",
@@ -1580,8 +1580,8 @@
     "id": "b7-g3-nav-audit",
     "test": "tests/unit/admin-nav.test.ts",
     "file": "src/admin/nav.ts",
-    "find": "requiresAction: \"audit.list\",",
-    "replace": "requiresAction: \"audit.usage\",",
+    "find": "label: \"Activity log\",\n    requiresAction: \"audit.list\",",
+    "replace": "label: \"Activity log\",\n    requiresAction: \"audit.usage\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
     "expect": "× .*hides the audit log from a managing ed"
   },
@@ -2286,7 +2286,7 @@
     "find": "{ action: \"people.list\", group: \"people\", roles: appRoles },\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 25 screens in eight areas"
+    "expect": "× .*shows 26 screens in eight areas"
   },
   {
     "id": "b7-5a-route-notes",
