@@ -82,9 +82,9 @@
   {
     "id": "w8-0a-matter-never-owner",
     "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/triage.ts",
-    "find": "  if (agentSlug === \"matter\") return false;",
-    "replace": "",
+    "file": "scripts/workforce/criteria.ts",
+    "find": "    intents: [\"privacy_request\"],\n    owner: \"concierge\",",
+    "replace": "    intents: [\"privacy_request\"],\n    owner: \"matter\",",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*lets only the source's owner answer"
   },

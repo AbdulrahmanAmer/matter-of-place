@@ -259,6 +259,8 @@ describe("W8 0c and 0d: only what the source allows, and Matter decides the rest
       ownsOutside(emailTriage, "editor"),
       ownsOutside(emailTriage, "matter"),
     ]).toEqual([true, false, false, true, false]);
+    // No source may name Matter as its owner: Matter only ever reads a held line (W8 0a).
+    expect(Object.values(sources).map((source) => source.owner)).not.toContain("matter");
   });
 });
 
