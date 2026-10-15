@@ -5,6 +5,7 @@ import {
   type Campaign,
   type CampaignList,
 } from "../../domain/admin-campaigns.ts";
+import { exposurePackages } from "../../domain/contracts.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
 import { authorize } from "../lib/authz.ts";
@@ -20,7 +21,7 @@ const joined = z
   .object({
     id: z.string().uuid(),
     property_id: z.string().uuid(),
-    package: z.string(),
+    package: z.enum(exposurePackages),
     media_budget: z.number(),
     management_fee: z.number(),
     starts_on: z.string().nullable(),

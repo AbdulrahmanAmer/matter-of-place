@@ -1939,3 +1939,11 @@ first day of the new usage week; no step was cut from any plan.
   (subscriber.created holds a sealed token). Proof: unit 5 and component 24 passed, registry W7-5.json 14 entries
   WATCHED-FAIL OK, both tsc, eslint, prettier, knip exit 0. NOT DONE: a browser look at the real page (admin sign-in is a
   magic link; rendered text observed in the component test only). Bank grew: P-3560 to P-3562.
+- 2026-10-16 01:00 +0300: W7 item 3 review fixes (PR 442, builder, Sonnet 5.5): the state of a campaign is read on its market's
+  own day (`dayInZone` in `domain/market-time`, Pacific for California, Eastern otherwise) instead of the UTC day; `campaigns`
+  is in `adminKeys` (STUB dropped); `package` is `z.enum(exposurePackages)` in the contract and the service; `marketName`
+  moved to `src/lib/market-names.ts` (Interest and Campaigns import it there); the plan box 3 is open again with a
+  `Built (PR 442)` line naming the follow-up 3b (link an approved campaign_plan to a campaigns row). Also `campaigns` added to
+  the folder map (`check-layout.mjs`, P-3580). Proof: tsc both configs, eslint, prettier, knip exit 0; unit 24 and component
+  14 passed; registry replay `--changed origin/main` 35 ok 0 bad (8 new `w7-3-*` entries). UNPROVEN: the list rendered in a
+  browser on a preview against mop-dev. Bank grew: P-3580, P-3581.

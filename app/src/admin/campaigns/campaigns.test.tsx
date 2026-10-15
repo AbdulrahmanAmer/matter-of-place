@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet } from "@tanstack/react-router";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Campaign } from "../../domain/admin-campaigns";
+import { campaignListLimit, type Campaign } from "../../domain/admin-campaigns";
 import { serveAdmin as serve } from "../../../tests/fixtures/admin-serve";
+import { adminKeys } from "../query";
 import { mountRoutes, pageRoute } from "../ui/test-router";
 import { CampaignsPage } from "./CampaignsPage";
 import { CampaignsTable } from "./CampaignsTable";
@@ -54,8 +55,8 @@ const birch = campaign(BIRCH, {
   report_count: 1,
 });
 
-function open(items: Campaign[]) {
-  serve({ [`GET ${API}`]: { items, total: items.length } });
+function open(items: Campaign[], total = items.length) {
+  const requested = serve({ [`GET ${API}`]: { items, total } });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   mountRoutes(
     () => (
@@ -66,6 +67,7 @@ function open(items: Campaign[]) {
     "/admin/campaigns/",
     (root) => [pageRoute(root, "/admin/campaigns/", () => <CampaignsPage />)],
   );
+  return { client, requested };
 }
 
 const cells = (row: HTMLElement | undefined) =>
@@ -132,11 +134,66 @@ describe("the campaigns table", () => {
   });
 
   it("shows the state word of each row against the day it is given", () => {
-    render(<CampaignsTable today="2026-11-06" rows={[oak, elm, birch]} />);
+    render(<CampaignsTable now={new Date("2026-11-06T12:00:00Z")} rows={[oak, elm, birch]} />);
     const states = screen
       .getAllByRole("row")
       .slice(1)
       .map((row) => cells(row)[3]);
     expect(states).toEqual(["Ended", "Not scheduled", "Running"]);
+  });
+
+  // Oak Hill (California) ends on Nov 5 and Elm Row (New York) starts on Oct 5: a state flips at midnight in the
+  // market's own zone, not at midnight UTC.
+  const evening = (market: string, starts: string | null, ends: string | null) =>
+    campaign(OAK, { market_slug: market, starts_on: starts, ends_on: ends });
+  const stateAt = (row: Campaign, instant: string) => {
+    render(<CampaignsTable now={new Date(instant)} rows={[row]} />);
+    return cells(screen.getAllByRole("row")[1])[3];
+  };
+
+  it("keeps a California campaign running through the evening of its last day, Pacific time", () => {
+    // 2026-11-06T01:00Z is 5:00 PM on Nov 5 in California (PST): the UTC day is already Nov 6.
+    expect(stateAt(evening("california", "2026-10-05", "2026-11-05"), "2026-11-06T01:00:00Z")).toBe(
+      "Running",
+    );
+  });
+
+  it("ends a California campaign when its own day has passed", () => {
+    // 2026-11-06T09:00Z is 1:00 AM on Nov 6 in California.
+    expect(stateAt(evening("california", "2026-10-05", "2026-11-05"), "2026-11-06T09:00:00Z")).toBe(
+      "Ended",
+    );
+  });
+
+  it("keeps a New York campaign upcoming through the evening before its first day, Eastern time", () => {
+    // 2026-10-05T01:00Z is 9:00 PM on Oct 4 in New York (EDT).
+    expect(stateAt(evening("new-york", "2026-10-05", null), "2026-10-05T01:00:00Z")).toBe(
+      "Upcoming",
+    );
+  });
+
+  it("says when only the newest campaigns are shown", async () => {
+    open([oak], campaignListLimit + 50);
+    expect(
+      await screen.findByText(
+        `Showing the newest ${String(campaignListLimit)} of ${String(campaignListLimit + 50)} campaigns.`,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("says nothing about a limit when every campaign is shown", async () => {
+    open([oak]);
+    await screen.findByText("Oak Hill");
+    expect(screen.queryByText(/Showing the newest/)).toBeNull();
+  });
+
+  it("is refreshed when the campaigns feature key is invalidated", async () => {
+    const { client, requested } = open([oak]);
+    await screen.findByText("Oak Hill");
+    expect(requested).toEqual([`GET ${API}`]);
+    await act(() => client.invalidateQueries({ queryKey: adminKeys.campaigns.all() }));
+    await waitFor(() => {
+      expect(requested).toEqual([`GET ${API}`, `GET ${API}`]);
+    });
   });
 });

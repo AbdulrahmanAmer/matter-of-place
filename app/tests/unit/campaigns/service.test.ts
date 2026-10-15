@@ -2,7 +2,7 @@
 // tests/fixtures/channel-db.ts; a `campaigns` row is shaped as PostgREST returns it with the property and the count of
 // its reports embedded.
 import { describe, expect, it } from "vitest";
-import { campaignListLimit } from "../../../src/domain/admin-campaigns";
+import { campaignListLimit, campaignListSchema } from "../../../src/domain/admin-campaigns";
 import { appRoles } from "../../../src/domain/contracts";
 import { listCampaigns } from "../../../src/server/campaigns/service";
 import type { AdminActor } from "../../../src/server/lib/admin-route";
@@ -97,6 +97,16 @@ describe("listCampaigns", () => {
     const database = db();
     await expect(listCampaigns(actor([]), database)).rejects.toMatchObject({ status: 403 });
     expect(database.calls).toEqual([]);
+  });
+
+  it("refuses a package the database enum does not hold, in the service and in the contract", async () => {
+    await expect(
+      listCampaigns(actor(["commercial"]), db([row(1, { package: "The Platinum" })])),
+    ).rejects.toThrow();
+    const list = await listCampaigns(actor(["commercial"]), db());
+    expect(campaignListSchema.safeParse(list).success).toBe(true);
+    const unknown = { ...list, items: [{ ...list.items[0], package: "The Platinum" }] };
+    expect(campaignListSchema.safeParse(unknown).success).toBe(false);
   });
 
   it("reads only the campaigns table", async () => {

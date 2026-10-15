@@ -1,7 +1,8 @@
 import type { ComponentProps } from "react";
 import { campaignChannels, type Campaign } from "../../domain/admin-campaigns";
+import { dayInZone, marketTimezone } from "../../domain/market-time";
 import { formatMoney } from "../../lib/format";
-import { marketName } from "../newsletter/interest-names";
+import { marketName } from "../../lib/market-names";
 import { DataTable, type Column } from "../ui/DataTable";
 import { EmptyState } from "../ui/EmptyState";
 import { StatusPill } from "../ui/StatusPill";
@@ -35,11 +36,11 @@ function Channels({ campaign }: { campaign: Campaign }) {
   );
 }
 
-/** `today` is the ISO date the states are read against; it is a prop so a test can fix it. */
+/** `now` is the instant the states are read at; it is a prop so a test can fix it. Each row reads its own market's day. */
 export function CampaignsTable({
-  today,
+  now,
   ...table
-}: { today: string } & Omit<TableProps, "caption" | "columns" | "rowId" | "empty">) {
+}: { now: Date } & Omit<TableProps, "caption" | "columns" | "rowId" | "empty">) {
   const columns: Column<Campaign>[] = [
     {
       key: "property",
@@ -56,7 +57,7 @@ export function CampaignsTable({
       key: "state",
       header: "State",
       render: (row) => {
-        const state = campaignState(row, today);
+        const state = campaignState(row, dayInZone(now, marketTimezone(row.market_slug)));
         return <StatusPill label={stateLabel[state]} tone={stateTone[state]} />;
       },
     },

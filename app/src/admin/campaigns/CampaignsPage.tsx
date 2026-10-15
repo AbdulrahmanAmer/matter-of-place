@@ -18,7 +18,7 @@ export function CampaignsPage() {
         What each paid property is running: the package, the money, the dates and every channel.
       </p>
       <CampaignsTable
-        today={new Date().toISOString().slice(0, 10)}
+        now={new Date()}
         rows={campaigns.data?.items ?? []}
         loading={campaigns.isPending}
         error={

@@ -32,11 +32,11 @@ function globToRegExp(glob) {
 
 const MARKET_AREAS = "{brand,filters,forms,layout,property,search,site}";
 const ADMIN_FEATURES =
-  "{assets,audit,automation,channels,dashboard,inquiries,invoices,jobs,markets,media,newsletter,people,properties,reports,requests,settings,stories,team,ui,workforce}";
+  "{assets,audit,automation,campaigns,channels,dashboard,inquiries,invoices,jobs,markets,media,newsletter,people,properties,reports,requests,settings,stories,team,ui,workforce}";
 const SERVER_DOMAINS =
-  "{assets,audit,automation,catalog,channels,client-errors,concierge,dashboard,email,events,hooks,inquiries,jobs,kpi,markets,media,newsletter,nitro,omnikom,payments,people,previews,properties,public,reports,search,seo,settings,stories,subjects,submissions,subscribers,team,workforce}";
+  "{assets,audit,automation,campaigns,catalog,channels,client-errors,concierge,dashboard,email,events,hooks,inquiries,jobs,kpi,markets,media,newsletter,nitro,omnikom,payments,people,previews,properties,public,reports,search,seo,settings,stories,subjects,submissions,subscribers,team,workforce}";
 const UNIT_AREAS =
-  "{assets,audit,automation,channels,email,jobs,kpi,lib,newsletter,omnikom,payments,reel,reports,scripts,security}";
+  "{assets,audit,automation,campaigns,channels,email,jobs,kpi,lib,newsletter,omnikom,payments,reel,reports,scripts,security}";
 
 /**
  * The folder map of STANDARDS section 1.3, paths relative to `app/`. A folder is added here only

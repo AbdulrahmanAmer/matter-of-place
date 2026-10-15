@@ -2,7 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminProviders } from "../ui/test-providers";
 import { InterestPage } from "./InterestPage";
-import { marketName, sourceName } from "./interest-names";
+import { marketName } from "../../lib/market-names";
+import { sourceName } from "./interest-names";
 
 // The Interest screen (operator, 2026-10-15): a partner's California signup was saved and confirmed, but nothing in
 // the admin showed who asked about which market.

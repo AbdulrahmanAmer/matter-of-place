@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { exposurePackages } from "./contracts.ts";
 import type { ChannelStatus } from "./rows.ts";
 
 // The campaigns list of screen 33 (W7 item 3). One row is one `campaigns` row: the paid package of one property, its
@@ -30,7 +31,7 @@ const campaignSchema = z.object({
   property_id: z.string().uuid(),
   property_title: z.string(),
   market_slug: z.string(),
-  package: z.string(),
+  package: z.enum(exposurePackages),
   media_budget: z.number(),
   management_fee: z.number(),
   starts_on: z.string().nullable(),
