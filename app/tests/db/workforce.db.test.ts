@@ -138,7 +138,7 @@ describe("workforce write functions", () => {
     });
   });
 
-  it("refuses a handle shaped like an account id, however it is hired (W8 0e)", async () => {
+  it("refuses a handle shaped like an account id in workforce_hire, by the table's own check (W8 0e)", async () => {
     const refused = await withRollback((db) =>
       failure(
         db,

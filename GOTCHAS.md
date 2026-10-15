@@ -8355,3 +8355,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: launch one builder per background command, never two in a row in one command, and prove it from its log instead of the launcher's last line: `run.jsonl` grows and its init event names the model (`python E:/mop-build/.tmp/builder-result.py <run.jsonl>`). Stopping the launcher's wrapper does not stop the builder.
 - proof: `ls -la ~/.mop-workforce/builders/w7-3-fix/run.jsonl` grew from 257732 to 315924 bytes after its launcher was stopped, and its init event reads `model: claude-sonnet-5-5` (2026-10-16).
 - added: 2026-10-16
+
+## P-3575 · A registry entry that mutates a migration file never turns a db test red: the database is built before
+- symptom: 2026-10-16, PR 444: the entry for a new CHECK replaced the constraint in the migration file; a fresh Opus review showed the db test reads a database already migrated (`DEV_DB_URL`, and CI's db job runs `db:reset` before the replay), so the replay would report `stayed green` and turn CI's db job red.
+- rule: a constraint, policy or function in the database is watched with a `kind: "sql"` entry that undoes it in the test's database (`alter table ... drop constraint ...`), as `tests/mutations/B2.json` does for `properties_slug_format`; a file mutation is for code the test itself loads.
+- proof: `tests/mutations/W8-0-slug.json` entry `w8-0e-slug-check-table` is `kind: "sql"` with `alter table public.agents drop constraint agents_slug_not_account_id`; CI's db job replays it (mop-dev refuses db tests from the laptop, H35).
+- added: 2026-10-16
