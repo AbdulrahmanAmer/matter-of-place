@@ -1,0 +1,29 @@
+[
+  {
+    "id": "nc-a-silence-resets-on-output",
+    "test": "tests/unit/workforce-cli.test.ts",
+    "file": "scripts/workforce/cli.ts",
+    "find": "      out += chunk;\n      watch();\n",
+    "replace": "      out += chunk;\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-cli.test.ts",
+    "expect": "× .*lets a colleague who keeps working run past the silence limit"
+  },
+  {
+    "id": "nc-b-stream-result-line",
+    "test": "tests/unit/workforce-cli.test.ts",
+    "file": "scripts/workforce/cli.ts",
+    "find": "event.type === \"result\"",
+    "replace": "event.type === \"answer\"",
+    "run": "bunx vitest run --project unit tests/unit/workforce-cli.test.ts",
+    "expect": "× .*lets a colleague who keeps working run past the silence limit"
+  },
+  {
+    "id": "nc-c-limit-from-final-answer",
+    "test": "tests/unit/workforce-cli.test.ts",
+    "file": "scripts/workforce/cli.ts",
+    "find": "const finalText = final === undefined ? out.slice(-2000) : JSON.stringify(final);",
+    "replace": "const finalText = out;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-cli.test.ts",
+    "expect": "× .*does not take a tool result that mentions a rate limit"
+  }
+]
