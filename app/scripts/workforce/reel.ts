@@ -109,6 +109,21 @@ function writeBrief(folder: string, brief: Brief): void {
 /** A reel still `working` after this long was left by a process that died; its folder is marked failed. */
 export const STALE_MS = 3 * 60 * 60_000;
 
+/**
+ * True while a reel is being made (a `working` brief younger than STALE_MS). The runner then starts no second one and
+ * does not move its checkout to new code, since the reel's process runs from that folder.
+ */
+export function reelWorking(studio: string = STUDIO, now: Date = new Date()): boolean {
+  if (!existsSync(studio)) return false;
+  return readdirSync(studio, { withFileTypes: true }).some((entry) => {
+    if (!entry.isDirectory()) return false;
+    const brief = readBrief(join(studio, entry.name));
+    return (
+      brief?.state === "working" && now.getTime() - Date.parse(brief.started ?? brief.at) < STALE_MS
+    );
+  });
+}
+
 /** The oldest queued request; null while one is being made (one at a time on this laptop) or none waits. */
 export function nextReel(
   studio: string = STUDIO,
@@ -402,19 +417,27 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
   }
 }
 
-/** A CLI run confined to the studio folder: no shell, no web, no MCP servers; refused, never asked (H101). */
-function studioArgs(model: string, extraRefused: string): string[] {
+/** The file tools each studio run is given; under `dontAsk` a tool not named here is refused (P-3481). */
+export const studioTools = {
+  designer: "Read,Write,Edit,Glob,Grep",
+  reviewer: "Read,Glob,Grep",
+} as const;
+
+/**
+ * A CLI run confined to the studio folder (`--restricted` refuses a write outside it): no shell, no web, no MCP
+ * servers, and only the file tools of its role; anything else is refused, never asked (H101).
+ */
+export function studioArgs(model: string, role: keyof typeof studioTools): string[] {
   const noMcp = join(STUDIO, "no-mcp.json");
-  if (!existsSync(noMcp)) writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));
+  if (!existsSync(noMcp)) {
+    mkdirSync(STUDIO, { recursive: true });
+    writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));
+  }
   return [
     ...["-p", "--model", model, "--output-format", "json"],
     ...["--strict-mcp-config", "--mcp-config", noMcp, "--restricted"],
-    ...[
-      "--permission-mode",
-      "dontAsk",
-      "--disallowedTools",
-      `Bash,WebFetch,WebSearch,NotebookEdit${extraRefused}`,
-    ],
+    ...["--permission-mode", "dontAsk", "--allowedTools", studioTools[role]],
+    ...["--disallowedTools", "Bash,WebFetch,WebSearch,NotebookEdit"],
   ];
 }
 
@@ -437,7 +460,7 @@ async function realDeps(): Promise<ReelDeps> {
     design: async (folder, prompt) =>
       (
         await runClaude({
-          args: studioArgs("sonnet", ""),
+          args: studioArgs("sonnet", "designer"),
           cwd: folder,
           env: childEnv(),
           prompt,
@@ -482,7 +505,7 @@ async function realDeps(): Promise<ReelDeps> {
       if (sheet.status !== 0) throw new Error("review_sheet_failed");
       return (
         await runClaude({
-          args: studioArgs("opus", ",Write,Edit"),
+          args: studioArgs("opus", "reviewer"),
           cwd: folder,
           env: childEnv(),
           prompt,
