@@ -8150,3 +8150,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
 - proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
 - added: 2026-10-15
+
+## P-3480 · Work the runner gates on "no colleague run in flight" never happens while Matter's live session runs
+- symptom: 2026-10-15 11:10, a brand reel queued in the studio after PR 419 went live stayed `queued` for four minutes of passes; `daemon.log` showed no `reel pass started`. The office's runs list held Matter's own `schedule` run, `running` since 08:09Z: the live session.
+- cause: `daemon.ts` started the reel pass inside `if (inFlight === 0)`, the follow-main gate; Matter's live session is an `agent_runs` row in `running` for its whole life, so `inFlight` is almost never 0 while Matter works.
+- rule: gate on "no colleague run" only what must not overlap a run (moving the checkout). Work that runs as a process of its own takes its own lock (the reel's `working` brief, `reelWorking()`), and the checkout does not move while that lock is held.
+- proof: `bun app/scripts/matter/read.ts /api/admin/workforce/office` → runs[0] `{"agent_slug":"matter","cause":"schedule","state":"running"}` while the brief read `"state": "queued"`; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "says a reel is being made"` covers the new lock.
+- added: 2026-10-15

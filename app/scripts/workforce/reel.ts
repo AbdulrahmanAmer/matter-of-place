@@ -109,6 +109,22 @@ function writeBrief(folder: string, brief: Brief): void {
 /** A reel still `working` after this long was left by a process that died; its folder is marked failed. */
 export const STALE_MS = 3 * 60 * 60_000;
 
+/**
+ * True while a reel is being made (a `working` brief younger than STALE_MS). The runner then starts no second one and
+ * does not move its checkout to new code, since the reel's process runs from that folder.
+ */
+export function reelWorking(studio: string = STUDIO, now: Date = new Date()): boolean {
+  if (!existsSync(studio)) return false;
+  return readdirSync(studio, { withFileTypes: true }).some((entry) => {
+    if (!entry.isDirectory()) return false;
+    const brief = readBrief(join(studio, entry.name));
+    return (
+      brief?.state === "working" &&
+      now.getTime() - Date.parse(brief.started ?? brief.at) < STALE_MS
+    );
+  });
+}
+
 /** The oldest queued request; null while one is being made (one at a time on this laptop) or none waits. */
 export function nextReel(
   studio: string = STUDIO,

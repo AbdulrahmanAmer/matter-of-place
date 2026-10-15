@@ -61,5 +61,14 @@
     "replace": "  brand: \"property\",\n} as const",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*designs, films, has it reviewed"
+  },
+  {
+    "id": "w7-e2-reel-working",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "      brief?.state === \"working\" &&",
+    "replace": "      brief?.state === \"queued\" &&",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*says a reel is being made while a brief is working"
   }
 ]
