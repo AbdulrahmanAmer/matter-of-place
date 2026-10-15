@@ -8327,17 +8327,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
 - added: 2026-10-15
 
-## P-3570 · A Claude Code permission rule with no leading `./`, `~/` or `//` is relative to the run's folder
-- symptom: 2026-10-15, W8 0e review 2: the terminal's settings denied `Read(**/.env*)` and `Read(**/creds/**)` to keep secrets out; those patterns match only inside the working folder, so the workspace `.env` and every login under the home folder stayed readable as far as the deny list went.
-- rule: confine a headless run by what it is allowed, not by what it is denied: `--permission-mode dontAsk` with `allow: ["Read(./**)", "Edit(./**)"]` refuses every read, Grep, Glob and write outside the run's folder. Deny rules are a second layer and name `~/` or `./` paths only; the terminal test refuses a deny path rule without one.
-- proof: `bun E:/mop-build/.tmp/probe-0e/probe.ts E:/mop-build/w8-0e/app` on Haiku: a decoy outside the folder and one in `~/.mop-workforce` refused (Read, Grep and Glob), a `.env.local` inside refused, `draft.svg` written, `.claude/settings.json`, `CLAUDE.md` and a file outside the folder refused (results in `E:/mop-build/.tmp/probe-0e/results.txt`).
+## P-3550 · After the launch switch mop-dev refuses every db test, so a new SQL function is proved on a native cluster holding a stub of only the tables it names
+- symptom: 2026-10-15, W7 item 2: the db test of `email_reply_mark`, run the P-312 way (the unmerged migration as `MOP_MUTATION_SQL` on mop-dev), died in `tests/db/global-setup.ts` with `Error: refusing: production database` (ruling H35 (6)); a fresh worktree has no `.env`, so the loader first printed `ENOENT ... w7-2\.env` (the fix is in P-051: load the main checkout's through its own loader).
+- cause: there is one database and it is production now; `assertNotProduction` refuses db tests against it, and only CI's stack runs them. The P-312 route is closed, and P-718's full restore of mop-dev's schema is heavy for one function.
+- rule: for a function that needs only `write_audit` and a few tables, `initdb` a throwaway cluster (P-718), create the three roles and `auth.users`, copy the enums and the tables the function and `write_audit` read (`user_roles`, `action_roles`, `audit_log`, `pii_columns`, its own table) verbatim from their migrations, load the real function files and the generated `action_roles` migration, and run the one db test with `DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/mop` through `node node_modules/vitest/vitest.mjs`. `sql` registry entries replay the same way. Say in the PR that the proof is a stub schema and the CI db job is the one that counts.
+- proof: `cd app && eval "$(node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev)" && env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/email-reply-mark.db.test.ts` → `Error: refusing: production database`; the same file on the stub cluster → `Tests  3 passed (3)`, and `node scripts/watchfail.mjs --registry tests/mutations --only w7-2-sql-audit` with that `DEV_DB_URL` → `WATCHED-FAIL OK W7-2:w7-2-sql-audit` (measured 2026-10-15).
 - added: 2026-10-15
 
-## P-3571 · A hook planted in a run's folder runs under plain `claude -p`; `--restricted` and `--setting-sources ""` each stop it
-- symptom: 2026-10-15, W8 0e review 2: a terminal could leave `.claude/settings.json` with a hook in a colleague's desk, and the next run in that desk would load it.
-- rule: every colleague run passes `--setting-sources ""` (the outside and terminal runs already did), the runner sweeps `.claude`, `CLAUDE.md`, `CLAUDE.local.md` and `.mcp.json` out of the desk before each run (`deskFor`), and a terminal works in `desks/<slug>/work`. A probe of a hook needs a control that fires, or it measures nothing: the first probe's control kept `--restricted` and never fired.
-- proof: `bun E:/mop-build/.tmp/probe-0e/hook-control.ts E:/mop-build/w8-0e/app` → `plain: HOOK RAN`, `restricted: hook did not run`, `sources_project: HOOK RAN`, `sources_empty: hook did not run` (measured 2026-10-15). And a planted memory file: `bun E:/mop-build/.tmp/probe-0e/claudemd.ts E:/mop-build/w8-0e/app` → a plain run reads `CLAUDE.md` and `claude.md` (Windows ignores case, so the sweep compares names in lower case), a run with the runner's arguments reads neither (measured 2026-10-16).
-- added: 2026-10-15
+## P-3551 · A `sql` registry entry that comments out one line of a multi-line statement goes red on the compile error, and `expect` (the test title) cannot tell
+- symptom: 2026-10-16, W7 item 2 review: the entry `w7-2-sql-audit` replaced `perform public.write_audit(` with `perform 1; -- public.write_audit(`, which left the argument lines as a bare statement. `create or replace function` failed to compile inside the test's transaction, the case went red, and `watchfail.mjs` printed `WATCHED-FAIL OK` because `expect` is only the `× <test title>` line. The audit-row protection was never watched.
+- cause: the verdict reads the test title, which a syntax error and the assertion it names both turn red. A mutation that is cut by line is not a mutation of the statement.
+- rule: a `sql` entry removes or replaces a whole statement (`perform 1;` for a whole `perform ...;`), generated from the real function file by a script that asserts its target occurs once, never typed by hand; after the verdict, read the red output once (apply the entry's sql to the stub cluster, run the test) and see the assertion's own diff (`expected [] to deeply equal [ Array(1) ]`), not a `syntax error`. When the real function changes, every `sql` entry that embeds a copy of it is regenerated in the same commit (a stale copy turns the new assertion red for the wrong reason).
+- proof: `psql -h 127.0.0.1 -p <stub port> -U postgres -d mop -f <the entry's sql>` prints no error, then `DEV_DB_URL=postgresql://postgres@127.0.0.1:<stub port>/mop node node_modules/vitest/vitest.mjs run --project db tests/db/email-reply-mark.db.test.ts -t "marks a reply answered"` → `AssertionError: expected [] to deeply equal [ Array(1) ]` for `w7-2-sql-audit` (measured 2026-10-16).
+- added: 2026-10-16
 
 ## P-3560 · `findByRole("table")` is satisfied by the loading skeleton: a component test reads five empty rows
 - symptom: 2026-10-15 (W7 5), the Events panel test awaited `findByRole("table", { name: "Events" })` and then compared the rows' cells: it received five rows of `[""]`. `DataTable` draws its caption and five skeleton rows while `loading`, so the table exists before any data. A test that only waited for the table, "draws no failure table", would also have passed on the skeleton.
@@ -8356,12 +8358,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: start `eslint` as its own background command with the longest `timeout`; never replay the registry while it runs (the replay mutates the files eslint reads).
 - proof: `cd app && bunx eslint --max-warnings 0 src/server/jobs/events.ts` exits 0 given time.
 - added: 2026-10-15
-
-## P-3576 · A new file anywhere under `app/` fails CI's first step until the folder map names it
-- symptom: 2026-10-16: three PRs in one evening went red in 23 to 30 seconds on `layout: <file>: outside the folder map` (PR 442's `src/admin/campaigns/*`, PR 439's `src/server/redirect-links/service.ts`, PR 443's `scripts/workforce/settings-terminal.json`), each after a full local round of tests, typecheck, lint and watched-fails that never ran the layout check.
-- rule: run `bun run layout` from `app/` before every push that adds a file; a file in an existing folder is added to that folder's row in `scripts/check-layout.mjs`, a new folder needs its STANDARDS row too (or the file goes under an existing folder, as PR 439's did). The builders' How block says so.
-- proof: `cd app && bun run layout` → `layout: OK (3451 files)` on PR 443 with `settings-terminal.json` in the `scripts/workforce` row, and `outside the folder map` without it (2026-10-16).
-- added: 2026-10-16
 
 ## P-3572 · Code split out of an admin service must stay a `service.ts`, and must not be reached by the job runner
 - symptom: 2026-10-15, PR 439: `settings/service.ts` loaded the site's modules lazily for the test-a-link box, and CI's Deno check over the job runner (which reaches that service) failed; the check moved to `settings/redirect-links.ts`, and the next CI failed `tests/unit/admin-authz-sweep.test.ts` (`import only the wrapper, services and domain`), because an admin route file may import only `server/lib/admin-route`, `server/**/service`, `domain/**`, the router and zod.
@@ -8385,4 +8381,34 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-16, PR 444: the entry for a new CHECK replaced the constraint in the migration file; a fresh Opus review showed the db test reads a database already migrated (`DEV_DB_URL`, and CI's db job runs `db:reset` before the replay), so the replay would report `stayed green` and turn CI's db job red.
 - rule: a constraint, policy or function in the database is watched with a `kind: "sql"` entry that undoes it in the test's database (`alter table ... drop constraint ...`), as `tests/mutations/B2.json` does for `properties_slug_format`; a file mutation is for code the test itself loads.
 - proof: `tests/mutations/W8-0-slug.json` entry `w8-0e-slug-check-table` is `kind: "sql"` with `alter table public.agents drop constraint agents_slug_not_account_id`; CI's db job replays it (mop-dev refuses db tests from the laptop, H35).
+- added: 2026-10-16
+
+## P-3570 · A Claude Code permission rule with no leading `./`, `~/` or `//` is relative to the run's folder
+- symptom: 2026-10-15, W8 0e review 2: the terminal's settings denied `Read(**/.env*)` and `Read(**/creds/**)` to keep secrets out; those patterns match only inside the working folder, so the workspace `.env` and every login under the home folder stayed readable as far as the deny list went.
+- rule: confine a headless run by what it is allowed, not by what it is denied: `--permission-mode dontAsk` with `allow: ["Read(./**)", "Edit(./**)"]` refuses every read, Grep, Glob and write outside the run's folder. Deny rules are a second layer and name `~/` or `./` paths only; the terminal test refuses a deny path rule without one.
+- proof: `bun E:/mop-build/.tmp/probe-0e/probe.ts E:/mop-build/w8-0e/app` on Haiku: a decoy outside the folder and one in `~/.mop-workforce` refused (Read, Grep and Glob), a `.env.local` inside refused, `draft.svg` written, `.claude/settings.json`, `CLAUDE.md` and a file outside the folder refused (results in `E:/mop-build/.tmp/probe-0e/results.txt`).
+- added: 2026-10-15
+
+## P-3571 · A hook planted in a run's folder runs under plain `claude -p`; `--restricted` and `--setting-sources ""` each stop it
+- symptom: 2026-10-15, W8 0e review 2: a terminal could leave `.claude/settings.json` with a hook in a colleague's desk, and the next run in that desk would load it.
+- rule: every colleague run passes `--setting-sources ""` (the outside and terminal runs already did), the runner sweeps `.claude`, `CLAUDE.md`, `CLAUDE.local.md` and `.mcp.json` out of the desk before each run (`deskFor`), and a terminal works in `desks/<slug>/work`. A probe of a hook needs a control that fires, or it measures nothing: the first probe's control kept `--restricted` and never fired.
+- proof: `bun E:/mop-build/.tmp/probe-0e/hook-control.ts E:/mop-build/w8-0e/app` → `plain: HOOK RAN`, `restricted: hook did not run`, `sources_project: HOOK RAN`, `sources_empty: hook did not run` (measured 2026-10-15). And a planted memory file: `bun E:/mop-build/.tmp/probe-0e/claudemd.ts E:/mop-build/w8-0e/app` → a plain run reads `CLAUDE.md` and `claude.md` (Windows ignores case, so the sweep compares names in lower case), a run with the runner's arguments reads neither (measured 2026-10-16).
+- added: 2026-10-15
+
+## P-3576 · A new file anywhere under `app/` fails CI's first step until the folder map names it
+- symptom: 2026-10-16: three PRs in one evening went red in 23 to 30 seconds on `layout: <file>: outside the folder map` (PR 442's `src/admin/campaigns/*`, PR 439's `src/server/redirect-links/service.ts`, PR 443's `scripts/workforce/settings-terminal.json`), each after a full local round of tests, typecheck, lint and watched-fails that never ran the layout check.
+- rule: run `bun run layout` from `app/` before every push that adds a file; a file in an existing folder is added to that folder's row in `scripts/check-layout.mjs`, a new folder needs its STANDARDS row too (or the file goes under an existing folder, as PR 439's did). The builders' How block says so.
+- proof: `cd app && bun run layout` → `layout: OK (3451 files)` on PR 443 with `settings-terminal.json` in the `scripts/workforce` row, and `outside the folder map` without it (2026-10-16).
+- added: 2026-10-16
+
+## P-3580 · A new feature folder passed every local check and was missing from the folder map: CI's layout check fails with "outside the folder map"
+- symptom: 2026-10-16, PR 442 (W7 3): `bun run layout` printed `app/src/admin/campaigns/CampaignsPage.tsx: outside the folder map` for 8 files (`src/admin/campaigns`, `src/server/campaigns`, `tests/unit/campaigns`). The first build ran tsc, eslint, prettier and the tests but not `layout`, so the branch would have failed CI's check.
+- rule: a new folder under `src/admin`, `src/server` or `tests/unit` is added to `ADMIN_FEATURES`, `SERVER_DOMAINS` or `UNIT_AREAS` in `app/scripts/check-layout.mjs` in the same change, and `bun run layout` runs before the first push.
+- proof: `cd app && bun run layout` → `layout: OK`; with `campaigns` removed from `ADMIN_FEATURES` it lists the `src/admin/campaigns` files as outside the folder map.
+- added: 2026-10-16
+
+## P-3581 · A date taken with `new Date().toISOString().slice(0, 10)` is the UTC day, so a market's state flips hours early or late
+- symptom: 2026-10-16, PR 442 review: the Campaigns list showed a California campaign ending Nov 5 as `Ended` at 5 PM Pacific on Nov 5 (UTC is already Nov 6), and a New York campaign starting Oct 5 as `Running` from 9 PM Eastern on Oct 4.
+- rule: the day of a market is `dayInZone(now, marketTimezone(slug))` from `src/domain/market-time.ts`; never slice an ISO string for a business date (R29: business dates use an explicit IANA zone).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-3-screen-market-day` → `WATCHED-FAIL OK` (the zone replaced by UTC turns `keeps a California campaign running through the evening of its last day` red); `--only w7-3-market-day-zone` likewise for `dayInZone`.
 - added: 2026-10-16

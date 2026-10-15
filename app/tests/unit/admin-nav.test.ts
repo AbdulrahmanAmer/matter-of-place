@@ -48,6 +48,8 @@ const ROUTE_IDS: Record<number, string> = {
   31: "/admin/interest/",
   // W9 item 2: the Sent emails screen.
   32: "/admin/emails/",
+  // W7 item 3: the Campaigns list.
+  33: "/admin/campaigns/",
 };
 
 const everyRoute = () => true;
@@ -58,18 +60,18 @@ const screensShown = (sections: ReturnType<typeof visibleNav>) =>
   sections.flatMap((section) => section.entries.map((entry) => entry.screen));
 
 describe("the nav registry", () => {
-  it("holds 32 entries, one per screen, with the routeId list of the plan, W1, the new-invoice form, Interest and Sent emails", () => {
-    expect(navEntries).toHaveLength(32);
+  it("holds 33 entries, one per screen, with the routeId list of the plan, W1, the new-invoice form, Interest, Sent emails and Campaigns", () => {
+    expect(navEntries).toHaveLength(33);
     expect(Object.fromEntries(navEntries.map((entry) => [entry.screen, entry.routeId]))).toEqual(
       ROUTE_IDS,
     );
   });
 
-  it("shows 26 screens in eight areas when every route and action exists (W3, W9)", () => {
+  it("shows 27 screens in eight areas when every route and action exists (W3, W7, W9)", () => {
     const sections = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
     expect(sections.map((section) => section.group)).toEqual([...navGroups]);
-    expect(sections.map((section) => section.entries.length)).toEqual([2, 4, 3, 4, 3, 4, 3, 3]);
-    expect(screensShown(sections)).toHaveLength(26);
+    expect(sections.map((section) => section.entries.length)).toEqual([2, 4, 3, 4, 4, 4, 3, 3]);
+    expect(screensShown(sections)).toHaveLength(27);
   });
 
   it("names each area's screens for the work: Inbox, Listings, Automation and Settings", () => {
@@ -129,7 +131,7 @@ describe("the nav registry", () => {
       actions: everyAction(),
     });
     expect(screensShown(sections)).not.toContain(23);
-    expect(screensShown(sections)).toHaveLength(25);
+    expect(screensShown(sections)).toHaveLength(26);
   });
 
   it("hides the team screen from a commercial actor", () => {
