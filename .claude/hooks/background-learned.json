@@ -2,7 +2,6 @@
   "choco install",
   "cp -r",
   "curl -sSfL",
-  "gh run",
   "git clone",
   "gitleaks detect",
   "scoop install",
