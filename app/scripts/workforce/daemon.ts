@@ -40,7 +40,7 @@ import {
 } from "./reel.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
-import { followMain, mapDue } from "./follow.ts";
+import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
 import { groundingLines, requestSequence } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
@@ -708,13 +708,10 @@ async function pass(client: Db): Promise<void> {
     return;
   }
   // Gap audit item 6: between runs the runner moves to the newest main; the next pass runs the new code.
-  const { count: inFlight } = await client
-    .from("agent_runs")
-    .select("id", { count: "exact", head: true })
-    .eq("state", "running");
+  const { data: running } = await client.from("agent_runs").select("worker").eq("state", "running");
   // A reel being made runs from this checkout, so the runner does not move under it (W7 item 19).
   const reelBusy = reelWorking();
-  if (inFlight === 0 && !reelBusy) {
+  if (!runnerBusy(running ?? []) && !reelBusy) {
     const followed = followMain(resolve(import.meta.dir, "../.."), join(HOME, "runner-app"));
     if (followed !== "unchanged" && followed !== "not the runner") {
       console.log(`${new Date().toISOString()} runner ${followed}`);

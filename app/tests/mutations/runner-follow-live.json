@@ -1,0 +1,20 @@
+[
+  {
+    "id": "follow-live-run-not-busy",
+    "test": "tests/unit/follow.test.ts",
+    "file": "scripts/workforce/follow.ts",
+    "find": "  return running.some((run) => !(run.worker ?? \"\").startsWith(LIVE_WORKER_PREFIX));",
+    "replace": "  return running.length > 0;",
+    "run": "bunx vitest run --project unit tests/unit/follow.test.ts",
+    "expect": "× .*waits for a run this checkout executes"
+  },
+  {
+    "id": "follow-other-run-busy",
+    "test": "tests/unit/follow.test.ts",
+    "file": "scripts/workforce/follow.ts",
+    "find": "  return running.some((run) => !(run.worker ?? \"\").startsWith(LIVE_WORKER_PREFIX));",
+    "replace": "  return false;",
+    "run": "bunx vitest run --project unit tests/unit/follow.test.ts",
+    "expect": "× .*waits for a run this checkout executes"
+  }
+]
