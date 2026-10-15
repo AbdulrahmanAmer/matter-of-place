@@ -60,5 +60,23 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/usage-policy.test.ts",
     "expect": "× .*reads nothing from a missing, stale or already-reset week"
+  },
+  {
+    "id": "w6-b-header-allowance",
+    "test": "src/admin/workforce/matter-panel.test.tsx",
+    "file": "src/admin/workforce/MatterPanel.tsx",
+    "find": "        <p className=\"mp-head__allowance\">{allowanceLine(props.allowance)}</p>",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/workforce/matter-panel.test.tsx",
+    "expect": "× .*shows the weekly allowance in the header"
+  },
+  {
+    "id": "w6-b-header-not-measured",
+    "test": "src/admin/workforce/matter-panel.test.tsx",
+    "file": "src/admin/workforce/MatterPanel.tsx",
+    "find": "    ? \"Allowance not measured\"",
+    "replace": "    ? \"\"",
+    "run": "bunx vitest run --project component src/admin/workforce/matter-panel.test.tsx",
+    "expect": "× .*shows the weekly allowance in the header"
   }
 ]

@@ -5,7 +5,8 @@ import { decideApproval, postMessage } from "../../src/server/workforce/service"
 import { fakeDb } from "../fixtures/fake-db";
 
 // H101 (operator, 2026-10-13: "no one can some how figure out a way to talk to my ai employees and cause issues"):
-// only a signed-in person's line counts as a person's, and only a person decides an approval.
+// only a signed-in person's line counts as a person's. The operator, 2026-10-15: Matter decides approvals in his place,
+// so an agent key with a deciding role decides too, recorded as an agent's decision.
 
 const person: AdminActor = {
   userId: "00000000-0000-4000-8000-000000000001",
@@ -74,13 +75,31 @@ describe("a line in the team chat", () => {
 });
 
 describe("an approval", () => {
-  it("is never decided by an agent key, Matter's included", async () => {
-    const db = world();
-    const decided = decideApproval(key, db, "33333333-3333-4333-8333-333333333333", {
+  it("is decided by Matter's key and recorded as an agent's decision", async () => {
+    const db = fakeDb({ rpc: { workforce_decide: () => "approved" } });
+    const decided = await decideApproval(key, db, "33333333-3333-4333-8333-333333333333", {
       decision: "approved",
       content_hash: "0".repeat(64),
     });
-    await expect(decided).rejects.toMatchObject({ code: "human_only", status: 403 });
+    const call = db.calls.find(
+      (entry) => entry.kind === "rpc" && entry.name === "workforce_decide",
+    );
+    expect(decided).toEqual({ state: "approved" });
+    expect(call?.args[0]).toMatchObject({ p_actor_kind: "agent" });
+  });
+
+  it("is refused to an agent key without a deciding role", async () => {
+    const db = fakeDb({ rpc: { workforce_decide: () => "approved" } });
+    const decided = decideApproval(
+      { ...key, roles: ["commercial"] },
+      db,
+      "33333333-3333-4333-8333-333333333333",
+      {
+        decision: "approved",
+        content_hash: "0".repeat(64),
+      },
+    );
+    await expect(decided).rejects.toMatchObject({ code: "forbidden", status: 403 });
     expect(db.calls.filter((entry) => entry.kind === "rpc")).toEqual([]);
   });
 });

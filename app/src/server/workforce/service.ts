@@ -35,7 +35,7 @@ export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
   authorize(actor, "workforce.office");
   const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
   const weekAgo = new Date(Date.now() - 7 * 24 * 3_600_000).toISOString();
-  const [agents, runs, today, approvals, week, activity] = await Promise.all([
+  const [agents, runs, today, approvals, week, activity, allowance] = await Promise.all([
     db.from("agents").select("*").order("created_at"),
     db
       .from("agent_runs")
@@ -51,6 +51,12 @@ export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
       .select("id, agent_id, label, state, started_at, finished_at")
       .order("started_at", { ascending: false })
       .limit(20),
+    // W6 item 2: the weekly Claude allowance, recorded by the runner each pass (note = when the week resets).
+    db
+      .from("vendor_usage")
+      .select("used, note, measured_at")
+      .eq("line", "claude_week")
+      .maybeSingle(),
   ]);
   if (
     agents.error !== null ||
@@ -58,7 +64,8 @@ export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
     today.error !== null ||
     approvals.error !== null ||
     week.error !== null ||
-    activity.error !== null
+    activity.error !== null ||
+    allowance.error !== null
   ) {
     throw unavailable("The office");
   }
@@ -107,6 +114,14 @@ export async function getOffice(actor: AdminActor, db: Db): Promise<Office> {
       started_at: row.started_at,
       finished_at: row.finished_at,
     })),
+    allowance:
+      allowance.data === null || allowance.data.note === null
+        ? null
+        : {
+            week: allowance.data.used,
+            resets_at: allowance.data.note,
+            measured_at: allowance.data.measured_at,
+          },
   };
 }
 

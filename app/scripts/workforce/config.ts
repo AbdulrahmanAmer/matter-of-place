@@ -12,6 +12,7 @@ import {
   policySchema,
   readingOf,
   type Override,
+  type Reading,
   type StaffPolicy,
 } from "./usage-policy.ts";
 
@@ -70,15 +71,16 @@ const FILES: PolicyFiles = { usage: USAGE_FILE, config: CONFIG_FILE, policy: POL
 
 /**
  * One pass: reads the allowance and the override, writes the policy, and says whether what the staff may do changed
- * (the caller tells the team) and whether the allowance was unreadable (the caller logs `usage: unreadable`).
+ * (the caller tells the team), with the week's reading, or null when it was unreadable (the caller logs
+ * `usage: unreadable`; otherwise it records the reading for the Office).
  */
 export function refreshPolicy(
   files: PolicyFiles = FILES,
   now: Date = new Date(),
-): { policy: StaffPolicy; changed: boolean; unreadable: boolean } {
+): { policy: StaffPolicy; changed: boolean; reading: Reading | null } {
   const reading = readingOf(readJson(files.usage), now);
   const last = lastPolicy(files.policy);
   const policy = policyFor(reading, workforceOverride(files.config, now), last);
   writeFileSync(files.policy, `${JSON.stringify(policy, null, 2)}\n`);
-  return { policy, changed: policyChanged(last, policy), unreadable: reading === null };
+  return { policy, changed: policyChanged(last, policy), reading };
 }
