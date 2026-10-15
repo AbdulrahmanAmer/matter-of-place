@@ -39,8 +39,8 @@
     "id": "w1-e-handle-shape",
     "test": "tests/unit/workforce.test.ts",
     "file": "src/domain/workforce.ts",
-    "find": "  .regex(/^[a-z][a-z0-9-]{1,39}$/, \"Use lower-case letters, digits and dashes\");",
-    "replace": "  .min(1);",
+    "find": "  .regex(/^[a-z][a-z0-9-]{1,39}$/, \"Use lower-case letters, digits and dashes\")\n",
+    "replace": "  .min(1)\n",
     "run": "bunx vitest run --project unit tests/unit/workforce.test.ts",
     "expect": "× .*refuses a handle with capitals or spaces"
   },

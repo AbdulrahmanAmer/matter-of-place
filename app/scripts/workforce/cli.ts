@@ -2,8 +2,27 @@
 // stdin (a long positional argument makes the CLI wait for stdin), JSON or stream-JSON out, stderr ignored, the whole
 // process tree killed when a run is stopped (Jay: a plain kill leaves the CLI's children running).
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { z } from "zod";
+
+/**
+ * W8 fourth review: a CLI run that may read outside-shaped text is shut off from the operator's own setup. No
+ * setting source (the operator's settings allow every tool without asking), no MCP server, writes kept inside its
+ * folder, and under `dontAsk` every tool refused except `allowed` (built-in tools limited to the same list). Used by
+ * the triage, the weekly review's replay and the daily meeting. `home` holds the empty MCP config.
+ */
+export function isolatedArgs(home: string, allowed = ""): string[] {
+  // the folder may not exist yet (a fresh machine, CI): made first, so the empty MCP config can be written
+  mkdirSync(home, { recursive: true });
+  const noMcp = join(home, "no-mcp.json");
+  if (!existsSync(noMcp)) writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));
+  return [
+    ...["--tools", allowed, "--setting-sources", ""],
+    ...["--strict-mcp-config", "--mcp-config", noMcp, "--restricted"],
+    ...["--permission-mode", "dontAsk", "--allowedTools", allowed],
+  ];
+}
 
 const usageSchema = z.object({
   input_tokens: z.number().int().nonnegative().default(0),

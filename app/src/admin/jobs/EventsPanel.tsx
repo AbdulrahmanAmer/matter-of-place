@@ -25,26 +25,29 @@ function recipesOf(row: EventRow) {
   return row.recipes.map((recipe) => recipe.name).join(", ");
 }
 
+/** The columns both tables open with: the event, when it happened and what it was for. */
+function eventLead<
+  Row extends { type: string; at: string; entity: string | null; entity_id: string | null },
+>(): Column<Row>[] {
+  return [
+    { key: "type", header: "Event", render: (row) => row.type },
+    { key: "at", header: "When", render: (row) => <LocalTime value={row.at} /> },
+    {
+      key: "for",
+      header: "For",
+      render: (row) => <EntityCell entity={row.entity} id={row.entity_id} />,
+    },
+  ];
+}
+
 const eventColumns: Column<EventRow>[] = [
-  { key: "type", header: "Event", render: (row) => row.type },
-  { key: "at", header: "When", render: (row) => <LocalTime value={row.at} /> },
-  {
-    key: "for",
-    header: "For",
-    render: (row) => <EntityCell entity={row.entity} id={row.entity_id} />,
-  },
+  ...eventLead<EventRow>(),
   { key: "processed", header: "Processed", render: (row) => (row.processed ? "Yes" : "Not yet") },
   { key: "recipes", header: "Recipe", render: recipesOf },
 ];
 
 const failureColumns: Column<FailureRow>[] = [
-  { key: "type", header: "Event", render: (row) => row.type },
-  { key: "at", header: "When", render: (row) => <LocalTime value={row.at} /> },
-  {
-    key: "for",
-    header: "For",
-    render: (row) => <EntityCell entity={row.entity} id={row.entity_id} />,
-  },
+  ...eventLead<FailureRow>(),
   { key: "attempts", header: "Attempts", render: (row) => String(row.attempts) },
   { key: "next", header: "Next try", render: (row) => <LocalTime value={row.next_at} /> },
   { key: "error", header: "Last error", render: (row) => row.last_error ?? "None recorded" },
