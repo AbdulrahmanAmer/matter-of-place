@@ -1874,3 +1874,12 @@ first day of the new usage week; no step was cut from any plan.
   allowance; observed policy.json and the team line at 03:03Z. Item 2: PR 391 (claude_week vendor line, H106) in CI,
   the header parked on feat/w6-allowance-header. W7 section E is the operator's priority: design merged (PR 395, H107),
   slice E1 (assets subject) in build on feat/w7-e1-subject. Bank grew: P-3467.
+
+- 2026-10-15 06:40 +0300: PR 390 live (workforce.decide, update, hire no longer person-only). Matter, on the operator's
+  line, added subscriber.confirmed to Campaigns' Wakes on and decided the four approvals (Campaigns' LA invitation sent
+  back with four fixes; Place Notes issue 1 and the Instagram coming-soon post approved). Matter merged PR 388 (W6 item
+  1 A) himself. Plans on main: W7 section E (reels, PR 394), W8 (Instagram end to end, PR 397); Matter's goal holds W6,
+  W7, W8. Launch film package (PR 392) and the brand voice (launch/voice, PR 393) in the repo. Laptop: Peer2Profit
+  proxyware removed (74 files, 12 folders, born 2025-12-31 17:53); the operator restores Winlogon Shell to explorer.exe
+  as administrator. Open with the operator: the post and video brief, the Meta app, whether to remove uTorrent, and the
+  studio-folder and triage design for W8's foundation.

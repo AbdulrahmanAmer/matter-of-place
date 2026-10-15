@@ -45,13 +45,13 @@
     "expect": "× .*counts as a person's only when a signed-in person wrote it"
   },
   {
-    "id": "mp-f-decide-person-only",
+    "id": "mp-f-decide-deciders-only",
     "test": "tests/unit/workforce-post.test.ts",
     "file": "src/server/lib/permissions/workforce.ts",
-    "find": "  { action: \"workforce.decide\", group: \"workforce\", roles: deciders, humanOnly: true },",
-    "replace": "  { action: \"workforce.decide\", group: \"workforce\", roles: deciders },",
+    "find": "  { action: \"workforce.decide\", group: \"workforce\", roles: deciders },",
+    "replace": "  { action: \"workforce.decide\", group: \"workforce\", roles: appRoles },",
     "run": "bunx vitest run --project unit tests/unit/workforce-post.test.ts",
-    "expect": "× .*is never decided by an agent key"
+    "expect": "× .*is refused to an agent key without a deciding role"
   },
   {
     "id": "mp-g-password-digit",
