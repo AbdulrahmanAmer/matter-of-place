@@ -8214,3 +8214,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: read Search Console with Bun, the key loaded inside the process from the runner's `.env` (never exported, never printed), and `--url https://matterofplace.com`. The account sees one property, `sc-domain:matterofplace.com` (siteRestrictedUser). A site this new has its queries withheld: read pages and dates for a baseline, and live searches for keyword choice.
 - proof: `bun <wrapper> E:/mop-build/live/.env workspace/audits/tools/gsc.mjs --url https://matterofplace.com` → `Not measured: gsc (Search Console has no queries for sc-domain:matterofplace.com in 28 days)`, exit 0; a 90-day `searchAnalytics/query` by page → `/` 1 impression (position 2), `/stories` 1 (position 40), all on 2026-10-12 (measured 2026-10-15).
 - added: 2026-10-15
+
+## P-3494 · `workspace/audits/keywords.json` is pinned by its count in `tests/unit/audit/gsc.test.ts`, and no test names the file
+- symptom: 2026-10-15, the search assignment added 9 owned terms (24 to 33); the full check failed `gsc collect > signs the token request ... and writes keywords` with `- "total": 24, + "total": 33`, one check cycle lost. A grep of `app/tests` for `keywords.json` found nothing: the test reaches the file through `workspace/audits/tools/gsc.mjs`.
+- rule: a change to the audit robot's data files (`workspace/audits/*.json`) greps `app/tests/unit/audit` for the tool that reads it (`gsc.test.ts` for keywords) and updates its pinned count in the same commit, with a comment saying where the number comes from.
+- proof: `cd app && bunx vitest run --project unit tests/unit/audit/gsc.test.ts` → `Tests  ... passed` with `total: 33`; with 24 it fails as above (measured 2026-10-15).
+- added: 2026-10-15

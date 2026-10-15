@@ -92,7 +92,8 @@ describe("gsc collect", () => {
       "https://searchconsole.googleapis.com/webmasters/v3/sites/sc-domain%3Amatterofplace.com/searchAnalytics/query",
     );
     expect(requests[1]?.body).toContain('"startDate":"2026-09-03"');
-    expect(collected["keywords"]).toMatchObject({ value: { total: 24, window_days: 28 } });
+    // workspace/audits/keywords.json: 24 terms, then 9 owned on the operator's search assignment (H112).
+    expect(collected["keywords"]).toMatchObject({ value: { total: 33, window_days: 28 } });
     expect(collected["gsc"]).toMatchObject({ value: { queries: 4, impressions: 225, clicks: 11 } });
   });
 
