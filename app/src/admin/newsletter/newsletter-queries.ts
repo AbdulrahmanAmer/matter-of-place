@@ -7,6 +7,7 @@ import {
   fetchIssue,
   fetchIssues,
   fetchPreview,
+  fetchInterest,
   fetchSubscribers,
   saveIssue,
   sendTestIssue,
@@ -26,6 +27,15 @@ export function useIssuePreview(id: string, viewport: "desktop" | "phone") {
   return useQuery({
     queryKey: [...adminKeys.newsletter.detail(id), "preview", viewport],
     queryFn: () => fetchPreview(id, viewport),
+  });
+}
+
+/** The Interest screen: every signup, read again each minute so a new one shows without a reload. */
+export function useInterest() {
+  return useQuery({
+    queryKey: [...adminKeys.newsletter.all(), "interest"],
+    queryFn: fetchInterest,
+    refetchInterval: 60_000,
   });
 }
 

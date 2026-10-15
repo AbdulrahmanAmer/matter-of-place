@@ -86,3 +86,30 @@ export const subscriberCountsSchema = z.object({
 });
 
 export type SubscriberCountsView = z.infer<typeof subscriberCountsSchema>;
+
+/**
+ * `GET /api/admin/newsletter/interest` (operator, 2026-10-15: "my partner ... got a confirmation email for his interest
+ * ... but that is not traceable from the admin dashboard"): each signup with its markets, the page it came from and
+ * its state, newest first, and the totals per market. Read through `newsletter_export_subscribers`, so every look is
+ * one audit row, as the CSV is.
+ */
+const interestSignupSchema = z.object({
+  email: z.string(),
+  markets: z.array(z.string()),
+  source: z.string(),
+  status: z.enum(["confirmed", "pending", "unsubscribed"]),
+  confirmed_at: z.string().nullable(),
+});
+
+export const interestSchema = z.object({
+  signups: z.array(interestSignupSchema),
+  markets: z.array(
+    z.object({
+      market: z.string(),
+      confirmed: z.number().int(),
+      pending: z.number().int(),
+    }),
+  ),
+});
+
+export type InterestView = z.infer<typeof interestSchema>;

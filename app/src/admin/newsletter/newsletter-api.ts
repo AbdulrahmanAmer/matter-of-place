@@ -4,6 +4,7 @@ import {
   issueSchema,
   previewSchema,
   sendTestSchema,
+  interestSchema,
   subscriberCountsSchema,
   type IssueUpdateInput,
 } from "../../domain/admin-newsletter";
@@ -64,6 +65,11 @@ export function unapproveIssue(id: string) {
 
 export function sendTestIssue(id: string) {
   return adminFetch(`${issuePath(id)}/send-test`, sendTestSchema, post());
+}
+
+/** Every interest signup and the totals per market (one audited read, as the CSV). */
+export function fetchInterest() {
+  return adminFetch(`${BASE}/interest`, interestSchema);
 }
 
 export function fetchSubscribers() {

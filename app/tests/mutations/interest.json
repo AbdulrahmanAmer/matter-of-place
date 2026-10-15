@@ -1,0 +1,38 @@
+[
+  {
+    "id": "int-a-place-notes-total",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "signup.markets.length === 0 ? [\"place-notes\"] : signup.markets",
+    "replace": "signup.markets",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/service.test.ts",
+    "expect": "× .*lists interest newest first with totals per market"
+  },
+  {
+    "id": "int-b-right",
+    "test": "tests/unit/newsletter/service.test.ts",
+    "file": "src/server/newsletter/service.ts",
+    "find": "  authorize(actor, \"newsletter.subscribers_export\");\n  const { data, error } = await db.rpc(\"newsletter_export_subscribers\", auditContext(actor));\n  if (error !== null) throw fromRpcError(error);\n  // The generated types",
+    "replace": "  const { data, error } = await db.rpc(\"newsletter_export_subscribers\", auditContext(actor));\n  if (error !== null) throw fromRpcError(error);\n  // The generated types",
+    "run": "bunx vitest run --project unit tests/unit/newsletter/service.test.ts",
+    "expect": "× .*refuses commercial on the interest list with 403"
+  },
+  {
+    "id": "int-c-page-words",
+    "test": "src/admin/newsletter/interest.test.tsx",
+    "file": "src/admin/newsletter/interest-names.ts",
+    "find": "detail === undefined ? `${words} page` : `${words} page: ${detail}`",
+    "replace": "source",
+    "run": "bunx vitest run --project component src/admin/newsletter/interest.test.tsx",
+    "expect": "× .*names markets and pages in words"
+  },
+  {
+    "id": "int-d-not-yet",
+    "test": "src/admin/newsletter/interest.test.tsx",
+    "file": "src/admin/newsletter/InterestPage.tsx",
+    "find": "\"Not yet\"",
+    "replace": "\"\"",
+    "run": "bunx vitest run --project component src/admin/newsletter/interest.test.tsx",
+    "expect": "× .*lists each signup with its market"
+  }
+]

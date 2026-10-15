@@ -127,6 +127,15 @@ export const navEntries: readonly NavEntry[] = [
     group: "Inbox",
     label: "Inquiries",
   },
+  // Operator, 2026-10-15: who asked to hear about which market, and from which page.
+  {
+    screen: 31,
+    path: "/admin/interest",
+    routeId: "/admin/interest/",
+    group: "Inbox",
+    label: "Interest",
+    requiresAction: "newsletter.subscribers_export",
+  },
   {
     screen: 12,
     path: "/admin/channels",
