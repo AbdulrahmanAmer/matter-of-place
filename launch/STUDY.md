@@ -45,15 +45,16 @@ Only these are fixed, so every piece reads as Matter of Place; everything else i
 - **The emblem as a door** (`door.mjs`). Open half (3.75 s): the doorway in the dark, the door opening, light pouring
   through, the push into a wash of light. Close half (3.25 s): from the light, the camera pulls straight back while the
   door closes into the emblem's two flat tones (Bone at 90 and 40 percent); MATTER OF PLACE rises from the centre
-  outward as its spacing closes, a Sandstone rule grows, MATTEROFPLACE.COM fades in, and the settled lockup travels
-  slowly sideways so the screen is never still. Every requested reel ends with the close half; a brand piece may open
-  with the open half. Its sound comes with it (`doorCues`).
+  outward as its spacing closes, a Sandstone rule grows, MATTEROFPLACE.COM fades in, and the settled lockup holds
+  exactly centred under the film's grain. Every requested reel ends with the close half; a brand piece may open with
+  the open half. Its sound comes with it (`doorCues`).
 
 How it differs from the film, and why: the engine captures with GL off, so the room is projected onto a 2D canvas
-rather than rendered by WebGL, with the same geometry, lens and light model. The film's last two seconds hold
-perfectly still; the motion gate allows no still run over 1.0 s and the house rule is that quiet is never a static
-screen, so the lockup keeps travelling. The film's tagline is not in the lockup: a reel carries only its requested
-titles and the lockup's name and address.
+rather than rendered by WebGL, with the same geometry and lens; the light is drawn as one soft pool, an edged beam and
+fine dust inside it, in Warm Ivory. The motion gate allows no still run over 1.0 s and the house rule is that quiet is
+never a static screen, so the held lockup lives by the grain the film's own lockup carries (a sideways drift was tried
+and refused by the fresh-eyes review: a lockup must end centred). The film's tagline is not in the lockup: a reel
+carries only its requested titles and the lockup's name and address.
 
 Proof: the move alone (`launch/engine/moves/demo/`) passes the motion gate (1080 x 1920, 6.5 to 7 s, coverage over
 85 percent, no still run over 1.0 s, -18 LUFS); then inside a requested reel made by the runner.
