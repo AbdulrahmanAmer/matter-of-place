@@ -3,10 +3,10 @@
     "id": "w5-a-rotate-turns",
     "test": "tests/unit/matter-live.test.ts",
     "file": "scripts/matter/live.ts",
-    "find": "(record.turns >= ROTATE_TURNS || ",
-    "replace": "(record.turns >= ROTATE_TURNS * 100 || ",
+    "find": "  return record !== null && now - Date.parse(record.startedAt) > ROTATE_MS;",
+    "replace": "  return record !== null && (record.turns >= 6 || now - Date.parse(record.startedAt) > ROTATE_MS);",
     "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
-    "expect": "× .*rotates a session after six turns or a day"
+    "expect": "× .*keeps a session through any number of turns"
   },
   {
     "id": "w5-b-heartbeat-age",
@@ -102,8 +102,8 @@
     "id": "w5-n-moves-when-idle",
     "test": "tests/unit/matter-live.test.ts",
     "file": "scripts/matter/live.ts",
-    "find": "  return idle && headNow !== \"\" && headNow !== headAtStart;",
-    "replace": "  return headNow !== \"\" && headNow !== headAtStart;",
+    "find": "  return idle && headNow !== \"\" && headNow !== headAtStart && ownCodeChanged;",
+    "replace": "  return headNow !== \"\" && headNow !== headAtStart && ownCodeChanged;",
     "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
     "expect": "× .*moves only when idle and the runner is on another readable commit"
   },
@@ -160,5 +160,14 @@
     "replace": "  return now - touchedAt >= 600_000;",
     "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
     "expect": "× .*touches Matter's row once a minute"
+  },
+  {
+    "id": "w5-s-move-own-code",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "headNow !== headAtStart && ownCodeChanged;",
+    "replace": "headNow !== headAtStart;",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*stays on its session when the new commit changes none of its own code"
   }
 ]
