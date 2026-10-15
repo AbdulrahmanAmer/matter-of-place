@@ -1,6 +1,6 @@
 // The one way the laptop runs the operator's Claude CLI for the AI staff (W1 employees and W2 Matter): the prompt on
-// stdin (a long positional argument makes the CLI wait for stdin), JSON out, stderr ignored, the whole process tree
-// killed on timeout (Jay: a plain kill leaves the CLI's children running).
+// stdin (a long positional argument makes the CLI wait for stdin), JSON or stream-JSON out, stderr ignored, the whole
+// process tree killed when a run is stopped (Jay: a plain kill leaves the CLI's children running).
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { z } from "zod";
@@ -47,18 +47,66 @@ export function usageLimitOf(text: string, now: Date = new Date()): Date | null 
 
 function killTree(pid: number | undefined): void {
   if (pid === undefined) return;
-  if (process.platform === "win32")
+  if (process.platform === "win32") {
     spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true });
-  else process.kill(-pid, "SIGKILL");
+    return;
+  }
+  // The child is not started detached, so it has no process group of its own and `kill(-pid)` throws ESRCH (seen on
+  // CI's Linux, 2026-10-15); fall back to the process itself, and never throw for one already gone.
+  try {
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // Already gone.
+    }
+  }
 }
 
-/** One headless CLI run; answers the result text and the session id, or fails with a reason fit for the chat. */
+/**
+ * The final answer of a run: the one JSON object of `--output-format json`, or the `result` line of
+ * `--output-format stream-json` (one JSON object per line, the result last).
+ */
+function answerOf(out: string): unknown {
+  const whole = out.trim();
+  try {
+    return JSON.parse(whole);
+  } catch {
+    const lines = whole.split(/\r?\n/).reverse();
+    for (const line of lines) {
+      try {
+        const event: unknown = JSON.parse(line);
+        if (
+          typeof event === "object" &&
+          event !== null &&
+          "type" in event &&
+          event.type === "result"
+        )
+          return event;
+      } catch {
+        // A partial or non-JSON line is not the answer.
+      }
+    }
+    throw new Error("no result");
+  }
+}
+
+const minutes = (ms: number): string => String(Math.round(ms / 60_000));
+
+/**
+ * One headless CLI run; answers the result text and the session id, or fails with a reason fit for the chat.
+ * `idleMs` stops a run only when it has printed nothing for that long (a stuck run), never a run that is still working
+ * (operator, 2026-10-15: agent work is not limited by a clock); with stream-json every message and tool use prints a
+ * line. `timeoutMs` is a hard cap for the few callers that want one (a meeting, a review).
+ */
 export function runClaude(input: {
   args: readonly string[];
   cwd: string;
   env: NodeJS.ProcessEnv;
   prompt: string;
-  timeoutMs: number;
+  timeoutMs?: number;
+  idleMs?: number;
   /** Who timed out, in the words the office shows: "the colleague", "Matter". */
   who: string;
 }): Promise<{ text: string; session?: string; usage?: CliUsage }> {
@@ -70,27 +118,55 @@ export function runClaude(input: {
       windowsHide: true,
       stdio: ["pipe", "pipe", "ignore"],
     });
-    const timer = setTimeout(() => {
+    let stopped = false;
+    const stop = (reason: string): void => {
+      stopped = true;
+      fail(new Error(reason));
       killTree(child.pid);
-      fail(
-        new Error(
-          `${input.who} took longer than ${String(Math.round(input.timeoutMs / 60_000))} minutes`,
-        ),
-      );
-    }, input.timeoutMs);
+    };
+    const cap =
+      input.timeoutMs === undefined
+        ? undefined
+        : setTimeout(() => {
+            stop(`${input.who} took longer than ${minutes(input.timeoutMs ?? 0)} minutes`);
+          }, input.timeoutMs);
+    let idle: NodeJS.Timeout | undefined;
+    const watch = (): void => {
+      if (input.idleMs === undefined) return;
+      clearTimeout(idle);
+      idle = setTimeout(() => {
+        stop(`${input.who} went silent for ${minutes(input.idleMs ?? 0)} minutes`);
+      }, input.idleMs);
+    };
+    const clear = (): void => {
+      clearTimeout(cap);
+      clearTimeout(idle);
+    };
+    watch();
     let out = "";
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk: string) => {
       out += chunk;
+      watch();
     });
     child.on("error", (error) => {
-      clearTimeout(timer);
+      clear();
       fail(new Error(`the Claude CLI did not start: ${error.message}`));
     });
     child.on("close", (code) => {
-      clearTimeout(timer);
-      const limit = usageLimitOf(out);
-      if (limit !== null && (code !== 0 || out.includes('"is_error":true'))) {
+      clear();
+      if (stopped) return;
+      // The limit is read from the final answer only: a stream also carries the colleague's own reading and tool
+      // results, where "rate limit" and `"is_error":true` can appear without the account being out of usage.
+      let final: unknown;
+      try {
+        final = answerOf(out);
+      } catch {
+        final = undefined;
+      }
+      const finalText = final === undefined ? out.slice(-2000) : JSON.stringify(final);
+      const limit = usageLimitOf(finalText);
+      if (limit !== null && (code !== 0 || finalText.includes('"is_error":true'))) {
         fail(new UsageLimitError(limit));
         return;
       }
@@ -99,7 +175,7 @@ export function runClaude(input: {
         return;
       }
       try {
-        const answer = cliAnswer.parse(JSON.parse(out));
+        const answer = cliAnswer.parse(final);
         if (answer.is_error === true) {
           fail(new Error("the Claude CLI answered an error"));
           return;

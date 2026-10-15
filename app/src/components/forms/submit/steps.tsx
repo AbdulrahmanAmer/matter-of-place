@@ -12,6 +12,7 @@ import { track } from "../../../lib/analytics";
 import { formatMoney, pluralize } from "../../../lib/format";
 import { t } from "../../../lib/strings";
 import { ChoiceGroup } from "../choice-group";
+import { EmailSuggestion } from "../email-suggestion";
 import { Field } from "../field";
 import { FieldError } from "../field-error";
 import { issueLine, type FieldIssue, type Problems } from "./issues";
@@ -65,6 +66,14 @@ function Input({
         {...problems.control(name)}
         {...rest}
       />
+      {type === "email" && (
+        <EmailSuggestion
+          value={draft[name]}
+          onUse={(address) => {
+            update(name, address);
+          }}
+        />
+      )}
     </Field>
   );
 }

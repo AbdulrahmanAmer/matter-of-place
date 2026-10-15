@@ -38,6 +38,7 @@ import { groundingLines } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
+import { checkNewAddresses, refusedAddress } from "./email-check.ts";
 import { refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
 import { liveAlive } from "../matter/live-alive.ts";
@@ -46,7 +47,9 @@ const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
 const BREAKER_FILE = join(HOME, "breaker.json");
 const WORKER = `${hostname()}:${String(process.pid)}`;
-const CLI_TIMEOUT_MS = 6 * 60_000;
+// No clock on a colleague's work (operator, 2026-10-15: a 6-minute limit threw away the chief of staff's real work at
+// 00:52). A run is stopped only when it prints nothing for this long, which with stream-json means it is stuck.
+const CLI_IDLE_MS = 15 * 60_000;
 const RUNS_PER_HOUR = 40;
 const HISTORY = 24;
 const models: Record<string, string> = {
@@ -80,7 +83,8 @@ function askClaude(
       "--model",
       model,
       "--output-format",
-      "json",
+      "stream-json",
+      "--verbose",
       "--strict-mcp-config",
       "--mcp-config",
       emptyMcpConfig(),
@@ -95,7 +99,7 @@ function askClaude(
     cwd,
     env: childEnv(),
     prompt,
-    timeoutMs: CLI_TIMEOUT_MS,
+    idleMs: CLI_IDLE_MS,
     who: "the colleague",
   });
 }
@@ -633,9 +637,13 @@ async function makeApprovedCalls(client: Db): Promise<void> {
       .from("agent_approvals")
       .update({ content: { ...content, outcome: { state: "making" } } })
       .eq("id", row.id);
-    const outcome = call.success
-      ? await makeCall(call.data, key, ADMIN_BASE)
-      : { status: 0, ok: false, message: "the call could not be read" };
+    // W9 item 1: a call that would mail an address the check refuses is not made.
+    const refusal = call.success ? await refusedAddress(call.data.body) : null;
+    const outcome = !call.success
+      ? { status: 0, ok: false, message: "the call could not be read" }
+      : refusal !== null
+        ? { status: 0, ok: false, message: `not made, the address is refused: ${refusal}` }
+        : await makeCall(call.data, key, ADMIN_BASE);
     await client
       .from("agent_approvals")
       .update({ content: { ...content, outcome: { ...outcome, at: new Date().toISOString() } } })
@@ -711,6 +719,12 @@ async function pass(client: Db): Promise<void> {
     return 0;
   });
   if (replies > 0) console.log(`${new Date().toISOString()} replies ${String(replies)}`);
+  // W9 item 1: where port 25 opens, each new address is probed once and a refused one is never mailed.
+  const refused = await checkNewAddresses(client, HOME).catch((failure: unknown) => {
+    console.log(`email check: ${failure instanceof Error ? failure.message : String(failure)}`);
+    return 0;
+  });
+  if (refused > 0) console.log(`${new Date().toISOString()} refused addresses ${String(refused)}`);
   // W5 item 13: our public pages' text in every desk, once a day, so a colleague can quote the site it works for.
   const { data: staff } = await client.from("agents").select("slug");
   const pages = await writeSitePages(

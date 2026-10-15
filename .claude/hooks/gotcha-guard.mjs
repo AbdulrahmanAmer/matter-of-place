@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // PreToolUse hook (Edit | Write | MultiEdit | NotebookEdit) for the Matter of Place workspace.
-// Reads GOTCHAS.md, finds entries whose `paths:` globs match the file about to be written, and
+// Reads GOTCHAS.md, finds entries whose `paths:` globs match the file about to be written, or whose `content:` regex
+// matches the text being written (a mistake that can be made in any file, 2026-10-15: `process.kill(-pid)`), and
 // pushes them into the session: severity `block` denies the edit, `warn` adds the entry as context.
 // Fails open: any error, missing file or unparseable payload → exit 0 with no output.
 import { readFileSync, existsSync } from "node:fs";
@@ -26,13 +27,21 @@ function parseEntries(md) {
   const entries = [];
   for (const block of md.split(/\n(?=## )/)) {
     const title = (block.match(/^## (.+)$/m) || [])[1];
-    const paths = (block.match(/^- paths:\s*(.+)$/m) || [])[1];
-    if (!title || !paths || paths.startsWith("<")) continue;
+    const paths = (block.match(/^- paths:\s*(.+)$/m) || [])[1] || "";
+    const contentSource = (block.match(/^- content:\s*(.+)$/m) || [])[1];
+    let content = null;
+    try {
+      if (contentSource) content = new RegExp(contentSource.trim());
+    } catch {
+      content = null;
+    }
+    if (!title || ((!paths || paths.startsWith("<")) && !content)) continue;
     const severity = ((block.match(/^- severity:\s*(\w+)/m) || [])[1] || "warn").toLowerCase();
     const enforced = /^- enforced-by:/m.test(block);
     const rule = (block.match(/^- rule:\s*(.+)$/m) || [])[1] || "";
     const proof = (block.match(/^- proof:\s*(.+)$/m) || [])[1] || "";
-    entries.push({ title, globs: paths.split(",").map((s) => s.trim()).filter(Boolean), severity, enforced, rule, proof });
+    const globs = paths.startsWith("<") ? [] : paths.split(",").map((s) => s.trim()).filter(Boolean);
+    entries.push({ title, globs, content, severity, enforced, rule, proof });
   }
   return entries;
 }
@@ -62,7 +71,14 @@ try {
     if (!existsSync(bank)) continue;
     for (const e of parseEntries(readFileSync(bank, "utf8"))) if (!seen.has(e.title)) { seen.add(e.title); all.push(e); }
   }
-  const entries = all.filter((e) => !e.enforced && e.globs.some((g) => globToRegExp(g).test(rel)));
+  // The text being written: a Write's content, an Edit's new string, every new string of a MultiEdit.
+  const input = payload?.tool_input ?? {};
+  const text = [input.content, input.new_string, ...(Array.isArray(input.edits) ? input.edits.map((e) => e?.new_string) : [])]
+    .filter((s) => typeof s === "string")
+    .join("\n");
+  const entries = all.filter(
+    (e) => !e.enforced && (e.globs.some((g) => globToRegExp(g).test(rel)) || (e.content !== null && e.content.test(text))),
+  );
   if (!entries.length) process.exit(0);
 
   const blocks = entries.filter((e) => e.severity === "block");
