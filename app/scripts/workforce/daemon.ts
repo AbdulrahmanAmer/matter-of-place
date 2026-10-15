@@ -5,6 +5,7 @@
 // No model key exists anywhere (H34): the CLI is the operator's own account. It prints no secret and no prompt.
 //   bun scripts/workforce/daemon.ts          one pass, then exit (the scheduled task runs it every minute)
 //   bun scripts/workforce/daemon.ts --loop   pass after pass until stopped (for watching it live)
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
@@ -28,6 +29,7 @@ import { childEnv, loadEnvFile, serviceDb as db } from "./env.ts";
 import { knowledgeBlock } from "./knowledge.ts";
 import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
+import { nextReel, queueReel } from "./reel.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain } from "./follow.ts";
@@ -389,6 +391,12 @@ async function runOnce(client: Db): Promise<boolean> {
       }
     }
     for (const request of media) {
+      if (request.skill === "reel") {
+        // W7 item 19: a reel takes many minutes, so it waits in the studio for the reel pass, never inside a run.
+        const folder = queueReel(request, { agent: agent.slug, thread });
+        await say(client, thread, `The reel "${request.name}" is queued in the studio: ${folder}`);
+        continue;
+      }
       await client
         .from("agents")
         .update({ current_task: `Making the voice-over "${request.name}"` })
@@ -681,6 +689,16 @@ async function pass(client: Db): Promise<void> {
     const followed = followMain(resolve(import.meta.dir, "../.."), join(HOME, "runner-app"));
     if (followed !== "unchanged" && followed !== "not the runner") {
       console.log(`${new Date().toISOString()} runner ${followed}`);
+    }
+    // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute.
+    if (nextReel() !== null) {
+      spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
+        cwd: resolve(import.meta.dir, "../.."),
+        detached: true,
+        stdio: "ignore",
+        windowsHide: true,
+      }).unref();
+      console.log(`${new Date().toISOString()} reel pass started`);
     }
   }
   await makeApprovedCalls(client);
