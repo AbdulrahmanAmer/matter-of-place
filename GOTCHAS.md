@@ -8087,6 +8087,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && git grep -n "asset.rejected\|asset.approved" tests/db` lists the two files and their four payload assertions; the db job log of run 38686728451 ends `Tests  4 failed | 919 passed`.
 - added: 2026-10-15
 
+## P-3478 · `import.meta.dir` is Bun's: a script module that uses it at the top level fails to load under vitest (Node)
+- symptom: 2026-10-15, W7 E2a: `scripts/workforce/reel.ts` set `const REPO = resolve(import.meta.dir, "../../..")`; the runner (bun) is fine, but `bunx vitest run --project unit tests/unit/workforce-reel.test.ts` failed at collection with `TypeError: The "paths[0]" argument must be of type string. Received undefined`, and every test file that imports the module (`answer.ts` too) with it.
+- rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
+- proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
+- added: 2026-10-15
+
 ## P-3472 · Zoho warns "verified domain, unauthenticated sender" on our own Resend mail although SPF, DKIM and DMARC all pass
 - symptom: 2026-10-15, admin notices from hello@notify.matterofplace.com showed Zoho's banner. Headers of message 1792039925838153400: `spf=pass`, `dkim=pass` (d=notify.matterofplace.com), `dmarc=pass`. The banner is Zoho's own check for mail claiming the organisation's domain that does not leave through Zoho's servers.
 - rule: our sending subdomains (notify., notes.) are on Zoho Admin › Security & Compliance › Spam Control › Allowed List › Domains (the operator added them; changing a mail security setting is the operator's click, never the agent's). The Allowed List keeps the SPF and DKIM checks; never use the Trusted List, which skips them. Read the headers with the `/messages/<id>/header` endpoint before changing anything.

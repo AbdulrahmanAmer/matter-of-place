@@ -4,6 +4,7 @@
 import { z } from "zod";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import { mediaRequestSchema } from "./media.ts";
+import { reelRequestSchema } from "./reel.ts";
 
 export const outcome = z.object({
   reply: z.string().default(""),
@@ -23,8 +24,8 @@ export const outcome = z.object({
   hire: z.array(hireInputSchema).default([]),
   // Matter only: one line it keeps in its capped notes.
   note: z.string().default(""),
-  // Matter only (W2 step 5): media the daemon makes with the installed skills.
-  media: z.array(mediaRequestSchema).default([]),
+  // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio.
+  media: z.array(z.union([mediaRequestSchema, reelRequestSchema])).default([]),
   // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
   actions: z.array(z.unknown()).default([]),
 });
