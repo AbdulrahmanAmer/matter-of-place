@@ -8314,3 +8314,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the runner waits only for runs its own checkout executes (`runnerBusy` in `scripts/workforce/follow.ts` skips workers starting `LIVE_WORKER_PREFIX`). After a merge the live session needs on the runner, check `git -C E:/mop-build/live log --oneline -1` against `origin/main` before waiting on the runner.
 - proof: `cd app && bunx vitest run --project unit tests/unit/follow.test.ts` → `waits for a run this checkout executes, never for the live session's own goal run` passes; the replaced count makes it fail (registry `runner-follow-live.json`).
 - added: 2026-10-15
+
+## P-3572 · Code split out of an admin service must stay a `service.ts`, and must not be reached by the job runner
+- symptom: 2026-10-15, PR 439: `settings/service.ts` loaded the site's modules lazily for the test-a-link box, and CI's Deno check over the job runner (which reaches that service) failed; the check moved to `settings/redirect-links.ts`, and the next CI failed `tests/unit/admin-authz-sweep.test.ts` (`import only the wrapper, services and domain`), because an admin route file may import only `server/lib/admin-route`, `server/**/service`, `domain/**`, the router and zod.
+- rule: a helper an admin route needs that must stay out of the job runner's graph lives in its own `src/server/<area>/service.ts` and is passed into the shared service by the route; a function there shaped `(actor, db, ...)` is probed by the sweep and must refuse a roleless actor before any database read.
+- proof: `cd app && bunx vitest run --project unit tests/unit/admin-authz-sweep.test.ts` and `deno check --frozen --config supabase/functions/job-runner/deno.json supabase/functions/job-runner/index.ts` both pass with `src/server/redirect-links/service.ts`; with the route importing `server/settings/redirect-links` the sweep fails with `expected [ Array(1) ] to deeply equal []`.
+- added: 2026-10-15

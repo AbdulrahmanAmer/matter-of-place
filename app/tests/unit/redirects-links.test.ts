@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { Database } from "../../src/db";
 import type { AdminActor } from "../../src/server/lib/admin-route";
-import { checkLink } from "../../src/server/settings/redirect-links";
+import { checkLink } from "../../src/server/redirect-links/service";
 import { listRedirects } from "../../src/server/settings/service";
 import { fakeDb } from "../fixtures/fake-db";
 
@@ -68,7 +68,7 @@ const read = (db: ReturnType<typeof client>, input: { path?: string; limit?: num
     admin,
     db,
     { limit: input.limit ?? 50, ...(input.path ? { path: input.path } : {}) },
-    // the route passes the check in (redirect-links.ts), as here
+    // the route passes the check in (redirect-links/service.ts), as here
     checkLink,
   );
 
