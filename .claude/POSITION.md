@@ -1869,3 +1869,8 @@ first day of the new usage week; no step was cut from any plan.
     when idle, a minute after his last answer, at most every 10 minutes (shouldContinue, nextGoalStep, goalLine).
   - Kept: read-only runs woken by outside text still propose and wait (H101), now decided by Matter's live session; no
     force push, no reading the operator's credential files, keys never in his session's environment.
+
+- 2026-10-15 Matter: W6 item 1 done and ticked (PRs 388, 389; H105): the runner sets the staff policy from the weekly
+  allowance; observed policy.json and the team line at 03:03Z. Item 2: PR 391 (claude_week vendor line, H106) in CI,
+  the header parked on feat/w6-allowance-header. W7 section E is the operator's priority: design merged (PR 395, H107),
+  slice E1 (assets subject) in build on feat/w7-e1-subject. Bank grew: P-3467.
