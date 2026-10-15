@@ -1,0 +1,18 @@
+[
+  {
+    "id": "w8-1-brand-key-required",
+    "kind": "sql",
+    "test": "tests/db/brand-subject.db.test.ts",
+    "sql": "alter table public.assets drop constraint assets_subject_shape;\nalter table public.assets add constraint assets_subject_shape check ((subject = 'property' and property_id is not null and brand_key is null) or (subject = 'brand' and property_id is null and brand_key ~ '^[a-z0-9]+(-[a-z0-9]+)*$'));",
+    "run": "bunx vitest run --project db tests/db/brand-subject.db.test.ts -t \"needs a well-formed key and no property\"",
+    "expect": "× .*needs a well-formed key and no property"
+  },
+  {
+    "id": "w8-1-brand-unique",
+    "kind": "sql",
+    "test": "tests/db/brand-subject.db.test.ts",
+    "sql": "drop index public.assets_brand_kind_revision_key;",
+    "run": "bunx vitest run --project db tests/db/brand-subject.db.test.ts -t \"is one per key, kind and revision\"",
+    "expect": "× .*is one per key, kind and revision"
+  }
+]
