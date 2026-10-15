@@ -1,0 +1,11 @@
+[
+  {
+    "id": "rt-a-invoice-billing",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "  invoice: \"billing_email\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "× .*reply to: invoices answer to billing"
+  }
+]
