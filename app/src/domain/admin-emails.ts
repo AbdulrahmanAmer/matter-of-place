@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 
 // W9 item 2 (operator, 2026-10-15: "we need to be able to see from the admin dashboard if an email is wrong or
 // bounced"): what became of each email we sent, from `email_messages` and the Resend events `email_events` holds, and
@@ -76,6 +77,50 @@ export const emailListSchema = z.object({
   suppressions: z.array(suppressionSchema),
 });
 
+/** The states `email_replies.state` takes (migration 20261013180000_email_replies.sql). */
+export const replyStates = ["new", "seen", "answered", "ignored"] as const;
+
+/** The states a person may mark a reply with: `seen` when it is opened, `answered` or `ignored` when dealt with. */
+const replyMarks = ["seen", "answered", "ignored"] as const;
+
+/** The email a reply answers, as it was sent (`email_replies.send_id`). */
+const repliedToSchema = z.object({
+  id: uuid,
+  template_key: z.string(),
+  to_email: z.string().nullable(),
+  created_at: at,
+  sent_at: at.nullable(),
+});
+
+/** A reply to our email, read from the mailbox. Its words come from outside the company: plain text, never HTML. */
+export const replySchema = z.object({
+  id: uuid,
+  from_email: z.string().nullable(),
+  from_name: z.string().nullable(),
+  subject: z.string(),
+  body: z.string(),
+  received_at: at,
+  /** The colleague whose thread the reply went to (`agents.slug`); null when no colleague was on. */
+  owner_slug: z.string().nullable(),
+  state: z.enum(replyStates),
+  /** Null when the email it answers was deleted. */
+  sent: repliedToSchema.nullable(),
+});
+
+export type Reply = z.infer<typeof replySchema>;
+
+/** `GET /api/admin/emails/replies`: one keyset page of replies, newest first, optionally one state (invariant 17c). */
+export const replyListInputSchema = adminPageSchema.extend({
+  state: z.enum(replyStates).optional(),
+});
+
+export const replyListSchema = adminPageAnswer(replySchema);
+
+/** `POST /api/admin/emails/replies/:id`: the mark and the state the reply is in after it. */
+export const replyMarkInputSchema = z.object({ id: uuid, state: z.enum(replyMarks) });
+
+export const replyMarkAnswerSchema = z.object({ id: uuid, state: z.enum(replyStates) });
+
 /** The states a person may send again from the request page (`resend_submission_email`). */
 export const resendableStates: readonly SentEmail["status"][] = ["bounced", "failed", "skipped"];
 
@@ -105,7 +150,7 @@ const notSent: Readonly<Record<string, string>> = {
 };
 
 /** The name of an email as the team reads it. */
-const emailName = (templateKey: string): string => emailNames[templateKey] ?? "The email";
+export const emailName = (templateKey: string): string => emailNames[templateKey] ?? "The email";
 
 /** One sentence on what became of an email: "The confirmation bounced: this mailbox does not exist." */
 export function deliveryLine(email: SentEmail): string {

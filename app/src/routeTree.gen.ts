@@ -198,6 +198,8 @@ import { Route as ApiAdminAutomationScheduleSettingsKeyRouteImport } from './rou
 import { Route as ApiAdminAutomationTemplatesKeyRouteImport } from './routes/api/admin/automation.templates.$key'
 import { Route as ApiAdminAutomationTemplatesPreviewRouteImport } from './routes/api/admin/automation.templates.preview'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
+import { Route as ApiAdminEmailsRepliesIndexRouteImport } from './routes/api/admin/emails.replies.index'
+import { Route as ApiAdminEmailsRepliesIdRouteImport } from './routes/api/admin/emails.replies.$id'
 import { Route as ApiAdminInquiriesIdAssignRouteImport } from './routes/api/admin/inquiries.$id.assign'
 import { Route as ApiAdminInquiriesIdCloseRouteImport } from './routes/api/admin/inquiries.$id.close'
 import { Route as ApiAdminInquiriesIdForwardRouteImport } from './routes/api/admin/inquiries.$id.forward'
@@ -1273,6 +1275,17 @@ const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
   path: '/api/admin/channels/ids/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminEmailsRepliesIndexRoute =
+  ApiAdminEmailsRepliesIndexRouteImport.update({
+    id: '/api/admin/emails/replies/',
+    path: '/api/admin/emails/replies/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminEmailsRepliesIdRoute = ApiAdminEmailsRepliesIdRouteImport.update({
+  id: '/api/admin/emails/replies/$id',
+  path: '/api/admin/emails/replies/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminInquiriesIdAssignRoute =
   ApiAdminInquiriesIdAssignRouteImport.update({
     id: '/assign',
@@ -1844,6 +1857,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/emails/replies/$id': typeof ApiAdminEmailsRepliesIdRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
   '/api/admin/inquiries/$id/close': typeof ApiAdminInquiriesIdCloseRoute
   '/api/admin/inquiries/$id/forward': typeof ApiAdminInquiriesIdForwardRoute
@@ -1889,6 +1903,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/replies/': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
@@ -2095,6 +2110,7 @@ export interface FileRoutesByTo {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/emails/replies/$id': typeof ApiAdminEmailsRepliesIdRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
   '/api/admin/inquiries/$id/close': typeof ApiAdminInquiriesIdCloseRoute
   '/api/admin/inquiries/$id/forward': typeof ApiAdminInquiriesIdForwardRoute
@@ -2140,6 +2156,7 @@ export interface FileRoutesByTo {
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/replies': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
@@ -2352,6 +2369,7 @@ export interface FileRoutesById {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/emails/replies/$id': typeof ApiAdminEmailsRepliesIdRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
   '/api/admin/inquiries/$id/close': typeof ApiAdminInquiriesIdCloseRoute
   '/api/admin/inquiries/$id/forward': typeof ApiAdminInquiriesIdForwardRoute
@@ -2397,6 +2415,7 @@ export interface FileRoutesById {
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/replies/': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
@@ -2609,6 +2628,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/emails/replies/$id'
     | '/api/admin/inquiries/$id/assign'
     | '/api/admin/inquiries/$id/close'
     | '/api/admin/inquiries/$id/forward'
@@ -2654,6 +2674,7 @@ export interface FileRouteTypes {
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/replies/'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
     | '/api/admin/audit/subject-requests/$id/opt-out'
@@ -2860,6 +2881,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/emails/replies/$id'
     | '/api/admin/inquiries/$id/assign'
     | '/api/admin/inquiries/$id/close'
     | '/api/admin/inquiries/$id/forward'
@@ -2905,6 +2927,7 @@ export interface FileRouteTypes {
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/replies'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
     | '/api/admin/audit/subject-requests/$id/opt-out'
@@ -3116,6 +3139,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/emails/replies/$id'
     | '/api/admin/inquiries/$id/assign'
     | '/api/admin/inquiries/$id/close'
     | '/api/admin/inquiries/$id/forward'
@@ -3161,6 +3185,7 @@ export interface FileRouteTypes {
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/replies/'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
     | '/api/admin/audit/subject-requests/$id/opt-out'
@@ -3291,6 +3316,8 @@ export interface RootRouteChildren {
   ApiAdminStoriesIndexRoute: typeof ApiAdminStoriesIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
   ApiAdminChannelsIdsKeyRoute: typeof ApiAdminChannelsIdsKeyRoute
+  ApiAdminEmailsRepliesIdRoute: typeof ApiAdminEmailsRepliesIdRoute
+  ApiAdminEmailsRepliesIndexRoute: typeof ApiAdminEmailsRepliesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -4616,6 +4643,20 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/channels/ids/$key'
       fullPath: '/api/admin/channels/ids/$key'
       preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/emails/replies/': {
+      id: '/api/admin/emails/replies/'
+      path: '/api/admin/emails/replies'
+      fullPath: '/api/admin/emails/replies/'
+      preLoaderRoute: typeof ApiAdminEmailsRepliesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/emails/replies/$id': {
+      id: '/api/admin/emails/replies/$id'
+      path: '/api/admin/emails/replies/$id'
+      fullPath: '/api/admin/emails/replies/$id'
+      preLoaderRoute: typeof ApiAdminEmailsRepliesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/inquiries/$id/assign': {
@@ -5944,6 +5985,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminStoriesIndexRoute: ApiAdminStoriesIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
   ApiAdminChannelsIdsKeyRoute: ApiAdminChannelsIdsKeyRoute,
+  ApiAdminEmailsRepliesIdRoute: ApiAdminEmailsRepliesIdRoute,
+  ApiAdminEmailsRepliesIndexRoute: ApiAdminEmailsRepliesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
