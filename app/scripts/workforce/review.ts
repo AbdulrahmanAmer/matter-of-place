@@ -13,7 +13,9 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
 import { runClaude } from "./cli.ts";
+import { staffPolicy } from "./config.ts";
 import { childEnv, serviceDb as client } from "./env.ts";
+import { underCeiling } from "./usage-policy.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PROMOTE_AT = 3;
@@ -229,7 +231,7 @@ async function main(): Promise<void> {
     for (const item of cases) {
       const winner = await replayOne(
         agent.role,
-        models[agent.model] ?? "claude-sonnet-5-5",
+        models[underCeiling(agent.model, staffPolicy().colleagueCeiling)] ?? "claude-sonnet-5-5",
         agent.instructions,
         next,
         item,

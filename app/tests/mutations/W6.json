@@ -6,5 +6,59 @@
     "sql": "create or replace function public.claim_agent_run(\n  p_worker text,\n  p_lease_seconds integer default 900,\n  p_skip_live boolean default false,\n  p_person_only boolean default false\n)\nreturns setof public.agent_runs\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  return query\n  update public.agent_runs r\n  set state = 'running',\n      worker = p_worker,\n      lease_until = now() + make_interval(secs => p_lease_seconds),\n      started_at = coalesce(r.started_at, now())\n  where r.id = (\n    select c.id\n    from public.agent_runs c\n    join public.agents a on a.id = c.agent_id\n    left join public.agent_messages m on m.id = c.message_id\n    where a.state in ('idle', 'working')\n      and (c.state = 'queued' or (c.state = 'running' and c.lease_until < now()))\n      -- W5 (operator, 2026-10-13: \"make him full\"): while Matter's live session runs, a person's line to Matter is\n      -- its work (claim_matter_live), never a one-shot run's.\n      and not (p_skip_live and a.slug = 'matter' and c.cause = 'message' and m.author_kind = 'human')\n    -- Gap audit item 3 (Jay M5): a person's own message first, then mentions between colleagues and events, then the\n    -- scheduled backlog; oldest first within each.\n    order by\n      case\n        when c.cause = 'message' and m.author_kind = 'human' then 0\n        when c.cause in ('message', 'event') then 1\n        else 2\n      end,\n      c.created_at\n    limit 1\n    for update of c skip locked\n  )\n  returning r.*;\nend;\n$$;\n\nrevoke all on function public.claim_agent_run(text, integer, boolean, boolean) from public, anon, authenticated;\ngrant execute on function public.claim_agent_run(text, integer, boolean, boolean) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/workforce.db.test.ts -t \"claims only a person's line\"",
     "expect": "× .*claims only a person's line"
+  },
+  {
+    "id": "w6-a-under-70",
+    "test": "tests/unit/usage-policy.test.ts",
+    "file": "scripts/workforce/usage-policy.ts",
+    "find": "  if (week < 70) {",
+    "replace": "  if (week < 69) {",
+    "run": "bunx vitest run --project unit tests/unit/usage-policy.test.ts",
+    "expect": "× .*gives full staff under 70%"
+  },
+  {
+    "id": "w6-a-up-to-90",
+    "test": "tests/unit/usage-policy.test.ts",
+    "file": "scripts/workforce/usage-policy.ts",
+    "find": "  if (week <= 90) {",
+    "replace": "  if (week < 90) {",
+    "run": "bunx vitest run --project unit tests/unit/usage-policy.test.ts",
+    "expect": "× .*moves to Sonnet and a person's work from 70 to 90%"
+  },
+  {
+    "id": "w6-a-over-90",
+    "test": "tests/unit/usage-policy.test.ts",
+    "file": "scripts/workforce/usage-policy.ts",
+    "find": "    personOnly: true,",
+    "replace": "    personOnly: false,",
+    "run": "bunx vitest run --project unit tests/unit/usage-policy.test.ts",
+    "expect": "× .*answers only a person's lines over 90%"
+  },
+  {
+    "id": "w6-a-override",
+    "test": "tests/unit/usage-policy.test.ts",
+    "file": "scripts/workforce/usage-policy.ts",
+    "find": "    ...(override.matterModel === undefined ? {} : { matterModel: override.matterModel }),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/usage-policy.test.ts",
+    "expect": "× .*lets an override's fields win over the allowance"
+  },
+  {
+    "id": "w6-a-unreadable-never-full",
+    "test": "tests/unit/usage-policy.test.ts",
+    "file": "scripts/workforce/usage-policy.ts",
+    "find": "  ...tier(70),",
+    "replace": "  ...tier(0),",
+    "run": "bunx vitest run --project unit tests/unit/usage-policy.test.ts",
+    "expect": "× .*never falls back to full power"
+  },
+  {
+    "id": "w6-a-stale",
+    "test": "tests/unit/usage-policy.test.ts",
+    "file": "scripts/workforce/usage-policy.ts",
+    "find": "  if (Number.isNaN(updated) || now.getTime() - updated > STALE_MS) return null;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/usage-policy.test.ts",
+    "expect": "× .*reads nothing from a missing, stale or already-reset week"
   }
 ]
