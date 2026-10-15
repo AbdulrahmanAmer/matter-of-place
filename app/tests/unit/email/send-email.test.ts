@@ -3,7 +3,7 @@ import type { Json } from "../../../src/db";
 import { resolveVariables } from "../../../src/server/email/variables";
 import type { JsonObject } from "../../../src/server/jobs/types";
 import { getStep } from "../../../src/server/jobs/steps/index";
-import { sendEmail, sendOne } from "../../../src/server/jobs/steps/send-email";
+import { replyToFor, sendEmail, sendOne } from "../../../src/server/jobs/steps/send-email";
 import { sha256Hex } from "../../../src/server/lib/crypto";
 import {
   ADMIN,
@@ -301,6 +301,32 @@ describe("send_email", () => {
     expect(
       [withContact, withoutContact].map(({ fetch }) => fetch.requests[0]?.body.reply_to),
     ).toEqual([CONTACT, ADMIN]);
+  });
+
+  it("reply to: invoices answer to billing, a request's emails to listings, privacy to privacy, the rest to the contact", () => {
+    const contact = {
+      email: "hello@matterofplace.com",
+      billing_email: "billing@matterofplace.com",
+      listings_email: "listings@matterofplace.com",
+      privacy_email: "privacy@matterofplace.com",
+    };
+    expect({
+      invoice: replyToFor("invoice", contact),
+      received: replyToFor("received", contact),
+      report: replyToFor("campaign_report", contact),
+      privacy: replyToFor("subject_ack", contact),
+      inquiry: replyToFor("inquiry_ack", contact),
+      invoiceWithoutBilling: replyToFor("invoice", { email: "hello@matterofplace.com" }),
+      none: replyToFor("invoice", {}),
+    }).toEqual({
+      invoice: "billing@matterofplace.com",
+      received: "listings@matterofplace.com",
+      report: "listings@matterofplace.com",
+      privacy: "privacy@matterofplace.com",
+      inquiry: "hello@matterofplace.com",
+      invoiceWithoutBilling: "hello@matterofplace.com",
+      none: undefined,
+    });
   });
 
   it("reply to: a malformed settings.site reads as unset", async () => {
