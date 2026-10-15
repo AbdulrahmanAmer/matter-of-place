@@ -10,7 +10,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runClaude, type CliUsage } from "../workforce/cli.ts";
-import { workforceConfig } from "../workforce/config.ts";
+import { staffPolicy } from "../workforce/config.ts";
 import { atlas } from "./atlas.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -159,11 +159,11 @@ export function matterPower(cause: string, authorKind: string | null): MatterPow
 
 /** The command line for one run: either mode refuses what it does not allow, never asks. */
 export function matterArgs(power: MatterPower): string[] {
-  // W5: the model is a laptop switch (~/.mop-workforce/config.json), Opus by default.
+  // W6 item 1: the model follows the weekly allowance (~/.mop-workforce/policy.json, written by the runner each pass).
   const base = [
     "-p",
     "--model",
-    workforceConfig().matterModel,
+    staffPolicy().matterModel,
     "--output-format",
     "json",
     "--permission-mode",

@@ -1,43 +1,84 @@
-// The laptop's runtime switches for the AI staff (W5, decided with Jay 2026-10-13): which model Matter uses and
-// whether colleagues work their backlog. They live in ~/.mop-workforce/config.json so they change without a pull
-// request. An `until` date ends the overrides by itself: after it, the defaults hold again (Opus Matter, backlog on).
-import { readFileSync } from "node:fs";
+// The laptop's staff policy (W6 item 1): the runner sets it each pass from the weekly Claude allowance
+// (usage-policy.ts) and keeps it in ~/.mop-workforce/policy.json. ~/.mop-workforce/config.json is the operator's
+// override, not the switch: each field it names wins while its `until` is ahead (or absent); after it, the allowance
+// decides again.
+import { readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
+import {
+  policyChanged,
+  policyFor,
+  policySchema,
+  readingOf,
+  type Override,
+  type StaffPolicy,
+} from "./usage-policy.ts";
 
 export const CONFIG_FILE = join(homedir(), ".mop-workforce", "config.json");
-
-const DEFAULTS = { matterModel: "claude-opus-5-5", backlog: true } as const;
+export const POLICY_FILE = join(homedir(), ".mop-workforce", "policy.json");
+export const USAGE_FILE = join(homedir(), ".claude", "usage.json");
 
 const configSchema = z.object({
   matterModel: z.string().min(1).optional(),
-  backlog: z.boolean().optional(),
+  // W5's switch was a boolean; it still reads as "all" or "off".
+  backlog: z.union([z.boolean(), z.enum(["all", "person", "off"])]).optional(),
   until: z.string().optional(),
 });
 
-export interface WorkforceConfig {
-  matterModel: string;
-  backlog: boolean;
+function readJson(file: string): unknown {
+  try {
+    return JSON.parse(readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
 }
 
-/** The switches in force now: the file's while its `until` is ahead (or absent), the defaults otherwise. */
-export function workforceConfig(
-  file: string = CONFIG_FILE,
-  now: Date = new Date(),
-): WorkforceConfig {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(readFileSync(file, "utf8"));
-  } catch {
-    return { ...DEFAULTS };
-  }
-  const parsed = configSchema.safeParse(raw);
-  if (!parsed.success) return { ...DEFAULTS };
+/** The operator's override in force now: the file's fields while its `until` is ahead (or absent), none after it. */
+export function workforceOverride(file: string = CONFIG_FILE, now: Date = new Date()): Override {
+  const parsed = configSchema.safeParse(readJson(file));
+  if (!parsed.success) return {};
   const until = parsed.data.until === undefined ? null : new Date(parsed.data.until);
-  if (until !== null && !(until.getTime() > now.getTime())) return { ...DEFAULTS };
+  if (until !== null && !(until.getTime() > now.getTime())) return {};
+  const { matterModel, backlog } = parsed.data;
   return {
-    matterModel: parsed.data.matterModel ?? DEFAULTS.matterModel,
-    backlog: parsed.data.backlog ?? DEFAULTS.backlog,
+    ...(matterModel === undefined ? {} : { matterModel }),
+    ...(backlog === undefined
+      ? {}
+      : { backlog: typeof backlog === "boolean" ? (backlog ? "all" : "off") : backlog }),
   };
+}
+
+/** The policy the last pass wrote, or null before the first. */
+export function lastPolicy(file: string = POLICY_FILE): StaffPolicy | null {
+  const parsed = policySchema.safeParse(readJson(file));
+  return parsed.success ? parsed.data : null;
+}
+
+/** The policy in force: the last pass's, or the unmeasured middle tier before the first (never full power). */
+export function staffPolicy(file: string = POLICY_FILE): StaffPolicy {
+  return lastPolicy(file) ?? policyFor(null, {}, null);
+}
+
+export interface PolicyFiles {
+  usage: string;
+  config: string;
+  policy: string;
+}
+
+const FILES: PolicyFiles = { usage: USAGE_FILE, config: CONFIG_FILE, policy: POLICY_FILE };
+
+/**
+ * One pass: reads the allowance and the override, writes the policy, and says whether what the staff may do changed
+ * (the caller tells the team) and whether the allowance was unreadable (the caller logs `usage: unreadable`).
+ */
+export function refreshPolicy(
+  files: PolicyFiles = FILES,
+  now: Date = new Date(),
+): { policy: StaffPolicy; changed: boolean; unreadable: boolean } {
+  const reading = readingOf(readJson(files.usage), now);
+  const last = lastPolicy(files.policy);
+  const policy = policyFor(reading, workforceOverride(files.config, now), last);
+  writeFileSync(files.policy, `${JSON.stringify(policy, null, 2)}\n`);
+  return { policy, changed: policyChanged(last, policy), unreadable: reading === null };
 }

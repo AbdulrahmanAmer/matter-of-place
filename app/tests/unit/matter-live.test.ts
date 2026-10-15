@@ -2,7 +2,7 @@ import { mkdtempSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { workforceConfig } from "../../scripts/workforce/config";
+import { workforceOverride } from "../../scripts/workforce/config";
 import { liveAlive } from "../../scripts/matter/live-alive";
 import {
   isIdle,
@@ -128,7 +128,7 @@ describe("rotation and the heartbeat", () => {
 });
 
 describe("the laptop's switches", () => {
-  it("uses the file's model and backlog until its date, and the defaults after it or without a file", () => {
+  it("uses the file's model and backlog until its date, and no override after it or without a file", () => {
     const file = join(mkdtempSync(join(tmpdir(), "mop-config-")), "config.json");
     writeFileSync(
       file,
@@ -139,14 +139,10 @@ describe("the laptop's switches", () => {
       }),
     );
     expect([
-      workforceConfig(file, new Date("2026-10-13T10:00:00Z")),
-      workforceConfig(file, new Date("2026-10-17T05:00:00Z")),
-      workforceConfig(join(tmpdir(), "no-such-config.json")),
-    ]).toEqual([
-      { matterModel: "claude-sonnet-5-5", backlog: false },
-      { matterModel: "claude-opus-5-5", backlog: true },
-      { matterModel: "claude-opus-5-5", backlog: true },
-    ]);
+      workforceOverride(file, new Date("2026-10-13T10:00:00Z")),
+      workforceOverride(file, new Date("2026-10-17T05:00:00Z")),
+      workforceOverride(join(tmpdir(), "no-such-config.json")),
+    ]).toEqual([{ matterModel: "claude-sonnet-5-5", backlog: "off" }, {}, {}]);
   });
 });
 

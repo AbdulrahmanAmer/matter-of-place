@@ -1,7 +1,8 @@
 create or replace function public.claim_agent_run(
   p_worker text,
   p_lease_seconds integer default 900,
-  p_skip_live boolean default false
+  p_skip_live boolean default false,
+  p_person_only boolean default false
 )
 returns setof public.agent_runs
 language plpgsql
@@ -25,6 +26,8 @@ begin
       -- W5 (operator, 2026-10-13: "make him full"): while Matter's live session runs, a person's line to Matter is
       -- its work (claim_matter_live), never a one-shot run's.
       and not (p_skip_live and a.slug = 'matter' and c.cause = 'message' and m.author_kind = 'human')
+      -- W6 item 1: with the weekly allowance over 90%, only a person's own line is answered; the rest waits.
+      and (not p_person_only or (c.cause = 'message' and m.author_kind = 'human'))
     -- Gap audit item 3 (Jay M5): a person's own message first, then mentions between colleagues and events, then the
     -- scheduled backlog; oldest first within each.
     order by
@@ -41,5 +44,5 @@ begin
 end;
 $$;
 
-revoke all on function public.claim_agent_run(text, integer, boolean) from public, anon, authenticated;
-grant execute on function public.claim_agent_run(text, integer, boolean) to service_role;
+revoke all on function public.claim_agent_run(text, integer, boolean, boolean) from public, anon, authenticated;
+grant execute on function public.claim_agent_run(text, integer, boolean, boolean) to service_role;
