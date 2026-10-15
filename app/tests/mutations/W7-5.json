@@ -1,0 +1,128 @@
+[
+  {
+    "id": "w7-5-scope",
+    "test": "tests/unit/jobs/events.test.ts",
+    "file": "src/server/jobs/events.ts",
+    "find": "  authorize(actor, \"jobs.list\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jobs/events.test.ts",
+    "expect": "× .*refuses the service itself"
+  },
+  {
+    "id": "w7-5-recipe-once",
+    "test": "tests/unit/jobs/events.test.ts",
+    "file": "src/server/jobs/events.ts",
+    "find": "    if (!taken.some((recipe) => recipe.id === recipeId)) {",
+    "replace": "    if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/jobs/events.test.ts",
+    "expect": "× .*names each recipe once for an event"
+  },
+  {
+    "id": "w7-5-processed",
+    "test": "tests/unit/jobs/events.test.ts",
+    "file": "src/server/jobs/events.ts",
+    "find": "      processed: processedAt !== null,",
+    "replace": "      processed: true,",
+    "run": "bunx vitest run --project unit tests/unit/jobs/events.test.ts",
+    "expect": "× .*names each recipe once for an event"
+  },
+  {
+    "id": "w7-5-event-limit",
+    "test": "tests/unit/jobs/events.test.ts",
+    "file": "src/server/jobs/events.ts",
+    "find": "const EVENT_LIMIT = 50;",
+    "replace": "const EVENT_LIMIT = 20;",
+    "run": "bunx vitest run --project unit tests/unit/jobs/events.test.ts",
+    "expect": "× .*asks for the 50 newest events"
+  },
+  {
+    "id": "w7-5-no-payload",
+    "test": "tests/unit/jobs/events.test.ts",
+    "file": "src/server/jobs/events.ts",
+    "find": "    .select(\"id, type, at, entity, entity_id, processed_at\")",
+    "replace": "    .select(\"id, type, at, entity, entity_id, processed_at, payload\")",
+    "run": "bunx vitest run --project unit tests/unit/jobs/events.test.ts",
+    "expect": "× .*asks for the 50 newest events"
+  },
+  {
+    "id": "w7-5-jobs-with-recipe",
+    "test": "tests/unit/jobs/events.test.ts",
+    "file": "src/server/jobs/events.ts",
+    "find": "    .not(\"recipe_id\", \"is\", null);",
+    "replace": "    ;",
+    "run": "bunx vitest run --project unit tests/unit/jobs/events.test.ts",
+    "expect": "× .*asks for the 50 newest events"
+  },
+  {
+    "id": "w7-5-failure-carries-event",
+    "test": "tests/unit/jobs/events.test.ts",
+    "file": "src/server/jobs/events.ts",
+    "find": "  return data.map(({ events, ...failure }) => ({ ...failure, ...events }));",
+    "replace": "  return data.map(({ events: _events, ...failure }) => ({ ...failure, type: \"\", at: \"\", entity: null, entity_id: null }));",
+    "run": "bunx vitest run --project unit tests/unit/jobs/events.test.ts",
+    "expect": "× .*lists an event that failed to plan"
+  },
+  {
+    "id": "w7-5-c-no-recipe",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/EventsPanel.tsx",
+    "find": "  if (row.recipes.length === 0) return \"No recipe took it\";",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*lists each event with its type"
+  },
+  {
+    "id": "w7-5-c-not-planned",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/EventsPanel.tsx",
+    "find": "  if (!row.processed) return \"Not planned yet\";",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*lists each event with its type"
+  },
+  {
+    "id": "w7-5-c-last-error",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/EventsPanel.tsx",
+    "find": "render: (row) => row.last_error ?? \"None recorded\" },",
+    "replace": "render: () => \"None recorded\" },",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*lists an event that failed to plan"
+  },
+  {
+    "id": "w7-5-c-failures-empty",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/EventsPanel.tsx",
+    "find": "        empty={null}",
+    "replace": "        empty={<p>Events that failed to plan: none</p>}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*draws no failure table when every event planned"
+  },
+  {
+    "id": "w7-5-c-empty",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/EventsPanel.tsx",
+    "find": "<EmptyState title=\"No events yet\">",
+    "replace": "<EmptyState title=\"Nothing\">",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*says so when no event has happened"
+  },
+  {
+    "id": "w7-5-c-error",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/EventsPanel.tsx",
+    "find": "        error={error}",
+    "replace": "        error={null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*shows the message when the events cannot be read"
+  },
+  {
+    "id": "w7-5-c-in-page",
+    "test": "src/admin/jobs/jobs.test.tsx",
+    "file": "src/admin/jobs/JobsPage.tsx",
+    "find": "      <EventsPanel />",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/jobs/jobs.test.tsx",
+    "expect": "× .*is part of the Jobs screen, under the table"
+  }
+]

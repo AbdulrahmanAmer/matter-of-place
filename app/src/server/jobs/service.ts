@@ -8,6 +8,9 @@ import type { Db } from "../lib/db.ts";
 import { AppError } from "../lib/errors.ts";
 import { entityJobsFilter } from "../lib/jobs.ts";
 
+// W7 item 5: the Events panel's read lives in `events.ts`; an admin route imports it from here (admin-authz-sweep).
+export { listEvents } from "./events.ts";
+
 // Screen 16 (B8 step 9). Reads are selects on `jobs`; each action is one RPC that changes the job, writes its
 // `job_events` row and its audit row in one transaction. Nothing outside the database is called (invariant 7).
 
