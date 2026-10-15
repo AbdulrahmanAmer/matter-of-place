@@ -1,0 +1,92 @@
+[
+  {
+    "id": "w7-3-service-newest-first",
+    "test": "tests/unit/campaigns/service.test.ts",
+    "file": "src/server/campaigns/service.ts",
+    "find": "    .order(\"created_at\", { ascending: false })",
+    "replace": "    .order(\"created_at\", { ascending: true })",
+    "run": "bunx vitest run --project unit tests/unit/campaigns/service.test.ts",
+    "expect": "× .*answers the newest campaigns first, at most the limit"
+  },
+  {
+    "id": "w7-3-service-limit",
+    "test": "tests/unit/campaigns/service.test.ts",
+    "file": "src/server/campaigns/service.ts",
+    "find": "    .limit(campaignListLimit);",
+    "replace": "    .limit(campaignListLimit + 1000);",
+    "run": "bunx vitest run --project unit tests/unit/campaigns/service.test.ts",
+    "expect": "× .*answers the newest campaigns first, at most the limit"
+  },
+  {
+    "id": "w7-3-service-authorize",
+    "test": "tests/unit/campaigns/service.test.ts",
+    "file": "src/server/campaigns/service.ts",
+    "find": "  authorize(actor, \"reports.list\");",
+    "replace": "  void actor;",
+    "run": "bunx vitest run --project unit tests/unit/campaigns/service.test.ts",
+    "expect": "× .*is refused for an actor with no role"
+  },
+  {
+    "id": "w7-3-service-report-count",
+    "test": "tests/unit/campaigns/service.test.ts",
+    "file": "src/server/campaigns/service.ts",
+    "find": "report_count: row.campaign_reports[0]?.count ?? 0,",
+    "replace": "report_count: 0,",
+    "run": "bunx vitest run --project unit tests/unit/campaigns/service.test.ts",
+    "expect": "× .*shapes a row: the property's title and market"
+  },
+  {
+    "id": "w7-3-service-market",
+    "test": "tests/unit/campaigns/service.test.ts",
+    "file": "src/server/campaigns/service.ts",
+    "find": "market_slug: row.properties.market_slug,",
+    "replace": "market_slug: \"\",",
+    "run": "bunx vitest run --project unit tests/unit/campaigns/service.test.ts",
+    "expect": "× .*shapes a row: the property's title and market"
+  },
+  {
+    "id": "w7-3-screen-state-ended",
+    "test": "src/admin/campaigns/campaigns.test.tsx",
+    "file": "src/admin/campaigns/figures.ts",
+    "find": "  if (end !== null && today > end) return \"ended\";",
+    "replace": "  if (end !== null && today >= end) return \"ended\";",
+    "run": "bunx vitest run --project component src/admin/campaigns/campaigns.test.tsx",
+    "expect": "× .*reads the state from the dates against the day it is given"
+  },
+  {
+    "id": "w7-3-screen-report-link",
+    "test": "src/admin/campaigns/campaigns.test.tsx",
+    "file": "src/admin/campaigns/CampaignsTable.tsx",
+    "find": "href={`/admin/reports?campaign=${row.id}`}",
+    "replace": "href=\"/admin/reports\"",
+    "run": "bunx vitest run --project component src/admin/campaigns/campaigns.test.tsx",
+    "expect": "× .*links a campaign to its weekly reports"
+  },
+  {
+    "id": "w7-3-screen-empty-state",
+    "test": "src/admin/campaigns/campaigns.test.tsx",
+    "file": "src/admin/campaigns/CampaignsTable.tsx",
+    "find": "<EmptyState title=\"No campaigns yet\">",
+    "replace": "<EmptyState title=\"Nothing here\">",
+    "run": "bunx vitest run --project component src/admin/campaigns/campaigns.test.tsx",
+    "expect": "× .*says no campaign exists yet"
+  },
+  {
+    "id": "w7-3-screen-channel-status",
+    "test": "src/admin/campaigns/campaigns.test.tsx",
+    "file": "src/admin/campaigns/figures.ts",
+    "find": "  active: \"Active\",",
+    "replace": "  active: \"On\",",
+    "run": "bunx vitest run --project component src/admin/campaigns/campaigns.test.tsx",
+    "expect": "× .*lists each campaign with its property, market"
+  },
+  {
+    "id": "w7-3-nav-entry",
+    "test": "tests/unit/admin-nav.test.ts",
+    "file": "src/admin/nav.ts",
+    "find": "    routeId: \"/admin/campaigns/\",",
+    "replace": "    routeId: \"/admin/campaign/\",",
+    "run": "bunx vitest run --project unit tests/unit/admin-nav.test.ts",
+    "expect": "× .*holds 33 entries, one per screen"
+  }
+]

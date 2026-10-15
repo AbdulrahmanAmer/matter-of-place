@@ -61,7 +61,12 @@ export function CampaignsTable({
       },
     },
     { key: "dates", header: "Dates", render: (row) => datesLabel(row) },
-    { key: "budget", header: "Media budget", align: "end", render: (row) => money(row.media_budget) },
+    {
+      key: "budget",
+      header: "Media budget",
+      align: "end",
+      render: (row) => money(row.media_budget),
+    },
     {
       key: "fee",
       header: "Management fee",
@@ -75,7 +80,9 @@ export function CampaignsTable({
       render: (row) =>
         row.report_count > 0 ? (
           <a className="admin-link" href={`/admin/reports?campaign=${row.id}`}>
-            {row.report_count === 1 ? "1 weekly report" : `${String(row.report_count)} weekly reports`}
+            {row.report_count === 1
+              ? "1 weekly report"
+              : `${String(row.report_count)} weekly reports`}
           </a>
         ) : (
           "None yet"

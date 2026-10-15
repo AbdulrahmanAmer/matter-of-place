@@ -25,7 +25,7 @@ export const campaignChannels = [
   "programmatic",
 ] as const;
 
-export const campaignSchema = z.object({
+const campaignSchema = z.object({
   id: z.string().uuid(),
   property_id: z.string().uuid(),
   property_title: z.string(),

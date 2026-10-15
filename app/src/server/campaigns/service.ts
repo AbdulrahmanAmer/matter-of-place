@@ -33,27 +33,25 @@ const joined = z
     properties: z.object({ title: z.string(), market_slug: z.string() }),
     campaign_reports: z.array(z.object({ count: z.number().int().min(0) })),
   })
-  .transform(
-    (row): Campaign => ({
-      id: row.id,
-      property_id: row.property_id,
-      property_title: row.properties.title,
-      market_slug: row.properties.market_slug,
-      package: row.package,
-      media_budget: row.media_budget,
-      management_fee: row.management_fee,
-      starts_on: row.starts_on,
-      ends_on: row.ends_on,
-      channels: {
-        homepage: row.homepage_status,
-        featured: row.featured_status,
-        newsletter: row.newsletter_status,
-        social: row.social_status,
-        programmatic: row.programmatic_status,
-      },
-      report_count: row.campaign_reports[0]?.count ?? 0,
-    }),
-  );
+  .transform((row): Campaign => ({
+    id: row.id,
+    property_id: row.property_id,
+    property_title: row.properties.title,
+    market_slug: row.properties.market_slug,
+    package: row.package,
+    media_budget: row.media_budget,
+    management_fee: row.management_fee,
+    starts_on: row.starts_on,
+    ends_on: row.ends_on,
+    channels: {
+      homepage: row.homepage_status,
+      featured: row.featured_status,
+      newsletter: row.newsletter_status,
+      social: row.social_status,
+      programmatic: row.programmatic_status,
+    },
+    report_count: row.campaign_reports[0]?.count ?? 0,
+  }));
 
 /**
  * `GET /api/admin/campaigns`: the newest campaigns first, at most `campaignListLimit`, with the count of all. It

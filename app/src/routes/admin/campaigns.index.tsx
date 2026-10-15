@@ -14,5 +14,8 @@ export const Route = createFileRoute("/admin/campaigns/")({
       path: "/admin/campaigns",
       noindex: true,
     }),
-  component: lazyRouteComponent(() => import("../../admin/campaigns/CampaignsPage"), "CampaignsPage"),
+  component: lazyRouteComponent(
+    () => import("../../admin/campaigns/CampaignsPage"),
+    "CampaignsPage",
+  ),
 });
