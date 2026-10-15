@@ -8086,3 +8086,39 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before pushing a change to what an SQL function emits or returns, `git grep -n "<event type or function name>" app/tests/db app/tests/api` and update every exact assertion of it in the same commit; also `git grep -ln "function public.<name>" app/tests/mutations` and regenerate each `sql` entry that carries a whole copy of the function from today's file (only its own mutation removed), or the copy fails on the new key before it reaches its own reason (PR 410's second db run: `B9:b9g1-db-approve-audit` BAD, 216 of 217 ok). The db job is the only run that would catch a miss.
 - proof: `cd app && git grep -n "asset.rejected\|asset.approved" tests/db` lists the two files and their four payload assertions; the db job log of run 38686728451 ends `Tests  4 failed | 919 passed`.
 - added: 2026-10-15
+
+## P-3472 · Zoho warns "verified domain, unauthenticated sender" on our own Resend mail although SPF, DKIM and DMARC all pass
+- symptom: 2026-10-15, admin notices from hello@notify.matterofplace.com showed Zoho's banner. Headers of message 1792039925838153400: `spf=pass`, `dkim=pass` (d=notify.matterofplace.com), `dmarc=pass`. The banner is Zoho's own check for mail claiming the organisation's domain that does not leave through Zoho's servers.
+- rule: our sending subdomains (notify., notes.) are on Zoho Admin › Security & Compliance › Spam Control › Allowed List › Domains (the operator added them; changing a mail security setting is the operator's click, never the agent's). The Allowed List keeps the SPF and DKIM checks; never use the Trusted List, which skips them. Read the headers with the `/messages/<id>/header` endpoint before changing anything.
+- proof: Zoho Allowed Domains lists `notes.matterofplace.com` and `notify.matterofplace.com`; the next admin notice carries no banner.
+- added: 2026-10-15
+
+## P-3473 · Port 25 is blocked from this laptop, through the ISP and through Cloudflare WARP alike
+- symptom: 2026-10-15, SMTP probes to Google, Outlook, Yahoo and Zoho MX on port 25 timed out both directly and with WARP on (Traffic and DNS); port 587 is open.
+- rule: mailbox probing (W9) answers `unknown` when its reachability check on port 25 fails; it never treats a timeout as a bad address. Real probing needs a host whose network allows port 25 (a VPS or another machine). Bounces reach the agents through Resend's webhook instead.
+- proof: `node <scratchpad>/port25.mjs` prints `timeout` for every MX on 25 and `open` on 587.
+- added: 2026-10-15
+
+## P-3474 · An in-session Agent cannot be shown to run at max effort; a headless `claude -p --effort max` can
+- symptom: 2026-10-15, the email redesign was started as an in-session Agent with effort max; the operator pointed out the setting did not reach it. Relaunched as `claude -p --model claude-opus-5-5 --effort max`, confirmed on the process command line.
+- rule: when the operator names a model and effort for a worker, run it headless with `--model` and `--effort` and prove both from the running process (`Get-CimInstance Win32_Process | ? CommandLine -match effort`).
+- proof: the process command line of the email redesign run shows `--effort max`.
+- added: 2026-10-15
+
+## P-3475 · Images in our emails were blocked by Cross-Origin-Resource-Policy: same-site
+- symptom: 2026-10-15, logos and photographs did not render in mail clients; `/email/*` was served with the site-wide `Cross-Origin-Resource-Policy: same-site`.
+- rule: `public/_headers` gives `/email/*` `! Cross-Origin-Resource-Policy` and `Cross-Origin-Resource-Policy: cross-origin` (PR 407); any new path that mail clients load (images, the open pixel) needs the same exception, tested by `tests/unit/headers.test.ts`.
+- proof: `curl -sI https://matterofplace.com/email/<file> | grep -i cross-origin-resource` prints `cross-origin`.
+- added: 2026-10-15
+
+## P-3476 · The public site schema doubles as the settings type, so a new settings field fails the public read path unless it has a default
+- symptom: 2026-10-15, PR 408 added `billing_email` and `listings_email` to `settings.site.contact`; CI failed `http-adapter`, `site-read-path` and B18 `b18-g3-http-refuse` with `ZodError: contact.billing_email Required`, because the cached public state predates the field.
+- rule: a field added to `src/domain/settings.ts` that the public site also parses gets `.default(null)` (or a default) in `src/services/http/index.ts`, and `tests/unit/site-read-path.test.ts` lists it.
+- proof: `cd app && npx vitest run tests/unit/http-adapter.test.ts tests/unit/site-read-path.test.ts` → 33 passed; `node scripts/replay.mjs B18:b18-g3-http-refuse` → WATCHED-FAIL OK.
+- added: 2026-10-15
+
+## P-3477 · Google opened on the wrong account, then index requests were clicked through without reading the page
+- symptom: 2026-10-15, Search Console opened on the default Google account ("you don't have access"); then indexing was requested page after page in one batch without reading what each page said ("No referring sitemaps detected", a referring page outside the sitemap). The operator stopped both.
+- rule: Matter of Place's Google account is slot `/u/4/` in Edge. In any console, read and scroll the whole page and report it before pressing an action button; one page at a time. Index state for many pages comes from the URL Inspection API (scratchpad gsc-state.mjs, the service account is a restricted user), not from clicking.
+- proof: `node --env-file=.env gsc-all.mjs` from E:/mop-build/live lists all 18 sitemap pages with verdict and last crawl.
+- added: 2026-10-15
