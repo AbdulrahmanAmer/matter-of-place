@@ -29,7 +29,7 @@ import { childEnv, loadEnvFile, serviceDb as db } from "./env.ts";
 import { knowledgeBlock } from "./knowledge.ts";
 import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
-import { nextReel, queueReel } from "./reel.ts";
+import { nextReel, queueReel, reelWorking } from "./reel.ts";
 import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain } from "./follow.ts";
@@ -39,6 +39,7 @@ import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
 import { bounceFacts, wakes } from "./bounce.ts";
+import { checkNewAddresses, refusedAddress } from "./email-check.ts";
 import { refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
 import { liveAlive } from "../matter/live-alive.ts";
@@ -638,9 +639,13 @@ async function makeApprovedCalls(client: Db): Promise<void> {
       .from("agent_approvals")
       .update({ content: { ...content, outcome: { state: "making" } } })
       .eq("id", row.id);
-    const outcome = call.success
-      ? await makeCall(call.data, key, ADMIN_BASE)
-      : { status: 0, ok: false, message: "the call could not be read" };
+    // W9 item 1: a call that would mail an address the check refuses is not made.
+    const refusal = call.success ? await refusedAddress(call.data.body) : null;
+    const outcome = !call.success
+      ? { status: 0, ok: false, message: "the call could not be read" }
+      : refusal !== null
+        ? { status: 0, ok: false, message: `not made, the address is refused: ${refusal}` }
+        : await makeCall(call.data, key, ADMIN_BASE);
     await client
       .from("agent_approvals")
       .update({ content: { ...content, outcome: { ...outcome, at: new Date().toISOString() } } })
@@ -690,21 +695,24 @@ async function pass(client: Db): Promise<void> {
     .from("agent_runs")
     .select("id", { count: "exact", head: true })
     .eq("state", "running");
-  if (inFlight === 0) {
+  // A reel being made runs from this checkout, so the runner does not move under it (W7 item 19).
+  const reelBusy = reelWorking();
+  if (inFlight === 0 && !reelBusy) {
     const followed = followMain(resolve(import.meta.dir, "../.."), join(HOME, "runner-app"));
     if (followed !== "unchanged" && followed !== "not the runner") {
       console.log(`${new Date().toISOString()} runner ${followed}`);
     }
-    // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute.
-    if (nextReel() !== null) {
-      spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
-        cwd: resolve(import.meta.dir, "../.."),
-        detached: true,
-        stdio: "ignore",
-        windowsHide: true,
-      }).unref();
-      console.log(`${new Date().toISOString()} reel pass started`);
-    }
+  }
+  // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute. It
+  // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480).
+  if (!reelBusy && nextReel() !== null) {
+    spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
+      cwd: resolve(import.meta.dir, "../.."),
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    }).unref();
+    console.log(`${new Date().toISOString()} reel pass started`);
   }
   await makeApprovedCalls(client);
   // W4: replies to our email reach their colleague; a mailbox that fails never stops the runs.
@@ -713,6 +721,12 @@ async function pass(client: Db): Promise<void> {
     return 0;
   });
   if (replies > 0) console.log(`${new Date().toISOString()} replies ${String(replies)}`);
+  // W9 item 1: where port 25 opens, each new address is probed once and a refused one is never mailed.
+  const refused = await checkNewAddresses(client, HOME).catch((failure: unknown) => {
+    console.log(`email check: ${failure instanceof Error ? failure.message : String(failure)}`);
+    return 0;
+  });
+  if (refused > 0) console.log(`${new Date().toISOString()} refused addresses ${String(refused)}`);
   // W5 item 13: our public pages' text in every desk, once a day, so a colleague can quote the site it works for.
   const { data: staff } = await client.from("agents").select("slug");
   const pages = await writeSitePages(
