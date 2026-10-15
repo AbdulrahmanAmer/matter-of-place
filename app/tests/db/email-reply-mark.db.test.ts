@@ -100,10 +100,14 @@ describe("email_reply_mark", () => {
       const reader = await createStaffUser(db, ["chief_editor"]);
       const editor = await createStaffUser(db, ["managing_editor"]);
       const id = await reply(db);
+      const done = await reply(db, "answered");
       return {
         toNew: await refusal(db, () => mark(db, id, "new", reader)),
         missing: await refusal(db, () => mark(db, randomUUID(), "seen", reader)),
         wrongRole: await refusal(db, () => mark(db, id, "answered", editor)),
+        // A mark that changes nothing returns before `write_audit`, so the caller is checked before that return.
+        wrongRoleNoChange: await refusal(db, () => mark(db, done, "answered", editor)),
+        wrongRoleSeenOnDone: await refusal(db, () => mark(db, done, "seen", editor)),
         state: (
           await db.query<{ state: string }>(
             "select state from public.email_replies where id = $1",
@@ -116,6 +120,8 @@ describe("email_reply_mark", () => {
       toNew: "validation",
       missing: "not_found",
       wrongRole: "forbidden",
+      wrongRoleNoChange: "forbidden",
+      wrongRoleSeenOnDone: "forbidden",
       state: "new",
     });
   });

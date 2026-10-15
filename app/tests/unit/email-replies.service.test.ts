@@ -23,6 +23,8 @@ const actor = (roles: AdminActor["roles"]): AdminActor => ({
   requestId: "req-replies",
 });
 
+const PAGE = { limit: 50 };
+
 const reader = actor(["chief_editor"]);
 const editor = actor(["managing_editor"]);
 
@@ -78,7 +80,7 @@ async function outcome(promise: Promise<unknown>) {
 
 describe("the replies list", () => {
   it("lists the newest first, each beside the email it answers, and its owner and state", async () => {
-    const { items } = await listReplies(reader, inbox(), {});
+    const { items } = await listReplies(reader, inbox(), PAGE);
     expect(items.map((item) => item.id)).toEqual([ORPHAN, REPLY, OLDER]);
     const [, answered] = items;
     expect(answered).toMatchObject({
@@ -92,18 +94,69 @@ describe("the replies list", () => {
   });
 
   it("shows a reply whose email is gone, with no email beside it and no owner", async () => {
-    const { items } = await listReplies(reader, inbox(), {});
+    const { items } = await listReplies(reader, inbox(), PAGE);
     expect(items[0]).toMatchObject({ id: ORPHAN, sent: null, owner_slug: null });
   });
 
   it("keeps only the replies in the state asked for", async () => {
-    const { items } = await listReplies(reader, inbox(), { state: "answered" });
+    const { items } = await listReplies(reader, inbox(), { ...PAGE, state: "answered" });
     expect(items.map((item) => item.id)).toEqual([OLDER]);
+  });
+
+  it("pages the newest first: a page of two, then the page after its cursor, and no cursor on the last page", async () => {
+    const first = await listReplies(reader, inbox(), { limit: 2 });
+    expect(first.items.map((item) => item.id)).toEqual([ORPHAN, REPLY]);
+    expect(first.next_cursor).toBe(`2026-10-15T09:00:00.000Z~${REPLY}`);
+    const last = await listReplies(reader, inbox(), { limit: 2, cursor: first.next_cursor ?? "" });
+    expect(last.items.map((item) => item.id)).toEqual([OLDER]);
+    expect(last.next_cursor).toBeNull();
+  });
+
+  it("goes on from a reply that came in at the same instant as the last one of the page before", async () => {
+    const [low, mid, high] = [REPLY, OLDER, ORPHAN]; // their ids, smallest first
+    const db = withTables(fakeDb(), {
+      email_replies: [low, mid, high].map((id) => reply({ id, send_id: null })),
+      email_messages: [],
+    });
+    const first = await listReplies(reader, db, { limit: 2 });
+    expect(first.items.map((item) => item.id)).toEqual([high, mid]);
+    const rest = await listReplies(reader, db, { limit: 2, cursor: first.next_cursor ?? "" });
+    expect(rest.items.map((item) => item.id)).toEqual([low]);
+  });
+
+  it("keeps the state asked for on the page after the cursor", async () => {
+    const db = withTables(fakeDb(), {
+      email_replies: [
+        reply({ id: ORPHAN, received_at: "2026-10-15T10:00:00.000Z", send_id: null }),
+        reply({ id: REPLY, state: "seen", send_id: null }),
+        reply({ id: OLDER, received_at: "2026-10-14T09:00:00.000Z", send_id: null }),
+      ],
+      email_messages: [],
+    });
+    const first = await listReplies(reader, db, { limit: 1, state: "new" });
+    expect(first.items.map((item) => item.id)).toEqual([ORPHAN]);
+    const rest = await listReplies(reader, db, {
+      limit: 1,
+      state: "new",
+      cursor: first.next_cursor ?? "",
+    });
+    expect(rest.items.map((item) => item.id)).toEqual([OLDER]);
+    expect(rest.next_cursor).toBeNull();
+  });
+
+  it("refuses a cursor that is not one the list gave", async () => {
+    expect(await outcome(listReplies(reader, inbox(), { ...PAGE, cursor: "tomorrow" }))).toEqual({
+      status: 422,
+      code: "validation",
+    });
   });
 
   it("refuses a role that cannot read the replies, before any call", async () => {
     const db = fakeDb();
-    expect(await outcome(listReplies(editor, db, {}))).toEqual({ status: 403, code: "forbidden" });
+    expect(await outcome(listReplies(editor, db, PAGE))).toEqual({
+      status: 403,
+      code: "forbidden",
+    });
     expect(db.calls).toEqual([]);
   });
 });

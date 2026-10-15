@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 
 // W9 item 2 (operator, 2026-10-15: "we need to be able to see from the admin dashboard if an email is wrong or
 // bounced"): what became of each email we sent, from `email_messages` and the Resend events `email_events` holds, and
@@ -108,10 +109,12 @@ export const replySchema = z.object({
 
 export type Reply = z.infer<typeof replySchema>;
 
-/** `GET /api/admin/emails/replies`: the newest replies, optionally one state. */
-export const replyListInputSchema = z.object({ state: z.enum(replyStates).optional() });
+/** `GET /api/admin/emails/replies`: one keyset page of replies, newest first, optionally one state (invariant 17c). */
+export const replyListInputSchema = adminPageSchema.extend({
+  state: z.enum(replyStates).optional(),
+});
 
-export const replyListSchema = z.object({ items: z.array(replySchema) });
+export const replyListSchema = adminPageAnswer(replySchema);
 
 /** `POST /api/admin/emails/replies/:id`: the mark and the state the reply is in after it. */
 export const replyMarkInputSchema = z.object({ id: uuid, state: z.enum(replyMarks) });

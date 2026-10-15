@@ -1943,3 +1943,16 @@ first day of the new usage week; no step was cut from any plan.
   UNPROVEN: the function on the real database (db tests refuse mop-dev after the switch, H35; passes 3 of 3 on a stub
   native cluster; the PR's CI db job counts) and a real reply read through the screen. Reply column is narrow
   (CSS under `src/styles/admin/` was not in this lane's files). Bank grew: P-3550.
+
+- 2026-10-16 W7 item 2 review fixes (PR 441, feat/w7-2-replies): the Opus review's seven findings. (1) The `w7-2-sql-audit` entry
+  commented out one line of a multi-line statement and went red on a compile error; it is now a whole `perform 1;`,
+  and the red run on the stub cluster shows `expected [] to deeply equal [ Array(1) ]` (the `seen.log` diff), not a
+  syntax error (P-3551). The three `sql` entries are regenerated from the real function file. (2) Opening a reply
+  under the filter "new" no longer drops it from view: `useMarkReply` writes `seen` into the cached pages and marks them
+  stale without reading again. (3) The sent emails are asked only for `status` and `search`. (4) The replies list is one
+  keyset page of fifty (`received_at~id`, `next_cursor`), with Next and Previous on the screen. (5) `email_reply_mark`
+  checks the caller against `action_roles` before its early return (new migration `20261015211418_fn_email_reply_mark.sql`).
+  (6) W7 item 2 is back to `[ ]` with a "Built (PR 441" line; Matter ticks it after the PR's CI db job is green.
+  (7) Lead copy reworded. `tests/mutations/W7-2.json` holds 28 entries (24 file, 4 sql), all WATCHED-FAIL OK.
+  UNPROVEN: the function on the real database (stub native cluster only; the CI db job counts), the route and service
+  end to end, a real reply read through the screen. Bank grew: P-3551.

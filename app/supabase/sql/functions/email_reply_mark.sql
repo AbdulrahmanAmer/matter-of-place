@@ -16,6 +16,20 @@ begin
   -- W7 item 2: a person reads a reply on the Sent emails screen and marks it: `seen` when it is opened (only from
   -- `new`), `answered` or `ignored` when it is dealt with (from any state). A mark to the state it already has changes
   -- nothing and is not audited. The audit row names the reply and its two states, never its words or its sender.
+  -- The caller is checked first, as `write_audit` checks it, so a mark that changes nothing (and never reaches
+  -- `write_audit`) is refused for a role without the right too. A null actor is the system.
+  if p_actor is not null and not exists (
+    select 1
+    from public.user_roles r
+    join public.action_roles a on a.action = 'audit.reply_mark'
+    where r.user_id = p_actor
+      and r.disabled_at is null
+      and r.actor_kind = p_actor_kind
+      and r.role = any (a.roles)
+      and not (a.human_only and p_actor_kind = 'agent')
+  ) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
   if p_state is null or p_state not in ('seen', 'answered', 'ignored') then
     raise exception 'validation';
   end if;

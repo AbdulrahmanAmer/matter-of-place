@@ -26,15 +26,21 @@ function sender(reply: Reply): string {
 export function RepliesPart({
   state,
   onState,
+  cursor,
+  pager,
 }: {
   state: string | undefined;
   onState: (next: string) => void;
+  /** The cursor of the page shown, or null on the first page. */
+  cursor: string | null;
+  pager: { hasPrevious: boolean; onPrevious: () => void; onNext: (cursor: string) => void };
 }) {
-  const replies = useReplies(state);
+  const replies = useReplies(state, cursor);
   const mark = useMarkReply();
   const toast = useToast();
   const canMark = useAdminMe().actions.includes("audit.reply_mark");
   const items = replies.data?.items;
+  const nextCursor = replies.data?.next_cursor ?? null;
 
   const send = (reply: Reply, next: Mark) => {
     mark.mutate(
@@ -167,6 +173,28 @@ export function RepliesPart({
           </table>
         </div>
       )}
+      {pager.hasPrevious || nextCursor !== null ? (
+        <div className="admin-pager" data-print="hide">
+          <button
+            type="button"
+            className="admin-button admin-button--quiet"
+            disabled={!pager.hasPrevious}
+            onClick={pager.onPrevious}
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            className="admin-button admin-button--quiet"
+            disabled={nextCursor === null}
+            onClick={() => {
+              if (nextCursor !== null) pager.onNext(nextCursor);
+            }}
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

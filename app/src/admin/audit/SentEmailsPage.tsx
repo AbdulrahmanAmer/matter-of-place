@@ -23,20 +23,31 @@ const REASON = {
 
 export function SentEmailsPage() {
   const filters = useUrlFilters(filterNames);
-  const emails = useSentEmails(filters.values);
+  // The reply filter belongs to the Replies part: it is not part of what the emails are asked for.
+  const { status, search: address } = filters.values;
+  const emails = useSentEmails({
+    ...(status === undefined ? {} : { status }),
+    ...(address === undefined ? {} : { search: address }),
+  });
   const [search, setSearch] = useState(filters.values.search ?? "");
   const view = emails.data;
   return (
     <>
       <h1>Sent emails</h1>
       <p className="admin-lead">
-        Every email we sent, newest first, and what became of it. An address that bounced or
-        complained is on the do-not-send list below. Replies come first.
+        Replies people wrote back come first; every email we sent follows, newest first, with what
+        became of it. An address that bounced or complained is on the do-not-send list below.
       </p>
       <RepliesPart
         state={filters.values.reply}
         onState={(next) => {
           filters.setFilters({ ...filters.values, reply: next });
+        }}
+        cursor={filters.cursor}
+        pager={{
+          hasPrevious: filters.hasPrevious,
+          onPrevious: filters.goPrevious,
+          onNext: filters.goNext,
         }}
       />
       <h2>Emails we sent</h2>

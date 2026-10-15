@@ -37,11 +37,13 @@ const reply = (over: Partial<Reply> = {}): Reply => ({
 });
 
 function open(actions: string[], items: Reply[], extra: Record<string, unknown> = {}) {
-  const requested = serve({
+  // The descriptors are copied, so an answer given as a getter is read once per request, as the fetch asks.
+  const answers = {
     [`GET ${EMAILS}`]: { items: [], suppressions: [] },
-    [`GET ${REPLIES}`]: { items },
-    ...extra,
-  });
+    [`GET ${REPLIES}`]: { items, next_cursor: null },
+  };
+  Object.defineProperties(answers, Object.getOwnPropertyDescriptors(extra));
+  const requested = serve(answers);
   mountRoutes(
     () => (
       <AdminProviders actions={actions}>
@@ -145,11 +147,64 @@ describe("the replies on the Sent emails screen", () => {
     expect(requested.some((line) => line.startsWith("POST"))).toBe(false);
   });
 
-  it("asks only for the replies in the state chosen", async () => {
-    const requested = open(MARK, [reply()], { [`GET ${REPLIES}?state=new`]: { items: [] } });
+  it("asks only for the replies in the state chosen, and the sent emails only for theirs", async () => {
+    const requested = open(MARK, [reply()], {
+      [`GET ${REPLIES}?state=new`]: { items: [], next_cursor: null },
+    });
     fireEvent.change(await screen.findByLabelText("Reply state"), { target: { value: "new" } });
     await waitFor(() => {
       expect(requested).toContain(`GET ${REPLIES}?state=new`);
     });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(requested.filter((line) => line.startsWith(`GET ${EMAILS}?`))).toEqual([]);
+  });
+
+  it("keeps the reply being read in front of the person when the filter is new", async () => {
+    const NEW = `GET ${REPLIES}?state=new`;
+    let reads = 0;
+    const requested = open(MARK, [], {
+      // Read again, the server no longer has the reply as new: the screen must not read again to show that.
+      get [NEW]() {
+        reads += 1;
+        return { items: reads === 1 ? [reply()] : [], next_cursor: null };
+      },
+      [`POST ${REPLIES}/${FRESH}`]: { id: FRESH, state: "seen" },
+    });
+    fireEvent.change(await screen.findByLabelText("Reply state"), { target: { value: "new" } });
+    const table = await screen.findByRole("table", { name: "Replies (1)" });
+    const details = table.querySelector("details");
+    if (details === null) throw new Error("no details");
+    details.open = true;
+    await waitFor(() => {
+      expect(requested).toContain(`POST ${REPLIES}/${FRESH} {"state":"seen"}`);
+    });
+    await waitFor(() => {
+      expect(within(table).getByText("seen")).toBeTruthy();
+    });
+    expect(reads).toBe(1);
+    expect(screen.getByRole("table", { name: "Replies (1)" })).toBe(table);
+    expect(table.querySelector("details")?.open).toBe(true);
+    expect(within(table).getByText("Thursday works for the photographer.")).toBeTruthy();
+  });
+
+  it("pages the replies: Next opens the page after the cursor, Previous goes back, and the last page has no Next", async () => {
+    const cursor = `2026-10-15T16:00:00.000Z~${FRESH}`;
+    const second = `GET ${REPLIES}?${new URLSearchParams({ cursor }).toString()}`;
+    const requested = open(MARK, [], {
+      [`GET ${REPLIES}`]: { items: [reply()], next_cursor: cursor },
+      [second]: {
+        items: [reply({ id: DONE, subject: "Re: Second page", state: "seen" })],
+        next_cursor: null,
+      },
+    });
+    await screen.findByText("Re: About 12 Ocean Avenue");
+    expect(screen.getByRole("button", { name: "Previous" })).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText("Re: Second page");
+    expect(requested).toContain(second);
+    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await screen.findByText("Re: About 12 Ocean Avenue");
+    expect(screen.queryByText("Re: Second page")).toBeNull();
   });
 });

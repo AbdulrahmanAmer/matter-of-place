@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
+import type { z } from "zod";
 import { emailListSchema, replyListSchema, replyMarkAnswerSchema } from "../../domain/admin-emails";
 import { adminKeys, invalidateAfterWrite } from "../query";
 import { adminFetch } from "../ui/admin-fetch";
@@ -15,16 +16,31 @@ export function useSentEmails(query: Readonly<Record<string, string>>) {
   });
 }
 
-/** The newest replies to our email, all of them or one state (W7 item 2). */
-export function useReplies(state: string | undefined) {
-  const search = state === undefined ? "" : `?state=${encodeURIComponent(state)}`;
+/** One page of the newest replies to our email: all of them or one state, from the cursor on (W7 item 2). */
+export function useReplies(state: string | undefined, cursor: string | null) {
+  const search = new URLSearchParams();
+  if (state !== undefined) search.set("state", state);
+  if (cursor !== null) search.set("cursor", cursor);
+  const query = search.size === 0 ? "" : `?${search.toString()}`;
   return useQuery({
-    queryKey: adminKeys.emails.list({ replies: state ?? null }),
-    queryFn: () => adminFetch(`/api/admin/emails/replies${search}`, replyListSchema),
+    queryKey: adminKeys.emails.list({ replies: state ?? null, cursor }),
+    queryFn: () => adminFetch(`/api/admin/emails/replies${query}`, replyListSchema),
   });
 }
 
-/** Marks a reply seen, answered or ignored; the replies are read again after it. */
+/** True for the cached pages of replies (the key `useReplies` gives them), not the sent emails. */
+function isRepliesQuery(queryKey: QueryKey): boolean {
+  const filters = queryKey[3];
+  return typeof filters === "object" && filters !== null && "replies" in filters;
+}
+
+type ReplyAnswer = z.infer<typeof replyMarkAnswerSchema>;
+
+/**
+ * Marks a reply seen, answered or ignored. Opening a reply marks it seen: that is written into the pages already
+ * read, so a reply opened under the filter "new" stays in front of the person; the pages are read again later.
+ * Answered and ignored read the emails again at once.
+ */
 export function useMarkReply() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -34,6 +50,24 @@ export function useMarkReply() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ state }),
       }),
-    onSettled: () => invalidateAfterWrite(queryClient, adminKeys.emails.all()),
+    onSuccess: (answer: ReplyAnswer, { state }) => {
+      if (state !== "seen") return;
+      queryClient.setQueriesData<z.infer<typeof replyListSchema>>(
+        { queryKey: adminKeys.emails.all(), predicate: (query) => isRepliesQuery(query.queryKey) },
+        (page) =>
+          page === undefined
+            ? page
+            : {
+                ...page,
+                items: page.items.map((item) =>
+                  item.id === answer.id ? { ...item, state: answer.state } : item,
+                ),
+              },
+      );
+    },
+    onSettled: (_answer, _error, { state }) =>
+      state === "seen"
+        ? queryClient.invalidateQueries({ queryKey: adminKeys.emails.all(), refetchType: "none" })
+        : invalidateAfterWrite(queryClient, adminKeys.emails.all()),
   });
 }
