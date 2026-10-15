@@ -8073,6 +8073,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `df -h /e` → `Avail 0` before; after removing the broken copy and linking, `ls E:/mop-build/w9-2/app/node_modules/.bin | head -1` → `acorn.bunx` and the lane's vitest runs.
 - added: 2026-10-15
 
+## P-3491 · `git reset --soft origin/main` in a lane took a newer main than the one merged: the commit undid 13 files of main
+- symptom: 2026-10-15, W9 item 2: after `git merge origin/main` the lane squashed with `git reset --soft origin/main && git commit`; `git diff --name-only origin/main` then listed `send-email.ts`, `settings.ts`, `services/http/index.ts` and ten tests the item never touched. The pushed commit carried older copies of them.
+- cause: every worktree shares one set of remote refs, and another session's `git fetch` in `E:\Matter Of Place` moved `origin/main` between the merge and the reset. The reset took the new main as parent while the index still held the tree merged with the old one.
+- rule: never squash onto a moving ref name. Pin it first (`base=$(git rev-parse origin/main)`), merge `$base`, reset to `$base`; before every push check `git diff --name-only $base HEAD` lists only the item's files. To repair without a force-push: `git diff --binary <old main> HEAD > item.patch`, `git read-tree -u --reset <new main>`, `git apply --3way item.patch`, commit on top.
+- proof: `git -C E:/mop-build/w9-2 diff --name-only d981cf6f 96ca1f46 | wc -l` → `27`, the item's files only (`49d5e668` alone showed 40).
+- added: 2026-10-15
+
 ## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
 - symptom: 2026-10-15, W7 E1: from the desk, `eval "$(node scripts/load-env.mjs --profile dev)"` exported nothing (the
   desk has no `.env`; the loader reads the one two folders above `scripts/`), then with the main checkout's loader the

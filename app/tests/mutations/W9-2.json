@@ -2,7 +2,7 @@
   {
     "id": "w9-2-request-only",
     "test": "tests/unit/emails.service.test.ts",
-    "file": "src/server/emails/service.ts",
+    "file": "src/server/email/sent.ts",
     "find": "      .eq(\"entity_id\", input.id)\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
@@ -20,7 +20,7 @@
   {
     "id": "w9-2-request-404",
     "test": "tests/unit/emails.service.test.ts",
-    "file": "src/server/emails/service.ts",
+    "file": "src/server/email/sent.ts",
     "find": "if (request.data === null) {",
     "replace": "if (request.data === undefined) {",
     "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
@@ -29,7 +29,7 @@
   {
     "id": "w9-2-resend-args",
     "test": "tests/unit/emails.service.test.ts",
-    "file": "src/server/emails/service.ts",
+    "file": "src/server/email/sent.ts",
     "find": "    p_email: input.email,",
     "replace": "    p_email: input.email.toUpperCase(),",
     "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
@@ -38,7 +38,7 @@
   {
     "id": "w9-2-resend-authorize",
     "test": "tests/unit/emails.service.test.ts",
-    "file": "src/server/emails/service.ts",
+    "file": "src/server/email/sent.ts",
     "find": "authorize(actor, \"submissions.resend_email\");",
     "replace": "authorize(actor, \"submissions.get\");",
     "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
@@ -47,7 +47,7 @@
   {
     "id": "w9-2-resend-refusal",
     "test": "tests/unit/emails.service.test.ts",
-    "file": "src/server/emails/service.ts",
+    "file": "src/server/email/sent.ts",
     "find": "  if (error !== null) throw fromRpcError(error);\n  return { job_id: z.string().uuid().parse(data) };",
     "replace": "  if (error !== null) throw new AppError(\"server\", undefined, \"x\");\n  return { job_id: z.string().uuid().parse(data) };",
     "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
@@ -56,7 +56,7 @@
   {
     "id": "w9-2-list-authorize",
     "test": "tests/unit/emails.service.test.ts",
-    "file": "src/server/emails/service.ts",
+    "file": "src/server/email/sent.ts",
     "find": "authorize(actor, \"audit.list\");",
     "replace": "authorize(actor, \"submissions.get\");",
     "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",

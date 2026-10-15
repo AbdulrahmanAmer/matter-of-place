@@ -3,7 +3,7 @@ import { deliveryLine, emailStates } from "../../domain/admin-emails";
 import { Field } from "../ui/Field";
 import { LocalTime } from "../ui/LocalTime";
 import { useUrlFilters } from "../ui/use-url-filters";
-import { useSentEmails } from "./emails-queries";
+import { useSentEmails } from "./sent-emails-queries";
 
 // W9 item 2 and W7 item 1 (operator, 2026-10-15: "we need to be able to see from the admin dashboard if an email is
 // wrong or bounced"): every email we sent, to whom and what became of it, and the addresses nothing more goes to.

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { resendEmailAnswerSchema, resendEmailInputSchema } from "../../../domain/admin-emails";
-import { resendSubmissionEmail } from "../../../server/emails/service";
+import { resendSubmissionEmail } from "../../../server/email/sent";
 import { defineAdminRoute } from "../../../server/lib/admin-route";
 
 // W9 item 2: a bounced email about a request goes again, to the address the person corrected.

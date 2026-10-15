@@ -1,11 +1,7 @@
 import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
 import { deliveryLine } from "../../src/domain/admin-emails";
-import {
-  listEmails,
-  resendSubmissionEmail,
-  submissionEmails,
-} from "../../src/server/emails/service";
+import { listEmails, resendSubmissionEmail, submissionEmails } from "../../src/server/email/sent";
 import type { AdminActor } from "../../src/server/lib/admin-route";
 import { AppError } from "../../src/server/lib/errors";
 import { fakeDb } from "../fixtures/fake-db";
