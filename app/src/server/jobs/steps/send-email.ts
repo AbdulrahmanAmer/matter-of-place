@@ -48,6 +48,33 @@ const OUT = new Set(["sent", "delivered", "bounced", "complained"]);
 // G14: addresses on these top-level domains never exist, so no attempt may spend the quota on them.
 const RESERVED = /\.(invalid|test|example)$/;
 
+/** Which contact address a template's replies go to (operator, 2026-10-15); each falls back to the contact email. */
+const REPLY_FIELD: Readonly<Record<string, "billing_email" | "listings_email" | "privacy_email">> =
+  {
+    invoice: "billing_email",
+    received: "listings_email",
+    accepted: "listings_email",
+    declined: "listings_email",
+    awaiting_assets: "listings_email",
+    campaign_report: "listings_email",
+    subject_ack: "privacy_email",
+    repermission: "privacy_email",
+  };
+
+/** The reply address of a template: its own contact field when set, else the contact email. */
+export function replyToFor(
+  templateKey: string,
+  contact: {
+    email?: string | null | undefined;
+    billing_email?: string | null | undefined;
+    listings_email?: string | null | undefined;
+    privacy_email?: string | null | undefined;
+  },
+): string | undefined {
+  const field = REPLY_FIELD[templateKey];
+  return (field === undefined ? undefined : contact[field]) ?? contact.email ?? undefined;
+}
+
 export interface SendOneInput {
   to: string;
   templateKey: string;
@@ -251,7 +278,8 @@ export async function sendOne(ctx: StepContext, input: SendOneInput): Promise<Se
     ctx.log("warn", "email_content_changed", { messageId: message.id });
   }
   const idempotencyKey = `${await jobIdempotencyKey(ctx)}:${(await sha256Hex(address)).slice(0, 12)}`;
-  const replyTo = siteOf(settings).contact.email ?? readVar("ADMIN_NOTIFY_EMAIL");
+  const replyTo =
+    replyToFor(input.templateKey, siteOf(settings).contact) ?? readVar("ADMIN_NOTIFY_EMAIL");
   let answer: SendAnswer;
   try {
     answer = await sendTransactional({
