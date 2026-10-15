@@ -32,7 +32,21 @@ cd ~/launch && node build.js && node stills.js "0.4,2,5,7,9.5,11.9,13.5,16,18,19
 
 Do not run `fonts.py` or `logo.js` here: `fonts/fonts.json` and `logo.json` are already the film's own. Then the kit's usual steps: `audio.js`, `export.js`, `encode.sh`, `pagetest.js`.
 
-Checked on 4 October 2026: fourteen frames exported this way, one or more from every shot, were compared with the delivered film's frames. Thirteen are byte-identical. The door shot (0:02 to 0:03.7) differs by one level in some pixels (PSNR 63 dB), because the haze was retuned for the live page after the film was rendered. The score matches the delivered one to the last bit of rounding.
+Checked on 4 and 15 October 2026. Frames sampled from every shot after the door, rendered this way, are byte-identical to the delivered film's. The door shot keeps a cache of its text from frame to frame, so its frames come out exactly the same only when they are rendered in order from the start, as below: done that way, 69 of its first 76 frames were byte-identical and the other 7 differed by one shade in a few pixels (PSNR above 95 dB), which no one can see. The score matches the delivered one to the last bit of rounding.
+
+## Render it exactly as delivered
+
+Two workers, each taking every other frame in order from the start, then the same two-pass encode the delivered MP4 had:
+
+```bash
+cd ~/launch && cp dist/dev.html dist/render.html
+cd ~/launch && FILM_PAGE=dist/render.html nohup node export.js 60 0 1800 0 2 > x0.log 2>&1 &
+cd ~/launch && FILM_PAGE=dist/render.html nohup node export.js 60 0 1800 1 2 > x1.log 2>&1 &
+# when both workers have finished (tail -n 1 x0.log x1.log says so), about an hour later:
+cd ~/launch && node audio.js && bash encode.sh matter-of-place-product-launch 60 6000
+```
+
+Then the voice-over, with the steps and settings in `voice-over.md`, which reproduce the delivered voice-over files byte for byte.
 
 Numbers from the delivered render, for planning: 1,800 frames, 8 sub-frames a frame on average, about 0.45 s per sub-frame, 53 minutes with two workers on two cores. Two-pass at 6,000 kbit/s gave 23.3 MB. Loudness -16.1 LUFS.
 

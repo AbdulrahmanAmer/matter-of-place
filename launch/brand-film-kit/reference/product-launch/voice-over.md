@@ -46,24 +46,40 @@ The seven clicks, in seconds: 0.905, 2.736 (in "rarely"), 5.594, 9.640 (the head
 
 The click at 12.774 s was missed by the first version of the click search and by the first delivery. It was found when the method was tested, and the search was changed. It is the reason the voice skill says to look at the highest peaks after cleaning.
 
-## Settings
+## Settings, exactly as delivered
 
-Cleaning, as overrides in `2_clean.py`:
+The kit's five voice steps, run on the original voice file with the changes below, make the delivered files again byte for byte: the cleaned voice, the mix, and the film with voice (checked on 15 October 2026).
+
+In `2_clean.py`, just above the line that prints the settings:
 
 ```python
 STEPS = [43455, 131327, 268518, 462719, 546107, 613153, 878383]
-p = dict(vo.suggest(chk), lp_hz=12200, hp_hz=50, shelf=[(145, -3.5, 1.15)] * 2, ds_band=(3200, 6200), ds_thresh=-25.0, lim_ceiling_db=-6.5)
+p = dict(vo.P, lp_hz=12200, hp_hz=50, shelf=[(145, -3.5, 1.15)] * 2, ds_band=(3200, 6200), ds_thresh=-25.0, lim_ceiling_db=-6.5)
+regions = [(0.63, 2.44), (2.44, 4.26), (5.32, 7.12), (7.73, 9.24), (9.63, 10.75), (11.26, 12.21), (12.53, 14.18), (15.32, 16.62), (18.03, 19.53), (22.52, 24.19), (25.03, 26.99), (28.00, 29.49)]   # one per sentence, set by hand, so each sentence is levelled on its own
 ```
 
-These were set by hand on the day. The kit's own suggestions for this file are nearly the same (shelves of -3.53 dB, de-ess band 3200 to 6300 Hz at -25.7), its click search finds the same seven, and its automatic mix lands within a tenth of a decibel of the delivered loudness. So a run of the kit on this voice prints numbers a little different from the ones above; that is expected.
-
-Mix, as overrides in `3_mix.py` (lines are numbered from 0 by speech region; this voice has 11 regions because the first two sentences run together):
+In `3_mix.py`, in place of the line that calls `vo.auto_knobs`:
 
 ```python
-hits = [3.75, 6.75, 9.75, 12.0, 15.0, 17.25, 18.75, 20.25, 21.75, 24.75, 27.75]     # the last is where the final chord starts to swell; its hit is at 27.9. Either works here, because the last fall is set by hand
-m['duck_extra'] = {7: -10.5, 10: -12.0}       # "Even our map is edited." sits on the three market cuts; the last line carries the name
-m['falls'] = {10: (27.93, 28.10)}             # the final chord lands at 27.9, the last line starts at 28.0: let the chord land, then duck fast
+m = dict(vo.M, hits=hits, duck_extra={7: -10.5, 10: -12.0}, falls={10: (27.93, 28.10)})
+# duck_extra: "Even our map is edited." sits on the market cuts, and the last line carries the name
+# falls: the final chord lands at 27.9 and the last line starts at 28.0, so the chord lands first and the duck follows fast
+# the mix's target stays at the kit's default, -16.0 LUFS
 ```
+
+Then run, from the folder that holds them, with the music-only film and its score:
+
+```bash
+python3 1_check.py voice.wav script.txt film.mp4
+python3 2_clean.py
+python3 3_mix.py film.mp4 --music score.wav --hits "3.75,6.75,9.75,12.0,15.0,17.25,18.75,20.25,21.75,24.75,27.75"
+bash 4_mux.sh film.mp4 out/matter-of-place-product-launch-vo.mp4
+python3 5_verify.py out/matter-of-place-product-launch-vo.mp4 script.txt
+```
+
+The mix numbers its lines by speech region, and this voice has 11 regions because the first two sentences run together; that is why `duck_extra` says 7 and 10. The last accent, 27.75, is where the final chord starts to swell; its hit is at 27.9.
+
+The kit's own suggestions for this voice, without these changes, are nearly the same (shelves of -3.53 dB, de-ess band 3200 to 6300 Hz at -25.7), its click search finds the same seven clicks, and its automatic mix lands within a tenth of a decibel of the delivered loudness.
 
 Music under the voice: the film's own score (`out/score.wav`, from `audio.js`), 9 dB down under each line, back up over a second, and back in time for the accent on each cut.
 
