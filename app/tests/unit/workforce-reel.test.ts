@@ -9,7 +9,9 @@ import {
   queueReel,
   reelPass,
   reelRequestSchema,
+  reelWorking,
   shotsFor,
+  studioArgs,
   STALE_MS,
   type ReelDeps,
   type ReelRequest,
@@ -111,6 +113,31 @@ describe("a reel request (W7 item 19)", () => {
       state: "failed",
       reason: "abandoned: the process making it stopped",
     });
+  });
+
+  it("lets the designer write in its folder and the reviewer only read, and nothing else (P-3481)", () => {
+    const allowed = (role: "designer" | "reviewer") => {
+      const args = studioArgs("sonnet", role);
+      return [args[args.indexOf("--allowedTools") + 1], args.includes("--restricted")];
+    };
+    expect(allowed("designer")).toEqual(["Read,Write,Edit,Glob,Grep", true]);
+    expect(allowed("reviewer")).toEqual(["Read,Glob,Grep", true]);
+    expect(studioArgs("opus", "reviewer")).toContain("Bash,WebFetch,WebSearch,NotebookEdit");
+  });
+
+  it("says a reel is being made while a brief is working, and not once it is stale (P-3480)", () => {
+    const root = studio();
+    expect(reelWorking(root)).toBe(false);
+    const folder = queueReel(brand, from, root, new Date("2026-10-15T08:00:00Z"));
+    expect(reelWorking(root)).toBe(false);
+    writeFileSync(
+      join(folder, "brief.json"),
+      JSON.stringify({ ...brief(folder), state: "working", started: "2026-10-15T08:00:00Z" }),
+    );
+    expect(reelWorking(root, new Date("2026-10-15T09:00:00Z"))).toBe(true);
+    expect(reelWorking(root, new Date(Date.parse("2026-10-15T08:00:00Z") + STALE_MS + 1))).toBe(
+      false,
+    );
   });
 });
 
