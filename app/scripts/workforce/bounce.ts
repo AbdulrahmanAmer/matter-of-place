@@ -15,22 +15,18 @@ const ownerEvent: Readonly<Record<string, string>> = {
 
 /**
  * W8 0b (security review, 2026-10-15): a bounce run is not triaged, so it carries only what a pattern can vouch for,
- * never words a person typed (name, street, city): a phone of digits and phone marks, the domain of an address shaped
- * like an address. Anything else is "on the page", which a person opens.
+ * never words a person typed (name, street, city): a phone of digits and phone marks. The address is "on the page"
+ * (all of it, domain included, is text the person chose; W8 review), which a person opens.
  */
 const PHONE = /^[+()\d\s.-]{6,24}$/;
-const ADDRESS = /^[^\s@<>"']{1,64}@[a-z0-9.-]{1,190}\.[a-z]{2,24}$/i;
 const phoneOf = (phone: string | null): string =>
   phone === null || phone.trim() === ""
     ? "none given"
     : PHONE.test(phone.trim())
       ? phone.trim()
       : "given, on the page";
-// The part before the @ is text the person typed (W8 review), so only the domain is shown.
 const addressOf = (email: string | null): string =>
-  email !== null && ADDRESS.test(email.trim())
-    ? `an address at ${email.trim().split("@")[1] ?? ""}`
-    : "on the page";
+  email === null || email.trim() === "" ? "none given" : "on the page";
 
 /** Whether an event wakes a colleague: on duty, the type in its `wake_on`, and for a bounce, the owner of its source. */
 export function wakes(

@@ -34,13 +34,16 @@ import { breakerUntil, runClaude, UsageLimitError, type CliUsage } from "./cli.t
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue } from "./follow.ts";
 import { readJsonAnswer } from "./answer.ts";
+import type { SourceName } from "./criteria.ts";
 import {
   answerable,
   HELD_AUTHOR,
   heldLine,
+  outsideWords,
   ownsOutside,
+  ownsSource,
   promptData,
-  replyPlace,
+  runShape,
   ruleOutside,
   shownBody,
   triageArgs,
@@ -186,6 +189,7 @@ export async function context(
   thread: string,
   ask: (prompt: string) => Promise<string> = askTriage,
   matterReadsHeld = false,
+  owns: (source: SourceName) => boolean = () => true,
 ) {
   const parts: string[] = [];
   let event: { type: string; entity_id: string | null } | null = null;
@@ -234,7 +238,7 @@ export async function context(
       .then(({ data }) => data ?? []),
   ]);
   // W8 0b: an outside message reaches the prompt only as its triage; its text stays in the database for a person.
-  const triage = await triageRun(client, ask, event, woke);
+  const triage = await triageRun(client, ask, event, woke, owns);
   if (triage !== null) parts.push(...triageLines(triage));
   const wokeShown =
     woke === null
@@ -415,7 +419,14 @@ async function runOnce(client: Db): Promise<boolean> {
   mkdirSync(cwd, { recursive: true });
   try {
     const matterReadsHeld = agent.slug === "matter" && wokeBy === HELD_AUTHOR;
-    const { situation, triage } = await context(client, run, thread, askTriage, matterReadsHeld);
+    const { situation, triage } = await context(
+      client,
+      run,
+      thread,
+      askTriage,
+      matterReadsHeld,
+      (source) => ownsSource(source, agent.slug),
+    );
     // W8 0a/0d: an outside message is answered by its owner only; anyone else it woke does nothing with it.
     if (triage !== null && !ownsOutside(triage, agent.slug)) {
       await client
@@ -456,6 +467,7 @@ async function runOnce(client: Db): Promise<boolean> {
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
     const isMatter = agent.slug === "matter";
+    const shape = runShape(agent, thread, triage, matterReadsHeld);
     // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
     const power = isMatter ? matterPower(run.cause, authorKind) : "read";
     const answer = isMatter
@@ -474,12 +486,7 @@ async function runOnce(client: Db): Promise<boolean> {
       : await askClaude(
           promptFor(
             // W8 0c: a run about an outside message is not offered admin calls or hires at all.
-            triage === null
-              ? agent
-              : {
-                  ...agent,
-                  tools: agent.tools.filter((tool) => tool !== "admin_call" && tool !== "hire"),
-                },
+            shape.agent,
             team,
             situation,
             lessons,
@@ -490,14 +497,15 @@ async function runOnce(client: Db): Promise<boolean> {
             models["sonnet"] ??
             "claude-sonnet-5-5",
           cwd,
-          agent.tools.includes("research"),
+          shape.research,
         );
     // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
     // nothing that acts (W8 review): it read the outside text itself.
-    const ruled = ruleOutside(readJsonAnswer(answer.text), matterReadsHeld ? "held" : triage);
+    const ruled = ruleOutside(readJsonAnswer(answer.text), shape.rule);
     const result = ruled.kept;
-    const place = replyPlace(agent.slug, thread, triage, matterReadsHeld);
+    const { place } = shape;
+    const fixed = outsideWords(shape.rule);
     if (ruled.dropped.length > 0) {
       await say(
         client,
@@ -576,7 +584,7 @@ async function runOnce(client: Db): Promise<boolean> {
         agent_id: agent.id,
         run_id: run.id,
         action: proposal.action,
-        summary: proposal.summary,
+        summary: fixed?.proposal(proposal.action) ?? proposal.summary,
         content,
         content_hash: createHash("sha256").update(JSON.stringify(proposal.content)).digest("hex"),
       });
@@ -595,11 +603,9 @@ async function runOnce(client: Db): Promise<boolean> {
       .update({
         state: "done",
         finished_at: new Date().toISOString(),
-        // W8 review: Matter's read of a held line is summed up in fixed words; its own words could carry the outside
-        // text into the live session's digest.
-        summary: matterReadsHeld
-          ? "Read an outside message held for Matter"
-          : (result.task || result.reply).slice(0, 300),
+        // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
+        // its own words could carry the outside text into the meeting and the live session's digest.
+        summary: fixed?.run ?? (result.task || result.reply).slice(0, 300),
         session_id:
           "session" in answer && typeof answer.session === "string" ? answer.session : null,
         turns: 1,

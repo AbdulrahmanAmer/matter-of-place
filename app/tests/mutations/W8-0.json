@@ -128,7 +128,7 @@
     "id": "w8-0b-daemon-triages",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "  const triage = await triageRun(client, ask, event, woke);",
+    "find": "  const triage = await triageRun(client, ask, event, woke, owns);",
     "replace": "  const triage = null;",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*builds the owner's prompt with the triage only"
@@ -254,9 +254,81 @@
     "id": "w8-0r-bounce-domain",
     "test": "tests/unit/workforce-bounce.test.ts",
     "file": "scripts/workforce/bounce.ts",
-    "find": "? `an address at ${email.trim().split(\"@\")[1] ?? \"\"}`",
-    "replace": "? email.trim()",
+    "find": "  email === null || email.trim() === \"\" ? \"none given\" : \"on the page\";",
+    "replace": "  email === null || email.trim() === \"\" ? \"none given\" : email.trim();",
     "run": "bunx vitest run --project unit tests/unit/workforce-bounce.test.ts",
     "expect": "× .*names the request, the failed address, the phone and the page"
+  },
+  {
+    "id": "w8-0r-pull-line-counts",
+    "test": "tests/unit/workforce-pull-images.test.ts",
+    "file": "scripts/workforce/pull-images.ts",
+    "find": "          `${String(unread)} of its links could not be read; the reasons are in the studio folder's sources.json and the links on the request page.`,",
+    "replace": "          `Could not read ${String(unread)} links: see them below.`,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-pull-images.test.ts",
+    "expect": "× .*says counts only"
+  },
+  {
+    "id": "w8-0r3-shape-outside",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  const outside = triage !== null || matterReadsHeld;",
+    "replace": "  const outside = triage !== null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*offers a triaged run and a held read no admin call"
+  },
+  {
+    "id": "w8-0r3-shape-research",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    research: !outside && agent.tools.includes(\"research\"),",
+    "replace": "    research: agent.tools.includes(\"research\"),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*offers a triaged run and a held read no admin call"
+  },
+  {
+    "id": "w8-0r3-shape-held-rule",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    rule: matterReadsHeld ? \"held\" : triage,",
+    "replace": "    rule: triage,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*offers a triaged run and a held read no admin call"
+  },
+  {
+    "id": "w8-0r3-words-null",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (rule === null) return null;",
+    "replace": "  if (rule === null || rule !== null) return null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*leaves none of a triaged run's own words"
+  },
+  {
+    "id": "w8-0r3-reserved-slugs",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "src/domain/workforce.ts",
+    "find": "    (value) => !(reservedSlugs as readonly string[]).includes(value),",
+    "replace": "    (value) => value !== \"\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*lets no colleague take a name"
+  },
+  {
+    "id": "w8-0r3-about-ours",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    about: `${outside.source} ${outside.id}`,",
+    "replace": "    about: triage.about,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*says what a message is about from our own record"
+  },
+  {
+    "id": "w8-0r3-owner-first",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (!owns(outside.source)) return readTriage(outside.source, \"\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*never asks the triage for a run that does not own"
   }
 ]

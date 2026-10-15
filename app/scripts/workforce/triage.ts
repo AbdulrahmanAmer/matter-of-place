@@ -222,17 +222,26 @@ export async function triageRun(
   ask: (prompt: string) => Promise<string>,
   event: { type: string; entity_id: string | null } | null,
   woke: { author_id: string; body: string } | null,
+  owns: (source: SourceName) => boolean = () => true,
 ): Promise<Triage | null> {
   const outside = outsideOf(event, woke);
   if (outside === null) return null;
+  // W8 third review: a run that does not own the message gets the fail-closed triage without a call; the runner then
+  // ends it as not its owner (daemon.ts).
+  if (!owns(outside.source)) return readTriage(outside.source, "");
+  // W8 third review: what the message is about is our own record, never the sender's words.
+  const ours = (triage: Triage): Triage => ({
+    ...triage,
+    about: `${outside.source} ${outside.id}`,
+  });
   const text = outside.id === "unknown" ? "" : await outsideText(db, outside.source, outside.id);
-  if (text.trim() === "") return readTriage(outside.source, "");
+  if (text.trim() === "") return ours(readTriage(outside.source, ""));
   try {
-    return readTriage(outside.source, await ask(triagePrompt(outside.source, text)));
+    return ours(readTriage(outside.source, await ask(triagePrompt(outside.source, text))));
   } catch (failure: unknown) {
     // The Claude limit is spent: the run goes back to the queue (daemon.ts), not held as an attack.
     if (failure instanceof UsageLimitError) throw failure;
-    return readTriage(outside.source, "");
+    return ours(readTriage(outside.source, ""));
   }
 }
 
@@ -304,9 +313,14 @@ export function ruleOutside<
  * (`email_reply_record`: Editor, Concierge or chief of staff), never Matter. Anyone else woken by it does nothing.
  */
 export function ownsOutside(triage: Triage, agentSlug: string): boolean {
+  return ownsSource(triage.source, agentSlug);
+}
+
+/** The same rule by source alone, so a run that does not own the message is never sent to the triage (it costs one). */
+export function ownsSource(source: SourceName, agentSlug: string): boolean {
   if (agentSlug === "matter") return false;
-  if (triage.source === "email_reply") return ["editor", "concierge", "chief"].includes(agentSlug);
-  return sources[triage.source].owner === agentSlug;
+  if (source === "email_reply") return ["editor", "concierge", "chief"].includes(agentSlug);
+  return sources[source].owner === agentSlug;
 }
 
 /**
@@ -332,6 +346,55 @@ export function promptData(payload: unknown): string {
   return JSON.stringify(payload, (key, value: unknown) =>
     /token|secret|password/i.test(key) ? undefined : value,
   );
+}
+
+/**
+ * W8 third review: the words a run about an outside message leaves behind, in fixed words. Its proposal's summary
+ * becomes the team line when a person approves it, a lesson when one is declined and a line of every later run's
+ * pending list, and its run summary reaches the daily meeting; the model wrote them after reading the triage, so none
+ * of them is kept. The proposal's content is untouched: a person reads it in Approvals.
+ */
+export function outsideWords(
+  rule: Triage | "held" | null,
+): null | { proposal: (action: string) => string; run: string } {
+  if (rule === null) return null;
+  if (rule === "held")
+    return {
+      proposal: (action) => `A ${action} proposal`,
+      run: "Read an outside message held for Matter",
+    };
+  const label = sources[rule.source].label;
+  return {
+    proposal: (action) => `A ${action} proposal for ${label} (its words are in the proposal)`,
+    run: `Answered ${label}`,
+  };
+}
+
+/**
+ * W8 0c and 0e, in one place (third review): what a run may use and how its answer is ruled, from what woke it. A run
+ * about an outside message, or Matter's read of a held line, is offered no admin call, no hire and no web search; its
+ * answer is ruled by the triage (or as held), and its reply goes where `replyPlace` says.
+ */
+export function runShape<T extends { slug: string; tools: readonly string[] }>(
+  agent: T,
+  thread: string,
+  triage: Triage | null,
+  matterReadsHeld: boolean,
+): {
+  agent: T;
+  research: boolean;
+  rule: Triage | "held" | null;
+  place: { thread: string; author_id: string };
+} {
+  const outside = triage !== null || matterReadsHeld;
+  return {
+    agent: outside
+      ? { ...agent, tools: agent.tools.filter((tool) => tool !== "admin_call" && tool !== "hire") }
+      : agent,
+    research: !outside && agent.tools.includes("research"),
+    rule: matterReadsHeld ? "held" : triage,
+    place: replyPlace(agent.slug, thread, triage, matterReadsHeld),
+  };
 }
 
 /** A described field as a colleague sees it: one line, no handle, no fence marks, never empty. */

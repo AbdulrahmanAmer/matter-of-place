@@ -209,6 +209,13 @@ export async function refusedAddress(body: unknown): Promise<string | null> {
   return null;
 }
 
+/** A refusal in fixed words: the team thread never carries the address or its domain (W8 review). */
+export function refusedWords(check: EmailCheck): string {
+  return check.verdict === "domain_has_no_mail"
+    ? "its domain does not receive email."
+    : "its mail server says the mailbox does not exist.";
+}
+
 const seenFile = z.object({ at: z.string(), seen: z.array(z.string()) });
 
 function readSeen(file: string): z.infer<typeof seenFile> {
@@ -274,8 +281,8 @@ export async function checkNewAddresses(client: Db, home: string): Promise<numbe
       author_kind: "system",
       author_id: "system",
       author_name: "Matter of Place",
-      // W8 review: the domain only; the part before the @ is text the person typed.
-      body: `The address of ${item.kind} ${item.id} (at ${address.split("@")[1] ?? "no domain"}) will not be mailed: ${check.reason} Ask the person for the right address.`,
+      // W8 review: no part of the address, nor the check's reason (it names the domain): both are text the person chose.
+      body: `The address of ${item.kind} ${item.id} will not be mailed: ${refusedWords(check)} Ask the person for the right address.`,
     });
   }
   const latest =

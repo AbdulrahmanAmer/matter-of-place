@@ -8307,3 +8307,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a file shared between bash and Node uses a full Windows path (the session scratchpad), never `/tmp`.
 - proof: the same check with the scratchpad path printed both template comparisons.
 - added: 2026-10-15
+
+## P-3530 · A child process started through a shell drops empty arguments, so the next flag becomes the value
+- symptom: 2026-10-15, the W8 0b proof that the triage starts with no tools: `spawnSync("claude", [..., "--allowedTools", "", "--verbose"], { shell: true })` answered `Error: When using --print, --output-format=stream-json requires --verbose`; the shell had dropped `""` and `--verbose` became the value of `--allowedTools`. The runner itself (`scripts/workforce/cli.ts`) spawns without a shell, so the first proof measured the harness, not the triage.
+- rule: a proof of a CLI's arguments starts the program the way the runner does: by its path, `shell` off (`C:/Users/DELL/.local/bin/claude.exe` here), never through `shell: true` or a string command.
+- proof: the same arguments without a shell → `exit 0`, init event `tools [] mcp_servers []` (scratchpad triage-tools-proof.ts, 2026-10-15).
+- added: 2026-10-15

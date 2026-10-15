@@ -60,7 +60,7 @@ describe("what the owner is told", () => {
     });
     expect(facts?.split("\n")).toEqual([
       `The received email about request ${REQUEST} (Submitted) bounced.`,
-      "The failed address: an address at brokerage.example. The submitter's phone: +1 707 555 0100.",
+      "The failed address: on the page. The submitter's phone: +1 707 555 0100.",
       `The request page: https://matterofplace.com/admin/requests/${REQUEST}`,
       "Propose the next step in Approvals: a call to the person if there is a phone, or a way to ask for the right address. Matter decides; nothing more is sent to the failed address.",
     ]);
