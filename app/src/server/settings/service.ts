@@ -4,9 +4,13 @@ import {
   redirectArchivedSchema,
   redirectRowSchema,
   redirectSchema,
+  type LinkCheck,
+  type LinkStep,
   type NotificationsInput,
+  type OldAddress,
   type ProductsPreview,
   type RedirectArchived,
+  type RedirectPage,
   type RedirectPutInput,
   type RedirectRow,
   type SettingsAnswer,
@@ -30,11 +34,13 @@ import { auditContext } from "../lib/audit.ts";
 import { authorize, type ActorKind } from "../lib/authz.ts";
 import type { Db } from "../lib/db.ts";
 import { AppError, fromZod } from "../lib/errors.ts";
+import { routePath } from "../lib/pipeline.ts";
 import {
   applyInvoiceSettings,
   invoiceReadiness,
   type InvoiceSettings,
 } from "../payments/invoice-settings.ts";
+import { loadRedirectMap } from "../public/redirects.ts";
 import { getPublicState, type PublicState } from "../public/state.ts";
 import { previewProducts, productsOf, putProducts, seedProducts } from "./products.ts";
 import { siteReadiness } from "./readiness.ts";
@@ -244,13 +250,11 @@ export async function putNotifications(
 
 const REDIRECT_COLUMNS = "id, from_path, to_path, status";
 
-/** `GET settings/redirects`: one page of active rows in `from_path` order, on B2's partial unique index. */
-export async function listRedirects(
-  actor: AdminActor,
+/** One page of active rows in `from_path` order, on B2's partial unique index. */
+async function redirectRows(
   db: Db,
   input: { limit: number; cursor?: string | undefined },
 ): Promise<{ items: RedirectRow[]; next_cursor: string | null }> {
-  authorize(actor, "settings.redirects_get");
   let query = db.from("redirects").select(REDIRECT_COLUMNS).is("archived_at", null);
   if (input.cursor !== undefined) query = query.gt("from_path", input.cursor);
   const { data, error } = await query.order("from_path").limit(input.limit + 1);
@@ -260,6 +264,128 @@ export async function listRedirects(
     items,
     next_cursor: data.length > input.limit ? (items.at(-1)?.from_path ?? null) : null,
   };
+}
+
+/** One page of `slug_history` in slug order, each old slug with the title and current slug of its property. */
+async function oldAddressRows(
+  db: Db,
+  input: { limit: number; cursor?: string | undefined },
+): Promise<{ items: OldAddress[]; next_cursor: string | null }> {
+  let query = db.from("slug_history").select("slug, property_id");
+  if (input.cursor !== undefined) query = query.gt("slug", input.cursor);
+  const history = await query.order("slug").limit(input.limit + 1);
+  if (history.error !== null) throw fromRpcError(history.error);
+  const page = history.data.slice(0, input.limit);
+  const ids = [...new Set(page.map((row) => row.property_id))];
+  const found =
+    ids.length === 0
+      ? { data: [], error: null }
+      : await db.from("properties").select("id, slug, title, editorial_state").in("id", ids);
+  if (found.error !== null) throw fromRpcError(found.error);
+  const items = page.flatMap(({ slug, property_id }) => {
+    const property = found.data.find((row) => row.id === property_id);
+    if (property === undefined) return [];
+    return [
+      {
+        slug,
+        property_id,
+        title: property.title,
+        current_slug: property.slug,
+        live: property.editorial_state === "published",
+      },
+    ];
+  });
+  return {
+    items,
+    next_cursor: history.data.length > input.limit ? (page.at(-1)?.slug ?? null) : null,
+  };
+}
+
+/** The key the site looks a path up by (`normalize` in `public/redirects.ts`): as routed, no trailing slash. */
+function siteKey(pathname: string): string {
+  const path = routePath(pathname);
+  return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+}
+
+/** The path of what was typed: a pasted address of the site, a path with a query or a path without its slash. */
+function typedPathname(typed: string): string {
+  try {
+    return new URL(typed, "https://site.invalid").pathname;
+  } catch {
+    return typed;
+  }
+}
+
+const MAX_HOPS = 8;
+
+/**
+ * Where `typed` leads, from the same sources and in the same order as the site (`loadRedirectMap`): an active redirect
+ * row first, then the old address of a published property. A browser follows each answer, so the hops are followed
+ * until one answers nothing, comes back to a path it has been through, or reaches `MAX_HOPS`.
+ */
+async function checkLink(db: Db, typed: string): Promise<LinkCheck> {
+  const [rows, history, properties] = await Promise.all([
+    db.from("redirects").select(`${REDIRECT_COLUMNS}, archived_at`),
+    db.from("slug_history").select("slug, property_id"),
+    db.from("properties").select("id, slug, editorial_state"),
+  ]);
+  for (const read of [rows, history, properties]) {
+    if (read.error !== null) throw fromRpcError(read.error);
+  }
+  // The site's catalog holds the active rows and the published properties; the same two rules are applied here.
+  const active = rows.data.filter((row) => row.archived_at === null);
+  const map = loadRedirectMap({
+    properties: properties.data.filter((row) => row.editorial_state === "published"),
+    redirects: active,
+    slugHistory: history.data,
+  });
+  const fromRows = new Set(active.map((row) => siteKey(row.from_path)));
+  const steps: LinkStep[] = [];
+  const seen = new Set<string>();
+  let loop = false;
+  let path = typedPathname(typed);
+  for (;;) {
+    const key = siteKey(path);
+    const target = map.get(key);
+    if (target === undefined) break;
+    if (seen.has(key) || steps.length >= MAX_HOPS) {
+      loop = true;
+      break;
+    }
+    seen.add(key);
+    steps.push({
+      from: key,
+      to: target.to,
+      status: target.status,
+      source: fromRows.has(key) ? "redirect" : "old_address",
+    });
+    path = typedPathname(target.to);
+  }
+  return { path: siteKey(typedPathname(typed)), steps, loop };
+}
+
+/**
+ * `GET settings/redirects`: one page of active rows, one page of old property addresses (`slug_history`), both read
+ * only here, and the answer for `path` when the test-a-link box sent one.
+ */
+export async function listRedirects(
+  actor: AdminActor,
+  db: Db,
+  input: {
+    limit: number;
+    cursor?: string | undefined;
+    old_cursor?: string | undefined;
+    path?: string | undefined;
+  },
+): Promise<RedirectPage> {
+  authorize(actor, "settings.redirects_get");
+  const { limit, cursor, old_cursor, path } = input;
+  const [redirects, old_addresses, check] = await Promise.all([
+    redirectRows(db, { limit, cursor }),
+    oldAddressRows(db, { limit, cursor: old_cursor }),
+    path === undefined ? Promise.resolve(null) : checkLink(db, path),
+  ]);
+  return { ...redirects, old_addresses, check };
 }
 
 /** `PUT settings/redirects`: adds a row, or changes the active row `id`, once it passes `redirectSchema`. */

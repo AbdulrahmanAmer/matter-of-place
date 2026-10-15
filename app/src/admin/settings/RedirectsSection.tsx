@@ -2,6 +2,8 @@ import { useState } from "react";
 import {
   redirectSchema,
   redirectStatusChoices,
+  type LinkCheck,
+  type OldAddress,
   type RedirectPutInput,
   type RedirectRow,
 } from "../../domain/admin-settings";
@@ -111,17 +113,106 @@ function RedirectForm({
   );
 }
 
-/** Screen 24's redirects: the active rows, a form to add or edit one, and remove, which archives the row. */
+/** The test-a-link box: a typed path, sent when the form is submitted, answered by the same read as the lists. */
+function LinkTester({
+  check,
+  pending,
+  onTest,
+}: {
+  check: LinkCheck | null;
+  pending: boolean;
+  onTest: (path: string) => void;
+}) {
+  const [typed, setTyped] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <>
+      <form
+        className="admin-fields"
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          const path = typed.trim();
+          if (path === "") {
+            setError("Type an address to test.");
+            return;
+          }
+          setError(null);
+          onTest(path);
+        }}
+      >
+        <Field
+          label="Address to test"
+          hint="A path such as /summer, or an address copied from the site."
+          {...(error === null ? {} : { error })}
+        >
+          {(control) => (
+            <input
+              {...control}
+              value={typed}
+              onChange={(event) => {
+                setTyped(event.target.value);
+              }}
+            />
+          )}
+        </Field>
+        <div className="admin-actions">
+          <button type="submit" className="admin-button" disabled={pending}>
+            Test link
+          </button>
+        </div>
+      </form>
+      {check === null ? null : (
+        <div role="status">
+          {check.steps.length === 0 ? (
+            <p>{`No redirect: the site answers ${check.path} as it is.`}</p>
+          ) : (
+            <ol>
+              {check.steps.map((step) => (
+                <li key={step.from}>
+                  {`${step.from} goes to ${step.to} (${String(step.status)}, ${
+                    step.source === "redirect" ? "redirect" : "old property address"
+                  }).`}
+                </li>
+              ))}
+            </ol>
+          )}
+          {check.loop ? <p>These addresses lead in a circle.</p> : null}
+        </div>
+      )}
+    </>
+  );
+}
+
+const oldAddressColumns: Column<OldAddress>[] = [
+  { key: "old", header: "Old address", render: (row) => `/property/${row.slug}` },
+  {
+    key: "now",
+    header: "Leads to",
+    render: (row) => `/property/${row.current_slug} (${row.title})`,
+  },
+  { key: "state", header: "Property", render: (row) => (row.live ? "Published" : "Not published") },
+];
+
+/**
+ * Screen 24's redirects: the active rows, a form to add or edit one, and remove, which archives the row. Below them
+ * the old addresses of renamed properties (read only) and a box that tests where a link leads.
+ */
 export function RedirectsSection() {
   const toast = useToast();
   const pages = useCursorPages();
-  const page = useRedirects(pages.cursor);
+  const oldPages = useCursorPages();
+  const [tested, setTested] = useState<string | null>(null);
+  const page = useRedirects({ cursor: pages.cursor, oldCursor: oldPages.cursor, path: tested });
   const save = useSaveRedirect();
   const archive = useArchiveRedirect();
   const [editing, setEditing] = useState<RedirectRow | null>(null);
   const [removing, setRemoving] = useState<RedirectRow | null>(null);
   const rows = page.data?.items ?? [];
   const nextCursor = page.data?.next_cursor ?? null;
+  const oldAddresses = page.data?.old_addresses.items ?? [];
+  const oldNextCursor = page.data?.old_addresses.next_cursor ?? null;
+  const check = page.isPlaceholderData ? null : (page.data?.check ?? null);
   const loadError = page.error;
   const columns: Column<RedirectRow>[] = [
     { key: "from", header: "From", render: (row) => row.from_path },
@@ -195,6 +286,18 @@ export function RedirectsSection() {
           setEditing(null);
         }}
       />
+      <h3>Old property addresses</h3>
+      <DataTable
+        caption="Old property addresses"
+        columns={oldAddressColumns}
+        rows={oldAddresses}
+        rowId={(row) => row.slug}
+        loading={page.isPending}
+        empty={<EmptyState title="No renamed properties" />}
+        pager={oldPages.pager(oldNextCursor)}
+      />
+      <h3>Test a link</h3>
+      <LinkTester check={check} pending={page.isFetching} onTest={setTested} />
       <ConfirmDialog
         open={removing !== null}
         title="Remove this redirect"

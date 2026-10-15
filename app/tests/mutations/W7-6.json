@@ -1,0 +1,137 @@
+[
+  {
+    "id": "w7-6-old-address-live",
+    "test": "tests/unit/redirects-links.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "        live: property.editorial_state === \"published\",",
+    "replace": "        live: true,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
+    "expect": "× .*lists each old slug with the title and current slug of its property"
+  },
+  {
+    "id": "w7-6-old-address-cursor",
+    "test": "tests/unit/redirects-links.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    next_cursor: history.data.length > input.limit ? (page.at(-1)?.slug ?? null) : null,",
+    "replace": "    next_cursor: null,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
+    "expect": "× .*holds one more row than the page back"
+  },
+  {
+    "id": "w7-6-no-path-no-check",
+    "test": "tests/unit/redirects-links.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    path === undefined ? Promise.resolve(null) : checkLink(db, path),",
+    "replace": "    checkLink(db, path ?? \"/\"),",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
+    "expect": "× .*answers no check, and reads no table for it"
+  },
+  {
+    "id": "w7-6-row-source",
+    "test": "tests/unit/redirects-links.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "      source: fromRows.has(key) ? \"redirect\" : \"old_address\",",
+    "replace": "      source: \"old_address\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
+    "expect": "× .*answers an active redirect row before an old address"
+  },
+  {
+    "id": "w7-6-published-only",
+    "test": "tests/unit/redirects-links.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    properties: properties.data.filter((row) => row.editorial_state === \"published\"),",
+    "replace": "    properties: properties.data,",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
+    "expect": "× .*leads the old address of a published property to its current page"
+  },
+  {
+    "id": "w7-6-active-rows-only",
+    "test": "tests/unit/redirects-links.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "  const active = rows.data.filter((row) => row.archived_at === null);",
+    "replace": "  const active = rows.data;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
+    "expect": "× .*ignores an archived redirect row"
+  },
+  {
+    "id": "w7-6-pasted-address",
+    "test": "tests/unit/redirects-links.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    return new URL(typed, \"https://site.invalid\").pathname;",
+    "replace": "    return typed;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
+    "expect": "× .*reads a pasted address, a query string, capitals and a trailing slash"
+  },
+  {
+    "id": "w7-6-circle",
+    "test": "tests/unit/redirects-links.test.ts",
+    "file": "src/server/settings/service.ts",
+    "find": "    if (seen.has(key) || steps.length >= MAX_HOPS) {",
+    "replace": "    if (steps.length >= MAX_HOPS) {",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/redirects-links.test.ts",
+    "expect": "× .*stops with loop true when the hops run in a circle"
+  },
+  {
+    "id": "w7-6-ui-property-state",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "(row.live ? \"Published\" : \"Not published\")",
+    "replace": "\"Published\"",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx",
+    "expect": "× .*lists each old property address read only"
+  },
+  {
+    "id": "w7-6-ui-old-cursor",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "        pager={oldPages.pager(oldNextCursor)}",
+    "replace": "        pager={pages.pager(oldNextCursor)}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx",
+    "expect": "× .*pages the old addresses on their own cursor"
+  },
+  {
+    "id": "w7-6-ui-path-trimmed",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "          const path = typed.trim();",
+    "replace": "          const path = typed;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx",
+    "expect": "× .*tests a typed path through the read and shows each hop"
+  },
+  {
+    "id": "w7-6-ui-empty-box",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "          if (path === \"\") {",
+    "replace": "          if (path === \"never\") {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx",
+    "expect": "× .*tests a typed path through the read and shows each hop"
+  },
+  {
+    "id": "w7-6-ui-circle-notice",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "          {check.loop ? <p>These addresses lead in a circle.</p> : null}",
+    "replace": "          {null}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx",
+    "expect": "× .*says there is no redirect for a path nothing leads from"
+  },
+  {
+    "id": "w7-6-ui-no-redirect-notice",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "No redirect: the site answers",
+    "replace": "Nothing: the site answers",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx",
+    "expect": "× .*says there is no redirect for a path nothing leads from"
+  },
+  {
+    "id": "w7-6-ui-stale-answer-hidden",
+    "test": "src/admin/settings/redirects.test.tsx",
+    "file": "src/admin/settings/RedirectsSection.tsx",
+    "find": "  const check = page.isPlaceholderData ? null : (page.data?.check ?? null);",
+    "replace": "  const check = page.data?.check ?? null;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/redirects.test.tsx",
+    "expect": "× .*hides the last answer while the next path is being checked"
+  }
+]
