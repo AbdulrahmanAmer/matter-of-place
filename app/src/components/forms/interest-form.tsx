@@ -7,6 +7,7 @@ import { interestSource, type ComingSoonScope } from "../../lib/coming-soon";
 import { formText, withHoneypot } from "../../lib/form-data";
 import { fill, t } from "../../lib/strings";
 import { services } from "../../services";
+import { EmailInput } from "./email-input";
 import { FormError } from "./form-notice";
 import { Honeypot } from "./honeypot";
 
@@ -74,9 +75,8 @@ export function InterestForm({
 
   return (
     <form className="interest-form" onSubmit={onSubmit} aria-busy={pending}>
-      <input
+      <EmailInput
         className="interest-email"
-        type="email"
         name="email"
         required
         autoComplete="email"

@@ -489,6 +489,52 @@ describe("a write", () => {
   });
 });
 
+describe("a form's address (W9 item 1)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("refuses an address on a domain that receives no email, on its field, with the typo's fix", async () => {
+    const { handlePublic, added } = await load();
+    const service = vi.fn<PublicService>(ok);
+    added(echoRow(service, { form: true }));
+    vi.stubGlobal("fetch", () => Promise.resolve(Response.json({ Status: 3 })));
+    const response = await handlePublic(
+      post("/api/public/echo", { email: "ann@gmial.com", n: 1 }),
+      "req-12345678",
+      catalogDb(),
+    );
+    expect(response.status).toBe(422);
+    const error = await errorOf(response);
+    expect(error.message).toBe("gmial.com does not receive email. Did you mean ann@gmail.com?");
+    expect(error.issues).toEqual([{ code: "custom", path: ["email"], message: error.message }]);
+    expect(service).not.toHaveBeenCalled();
+  });
+
+  it("lets the form through when the lookup cannot answer, and never checks a row that is not a form", async () => {
+    const { handlePublic, added } = await load();
+    const service = vi.fn<PublicService>(ok);
+    added(echoRow(service, { form: true }));
+    added(echoRow(service, { path: "/api/public/echo-plain" }));
+    const lookups = vi.fn(() => Promise.reject(new TypeError("network")));
+    vi.stubGlobal("fetch", lookups);
+    const form = await handlePublic(
+      post("/api/public/echo", { email: "ann@example.com", n: 1 }),
+      "req-12345678",
+      catalogDb(),
+    );
+    expect(form.status).toBe(201);
+    expect(lookups).toHaveBeenCalledTimes(1);
+    const plain = await handlePublic(
+      post("/api/public/echo-plain", { email: "ann@example.com", n: 1 }),
+      "req-12345679",
+      catalogDb(),
+    );
+    expect(plain.status).toBe(201);
+    expect(lookups).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("a raw row", () => {
   it("reaches the service with the body unread and no schema, memory or database check", async () => {
     const { handlePublic, added } = await load();
@@ -557,7 +603,12 @@ describe("Turnstile in a write (invariant 17)", () => {
     siteverify.mockReset();
     answer({ success: true, hostname: "matterofplace.com", action: "echo" });
     vi.stubEnv("TURNSTILE_SECRET", SECRET);
-    vi.stubGlobal("fetch", siteverify);
+    // W9 item 1: a form's address lookup is not a call to Cloudflare's siteverify; it fails here and the form goes on.
+    vi.stubGlobal("fetch", (url: string, init: unknown) =>
+      url.startsWith("https://cloudflare-dns.com/")
+        ? Promise.reject(new TypeError("no DNS in this test"))
+        : siteverify(url, init),
+    );
   });
 
   afterEach(() => {
