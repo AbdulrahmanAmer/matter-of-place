@@ -1,0 +1,263 @@
+[
+  {
+    "id": "w9-1-ok-no-probe",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "return { verdict: \"ok\", suggestion, reason: `${split.domain} receives email.${typo}` };",
+    "replace": "return { verdict: \"unknown\", suggestion, reason: `${split.domain} receives email.${typo}` };",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*is ok when its domain lists a mail host and no probe is given"
+  },
+  {
+    "id": "w9-1-nxdomain",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "if (hosts === null || (hosts.length > 0 && usable.length === 0))",
+    "replace": "if (hosts.length > 0 && usable.length === 0)",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*names a domain that does not exist as receiving no email"
+  },
+  {
+    "id": "w9-1-null-mx",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "if (hosts === null || (hosts.length > 0 && usable.length === 0))",
+    "replace": "if (hosts === null)",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*takes a null MX"
+  },
+  {
+    "id": "w9-1-address-fallback",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "if (!direct)",
+    "replace": "if (direct === false && false)",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*falls back to the domain's own address record"
+  },
+  {
+    "id": "w9-1-dns-unknown",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "const hosts = await deps.mx(split.domain).catch(() => \"unknown\" as const);",
+    "replace": "const hosts = await deps.mx(split.domain);",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*answers unknown when DNS cannot answer"
+  },
+  {
+    "id": "w9-1-probe-lowest-priority",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": ".sort((a, b) => a.priority - b.priority)",
+    "replace": ".sort((a, b) => b.priority - a.priority)",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*refuses the mailbox the mail server refuses, and probes the host of lowest priority"
+  },
+  {
+    "id": "w9-1-probe-unknown",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "if (answer === \"unknown\")",
+    "replace": "if (answer.length === 0)",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*is ok when the mail server accepts the mailbox, and unknown when it could not be asked"
+  },
+  {
+    "id": "w9-1-syntax-before-lookup",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "if (labels.length < 2 || !labels.every((label) => LABEL.test(label))) return null;",
+    "replace": "if (labels.length < 2) return null;",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*refuses what is not an address before any lookup"
+  },
+  {
+    "id": "w9-1-typo-in-reason",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "const typo = suggestion === null ? \"\" : ` Did you mean ${suggestion}?`;",
+    "replace": "const typo = \"\";",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*carries the fix of a typo domain with its verdict"
+  },
+  {
+    "id": "w9-1-typo-provider",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "if (known !== undefined) return `${split.local}@${known}`;",
+    "replace": "if (known === \"never\") return \"\";",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*suggests the provider people meant"
+  },
+  {
+    "id": "w9-1-typo-ending",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "con: \"com\",",
+    "replace": "cxn: \"com\",",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*fixes an ending one key away from .com or .net"
+  },
+  {
+    "id": "w9-1-typo-silent",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "nett: \"net\",",
+    "replace": "nett: \"net\",\n  co: \"com\",",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*says nothing for a right address, a real country domain or a half-typed one"
+  },
+  {
+    "id": "w9-1-doh-mx",
+    "test": "tests/unit/address-check.test.ts",
+    "file": "src/server/email/address-check.ts",
+    "find": "return records(answer, \"MX\").map(",
+    "replace": "return records(answer, \"A\").map(",
+    "run": "bunx vitest run --project unit tests/unit/address-check.test.ts",
+    "expect": "× .*is ok for a domain with a mail host, and asks Cloudflare's resolver for its MX only"
+  },
+  {
+    "id": "w9-1-doh-nxdomain",
+    "test": "tests/unit/address-check.test.ts",
+    "file": "src/server/email/address-check.ts",
+    "find": "if (answer.Status === NXDOMAIN) return null;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/address-check.test.ts",
+    "expect": "× .*names a domain that does not exist \\(NXDOMAIN\\) as receiving no email"
+  },
+  {
+    "id": "w9-1-doh-address-record",
+    "test": "tests/unit/address-check.test.ts",
+    "file": "src/server/email/address-check.ts",
+    "find": "if (records(answer, type).length > 0) return true;",
+    "replace": "if (records(answer, type).length > 99) return true;",
+    "run": "bunx vitest run --project unit tests/unit/address-check.test.ts",
+    "expect": "× .*looks for an address record when the domain lists no mail host"
+  },
+  {
+    "id": "w9-1-doh-failure-unknown",
+    "test": "tests/unit/address-check.test.ts",
+    "file": "src/server/email/address-check.ts",
+    "find": "  } catch {\n    return \"unknown\";\n  }",
+    "replace": "  } catch {\n    return { Status: 3 };\n  }",
+    "run": "bunx vitest run --project unit tests/unit/address-check.test.ts",
+    "expect": "× .*answers unknown when the resolver fails, errs or answers something unreadable"
+  },
+  {
+    "id": "w9-1-smtp-never-data",
+    "test": "tests/unit/workforce-email-check.test.ts",
+    "file": "scripts/workforce/email-check.ts",
+    "find": "session.send(\"QUIT\");",
+    "replace": "session.send(\"DATA\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-email-check.test.ts",
+    "expect": "× .*accepts a mailbox the server takes, and leaves with QUIT before any message"
+  },
+  {
+    "id": "w9-1-smtp-550",
+    "test": "tests/unit/workforce-email-check.test.ts",
+    "file": "scripts/workforce/email-check.ts",
+    "find": "if (code === 550 || code === 551 || code === 553) return \"refused\";",
+    "replace": "if (code === 551 || code === 553) return \"refused\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-email-check.test.ts",
+    "expect": "× .*refuses a mailbox the server says does not exist \\(550\\)"
+  },
+  {
+    "id": "w9-1-smtp-4xx",
+    "test": "tests/unit/workforce-email-check.test.ts",
+    "file": "scripts/workforce/email-check.ts",
+    "find": "if (code === 250 || code === 251) return \"accepted\";",
+    "replace": "if (code === 250 || code === 251 || code === 451) return \"accepted\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-email-check.test.ts",
+    "expect": "× .*proves nothing from a greylisting 4xx, a bad greeting or a refused sender"
+  },
+  {
+    "id": "w9-1-smtp-helo",
+    "test": "tests/unit/workforce-email-check.test.ts",
+    "file": "scripts/workforce/email-check.ts",
+    "find": "      session.send(`HELO ${HELO}`);\n      if ((await session.reply()).code !== 250) return \"unknown\";",
+    "replace": "      return \"unknown\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-email-check.test.ts",
+    "expect": "× .*falls back to HELO when EHLO is refused"
+  },
+  {
+    "id": "w9-1-smtp-close",
+    "test": "tests/unit/workforce-email-check.test.ts",
+    "file": "scripts/workforce/email-check.ts",
+    "find": "  } finally {\n    session.close();\n  }",
+    "replace": "  } finally {\n    void session;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-email-check.test.ts",
+    "expect": "× .*answers unknown and closes when the server stops answering"
+  },
+  {
+    "id": "w9-1-smtp-multiline",
+    "test": "tests/unit/workforce-email-check.test.ts",
+    "file": "scripts/workforce/email-check.ts",
+    "find": "const match = /^(\\d{3}) /.exec(line);",
+    "replace": "const match = /^(\\d{3})[ -]/.exec(line);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-email-check.test.ts",
+    "expect": "× .*joins a multi-line reply and waits for its last line"
+  },
+  {
+    "id": "w9-1-call-addresses",
+    "test": "tests/unit/workforce-email-check.test.ts",
+    "file": "scripts/workforce/email-check.ts",
+    "find": "if (Array.isArray(body)) return body.flatMap(addressesIn);",
+    "replace": "if (Array.isArray(body)) return [];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-email-check.test.ts",
+    "expect": "× .*finds every address in its body, nested or not"
+  },
+  {
+    "id": "w9-1-form-refused",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "  await refuseUnmailable(route, input);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/public-pipeline.test.ts",
+    "expect": "× .*refuses an address on a domain that receives no email, on its field, with the typo's fix"
+  },
+  {
+    "id": "w9-1-form-unknown-passes",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "if (check.verdict !== \"domain_has_no_mail\") return;",
+    "replace": "if (check.verdict === \"ok\") return;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/public-pipeline.test.ts",
+    "expect": "× .*lets the form through when the lookup cannot answer, and never checks a row that is not a form"
+  },
+  {
+    "id": "w9-1-form-only",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "const found = route.form === true ? emailFieldOf(input) : undefined;",
+    "replace": "const found = emailFieldOf(input);",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/public-pipeline.test.ts",
+    "expect": "× .*lets the form through when the lookup cannot answer, and never checks a row that is not a form"
+  },
+  {
+    "id": "w9-1-suggestion-use",
+    "test": "tests/unit/email-suggestion.test.tsx",
+    "file": "src/components/forms/email-input.tsx",
+    "find": "<EmailSuggestion value={value} onUse={setValue} />",
+    "replace": "<EmailSuggestion value={value} onUse={() => undefined} />",
+    "run": "bunx vitest run --project component tests/unit/email-suggestion.test.tsx",
+    "expect": "× .*offers the fix of a typo domain and takes it in one click"
+  },
+  {
+    "id": "w9-1-reserved-names",
+    "test": "tests/unit/email-check.test.ts",
+    "file": "src/lib/email-check.ts",
+    "find": "  if (RESERVED.test(split.domain))\n",
+    "replace": "  if (RESERVED.test(split.domain) && false)\n",
+    "run": "bunx vitest run --project unit tests/unit/email-check.test.ts",
+    "expect": "× .*is never looked up and reads unknown, so the CI fixtures' addresses pass the form"
+  },
+  {
+    "id": "w9-1-suggestion-silent",
+    "test": "tests/unit/email-suggestion.test.tsx",
+    "file": "src/components/forms/email-suggestion.tsx",
+    "find": "if (suggestion === null) return null;",
+    "replace": "if (value === \"\") return null;",
+    "run": "bunx vitest run --project component tests/unit/email-suggestion.test.tsx",
+    "expect": "× .*says nothing for an address that looks right"
+  }
+]

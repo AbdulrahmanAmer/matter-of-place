@@ -148,7 +148,7 @@ function syntaxBlocks() {
 
 const ADAPTER_FILES = [
   "src/server/lib/{db,sentry,turnstile,media-store,session,pwned}.ts",
-  "src/server/email/resend-client.ts",
+  "src/server/email/{resend-client,address-check}.ts",
   "src/server/channels/{meta,meta-token,meta-metrics,x,linkedin,youtube,oauth-tokens,resend}.ts",
   "src/server/omnikom/client.ts",
   "src/server/jobs/dispatch.ts",

@@ -64,6 +64,23 @@
   border-left: 1px solid var(--foreground);
 }
 
+/* W9 item 1: "Did you mean ann@gmail.com?" under an email field; its own line in a flex or grid form. */
+.email-suggestion {
+  flex-basis: 100%;
+  grid-column: 1 / -1;
+  order: 1;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+}
+
+.email-suggestion-use {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .field [aria-invalid="true"] {
   border-color: var(--foreground);
 }

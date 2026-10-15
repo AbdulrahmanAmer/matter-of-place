@@ -6,6 +6,7 @@ import { track } from "../../lib/analytics";
 import { formText, withHoneypot } from "../../lib/form-data";
 import { t } from "../../lib/strings";
 import { isLive, services } from "../../services";
+import { EmailInput } from "./email-input";
 import { FormError } from "./form-notice";
 import { Honeypot } from "./honeypot";
 
@@ -44,8 +45,7 @@ export function NewsletterForm({ source }: { source: string }) {
       aria-busy={pending}
       noValidate
     >
-      <input
-        type="email"
+      <EmailInput
         name="email"
         required
         autoComplete="email"
