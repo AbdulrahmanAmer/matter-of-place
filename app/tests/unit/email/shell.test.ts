@@ -271,6 +271,12 @@ describe("the shared shell", () => {
     const invoice = (await sample("invoice")).html;
     expect(invoice).toContain(">The Feature</span>");
     expect(invoice).not.toContain('<em style="font-style:italic">Feature');
+    // A sentence that ends on a name keeps it in roman: the word that carries it cannot be told there.
+    const named = (
+      await renderTemplate(row([{ type: "heading", text: "Welcome, Jordan Lee." }]), {}, site)
+    ).html;
+    expect(named).toContain("Welcome, Jordan Lee.");
+    expect(named).not.toContain('<em style="font-style:italic">Lee.</em>');
   });
 
   it("draws no name for a signature without words, and a signature's own words as the last line", async () => {

@@ -8103,6 +8103,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
   `node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev` for anything that is not a db test.
 - proof: `sed -n 210,225p .github/workflows/ci.yml` shows `bun run test:db` and `watchfail.mjs ... --kinds unit,sql` in
   the `db` job; the local run above ends `refusing: production database` at `scripts/lib/assert-not-production.mjs:60`.
+- hit again: 2026-10-15, email houses (PR 426): the local `--changed origin/main` replay selected the file entry
+  `b11-g3-market-open-seed-differs` (its target, `market-open.tsx`, changed; its run is `vitest --project db`) and it
+  came out `BAD: wrong reason`, the red run ending in `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN`
+  before any test; such an entry is left to CI's db job and named in the report, never counted as proven locally.
 - added: 2026-10-15
 
 ## P-3471 · A key added to an event's payload in SQL breaks every older db test that asserts that payload with `toEqual`, and only CI sees it
@@ -8215,4 +8219,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-15, removing merged worktrees printed `error: failed to delete 'E:/mop-build/continuous': Filename too long` for four of eight; git dropped them from its list but node_modules stayed on disk (E: had 30 MB free).
 - rule: after `git worktree remove`, delete what is left with the long-path form `cmd /c "rd /s /q \\?\E:\mop-build\<name>"` (scratchpad rm-leftovers.ps1); check free space with `(Get-PSDrive E).Free`.
 - proof: rm-leftovers.ps1 → `deleted continuous` ... `E: free GB: 46.1`.
+- added: 2026-10-15
+
+## P-3514 · A `--changed` replay of a change to the email tests selects about 230 entries: about four hours on this laptop, alphabetical, the new entries last
+- symptom: 2026-10-15, email houses (PR 426): `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main` selected about 233 entries (B5 126, B11 37, B9 25, email-redesign 17, email-houses 14), because the change touched `render.test.ts`, `lint.test.ts`, `send-email.test.ts` and the templates; it ran at about one entry a minute, in registry-file order, so the 14 new and 24 retargeted entries would have come after three hours. Stopped mid-entry, it left its mutation in `standalone.tsx` (P-3444).
+- rule: replay in order of risk: the new and retargeted entries first, from an ordered set built outside the repository (`--registry <dir>` takes any folder of registry files), then the rest; never stop a replay without `git status` and a `git checkout -- <file>` of what it left mutated, and never commit while one runs.
+- proof: `cd app && node scripts/watchfail.mjs --registry <folder holding the new and retargeted entries>` ends with `watchfail: replayed N: ok N, bad 0, stale 0` before the long tail starts.
 - added: 2026-10-15
