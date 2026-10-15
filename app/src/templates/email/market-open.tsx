@@ -1,6 +1,6 @@
 import { variablesByKey } from "../../domain/email.ts";
-import { letter } from "./blocks.tsx";
-import type { EmailDefinition } from "./layout.tsx";
+import { Threshold } from "./house/threshold.tsx";
+import { variable, type EmailDefinition, type EmailProps } from "./layout.tsx";
 
 // The one notice an interest signup receives when its market opens (B11 invariant 14, G15). Seeded as the
 // `market_open` row by B11's newsletter migration; the `market_open_notice` job renders the row, never this file.
@@ -24,4 +24,14 @@ export const definition: EmailDefinition = {
   ],
 };
 
-export const Email = letter("Markets");
+/** A moment: a market's door opens. */
+export function Email(props: EmailProps) {
+  return (
+    <Threshold
+      {...props}
+      label="Now open"
+      place={variable(props.variables, "market_name")}
+      note="You asked to hear once when this market opened."
+    />
+  );
+}

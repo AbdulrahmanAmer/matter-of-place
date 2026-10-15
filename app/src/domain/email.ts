@@ -132,6 +132,8 @@ export const variablesByKey = {
     "preferred_method",
     "payment_instructions",
     "billing_email",
+    "issue_date",
+    "due_date",
   ],
   inquiry_ack: ["name"],
   inquiry_forward: [
@@ -164,6 +166,7 @@ export const variablesByKey = {
     "latest_title",
     "latest_line",
     "latest_url",
+    "latest_image",
   ],
 } as const satisfies Record<EmailTemplateKey, readonly string[]>;
 
@@ -221,6 +224,8 @@ const sampleValues = (siteUrl: string): Record<VariableName, string | SampleBloc
   preferred_method: "Bank transfer",
   payment_instructions: "The transfer details are on the attached invoice.",
   billing_email: "billing@matterofplace.com",
+  // 14 days before `due_date`, which the invoice and the privacy acknowledgement share.
+  issue_date: "November 4, 2026",
   name: "Jordan Lee",
   property_title: "Alder Court",
   inquirer_name: "Sam Rivera",
@@ -250,6 +255,8 @@ const sampleValues = (siteUrl: string): Record<VariableName, string | SampleBloc
   latest_title: "The house that keeps the afternoon",
   latest_line: "How a low roof and a deep porch hold the light of a Pasadena afternoon.",
   latest_url: `${siteUrl}/stories/the-house-that-keeps-the-afternoon?utm_source=place_notes&utm_medium=email&utm_campaign=welcome&utm_content=the-house-that-keeps-the-afternoon`,
+  // The sample piece has no picture of its own, so the welcome shows the film's house in its place.
+  latest_image: "",
   block: {
     title: "Alder Court",
     deck: "A 1926 Spanish Revival house in Pasadena.",

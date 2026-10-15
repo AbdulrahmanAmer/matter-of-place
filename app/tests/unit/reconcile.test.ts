@@ -59,6 +59,7 @@ const row = (id: string, path: string, minutesAgo: number) => ({
   uploaded_at: null,
   mime: null,
   sha256: null,
+  source_url: null,
   submissions: { received_at: new Date(NOW - minutesAgo * MINUTE).toISOString() },
 });
 

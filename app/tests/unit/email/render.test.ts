@@ -18,6 +18,7 @@ import type { SiteContext } from "../../../src/server/email/context";
 import { interpolate, renderTemplate, type RenderRow } from "../../../src/server/email/render";
 import { definitionRow, definitions } from "../../../src/templates/email/index";
 import { themeHex } from "../../../src/templates/theme.gen";
+import { afterHouses, HOUSES_MIGRATION, inserted } from "../../fixtures/email-rows";
 
 const accepted = (value: unknown): boolean => emailBlockSchema.safeParse(value).success;
 
@@ -197,36 +198,52 @@ describe("template files", () => {
     expect(used.filter((name) => !variables.includes(name))).toEqual([]);
   });
 
-  it("equals the row the seed migration inserts, key by key", () => {
-    const sql = readFileSync(
-      new URL(
-        "../../../supabase/migrations/20261005013009_email_templates_seed.sql",
-        import.meta.url,
-      ),
-      "utf8",
-    );
-    const sqlRow =
-      /\(\s*'(\w+)', '(\w+)', '((?:[^']|'')*)', '((?:[^']|'')*)',\s*'(\[[\s\S]*?\])',\s*'\{([^}]*)\}',\s*(?:true|false)\s*\)/g;
-    const unquote = (value: string | undefined): string => (value ?? "").replaceAll("''", "'");
-    const seeded = [...sql.matchAll(sqlRow)].map(
-      ([, key, kind, subject, preheader, body, variables]) => ({
-        key: emailTemplateSchema.shape.key.parse(key),
-        class: kind,
-        subject: unquote(subject),
-        preheader: unquote(preheader),
-        blocks: emailTemplateSchema.shape.body.parse(JSON.parse(unquote(body))),
-        variables: (variables ?? "").split(",").filter((name) => name !== ""),
-      }),
-    );
+  it("equals the row its migrations leave, key by key: B5's seed, moved to the houses' copy", () => {
+    const seeded = inserted("20261005013009_email_templates_seed.sql");
     // This migration seeds B5's thirteen keys; a later slice seeds its own keys in its own migration. B11 rewrites the
     // `standalone` row, which the next test compares with its file.
     expect(seeded).toHaveLength(13);
     for (const entry of seeded.filter((row) => row.key !== "standalone")) {
-      const { key, class: kind, subject, preheader, blocks, variables } = fileOf(entry.key);
+      const {
+        key,
+        class: kind,
+        subject,
+        preheader,
+        blocks,
+        variables,
+      } = fileOf(emailTemplateSchema.shape.key.parse(entry.key));
       expect({ key, class: kind, subject, preheader, blocks, variables: [...variables] }).toEqual(
-        entry,
+        afterHouses(entry),
       );
     }
+  });
+
+  it("moves only rows that still hold their seed, and only to the copy of their file", () => {
+    const sql = readFileSync(
+      new URL(`../../../supabase/migrations/${HOUSES_MIGRATION}`, import.meta.url),
+      "utf8",
+    );
+    expect(sql).toMatch(/and subject = r\.seed ->> 'subject'/);
+    expect(sql).toMatch(/and body = r\.seed -> 'body'/);
+    expect(sql).toContain(
+      "public.automation_put_template(r.key, r.copy, null, null, 'email-houses', 'email-houses')",
+    );
+    const moved = [...sql.matchAll(/^ {6}\('(\w+)',/gm)].map((match) => match[1]);
+    expect(moved.sort()).toEqual(
+      [
+        "accepted",
+        "awaiting_assets",
+        "declined",
+        "inquiry_ack",
+        "inquiry_forward",
+        "interest_confirm",
+        "invoice",
+        "newsletter_confirm",
+        "newsletter_welcome",
+        "received",
+        "subject_ack",
+      ].sort(),
+    );
   });
 
   it("equals the standalone row the B11 migration sets, key by key", () => {
@@ -387,7 +404,8 @@ describe("renderTemplate", () => {
       site,
     );
     expect(html).toContain("Row text");
-    expect(html).toContain("/email/lockup-wordmark.png");
+    // The light house, which holds any blocks: its door is the emblem at the size of a line.
+    expect(html).toContain("/email/lockup-emblem.png");
   });
 
   it("renders the blocks of a row that differs from its definition inside the Email of its key", async () => {

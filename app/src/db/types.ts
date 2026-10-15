@@ -1147,14 +1147,14 @@ isOneToOne: false
                   ]
                 },"submission_media": {
                   Row: {
-                    "bytes": number | null,"id": string,"mime": string | null,"name": string,"sha256": string | null,"sort_order": number,"storage_path": string,"submission_id": string,"uploaded_at": string | null
+                    "bytes": number | null,"id": string,"mime": string | null,"name": string,"sha256": string | null,"sort_order": number,"source_url": string | null,"storage_path": string,"submission_id": string,"uploaded_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "bytes"?: number | null,"id"?: string,"mime"?: string | null,"name": string,"sha256"?: string | null,"sort_order"?: number,"storage_path": string,"submission_id": string,"uploaded_at"?: string | null
+                    "bytes"?: number | null,"id"?: string,"mime"?: string | null,"name": string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path": string,"submission_id": string,"uploaded_at"?: string | null
                   }
                   Update: {
-                    "bytes"?: number | null,"id"?: string,"mime"?: string | null,"name"?: string,"sha256"?: string | null,"sort_order"?: number,"storage_path"?: string,"submission_id"?: string,"uploaded_at"?: string | null
+                    "bytes"?: number | null,"id"?: string,"mime"?: string | null,"name"?: string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path"?: string,"submission_id"?: string,"uploaded_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -1353,6 +1353,11 @@ isOneToOne: false
 "activate_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: {
               "copy_job_id": string,"event_id": string,"property_id": string
+            }[]
+                           },
+"add_pulled_submission_media":
+{ Args: { "p_bytes": number,"p_mime": string,"p_name": string,"p_source_url": string,"p_submission_id": string }; Returns: {
+              "media_id": string,"storage_path": string
             }[]
                            },
 "add_submission_note":

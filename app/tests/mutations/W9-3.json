@@ -48,8 +48,8 @@
     "id": "w9-3-editor-note",
     "test": "tests/unit/colleague-calls.test.ts",
     "file": "scripts/workforce/colleague-calls.ts",
-    "find": "  editor: [\"PATCH /api/admin/properties/$id\", \"POST /api/admin/submissions/$id/note\"],",
-    "replace": "  editor: [\"PATCH /api/admin/properties/$id\"],",
+    "find": "    \"POST /api/admin/submissions/$id/note\",\n    \"POST /api/admin/submissions/start-review\",",
+    "replace": "    \"POST /api/admin/submissions/start-review\",",
     "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
     "expect": "× .*lets the Editor propose the next step on a request as a note, never its decision"
   },

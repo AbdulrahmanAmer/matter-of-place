@@ -164,8 +164,9 @@ export const APP_ROWS = [
       "public/{site.webmanifest,browserconfig.xml}",
       "public/*.txt",
       "public/fonts/{*.woff2,LICENSES.md}",
-      // The artwork of the emails, drawn by scripts/email-art.mjs (mail clients strip inline SVG).
-      "public/email/*.png",
+      // The artwork of the emails: marks drawn by scripts/email-art.mjs (mail clients strip inline SVG), the two doors
+      // rendered by launch/email-doors, and stills of the film's houses.
+      "public/email/*.{png,gif,jpg}",
       "public/media/**",
       "public/og/static/*.png",
     ],

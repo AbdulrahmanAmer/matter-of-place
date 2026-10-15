@@ -71,7 +71,7 @@ describe("send_email", () => {
     const { run, fetch, messages } = setup();
     expect(await run()).toEqual({ status: "done", result: { sent: "re_1" } });
     expect(fetch.requests.map(({ body }) => [body.to, body.subject])).toEqual([
-      [[SUBMITTER], "We have your submission"],
+      [[SUBMITTER], "412 Alder Court is with the editors"],
     ]);
     expect(messages).toMatchObject([
       {
@@ -202,7 +202,9 @@ describe("send_email", () => {
 
   it("a retry with changed content keeps the stored content_hash and the Idempotency-Key", async () => {
     const { fetch, messages, logs } = await changedRetry();
-    const hash = await sha256Hex(`We have your submission\n${fetch.requests[0]?.body.html ?? ""}`);
+    const hash = await sha256Hex(
+      `412 Alder Court is with the editors\n${fetch.requests[0]?.body.html ?? ""}`,
+    );
     expect(messages.map((row) => row.content_hash)).toEqual([hash]);
     const keys = fetch.requests.map((request) => request.headers.get("idempotency-key"));
     expect(keys).toEqual([keys[0], keys[0]]);

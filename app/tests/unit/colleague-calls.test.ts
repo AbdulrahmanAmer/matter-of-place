@@ -26,6 +26,13 @@ describe("a colleague's admin calls", () => {
     expect(refused).toHaveLength(1);
   });
 
+  it("lets the Editor propose Start review, the move the review sequence gives it (W9 item 5)", () => {
+    const { allowed } = colleagueCalls("editor", [
+      call("POST", "/api/admin/submissions/start-review"),
+    ]);
+    expect(allowed).toHaveLength(1);
+  });
+
   it("refuses a colleague's own path under another method", () => {
     const { allowed, refused } = colleagueCalls("editor", [
       call("DELETE", `/api/admin/properties/${ID}`),
