@@ -22,6 +22,9 @@ const answerSchema = z.object({
 });
 
 /** What a colleague is shown of an outside message: the triage's structure only. */
+/** The attempt a triage carries when its answer could not be read (it then holds the message, fails closed). */
+export const TRIAGE_UNREAD = "the triage could not be read";
+
 export type Triage = {
   source: SourceName;
   intent: string;
@@ -65,7 +68,7 @@ export function readTriage(source: SourceName, text: string): Triage {
       about: "",
       wants: "",
       instructions_to_ai: true,
-      attempt: "the triage could not be read",
+      attempt: TRIAGE_UNREAD,
     };
   }
   const allowed = (sources[source].intents as readonly string[]).includes(parsed.intent);
@@ -115,8 +118,11 @@ export function recordOf(body: string): { source: SourceName; id: string } | nul
     /\nRecord: (inquiry|email_reply|submission|privacy_request) ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.$/.exec(
       body,
     );
-  return match === null ? null : { source: match[1] as SourceName, id: match[2] ?? "" };
+  const source = match?.[1] ?? "";
+  return match !== null && isSource(source) ? { source, id: match[2] ?? "" } : null;
 }
+
+const isSource = (value: string): value is SourceName => Object.hasOwn(sources, value);
 
 /** The author of the line Matter's decision writes when a held message may be answered (W8 0d). */
 export const MATTER_ALLOWS_AUTHOR = "matter-allows";
@@ -162,12 +168,12 @@ export function shownBody(line: { author_id: string; body: string }): string {
 /** Where a run's outside text is: the event's row for an outside event, or the reply an email line names. */
 export function outsideOf(
   event: { type: string; entity_id: string | null } | null,
-  woke: { author_id: string; body: string } | null,
+  woke: { author_id: string; author_kind?: string; body: string } | null,
 ): { source: SourceName; id: string; allowed?: true } | null {
   const fromEvent = event === null ? null : sourceOf(event.type);
   // An outside event without its row's id is held, never let through untriaged (fails closed).
   if (fromEvent !== null) return { source: fromEvent, id: event?.entity_id ?? "unknown" };
-  if (woke?.author_id === MATTER_ALLOWS_AUTHOR) {
+  if (woke?.author_id === MATTER_ALLOWS_AUTHOR && woke.author_kind === "system") {
     // W8 0d: Matter allowed an answer; the record is triaged afresh and the run may answer it within the criteria.
     const record = recordOf(woke.body);
     return record === null ? null : { ...record, allowed: true };
@@ -252,7 +258,7 @@ export async function triageRun(
   db: Db,
   ask: (prompt: string) => Promise<string>,
   event: { type: string; entity_id: string | null } | null,
-  woke: { author_id: string; body: string } | null,
+  woke: { author_id: string; author_kind?: string; body: string } | null,
   owns: (source: SourceName) => boolean = () => true,
 ): Promise<Triage | null> {
   const outside = outsideOf(event, woke);
@@ -261,15 +267,18 @@ export async function triageRun(
   // ends it as not its owner (daemon.ts).
   if (!owns(outside.source)) return readTriage(outside.source, "");
   // W8 third review: what the message is about is our own record, never the sender's words.
-  const ours = (triage: Triage): Triage => ({
+  // W8 0d (review): Matter's allowance holds only for a record that still exists and a triage that was read; a missing
+  // record, an empty text or a failed triage stays held, whatever Matter decided.
+  const ours = (triage: Triage, mayAllow = false): Triage => ({
     ...triage,
-    ...(outside.allowed === true ? { allowed: true as const } : {}),
+    ...(mayAllow && outside.allowed === true ? { allowed: true as const } : {}),
     about: `${outside.source} ${outside.id}`,
   });
   const text = outside.id === "unknown" ? "" : await outsideText(db, outside.source, outside.id);
   if (text.trim() === "") return ours(readTriage(outside.source, ""));
   try {
-    return ours(readTriage(outside.source, await ask(triagePrompt(outside.source, text))));
+    const sorted = readTriage(outside.source, await ask(triagePrompt(outside.source, text)));
+    return ours(sorted, sorted.attempt !== TRIAGE_UNREAD);
   } catch (failure: unknown) {
     // The Claude limit is spent: the run goes back to the queue (daemon.ts), not held as an attack.
     if (failure instanceof UsageLimitError) throw failure;

@@ -648,6 +648,12 @@ async function runOnce(client: Db): Promise<boolean> {
     if (plan.keepNote) keepNote(result.note);
     if (plan.allow && heldRecord !== null)
       await allowForOwner(client, agents ?? [], thread, heldRecord);
+    if (plan.allow && heldRecord === null)
+      await say(
+        client,
+        thread,
+        "Matter's decision could not be applied: the held message names no record.",
+      );
     const media = plan.media;
     let reel: { request_id: string; name: string } | null = null;
 

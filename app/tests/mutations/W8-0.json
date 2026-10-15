@@ -519,5 +519,41 @@
     "replace": "  if (ownerRow === undefined) return;",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*lets only Matter's read of a held line decide to allow"
+  },
+  {
+    "id": "w8-0d-system-line-only",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (woke?.author_id === MATTER_ALLOWS_AUTHOR && woke.author_kind === \"system\") {",
+    "replace": "  if (woke?.author_id === MATTER_ALLOWS_AUTHOR) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*wakes the owner on Matter's decision"
+  },
+  {
+    "id": "w8-0d-allow-needs-a-read-triage",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    return ours(sorted, sorted.attempt !== TRIAGE_UNREAD);",
+    "replace": "    return ours(sorted, true);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*wakes the owner on Matter's decision"
+  },
+  {
+    "id": "w8-0d-record-at-end",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "[0-9a-f]{12})\\.$/.exec(",
+    "replace": "[0-9a-f]{12})\\./.exec(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*reads the record from the last line the runner wrote"
+  },
+  {
+    "id": "w8-0d-reserved-name",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "src/domain/workforce.ts",
+    "find": "  \"matter-allows\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*lets no colleague take a name"
   }
 ]
