@@ -421,8 +421,8 @@
     "id": "b5-r-declared",
     "test": "tests/unit/email/render.test.ts",
     "file": "src/templates/email/received.tsx",
-    "find": ", {{city}}, {{state}}. We will review it",
-    "replace": ", {{town}}, {{state}}. We will review it",
+    "find": "{ label: \"The home\", value: \"{{property_address}}, {{city}}, {{state}}\" },",
+    "replace": "{ label: \"The home\", value: \"{{property_address}}, {{town}}, {{state}}\" },",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "× .*received declares its variables and uses no other"
   },
@@ -430,17 +430,17 @@
     "id": "b5-r-seed",
     "test": "tests/unit/email/render.test.ts",
     "file": "src/templates/email/received.tsx",
-    "find": "subject: \"We have your submission\",",
-    "replace": "subject: \"We have your submissions\",",
+    "find": "subject: \"{{property_address}} is with the editors\",",
+    "replace": "subject: \"{{property_address}} is with the editor\",",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
-    "expect": "× .*equals the row the seed migration inserts"
+    "expect": "× .*equals the row its migrations leave"
   },
   {
     "id": "b5-r-colour",
     "test": "tests/unit/email/render.test.ts",
-    "file": "src/templates/email/layout.tsx",
-    "find": "margin: \"14px 0 0\", color: themeHex.accent }}",
-    "replace": "margin: \"14px 0 0\", color: \"#ff0000\" }}",
+    "file": "src/templates/email/blocks/colophon.tsx",
+    "find": "borderBottom: `1px solid ${ink.sandstone}`,",
+    "replace": "borderBottom: \"1px solid #ff0000\",",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "× .*renders with its sample variables, with nothing unreplaced and no stray colour"
   },
@@ -493,8 +493,8 @@
     "id": "b5-r-footer",
     "test": "tests/unit/email/render.test.ts",
     "file": "src/templates/email/layout.tsx",
-    "find": "[PRODUCT_LINE, site.entity, site.address]",
-    "replace": "[PRODUCT_LINE, site.address]",
+    "find": "[PRODUCT_LINE, site.siteUrl, site.entity, site.address]",
+    "replace": "[PRODUCT_LINE, site.siteUrl, site.entity]",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "× .*draws the identity lines of the footer"
   },
@@ -520,8 +520,8 @@
     "id": "b5-r-owner",
     "test": "tests/unit/email/render.test.ts",
     "file": "src/templates/email/received.tsx",
-    "find": "{ type: \"heading\", text: \"Thank you, {{submitter_name}}.\" },",
-    "replace": "{ type: \"heading\", text: \"Thank you, {{submitter_name}}.\" },\n    { type: \"paragraph\", text: \"Your listing has been received.\" },",
+    "find": "{ type: \"heading\", text: \"is with the editors.\" },",
+    "replace": "{ type: \"heading\", text: \"is with the editors.\" },\n    { type: \"paragraph\", text: \"Your listing has been received.\" },",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "× .*received says nothing that depends on who submitted"
   },
@@ -529,8 +529,8 @@
     "id": "b5-l-script",
     "test": "tests/unit/email/lint.test.ts",
     "file": "src/templates/email/layout.tsx",
-    "find": "<meta name=\"color-scheme\" content=\"light\" />",
-    "replace": "<meta name=\"color-scheme\" content=\"light\" />\n        <script>1</script>",
+    "find": "<meta name=\"color-scheme\" content=\"light dark\" />",
+    "replace": "<meta name=\"color-scheme\" content=\"light dark\" />\n        <script>1</script>",
     "run": "bunx vitest run --project unit tests/unit/email/lint.test.ts",
     "expect": "× .*received has no finding"
   },
@@ -2243,9 +2243,9 @@
   {
     "id": "b5-shots-overflow-600",
     "test": "scripts/email-shots.ts",
-    "file": "src/templates/email/layout.tsx",
-    "find": "const column: CSSProperties = { backgroundColor: themeHex.background };",
-    "replace": "const column: CSSProperties = { backgroundColor: themeHex.background, minWidth: \"700px\" };",
+    "file": "src/templates/email/blocks/band.tsx",
+    "find": "style={{ maxWidth: `${String(COLUMN)}px` }}",
+    "replace": "style={{ maxWidth: `${String(COLUMN)}px`, minWidth: \"700px\" }}",
     "run": "bun run email:shots",
     "expect": "received: scrollWidth 7[0-9]{2} at 600 px",
     "kind": "manual",
@@ -2254,9 +2254,9 @@
   {
     "id": "b5-shots-lint-stops",
     "test": "scripts/email-shots.ts",
-    "file": "src/templates/email/layout.tsx",
-    "find": "style={{ maxWidth: `${String(COLUMN)}px`, margin: \"0 auto\" }}",
-    "replace": "style={{ maxWidth: \"700px\", margin: \"0 auto\" }}",
+    "file": "src/templates/email/blocks/band.tsx",
+    "find": "style={{ maxWidth: `${String(COLUMN)}px` }}",
+    "replace": "style={{ maxWidth: \"700px\" }}",
     "run": "bun run email:shots",
     "expect": "received: container-width the outer container does not declare max-width: 600px"
   }

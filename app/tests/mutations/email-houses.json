@@ -1,0 +1,128 @@
+[
+  {
+    "id": "houses-door-night",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/house/threshold.tsx",
+    "find": "src={`${site.siteUrl}${ART.doorNight.path}`}",
+    "replace": "src={`${site.siteUrl}${ART.doorDay.path}`}",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*received opens on the door of its house"
+  },
+  {
+    "id": "houses-night-still-outlook",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/blocks/picture.tsx",
+    "find": "? { display: \"none\", maxHeight: 0, overflow: \"hidden\", msoHide: \"all\" }",
+    "replace": "? { display: \"none\", maxHeight: 0, overflow: \"hidden\" }",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*swaps Afternoon's door for its night still"
+  },
+  {
+    "id": "houses-light-no-band",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/house/light.tsx",
+    "find": "<Band paper=\"light\">",
+    "replace": "<Band paper=\"dark\">",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*keeps the light house free of Threshold's dark cinema"
+  },
+  {
+    "id": "houses-opening-through-door",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/blocks.tsx",
+    "find": "if (lines.length === 2 || block.type !== \"heading\" || levelOf(block) !== 1) break;",
+    "replace": "if (lines.length === 1 || block.type !== \"heading\" || levelOf(block) !== 1) break;",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*passes the opening through the door"
+  },
+  {
+    "id": "houses-statement-cuts",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/blocks.tsx",
+    "find": "if (starts && (parts.at(-1)?.length ?? 0) > 0) parts.push([]);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*cuts to the other paper at every statement"
+  },
+  {
+    "id": "houses-stage-current",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/blocks/stage.tsx",
+    "find": "fontStyle: index === at ? \"italic\" : \"normal\",",
+    "replace": "fontStyle: \"normal\",",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*sets the record shot's stack"
+  },
+  {
+    "id": "houses-ledger-total",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/blocks/ledger.tsx",
+    "find": "              Total due\n",
+    "replace": "              Total\n",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*sets the invoice's amounts as an exact ledger"
+  },
+  {
+    "id": "houses-ledger-text",
+    "test": "tests/unit/email/shell.test.ts",
+    "file": "src/templates/email/invoice.tsx",
+    "find": "lead: [`Invoice ${number}`, `${item}, ${home}: ${amount}`, `Total due: ${amount}`],",
+    "replace": "lead: [`Invoice ${number}`],",
+    "run": "bunx vitest run --project unit tests/unit/email/shell.test.ts",
+    "expect": "FAIL .*sets the invoice's amounts as an exact ledger"
+  },
+  {
+    "id": "invoice-issue-date",
+    "test": "tests/unit/email/variables.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "issue_date: snapshotDate(issue_date),",
+    "replace": "issue_date: snapshotDate(due_date),",
+    "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
+    "expect": "FAIL .*invoice resolves the amount 1500.00"
+  },
+  {
+    "id": "welcome-image-drawn",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/templates/email/newsletter-welcome.tsx",
+    "find": "return URL.canParse(image) && new URL(image).protocol === \"https:\" ? image : null;",
+    "replace": "return null;",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*draws the piece's own picture when it has one"
+  },
+  {
+    "id": "welcome-image-https",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/templates/email/newsletter-welcome.tsx",
+    "find": "return URL.canParse(image) && new URL(image).protocol === \"https:\" ? image : null;",
+    "replace": "return image === \"\" ? null : image;",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*draws the piece's own picture when it has one"
+  },
+  {
+    "id": "welcome-image-resolved",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "latest_image: pieceImage(lead.row.image),",
+    "replace": "latest_image: \"\",",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*gives the slot the lead piece's own picture"
+  },
+  {
+    "id": "welcome-image-og",
+    "test": "tests/unit/email/welcome.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "url = mediaUrl(variantKey(master, \"og\"), { absolute: true });",
+    "replace": "url = mediaUrl(master, { absolute: true });",
+    "run": "bunx vitest run --project unit tests/unit/email/welcome.test.ts",
+    "expect": "FAIL .*gives the slot the lead piece's own picture"
+  },
+  {
+    "id": "rows-only-seeded",
+    "test": "tests/unit/email/render.test.ts",
+    "file": "supabase/migrations/20261015094613_email_houses.sql",
+    "find": "        and body = r.seed -> 'body'\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
+    "expect": "× .*moves only rows that still hold their seed"
+  }
+]

@@ -1,6 +1,6 @@
 import { variablesByKey } from "../../domain/email.ts";
-import { letter } from "./blocks.tsx";
-import type { EmailDefinition } from "./layout.tsx";
+import { Afternoon } from "./house/afternoon.tsx";
+import type { EmailDefinition, EmailProps } from "./layout.tsx";
 
 export const definition: EmailDefinition = {
   key: "subject_ack",
@@ -9,7 +9,8 @@ export const definition: EmailDefinition = {
   preheader: "We will answer by {{due_date}}.",
   variables: variablesByKey.subject_ack,
   blocks: [
-    { type: "heading", text: "We have your request." },
+    { type: "heading", text: "Your {{kind_label}} request" },
+    { type: "heading", text: "is with us" },
     {
       type: "paragraph",
       text: "We received your {{kind_label}} request and will answer by {{due_date}}, within 45 days of receiving it.",
@@ -19,4 +20,13 @@ export const definition: EmailDefinition = {
   ],
 };
 
-export const Email = letter("Privacy");
+/** Correspondence: an answer about a person's own data, plainly dated. */
+export function Email(props: EmailProps) {
+  return (
+    <Afternoon
+      {...props}
+      label="Privacy"
+      note="This confirms a privacy request made at matterofplace.com."
+    />
+  );
+}

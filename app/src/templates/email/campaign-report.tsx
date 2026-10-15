@@ -1,6 +1,6 @@
 import { variablesByKey } from "../../domain/email.ts";
-import { letter } from "./blocks.tsx";
-import type { EmailDefinition } from "./layout.tsx";
+import { Light } from "./house/light.tsx";
+import type { EmailDefinition, EmailProps } from "./layout.tsx";
 
 // B10 step 9 (G22): the weekly report of a campaign, sent to the person who submitted the property from `/admin` ›
 // Reports. It states numbers only. The seed copy is reviewed in the admin editor after the first build (S45).
@@ -31,4 +31,7 @@ export const definition: EmailDefinition = {
   ],
 };
 
-export const Email = letter("Weekly report");
+/** Internal in kind: a week of numbers, read at a glance. */
+export function Email(props: EmailProps) {
+  return <Light {...props} label="Weekly report" note="Sent for a campaign of Matter of Place." />;
+}

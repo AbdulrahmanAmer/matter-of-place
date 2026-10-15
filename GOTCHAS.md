@@ -3987,12 +3987,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - added: 2026-10-05
 
 ## G-500 · React 19 hoists a preload link for an email's first `<img>` into the head, and a test that edits the rendered HTML hits that link first
-- paths: app/src/templates/email/layout.tsx
+- paths: app/src/templates/email/layout.tsx, app/src/templates/email/blocks/picture.tsx
 - severity: warn
 - symptom: B5 g1 step 3: the lint test "fires img-src on image with relative src" stayed green with `expected [] to include 'img-src'`. The fixture ran `html.replace("https://matterofplace.com/apple-touch-icon.png", "/apple-touch-icon.png")`, and the first copy of that address in the HTML was not the `<img>`: React 19 had put `<link rel="preload" as="image" href="https://matterofplace.com/apple-touch-icon.png"/>` in the `<head>` (and an email has no use for a link tag).
 - cause: React 19's server renderer emits a resource hint for the first `<img>` it renders unless the image is `loading="lazy"`; mail clients ignore the attribute, so it costs nothing there.
-- rule: keep `loading="lazy"` on the first `<Img>` of `layout.tsx`, the masthead since 2026-10-12 (a comment beside it says why), and write a fixture that edits rendered HTML with `replaceAll` or against the tag, never with a first-match `replace` of an address that appears twice.
-- proof: `cd app && bun run scripts/email-test.ts render received > /dev/null && grep -c 'rel="preload"' out/email-received.html` → `0`; with the `loading="lazy"` line removed from `layout.tsx` the same two commands print `1` (measured 2026-10-05).
+- rule: keep `loading="lazy"` on every picture of an email, which since the houses of 2026-10-15 are all drawn by `blocks/picture.tsx` (a comment beside it says why), and write a fixture that edits rendered HTML with `replaceAll` or against the tag, never with a first-match `replace` of an address that appears twice.
+- proof: `cd app && bun run scripts/email-test.ts render received > /dev/null && grep -c 'rel="preload"' out/email-received.html` → `0`; with the `loading="lazy"` line removed from `blocks/picture.tsx` the same two commands print `1`.
+- hit again: 2026-10-15, email houses: a test that found "Review comes before" with `indexOf` from the start of the HTML landed in the hidden preheader, which repeats the email's first words, and measured the wrong shot; text in the body is searched after `<body` or after the anchor before it (`indexOf(text, from)`).
 - added: 2026-10-05
 
 ## P-1204 · An email render timing on this laptop moves tenfold with what else it runs: take three runs and write the load beside the figure
@@ -8083,9 +8084,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 ## P-3483 · A table of fixed width with `max-width: 100%` does not shrink to a phone screen
 - symptom: 2026-10-15, the first redesigned email column was `width:600px; max-width:100%`; in Edge at a 390 px viewport the page measured `scrollWidth 604` and the letter ran off the screen.
 - cause: a browser does not apply `max-width` to a table whose width is fixed.
-- rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-column{width:100%!important}`; every email is drawn at 390 px by `app/scripts/lib/email-gallery-phone.mjs`, which refuses a sideways scroll.
-- proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone received 390 px, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-column` rule and the same run goes red on `received: scrollWidth <n> at 390 px` (`WATCHED-FAIL OK`, 2026-10-15).
-- enforced-by: app/scripts/lib/email-gallery-phone.mjs
+- rule: the column carries `width="600"` as an attribute only (the width Outlook for Windows reads) and the phone media query of `app/src/templates/email/style.ts` sets `.mop-col{width:100%!important}` (the houses of 2026-10-15); every email is drawn at 375 px by `app/scripts/lib/email-gallery-shots.mjs`, which refuses a sideways scroll.
+- proof: `cd app && bun run scripts/email-gallery.ts received` prints `phone: 1 emails, no sideways scroll`; the registry's manual entry `phone-column-fluid` (tests/mutations/email-redesign.json) removes the `.mop-col` rule and the same run goes red on `received: scrollWidth <n> at 375 px`.
+- enforced-by: app/scripts/lib/email-gallery-shots.mjs
 - added: 2026-10-15
 
 ## P-3468 · After the launch switch a local db test refuses (`refusing: production database`); a lane's db proof is CI's
@@ -8163,4 +8164,32 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `dontAsk` denies whatever is not allowed; `--disallowedTools` only removes tools, it allows none. Colleague runs never needed a file tool, so the gap never showed.
 - rule: a headless run that must read or write files names them in `--allowedTools` (`studioTools` in `scripts/workforce/reel.ts`: the designer Read, Write, Edit, Glob, Grep; the reviewer Read, Glob, Grep), keeps `--restricted` so writes stay in its working folder, and the run's caller checks the files exist before using them (the pass does: `scene_missing`).
 - proof: the same probe with `--allowedTools "Read,Write,Edit,Glob,Grep"` wrote `probe.txt` and was refused `../outside-probe.txt` ("the session is restricted to the working directory"), measured 2026-10-15; `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t "lets the designer write"`.
+- added: 2026-10-15
+
+## G-1470 · Cells of one table row share its height: a 2 px hairline cell beside a line of text is drawn as a block
+- paths: app/src/templates/email/**
+- severity: warn
+- symptom: 2026-10-15, email houses: the received email's dash counter (three 44 x 2 px cells beside the "02 / 03" label in the same row) came out of the gallery as three 15 px black blocks.
+- cause: a table row is as tall as its tallest cell, and a cell's background colour fills the whole row height, whatever `height` and `line-height` the hairline cell sets.
+- rule: a hairline or a dash lives in a table of its own, nested in one cell of the text row (as `blocks/stage.tsx` sets the dashes), never as a sibling cell of a line of text.
+- proof: in `app/src/templates/email/blocks/stage.tsx` move the dash cells out of their nested table into the counter's row and run `cd app && bun run scripts/email-gallery.ts received`: `workspace/08-email-redesign/v2/received-desktop.png` shows blocks where the dashes were.
+- added: 2026-10-15
+
+## P-3510 · A full-page screenshot leaves a lazy picture far down the page empty
+- symptom: 2026-10-15, the v2 email gallery: `newsletter_welcome-desktop.png` showed the three market bands and the colophon's wordmark as empty colour, while the pictures near the top had loaded.
+- cause: every email picture carries `loading="lazy"` (G-500), Chromium loads a lazy image only near the viewport, and `page.screenshot({ fullPage: true })` does not scroll.
+- rule: the gallery strips ` loading="lazy"` from the copies it photographs (`eager()` in `app/scripts/email-gallery.ts`); the HTML that is sent keeps it.
+- proof: `cd app && bun run scripts/email-gallery.ts newsletter_welcome` shows the California, New York and Florida stills and the wordmark in `workspace/08-email-redesign/v2/newsletter_welcome-desktop.png`; with `eager(html)` replaced by `html` in `withLocalFiles` they are empty.
+- added: 2026-10-15
+
+## P-3511 · Three email-render habits that each cost a test round in the houses build
+- symptom: 2026-10-15: (1) `{PRODUCT_LINE} California, New York and Florida.` rendered as two text nodes with `<!-- -->` between them, so a test looking for the sentence missed it in 20 emails; (2) a dark-mode rule `.mop-btn{background-color:#eeeae1!important;border-color:...}` failed `tests/unit/newsletter/render.test.ts` "takes every inline colour from the theme", which reads every `[;"]color|background|border:` of the whole HTML, style blocks included, with `!important` on the value; (3) the colophon's wordmark wrapped in a link failed the email lint, `link-text <a href="https://matterofplace.com"> has no visible text`.
+- rule: a sentence made of a constant and words is one template literal; a head style block keeps one declaration to a rule, so a colour always follows a brace (`DARK` in `app/src/templates/email/style.ts`); a picture is never the only content of a link, the site's address follows in words.
+- proof: `cd app && bunx vitest run --project unit tests/unit/email/shell.test.ts tests/unit/newsletter/render.test.ts` passes; each habit reversed turns one of them red, and `bun run scripts/build-auth-templates.ts` prints the `link-text` finding for a linked wordmark.
+- added: 2026-10-15
+
+## P-3512 · The folder map took only PNG under `app/public/email/`
+- symptom: 2026-10-15, the houses add two door GIFs and four film stills (JPEG) to `public/email/`; `scripts/check-layout.mjs` allowed `public/email/*.png` only.
+- rule: `public/email/*.{png,gif,jpg}` is the pattern; a new kind of file a mail client loads also needs the cross-origin exception of P-3475, which `/email/*` already has. A replaced picture gets a new file name: `/email/*` is cached for seven days and mail already sent keeps loading the old address.
+- proof: `cd app && bun run layout` exits 0 with `public/email/door-night.gif` in the tree.
 - added: 2026-10-15

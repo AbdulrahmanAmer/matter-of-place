@@ -200,7 +200,7 @@ describe("sendTestEmail", () => {
     const { db, messages } = emailWorld();
     await sendEmail.run(stepCtx(db), payload.params, payload.data);
     expect(fetch.requests.map(({ body }) => [body.to, body.subject])).toEqual([
-      [[ACTOR.email], "[Test] We have your submission"],
+      [[ACTOR.email], "[Test] 412 Alder Court is with the editors"],
     ]);
     expect(messages.map((row) => [row.to_email, row.kind])).toEqual([[ACTOR.email, "test"]]);
   });

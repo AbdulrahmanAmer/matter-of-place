@@ -1,8 +1,8 @@
-import { cx, display, MEASURE, reading, sans, serif, textLink } from "../email/style.ts";
-import { themeHex } from "../theme.gen.ts";
+import { cx, ink, MEASURE, reading, sans, serif, textLink } from "../email/style.ts";
 
-// The property block of a newsletter and of the standalone email: a table with inline styles, set in the faces and
-// measures of the email shell (`src/templates/email/style.ts`). Colours come from `theme.gen.ts`.
+// The property block of a newsletter and of the standalone email, hung on Afternoon's axis like a framed print with
+// its label: the photograph at the letter's measure, the title, one line, and the way to the home. A table with inline
+// styles in the faces and colours of the email houses (`src/templates/email/style.ts`).
 
 /** The asset's `meta.block` as `build_newsletter_block` stored it, with the alt text a caller holding the asset adds. */
 export interface NewsletterBlockProps {
@@ -21,47 +21,72 @@ export function NewsletterBlock(props: NewsletterBlockProps) {
       role="presentation"
       cellPadding={0}
       cellSpacing={0}
+      align="center"
       style={{ width: "100%", margin: "0 0 8px", borderCollapse: "collapse" }}
     >
       <tbody>
         <tr>
-          <td>
+          <td align="center">
             {/* Outlook ignores a CSS width, so the attribute holds the picture to the letter's measure; `width: 100%`
                 lets every other client scale it with the column. */}
             <img
               src={props.image_url}
               alt={props.alt ?? props.title}
               width={MEASURE}
+              loading="lazy"
               style={{
                 display: "block",
                 width: "100%",
                 height: "auto",
                 border: 0,
-                backgroundColor: themeHex.secondary,
+                backgroundColor: ink.sandstone,
+                color: ink.mineral,
               }}
             />
           </td>
         </tr>
         <tr>
           <td
-            className={cx(serif.className, "mop-title")}
-            style={{ ...display, fontSize: "30px", lineHeight: "1.15", padding: "24px 0 10px" }}
+            align="center"
+            className={cx(serif.className, "mop-t-state", "mop-ink")}
+            style={{
+              fontFamily: serif.fontFamily,
+              fontSize: "30px",
+              fontWeight: 300,
+              lineHeight: "36px",
+              color: ink.obsidian,
+              textAlign: "center",
+              padding: "26px 0 10px",
+            }}
           >
             {props.title}
           </td>
         </tr>
         <tr>
           <td
-            className={cx(serif.className, "mop-reading")}
-            style={{ ...reading, margin: 0, padding: "0 0 20px" }}
+            align="center"
+            className={cx(serif.className, "mop-t-read", "mop-ink2")}
+            style={{
+              ...reading,
+              fontSize: "19px",
+              lineHeight: "30px",
+              margin: 0,
+              color: ink.mineral,
+              textAlign: "center",
+              padding: "0 0 20px",
+            }}
           >
             {props.deck}
           </td>
         </tr>
         <tr>
-          <td>
-            <a href={props.link} className={sans.className} style={textLink}>
-              View the property
+          <td align="center" style={{ textAlign: "center" }}>
+            <a
+              href={props.link}
+              className={cx(sans.className, "mop-ink")}
+              style={textLink(ink.obsidian, ink.sandstone)}
+            >
+              View the home
             </a>
           </td>
         </tr>

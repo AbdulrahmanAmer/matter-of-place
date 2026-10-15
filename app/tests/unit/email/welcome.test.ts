@@ -1,13 +1,13 @@
-import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Tables } from "../../../src/db";
-import { emailTemplateSchema, sampleVariables } from "../../../src/domain/email";
+import { sampleVariables } from "../../../src/domain/email";
 import type { SiteContext } from "../../../src/server/email/context";
 import { renderTemplate } from "../../../src/server/email/render";
 import { resolveRecipient, resolveVariables, SkipSend } from "../../../src/server/email/variables";
 import { definitionRow } from "../../../src/templates/email/index";
 import { definition } from "../../../src/templates/email/newsletter-welcome";
 import { fakeDb, type FakeDbOptions } from "../../fixtures/fake-db";
+import { afterHouses, inserted } from "./stored-rows";
 
 // The welcome a subscriber gets once, right after confirming (operator, 2026-10-15): what it promises to each kind of
 // reader, when it is not sent again, the slot it draws from the latest Place Notes issue, and the row its migration
@@ -20,6 +20,10 @@ const site: SiteContext = {
   address: "30 N Gould St Ste R, Sheridan, WY 82801, USA",
   contact: { email: "hello@matterofplace.com" },
 };
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 const SUBSCRIBER = "44444444-4444-4444-8444-444444444444";
 const STORY = "88888888-8888-4888-8888-888888888888";
@@ -238,6 +242,42 @@ describe("newsletter_welcome variables", () => {
     ]).toEqual(["", "", "", ""]);
   });
 
+  it("gives the slot the lead piece's own picture, its Open Graph rendition on the public base, and none without one", async () => {
+    vi.stubEnv("MEDIA_PUBLIC_BASE", "https://media.example.invalid");
+    const withStory = await welcome({
+      newsletter_issues: [issue([storyBlock, propertyBlock], 3)],
+      stories: [story({ image: "o/the-long-view/1-0a1b2c3d.webp" })],
+      properties: [property()],
+    });
+    expect(withStory["latest_image"]).toBe(
+      "https://media.example.invalid/v/the-long-view/1-0a1b2c3d/og.jpg",
+    );
+    const withProperty = await welcome({
+      newsletter_issues: [issue([propertyBlock], 4)],
+      properties: [property({ hero_image: "o/alder-court/2-1a2b3c4d.webp" })],
+    });
+    expect(withProperty["latest_image"]).toBe(
+      "https://media.example.invalid/v/alder-court/2-1a2b3c4d/og.jpg",
+    );
+    const noPicture = await welcome({
+      newsletter_issues: [issue([storyBlock], 3)],
+      stories: [story({ image: null })],
+    });
+    expect(noPicture["latest_image"]).toBe("");
+    const notAMaster = await welcome({
+      newsletter_issues: [issue([storyBlock], 3)],
+      stories: [story({ image: "loose/picture.jpg" })],
+    });
+    expect(notAMaster["latest_image"]).toBe("");
+    vi.stubEnv("MEDIA_PUBLIC_BASE", undefined);
+    const noBase = await welcome({
+      newsletter_issues: [issue([storyBlock], 3)],
+      stories: [story({ image: "o/the-long-view/1-0a1b2c3d.webp" })],
+    });
+    expect(noBase["latest_image"]).toBe("");
+    expect((await welcome())["latest_image"]).toBe("");
+  });
+
   it("goes to the subscriber who confirmed", async () => {
     const recipient = await resolveRecipient(
       world(),
@@ -305,29 +345,35 @@ describe("newsletter_welcome email", () => {
     expect(bare.html).not.toContain(">Unsubscribe<");
   });
 
-  it("equals the row its migration inserts", () => {
-    const sql = readFileSync(
-      new URL(
-        "../../../supabase/migrations/20261015055708_newsletter_welcome_template.sql",
-        import.meta.url,
-      ),
-      "utf8",
+  it("draws the piece's own picture when it has one, and the film's house when it has none", async () => {
+    const strings = {
+      what_you_receive: "Place Notes will reach you.",
+      market_names: "",
+      latest_number: "3",
+      latest_title: "The long view",
+      latest_line: "A street of oaks.",
+      latest_url: `${SITE_URL}/stories/the-long-view`,
+    };
+    const own = await render({
+      ...strings,
+      latest_image: "https://media.example.invalid/v/the-long-view/1-0a1b2c3d/og.jpg",
+    });
+    expect(own.html).toContain(
+      'src="https://media.example.invalid/v/the-long-view/1-0a1b2c3d/og.jpg"',
     );
-    const values =
-      /values \(\s*'(\w+)', '(\w+)', '((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*'(\[[\s\S]*?\])',\s*'\{([^}]*)\}', true\s*\)/.exec(
-        sql,
-      );
-    const unquote = (value: string | undefined): string => (value ?? "").replaceAll("''", "'");
-    expect(values).not.toBeNull();
-    const [, key, kind, subject, preheader, body, variables] = values ?? [];
-    expect({
-      key,
-      class: kind,
-      subject: unquote(subject),
-      preheader: unquote(preheader),
-      blocks: emailTemplateSchema.shape.body.parse(JSON.parse(unquote(body))),
-      variables: (variables ?? "").split(","),
-    }).toEqual({
+    expect(own.html).not.toContain("/email/film-house.jpg");
+    for (const latest_image of ["", "http://media.example.invalid/og.jpg"]) {
+      const none = await render({ ...strings, latest_image });
+      expect(none.html).toContain(`src="${SITE_URL}/email/film-house.jpg"`);
+      expect(none.html).not.toContain("media.example.invalid");
+    }
+  });
+
+  it("equals the row its migrations leave: inserted with the welcome, moved to the houses' copy", () => {
+    const [seed, ...more] = inserted("20261015055708_newsletter_welcome_template.sql");
+    expect(more).toEqual([]);
+    if (seed === undefined) throw new Error("the welcome migration inserts no row");
+    expect(afterHouses(seed)).toEqual({
       key: definition.key,
       class: definition.class,
       subject: definition.subject,

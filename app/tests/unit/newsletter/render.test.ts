@@ -53,7 +53,10 @@ describe("renderIssueHtml", () => {
   });
 
   it("gives every other link the UTM set, with the issue number and the slug of its block", async () => {
-    const links = hrefs(await renderIssueHtml(issue, site)).filter((href) => href !== UNSUBSCRIBE);
+    // The colophon every email shares names the site itself, the one link that is not the issue's.
+    const links = hrefs(await renderIssueHtml(issue, site)).filter(
+      (href) => href !== UNSUBSCRIBE && href !== site.siteUrl,
+    );
     expect(links).toEqual([
       "https://matterofplace.com/stories/under-the-oaks?utm_source=place_notes&utm_medium=email&utm_campaign=issue-4&utm_content=under-the-oaks",
       "https://matterofplace.com/property/oak-hill?utm_source=place_notes&utm_medium=email&utm_campaign=issue-4&utm_content=oak-hill",
@@ -123,7 +126,7 @@ describe("renderIssueHtml", () => {
     const html = await renderIssueHtml(issue, site);
     expect(html).toContain(`src="${picture.image_url}"`);
     expect(html).toContain("A quiet house.");
-    expect(html.match(/View the property/g)).toHaveLength(1);
+    expect(html.match(/View the home/g)).toHaveLength(1);
     expect(html).not.toContain("utm_source=newsletter");
   });
 

@@ -1392,8 +1392,8 @@
     "id": "b6-g3-billing-frozen",
     "test": "tests/unit/email/variables.test.ts",
     "file": "src/server/email/variables.ts",
-    "find": "    billing_email,\n  };\n}\n\nasync function inquiryAck",
-    "replace": "    billing_email: \"\",\n  };\n}\n\nasync function inquiryAck",
+    "find": "    billing_email,\n    issue_date: snapshotDate(issue_date),",
+    "replace": "    billing_email: \"\",\n    issue_date: snapshotDate(issue_date),",
     "run": "bunx vitest run --project unit tests/unit/email/variables.test.ts",
     "expect": "× .*invoice resolves the amount 1500.00"
   },
