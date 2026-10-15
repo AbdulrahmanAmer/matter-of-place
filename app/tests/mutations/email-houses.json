@@ -124,5 +124,14 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
     "expect": "× .*moves only rows that still hold their seed"
+  },
+  {
+    "id": "houses-test-send-button",
+    "test": "tests/unit/scripts/newsletter-test-send.test.ts",
+    "file": "src/templates/social/NewsletterBlock.tsx",
+    "find": "              View the home\n",
+    "replace": "              View it\n",
+    "run": "bunx vitest run --project unit tests/unit/scripts/newsletter-test-send.test.ts",
+    "expect": "FAIL .*newsletter-test-send --dry > draws the sample issue with its intro, property block and story"
   }
 ]

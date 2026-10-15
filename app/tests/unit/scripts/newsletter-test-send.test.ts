@@ -86,7 +86,7 @@ describe("newsletter-test-send --dry", () => {
     const order = [
       "A house and a story",
       "Alder Court",
-      "View the property",
+      "View the home",
       "A house on the water",
     ].map((text) => html.indexOf(text, html.indexOf("<body")));
     expect(order.every((at) => at >= 0)).toBe(true);
