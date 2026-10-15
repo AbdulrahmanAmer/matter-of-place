@@ -1,0 +1,38 @@
+[
+  {
+    "id": "w9-5-every-state",
+    "test": "tests/unit/workforce-sequence.test.ts",
+    "file": "../workspace/05-plans/W9-review-sequence.md",
+    "find": "## Withdrawn\n",
+    "replace": "## Withdrawal\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sequence.test.ts",
+    "expect": "× .*names, for every state of a submission, what starts it, its owner and what moves it on"
+  },
+  {
+    "id": "w9-5-cut",
+    "test": "tests/unit/workforce-sequence.test.ts",
+    "file": "scripts/workforce/grounding.ts",
+    "find": "const end = rest.findIndex((line) => line.startsWith(\"## \"));",
+    "replace": "const end = -1;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sequence.test.ts",
+    "expect": "× .*cuts one state's section at the next heading"
+  },
+  {
+    "id": "w9-5-request-only",
+    "test": "tests/unit/workforce-sequence.test.ts",
+    "file": "scripts/workforce/grounding.ts",
+    "find": "if (event.entity !== \"submission\" || event.entity_id === null",
+    "replace": "if (event.entity_id === null",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sequence.test.ts",
+    "expect": "× .*is handed the section for the state the request is in, and a run about anything else none"
+  },
+  {
+    "id": "w9-5-start-review",
+    "test": "tests/unit/colleague-calls.test.ts",
+    "file": "scripts/workforce/colleague-calls.ts",
+    "find": "    \"POST /api/admin/submissions/start-review\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/colleague-calls.test.ts",
+    "expect": "× .*lets the Editor propose Start review, the move the review sequence gives it"
+  }
+]
