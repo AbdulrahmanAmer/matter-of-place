@@ -1,0 +1,76 @@
+{
+ "end": 30.0,
+ "lines": [
+  {
+   "n": 1,
+   "cue": 0.6,
+   "slot": 1.9,
+   "text": "Every home has a price."
+  },
+  {
+   "n": 2,
+   "cue": 2.5,
+   "slot": 2.8,
+   "text": "It's rarely the interesting part."
+  },
+  {
+   "n": 3,
+   "cue": 5.3,
+   "slot": 2.4,
+   "text": "A modest house can make the cut."
+  },
+  {
+   "n": 4,
+   "cue": 7.7,
+   "slot": 1.9,
+   "text": "A grand one might not."
+  },
+  {
+   "n": 5,
+   "cue": 9.6,
+   "slot": 2.9,
+   "text": "We're not brokers. We're editors."
+  },
+  {
+   "n": 6,
+   "cue": 12.5,
+   "slot": 2.8,
+   "text": "A listing waits to be found."
+  },
+  {
+   "n": 7,
+   "cue": 15.3,
+   "slot": 2.7,
+   "text": "A feature travels."
+  },
+  {
+   "n": 8,
+   "cue": 18.0,
+   "slot": 4.5,
+   "text": "Even our map is edited."
+  },
+  {
+   "n": 9,
+   "cue": 22.5,
+   "slot": 2.5,
+   "text": "Acceptance is not for sale."
+  },
+  {
+   "n": 10,
+   "cue": 25.0,
+   "slot": 3.0,
+   "text": "It was never a matter of price."
+  },
+  {
+   "n": 11,
+   "cue": 28.0,
+   "slot": 2.0,
+   "text": "It's a matter of place."
+  }
+ ],
+ "notes": [
+  "[How to read it] Point Direction | Tone Dry and level, with the wit left in the words. Underplay every line; no wink. | Sync \"editors\" should land as the frame squares up at 0:11.5, and \"never\" at about 0:25.4 as the word drops into the line on screen. | Silence Florida plays with no voice, and there is a beat before each second sentence. | Last line It is the name, so read it plainly as the wordmark settles.",
+  "[Swaps] Swap Replaces line Current wording Alternative | Opening, more explicit 1 and 2 Every home has a price. It's rarely the interesting part. A listing tells you what a home costs. It rarely tells you what it is. | Markets, warmer 8 Even our map is edited. Three markets. We'd rather know a place than cover it. | Current wording is read from the Script tab, so it follows any edit made there.",
+  "[To confirm] Stance Line As written | Editors, not brokers 5 We're not brokers. We're editors. | A listing waits 6 A listing waits to be found. | The map is edited 8 Even our map is edited. | These three stances are wording drawn from the brief rather than quoted from it: check you are happy saying them out loud. | Nothing in the script claims a result or a number."
+ ]
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "w6-b-claude-week-line",
+    "kind": "sql",
+    "test": "tests/db/workforce.db.test.ts",
+    "sql": "alter table public.vendor_usage drop constraint vendor_usage_line_check;\nalter table public.vendor_usage add constraint vendor_usage_line_check\n  check (line in ('workers_requests_day', 'storage_egress', 'sentry_errors', 'actions_minutes'));\n",
+    "run": "bunx vitest run --project db tests/db/workforce.db.test.ts -t \"records the week's Claude allowance\"",
+    "expect": "× .*records the week's Claude allowance"
+  }
+]
