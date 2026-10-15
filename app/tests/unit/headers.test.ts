@@ -15,6 +15,11 @@ function parseHeadersFile(): Map<string, Map<string, string>> {
       rules.set(line.trim(), current);
       continue;
     }
+    // `! Name` removes a header an earlier rule set (Cloudflare's _headers syntax); kept as "!Name".
+    if (line.trim().startsWith("!")) {
+      current.set(`!${line.trim().slice(1).trim()}`, "");
+      continue;
+    }
     const colon = line.indexOf(":");
     current.set(line.slice(0, colon).trim(), line.slice(colon + 1).trim());
   }
@@ -122,6 +127,14 @@ describe("public/_headers", () => {
   it("carries the same security headers as the Worker on every static file, minus the document policy", () => {
     const { [CSP]: _policy, ...expected } = securityHeaders("production", {});
     expect(Object.fromEntries(rules.get("/*") ?? [])).toEqual(expected);
+  });
+
+  it("lets mail clients show the email images: /email/* drops same-site and allows cross-origin", () => {
+    expect(Object.fromEntries(rules.get("/email/*") ?? [])).toEqual({
+      "!Cross-Origin-Resource-Policy": "",
+      "Cross-Origin-Resource-Policy": "cross-origin",
+      "Cache-Control": "public, max-age=604800",
+    });
   });
 
   it("sets nothing but Cache-Control on /media/*, so no header repeats", () => {
