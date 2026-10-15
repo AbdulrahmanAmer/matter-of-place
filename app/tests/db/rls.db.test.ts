@@ -222,7 +222,7 @@ interface Outcome {
   outcome: string;
 }
 
-// Ruling H113 (1): a client is the auth user whose confirmed email is a contact's email. The fixture contact's
+// Ruling H114 (1): a client is the auth user whose confirmed email is a contact's email. The fixture contact's
 // email is `test-rls-<owner>@example.test`, so the owner becomes that contact's client.
 const CONFIRM_AS = `update auth.users set email = $2, email_confirmed_at = now() where id = $1`;
 

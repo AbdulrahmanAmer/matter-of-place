@@ -2,7 +2,7 @@
 --   drop function app.contact_of(uuid);
 set lock_timeout = '5s';
 
--- W6 item 7, ruling H113: a client is the signed-in person whose confirmed auth email is a contact's email. This is
+-- W6 item 7, ruling H114: a client is the signed-in person whose confirmed auth email is a contact's email. This is
 -- the one mapping; it sits in `app`, outside the API (security advisor lint 0029), and only the service role and the
 -- functions that own it call it. A client holds no table privilege and no policy: the base tables carry staff-only
 -- columns (notes, decline notes, address hashes, reviewer ids), so a client's own rows reach the room only through
@@ -15,7 +15,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  -- Ruling H113 (1): a client is the auth user whose confirmed email is a contact's email, ignoring case (one contact
+  -- Ruling H114 (1): a client is the auth user whose confirmed email is a contact's email, ignoring case (one contact
   -- per lower(email), invariant 22). An archived contact has no client.
   select c.id
   from auth.users u

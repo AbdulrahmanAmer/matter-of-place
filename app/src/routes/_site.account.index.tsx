@@ -14,7 +14,7 @@ const TITLES: Record<AccountView["state"], string> = {
   room: "Your account",
 };
 
-// W6 item 7, ruling H113 (4): a person's room is rendered only in their browser and never kept by the edge.
+// W6 item 7, ruling H114 (4): a person's room is rendered only in their browser and never kept by the edge.
 export const Route = createFileRoute("/_site/account/")({
   ssr: false,
   headers: () => ({ "cache-control": "private, no-store" }),

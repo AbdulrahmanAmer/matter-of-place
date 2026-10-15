@@ -5,7 +5,7 @@ import { useAsyncAction } from "../hooks/use-async-action";
 import { confirmAccountLinkFn } from "../lib/account.functions";
 import { pageHead } from "../lib/seo";
 
-// W6 item 7, ruling H113 (4): the email link opens this page and the button spends the token, so a mail scanner that
+// W6 item 7, ruling H114 (4): the email link opens this page and the button spends the token, so a mail scanner that
 // opens the link first cannot use it up. The token is in the address, so the page is never rendered on the server nor
 // kept by the edge.
 export const Route = createFileRoute("/_site/account/confirm")({

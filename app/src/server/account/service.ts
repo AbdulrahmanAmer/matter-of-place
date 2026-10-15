@@ -17,7 +17,7 @@ import { checkDb, checkMemory } from "../lib/ratelimit.ts";
 import { authClient, getSessionUser } from "../lib/session.ts";
 import { verifyTurnstile } from "../lib/turnstile.ts";
 
-// W6 item 7, ruling H113: the client room's sign-in, sign-out and its one read. A client is the signed-in person whose
+// W6 item 7, ruling H114: the client room's sign-in, sign-out and its one read. A client is the signed-in person whose
 // confirmed email is a contact's; the room reads only through `account_room`, given the verified session's user.
 
 type WorkerEnv = typeof env;

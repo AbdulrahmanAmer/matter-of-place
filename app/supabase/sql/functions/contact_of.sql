@@ -5,7 +5,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  -- Ruling H113 (1): a client is the auth user whose confirmed email is a contact's email, ignoring case (one contact
+  -- Ruling H114 (1): a client is the auth user whose confirmed email is a contact's email, ignoring case (one contact
   -- per lower(email), invariant 22). An archived contact has no client.
   select c.id
   from auth.users u

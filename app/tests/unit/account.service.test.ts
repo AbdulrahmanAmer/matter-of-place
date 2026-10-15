@@ -13,7 +13,7 @@ import { getSessionUser } from "../../src/server/lib/session";
 import { verifyTurnstile } from "../../src/server/lib/turnstile";
 import { fakeDb, type FakeDbOptions } from "../fixtures/fake-db";
 
-// W6 item 7, ruling H113: the client room's service. The room reads `account_room` with the verified session's user
+// W6 item 7, ruling H114: the client room's service. The room reads `account_room` with the verified session's user
 // only; a link goes only to a contact's address and the answer is always `sent`; the link is spent by a same-origin post.
 
 const auth = {

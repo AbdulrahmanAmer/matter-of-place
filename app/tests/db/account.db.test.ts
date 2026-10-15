@@ -1,4 +1,4 @@
-// W6 item 7, ruling H113: the client room's one read. A client is the auth user whose confirmed email is a contact's
+// W6 item 7, ruling H114: the client room's one read. A client is the auth user whose confirmed email is a contact's
 // email; `account_room` answers that contact's requests and nothing else, and only the service role may call it.
 import { describe, expect, it } from "vitest";
 import { asRole, createAuthUser, withRollback, type Db } from "../fixtures/db";

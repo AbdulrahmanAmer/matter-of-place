@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { submissionStates } from "./contracts.ts";
 
-// W6 item 7, ruling H113: the client room. Field names are those `account_room` returns.
+// W6 item 7, ruling H114: the client room. Field names are those `account_room` returns.
 
 /** One of the client's own requests, by address and state. */
 const accountRequestSchema = z.object({
