@@ -1897,3 +1897,19 @@ first day of the new usage week; no step was cut from any plan.
   are left out. NOT DONE: Cloudflare Crawler Hints (the API token cannot set it, 10405; dashboard toggle), Bing
   Webmaster Tools, social links for the Organization sameAs (settings.site.social is empty), Google Postmaster Tools.
   Running: email redesign (Opus max, headless), W9 builder (Opus high). Bank grew: P-3472 to P-3477.
+
+- 2026-10-15 16:05 +0300: Merged since 09:40: 412, 414 to 417 (W9 whole: address check before sending, bounce visible
+  and reaching the team, the review sequence, listing photographs pulled from a link), 418 and 420 (email fixes, brand
+  fonts in Apple Mail), 423 (no clock on a colleague's work: stream-json, stopped only after 15 silent minutes; the
+  Linux kill ESRCH it hit is G-1451), 425 (bank G-1451, gotcha-guard matches entries by `content:`), 426 (the email
+  houses: Threshold for moments, Afternoon for correspondence, Threshold light for internal mail; the operator approved
+  the 20 on localhost:4323). Live: the auth templates pushed to mop-dev and compared equal to main (magic link, invite);
+  Signup confirmed recipe sends newsletter_welcome; editor and concierge wake on email.bounced, briefs carry the W9
+  review sequence; Fairfield (4a3c2563) has its 15 listing photographs attached and its bounce replayed (the editor's
+  run queued behind a reel pass: the runner is one job at a time). Machine-wide: ~/.claude/hooks/content-pitfalls.mjs
+  (PreToolUse, every project) warns on `process.kill(-`; cortex lesson recorded. E: freed from 30 MB to 46 GB (40
+  merged worktrees removed, P-3500, P-3501). Email build's own block (written by its headless run, which could not
+  write here): PR 426 CI green on every job (check 4820 passed, db 924 passed, watchfail 248 ok); real mail clients
+  UNPROVEN; rows an admin edited keep their words. NOT DONE: send one real email through each house and look at it in
+  Gmail and Outlook; the operator's Meta app, social accounts and the Fairfield owner's right address. Bank grew:
+  G-1451, P-3500, P-3501, P-3520 to P-3523.

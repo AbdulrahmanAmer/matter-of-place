@@ -8283,3 +8283,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before replaying by hand an entry whose run starts Playwright's Chromium (`bun run email:shots`), run `cd app && bunx playwright install chromium-headless-shell`, then the control `bun run email:shots`, which must exit 0; a `wrong reason` whose output says `Executable doesn't exist` is this, not a weak assertion.
 - proof: after the install, `cd app && bun run email:shots` exited 0 with `ok received 600x1949` and fifteen more `ok` lines, and the hand replay of `b5-shots-overflow-600` printed `WATCHED-FAIL OK src/templates/email/blocks/band.tsx` (2026-10-15).
 - added: 2026-10-15
+
+## P-3520 · The gate's catch-up merged into a stale worktree, the push was refused in silence, and it printed "main merged" eight times
+- symptom: 2026-10-15 13:50, PR 417 attempts 1 to 8 each said `branch w9-image-pull: main merged, head f3f35766` and the merge gate kept answering `rebase first (main gained .claude/hooks/gotcha-guard.mjs)`. The branch was checked out in the W9 builder's old worktree `E:/mop-build/w9-2`, whose copy had diverged from `origin/w9-image-pull` (the re-stamp was pushed from another folder); the catch-up merged there and `git push` was refused, its error sent to /dev/null.
+- rule: the gate loop (scratchpad gate-loop.sh) fast-forwards a found worktree to `origin/<branch>` first and stops with "diverged" if it cannot; a merge that fails without a conflict and a refused push are reported, never printed as success. Builders' worktrees are removed (or reset to the remote) once their PRs are open, so no stale copy holds the branch.
+- proof: `git -C E:/mop-build/w9-2 log --oneline origin/w9-image-pull..HEAD` listed only main merges and `HEAD..origin/w9-image-pull` the re-stamp; after the reset and the gate fix, `PR 417 MERGED 6bc5e7d9`.
+- added: 2026-10-15
+
+## P-3521 · A fresh worktree has no `.env`, so `eval "$(load-env ...)" 2>/dev/null` loads nothing and the shell's OmniSkipX SUPABASE_URL stays
+- symptom: 2026-10-15 15:45, a `supabase config diff` from a new worktree printed `url: https://ypylnlwqariuqjujswzh.supabase.co`: another business's production project (G-901 hit again). `load-env.mjs` had failed with `ENOENT ... pullimg\.env`, hidden by `2>/dev/null`. The CLI stopped at `ProjectRefNotLinkedError`, so nothing reached that project.
+- rule: never hide load-env's stderr; after loading, check `SUPABASE_URL` and `DEV_SUPABASE_PROJECT_REF` name `hbokkmpgpqhrnemgsqra` and refuse otherwise (scratchpad cfg-diff.sh does both); load from a tree that holds the `.env` (the runner's `E:/mop-build/live/app/scripts/load-env.mjs --profile dev`, read only) and pass `--project-ref hbokkmpgpqhrnemgsqra` to every CLI call.
+- proof: cfg-diff.sh prints `project: mop-dev (hbokkmpgpqhrnemgsqra)` before any CLI call.
+- added: 2026-10-15
+
+## P-3522 · The Supabase CLI's own login is another account: `config diff` says access denied for mop-dev
+- symptom: 2026-10-15, `bunx supabase config diff --project-ref hbokkmpgpqhrnemgsqra` → `ConfigDiffReadStatusError: Access denied ... your account does not have permission to view its configuration`.
+- rule: export our account's token from the root's `.env.ops` (`node "E:/Matter Of Place/app/scripts/load-env.mjs" --profile ops`, which holds SUPABASE_ACCESS_TOKEN) before `config diff` or `config push`. `config diff` compares settings only, not the template files `content_path` names: after a template change it says `update: 0` and the push is still needed; prove the push by comparing the Management API's `mailer_templates_*_content` with the files (scratchpad auth-template-check.sh).
+- proof: auth-template-check.sh → `magic-link.html: LIVE = main (live 11597 chars, main 11597)`, `invite.html: LIVE = main (live 11632 chars, main 11632)`.
+- added: 2026-10-15
+
+## P-3523 · `/tmp` is a different folder for Git Bash and for Node on Windows
+- symptom: 2026-10-15, a script wrote `/tmp/authcfg.json` from bash and read it from Node: `ENOENT ... E:\tmp\authcfg.json`. Bash maps `/tmp` to its own temp folder; Node resolves `/tmp` against the current drive.
+- rule: a file shared between bash and Node uses a full Windows path (the session scratchpad), never `/tmp`.
+- proof: the same check with the scratchpad path printed both template comparisons.
+- added: 2026-10-15
