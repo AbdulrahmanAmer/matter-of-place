@@ -16,7 +16,7 @@ interface StoredRow {
   variables: string[];
 }
 
-export const HOUSES_MIGRATION = "20261015094613_email_houses.sql";
+export const HOUSES_MIGRATION = "20261015110859_email_houses.sql";
 
 const migration = (name: string): string =>
   readFileSync(new URL(`../../supabase/migrations/${name}`, import.meta.url), "utf8");

@@ -119,7 +119,7 @@
   {
     "id": "rows-only-seeded",
     "test": "tests/unit/email/render.test.ts",
-    "file": "supabase/migrations/20261015094613_email_houses.sql",
+    "file": "supabase/migrations/20261015110859_email_houses.sql",
     "find": "        and body = r.seed -> 'body'\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/email/render.test.ts",
