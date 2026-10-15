@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { followMain } from "../../scripts/workforce/follow";
+import { followMain, runnerBusy } from "../../scripts/workforce/follow";
 
 // Gap audit item 6: the runner folder follows main between runs, and only the folder install.ps1 registered.
 
@@ -47,4 +47,13 @@ describe("followMain", () => {
     ]);
     // Eleven git processes: seconds on Windows, more under load (G-031).
   }, 60_000);
+});
+
+describe("what keeps the runner on its commit", () => {
+  it("waits for a run this checkout executes, never for the live session's own goal run", () => {
+    expect(runnerBusy([])).toBe(false);
+    expect(runnerBusy([{ worker: "matter-live@laptop" }])).toBe(false);
+    expect(runnerBusy([{ worker: "matter-live@laptop" }, { worker: "laptop:4120" }])).toBe(true);
+    expect(runnerBusy([{ worker: null }])).toBe(true);
+  });
 });
