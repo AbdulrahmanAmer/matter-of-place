@@ -238,6 +238,7 @@ describe("the assets service on the database", () => {
         kind: "cover",
         tier: "Editorial",
         market: "california",
+        subject: "property",
       },
     ]);
     expect({ audit: seen.audit, status: seen.status }).toEqual({ audit: 1, status: "approved" });
@@ -256,6 +257,7 @@ describe("the assets service on the database", () => {
         kind: "cover",
         tier: "Editorial",
         market: "california",
+        subject: "property",
         note: "The light is flat.",
       },
     ]);

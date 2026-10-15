@@ -13,7 +13,11 @@ const JOB = "00000000-0000-4000-8000-0000000000f1";
 
 const row = (id: string, overrides: Partial<AdminAsset>): AdminAsset => ({
   id,
+  subject: "property",
   property_id: PROPERTY,
+  market_slug: null,
+  story_id: null,
+  subject_label: null,
   kind: "cover",
   revision: 1,
   status: "pending",
