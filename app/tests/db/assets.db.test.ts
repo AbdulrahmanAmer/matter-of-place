@@ -363,10 +363,127 @@ describe("reject_asset", () => {
     });
     expect(refused).toMatchObject({ code: "55000", message: "asset_not_rejectable" });
   });
+
+  it("lets Matter's agent key reject a pending asset, its audit row naming Matter's account as an agent (W8 item 9)", async () => {
+    const result = await withRollback(async (db) => {
+      const id = await asset(db, await property(db, "test-w8-9-reject"), "reel", COMPLETE_REEL);
+      const matter = await agentAccount(db);
+      await db.query(rejectAs("agent"), [id, "The stair is cut off at the top.", matter]);
+      const audit = await db.query<Record<string, string>>(
+        "select actor_id::text, actor_kind::text, action, note from public.audit_log where entity = 'assets' and entity_id = $1",
+        [id],
+      );
+      return { audit: audit.rows, matter, counts: await counts(db, id) };
+    });
+    expect(result.audit).toEqual([
+      {
+        actor_id: result.matter,
+        actor_kind: "agent",
+        action: "assets.reject",
+        note: "The stair is cut off at the top.",
+      },
+    ]);
+    expect(result.counts).toEqual({ audit: 1, events: 1 });
+  });
+
+  it("refuses an agent key on an approved asset, which a person can still take back (W8 item 9)", async () => {
+    const result = await withRollback(async (db) => {
+      const id = await asset(db, await property(db, "test-w8-9-approved"), "cover", COMPLETE_MEDIA);
+      const person = await human(db);
+      await db.query(approve(), [id, person]);
+      const refused = await refusal(db, rejectAs("agent"), [
+        id,
+        "Too dark.",
+        await agentAccount(db),
+      ]);
+      const kept = await scalar<string>(
+        db,
+        "select status::text as v from public.assets where id = $1",
+        [id],
+      );
+      const taken = await refusal(db, reject, [id, "Too dark.", person]);
+      return { refused, kept, taken, audit: (await counts(db, id)).audit };
+    });
+    expect({ ...result, refused: result.refused?.message ?? null }).toEqual({
+      refused: "asset_not_rejectable",
+      kept: "approved",
+      taken: null,
+      audit: 2,
+    });
+  });
 });
+
+/** W8 item 9: an agent account as `scripts/matter/key.ts` makes Matter's, the `admin` role held as an agent. */
+async function agentAccount(db: Db): Promise<string> {
+  const id = await createStaffUser(db, ["admin"]);
+  await db.query(
+    "update public.user_roles set actor_kind = 'agent', display_name = 'Matter' where user_id = $1",
+    [id],
+  );
+  return id;
+}
+
+const rejectAs = (kind: "human" | "agent") =>
+  `select public.reject_asset($1, $2, $3, '${kind}'::public.actor_kind, 'req-2') as v`;
 
 describe("rerender_asset", () => {
   const rerender = "select public.rerender_asset($1, $2, 'human'::public.actor_kind, 'req-3') as v";
+
+  it("lets an agent key ask for a new render of a rejected asset and refuses one that would supersede an approval (W8 item 9)", async () => {
+    const asAgent =
+      "select public.rerender_asset($1, $2, 'agent'::public.actor_kind, 'req-3') as v";
+    const result = await withRollback(async (db) => {
+      const matter = await agentAccount(db);
+      const rejected = await asset(
+        db,
+        await property(db, "test-w8-9-rerender"),
+        "cover",
+        COMPLETE_MEDIA,
+      );
+      await db.query(rejectAs("agent"), [rejected, "Too dark.", matter]);
+      const made = await scalar<{ asset_id: string }>(db, asAgent, [rejected, matter]);
+      const approved = await asset(
+        db,
+        await property(db, "test-w8-9-kept"),
+        "cover",
+        COMPLETE_MEDIA,
+      );
+      await db.query(approve(), [approved, await human(db)]);
+      const refused = await refusal(db, asAgent, [approved, matter]);
+      const revisions = async (id: string) =>
+        (
+          await db.query<{ revision: number; status: string }>(
+            "select revision, status::text from public.assets where property_id = (select property_id from public.assets where id = $1) order by revision",
+            [id],
+          )
+        ).rows;
+      const actor = await db.query<Record<string, string>>(
+        "select actor_id::text, actor_kind::text from public.audit_log where action = 'assets.re_render' and entity_id = $1",
+        [made.asset_id],
+      );
+      return {
+        refused,
+        rerendered: await revisions(rejected),
+        kept: await revisions(approved),
+        actor: actor.rows,
+        matter,
+      };
+    });
+    expect({
+      refused: result.refused?.message ?? null,
+      rerendered: result.rerendered,
+      kept: result.kept,
+      actor: result.actor,
+    }).toEqual({
+      refused: "asset_not_rejectable",
+      rerendered: [
+        { revision: 1, status: "rejected" },
+        { revision: 2, status: "pending" },
+      ],
+      kept: [{ revision: 1, status: "approved" }],
+      actor: [{ actor_id: result.matter, actor_kind: "agent" }],
+    });
+  });
 
   interface JobRow {
     type: string;

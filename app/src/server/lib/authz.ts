@@ -13,6 +13,8 @@ export interface PermissionEntry {
   /** The route group, which is also the agent scope that covers the action (invariant 3). */
   readonly group: string;
   readonly roles: readonly AppRole[];
+  /** The roles an agent key needs instead of `roles` (W8 item 9); absent, an agent needs `roles` like a person. */
+  readonly agentRoles?: readonly AppRole[];
   readonly humanOnly?: true;
   /** A sign-in within the last 15 minutes, checked by `defineAdminRoute` (invariant 11). */
   readonly recentAuth?: true;
@@ -58,11 +60,13 @@ export function permission(action: ActionId): PermissionEntry {
 }
 
 function refusal(actor: Principal, entry: PermissionEntry): Refusal | null {
+  let roles = entry.roles;
   if (actor.kind === "agent") {
     if (entry.humanOnly) return "human_only";
     if (!entry.scopeFree && !actor.scopes.includes(entry.group)) return "out_of_scope";
+    roles = entry.agentRoles ?? roles;
   }
-  return entry.roles.some((role) => actor.roles.includes(role)) ? null : "forbidden";
+  return roles.some((role) => actor.roles.includes(role)) ? null : "forbidden";
 }
 
 export function can(actor: Principal, action: ActionId): boolean {

@@ -22,6 +22,11 @@ begin
   if v_asset.status not in ('pending', 'approved') then
     raise exception 'asset_not_rejectable' using errcode = '55000';
   end if;
+  -- W8 item 9: an agent key (Matter's) rejects only an asset still waiting for a decision; an approved one stays a
+  -- person's to take back.
+  if p_actor_kind = 'agent' and v_asset.status <> 'pending' then
+    raise exception 'asset_not_rejectable' using errcode = '55000';
+  end if;
   select p.campaign_tier, p.market_slug into v_tier, v_market
   from public.properties p
   where p.id = v_asset.property_id;
