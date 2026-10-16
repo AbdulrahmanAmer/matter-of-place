@@ -450,6 +450,15 @@ describe("rerender_asset", () => {
       );
       await db.query(approve(), [approved, await human(db)]);
       const refused = await refusal(db, asAgent, [approved, matter]);
+      const published = await asset(
+        db,
+        await property(db, "test-w8-9-published"),
+        "cover",
+        COMPLETE_MEDIA,
+      );
+      await db.query(approve(), [published, await human(db)]);
+      await db.query("update public.assets set status = 'published' where id = $1", [published]);
+      const live = await refusal(db, asAgent, [published, matter]);
       const revisions = async (id: string) =>
         (
           await db.query<{ revision: number; status: string }>(
@@ -463,19 +472,25 @@ describe("rerender_asset", () => {
       );
       return {
         refused,
+        live,
         rerendered: await revisions(rejected),
         kept: await revisions(approved),
+        stays: await revisions(published),
         actor: actor.rows,
         matter,
       };
     });
     expect({
       refused: result.refused?.message ?? null,
+      live: result.live?.message ?? null,
       rerendered: result.rerendered,
       kept: result.kept,
+      stays: result.stays,
       actor: result.actor,
     }).toEqual({
       refused: "asset_not_rejectable",
+      live: "asset_not_rejectable",
+      stays: [{ revision: 1, status: "published" }],
       rerendered: [
         { revision: 1, status: "rejected" },
         { revision: 2, status: "pending" },

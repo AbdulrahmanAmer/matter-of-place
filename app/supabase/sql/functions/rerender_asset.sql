@@ -38,9 +38,9 @@ begin
   if v_latest.revision > v_asset.revision and v_latest.status = 'pending' then
     return jsonb_build_object('asset_id', v_latest.id, 'job_id', v_latest.job_id);
   end if;
-  -- W8 item 9: an agent key's re-render never supersedes an approved revision (that would take it back); a person
-  -- rejects it first.
-  if p_actor_kind = 'agent' and v_latest.status = 'approved' then
+  -- W8 item 9: an agent key's re-render supersedes only a revision still waiting or already rejected, never an
+  -- approved or published one (that would take it back); a person rejects that first.
+  if p_actor_kind = 'agent' and v_latest.status not in ('pending', 'rejected') then
     raise exception 'asset_not_rejectable' using errcode = '55000';
   end if;
 
