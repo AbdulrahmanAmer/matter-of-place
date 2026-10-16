@@ -162,6 +162,16 @@ describe("CarouselSlide", () => {
     `);
   });
 
+  it("carries no counter on a single post, which is a lone cover slide", () => {
+    const html = markup(
+      createElement(CarouselSlide, { spec, slide: { kind: "cover", image: 0 }, index: 0, total: 1 }),
+    );
+    expect([html.includes("social-frame__marker"), html.includes("social-frame__headline")]).toEqual([
+      false,
+      true,
+    ]);
+  });
+
   it("carries the position and one photograph on a photograph slide, in a band of the wordmark and the counter only", () => {
     const html = slide(1);
     expect([

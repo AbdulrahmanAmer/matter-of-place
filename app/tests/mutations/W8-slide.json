@@ -43,5 +43,14 @@
     "replace": "true ? ",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "× .*carries the title in the place of the price"
+  },
+  {
+    "id": "w8-single-post-no-counter",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Carousel.tsx",
+    "find": "total > 1 ? `${padIndex(index + 1)} / ${padIndex(total)}` : undefined",
+    "replace": "`${padIndex(index + 1)} / ${padIndex(total)}`",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× .*carries no counter on a single post"
   }
 ]
