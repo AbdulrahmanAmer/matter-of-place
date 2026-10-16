@@ -3,8 +3,8 @@
     "id": "w7-4-scope-decisions",
     "test": "tests/unit/workforce-memory.test.ts",
     "file": "src/server/workforce/service.ts",
-    "find": "  authorize(actor, \"workforce.office\");\n  const [decisions, agents]",
-    "replace": "  const [decisions, agents]",
+    "find": "  authorize(actor, \"workforce.office\");\n  const [reads, agents]",
+    "replace": "  const [reads, agents]",
     "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
     "expect": "× .*refuses the decisions service itself"
   },
@@ -81,15 +81,6 @@
     "expect": "× .*calls a decision whose owner is gone"
   },
   {
-    "id": "w7-4-status-fallback",
-    "test": "tests/unit/workforce-memory.test.ts",
-    "file": "src/server/workforce/service.ts",
-    "find": "  allowed.find((item) => item === value) ?? otherwise;",
-    "replace": "  value as T;",
-    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
-    "expect": "× .*reads an unknown status as open"
-  },
-  {
     "id": "w7-4-team-lesson",
     "test": "tests/unit/workforce-memory.test.ts",
     "file": "src/server/workforce/service.ts",
@@ -102,8 +93,8 @@
     "id": "w7-4-no-text-in-list",
     "test": "tests/unit/workforce-memory.test.ts",
     "file": "src/server/workforce/service.ts",
-    "find": ".select(\"id, agent_id, version, reason, approval_id, created_at\")",
-    "replace": ".select(\"id, agent_id, version, instructions, reason, approval_id, created_at\")",
+    "find": ".select(\"id, agent_id, version, reason, approval_id, created_at\", { count: \"exact\" })",
+    "replace": ".select(\"id, agent_id, version, instructions, reason, approval_id, created_at\", { count: \"exact\" })",
     "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
     "expect": "× .*lists each version with its colleague"
   },
@@ -114,7 +105,7 @@
     "find": "const MEMORY_LIMIT = 200;",
     "replace": "const MEMORY_LIMIT = 20;",
     "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
-    "expect": "× .*asks for the 200 newest decisions"
+    "expect": "× .*reads each status on its own, newest 200 of each"
   },
   {
     "id": "w7-4-text-by-id",
@@ -149,7 +140,7 @@
     "file": "src/admin/workforce/OfficePage.tsx",
     "find": "const [tab, setTab] = useState(\"office\");",
     "replace": "const [tab, setTab] = useState(\"decisions\");",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*opens on the floor and offers the three memory tabs"
   },
   {
@@ -158,26 +149,17 @@
     "file": "src/admin/workforce/OfficePage.tsx",
     "find": "{ id: \"instructions\", label: \"Instruction history\" },",
     "replace": "{ id: \"instructions\", label: \"Instructions\" },",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*opens on the floor and offers the three memory tabs"
-  },
-  {
-    "id": "w7-4-filter",
-    "test": "src/admin/workforce/team-memory.test.tsx",
-    "file": "src/admin/workforce/DecisionsPanel.tsx",
-    "find": "filter === \"all\" ? items : items.filter((item) => item.status === filter);",
-    "replace": "items;",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
-    "expect": "× .*filters the decisions to open, done or missed"
   },
   {
     "id": "w7-4-filter-count",
     "test": "src/admin/workforce/team-memory.test.tsx",
     "file": "src/admin/workforce/DecisionsPanel.tsx",
-    "find": "items.filter((item) => item.status === status).length;",
-    "replace": "items.filter((item) => item.status !== status).length;",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
-    "expect": "× .*filters the decisions to open, done or missed"
+    "find": "{`${statusLabel[status]} (${String(counts[status])})`}",
+    "replace": "{`${statusLabel[status]} (${String(shown.filter((item) => item.status === status).length)})`}",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*filters the decisions to open, done or missed on the server"
   },
   {
     "id": "w7-4-decision-row",
@@ -185,7 +167,7 @@
     "file": "src/admin/workforce/DecisionsPanel.tsx",
     "find": "                  <td>{item.owner_name}</td>\n",
     "replace": "",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*lists each decision with its owner, due date, metric and status"
   },
   {
@@ -194,7 +176,7 @@
     "file": "src/admin/workforce/DecisionsPanel.tsx",
     "find": "<td className=\"wf-mem__wide\">{item.decision}</td>",
     "replace": "<td className=\"wf-mem__wide\" dangerouslySetInnerHTML={{ __html: item.decision }} />",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*shows a decision's words as text"
   },
   {
@@ -203,7 +185,7 @@
     "file": "src/admin/workforce/DecisionsPanel.tsx",
     "find": "No decision yet. The daily meeting writes its decisions here once it has met.",
     "replace": "Nothing.",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*shows a calm empty state on each tab"
   },
   {
@@ -212,7 +194,7 @@
     "file": "src/admin/workforce/LessonsPanel.tsx",
     "find": "{item.agent_name ?? \"The whole team\"}",
     "replace": "{item.agent_name ?? \"\"}",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*lists each lesson with whose it is"
   },
   {
@@ -221,7 +203,7 @@
     "file": "src/admin/workforce/LessonsPanel.tsx",
     "find": "The lessons could not be read. Try again in a moment.",
     "replace": "Nothing.",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*says the memory could not be read when the read fails"
   },
   {
@@ -230,7 +212,7 @@
     "file": "src/admin/workforce/memory-format.ts",
     "find": "iso === null ? \"Never\" :",
     "replace": "iso === null ? \"-\" :",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*lists each lesson with whose it is"
   },
   {
@@ -239,7 +221,7 @@
     "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
     "find": "const own = items.filter((item) => item.agent_slug === slug);",
     "replace": "const own = items;",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*groups the instruction history per colleague"
   },
   {
@@ -248,7 +230,7 @@
     "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
     "find": "{open ? <VersionText id={version.id} /> : null}",
     "replace": "<VersionText id={version.id} />",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*reads a version's text only when asked"
   },
   {
@@ -257,7 +239,7 @@
     "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
     "find": "{version.approval_id === null ? null : <span>Approved in Approvals</span>}",
     "replace": "{null}",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*groups the instruction history per colleague"
   },
   {
@@ -266,7 +248,7 @@
     "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
     "find": "<pre className=\"wf-mem__text\">{body}</pre>",
     "replace": "<pre className=\"wf-mem__text\" dangerouslySetInnerHTML={{ __html: body }} />",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*shows a version's text as text, never as HTML"
   },
   {
@@ -275,7 +257,295 @@
     "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
     "find": "{open ? \"Hide the text\" : \"Show the text\"}",
     "replace": "Show the text",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
     "expect": "× .*shows a version's text as text, never as HTML"
+  },
+  {
+    "id": "w7-4-lesson-status-contract",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "status: inContract(z.enum(lessonStatuses), row.status, \"The lessons\"),",
+    "replace": "status: row.status as TeamLesson[\"status\"],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*refuses a lesson whose status is outside the contract"
+  },
+  {
+    "id": "w7-4-lesson-source-contract",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "source: inContract(z.enum(lessonSources), row.source, \"The lessons\"),",
+    "replace": "source: row.source as TeamLesson[\"source\"],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*refuses a lesson whose source is outside the contract"
+  },
+  {
+    "id": "w7-4-decision-status-contract",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "status: inContract(z.enum(decisionStatuses), row.status, \"The decisions\"),",
+    "replace": "status: row.status as DecisionStatus,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*refuses a decision whose status is outside the contract"
+  },
+  {
+    "id": "w7-4-decision-status-param",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "readDecisions(db, each, status === undefined || status === each),",
+    "replace": "readDecisions(db, each, true),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*with \\?status= reads the rows of that status only"
+  },
+  {
+    "id": "w7-4-decision-true-totals",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "const totalOf = (each: DecisionStatus) => reads[decisionStatuses.indexOf(each)]?.count ?? 0;",
+    "replace": "const totalOf = (each: DecisionStatus) => reads[decisionStatuses.indexOf(each)]?.rows.length ?? 0;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*reads each status on its own, newest 200 of each"
+  },
+  {
+    "id": "w7-4-decision-own-cap",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "    .order(\"created_at\", { ascending: false })\n    .limit(MEMORY_LIMIT);\n  return { rows: data ?? [], count, error };",
+    "replace": "    .order(\"created_at\", { ascending: false });\n  return { rows: data ?? [], count, error };",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*reads each status on its own, newest 200 of each"
+  },
+  {
+    "id": "w7-4-decision-status-query",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/domain/admin-team-memory.ts",
+    "find": "export const decisionQuerySchema = z.object({ status: z.enum(decisionStatuses).optional() });",
+    "replace": "export const decisionQuerySchema = z.object({ status: z.string().optional() });",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*refuses a status that is not open, done or missed with 422"
+  },
+  {
+    "id": "w7-4-route-passes-status",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/routes/api/admin/workforce.memory.decisions.ts",
+    "find": "listDecisions(ctx.actor, ctx.db, input.status)",
+    "replace": "listDecisions(ctx.actor, ctx.db)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*with \\?status= reads the rows of that status only"
+  },
+  {
+    "id": "w7-4-lessons-true-total",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "total: lessons.count,",
+    "replace": "total: lessons.data.length,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*asks for the 200 newest lessons with a count"
+  },
+  {
+    "id": "w7-4-versions-true-total",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "total: versions.count,",
+    "replace": "total: versions.data.length,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*asks for the 200 newest versions with a count"
+  },
+  {
+    "id": "w7-4-decisions-read-error",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "reads.some((read) => read.error !== null || read.count === null)",
+    "replace": "reads.some((read) => read.count === null)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the decisions, a count or the colleagues cannot be read"
+  },
+  {
+    "id": "w7-4-decisions-read-uncounted",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "reads.some((read) => read.error !== null || read.count === null)",
+    "replace": "reads.some((read) => read.error !== null)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the decisions, a count or the colleagues cannot be read"
+  },
+  {
+    "id": "w7-4-decisions-agents-error",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "if (agents.error !== null || reads.some(",
+    "replace": "if (reads.some(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the decisions, a count or the colleagues cannot be read"
+  },
+  {
+    "id": "w7-4-lessons-read-error",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "if (lessons.error !== null || lessons.count === null || agents.error !== null) {",
+    "replace": "if (lessons.count === null || agents.error !== null) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the lessons, their count or the colleagues cannot be read"
+  },
+  {
+    "id": "w7-4-lessons-read-uncounted",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "if (lessons.error !== null || lessons.count === null || agents.error !== null) {",
+    "replace": "if (lessons.error !== null || agents.error !== null) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the lessons, their count or the colleagues cannot be read"
+  },
+  {
+    "id": "w7-4-lessons-agents-error",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "if (lessons.error !== null || lessons.count === null || agents.error !== null) {",
+    "replace": "if (lessons.error !== null || lessons.count === null) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the lessons, their count or the colleagues cannot be read"
+  },
+  {
+    "id": "w7-4-versions-read-error",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "if (versions.error !== null || versions.count === null || agents.error !== null) {",
+    "replace": "if (versions.count === null || agents.error !== null) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the versions, their count or the colleagues cannot be read"
+  },
+  {
+    "id": "w7-4-versions-read-uncounted",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "if (versions.error !== null || versions.count === null || agents.error !== null) {",
+    "replace": "if (versions.error !== null || agents.error !== null) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the versions, their count or the colleagues cannot be read"
+  },
+  {
+    "id": "w7-4-versions-agents-error",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "if (versions.error !== null || versions.count === null || agents.error !== null) {",
+    "replace": "if (versions.error !== null || versions.count === null) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the versions, their count or the colleagues cannot be read"
+  },
+  {
+    "id": "w7-4-text-read-error",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/server/workforce/service.ts",
+    "find": "if (error !== null) throw unavailable(\"That version\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*answers 503 when the text cannot be read"
+  },
+  {
+    "id": "w7-4-filter-on-server",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/DecisionsPanel.tsx",
+    "find": "useDecisions(filter === \"all\" ? undefined : filter)",
+    "replace": "useDecisions(undefined)",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*filters the decisions to open, done or missed on the server"
+  },
+  {
+    "id": "w7-4-all-count",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/DecisionsPanel.tsx",
+    "find": "{`All (${String(total)})`}",
+    "replace": "{`All (${String(shown.length)})`}",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*counts the true total of each status"
+  },
+  {
+    "id": "w7-4-decisions-cap-note",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/DecisionsPanel.tsx",
+    "find": "{note === null ? null : <p className=\"wf-mem__lead\">{note}</p>}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*counts the true total of each status"
+  },
+  {
+    "id": "w7-4-cap-note-whole-list",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/memory-format.ts",
+    "find": "shown < total ?",
+    "replace": "shown <= total ?",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*says nothing about a cap when every decision is on screen"
+  },
+  {
+    "id": "w7-4-lessons-cap-note",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/LessonsPanel.tsx",
+    "find": "{note === null ? null : <p className=\"wf-mem__lead\">{note}</p>}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*says how many lessons it shows"
+  },
+  {
+    "id": "w7-4-lessons-total-wired",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/LessonsPanel.tsx",
+    "find": "lessons.data?.total ?? 0, \"lessons\"",
+    "replace": "items.length, \"lessons\"",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*says how many lessons it shows"
+  },
+  {
+    "id": "w7-4-versions-cap-note",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
+    "find": "{note === null ? null : <p className=\"wf-mem__lead\">{note}</p>}",
+    "replace": "{null}",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*says how many versions it shows"
+  },
+  {
+    "id": "w7-4-versions-total-wired",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
+    "find": "history.data?.total ?? 0, \"versions\"",
+    "replace": "items.length, \"versions\"",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*says how many versions it shows"
+  },
+  {
+    "id": "w7-4-metric-text",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/DecisionsPanel.tsx",
+    "find": "<td className=\"wf-mem__wide\">{item.metric}</td>",
+    "replace": "<td className=\"wf-mem__wide\" dangerouslySetInnerHTML={{ __html: item.metric }} />",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*shows a decision's metric as text"
+  },
+  {
+    "id": "w7-4-lesson-trigger-text",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/LessonsPanel.tsx",
+    "find": "<td className=\"wf-mem__wide\">{item.trigger}</td>",
+    "replace": "<td className=\"wf-mem__wide\" dangerouslySetInnerHTML={{ __html: item.trigger }} />",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*shows a lesson's trigger as text"
+  },
+  {
+    "id": "w7-4-lesson-action-text",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/LessonsPanel.tsx",
+    "find": "<td className=\"wf-mem__wide\">{item.action}</td>",
+    "replace": "<td className=\"wf-mem__wide\" dangerouslySetInnerHTML={{ __html: item.action }} />",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*shows a lesson's action as text"
+  },
+  {
+    "id": "w7-4-version-reason-text",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/InstructionHistoryPanel.tsx",
+    "find": "<p className=\"wf-mem__reason\">{version.reason}</p>",
+    "replace": "<p className=\"wf-mem__reason\" dangerouslySetInnerHTML={{ __html: version.reason }} />",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*shows a version's reason as text"
   }
 ]

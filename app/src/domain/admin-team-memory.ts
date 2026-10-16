@@ -18,9 +18,20 @@ const decisionSchema = z.object({
   status: z.enum(decisionStatuses),
   checked_at: z.string().nullable(),
 });
-export type TeamDecision = z.infer<typeof decisionSchema>;
 
-export const decisionListSchema = z.object({ items: z.array(decisionSchema) });
+/** Each status is read and capped on its own, so a count is the true total of that status, never the size of a slice. */
+export const decisionListSchema = z.object({
+  items: z.array(decisionSchema),
+  counts: z.object({
+    open: z.number().int().nonnegative(),
+    done: z.number().int().nonnegative(),
+    missed: z.number().int().nonnegative(),
+  }),
+});
+export type TeamDecisionList = z.infer<typeof decisionListSchema>;
+
+/** The optional `status` of the decisions read: one status, or every status when it is left out. */
+export const decisionQuerySchema = z.object({ status: z.enum(decisionStatuses).optional() });
 
 export const lessonSources = ["decline", "edit", "outcome", "matter"] as const;
 export const lessonStatuses = ["active", "retired", "promoted"] as const;
@@ -40,7 +51,11 @@ const lessonSchema = z.object({
 });
 export type TeamLesson = z.infer<typeof lessonSchema>;
 
-export const lessonListSchema = z.object({ items: z.array(lessonSchema) });
+/** `total` counts every lesson; `items` holds the newest up to the bound, so a screen can say how many it shows. */
+export const lessonListSchema = z.object({
+  items: z.array(lessonSchema),
+  total: z.number().int().nonnegative(),
+});
 
 /** One version of a colleague's instructions, without its text: the text is read on demand (instructionTextSchema). */
 const instructionVersionSchema = z.object({
@@ -55,7 +70,10 @@ const instructionVersionSchema = z.object({
 });
 export type InstructionVersion = z.infer<typeof instructionVersionSchema>;
 
-export const instructionVersionListSchema = z.object({ items: z.array(instructionVersionSchema) });
+export const instructionVersionListSchema = z.object({
+  items: z.array(instructionVersionSchema),
+  total: z.number().int().nonnegative(),
+});
 
 export const instructionTextSchema = z.object({ id: z.string().uuid(), instructions: z.string() });
 export const instructionIdSchema = z.object({ id: z.string().uuid() });

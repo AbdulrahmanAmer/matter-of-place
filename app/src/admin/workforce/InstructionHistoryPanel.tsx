@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { InstructionVersion } from "../../domain/admin-team-memory";
-import { momentOf } from "./memory-format";
+import { cappedNote, momentOf } from "./memory-format";
 import { useInstructionText, useInstructionVersions } from "./workforce-queries";
 
 // W7 item 4: the history of each colleague's instructions, newest first. The text of a version is read on demand and
@@ -46,6 +46,7 @@ function Version({ version }: { version: InstructionVersion }) {
 export function InstructionHistoryPanel() {
   const history = useInstructionVersions();
   const items = history.data?.items ?? [];
+  const note = cappedNote(items.length, history.data?.total ?? 0, "versions");
   // The list arrives newest first: a colleague's group sits where their latest version is, versions in the same order.
   const colleagues = [...new Set(items.map((item) => item.agent_slug))];
 
@@ -64,19 +65,22 @@ export function InstructionHistoryPanel() {
           No version yet. The first change to a colleague's instructions starts their history.
         </p>
       ) : (
-        colleagues.map((slug) => {
-          const own = items.filter((item) => item.agent_slug === slug);
-          return (
-            <div key={slug} className="wf-mem__colleague">
-              <h3>{own[0]?.agent_name ?? slug}</h3>
-              <ol>
-                {own.map((version) => (
-                  <Version key={version.id} version={version} />
-                ))}
-              </ol>
-            </div>
-          );
-        })
+        <>
+          {note === null ? null : <p className="wf-mem__lead">{note}</p>}
+          {colleagues.map((slug) => {
+            const own = items.filter((item) => item.agent_slug === slug);
+            return (
+              <div key={slug} className="wf-mem__colleague">
+                <h3>{own[0]?.agent_name ?? slug}</h3>
+                <ol>
+                  {own.map((version) => (
+                    <Version key={version.id} version={version} />
+                  ))}
+                </ol>
+              </div>
+            );
+          })}
+        </>
       )}
     </section>
   );

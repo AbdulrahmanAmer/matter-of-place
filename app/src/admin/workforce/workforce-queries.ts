@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { DecisionStatus } from "../../domain/admin-team-memory";
 import type { HireInput } from "../../domain/workforce";
 import { adminKeys } from "../query";
 import {
@@ -93,10 +94,12 @@ export function useDecide() {
 // W7 item 4: the team's memory changes once a day at most; a minute is fresh enough.
 const MEMORY_REFRESH = 60_000;
 
-export function useDecisions() {
+/** The decisions of one status, or of every status (each read and capped on its own by the server). */
+export function useDecisions(status?: DecisionStatus) {
   return useQuery({
-    queryKey: adminKeys.workforce.list("memory-decisions"),
-    queryFn: fetchDecisions,
+    queryKey: adminKeys.workforce.list(`memory-decisions-${status ?? "all"}`),
+    queryFn: () => fetchDecisions(status),
+    placeholderData: keepPreviousData,
     refetchInterval: MEMORY_REFRESH,
   });
 }

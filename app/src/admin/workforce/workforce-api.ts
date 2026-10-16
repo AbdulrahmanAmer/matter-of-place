@@ -7,6 +7,7 @@ import {
 } from "../../domain/workforce";
 import {
   decisionListSchema,
+  type DecisionStatus,
   instructionTextSchema,
   instructionVersionListSchema,
   lessonListSchema,
@@ -67,8 +68,11 @@ export const postDecision = (
   );
 
 // W7 item 4: the team's memory, read only.
-export const fetchDecisions = () =>
-  adminFetch("/api/admin/workforce/memory/decisions", decisionListSchema);
+export const fetchDecisions = (status?: DecisionStatus) =>
+  adminFetch(
+    `/api/admin/workforce/memory/decisions${status === undefined ? "" : `?status=${status}`}`,
+    decisionListSchema,
+  );
 
 export const fetchLessons = () =>
   adminFetch("/api/admin/workforce/memory/lessons", lessonListSchema);

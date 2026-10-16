@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { Outlet } from "@tanstack/react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminProviders } from "../ui/test-providers";
@@ -53,10 +53,28 @@ const version = (id: string, over: object = {}) => ({
 
 interface Served {
   decisions?: object[];
+  /** The true totals per status, when the server holds more than it sends. */
+  counts?: Partial<Record<"open" | "done" | "missed", number>>;
   lessons?: object[];
+  /** The true number of lessons or versions, when the server holds more than it sends. */
+  lessonTotal?: number;
   versions?: object[];
+  versionTotal?: number;
   texts?: Record<string, string>;
   fail?: boolean;
+}
+
+const statusOf = (row: object): unknown => Reflect.get(row, "status");
+
+/** What the decisions route answers: the rows of the asked status (all when none), and the true total of each. */
+function decisionsAnswer(served: Served, status: string | null) {
+  const all = served.decisions ?? [];
+  const total = (each: "open" | "done" | "missed") =>
+    served.counts?.[each] ?? all.filter((row) => statusOf(row) === each).length;
+  return {
+    items: status === null ? all : all.filter((row) => statusOf(row) === status),
+    counts: { open: total("open"), done: total("done"), missed: total("missed") },
+  };
 }
 
 /** The office and the three memory reads, answered from `served`; `asked` lists every path the screen called. */
@@ -67,14 +85,19 @@ function serve(served: Served = {}) {
     if (served.fail === true && path.includes("/memory/")) {
       return Promise.resolve(Response.json({ error: "unavailable" }, { status: 500 }));
     }
-    if (path === "/api/admin/workforce/memory/decisions") {
-      return Promise.resolve(Response.json({ items: served.decisions ?? [] }));
+    const url = new URL(path, "https://example.test");
+    if (url.pathname === "/api/admin/workforce/memory/decisions") {
+      return Promise.resolve(
+        Response.json(decisionsAnswer(served, url.searchParams.get("status"))),
+      );
     }
     if (path === "/api/admin/workforce/memory/lessons") {
-      return Promise.resolve(Response.json({ items: served.lessons ?? [] }));
+      const items = served.lessons ?? [];
+      return Promise.resolve(Response.json({ items, total: served.lessonTotal ?? items.length }));
     }
     if (path === "/api/admin/workforce/memory/instructions") {
-      return Promise.resolve(Response.json({ items: served.versions ?? [] }));
+      const items = served.versions ?? [];
+      return Promise.resolve(Response.json({ items, total: served.versionTotal ?? items.length }));
     }
     const text = /\/memory\/instructions\/([^/?]+)$/.exec(path)?.[1];
     if (text !== undefined) {
@@ -165,8 +188,8 @@ describe("Office: the team's memory", () => {
     expect(screen.getByText("Ada Chief")).toBeTruthy();
   });
 
-  it("filters the decisions to open, done or missed, with the count on each filter", async () => {
-    serve({
+  it("filters the decisions to open, done or missed on the server, with the count on each filter", async () => {
+    const asked = serve({
       decisions: [
         decision("1"),
         decision("2", { status: "done" }),
@@ -176,22 +199,41 @@ describe("Office: the team's memory", () => {
     });
     await openTab("Decisions");
     await screen.findByText("Decision 1");
-    const seen = () =>
+    // The previous rows stay on screen while a filter loads: wait until the rows are the ones the filter names.
+    const rows = () =>
       screen
         .getAllByRole("row")
         .slice(1)
         .map((row) => within(row).getAllByRole("cell")[0]?.textContent);
-    const all = seen();
+    const seen = async (expected: string[]) => {
+      await waitFor(() => {
+        expect(rows()).toEqual(expected);
+      });
+      return rows();
+    };
+    const all = await seen(["Decision 1", "Decision 2", "Decision 3", "Decision 4"]);
     fireEvent.click(screen.getByRole("button", { name: "Missed (2)" }));
-    const missed = seen();
+    const missed = await seen(["Decision 3", "Decision 4"]);
     fireEvent.click(screen.getByRole("button", { name: "Open (1)" }));
-    const open = seen();
+    const open = await seen(["Decision 1"]);
     fireEvent.click(screen.getByRole("button", { name: "Done (1)" }));
-    expect({ all, missed, open, done: seen() }).toEqual({
+    expect({
+      all,
+      missed,
+      open,
+      done: await seen(["Decision 2"]),
+      asked: asked.filter((path) => path.includes("/memory/decisions")),
+    }).toEqual({
       all: ["Decision 1", "Decision 2", "Decision 3", "Decision 4"],
       missed: ["Decision 3", "Decision 4"],
       open: ["Decision 1"],
       done: ["Decision 2"],
+      asked: [
+        "/api/admin/workforce/memory/decisions",
+        "/api/admin/workforce/memory/decisions?status=missed",
+        "/api/admin/workforce/memory/decisions?status=open",
+        "/api/admin/workforce/memory/decisions?status=done",
+      ],
     });
   });
 
@@ -200,7 +242,51 @@ describe("Office: the team's memory", () => {
     await openTab("Decisions");
     await screen.findByText("Decision 1");
     fireEvent.click(screen.getByRole("button", { name: "Done (0)" }));
-    expect(screen.getByText("No done decision.")).toBeTruthy();
+    expect(await screen.findByText("No done decision.")).toBeTruthy();
+  });
+
+  it("counts the true total of each status, not the rows it was sent, and says how many it shows", async () => {
+    serve({
+      decisions: [decision("1"), decision("2"), decision("3", { status: "done" })],
+      counts: { open: 412, done: 1, missed: 30 },
+    });
+    await openTab("Decisions");
+    await screen.findByText("Decision 1");
+    const filters = screen.getAllByRole("button").map((button) => button.textContent);
+    const all = screen.getByText("Showing the newest 3 of 443 decisions.").textContent;
+    fireEvent.click(screen.getByRole("button", { name: "Open (412)" }));
+    const open = (await screen.findByText("Showing the newest 2 of 412 open decisions."))
+      .textContent;
+    expect({ all, open }).toEqual({
+      all: "Showing the newest 3 of 443 decisions.",
+      open: "Showing the newest 2 of 412 open decisions.",
+    });
+    expect(filters).toEqual(
+      expect.arrayContaining(["All (443)", "Open (412)", "Done (1)", "Missed (30)"]),
+    );
+  });
+
+  it("says nothing about a cap when every decision is on screen", async () => {
+    serve({ decisions: [decision("1")] });
+    await openTab("Decisions");
+    await screen.findByText("Decision 1");
+    expect(screen.queryByText(/Showing the newest/)).toBeNull();
+  });
+
+  it("says how many lessons it shows when the list was cut at its bound", async () => {
+    serve({ lessons: [lesson("1"), lesson("2")], lessonTotal: 240 });
+    await openTab("Lessons");
+    expect((await screen.findByText(/Showing the newest/)).textContent).toBe(
+      "Showing the newest 2 of 240 lessons.",
+    );
+  });
+
+  it("says how many versions it shows when the history was cut at its bound", async () => {
+    serve({ versions: [version(V1)], versionTotal: 260 });
+    await openTab("Instruction history");
+    expect((await screen.findByText(/Showing the newest/)).textContent).toBe(
+      "Showing the newest 1 of 260 versions.",
+    );
   });
 
   it("shows a calm empty state on each tab when nothing is written yet", async () => {
@@ -225,13 +311,38 @@ describe("Office: the team's memory", () => {
   });
 
   it("shows a decision's words as text, never as HTML", async () => {
-    serve({ decisions: [decision("1", { decision: "<b>Bold claim</b>", metric: "<i>x</i>" })] });
+    serve({ decisions: [decision("1", { decision: "<b>Bold claim</b>" })] });
     await openTab("Decisions");
     const cell = await screen.findByText("<b>Bold claim</b>");
-    expect({ bold: cell.querySelector("b"), italic: document.querySelector("td i") }).toEqual({
-      bold: null,
-      italic: null,
-    });
+    expect(cell.querySelector("b")).toBeNull();
+  });
+
+  it("shows a decision's metric as text, never as HTML", async () => {
+    serve({ decisions: [decision("1", { metric: "<i>Two reels</i>" })] });
+    await openTab("Decisions");
+    const cell = await screen.findByText("<i>Two reels</i>");
+    expect(cell.querySelector("i")).toBeNull();
+  });
+
+  it("shows a lesson's trigger as text, never as HTML", async () => {
+    serve({ lessons: [lesson("1", { trigger: "<b>A caption opens</b>" })] });
+    await openTab("Lessons");
+    const cell = await screen.findByText("<b>A caption opens</b>");
+    expect(cell.querySelector("b")).toBeNull();
+  });
+
+  it("shows a lesson's action as text, never as HTML", async () => {
+    serve({ lessons: [lesson("1", { action: "<i>Open with the place</i>" })] });
+    await openTab("Lessons");
+    const cell = await screen.findByText("<i>Open with the place</i>");
+    expect(cell.querySelector("i")).toBeNull();
+  });
+
+  it("shows a version's reason as text, never as HTML", async () => {
+    serve({ versions: [version(V1, { reason: "<b>Declined twice</b>" })] });
+    await openTab("Instruction history");
+    const reason = await screen.findByText("<b>Declined twice</b>");
+    expect(reason.querySelector("b")).toBeNull();
   });
 
   it("lists each lesson with whose it is, its trigger and action, source, status, uses and last use", async () => {

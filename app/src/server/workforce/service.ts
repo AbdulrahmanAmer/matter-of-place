@@ -11,8 +11,9 @@ import {
   decisionStatuses,
   lessonSources,
   lessonStatuses,
+  type DecisionStatus,
   type InstructionVersion,
-  type TeamDecision,
+  type TeamDecisionList,
   type TeamLesson,
 } from "../../domain/admin-team-memory.ts";
 import { scoreSchema, type agentUpdateSchema } from "../../domain/workforce.ts";
@@ -345,56 +346,102 @@ export async function decideApproval(
   return { state };
 }
 
-// W7 item 4: the team's memory, read only (workforce.office). Each list is the newest rows up to a bound; the screen
-// filters what it has. A text here was written by an AI colleague: it travels as data and is shown as plain text.
+// W7 item 4: the team's memory, read only (workforce.office). Each list is the newest rows up to a bound, with the true
+// total beside it (a decision list keeps one total and one bound per status), so a screen can say how many it shows.
+// A text here was written by an AI colleague: it travels as data and is shown as plain text.
 const MEMORY_LIMIT = 200;
 
-const oneOf = <T extends string>(allowed: readonly T[], value: string, otherwise: T): T =>
-  allowed.find((item) => item === value) ?? otherwise;
+/** A value outside the contract fails the read: it is never shown as another value. */
+function inContract<R>(schema: z.ZodType<R>, value: unknown, what: string): R {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) throw unavailable(what);
+  return parsed.data;
+}
 
-/** The daily meeting's decisions: owner, due date, metric and whether it is open, done or missed. */
-export async function listDecisions(actor: AdminActor, db: Db): Promise<{ items: TeamDecision[] }> {
+const decisionColumns = "id, meeting_on, owner_id, decision, due_on, metric, status, checked_at";
+
+/** One status of the decisions: its newest rows up to the bound, or only its total when the rows are not wanted. */
+async function readDecisions(db: Db, status: DecisionStatus, withRows: boolean) {
+  const own = db.from("agent_decisions");
+  if (!withRows) {
+    const { count, error } = await own
+      .select("id", { count: "exact", head: true })
+      .eq("status", status);
+    return { rows: [], count, error };
+  }
+  const { data, count, error } = await own
+    .select(decisionColumns, { count: "exact" })
+    .eq("status", status)
+    .order("meeting_on", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(MEMORY_LIMIT);
+  return { rows: data ?? [], count, error };
+}
+
+/**
+ * The daily meeting's decisions: owner, due date, metric and whether it is open, done or missed. With a status, only
+ * that status; without one, each status is read and capped on its own. `counts` are the true totals of all three.
+ */
+export async function listDecisions(
+  actor: AdminActor,
+  db: Db,
+  status?: DecisionStatus,
+): Promise<TeamDecisionList> {
   authorize(actor, "workforce.office");
-  const [decisions, agents] = await Promise.all([
-    db
-      .from("agent_decisions")
-      .select("id, meeting_on, owner_id, decision, due_on, metric, status, checked_at")
-      .order("meeting_on", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(MEMORY_LIMIT),
+  const [reads, agents] = await Promise.all([
+    Promise.all(
+      decisionStatuses.map((each) =>
+        readDecisions(db, each, status === undefined || status === each),
+      ),
+    ),
     db.from("agents").select("id, slug, name"),
   ]);
-  if (decisions.error !== null || agents.error !== null) throw unavailable("The decisions");
+  if (agents.error !== null || reads.some((read) => read.error !== null || read.count === null)) {
+    throw unavailable("The decisions");
+  }
   const owners = new Map(agents.data.map((row) => [row.id, row]));
+  const totalOf = (each: DecisionStatus) => reads[decisionStatuses.indexOf(each)]?.count ?? 0;
   return {
-    items: decisions.data.map((row) => ({
-      id: row.id,
-      meeting_on: row.meeting_on,
-      owner_slug: owners.get(row.owner_id)?.slug ?? "",
-      owner_name: owners.get(row.owner_id)?.name ?? "A colleague who left",
-      decision: row.decision,
-      due_on: row.due_on,
-      metric: row.metric,
-      status: oneOf(decisionStatuses, row.status, "open"),
-      checked_at: row.checked_at,
-    })),
+    items: reads
+      .flatMap((read) => read.rows)
+      .map((row) => ({
+        id: row.id,
+        meeting_on: row.meeting_on,
+        owner_slug: owners.get(row.owner_id)?.slug ?? "",
+        owner_name: owners.get(row.owner_id)?.name ?? "A colleague who left",
+        decision: row.decision,
+        due_on: row.due_on,
+        metric: row.metric,
+        status: inContract(z.enum(decisionStatuses), row.status, "The decisions"),
+        checked_at: row.checked_at,
+      }))
+      .sort((a, b) => (a.meeting_on < b.meeting_on ? 1 : a.meeting_on > b.meeting_on ? -1 : 0)),
+    counts: { open: totalOf("open"), done: totalOf("done"), missed: totalOf("missed") },
   };
 }
 
 /** What each colleague, or the whole team (no agent), was taught: its trigger and action, source, status and use. */
-export async function listLessons(actor: AdminActor, db: Db): Promise<{ items: TeamLesson[] }> {
+export async function listLessons(
+  actor: AdminActor,
+  db: Db,
+): Promise<{ items: TeamLesson[]; total: number }> {
   authorize(actor, "workforce.office");
   const [lessons, agents] = await Promise.all([
     db
       .from("agent_lessons")
-      .select("id, agent_id, trigger, action, source, status, uses, last_used_at, created_at")
+      .select("id, agent_id, trigger, action, source, status, uses, last_used_at, created_at", {
+        count: "exact",
+      })
       .order("created_at", { ascending: false })
       .limit(MEMORY_LIMIT),
     db.from("agents").select("id, slug, name"),
   ]);
-  if (lessons.error !== null || agents.error !== null) throw unavailable("The lessons");
+  if (lessons.error !== null || lessons.count === null || agents.error !== null) {
+    throw unavailable("The lessons");
+  }
   const owners = new Map(agents.data.map((row) => [row.id, row]));
   return {
+    total: lessons.count,
     items: lessons.data.map((row) => {
       const owner = row.agent_id === null ? undefined : owners.get(row.agent_id);
       return {
@@ -403,8 +450,8 @@ export async function listLessons(actor: AdminActor, db: Db): Promise<{ items: T
         agent_name: owner?.name ?? null,
         trigger: row.trigger,
         action: row.action,
-        source: oneOf(lessonSources, row.source, "matter"),
-        status: oneOf(lessonStatuses, row.status, "active"),
+        source: inContract(z.enum(lessonSources), row.source, "The lessons"),
+        status: inContract(z.enum(lessonStatuses), row.status, "The lessons"),
         uses: row.uses,
         last_used_at: row.last_used_at,
         created_at: row.created_at,
@@ -417,21 +464,22 @@ export async function listLessons(actor: AdminActor, db: Db): Promise<{ items: T
 export async function listInstructionVersions(
   actor: AdminActor,
   db: Db,
-): Promise<{ items: InstructionVersion[] }> {
+): Promise<{ items: InstructionVersion[]; total: number }> {
   authorize(actor, "workforce.office");
   const [versions, agents] = await Promise.all([
     db
       .from("agent_instruction_versions")
-      .select("id, agent_id, version, reason, approval_id, created_at")
+      .select("id, agent_id, version, reason, approval_id, created_at", { count: "exact" })
       .order("created_at", { ascending: false })
       .limit(MEMORY_LIMIT),
     db.from("agents").select("id, slug, name"),
   ]);
-  if (versions.error !== null || agents.error !== null) {
+  if (versions.error !== null || versions.count === null || agents.error !== null) {
     throw unavailable("The instruction history");
   }
   const owners = new Map(agents.data.map((row) => [row.id, row]));
   return {
+    total: versions.count,
     items: versions.data.map((row) => ({
       id: row.id,
       agent_slug: owners.get(row.agent_id)?.slug ?? "",

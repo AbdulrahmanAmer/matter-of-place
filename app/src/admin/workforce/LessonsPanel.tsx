@@ -1,5 +1,5 @@
 import type { TeamLesson } from "../../domain/admin-team-memory";
-import { momentOf } from "./memory-format";
+import { cappedNote, momentOf } from "./memory-format";
 import { useLessons } from "./workforce-queries";
 
 // W7 item 4: the lessons each colleague was taught, and the ones taught to the whole team. Read only; text only.
@@ -20,6 +20,7 @@ const statusLabel: Record<TeamLesson["status"], string> = {
 export function LessonsPanel() {
   const lessons = useLessons();
   const items = lessons.data?.items ?? [];
+  const note = cappedNote(items.length, lessons.data?.total ?? 0, "lessons");
 
   return (
     <section className="wf-mem" aria-labelledby="wf-lessons-title">
@@ -37,6 +38,7 @@ export function LessonsPanel() {
         </p>
       ) : (
         <div className="wf-mem__scroll">
+          {note === null ? null : <p className="wf-mem__lead">{note}</p>}
           <table>
             <thead>
               <tr>

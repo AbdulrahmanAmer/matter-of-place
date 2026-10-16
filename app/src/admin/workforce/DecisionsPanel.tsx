@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { decisionStatuses, type DecisionStatus } from "../../domain/admin-team-memory";
-import { dayOf } from "./memory-format";
+import { cappedNote, dayOf } from "./memory-format";
 import { useDecisions } from "./workforce-queries";
 
 // W7 item 4: the daily meeting's decisions, read only. Every text here was written by a colleague and is shown as text.
@@ -12,11 +12,18 @@ const statusLabel: Record<DecisionStatus, string> = {
 };
 
 export function DecisionsPanel() {
-  const decisions = useDecisions();
   const [filter, setFilter] = useState<DecisionStatus | "all">("all");
-  const items = decisions.data?.items ?? [];
-  const shown = filter === "all" ? items : items.filter((item) => item.status === filter);
-  const count = (status: DecisionStatus) => items.filter((item) => item.status === status).length;
+  // The server filters and counts: each status is capped on its own and `counts` are the true totals.
+  const decisions = useDecisions(filter === "all" ? undefined : filter);
+  const shown = decisions.data?.items ?? [];
+  const counts = decisions.data?.counts ?? { open: 0, done: 0, missed: 0 };
+  const total = counts.open + counts.done + counts.missed;
+  const inFilter = filter === "all" ? total : counts[filter];
+  const note = cappedNote(
+    shown.length,
+    inFilter,
+    filter === "all" ? "decisions" : `${statusLabel[filter].toLowerCase()} decisions`,
+  );
 
   return (
     <section className="wf-mem" aria-labelledby="wf-decisions-title">
@@ -32,7 +39,7 @@ export function DecisionsPanel() {
             setFilter("all");
           }}
         >
-          {`All (${String(items.length)})`}
+          {`All (${String(total)})`}
         </button>
         {decisionStatuses.map((status) => (
           <button
@@ -43,7 +50,7 @@ export function DecisionsPanel() {
               setFilter(status);
             }}
           >
-            {`${statusLabel[status]} (${String(count(status))})`}
+            {`${statusLabel[status]} (${String(counts[status])})`}
           </button>
         ))}
       </div>
@@ -51,7 +58,7 @@ export function DecisionsPanel() {
         <p className="wf-empty">The decisions could not be read. Try again in a moment.</p>
       ) : decisions.isLoading ? (
         <p className="wf-empty">Opening the decisions.</p>
-      ) : items.length === 0 ? (
+      ) : total === 0 ? (
         <p className="wf-empty">
           No decision yet. The daily meeting writes its decisions here once it has met.
         </p>
@@ -59,6 +66,7 @@ export function DecisionsPanel() {
         <p className="wf-empty">{`No ${filter === "all" ? "" : `${statusLabel[filter].toLowerCase()} `}decision.`}</p>
       ) : (
         <div className="wf-mem__scroll">
+          {note === null ? null : <p className="wf-mem__lead">{note}</p>}
           <table>
             <thead>
               <tr>

@@ -7,6 +7,10 @@ import { formatInZone, marketTimezone } from "../../domain/market-time";
 export const dayOf = (date: string): string =>
   formatInZone(`${date}T12:00:00Z`, "UTC", "date").replace(/ UTC$/, "");
 
+/** Says how many of a list are shown when the read stopped at its bound; null when the whole list is on screen. */
+export const cappedNote = (shown: number, total: number, what: string): string | null =>
+  shown < total ? `Showing the newest ${String(shown)} of ${String(total)} ${what}.` : null;
+
 /** "Oct 15, 2026 ET" for a moment, or "Never" when there is none. */
 export const momentOf = (iso: string | null): string =>
   iso === null ? "Never" : formatInZone(iso, marketTimezone(null), "date");
