@@ -8448,3 +8448,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a `sql` entry removes or replaces a whole statement (`perform 1;` for a whole `perform ...;`), generated from the real function file by a script that asserts its target occurs once, never typed by hand; after the verdict, read the red output once (apply the entry's sql to the stub cluster, run the test) and see the assertion's own diff (`expected [] to deeply equal [ Array(1) ]`), not a `syntax error`. When the real function changes, every `sql` entry that embeds a copy of it is regenerated in the same commit (a stale copy turns the new assertion red for the wrong reason).
 - proof: `psql -h 127.0.0.1 -p <stub port> -U postgres -d mop -f <the entry's sql>` prints no error, then `DEV_DB_URL=postgresql://postgres@127.0.0.1:<stub port>/mop node node_modules/vitest/vitest.mjs run --project db tests/db/email-reply-mark.db.test.ts -t "marks a reply answered"` → `AssertionError: expected [] to deeply equal [ Array(1) ]` for `w7-2-sql-audit` (measured 2026-10-16).
 - added: 2026-10-16
+
+## P-3606 · The usage policy downgrades Matter and stops his goal without anyone deciding it
+- symptom: 2026-10-16, at a weekly reading of 85% `~/.mop-workforce/policy.json` read `matterModel: claude-sonnet-5-5, backlog: person` ("Sonnet for everyone"), though the operator had ordered "Just remove the allowance thing. We don't need that." Matter ran on Sonnet for hours without a line saying so.
+- rule: an operator order about the allowance is written into `~/.mop-workforce/config.json` (the override the policy honours: `matterModel`, `backlog`) the moment it is given, and the policy file is read back after the next pass; the code-level fix rides overdrive/runner (`allowance: ignore`).
+- proof: `cat ~/.mop-workforce/policy.json` showed `"matterModel": "claude-opus-5-5", "backlog": "all"` after the override (2026-10-16 07:30).
+- added: 2026-10-16
+
+## P-3607 · CI runs only on pull requests to main; a branch with no PR is never checked
+- symptom: 2026-10-16, after the no-local-CI order, builder branches and overdrive/finish were pushed with no pull request, and `.github/workflows/ci.yml` (`on: pull_request: branches: [main]`, `push: branches: [main]`) ran nothing on them; db and e2e also skip a draft (`github.event.pull_request.draft == false`).
+- rule: work without its own PR gets a DRAFT pull request to main so check and build run on every push; mark it ready (`gh pr ready`) to run db and e2e too. Ready is not merged: the gate still merges.
+- proof: PR 447 as a draft ran check and build only; after `gh pr ready 447` the next push ran db (18m29s) and e2e (10m42s), all green (2026-10-16).
+- added: 2026-10-16
