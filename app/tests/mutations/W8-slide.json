@@ -1,0 +1,47 @@
+[
+  {
+    "id": "w8-slide-compact-class",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/SocialFrame.tsx",
+    "find": "${compact ? \" social-frame--compact\" : \"\"}",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× .*in a band of the wordmark and the counter only"
+  },
+  {
+    "id": "w8-slide-square-full-band",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Carousel.tsx",
+    "find": "      return square ? (",
+    "replace": "      return false ? (",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× .*keeps the full band on the square LinkedIn crop"
+  },
+  {
+    "id": "w8-slide-no-location",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Carousel.tsx",
+    "find": "location={undefined} compact",
+    "replace": "compact",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× .*in a band of the wordmark and the counter only"
+  },
+  {
+    "id": "w8-cover-no-price-title",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/Cover.tsx",
+    "find": "priceLine(property) || property.title",
+    "replace": "priceLine(property)",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× .*carries the title in the place of the price"
+  },
+  {
+    "id": "w8-cover-zero-price",
+    "test": "tests/unit/assets/templates.test.ts",
+    "file": "src/templates/social/facts.ts",
+    "find": "property.price > 0 ? ",
+    "replace": "true ? ",
+    "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
+    "expect": "× .*carries the title in the place of the price"
+  }
+]

@@ -93,7 +93,7 @@
     "id": "b9g4-cover-price",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/templates/social/Cover.tsx",
-    "find": "      price={priceLine(property)}\n",
+    "find": "      price={lead}\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "Snapshot .Cover > draws the hero.*mismatched"
@@ -156,10 +156,10 @@
     "id": "b9g4-slide-photo-price",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/templates/social/Carousel.tsx",
-    "find": "return <SocialFrame {...frame} />;",
-    "replace": "return <SocialFrame {...frame} price={priceLine(property)} />;",
+    "find": "        <SocialFrame {...frame} location={undefined} compact />",
+    "replace": "        <SocialFrame {...frame} location={undefined} compact price={priceLine(property)} />",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
-    "expect": "expected .{1,2}true, true, true .{1,2}to deeply equal .{1,2}true, true, false"
+    "expect": "expected .{1,2}true, true, false, true .{1,2}to deeply equal .{1,2}true, true, false, false"
   },
   {
     "id": "b9g4-slide-facts-year",

@@ -12,12 +12,14 @@ interface CoverProps {
 export function Cover({ spec, crop }: CoverProps) {
   const { property, images } = spec;
   const hero = images[0];
+  // with no price to show, the title takes the large line of the band: place, title, specs
+  const lead = priceLine(property) || property.title;
   return (
     <SocialFrame
       format={crop === "x" ? "cover-x" : "cover"}
       image={hero ? <img src={hero.url} alt={hero.alt} /> : null}
       location={locationLine(property)}
-      price={priceLine(property)}
+      price={lead}
       specs={specsLine(property)}
     />
   );
