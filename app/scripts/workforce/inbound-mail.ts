@@ -139,9 +139,11 @@ export async function recordInbound(client: Db, recorded: Recorded): Promise<boo
 export async function noteTriage(
   client: Db,
   triage: Triage | null,
-  gate: "inside" | "not_owner" | "hold" | "answer",
+  gate: "inside" | "not_owner" | "hold" | "answer" | "explain",
 ): Promise<void> {
-  if (triage?.source !== "email_inbound" || gate === "inside" || gate === "not_owner") return;
+  // An explanation (W8 0d) is the owner's run on a line already held: the row already says held.
+  if (triage?.source !== "email_inbound" || gate === "inside" || gate === "not_owner" || gate === "explain")
+    return;
   const id = /^email_inbound ([0-9a-f-]{36})$/.exec(triage.about)?.[1];
   if (id === undefined) return;
   const { error } = await client

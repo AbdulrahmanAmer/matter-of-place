@@ -52,3 +52,56 @@
 .admin-plans__warnings {
   color: var(--status-warning);
 }
+
+/* Service usage: one plain bar per vendor line, in the palette, read only. */
+
+.admin-usage {
+  display: grid;
+  gap: var(--admin-space-3);
+}
+
+.admin-usage li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--admin-space-1) var(--admin-space-3);
+  padding-bottom: var(--admin-space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-usage__name {
+  flex: 1 1 200px;
+  font-weight: 500;
+}
+
+.admin-usage__bar {
+  flex: 1 1 100%;
+  block-size: 6px;
+  inline-size: 100%;
+  appearance: none;
+  border: 0;
+  background: var(--muted);
+}
+
+.admin-usage__bar::-webkit-progress-bar {
+  background: var(--muted);
+}
+
+.admin-usage__bar::-webkit-progress-value {
+  background: var(--foreground);
+}
+
+.admin-usage__bar::-moz-progress-bar {
+  background: var(--foreground);
+}
+
+.admin-usage__share,
+.admin-usage__note,
+.admin-usage__when {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-usage__when {
+  margin-inline-start: auto;
+}

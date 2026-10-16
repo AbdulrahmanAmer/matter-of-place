@@ -18,6 +18,7 @@ import {
   useSettings,
 } from "./settings-queries";
 import { SiteSection } from "./SiteSection";
+import { UsageSection } from "./UsageSection";
 
 const failure = (error: unknown) =>
   error instanceof Error ? error.message : "This change could not be saved.";
@@ -87,6 +88,10 @@ function Sections({ settings }: { settings: SettingsAnswer }) {
       <section aria-labelledby="settings-redirects">
         <h2 id="settings-redirects">Redirects</h2>
         <RedirectsSection />
+      </section>
+      <section aria-labelledby="settings-usage">
+        <h2 id="settings-usage">Service usage</h2>
+        <UsageSection />
       </section>
       <ConfirmDialog
         open={confirming !== null}

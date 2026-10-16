@@ -279,6 +279,9 @@ describe("rule 6: never cached", () => {
     ["GET", "/%61pi/hooks/resend", "a hook with an escaped letter"],
     ["GET", "/api/hoo%E2%84%AAs/resend", "a hook spelled with the Kelvin sign"],
     ["GET", "/api/hoo%E2%84%AAs/x%25%E0", "the same beside a malformed escape"],
+    ["GET", "/account", "the client room"],
+    ["GET", "/account/confirm", "the client room's confirm page"],
+    ["GET", "/Account/%63onfirm", "the confirm page in capitals with an escaped letter"],
   ];
 
   it.each(cases)("forces no-store on %s %s (%s)", async (method, path) => {

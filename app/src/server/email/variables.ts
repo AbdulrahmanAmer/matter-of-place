@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { EmailTemplateKey } from "../../domain/email.ts";
 import { newsletterBlocksSchema } from "../../domain/newsletter.ts";
 import { invoiceSnapshotSchema } from "../../domain/payments.ts";
+import { accountSignInUrl, NotAClient } from "../account/link.ts";
 import { variantKey } from "../assets/spec.ts";
 import { NonRetryableError, type JsonObject } from "../jobs/types.ts";
 import type { Db } from "../lib/db.ts";
@@ -200,6 +201,8 @@ export async function resolveRecipient(
     if (actor === null) throw recipientMissing();
     return { to: [actor], entity: text(data, "entity"), entityId: text(data, "entity_id") };
   }
+  // A sign-in link goes only to the address it signs in, whatever a recipe names (ruling H119 (4)).
+  if (key === "account_link") return { to: [need(data, "email")], entity: null, entityId: null };
   switch (params.to ?? defaultRecipient[key] ?? "") {
     case "submitter":
       return submitterRecipient(db, data);
@@ -823,6 +826,16 @@ async function newsletterWelcome({ db, data, site }: Resolve): Promise<Variables
   };
 }
 
+/** The client's sign-in link, made now for the address the job names; none for an address that is not a contact's. */
+async function accountLink({ db, data, site }: Resolve): Promise<Variables> {
+  try {
+    return { sign_in_url: await accountSignInUrl(db, need(data, "email"), (await site()).siteUrl) };
+  } catch (error) {
+    if (error instanceof NotAClient) throw new SkipSend("not_a_client");
+    throw error;
+  }
+}
+
 const resolvers: Record<EmailTemplateKey, (resolve: Resolve) => Promise<Variables>> = {
   received: submitted,
   accepted: submitted,
@@ -841,6 +854,7 @@ const resolvers: Record<EmailTemplateKey, (resolve: Resolve) => Promise<Variable
   subject_ack: subjectAck,
   campaign_report: campaignReport,
   newsletter_welcome: newsletterWelcome,
+  account_link: accountLink,
 };
 
 /**

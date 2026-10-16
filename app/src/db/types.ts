@@ -1364,6 +1364,12 @@ isOneToOne: false
             "accept_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: string
                            },
+"account_can_sign_in":
+{ Args: { "p_email": string }; Returns: boolean
+                           },
+"account_room":
+{ Args: { "p_user": string }; Returns: Json
+                           },
 "activate_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: {
               "copy_job_id": string,"event_id": string,"property_id": string
