@@ -138,7 +138,7 @@
     "id": "w8-h110-brand-no-photos",
     "test": "tests/unit/workforce-reel.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "if (request.kind === \"brand\" && request.photos !== undefined) {",
+    "find": "if (!photosAllowed) {",
     "replace": "if (false) {",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*takes the photographs of a property not on the site"

@@ -18,7 +18,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { marketSlugSchema } from "../../src/domain/market.ts";
@@ -60,11 +60,14 @@ export const reelRequestSchema = z
         message: `a ${request.kind} reel names its ${field}`,
       });
     }
-    if (request.kind === "brand" && request.photos !== undefined) {
+    const photosAllowed =
+      request.photos === undefined || (own && request.property_id === undefined);
+    if (!photosAllowed) {
       ctx.addIssue({
         code: "custom",
         path: ["photos"],
-        message: "a brand reel shows no property's photographs",
+        message:
+          "photos belong to a campaign reel of a property that is not on the site (no property_id); every other reel shows the subject's own gallery",
       });
     }
   });
@@ -227,9 +230,9 @@ export function deskPhoto(agent: string, rel: string, home: string = homedir()):
 }
 
 /** A request's own picture as a shot: its name without the order number is its alt text. */
-function ownShot(rel: string): Shot {
-  const stem = basename(rel, extname(rel)).replace(/^\d+[-_ ]*/, "");
-  return { key: rel, alt: stem.replaceAll(/[-_]+/g, " "), orientation: "landscape" };
+function ownShot(rel: string, index: number): Shot {
+  // a file name is the requester's text, so it never reaches the designer's prompt (H101)
+  return { key: rel, alt: `photograph ${String(index + 1)}`, orientation: "landscape" };
 }
 
 /** The fewest photographs a market reel is made from (W7 E2: four at least, else refused). */
@@ -483,7 +486,10 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
       );
     }
     const own = request.photos ?? [];
-    const shots = own.length > 0 ? own.map(ownShot) : await shotsFor(deps.db, request);
+    const shots =
+      own.length > 0
+        ? own.map((rel, index) => ownShot(rel, index))
+        : await shotsFor(deps.db, request);
     mkdirSync(join(folder, "shots"), { recursive: true });
     const placed = [];
     for (const [index, shot] of shots.entries()) {

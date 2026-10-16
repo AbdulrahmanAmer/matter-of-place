@@ -385,6 +385,14 @@ describe("a reel about a property shows that property's own photographs (H110)",
     expect(reelRequestSchema.safeParse(own).success).toBe(true);
     expect(reelRequestSchema.safeParse({ ...own, photos: undefined }).success).toBe(false);
     expect(reelRequestSchema.safeParse({ ...brand, photos: own.photos }).success).toBe(false);
+    const property_id = "8d5f2c1e-1a2b-4c3d-9e8f-0a1b2c3d4e5f";
+    expect(
+      [
+        { ...own, property_id },
+        { ...own, kind: "market" as const, market: "florida" as const },
+        { ...own, kind: "story" as const, story_id: property_id },
+      ].map((request) => reelRequestSchema.safeParse(request).success),
+    ).toEqual([false, false, false]);
   });
 
   it("reads a picture from the requester's own work folder and refuses a path that leaves it or is no picture", () => {
