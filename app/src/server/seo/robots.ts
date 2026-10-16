@@ -10,7 +10,10 @@ export function isIndexableHost(host: string, mopEnv: string): boolean {
 }
 
 const SITEMAP = "https://matterofplace.com/sitemap.xml";
+// Content-Signal (contentsignals.org): search and AI answers may use the pages, model training may not, because the
+// photographs belong to the owners and agents who sent them (H114).
 const INDEXABLE_BODY = `User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 Disallow: /admin
 Disallow: /api

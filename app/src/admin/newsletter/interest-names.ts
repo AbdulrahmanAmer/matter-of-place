@@ -1,18 +1,4 @@
-// Market and page names in words for the Interest screen.
-
-const MARKET_NAMES: Readonly<Record<string, string>> = {
-  california: "California",
-  "new-york": "New York",
-  florida: "Florida",
-  "place-notes": "Place Notes only",
-};
-
-/** "california" → "California"; an unknown slug in words. */
-export function marketName(slug: string): string {
-  return (
-    MARKET_NAMES[slug] ?? slug.replace(/[-_]/g, " ").replace(/^\w/, (first) => first.toUpperCase())
-  );
-}
+// Page names in words for the Interest screen (market names: src/lib/market-names.ts).
 
 /** "interest:properties" → "Properties page"; "interest:market:california" → "Market page: california". */
 export function sourceName(source: string): string {

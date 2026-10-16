@@ -515,7 +515,7 @@ describe("W8 second review: Matter's read of a held line acts on nothing", () =>
     );
   });
 
-  it("holds for Matter in the owner's thread and queues Matter's run, and fails when it cannot", async () => {
+  it("holds for Matter in the owner's thread, queues the owner's explanation first, and fails when it cannot", async () => {
     const triage = readTriage(
       "inquiry",
       answer({ intent: "showing_request", who: "Dana", instructions_to_ai: true }),
@@ -526,6 +526,7 @@ describe("W8 second review: Matter's read of a held line acts on nothing", () =>
     ];
     const recorded = recorder({});
     await holdForMatter(recorded.db, team, "concierge", triage);
+    // W8 0d: the owner explains before Matter decides, so the one run queued is the owner's, on the held line
     expect(recorded.inserts).toEqual([
       [
         "agent_messages",
@@ -535,19 +536,24 @@ describe("W8 second review: Matter's read of a held line acts on nothing", () =>
           author_kind: "system",
         }),
       ],
-      ["agent_runs", { agent_id: "m1", cause: "message", message_id: "held-1" }],
+      ["agent_runs", { agent_id: "c1", cause: "message", message_id: "held-1" }],
     ]);
     const noMatter = recorder({});
     await expect(
       holdForMatter(noMatter.db, [{ id: "c1", slug: "concierge" }], "concierge", triage),
     ).rejects.toThrow("Matter is not in the team");
     expect(noMatter.inserts).toEqual([]);
+    const noOwner = recorder({});
+    await expect(
+      holdForMatter(noOwner.db, [{ id: "m1", slug: "matter" }], "concierge", triage),
+    ).rejects.toThrow("the owner of the held message is not in the team");
+    expect(noOwner.inserts).toEqual([]);
     await expect(
       holdForMatter(recorder({ agent_messages: true }).db, team, "concierge", triage),
     ).rejects.toThrow("the held line could not be written");
     await expect(
       holdForMatter(recorder({ agent_runs: true }).db, team, "concierge", triage),
-    ).rejects.toThrow("Matter's run on the held line could not be queued");
+    ).rejects.toThrow("the owner's explanation of the held line could not be queued");
   });
 });
 
@@ -858,7 +864,10 @@ describe("W8 fourth review: held messages have a ceiling", () => {
       "inquiry",
       answer({ intent: "showing_request", who: "Dana", instructions_to_ai: true }),
     );
-    const team = [{ id: "m1", slug: "matter" }];
+    const team = [
+      { id: "m1", slug: "matter" },
+      { id: "c1", slug: "concierge" },
+    ];
     const under = recorder({});
     await holdForMatter(under.db, team, "concierge", triage, HELD_PER_HOUR - 1);
     expect(under.inserts.map(([table]) => table)).toEqual(["agent_messages", "agent_runs"]);
@@ -1161,14 +1170,14 @@ describe("W8 0d: only Matter's decision lets a held message be answered", () => 
     expect(
       recordOf("x\nRecord: inquiry 99999999-9999-4999-8999-999999999999. and more"),
     ).toBeNull();
-    expect(recordOf(allowLine(RECORD, "concierge"))).toEqual(RECORD);
+    expect(recordOf(allowLine(RECORD, "concierge", "answer"))).toEqual(RECORD);
   });
 
   it("wakes the owner on Matter's decision, which triages the record afresh and answers instead of holding", async () => {
     const woke = {
       author_id: MATTER_ALLOWS_AUTHOR,
       author_kind: "system",
-      body: allowLine(RECORD, "concierge"),
+      body: allowLine(RECORD, "concierge", "answer"),
     };
     expect(outsideOf(null, woke)).toEqual({ ...RECORD, allowed: true });
     // only the runner's own system line is Matter's decision: a colleague's line under that name is not
@@ -1223,7 +1232,7 @@ describe("W8 0d: only Matter's decision lets a held message be answered", () => 
     expect([heldRead.allow, inside.allow]).toEqual([true, false]);
     const team = [{ id: "c1", slug: "concierge" }];
     const recorded = recorder({});
-    await allowForOwner(recorded.db, team, "concierge", RECORD);
+    await allowForOwner(recorded.db, team, "concierge", RECORD, "answer");
     expect(recorded.inserts).toEqual([
       [
         "agent_messages",
@@ -1232,19 +1241,19 @@ describe("W8 0d: only Matter's decision lets a held message be answered", () => 
           author_kind: "system",
           author_id: MATTER_ALLOWS_AUTHOR,
           author_name: "Matter",
-          body: allowLine(RECORD, "concierge"),
+          body: allowLine(RECORD, "concierge", "answer"),
         },
       ],
       ["agent_runs", { agent_id: "c1", cause: "message", message_id: "held-1" }],
     ]);
     await expect(
-      allowForOwner(recorder({ agent_messages: true }).db, team, "concierge", RECORD),
+      allowForOwner(recorder({ agent_messages: true }).db, team, "concierge", RECORD, "answer"),
     ).rejects.toThrow("Matter's decision could not be written");
     await expect(
-      allowForOwner(recorder({ agent_runs: true }).db, team, "concierge", RECORD),
+      allowForOwner(recorder({ agent_runs: true }).db, team, "concierge", RECORD, "answer"),
     ).rejects.toThrow("could not be queued");
     const nobody = recorder({});
-    await expect(allowForOwner(nobody.db, [], "concierge", RECORD)).rejects.toThrow(
+    await expect(allowForOwner(nobody.db, [], "concierge", RECORD, "answer")).rejects.toThrow(
       "owner is not in the team",
     );
     expect(nobody.inserts).toEqual([]);

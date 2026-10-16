@@ -1520,7 +1520,7 @@
     "find": "routeId: \"/admin/team/\",",
     "replace": "routeId: \"/admin/teams/\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*holds 32 entries, one per screen"
+    "expect": "× .*holds 33 entries, one per screen"
   },
   {
     "id": "b7-g3-nav-groups",
@@ -1529,7 +1529,7 @@
     "find": "  \"Clients\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 26 screens in eight areas"
+    "expect": "× .*shows 27 screens in eight areas"
   },
   {
     "id": "b7-g3-nav-work",
@@ -2286,7 +2286,7 @@
     "find": "{ action: \"people.list\", group: \"people\", roles: appRoles },\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 26 screens in eight areas"
+    "expect": "× .*shows 27 screens in eight areas"
   },
   {
     "id": "b7-5a-route-notes",
@@ -3930,9 +3930,9 @@
   {
     "id": "b7-g9-ui-warning-80",
     "test": "src/admin/dashboard/dashboard.test.tsx",
-    "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "const WARNING_AT = 0.7;",
-    "replace": "const WARNING_AT = 0.8;",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_WARNING_AT = 0.7;",
+    "replace": "const GAUGE_WARNING_AT = 0.8;",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*805306368 bytes of Storage is 75 percent of 1 GB"
   },
@@ -3948,9 +3948,9 @@
   {
     "id": "b7-g9-ui-alert",
     "test": "src/admin/dashboard/dashboard.test.tsx",
-    "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "const ALERT_AT = 0.9;",
-    "replace": "const ALERT_AT = 0.95;",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_ALERT_AT = 0.9;",
+    "replace": "const GAUGE_ALERT_AT = 0.95;",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*a share of 92 percent is in the alert state"
   },

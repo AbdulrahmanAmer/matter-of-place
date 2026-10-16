@@ -128,7 +128,7 @@
     "id": "w8-0b-daemon-triages",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "  const triage = await triageRun(client, ask, event, woke, owns);",
+    "find": "  const triage = await triageRun(client, ask, event, matterReadsHeld ? null : woke, owns);",
     "replace": "  const triage = null;",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*builds the owner's prompt with the triage only"
@@ -146,8 +146,8 @@
     "id": "w8-0r-held-keeps-nothing",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/triage.ts",
-    "find": "const may = (action: string) => triage !== \"held\" && allowedFor(triage.source, action);",
-    "replace": "const may = (action: string) => triage === \"held\" || allowedFor(triage.source, action);",
+    "find": "    triage !== \"held\" && triage !== \"explain\" && allowedFor(triage.source, action);",
+    "replace": "    triage === \"held\" || allowedFor(triage.source, action);",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*keeps no proposal, call, hire or media"
   },
@@ -245,8 +245,8 @@
     "id": "w8-0r-hold-queue-fails",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "if (queueError !== null) throw new Error(\"Matter's run on the held line could not be queued\");",
-    "replace": "void queueError;",
+    "find": "    throw new Error(\"the owner's explanation of the held line could not be queued\");",
+    "replace": "    void queueError;",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*holds for Matter in the owner's thread"
   },
@@ -290,8 +290,8 @@
     "id": "w8-0r3-shape-held-rule",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/triage.ts",
-    "find": "    rule: matterReadsHeld ? \"held\" : triage,",
-    "replace": "    rule: triage,",
+    "find": "    rule: matterReadsHeld ? \"held\" : triage?.explain === true ? \"explain\" : triage,",
+    "replace": "    rule: triage?.explain === true ? \"explain\" : triage,",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*offers a triaged run and a held read no admin call"
   },

@@ -3022,6 +3022,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never pass a path that starts with `/tmp` between the shell and node. Use the session scratchpad directory by its full Windows or `/c/...` path, or `os.tmpdir()` inside node; a file that must be read by both is named by one absolute path both resolve the same way. P-015 covers the other direction (Git Bash rewrites an argument that starts with `/`).
 - proof: `node -e "console.log(require('path').resolve('/tmp'))"` → `E:\tmp`, while `cygpath -w /tmp` → `C:\Users\DELL\AppData\Local\Temp` (measured 2026-10-04, working tree on E:).
 - added: 2026-10-04
+- hit again: 2026-10-16, W8 0d second half: a heredoc wrote `/tmp/w8-0d-fix-calls.mjs` and `node /tmp/...` then failed with `Cannot find module 'C:\Users\DELL\AppData\Local\Temp\w8-0d-fix-calls.mjs'`; the script went in a file written with the Write tool, outside the tree, named by one path.
 - hit again: 2026-10-11, L1 g1: `git show origin/main:app/supabase/config.toml > /tmp/l1-config-main.toml`, then a `node -` script reading the same `/tmp` path failed with `ENOENT` on `E:\tmp\l1-config-main.toml`; the second attempt named the session scratchpad by its full path for both.
 
 ## P-916 · A db test that asserts another slice's table is absent goes red for good when that slice's migration reaches mop-dev
@@ -8187,6 +8188,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
 - proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
 - added: 2026-10-15
+- hit again: 2026-10-16, W8 0d second half: `runOnce` (now exported for the walk-through test) calls `resolve(import.meta.dir, ...)` for W2.md inside the function, so under vitest every run failed with `The "paths[0]" argument must be of type string. Received undefined` and the run was marked failed. Those lines are the run-start code another branch owns, so the test (`tests/unit/workforce-escalation.test.ts`) mocks `node:path`'s `resolve` to give an undefined first part the daemon's own folder; a module that is free to change takes `fileURLToPath(import.meta.url)` instead.
 
 ## P-3480 · Work the runner gates on "no colleague run in flight" never happens while Matter's live session runs
 - symptom: 2026-10-15 11:10, a brand reel queued in the studio after PR 419 went live stayed `queued` for four minutes of passes; `daemon.log` showed no `reel pass started`. The office's runs list held Matter's own `schedule` run, `running` since 08:09Z: the live session.
@@ -8345,7 +8347,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
 - added: 2026-10-15
 
-## P-3590 · A mutation of a threshold stays green when the test's inputs are decided by another threshold
+## P-3700 · A mutation of a threshold stays green when the test's inputs are decided by another threshold
 - symptom: 2026-10-16 (W7 9), the registry entry `w7-9-strangers-apart` raised `SAME_PICTURE_BITS` (the limit for two images of different addresses) to 64 to make "keeps two different pictures apart" red; the replay printed `WATCHED-FAIL BAD: wrong reason`. The test's two addresses (`IMG_1234_1024.jpg`, `IMG_1235_1024.jpg`) share a size family, so `samePicture` used `SAME_FAMILY_BITS` and the mutated limit never applied.
 - rule: before writing a mutation of a constant that one of several branches reads, trace which branch the test's inputs take (`app/scripts/workforce/pull-images.ts`: same family → `SAME_FAMILY_BITS`, else `SAME_PICTURE_BITS`) and mutate that one; one entry per branch the tests reach.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-9-strangers-apart` → `mutated scripts/workforce/pull-images.ts:154  const SAME_FAMILY_BITS = 64;` and `WATCHED-FAIL OK W7-9:w7-9-strangers-apart`.
@@ -8404,3 +8406,87 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a constraint, policy or function in the database is watched with a `kind: "sql"` entry that undoes it in the test's database (`alter table ... drop constraint ...`), as `tests/mutations/B2.json` does for `properties_slug_format`; a file mutation is for code the test itself loads.
 - proof: `tests/mutations/W8-0-slug.json` entry `w8-0e-slug-check-table` is `kind: "sql"` with `alter table public.agents drop constraint agents_slug_not_account_id`; CI's db job replays it (mop-dev refuses db tests from the laptop, H35).
 - added: 2026-10-16
+
+## P-3690 · A test fixture for a row a script writes must copy the writer's real shape, or a screen can print the raw value and stay green
+- symptom: 2026-10-16, W7 7 review: Settings, Service usage printed `2026-10-21T16:00:00.000Z` as the Claude allowance's note. Both tests used `Resets Sat, Oct 17`, which the runner never writes (`daemon.ts` writes `resetsAt.toISOString()` into `vendor_usage.note`), so the tick "with its reset note" was observed only on invented data. The same row was also read by two code paths (the Office and Settings) that could drift.
+- cause: the fixture was written from the screen's idea of the row, not from the writer.
+- rule: a fixture for a row a script or job writes takes its value from the writer's code (read the `p_note` or insert line, build the value the same way), and a row read by two screens is read through one function in `src/domain/` (`claudeWeekResetAt` in `usage-gauges.ts`); the screen test asserts the whole text of the row, not `toContain`.
+- proof: `grep -n "toISOString" app/scripts/workforce/daemon.ts` shows the writer; `cd app && bunx vitest run --project component src/admin/settings/usage.test.tsx -t "Claude"` passes with `2026-10-21T16:00:00.000Z` in the fixture and `node scripts/watchfail.mjs --registry tests/mutations --only w7-7-c-claude-reset` is `WATCHED-FAIL OK` (the raw note makes the whole-text assertion red).
+- added: 2026-10-16
+
+## P-3691 · Moving a constant out of a component leaves other plans' registry entries pointing at the old place
+- symptom: 2026-10-16, W7 7 follow-up: the thresholds and limits of the dashboard's Free tier tile moved to `src/domain/usage-gauges.ts`; `edit-impact` printed STALE for four entries in `tests/mutations/B7.json` and `feat-usage-gauges.json` (their `find` text was in `GaugesTile.tsx`), which a replay would have reported as stale and CI's registry check as failing.
+- cause: a registry entry names the file and text it breaks; a move changes both, and the entry belongs to another slice.
+- rule: when a constant or helper moves, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` and repoint every STALE entry (file, find, replace) in the same commit, then replay each one and read its red output. Two vitest runs at once on this laptop make every component file fail with `Timeout waiting for worker to respond` (G-031 again): run component, unit and registry replays one after another.
+- proof: `node scripts/watchfail.mjs --registry tests/mutations --only b7-g9-ui-warning-80` prints `WATCHED-FAIL OK` with the entry's `file` at `src/domain/usage-gauges.ts`.
+- added: 2026-10-16
+
+## P-3550 · After the launch switch mop-dev refuses every db test, so a new SQL function is proved on a native cluster holding a stub of only the tables it names
+- symptom: 2026-10-15, W7 item 2: the db test of `email_reply_mark`, run the P-312 way (the unmerged migration as `MOP_MUTATION_SQL` on mop-dev), died in `tests/db/global-setup.ts` with `Error: refusing: production database` (ruling H35 (6)); a fresh worktree has no `.env`, so the loader first printed `ENOENT ... w7-2\.env` (the fix is in P-051: load the main checkout's through its own loader).
+- cause: there is one database and it is production now; `assertNotProduction` refuses db tests against it, and only CI's stack runs them. The P-312 route is closed, and P-718's full restore of mop-dev's schema is heavy for one function.
+- rule: for a function that needs only `write_audit` and a few tables, `initdb` a throwaway cluster (P-718), create the three roles and `auth.users`, copy the enums and the tables the function and `write_audit` read (`user_roles`, `action_roles`, `audit_log`, `pii_columns`, its own table) verbatim from their migrations, load the real function files and the generated `action_roles` migration, and run the one db test with `DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/mop` through `node node_modules/vitest/vitest.mjs`. `sql` registry entries replay the same way. Say in the PR that the proof is a stub schema and the CI db job is the one that counts.
+- proof: `cd app && eval "$(node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev)" && env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/email-reply-mark.db.test.ts` → `Error: refusing: production database`; the same file on the stub cluster → `Tests  3 passed (3)`, and `node scripts/watchfail.mjs --registry tests/mutations --only w7-2-sql-audit` with that `DEV_DB_URL` → `WATCHED-FAIL OK W7-2:w7-2-sql-audit` (measured 2026-10-15).
+- added: 2026-10-15
+
+## P-3551 · A `sql` registry entry that comments out one line of a multi-line statement goes red on the compile error, and `expect` (the test title) cannot tell
+- symptom: 2026-10-16, W7 item 2 review: the entry `w7-2-sql-audit` replaced `perform public.write_audit(` with `perform 1; -- public.write_audit(`, which left the argument lines as a bare statement. `create or replace function` failed to compile inside the test's transaction, the case went red, and `watchfail.mjs` printed `WATCHED-FAIL OK` because `expect` is only the `× <test title>` line. The audit-row protection was never watched.
+- cause: the verdict reads the test title, which a syntax error and the assertion it names both turn red. A mutation that is cut by line is not a mutation of the statement.
+- rule: a `sql` entry removes or replaces a whole statement (`perform 1;` for a whole `perform ...;`), generated from the real function file by a script that asserts its target occurs once, never typed by hand; after the verdict, read the red output once (apply the entry's sql to the stub cluster, run the test) and see the assertion's own diff (`expected [] to deeply equal [ Array(1) ]`), not a `syntax error`. When the real function changes, every `sql` entry that embeds a copy of it is regenerated in the same commit (a stale copy turns the new assertion red for the wrong reason).
+- proof: `psql -h 127.0.0.1 -p <stub port> -U postgres -d mop -f <the entry's sql>` prints no error, then `DEV_DB_URL=postgresql://postgres@127.0.0.1:<stub port>/mop node node_modules/vitest/vitest.mjs run --project db tests/db/email-reply-mark.db.test.ts -t "marks a reply answered"` → `AssertionError: expected [] to deeply equal [ Array(1) ]` for `w7-2-sql-audit` (measured 2026-10-16).
+- added: 2026-10-16
+
+## P-3580 · A new feature folder passed every local check and was missing from the folder map: CI's layout check fails with "outside the folder map"
+- symptom: 2026-10-16, PR 442 (W7 3): `bun run layout` printed `app/src/admin/campaigns/CampaignsPage.tsx: outside the folder map` for 8 files (`src/admin/campaigns`, `src/server/campaigns`, `tests/unit/campaigns`). The first build ran tsc, eslint, prettier and the tests but not `layout`, so the branch would have failed CI's check.
+- rule: a new folder under `src/admin`, `src/server` or `tests/unit` is added to `ADMIN_FEATURES`, `SERVER_DOMAINS` or `UNIT_AREAS` in `app/scripts/check-layout.mjs` in the same change, and `bun run layout` runs before the first push.
+- proof: `cd app && bun run layout` → `layout: OK`; with `campaigns` removed from `ADMIN_FEATURES` it lists the `src/admin/campaigns` files as outside the folder map.
+- added: 2026-10-16
+
+## P-3581 · A date taken with `new Date().toISOString().slice(0, 10)` is the UTC day, so a market's state flips hours early or late
+- symptom: 2026-10-16, PR 442 review: the Campaigns list showed a California campaign ending Nov 5 as `Ended` at 5 PM Pacific on Nov 5 (UTC is already Nov 6), and a New York campaign starting Oct 5 as `Running` from 9 PM Eastern on Oct 4.
+- rule: the day of a market is `dayInZone(now, marketTimezone(slug))` from `src/domain/market-time.ts`; never slice an ISO string for a business date (R29: business dates use an explicit IANA zone).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-3-screen-market-day` → `WATCHED-FAIL OK` (the zone replaced by UTC turns `keeps a California campaign running through the evening of its last day` red); `--only w7-3-market-day-zone` likewise for `dayInZone`.
+- added: 2026-10-16
+
+## P-3600 · The robots.txt body is pinned in three tests and one live check; a change to it touches all four
+- symptom: 2026-10-16, adding the `Content-Signal` line to `src/server/seo/robots.ts`: `tests/unit/robots.test.ts` was updated, and the full suite then failed two tests in `tests/unit/seo-cache.test.ts` ("is not stored for a workers.dev host...", "answers the indexable body the same with and without a cookie"), which keep their own copy of the body (`INDEXABLE_ROBOTS`).
+- rule: a robots.txt change edits `robots.ts`, `tests/unit/robots.test.ts` (`INDEXABLE_BODY`), `tests/unit/seo-cache.test.ts` (`INDEXABLE_ROBOTS`), `tests/unit/check-seo.test.ts` (two fixtures) and, when the line must hold live, `scripts/check-seo.ts` `checkRobots`. Find them all first: `grep -rln "Disallow: /admin" app/src app/tests app/scripts`.
+- proof: `grep -rln "Disallow: /admin" app/src app/tests app/scripts` lists the five files (2026-10-16).
+- added: 2026-10-16
+
+## P-3601 · The Cloudflare token in the runner's .env cannot read analytics; read edge errors in the dashboard
+- symptom: 2026-10-16, the GraphQL `httpRequestsAdaptiveGroups` query for 4xx/5xx by path answered `authz: ... does not have permission 'com.cloudflare.api.account.zone.analytics.read'`.
+- rule: for errors and traffic use the dashboard (Workers & Pages › matter-of-place › Metrics: requests, errors, assets by status) or add Analytics Read to the token by hand; the token's other scopes (DNS, zone settings, rulesets, certificates) work.
+- proof: `cd E:/mop-build/live && env -u CLOUDFLARE_API_TOKEN -u CLOUDFLARE_ACCOUNT_ID node --env-file=.env <scratchpad>/cf-errors.mjs` → `status query: [{"message":"Actor ... does not have permission 'com.cloudflare.api.account.zone.analytics.read'` (2026-10-16).
+- added: 2026-10-16
+
+## P-3602 · A colleague woken before her files land is never woken again
+- symptom: 2026-10-16, Fairfield lane test: Maya's run at 01:55 found her desk empty and refused (rightly); Matter copied the request, photographs and Julian's review into `desks/social/work/requests/<id>/` at 01:57, and no run followed for over an hour, so the posts were never made.
+- rule: whoever puts material in a desk wakes that colleague after the copy, in the same step, never before it; a colleague's "my desk is empty, wake me when it is there" is a wait to track until a later run of hers answers.
+- proof: `ls -la ~/.mop-workforce/desks/social/work/requests/4a3c2563-c07a-481d-839b-ad0523827f69/` shows the files at 01:57; Maya's last line in the social thread is 01:55 (2026-10-16).
+- added: 2026-10-16
+
+## P-3603 · A child-process test with a sub-second silence limit fails when the machine is busy
+- symptom: 2026-10-16, `tests/unit/workforce-cli.test.ts` "lets a colleague who keeps working run past the silence limit" failed twice with `the colleague went silent for 0 minutes` while Matter's builders were running: the fake CLI took longer than the 400 ms limit just to start and print its first line.
+- rule: a test that spawns a process gives it a limit well above a cold start (1.5 s or more) and makes the work outlast the limit by a clear margin (the talk mode now works 3 s, printing every 100 ms); never a sub-second limit on process start.
+- proof: `cd app && bunx vitest run tests/unit/workforce-cli.test.ts` passes with the laptop loaded (2026-10-16).
+- added: 2026-10-16
+
+## P-3604 · A wait loop that gives up does not mean the replay ended; never touch the worktree while watchfail runs
+- symptom: 2026-10-16, a 10-minute wait on the pre-push log returned while `scripts/watchfail.mjs` was still applying mutations one by one; I then applied and reverted a mutation in `market-card.tsx` by hand in the same worktree, and `git status` showed `footer.tsx` mutated (the replay's own `modifiedClick` mutation, mid-run), which looked like stray damage.
+- rule: a wait loop ends on the job's own end marker (`^exit` written after the command), never on its timeout alone; until that marker is in the log, no edit, `sed`, `git checkout` or second test run in that worktree. Hand-check a mutation in a copy, or after the replay has printed its summary.
+- proof: `grep -c "^exit" <scratchpad>/prepush2.log` was 0 while `tail -3` showed `mutated src/components/layout/footer.tsx:57` (2026-10-16).
+- added: 2026-10-16
+
+## P-3605 · A mutation entry for a `.test.tsx` file runs under `--project component`, not `unit`
+- symptom: 2026-10-16, entry `market-card-heading-level` (B13) ran `bunx vitest run --project unit tests/unit/no-image.test.tsx` and watchfail said `wrong reason`: the red run printed `No test files found` because the unit project includes only `*.test.ts`.
+- rule: `tests/unit/**/*.test.tsx` belongs to the `component` project (`vitest.config.ts`); a registry `run` names the project the file's extension falls in. When watchfail says "wrong reason" with an empty red run, read the red run's own output first.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only market-card-heading-level` → `WATCHED-FAIL OK` with `--project component`, `wrong reason ... No test files found` with `--project unit` (2026-10-16).
+- added: 2026-10-16
+
+## P-3590 · `workspace/05-plans/ASSUMED.md` and `GOTCHAS.md` are past the Read tool's 256 KB limit, so Edit cannot touch them
+- symptom: 2026-10-16, W8 0d second half: `Read` of ASSUMED.md at the last line refused with `File content (267.2KB) exceeds maximum allowed size (256KB)`, and Edit needs a Read first, so the next ruling row could not be added with the editor.
+- cause: Read checks the whole file's size even with an offset; ASSUMED.md is one table with very long rows and GOTCHAS.md is about 1.8 MB.
+- rule: add a ruling row or a bank entry with a small script in a file outside the tree that checks its anchor (the number is free, the table ends with `|` and a newline) and appends or inserts by index, never with a replacement string; read the part you need with `grep -n` or `sed -n` first.
+- proof: `wc -c workspace/05-plans/ASSUMED.md GOTCHAS.md` → both above 262144 bytes (267,000 and 1,866,000 on 2026-10-16).
+- added: 2026-10-16
+
