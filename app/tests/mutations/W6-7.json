@@ -176,7 +176,7 @@
     "test": "tests/unit/account.service.test.ts",
     "file": "src/server/account/service.ts",
     "find": "  waitUntilOf(request)(\n    queueLink(db, environment, input.email)",
-    "replace": "  await (\n    queueLink(db, environment, input.email)",
+    "replace": "  await ((work: Promise<void>) => work)(\n    queueLink(db, environment, input.email)",
     "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
     "expect": "× .*answers a known and an unknown address the same way, without waiting for the lookup"
   },

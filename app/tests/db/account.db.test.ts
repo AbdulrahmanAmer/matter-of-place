@@ -206,6 +206,8 @@ describe("account_can_sign_in", () => {
   it("is false for an archived contact and for an address that is no contact's", async () => {
     const answers = await withRollback(async (db) => {
       await contact(db, "test-account-a@example.test", true);
+      // A live contact of another address, so a lookup that ignored the address would find one.
+      await contact(db, "test-account-b@example.test");
       return [
         await canSignIn(db, "test-account-a@example.test"),
         await canSignIn(db, "test-account-nobody@example.test"),

@@ -100,7 +100,7 @@ describe("account_link email", () => {
   });
 
   it("equals the row its migration seeds", () => {
-    const [seed, ...more] = inserted("20261016001018_account_link_template.sql");
+    const [seed, ...more] = inserted("20261016014530_account_link_template.sql");
     expect(more).toEqual([]);
     expect(seed).toEqual({
       key: definition.key,
