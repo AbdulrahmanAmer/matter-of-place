@@ -8579,3 +8579,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a builder of a new page route, public form or admin class opens `tests/e2e/fixtures/routes.ts`, `workspace/audits/tools/public-forms.mjs` and `tests/unit/admin-classes.test.ts` and adds its rows in the same commit; the brief of every item that adds a page, a form or a class says so. A name-matching secret rule is tested with the dotfile spelling too (`.credentials.json`).
 - proof: CI `check` job, `vitest run --project unit`, round 5: 4 failed | 443 passed files; after the rows are added the four are green (round 6).
 - added: 2026-10-16
+
+## P-3695 · `prettier --write` run from `app/` on a `workspace/` file reformats it to a width eslint's prettier rule then refuses
+- symptom: 2026-10-16, draft PR 447 CI round 6: four lint errors in `workspace/audits/tools/public-forms.mjs` after the file was formatted with `app`'s prettier from the app folder (80 columns for a file outside the app's config).
+- rule: format only files under `app/` with `prettier --write` from `app/`; a `workspace/` file is edited by hand to the width of its neighbours and parsed with `node --check`.
+- proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
+- added: 2026-10-16
