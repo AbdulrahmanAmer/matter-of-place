@@ -38,6 +38,7 @@ describe("the status machine", () => {
       revise: canMove("rejected", "proposed"),
       schedule: canMove("approved", "scheduled"),
       post: canMove("scheduled", "posted"),
+      settledUnposted: canMove("scheduled", "approved"),
       afterPosted: canMove("posted", "rejected"),
     }).toEqual({
       approve: true,
@@ -47,7 +48,20 @@ describe("the status machine", () => {
       revise: true,
       schedule: true,
       post: true,
+      settledUnposted: true,
       afterPosted: false,
+    });
+  });
+});
+
+describe("the caption count", () => {
+  it("counts code points as char_length does, so an emoji is one character on both sides", () => {
+    expect({
+      atLimit: channelProblems(post({ caption: "🏠".repeat(280) })),
+      over: channelProblems(post({ caption: "🏠".repeat(281) })),
+    }).toEqual({
+      atLimit: [],
+      over: ["X captions are at most 280 characters; this one has 281."],
     });
   });
 });

@@ -17,7 +17,7 @@ import { enqueueJob } from "../lib/jobs.ts";
 import { liveSideEffects, readVar } from "../lib/runtime-env.ts";
 import { captureException } from "../lib/sentry.ts";
 import { approvalStillValid } from "./approval.ts";
-import { proposedSkip, targetsFor } from "./index.ts";
+import { ownProposedChannel, proposedSkip, targetsFor } from "./index.ts";
 import { GraphError } from "./meta.ts";
 import { ChannelApiError } from "./oauth-tokens.ts";
 import type { Channel, SocialAsset } from "./types.ts";
@@ -69,10 +69,13 @@ interface Run {
   channel: SocialChannel;
 }
 
+type StepAsset = Pick<
+  Tables<"assets">,
+  "id" | "kind" | "files" | "caption" | "meta" | "approved_by" | "property_id"
+>;
+
 interface Subject {
-  asset: Pick<Tables<"assets">, "id" | "kind" | "files" | "caption" | "meta" | "approved_by"> & {
-    property_id: string;
-  };
+  asset: StepAsset & { property_id: string };
   property: Pick<Tables<"properties">, "slug" | "title" | "editorial_state" | "campaign_tier">;
 }
 
@@ -132,7 +135,7 @@ export async function notifyAdmin(
 }
 
 /** The asset and its property, or null for a reel about a market, a story or the brand (H107: it never posts itself). */
-async function loadSubject(ctx: StepContext, assetId: string): Promise<Subject | null> {
+async function loadAsset(ctx: StepContext, assetId: string): Promise<StepAsset> {
   const assets = await ctx.db
     .from("assets")
     .select("id, kind, files, caption, meta, approved_by, property_id")
@@ -141,6 +144,10 @@ async function loadSubject(ctx: StepContext, assetId: string): Promise<Subject |
   if (assets.error !== null) throw unavailable("assets");
   const asset = assets.data[0];
   if (asset === undefined) throw new NonRetryableError("asset_not_found");
+  return asset;
+}
+
+async function loadSubject(ctx: StepContext, asset: StepAsset): Promise<Subject | null> {
   const { property_id: propertyId } = asset;
   if (propertyId === null) return null;
   const properties = await ctx.db
@@ -252,6 +259,36 @@ async function postedToday(ctx: StepContext, channel: SocialChannel, tz: string)
 }
 
 const label = (channel: SocialChannel) => socialChannelLabels[channel];
+
+/**
+ * The step's answer when it will not post. W8 item 10 (H117): a proposed post's approval already wrote its own
+ * channel's row, so when this step skips that channel (a format the kind does not target, the channel off, no property
+ * yet) the row is closed as cancelled, never left scheduled for the reconcile to fail as overdue. Any other asset has
+ * no row here.
+ */
+async function skip(
+  ctx: StepContext,
+  asset: StepAsset,
+  channel: SocialChannel,
+  reason: string,
+): Promise<StepResult> {
+  if (ownProposedChannel(asset.meta, channel)) {
+    const { data, error } = await ctx.db
+      .from("social_posts")
+      .select("id")
+      .eq("asset_id", asset.id)
+      .eq("channel", channel)
+      .eq("status", "scheduled");
+    if (error !== null) throw unavailable("social_posts");
+    for (const post of data) {
+      await rpcOrThrow(
+        ctx.db.rpc("fail_social_post", { p_id: post.id, p_error: "cancelled" }),
+        "fail",
+      );
+    }
+  }
+  return done(reason);
+}
 
 /** Fails a scheduled row; with `alert`, the failed-post notice of invariant 3b goes out once per post. */
 async function fail(run: Run, error: string, alert: boolean): Promise<StepResult> {
@@ -399,17 +436,18 @@ export async function postToChannel(
   params: PostParams,
 ): Promise<StepResult> {
   const channel = adapter.id;
-  const subject = await loadSubject(ctx, assetId);
-  if (subject === null) return done("skipped_not_a_property_asset");
-  const proposed = proposedSkip(subject.asset.meta, channel);
+  const stored = await loadAsset(ctx, assetId);
+  const proposed = proposedSkip(stored.meta, channel);
   if (proposed !== null) return done(proposed);
-  const targets = targetsFor(subject.asset.kind, {
+  const subject = await loadSubject(ctx, stored);
+  if (subject === null) return skip(ctx, stored, channel, "skipped_not_a_property_asset");
+  const targets = targetsFor(stored.kind, {
     linkedin: { multi_image: await loadMultiImage(ctx) },
   });
-  if (!targets.includes(channel)) return done("skipped_kind");
+  if (!targets.includes(channel)) return skip(ctx, stored, channel, "skipped_kind");
   const rows = await loadChannelRows(ctx);
   const row = rows.get(channel);
-  if (row?.enabled !== true) return done("skipped_disabled");
+  if (row?.enabled !== true) return skip(ctx, stored, channel, "skipped_disabled");
 
   const post = await rpcOrThrow(
     ctx.db.rpc("schedule_social_post", {

@@ -9,12 +9,13 @@ import {
   listProposedPosts,
   rejectProposedPost,
   rerenderProposedPost,
+  reviseProposedPost,
 } from "../../src/server/publishing/proposed-posts/service";
 import { fakeDb } from "../fixtures/fake-db";
 import { withTables } from "../fixtures/table-stub";
 
-// W8 item 10 (H116): who decides a proposed post. A person approves; Matter's key (an agent with `admin`) may reject
-// and ask for a re-render but never approve; a colleague's key does none of these. The database half, and the rows an
+// W8 item 10 (H116, H117): who decides a proposed post. A person who approves visuals approves; Matter's key (the one
+// agent with `admin`) may propose, revise, reject and ask for a re-render but never approve; any other key does none. The database half, and the rows an
 // approval makes, are tests/db/proposed-posts.db.test.ts.
 
 const fanned = vi.hoisted(() => ({ ids: [] as string[] }));
@@ -44,6 +45,10 @@ const colleague: AdminActor = {
   roles: ["media_ops"],
   scopes: ["channels"],
 };
+/** A colleague's key that holds a role a person decides with: still not Matter's. */
+const editorKey: AdminActor = { ...colleague, roles: ["chief_editor"] };
+/** A person who administers the site but does not approve visuals (`assets.approve`). */
+const administrator: AdminActor = { ...person, roles: ["admin"] };
 
 /** The code a refused call answers with, or "ok". */
 async function outcome(call: Promise<unknown>): Promise<string> {
@@ -70,13 +75,25 @@ function decisions() {
 }
 
 describe("approving a proposed post", () => {
-  it("is a person's: Matter's key is refused manual_approval and a colleague's key forbidden, before any call", async () => {
+  it("is a person's who approves visuals: every key is refused human_only and an administrator forbidden, before any call", async () => {
     const db = decisions();
+    const saw = { id: POST, revision: 1 };
     expect({
-      matter: await outcome(approveProposedPost(matter, db, { id: POST, revision: 1 })),
-      colleague: await outcome(approveProposedPost(colleague, db, { id: POST, revision: 1 })),
-    }).toEqual({ matter: "manual_approval", colleague: "forbidden" });
+      matter: await outcome(approveProposedPost(matter, db, saw)),
+      colleague: await outcome(approveProposedPost(colleague, db, saw)),
+      editorKey: await outcome(approveProposedPost(editorKey, db, saw)),
+      administrator: await outcome(approveProposedPost(administrator, db, saw)),
+    }).toEqual({
+      matter: "human_only",
+      colleague: "human_only",
+      editorKey: "human_only",
+      administrator: "forbidden",
+    });
     expect(db.calls).toEqual([]);
+    const mediaOps = decisions();
+    expect(
+      await outcome(approveProposedPost({ ...person, roles: ["media_ops"] }, mediaOps, saw)),
+    ).toBe("ok");
   });
 
   it("calls approve_proposed_post as the person for the revision they saw and plans each channel's event", async () => {
@@ -122,6 +139,40 @@ describe("rejecting and asking for a re-render", () => {
       ForbiddenError,
     );
     expect(refused.calls).toEqual([]);
+  });
+
+  it("among keys is Matter's only: a key holding chief_editor is refused, as is an administrator, before any call", async () => {
+    const db = decisions();
+    const note = { id: POST, note: "The X cover is too dark." };
+    expect({
+      rejectKey: await outcome(rejectProposedPost(editorKey, db, note)),
+      rerenderKey: await outcome(rerenderProposedPost(editorKey, db, note)),
+      rejectAdministrator: await outcome(rejectProposedPost(administrator, db, note)),
+    }).toEqual({
+      rejectKey: "forbidden",
+      rerenderKey: "forbidden",
+      rejectAdministrator: "forbidden",
+    });
+    expect(db.calls).toEqual([]);
+  });
+});
+
+describe("proposing and revising with a key", () => {
+  it("is Matter's only: a colleague's key, with media_ops or chief_editor, is refused before any call", async () => {
+    const db = fakeDb({ rpc: { create_proposed_post: () => POST, revise_proposed_post: () => 2 } });
+    const input = {
+      title: "Fairfield",
+      property_id: null,
+      submission_id: null,
+      test: true,
+      channels: [],
+    };
+    expect({
+      create: await outcome(createProposedPost(colleague, db, input)),
+      createEditor: await outcome(createProposedPost(editorKey, db, input)),
+      revise: await outcome(reviseProposedPost(editorKey, db, { id: POST, channels: [] })),
+    }).toEqual({ create: "forbidden", createEditor: "forbidden", revise: "forbidden" });
+    expect(db.calls).toEqual([]);
   });
 });
 

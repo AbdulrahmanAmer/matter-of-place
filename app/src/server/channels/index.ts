@@ -99,6 +99,11 @@ export function proposedSkip(
   return proposed.channel === channel ? null : "skipped_other_channel";
 }
 
+/** True when a proposed post's approval made this asset for `channel`: that channel's row is the step's to close. */
+export function ownProposedChannel(meta: unknown, channel: SocialChannel): boolean {
+  return proposedMetaSchema.safeParse(meta).data?.proposed_post.channel === channel;
+}
+
 function disabledBlock(id: SocialChannel): Channel {
   return {
     id,

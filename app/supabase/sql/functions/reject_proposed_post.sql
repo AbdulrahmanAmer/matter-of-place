@@ -62,13 +62,31 @@ begin
       )
     );
   end if;
-  perform public.write_audit(
-    p_actor, p_actor_kind,
-    case when p_rerender then 'channels.proposed_rerender' else 'channels.proposed_reject' end,
-    'proposed_posts', p_id,
-    jsonb_build_object('status', v_post.status), jsonb_build_object('status', 'rejected'), p_request_id,
-    case when p_actor_kind = 'agent' then 'agent:matter' end
-  );
+  if p_actor_kind = 'agent' then
+    -- The matrix lets only Matter's key decide among keys (`agentRoles`, as `assets.reject`): the one agent account
+    -- holding `admin`. `write_audit` checks a person's roles, so this row is written as `reject_asset` writes it.
+    if not exists (
+      select 1 from public.user_roles r
+      where r.user_id = p_actor and r.actor_kind = 'agent' and r.role = 'admin' and r.disabled_at is null
+    ) then
+      raise exception 'forbidden' using errcode = '42501';
+    end if;
+    insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)
+    values (
+      p_actor, p_actor_kind,
+      case when p_rerender then 'channels.proposed_rerender' else 'channels.proposed_reject' end,
+      'proposed_posts', p_id,
+      jsonb_build_object('status', v_post.status), jsonb_build_object('status', 'rejected'), p_request_id,
+      'agent:matter'
+    );
+  else
+    perform public.write_audit(
+      p_actor, p_actor_kind,
+      case when p_rerender then 'channels.proposed_rerender' else 'channels.proposed_reject' end,
+      'proposed_posts', p_id,
+      jsonb_build_object('status', v_post.status), jsonb_build_object('status', 'rejected'), p_request_id
+    );
+  end if;
   return v_post.revision;
 end;
 $$;

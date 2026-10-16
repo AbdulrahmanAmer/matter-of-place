@@ -19,13 +19,15 @@ export type ProposedPostStatus = (typeof proposedPostStatuses)[number];
 
 /**
  * The status machine. A person's yes passes `approved` and lands on `scheduled` in one transaction, once each channel
- * has its `social_posts` row; `posted` follows when every row is posted. A rejected post comes back as its next revision.
+ * has its `social_posts` row; a test post stays `approved`, its rows closed as cancelled. Once every row is posted or
+ * cancelled (a format the post steps skip), the post is `posted`, or back to `approved` when none posted. A rejected
+ * post comes back as its next revision.
  */
 const proposedPostTransitions: Record<ProposedPostStatus, readonly ProposedPostStatus[]> = {
   proposed: ["approved", "rejected"],
   rejected: ["proposed"],
   approved: ["scheduled"],
-  scheduled: ["posted"],
+  scheduled: ["posted", "approved"],
   posted: [],
 };
 
@@ -107,9 +109,11 @@ export function channelProblems(post: ChannelShape): string[] {
   }
   const problems: string[] = [];
   const limit = captionLimits[channel];
-  if (post.caption.length > limit) {
+  // Counted in code points, as `char_length` counts them in `proposed_post_put_channels`: an emoji is one character.
+  const length = [...post.caption].length;
+  if (length > limit) {
     problems.push(
-      `${label} captions are at most ${String(limit)} characters; this one has ${String(post.caption.length)}.`,
+      `${label} captions are at most ${String(limit)} characters; this one has ${String(length)}.`,
     );
   }
   if (format === "reel") {
@@ -167,7 +171,7 @@ export type ProposedPostInput = z.infer<typeof proposedPostInputSchema>;
 /** The path parameter of a read and of every decision. */
 export const proposedPostIdSchema = z.object({ id: uuid });
 
-/** `POST .../:id/approve`: the revision the person saw; a newer one answers 409 `stale`. */
+/** `POST .../:id/approve`: the revision the person saw; a newer one answers 409 `stale` (the SQL raises `version_conflict`; `fromRpcError` renames it). */
 export const proposedPostApproveSchema = proposedPostIdSchema.extend({
   revision: z.number().int().min(1),
 });

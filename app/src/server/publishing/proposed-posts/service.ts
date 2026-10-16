@@ -24,14 +24,14 @@ import { mediaUrl } from "../../lib/media-store.ts";
 
 // W8 item 10 (rulings H116, H117): proposed posts. Each function is reached through a `defineAdminRoute` handler,
 // authorizes again (SEC-04) and makes each write through exactly one SQL function. Who decides is the matrix's
-// (`permissions/proposed-posts.ts`); approval is a person's only, so every agent key is refused it here.
+// (`permissions/proposed-posts.ts`): among keys only Matter's (`agentRoles: admin`), and approval a person's only.
 
 const POST_COLUMNS =
   "id, title, property_id, submission_id, proposer_kind, proposer_agent, proposer_user, test, status, revision, rejection_note, approved_at, created_at, updated_at";
 const CHANNEL_COLUMNS =
   "post_id, revision, channel, format, caption, media, asset_id, social_post_id";
 
-/** The only colleague whose key decides here: every agent key is Matter's (H113), and it holds `admin`. */
+/** The only colleague whose key acts here: the matrix admits a key only with `admin`, which only Matter's holds. */
 const MATTER = "matter";
 
 const mediaSchema = z.object({
@@ -243,8 +243,9 @@ async function planEvent(db: Db, eventId: string): Promise<void> {
 
 /**
  * `POST /api/admin/proposed-posts/:id/approve` through `approve_proposed_post`, for the revision the person saw. Every
- * agent key is refused before any call (H116, the 60 days of human approval); the function refuses one too. Each
- * channel's `asset.approved` event is planned after the commit; a failed plan waits for the job runner's sweep.
+ * agent key is refused `human_only` before any call (H116, the 60 days of human approval); the function refuses one
+ * with `manual_approval` too. Each channel's `asset.approved` event is planned after the commit; a failed plan waits
+ * for the job runner's sweep.
  */
 export async function approveProposedPost(
   actor: AdminActor,
@@ -252,9 +253,6 @@ export async function approveProposedPost(
   input: { id: string; revision: number },
 ): Promise<ProposedPostDecision> {
   authorize(actor, "channels.proposed_approve");
-  if (actor.kind === "agent") {
-    throw new AppError("manual_approval", undefined, "A person approves a post.");
-  }
   const { data, error } = await db.rpc("approve_proposed_post", {
     p_id: input.id,
     p_revision: input.revision,

@@ -183,7 +183,7 @@ describe("approve_proposed_post", () => {
   it("turns each channel into an approved brand asset and the scheduled social_posts row the posting path reads", async () => {
     await withRollback(async (db) => {
       await stored(db);
-      const id = await propose(db, FAIRFIELD);
+      const id = await propose(db, FAIRFIELD, false);
       const person = await createStaffUser(db, ["chief_editor"]);
       const answer = await scalar<{ event_ids: string[]; social_post_ids: string[] }>(
         db,
@@ -214,7 +214,7 @@ describe("approve_proposed_post", () => {
           channel: "instagram",
           kind: "carousel",
           role: "slide",
-          test: "true",
+          test: "false",
           linked: true,
         },
         {
@@ -222,10 +222,10 @@ describe("approve_proposed_post", () => {
           channel: "linkedin",
           kind: "carousel",
           role: "linkedin_set",
-          test: "true",
+          test: "false",
           linked: true,
         },
-        { ...row, channel: "x", kind: "cover", role: "x", test: "true", linked: true },
+        { ...row, channel: "x", kind: "cover", role: "x", test: "false", linked: true },
       ]);
       // The posting path calls schedule_social_post for its asset and channel: it reads the same row, never a second.
       const again = await scalar<string>(
@@ -340,7 +340,7 @@ describe("approve_proposed_post", () => {
   it("marks a scheduled post posted only once every channel row is posted", async () => {
     await withRollback(async (db) => {
       await stored(db);
-      const id = await propose(db, FAIRFIELD);
+      const id = await propose(db, FAIRFIELD, false);
       const person = await createStaffUser(db, ["chief_editor"]);
       await db.query("select public.approve_proposed_post($1, 1, $2, 'human')", [id, person]);
       const status = () =>
@@ -358,6 +358,61 @@ describe("approve_proposed_post", () => {
       const partly = await status();
       await post("linkedin");
       expect([partly, await status()]).toEqual(["scheduled", "posted"]);
+    });
+  });
+
+  it("closes a test post's rows as cancelled at approval and leaves the post approved", async () => {
+    await withRollback(async (db) => {
+      await stored(db);
+      const id = await propose(db, FAIRFIELD, true);
+      const person = await createStaffUser(db, ["media_ops"]);
+      await db.query("select public.approve_proposed_post($1, 1, $2, 'human')", [id, person]);
+      const rows = await db.query<Record<string, unknown>>(
+        `select s.status, s.error from public.proposed_post_channels c
+         join public.social_posts s on s.id = c.social_post_id where c.post_id = $1 order by c.channel`,
+        [id],
+      );
+      const cancelled = { status: "failed", error: "cancelled" };
+      expect({
+        rows: rows.rows,
+        post: await scalar<string>(
+          db,
+          "select status::text as v from public.proposed_posts where id = $1",
+          [id],
+        ),
+      }).toEqual({ rows: [cancelled, cancelled, cancelled], post: "approved" });
+    });
+  });
+
+  it("settles a post whose skipped channels the step cancelled: posted when one posted, approved when none", async () => {
+    await withRollback(async (db) => {
+      await stored(db);
+      const some = await propose(db, FAIRFIELD, false);
+      const none = await propose(db, FAIRFIELD, false);
+      const person = await createStaffUser(db, ["chief_editor"]);
+      for (const id of [some, none]) {
+        await db.query("select public.approve_proposed_post($1, 1, $2, 'human')", [id, person]);
+      }
+      const rowOf = `(select social_post_id from public.proposed_post_channels where post_id = $1 and channel = $2)`;
+      const cancel = (id: string, channel: string) =>
+        db.query(`select public.fail_social_post(${rowOf}, 'cancelled')`, [id, channel]);
+      const status = (id: string) =>
+        scalar<string>(db, "select status::text as v from public.proposed_posts where id = $1", [
+          id,
+        ]);
+      await db.query(
+        `update public.social_posts set status = 'posted', posted_at = now() where id = ${rowOf}`,
+        [some, "instagram"],
+      );
+      await cancel(some, "linkedin");
+      const waiting = await status(some);
+      await cancel(some, "x");
+      for (const channel of ["instagram", "linkedin", "x"]) await cancel(none, channel);
+      expect([waiting, await status(some), await status(none)]).toEqual([
+        "scheduled",
+        "posted",
+        "approved",
+      ]);
     });
   });
 });
@@ -456,6 +511,30 @@ describe("reject_proposed_post and revise_proposed_post", () => {
         [id, person],
       );
       expect(audit.rows).toEqual([{ action: "channels.proposed_rerender" }]);
+    });
+  });
+
+  it("refuses a key that is not Matter's, whatever role it holds, so agent:matter is always Matter", async () => {
+    await withRollback(async (db) => {
+      await stored(db);
+      const id = await propose(db, FAIRFIELD);
+      const colleague = await createAuthUser(db);
+      await db.query(
+        "insert into public.user_roles (user_id, role, actor_kind) values ($1, 'chief_editor', 'agent')",
+        [colleague],
+      );
+      expect({
+        refused: await attempt(
+          db,
+          "select public.reject_proposed_post($1, 'Too dark.', false, $2, 'agent')",
+          [id, colleague],
+        ),
+        status: await scalar<string>(
+          db,
+          "select status::text as v from public.proposed_posts where id = $1",
+          [id],
+        ),
+      }).toEqual({ refused: "forbidden: ", status: "proposed" });
     });
   });
 });

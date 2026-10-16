@@ -21,6 +21,7 @@ import { z } from "zod";
 import {
   channelPostSchema,
   channelProblems,
+  postFileSchema,
   type ChannelPost,
   type PostFile,
 } from "../../src/domain/proposed-posts.ts";
@@ -33,7 +34,7 @@ export const DRIVE = "G:/My Drive/Matter of Place/Social Media";
 const fileRefSchema = z
   .object({
     path: z.string().min(1).max(500).optional(),
-    key: z.string().min(1).max(300).optional(),
+    key: postFileSchema.shape.key.optional(),
     alt: z.string().trim().min(1).max(1000),
   })
   .refine(
@@ -233,9 +234,19 @@ export async function fileProposedPost(
     if (error instanceof Refused) return withdraw(deps, uploaded, error.message);
     throw error;
   }
+  // The built channels are what every reader parses later: one the admin list could not parse is never stored.
+  const built = z.array(channelPostSchema).safeParse(channels);
+  if (!built.success) {
+    const issue = built.error.issues[0];
+    return withdraw(
+      deps,
+      uploaded,
+      `a file is not in the shape stored (${issue?.path.join(".") ?? ""}: ${issue?.message ?? ""})`,
+    );
+  }
   const created = await deps.create({
     p_title: plan.title ?? input.summary.slice(0, 200),
-    p_channels: channels,
+    p_channels: built.data,
     p_proposer_kind: "agent",
     p_proposer_agent: input.agent,
     p_run: input.run,

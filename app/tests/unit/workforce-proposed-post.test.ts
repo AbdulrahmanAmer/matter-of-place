@@ -202,6 +202,30 @@ describe("fileProposedPost", () => {
     expect(created).toEqual([]);
   });
 
+  it("never stores a post the admin list could not read: a key outside the key pattern, or a file measured oddly", async () => {
+    const odd = deps({ "proposed/t/x.jpg": "x" });
+    odd.fake.measure = () => Promise.resolve({ w: 1080.5, h: 1350 });
+    const plain = deps({ "proposed/t/x.jpg": "x" });
+    const single = (fake: PostDeps, key: string) =>
+      fileProposedPost(
+        fake,
+        input({
+          channels: [
+            { channel: "x", format: "single", caption: "Fairfield.", images: [{ key, alt: "A." }] },
+          ],
+        }),
+      );
+    const badKey = await single(plain.fake, "proposed/t/x y.jpg");
+    const measured = await single(odd.fake, "proposed/t/x.jpg");
+    expect({
+      badKey:
+        "refused" in badKey && badKey.refused.startsWith("the post is not in the shape asked for"),
+      measured:
+        "refused" in measured && measured.refused.startsWith("a file is not in the shape stored"),
+      created: [plain.created, odd.created],
+    }).toEqual({ badKey: true, measured: true, created: [[], []] });
+  });
+
   it("uploads studio and Drive files under one batch and proposes them with their source, path, size and alt", async () => {
     const { fake, uploads, created } = deps({ "requested/r1/reel.mp4": "video" });
     const answer = await fileProposedPost(

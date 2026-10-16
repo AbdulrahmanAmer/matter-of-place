@@ -233,6 +233,34 @@ describe("what decides before any platform call", () => {
     expect([other.posts, rehearsal.posts, ownAdapter.creates.length]).toEqual([[], [], 1]);
   });
 
+  it("a proposed post's own row that the step skips is closed as cancelled, never left scheduled (W8 item 10)", async () => {
+    // A LinkedIn carousel while linkedin.multi_image is off, and a post about the brand, with no property yet.
+    const carousel = world({
+      kind: "carousel",
+      meta: { proposed_post: { channel: "linkedin", test: false }, captions: {} },
+      posts: [postRow("linkedin")],
+    });
+    const brand = world({
+      kind: "cover",
+      asset: { subject: "brand", property_id: null },
+      meta: { proposed_post: { channel: "x", test: false }, captions: {} },
+      posts: [postRow("x", { property_id: null })],
+    });
+    const linkedin = adapter("linkedin");
+    expect([
+      await postToChannel(ctxOf(carousel.db), linkedin, ASSET, LIVE),
+      await postToChannel(ctxOf(brand.db), adapter("x"), ASSET, LIVE),
+    ]).toEqual([
+      { status: "done", result: "skipped_kind" },
+      { status: "done", result: "skipped_not_a_property_asset" },
+    ]);
+    expect([carousel.posts, brand.posts].flat()).toMatchObject([
+      { channel: "linkedin", status: "failed", error: "cancelled" },
+      { channel: "x", status: "failed", error: "cancelled" },
+    ]);
+    expect(linkedin.publish).not.toHaveBeenCalled();
+  });
+
   it("a disabled channel returns skipped_disabled and writes no row", async () => {
     const { db, posts } = world({ kind: "cover", enabled: { facebook: false } });
     expect(await postToChannel(ctxOf(db), adapter("facebook"), ASSET, LIVE)).toEqual({

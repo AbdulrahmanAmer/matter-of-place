@@ -105,18 +105,27 @@ begin
     returning id into v_asset;
     v_event := public.approve_asset(v_asset, p_actor, p_actor_kind, p_request_id, null);
     v_social := public.schedule_social_post(v_asset, v_channel.channel, now());
+    -- A test post never goes out (H117): its rows are closed as cancelled here, never left for the reconcile's overdue.
+    if v_post.test then
+      perform public.fail_social_post(v_social.id, 'cancelled');
+    end if;
     update public.proposed_post_channels set asset_id = v_asset, social_post_id = v_social.id where id = v_channel.id;
     v_events := array_append(v_events, v_event);
     v_socials := array_append(v_socials, v_social.id);
   end loop;
 
+  -- An approved test post has nothing scheduled, so it stays `approved`.
   update public.proposed_posts
-  set status = 'scheduled', approved_by = p_actor, approved_at = now()
+  set status = case when v_post.test then 'approved' else 'scheduled' end::public.proposed_post_status,
+    approved_by = p_actor, approved_at = now()
   where id = p_id;
   perform public.write_audit(
     p_actor, p_actor_kind, 'channels.proposed_approve', 'proposed_posts', p_id,
     jsonb_build_object('status', v_post.status),
-    jsonb_build_object('status', 'scheduled', 'revision', v_post.revision), p_request_id
+    jsonb_build_object(
+      'status', case when v_post.test then 'approved' else 'scheduled' end, 'revision', v_post.revision
+    ),
+    p_request_id
   );
   return jsonb_build_object('post_id', p_id, 'event_ids', to_jsonb(v_events), 'social_post_ids', to_jsonb(v_socials));
 end;

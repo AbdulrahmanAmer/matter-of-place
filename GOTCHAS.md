@@ -8410,6 +8410,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `ls -la E:/mop-build/od-w8-10/app/node_modules` → `node_modules -> /e/mop-build/od-slide/app/node_modules`; `cat E:/mop-build/od-w8-10/app/node_modules/.cache/watchfail.lock` printed another worktree's live pid during the W8 item 10 replay (2026-10-16).
 - added: 2026-10-16
 
+## P-3613 · `agentRoles` reaches only `authorize`: `write_audit` checks an agent against the person roles of `action_roles`
+- symptom: 2026-10-16, W8 item 10 review fix: aligning `channels.proposed_reject` with `assets.reject` (roles media_ops and chief_editor, `agentRoles: admin`) would have left Matter's key passing the route and then refused `forbidden` inside `reject_proposed_post`, whose audit went through `write_audit`.
+- cause: `scripts/gen-action-roles.mjs` writes `roles` and `human_only` only; `write_audit` refuses an actor whose enabled roles miss `action_roles.roles`, whatever the matrix's `agentRoles` say.
+- rule: a SQL function behind an action whose `agentRoles` are outside its `roles` writes the agent's audit row itself and checks the agent's grant in SQL, as `reject_asset` (item 9) and `reject_proposed_post` do; a person still goes through `write_audit`.
+- proof: `grep -n "roles, human_only" app/scripts/gen-action-roles.mjs` shows no agent column; `grep -n "v_rule.roles && v_roles" app/supabase/sql/functions/write_audit.sql` is the refusal; the case "refuses a key that is not Matter's" in `tests/db/proposed-posts.db.test.ts` and "lets Matter send a post back" run both branches (CI db job).
+- added: 2026-10-16
+
+## P-3614 · `check-migrations.mjs` reads the committed range, so a migration renamed or removed in the worktree crashes it with ENOENT until the commit
+- symptom: 2026-10-16, W8 item 10: after `git mv` of `20261016050108_proposed_posts.sql` and `git rm` of two generated files, `node scripts/check-migrations.mjs` threw `ENOENT ... 20261016050108_proposed_posts.sql`.
+- cause: it lists files with `git diff origin/main...HEAD` and reads each from the disk.
+- rule: rename and regenerate migrations, commit, then run `node scripts/check-migrations.mjs`; its answer before the commit is about the old tree.
+- proof: `cd app && node scripts/check-migrations.mjs` after the commit prints no failure (2026-10-16).
+- added: 2026-10-16
+
 ## P-3690 · A test fixture for a row a script writes must copy the writer's real shape, or a screen can print the raw value and stay green
 - symptom: 2026-10-16, W7 7 review: Settings, Service usage printed `2026-10-21T16:00:00.000Z` as the Claude allowance's note. Both tests used `Resets Sat, Oct 17`, which the runner never writes (`daemon.ts` writes `resetsAt.toISOString()` into `vendor_usage.note`), so the tick "with its reset note" was observed only on invented data. The same row was also read by two code paths (the Office and Settings) that could drift.
 - cause: the fixture was written from the screen's idea of the row, not from the writer.
