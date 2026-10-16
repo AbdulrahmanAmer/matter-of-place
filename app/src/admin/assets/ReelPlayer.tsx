@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { z } from "zod";
 import { formatNumber } from "../../lib/format";
+import { fileName } from "./file-name";
 
 /** The reel's own measurements, written by `render-reel` into `assets.meta` (B12 step 6). */
 const reelMetaSchema = z.object({
@@ -18,7 +20,7 @@ const reelMetaSchema = z.object({
 
 /** The part of the asset DTO the player reads: `files[].url` is computed on the server (B9 `listAssets`, `getAsset`). */
 type ReelAsset = {
-  files: { role: string; url: string }[];
+  files: { role: string; url: string; media_key?: string }[];
   meta: unknown;
 };
 
@@ -37,10 +39,15 @@ export function ReelPlayer({ asset }: { asset: ReelAsset }) {
   const video = asset.files.find((file) => file.role === "video");
   const poster = asset.files.find((file) => file.role === "poster");
   const meta = reelMetaSchema.safeParse(asset.meta);
+  const [lost, setLost] = useState(false);
 
   return (
     <figure>
-      {video ? (
+      {video && lost ? (
+        <p className="admin-asset__empty" role="alert">
+          {fileName(video.media_key ?? video.url)}: file not found.
+        </p>
+      ) : video ? (
         // eslint-disable-next-line jsx-a11y/media-has-caption -- the reel has no speech, so it has no captions track (G30)
         <video
           src={video.url}
@@ -48,6 +55,9 @@ export function ReelPlayer({ asset }: { asset: ReelAsset }) {
           controls
           playsInline
           preload="none"
+          onError={() => {
+            setLost(true);
+          }}
         />
       ) : (
         <p>No film rendered yet.</p>

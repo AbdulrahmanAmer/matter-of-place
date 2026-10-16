@@ -5,11 +5,17 @@ import { Field } from "../ui/Field";
 // The dialog draws its children only while it is open, so the form's note starts empty on every opening.
 function RejectForm({
   title,
+  verb,
+  hint,
+  missingNote,
   pending,
   onReject,
   onCancel,
 }: {
   title: string;
+  verb: string;
+  hint: string;
+  missingNote: string;
   pending: boolean;
   onReject: (note: string) => void;
   onCancel: () => void;
@@ -35,11 +41,7 @@ function RejectForm({
         <h2>{title}</h2>
       </div>
       <div className="admin-dialog__body">
-        <Field
-          label="Note"
-          hint="Say what is wrong, so the next render can fix it."
-          {...(missing ? { error: "A reject needs a note." } : {})}
-        >
+        <Field label="Note" hint={hint} {...(missing ? { error: missingNote } : {})}>
           {(control) => (
             <textarea
               {...control}
@@ -55,7 +57,7 @@ function RejectForm({
       </div>
       <div className="admin-actions">
         <button type="submit" className="admin-button admin-button--danger" disabled={pending}>
-          Reject
+          {verb}
         </button>
         <button type="button" className="admin-button admin-button--quiet" onClick={onCancel}>
           Cancel
@@ -72,16 +74,31 @@ export function RejectDialog({
   pending,
   onReject,
   onCancel,
+  verb = "Reject",
+  hint = "Say what is wrong, so the next render can fix it.",
+  missingNote = "A reject needs a note.",
 }: {
   open: boolean;
   title: string;
+  /** The button and the missing-note message: "Reject" for a reject, "Ask for a re-render" for the proposed posts' second move. */
+  verb?: string;
+  hint?: string;
+  missingNote?: string;
   pending: boolean;
   onReject: (note: string) => void;
   onCancel: () => void;
 }) {
   return (
     <Dialog open={open} onClose={onCancel} label={title}>
-      <RejectForm title={title} pending={pending} onReject={onReject} onCancel={onCancel} />
+      <RejectForm
+        title={title}
+        verb={verb}
+        hint={hint}
+        missingNote={missingNote}
+        pending={pending}
+        onReject={onReject}
+        onCancel={onCancel}
+      />
     </Dialog>
   );
 }

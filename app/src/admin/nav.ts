@@ -143,6 +143,14 @@ export const navEntries: readonly NavEntry[] = [
     group: "Publishing",
     label: "Social posts",
   },
+  // W8 item 11 (2026-10-16): posts a colleague proposes, previewed per channel, before anything is filed to go out.
+  {
+    screen: 33,
+    path: "/admin/proposed-posts",
+    routeId: "/admin/proposed-posts/",
+    group: "Publishing",
+    label: "Proposed posts",
+  },
   {
     screen: 13,
     path: "/admin/newsletter",

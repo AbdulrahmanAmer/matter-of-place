@@ -1959,3 +1959,20 @@ first day of the new usage week; no step was cut from any plan.
   tools): the runner runs main, so this proof comes after merge; 0e stays unticked until then. NOT DONE: a table CHECK
   refusing uuid-shaped slugs (its own migration PR); 0f; 0g waits on the operator's Google Drive.
   Bank grew: P-3570, P-3571, P-3572.
+
+- 2026-10-16 (overdrive/w8-11, builder Sonnet 5.5 high): W8 item 11, the Proposed posts screen and the Visuals caption
+  fix. Visuals: the captions ran into the next card because the admin sheet has no `max-width` for media; a reel's
+  1080 px poster widened its grid cell to 1080 px (measured: header, video, caption and buttons spanned 33..1113 inside a
+  card ending at 374; the page scrolled sideways). Fixed in `src/styles/admin/assets.css` (media held to the card, cell
+  and children `min-width: 0`); text wraps, it is not clamped (H130). `bun scripts/admin-shot.ts visuals|proposed` (bun
+  renders `tests/fixtures/admin-scenes.tsx`, node draws it with the real sheet at 390, 820, 1440 and fails when a line
+  leaves its card) reads LAYOUT OK for both scenes; before the fix it printed 195 faults. Screen: `/admin/proposed-posts`
+  (screen 33, Publishing), `src/admin/proposed-posts/` (a preview per channel as that channel draws it, character count,
+  TEST badge, approve, reject with a note, ask for a re-render, History), a missing file shows its name and "file not
+  found" in `CarouselViewer`, `ReelPlayer` and the single picture. 22 component tests, registry `tests/mutations/W8-11.json`
+  (24 entries). UNPROVEN: `origin/overdrive/w8-10` was not pushed, so the shapes, routes and action ids are from item
+  10's text and live in `proposed-posts-contract.ts` (`STUB(W8 item 10)`); nothing ran against the real routes; the nav
+  entry has no `requiresAction` yet. NOT DONE: the Fairfield test post shown and rejected by Matter's own key with the
+  audit row read (needs items 9 and 10 on mop-dev). When item 10 merges: import from `src/domain/proposed-posts.ts`,
+  delete the contract file, compare the action ids (`proposed_posts.approve|reject|re_render`) and the route paths first.
+  Bank grew: P-3600, P-3602, a hit-again on P-1218. Ruling H130.

@@ -1,0 +1,218 @@
+[
+  {
+    "id": "w811-a-slide-alts",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "        alts={post.images.map((image) => (image.alt === \"\" ? image.name : image.alt))}",
+    "replace": "        alts={[]}",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*steps a carousel slide by slide with the caption under it on Instagram"
+  },
+  {
+    "id": "w811-b-caption-order",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "  const captionFirst = post.channel !== \"instagram\";",
+    "replace": "  const captionFirst = post.channel === \"instagram\";",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*puts the words above the picture on X and LinkedIn"
+  },
+  {
+    "id": "w811-c-single-picture",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "  return first === undefined ? null : <PostImage file={first} />;",
+    "replace": "  return first === undefined ? null : null;",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*shows a single post's picture with its caption under it on Instagram"
+  },
+  {
+    "id": "w811-d-reel-player",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "            { role: \"video\", url: video.url, media_key: video.name },",
+    "replace": "            { role: \"clip\", url: video.url, media_key: video.name },",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*plays a reel in a player with its poster"
+  },
+  {
+    "id": "w811-e-count-over",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "  const over = used > limit;",
+    "replace": "  const over = used > limit + 1000;",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*counts the caption against the channel's limit and says when it is over"
+  },
+  {
+    "id": "w811-f-count-limit",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/proposed-posts-contract.ts",
+    "find": "  linkedin: 3000,",
+    "replace": "  linkedin: 300,",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*counts a caption within the limit without a warning, with each channel's own limit"
+  },
+  {
+    "id": "w811-g-lost-picture",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "        setLost(true);",
+    "replace": "        setLost(false);",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*names a picture that cannot be loaded and says file not found"
+  },
+  {
+    "id": "w811-h-lost-slide",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/assets/CarouselViewer.tsx",
+    "find": "            setLost((already) => [...already, slide.url]);",
+    "replace": "            setLost((already) => already);",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*names a carousel slide that cannot be loaded"
+  },
+  {
+    "id": "w811-i-lost-reel",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/assets/ReelPlayer.tsx",
+    "find": "            setLost(true);",
+    "replace": "            setLost(false);",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*names a reel that cannot be loaded"
+  },
+  {
+    "id": "w811-j-nothing-attached",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "  if (post.images.length === 0) return <p className=\"admin-asset__empty\">No picture attached.</p>;",
+    "replace": "  if (post.images.length === 0) return null;",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*says so when a post has no picture or no film attached"
+  },
+  {
+    "id": "w811-k-every-channel",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "      aria-label={`${label}, ${proposedFormatLabels[post.format].toLowerCase()}`}",
+    "replace": "      aria-label={label}",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*shows every channel of the post, who proposed it and its status"
+  },
+  {
+    "id": "w811-l-test-mark",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
+    "find": "        {post.test ? <StatusPill label=\"TEST\" tone=\"warning\" /> : null}",
+    "replace": "        {!post.test ? <StatusPill label=\"TEST\" tone=\"warning\" /> : null}",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*marks a test post TEST and a real one with no mark"
+  },
+  {
+    "id": "w811-m-approve-asks",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
+    "find": "                setAsking(\"approve\");",
+    "replace": "                approve.mutate(post.id, settle(\"Approved.\"));",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*approves after a confirmation and sends nothing on Cancel"
+  },
+  {
+    "id": "w811-n-approve-refusal",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
+    "find": "      setRefusal(error.message);",
+    "replace": "      setRefusal(\"Refused.\");",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*shows the reason when an approve is refused"
+  },
+  {
+    "id": "w811-o-reject-note",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
+    "find": "          reject.mutate({ id: post.id, note }, settle(\"Rejected.\"));",
+    "replace": "          reject.mutate({ id: post.id, note: \"\" }, settle(\"Rejected.\"));",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*refuses a reject without a note and sends the note it is given"
+  },
+  {
+    "id": "w811-p-rerender-note",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
+    "find": "          rerender.mutate({ id: post.id, note }, settle(\"Sent to render again.\"));",
+    "replace": "          rerender.mutate({ id: post.id, note: \"\" }, settle(\"Sent to render again.\"));",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*asks for a re-render with a note"
+  },
+  {
+    "id": "w811-q-action-gate",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
+    "find": "          <RoleGate action={proposedActions.reject}>",
+    "replace": "          <RoleGate action={proposedActions.approve}>",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*offers a decision only to an actor who holds its action"
+  },
+  {
+    "id": "w811-r-decision-states",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
+    "find": "        {open || post.status === \"rejected\" ? (",
+    "replace": "        {open ? (",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*offers an approved post no decision and a rejected post only a re-render, with its note"
+  },
+  {
+    "id": "w811-s-history-lazy",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/PostHistory.tsx",
+    "find": "  const detail = useProposedPost(id, shown);",
+    "replace": "  const detail = useProposedPost(id, true);",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*reads the revisions only when the history is opened"
+  },
+  {
+    "id": "w811-t-list-status",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostsPage.tsx",
+    "find": "  const posts = useProposedPosts(filters.values);",
+    "replace": "  const posts = useProposedPosts({});",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*lists every post with its previews and asks for the status of the address"
+  },
+  {
+    "id": "w811-u-list-empty",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostsPage.tsx",
+    "find": "      {posts.data?.items.length === 0 ? (",
+    "replace": "      {posts.data?.items.length === 1 ? (",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*says no post is waiting when the list is empty"
+  },
+  {
+    "id": "w811-v-list-error",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostsPage.tsx",
+    "find": "          {posts.error.message}",
+    "replace": "          {\"\"}",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*shows the server's message when the list does not load"
+  },
+  {
+    "id": "w811-w-layout-media",
+    "test": "scripts/admin-shot.ts",
+    "file": "src/styles/admin/assets.css",
+    "find": ".admin-asset img,\n.admin-asset video {\n  max-width: 100%;\n  height: auto;\n}",
+    "replace": ".admin-asset img {\n  height: auto;\n}",
+    "run": "bun scripts/admin-shot.ts visuals",
+    "expect": "LAYOUT FAILED visuals"
+  },
+  {
+    "id": "w811-x-layout-proposed",
+    "test": "scripts/admin-shot.ts",
+    "file": "src/styles/admin/proposed-posts.css",
+    "find": ".admin-proposed img,\n.admin-proposed video {\n  max-width: 100%;\n  height: auto;\n}",
+    "replace": ".admin-proposed img {\n  height: auto;\n}",
+    "run": "bun scripts/admin-shot.ts proposed",
+    "expect": "LAYOUT FAILED proposed"
+  }
+]
