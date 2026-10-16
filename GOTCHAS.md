@@ -8597,3 +8597,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: work without its own PR gets a DRAFT pull request to main so check and build run on every push; mark it ready (`gh pr ready`) to run db and e2e too. Ready is not merged: the gate still merges.
 - proof: PR 447 as a draft ran check and build only; after `gh pr ready 447` the next push ran db (18m29s) and e2e (10m42s), all green (2026-10-16).
 - added: 2026-10-16
+
+## P-3608 · A fix to the live supervisor's idle check cannot install itself; restart it
+- symptom: 2026-10-16, PR 447 merged the goal hand-off fix and the runner folder held it, but the running supervisor (started 02:24) never moved: it moves to new code only when idle, and the fault it carried kept it from ever reading as idle.
+- rule: after merging any change to `scripts/matter/live.ts`, check `git -C E:/mop-build/live merge-base --is-ancestor <merge> HEAD` and the live process start time; if the process predates the merge, restart it while Matter has no run in progress (`taskkill /T` on the wscript root, then `Start-ScheduledTask "MOP Matter Live"`), and read live.log for the first goal step or skip reason.
+- proof: after the restart at 17:01, live.log: `14:01:25Z live: goal step W8-0d ...` and `14:01:32Z live: goal step skipped: 1 line(s) in hand` (2026-10-16).
+- added: 2026-10-16

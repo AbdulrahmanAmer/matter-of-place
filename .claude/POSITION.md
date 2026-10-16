@@ -2088,3 +2088,13 @@ first day of the new usage week; no step was cut from any plan.
   00:35 UTC; it lands with PR 447). Fairfield lane test closed: FAIL (Julian and Matter), set in Drive, three abstract reels
   rejected by hand with notes. Laptop: 16 GB of runaway task logs deleted on the operator's word; held at Idle for an OmniSuite
   film export, then restored. Bank grew: P-3606, P-3607.
+- 2026-10-16 17:45 +0300: orchestrator. PR 447 MERGED (41f6a809, decided under S63 after two hours unanswered: reviewed green
+  work does not wait). The live supervisor could not move to it by itself (the stuck-idle fault it fixes also blocked its own
+  move), so it was restarted at 17:01 with Matter idle; live.log at 14:01:25Z: "goal step W8-0d ..." then "goal step skipped:
+  1 line(s) in hand", the first automatic hand-off since 00:35 UTC (P-3608). Operator answered W7 9: outside text reaches a
+  colleague through the W8 0a-0c path (labelled, fenced, triaged first); sent to Matter. Second round opened on
+  overdrive/finish-2 (fixes for w8-10, w8-0h, toolkits, followups, w7-9). PARKED on the operator's word ("now we can relax on
+  build and wait for something to happen"): ~/.mop-workforce/config.json backlog "off" (policy.json read back "off"), builders
+  finish their current item and stop, the STOP file holds the queue. Wakes only on people's lines, events and scheduled jobs.
+  NOT LIVE: inbound mail (W8 0h). Task gate list moved to .claude/tasks/parked-2026-10-16-matter-autonomy.json. Stray scratch
+  postgres (od-w6-7, 18,035 CPU-s since 01:22) and an idle node stopped. Build again: backlog "all" on his word.
