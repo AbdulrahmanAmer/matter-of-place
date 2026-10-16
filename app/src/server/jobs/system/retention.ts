@@ -57,6 +57,10 @@ const ROW_KEYS_AFTER_EMAIL = [
   "agent_approvals_decided",
   "agent_runs_finished",
   "agent_messages",
+  // W8 0h: the mail read from the mailbox, after a year. `email_replies` had its policy and its delete since W4 but
+  // was never named here, so no reply was ever removed.
+  "email_replies",
+  "inbound_mail",
 ];
 
 function unavailable(fn: string): AppError {

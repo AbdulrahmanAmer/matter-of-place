@@ -8412,3 +8412,28 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the day of a market is `dayInZone(now, marketTimezone(slug))` from `src/domain/market-time.ts`; never slice an ISO string for a business date (R29: business dates use an explicit IANA zone).
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-3-screen-market-day` → `WATCHED-FAIL OK` (the zone replaced by UTC turns `keeps a California campaign running through the evening of its last day` red); `--only w7-3-market-day-zone` likewise for `dayInZone`.
 - added: 2026-10-16
+
+## P-4501 · Zoho refuses OAuth refreshes after a handful in a minute ("Access Denied"), for every holder of the refresh token
+- symptom: 2026-10-16, W8 0h: probing the admin@ mailbox with one `node` process per call (about fourteen token refreshes in a minute) made `accounts.zoho.com/oauth/v2/token` answer `{"error":"Access Denied"}` for about fifteen minutes, to the probe and to the laptop runner's mail check, which uses the same refresh token.
+- cause: Zoho throttles access-token refreshes per refresh token.
+- rule: one access token per process: a probe batches every call into one run, never a loop of single-call scripts; the runner refreshes once per check (every five minutes).
+- proof: `grep -n "one token serves a whole check" app/scripts/workforce/mail.ts` → the comment above `accessToken`.
+- added: 2026-10-16
+
+## P-4502 · Zoho's header order differs by message: its `Authentication-Results` is not always after its own `Received`
+- symptom: W8 0h's first rule (trust the first `Authentication-Results` only after Zoho's `Received: ... by mx.zohomail.com`) held for the Search Console notice and refused Google's own DMARC and TLS reports, where Zoho writes `Delivered-To, Received-SPF, Authentication-Results, ARC-*, Return-Path, Received` in that order.
+- rule: trust only the first `Authentication-Results` inside the top block of trace headers (Delivered-To, Received-SPF, ARC-*, Return-Path, Received) that holds Zoho's own Received, and only `dmarc=pass` naming the From domain; one after the first message header is the sender's.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts` passes on the real headers; `node scripts/watchfail.mjs --registry tests/mutations --only w8-0h-spoof-first-stamp` → `WATCHED-FAIL OK`.
+- added: 2026-10-16
+
+## P-4503 · The retention job never purged `email_replies`: a policy row and an allow-list key are not enough
+- symptom: W8 0h, asked to purge inbound mail "like email_replies": `retention_policies` had its row since W4 and `retention_delete_rows` its `when`, but `ROW_KEYS_AFTER_EMAIL` in `src/server/jobs/system/retention.ts` did not list it, so no reply was ever deleted.
+- rule: a retention key lands in three places in one commit: the policy row (migration), the `when` of `retention_delete_rows`, and the job's key list with the order in `tests/unit/jobs/retention.test.ts`.
+- proof: `cd app && bunx vitest run --project unit tests/unit/jobs/retention.test.ts` passes with `retention_delete_rows:email_replies` and `:inbound_mail` in the order.
+- added: 2026-10-16
+
+## P-4504 · A worktree cannot load the dev profile, and db tests refuse mop-dev since the switch: prove an unmerged function on a stub database
+- symptom: W8 0h: `node scripts/load-env.mjs --profile dev` in the worktree failed `ENOENT ... od-w8-0h/.env`; from the main checkout it refused with `load-env: .env has no OMNIKOM_MOCK_SECRET`, so no schema dump; H35 refuses mop-dev for db tests anyway.
+- rule: copy a stopped stub cluster (W7 item 2's `w7-2-pg`) to the scratch folder, start it on a port of its own, add the tables the function touches from their migrations, apply the branch's migrations, and run the db test with `DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/<db>`; generate the types from it and splice only the new entries into `src/db/types.ts`. The PR's CI db job stays the one that counts.
+- proof: `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:55492/mopw env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/inbound-mail.db.test.ts` → `Tests  8 passed (8)` (2026-10-16, while that cluster runs).
+- added: 2026-10-16

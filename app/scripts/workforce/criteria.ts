@@ -46,7 +46,13 @@ export const sources = {
   // the Concierge); press and anything else outside these intents is held for Matter (W8 0d).
   email_inbound: {
     label: "an email a person sent to one of our addresses",
-    intents: ["property_question", "showing_request", "list_a_property", "privacy_request", "correction"],
+    intents: [
+      "property_question",
+      "showing_request",
+      "list_a_property",
+      "privacy_request",
+      "correction",
+    ],
     owner: "concierge",
     actions: ["reply_inquiry"],
   },
@@ -56,7 +62,8 @@ export const sources = {
   service_notice: {
     label: "a notice from a service we use",
     intents: ["clean_report", "failing_report", "service_alert"],
-    owner: "matter",
+    // No colleague owns it (no slug is empty), and never Matter: Matter reads only the runner's line about it.
+    owner: "",
     actions: [],
   },
 } as const satisfies Record<string, Source>;

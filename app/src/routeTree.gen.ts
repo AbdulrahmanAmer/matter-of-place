@@ -198,6 +198,7 @@ import { Route as ApiAdminAutomationScheduleSettingsKeyRouteImport } from './rou
 import { Route as ApiAdminAutomationTemplatesKeyRouteImport } from './routes/api/admin/automation.templates.$key'
 import { Route as ApiAdminAutomationTemplatesPreviewRouteImport } from './routes/api/admin/automation.templates.preview'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
+import { Route as ApiAdminEmailsInboundIndexRouteImport } from './routes/api/admin/emails.inbound.index'
 import { Route as ApiAdminEmailsRepliesIndexRouteImport } from './routes/api/admin/emails.replies.index'
 import { Route as ApiAdminEmailsRepliesIdRouteImport } from './routes/api/admin/emails.replies.$id'
 import { Route as ApiAdminInquiriesIdAssignRouteImport } from './routes/api/admin/inquiries.$id.assign'
@@ -1275,6 +1276,12 @@ const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
   path: '/api/admin/channels/ids/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminEmailsInboundIndexRoute =
+  ApiAdminEmailsInboundIndexRouteImport.update({
+    id: '/api/admin/emails/inbound/',
+    path: '/api/admin/emails/inbound/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiAdminEmailsRepliesIndexRoute =
   ApiAdminEmailsRepliesIndexRouteImport.update({
     id: '/api/admin/emails/replies/',
@@ -1903,6 +1910,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/inbound/': typeof ApiAdminEmailsInboundIndexRoute
   '/api/admin/emails/replies/': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
@@ -2156,6 +2164,7 @@ export interface FileRoutesByTo {
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/inbound': typeof ApiAdminEmailsInboundIndexRoute
   '/api/admin/emails/replies': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
@@ -2415,6 +2424,7 @@ export interface FileRoutesById {
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/inbound/': typeof ApiAdminEmailsInboundIndexRoute
   '/api/admin/emails/replies/': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
@@ -2674,6 +2684,7 @@ export interface FileRouteTypes {
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/inbound/'
     | '/api/admin/emails/replies/'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
@@ -2927,6 +2938,7 @@ export interface FileRouteTypes {
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/inbound'
     | '/api/admin/emails/replies'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
@@ -3185,6 +3197,7 @@ export interface FileRouteTypes {
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/inbound/'
     | '/api/admin/emails/replies/'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
@@ -3317,6 +3330,7 @@ export interface RootRouteChildren {
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
   ApiAdminChannelsIdsKeyRoute: typeof ApiAdminChannelsIdsKeyRoute
   ApiAdminEmailsRepliesIdRoute: typeof ApiAdminEmailsRepliesIdRoute
+  ApiAdminEmailsInboundIndexRoute: typeof ApiAdminEmailsInboundIndexRoute
   ApiAdminEmailsRepliesIndexRoute: typeof ApiAdminEmailsRepliesIndexRoute
 }
 
@@ -4643,6 +4657,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/channels/ids/$key'
       fullPath: '/api/admin/channels/ids/$key'
       preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/emails/inbound/': {
+      id: '/api/admin/emails/inbound/'
+      path: '/api/admin/emails/inbound'
+      fullPath: '/api/admin/emails/inbound/'
+      preLoaderRoute: typeof ApiAdminEmailsInboundIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/emails/replies/': {
@@ -5986,6 +6007,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
   ApiAdminChannelsIdsKeyRoute: ApiAdminChannelsIdsKeyRoute,
   ApiAdminEmailsRepliesIdRoute: ApiAdminEmailsRepliesIdRoute,
+  ApiAdminEmailsInboundIndexRoute: ApiAdminEmailsInboundIndexRoute,
   ApiAdminEmailsRepliesIndexRoute: ApiAdminEmailsRepliesIndexRoute,
 }
 export const routeTree = rootRouteImport

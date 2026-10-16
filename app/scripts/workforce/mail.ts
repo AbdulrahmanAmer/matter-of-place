@@ -183,8 +183,7 @@ function zohoClient(access: string, fetch: Fetch) {
     async file(path: string): Promise<Buffer> {
       const answer = await call(path);
       const length = Number(answer.headers.get("content-length") ?? "0");
-      if (!answer.ok || length > MAX_COMPRESSED)
-        throw new Error("mail: an attachment was refused");
+      if (!answer.ok || length > MAX_COMPRESSED) throw new Error("mail: an attachment was refused");
       const bytes = Buffer.from(await answer.arrayBuffer());
       if (bytes.length > MAX_COMPRESSED) throw new Error("mail: an attachment was refused");
       return bytes;
@@ -267,11 +266,7 @@ async function newMessages(
 }
 
 /** A message's attachments: names always, bytes only for a report a service notice may carry. */
-async function attachmentsOf(
-  zoho: Zoho,
-  base: string,
-  wanted: boolean,
-): Promise<Attachment[]> {
+async function attachmentsOf(zoho: Zoho, base: string, wanted: boolean): Promise<Attachment[]> {
   const info = attachmentInfoSchema.parse(await zoho.json(`${base}/attachmentinfo`));
   const out: Attachment[] = [];
   for (const attachment of info.attachments.slice(0, 50)) {

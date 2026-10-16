@@ -160,5 +160,7 @@ export const eventPayloadSchemas = {
     })
     .passthrough(),
   // W8 0h: a person's email, recorded in inbound_mail; the row's id and our alias only, never its words.
-  "email.received": z.object({ inbound_id: id, alias: z.string().max(20).nullable() }).passthrough(),
+  "email.received": z
+    .object({ inbound_id: id, alias: z.string().max(20).nullable() })
+    .passthrough(),
 } satisfies Record<EventType, z.ZodTypeAny>;

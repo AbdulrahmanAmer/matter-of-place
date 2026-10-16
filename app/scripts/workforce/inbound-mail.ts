@@ -94,6 +94,7 @@ export function inboundRecord(message: InboundMessage): Recorded {
           service: sorted.service ?? "a service",
           folder: message.folder.name,
           alias,
+          from: message.from,
           subject: message.subject,
           summary: notice.summary,
           reports: notice.reports,

@@ -124,7 +124,6 @@ export function gunzipCapped(file: Buffer): Buffer {
 // ---------- DMARC aggregate (RFC 7489 appendix C) ----------
 
 const ORG = /^[A-Za-z0-9][A-Za-z0-9 .,&()'-]{0,79}$/;
-const DOMAIN = /^[a-z0-9.-]{1,253}$/;
 
 /** A reporting organisation as we name it: its own words only when they are a plain name, else "unknown". */
 function orgName(value: string | undefined): string {
@@ -260,9 +259,7 @@ export function parseTls(jsonBytes: Buffer): TlsReport {
       };
     }),
   );
-  const domains = [
-    ...new Set(policies.map((policy) => ourDomain(policy.policy["policy-domain"]))),
-  ];
+  const domains = [...new Set(policies.map((policy) => ourDomain(policy.policy["policy-domain"])))];
   return {
     kind: "tls",
     org: orgName(parsed.data["organization-name"]),
