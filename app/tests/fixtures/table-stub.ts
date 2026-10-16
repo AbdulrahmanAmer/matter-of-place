@@ -4,8 +4,8 @@ export type Row = Record<string, unknown>;
 
 // `fakeDb` answers a registered table with every row whatever the query asks. A service that reads through filters
 // (an entity's rows, a request's photographs) is tested against this instead: the rows go through the same `eq`, `in`,
-// PostgREST `or` text, `order`, `limit`, `range` and column list the query names, so a wrong filter returns the wrong
-// rows.
+// PostgREST `or` text, `lt` (text order), `order`, `limit`, `range` and column list the query names, so a wrong
+// filter returns the wrong rows.
 
 const resolved = (data: unknown) => Promise.resolve({ data, error: null });
 
@@ -82,6 +82,8 @@ function query(all: readonly Row[], shape: Shape) {
   return Object.assign(answer(rows), {
     eq: (column: string, value: unknown) =>
       next(rows.filter((row) => valueAt(row, column) === value)),
+    lt: (column: string, value: string) =>
+      next(rows.filter((row) => String(valueAt(row, column)) < value)),
     in: (column: string, values: readonly unknown[]) =>
       next(rows.filter((row) => values.includes(valueAt(row, column)))),
     or: (text: string) =>
