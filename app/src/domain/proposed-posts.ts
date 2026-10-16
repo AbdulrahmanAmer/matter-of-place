@@ -6,24 +6,14 @@ import type { SocialChannel } from "./channels.ts";
 // the admin route and from the laptop runner. API JSON is the snake_case row shape, as the other admin areas.
 
 /** The channels a post may go to now; Facebook and YouTube exist as disabled channel blocks (S48) and are refused. */
-const proposedChannels = [
-  "instagram",
-  "x",
-  "linkedin",
-] as const satisfies readonly SocialChannel[];
+const proposedChannels = ["instagram", "x", "linkedin"] as const satisfies readonly SocialChannel[];
 type ProposedChannel = (typeof proposedChannels)[number];
 const disabledChannels = ["facebook", "youtube"] as const satisfies readonly SocialChannel[];
 
 const postFormats = ["carousel", "single", "reel"] as const;
 
 /** The database enum `proposed_post_status`; `enums.check.ts` holds the pair. */
-const proposedPostStatuses = [
-  "proposed",
-  "rejected",
-  "approved",
-  "scheduled",
-  "posted",
-] as const;
+const proposedPostStatuses = ["proposed", "rejected", "approved", "scheduled", "posted"] as const;
 export type ProposedPostStatus = (typeof proposedPostStatuses)[number];
 
 /**

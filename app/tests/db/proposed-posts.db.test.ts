@@ -6,6 +6,7 @@
 import pg from "pg";
 import { describe, expect, it } from "vitest";
 import { createAuthUser, createStaffUser, withRollback, type Db } from "../fixtures/db";
+import { publishedProperty } from "../fixtures/factories";
 
 async function scalar<T>(db: Db, sql: string, params: unknown[] = []): Promise<T> {
   const row = (await db.query<{ v: T }>(sql, params)).rows[0];
@@ -283,6 +284,56 @@ describe("approve_proposed_post", () => {
         twice: "wrong_state: Only a proposed post can be approved.",
         rejected: "wrong_state: Only a proposed post can be approved.",
       });
+    });
+  });
+
+  it("records a property's Instagram single as a cover slide and leaves the property's share image alone", async () => {
+    await withRollback(async (db) => {
+      await stored(db);
+      const property = await publishedProperty(db, { n: 9811 });
+      await db.query("reset role");
+      await db.query("update public.properties set og_image_key = 'og/before.jpg' where id = $1", [
+        property.id,
+      ]);
+      const id = await scalar<string>(
+        db,
+        `select public.create_proposed_post('Fairfield', $1::jsonb, 'agent', p_proposer_agent => 'chief',
+           p_property => $2) as v`,
+        [
+          JSON.stringify([
+            {
+              channel: "instagram",
+              format: "single",
+              caption: "Fairfield.",
+              images: [file("proposed/t/s1.jpg")],
+              reel: null,
+            },
+          ]),
+          property.id,
+        ],
+      );
+      const person = await createStaffUser(db, ["chief_editor"]);
+      await db.query("select public.approve_proposed_post($1, 1, $2, 'human')", [id, person]);
+      const row = await db.query<Record<string, unknown>>(
+        `select a.subject, a.kind, a.files -> 0 ->> 'role' as role, a.files -> 0 ->> 'index' as index,
+           s.property_id = $2 as same_property, p.og_image_key
+         from public.proposed_post_channels c
+         join public.assets a on a.id = c.asset_id
+         join public.social_posts s on s.id = c.social_post_id
+         join public.properties p on p.id = a.property_id
+         where c.post_id = $1`,
+        [id, property.id],
+      );
+      expect(row.rows).toEqual([
+        {
+          subject: "property",
+          kind: "cover",
+          role: "slide",
+          index: "0",
+          same_property: true,
+          og_image_key: "og/before.jpg",
+        },
+      ]);
     });
   });
 

@@ -390,12 +390,12 @@ begin
     order by c.channel
   loop
     -- The asset model of B9: a carousel's slides (LinkedIn's set), a cover's one file per channel, a reel's video and
-    -- poster. An Instagram single image is a cover's main file.
+    -- poster. An Instagram single image is a cover's one slide, never its `main` file: approve_asset makes a cover's
+    -- main file the property's Open Graph image, and a post must not change the dossier's share card.
     v_kind := case v_channel.format when 'reel' then 'reel' when 'carousel' then 'carousel' else 'cover' end;
     v_role := case
       when v_channel.format = 'carousel' and v_channel.channel = 'linkedin' then 'linkedin_set'
-      when v_channel.format = 'carousel' then 'slide'
-      when v_channel.channel = 'instagram' then 'main'
+      when v_channel.format = 'carousel' or v_channel.channel = 'instagram' then 'slide'
       else v_channel.channel
     end;
     if v_channel.format = 'reel' then
@@ -419,7 +419,7 @@ begin
         jsonb_build_object(
           'media_key', i.value ->> 'key', 'w', (i.value ->> 'w')::int, 'h', (i.value ->> 'h')::int,
           'bytes', (i.value ->> 'bytes')::bigint, 'role', v_role
-        ) || case when v_kind = 'carousel' then jsonb_build_object('index', i.ord - 1) else '{}'::jsonb end
+        ) || case when v_role in ('slide', 'linkedin_set') then jsonb_build_object('index', i.ord - 1) else '{}'::jsonb end
         order by i.ord
       )
       into v_files

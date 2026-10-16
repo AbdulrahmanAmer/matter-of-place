@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -32,11 +32,17 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-function deps(stored: Record<string, string> = {}) {
+function deps(stored: Record<string, string> = {}, refuse = "") {
   const uploads: string[] = [];
+  const removed: string[] = [];
   const created: unknown[] = [];
+  const probed: string[] = [];
   const fake: PostDeps = {
     roots: { studio, drive },
+    realPath: (path) => {
+      probed.push(path);
+      return existsSync(path) ? realpathSync(path) : null;
+    },
     download: (key) =>
       Promise.resolve(key in stored ? new TextEncoder().encode(stored[key]) : null),
     upload: (key) => {
@@ -44,12 +50,16 @@ function deps(stored: Record<string, string> = {}) {
       return Promise.resolve();
     },
     measure: (_body, video) => Promise.resolve(video ? { w: 1080, h: 1920 } : { w: 1080, h: 1350 }),
+    remove: (keys) => {
+      removed.push(...keys);
+      return Promise.resolve();
+    },
     create: (args) => {
       created.push(args);
-      return Promise.resolve({ id: "post-1" });
+      return Promise.resolve(refuse === "" ? { id: "post-1" } : { refused: refuse });
     },
   };
-  return { fake, uploads, created };
+  return { fake, uploads, removed, created, probed };
 }
 
 const input = (post: unknown) => ({ agent: "maya", run: "run-1", summary: "Fairfield", post });
@@ -61,6 +71,76 @@ describe("isStructuredPost", () => {
       isStructuredPost({ action: "social_post", content: {} }),
       isStructuredPost({ action: "campaign_plan", content: { post: { channels: [] } } }),
     ]).toEqual([true, false, false]);
+  });
+});
+
+describe("fileProposedPost, what it never touches or leaves", () => {
+  it("refuses a network or device path before the disk is touched", async () => {
+    const { fake, uploads, probed } = deps();
+    const single = (path: string) =>
+      fileProposedPost(
+        fake,
+        input({
+          channels: [
+            {
+              channel: "x",
+              format: "single",
+              caption: "Fairfield.",
+              images: [{ path, alt: "A." }],
+            },
+          ],
+        }),
+      );
+    expect([
+      await single("\\\\host\\share\\x.jpg"),
+      await single("//host/share/x.jpg"),
+      await single("\\\\?\\C:\\x.jpg"),
+    ]).toEqual([
+      { refused: "\\\\host\\share\\x.jpg is not in the studio or the Drive folder" },
+      { refused: "//host/share/x.jpg is not in the studio or the Drive folder" },
+      { refused: "\\\\?\\C:\\x.jpg is not in the studio or the Drive folder" },
+    ]);
+    expect([uploads, probed]).toEqual([[], []]);
+  });
+
+  it("removes what it uploaded when a later file or the database refuses the post", async () => {
+    const image = (path: string) => ({ path, alt: "A." });
+    const twoFiles = input({
+      channels: [
+        {
+          channel: "linkedin",
+          format: "carousel",
+          caption: "Fairfield.",
+          images: [image(join(studio, "Slide 1.jpg")), image(join(elsewhere, "secret.jpg"))],
+        },
+      ],
+    });
+    const later = deps();
+    const lateAnswer = await fileProposedPost(later.fake, twoFiles);
+    const database = deps({}, "media_not_found");
+    const dbAnswer = await fileProposedPost(
+      database.fake,
+      input({
+        channels: [
+          {
+            channel: "x",
+            format: "single",
+            caption: "Fairfield.",
+            images: [image(join(drive, "cover.png"))],
+          },
+        ],
+      }),
+    );
+    expect([lateAnswer, later.removed, later.created]).toEqual([
+      { refused: `${join(elsewhere, "secret.jpg")} is not in the studio or the Drive folder` },
+      later.uploads,
+      [],
+    ]);
+    expect([dbAnswer, database.removed]).toEqual([
+      { refused: "media_not_found" },
+      database.uploads,
+    ]);
+    expect([later.uploads.length, database.uploads.length]).toEqual([1, 1]);
   });
 });
 

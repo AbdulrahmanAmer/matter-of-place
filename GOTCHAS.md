@@ -8399,3 +8399,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: put the distinction in the matrix entry's roles (here: deciders `chief_editor` and `admin`, as `workforce.decide`, which Matter's key holds and a colleague's key does not), regenerate `action_roles`, and keep in the service only a check of `actor.kind` (`manual_approval` for an agent, as `approveAsset`).
 - proof: `cd app && grep -n "roles.includes" src/server/publishing/proposed-posts/service.ts` → nothing; `node scripts/watchfail.mjs --registry tests/mutations --only w8-10-deciders` (media_ops added to the deciders) → `WATCHED-FAIL OK`.
 - added: 2026-10-16
+
+## P-3612 · A builder worktree's `node_modules` is a junction to another worktree's, so the watched-fail lock is shared by every builder
+- symptom: 2026-10-16, W8 item 10: of the first thirteen replays of `tests/mutations/W8-10.json` one ran; the other twelve exited 3 at once with `watchfail: another replay (pid 19704) is mutating files in this folder; wait for it (P-3444)`, and a summary that read only the exit codes looked like twelve silent entries.
+- cause: `E:/mop-build/od-w8-10/app/node_modules` is a junction to `E:/mop-build/od-slide/app/node_modules`, and the P-3444 lock is `node_modules/.cache/watchfail.lock`, so a replay in any builder's worktree holds it for all of them.
+- rule: a builder's replay loop treats exit 3 as "wait", not as a result: retry the same id every 20 seconds until the exit is not 3, and judge each entry by its `WATCHED-FAIL OK` line and its red run's text. Never delete the lock while its pid is alive.
+- proof: `ls -la E:/mop-build/od-w8-10/app/node_modules` → `node_modules -> /e/mop-build/od-slide/app/node_modules`; `cat E:/mop-build/od-w8-10/app/node_modules/.cache/watchfail.lock` printed another worktree's live pid during the W8 item 10 replay (2026-10-16).
+- added: 2026-10-16

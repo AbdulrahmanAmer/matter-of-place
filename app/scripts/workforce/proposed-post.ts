@@ -15,7 +15,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, extname, isAbsolute, join, relative } from "node:path";
+import { basename, extname, isAbsolute, join, relative, resolve } from "node:path";
 import sharp from "sharp";
 import { z } from "zod";
 import {
@@ -27,8 +27,8 @@ import {
 import type { Db } from "../../src/server/lib/db.ts";
 import { STUDIO } from "./reel.ts";
 
-/** The company's Google Drive folder on this laptop (the operator's social media lives under it). */
-export const DRIVE = "G:/My Drive/Matter of Place";
+/** The social media folder of the company's Google Drive on this laptop: no other Drive file can be proposed. */
+export const DRIVE = "G:/My Drive/Matter of Place/Social Media";
 
 const fileRefSchema = z
   .object({
@@ -86,8 +86,11 @@ const TYPES: Readonly<Record<string, { type: string; video: boolean }>> = {
 export interface PostDeps {
   /** The studio and the Drive folder: a path outside them is refused. */
   roots: { studio: string; drive: string };
+  /** The disk probe: a path that is not in a root by its letters never reaches it. */
+  realPath: (path: string) => string | null;
   download: (key: string) => Promise<Uint8Array | null>;
   upload: (key: string, body: Uint8Array, contentType: string) => Promise<void>;
+  remove: (keys: string[]) => Promise<void>;
   measure: (body: Uint8Array, video: boolean) => Promise<{ w: number; h: number } | null>;
   create: (args: CreateArgs) => Promise<{ id: string } | { refused: string }>;
 }
@@ -107,18 +110,33 @@ class Refused extends Error {}
 
 const hash8 = (body: Uint8Array) => createHash("sha256").update(body).digest("hex").slice(0, 8);
 
-/** The real path of `path` when it lies inside `root`, else null. */
-function inside(path: string, root: string): string | null {
-  if (!existsSync(path) || !existsSync(root)) return null;
-  const real = realpathSync(path);
-  const from = relative(realpathSync(root), real);
-  return from === "" || from.startsWith("..") || isAbsolute(from) ? null : real;
+/** True when `path` lies below `root`, by their letters. */
+function within(path: string, root: string): boolean {
+  const from = relative(root, path);
+  return from !== "" && !from.startsWith("..") && !isAbsolute(from);
+}
+
+/**
+ * The real path of `path` when it lies inside `root`, else null. The path must lie in the root by its letters before
+ * the disk is touched, so a network or device path (`\\host`, `//host`, `\\?\`) is refused without an existence check,
+ * which would reach the host; then by its real path, so a link cannot lead out.
+ */
+function inside(path: string, root: string, deps: PostDeps): string | null {
+  if (!isAbsolute(path) || !within(resolve(path), resolve(root))) return null;
+  const real = deps.realPath(path);
+  const realRoot = deps.realPath(root);
+  return real !== null && realRoot !== null && within(real, realRoot) ? real : null;
+}
+
+/** The real path of a file or folder on this disk, or null when there is none. */
+function realPath(path: string): string | null {
+  return existsSync(path) ? realpathSync(path) : null;
 }
 
 async function resolveFile(
   ref: FileRef,
   video: boolean,
-  batch: string,
+  batch: { id: string; uploaded: string[] },
   deps: PostDeps,
 ): Promise<PostFile> {
   if (ref.key !== undefined) {
@@ -136,8 +154,8 @@ async function resolveFile(
     };
   }
   const path = ref.path ?? "";
-  const studio = inside(path, deps.roots.studio);
-  const real = studio ?? inside(path, deps.roots.drive);
+  const studio = inside(path, deps.roots.studio, deps);
+  const real = studio ?? inside(path, deps.roots.drive, deps);
   if (real === null) throw new Refused(`${path} is not in the studio or the Drive folder`);
   const ext = extname(real).toLowerCase();
   const known = TYPES[ext];
@@ -152,8 +170,9 @@ async function resolveFile(
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "") || "file";
-  const key = `proposed/${batch}/${name}.${hash8(body)}${ext}`;
+  const key = `proposed/${batch.id}/${name}.${hash8(body)}${ext}`;
   await deps.upload(key, body, known.type);
+  batch.uploaded.push(key);
   return {
     key,
     source: studio === null ? "drive" : "studio",
@@ -186,7 +205,8 @@ export async function fileProposedPost(
     ...plan.channels.flatMap((channel) => channelProblems(channel)),
   ];
   if (problems.length > 0) return { refused: problems.join(" ") };
-  const batch = randomUUID();
+  const batch = { id: randomUUID(), uploaded: [] as string[] };
+  const { uploaded } = batch;
   const channels: ChannelPost[] = [];
   try {
     for (const channel of plan.channels) {
@@ -210,10 +230,10 @@ export async function fileProposedPost(
       });
     }
   } catch (error) {
-    if (error instanceof Refused) return { refused: error.message };
+    if (error instanceof Refused) return withdraw(deps, uploaded, error.message);
     throw error;
   }
-  return deps.create({
+  const created = await deps.create({
     p_title: plan.title ?? input.summary.slice(0, 200),
     p_channels: channels,
     p_proposer_kind: "agent",
@@ -223,6 +243,22 @@ export async function fileProposedPost(
     ...(plan.property_id === undefined ? {} : { p_property: plan.property_id }),
     ...(plan.submission_id === undefined ? {} : { p_submission: plan.submission_id }),
   });
+  return "id" in created ? created : withdraw(deps, uploaded, created.refused);
+}
+
+/** A refused post leaves nothing public: the files this filing uploaded are removed again (keys it was given stay). */
+async function withdraw(
+  deps: PostDeps,
+  uploaded: readonly string[],
+  reason: string,
+): Promise<{ refused: string }> {
+  if (uploaded.length === 0) return { refused: reason };
+  try {
+    await deps.remove([...uploaded]);
+    return { refused: reason };
+  } catch {
+    return { refused: `${reason} (its ${String(uploaded.length)} uploads could not be removed)` };
+  }
 }
 
 /** A video's width and height from ffprobe, through a temporary file. */
@@ -264,6 +300,7 @@ export function postDeps(db: Db): PostDeps {
   const media = db.storage.from("media");
   return {
     roots: { studio: STUDIO, drive: DRIVE },
+    realPath,
     download: async (key) => {
       const { data, error } = await media.download(key);
       return error === null ? new Uint8Array(await data.arrayBuffer()) : null;
@@ -275,6 +312,10 @@ export function postDeps(db: Db): PostDeps {
         cacheControl: "31536000",
       });
       if (error !== null) throw new Error(`upload_failed: ${key}`);
+    },
+    remove: async (keys) => {
+      const { error } = await media.remove(keys);
+      if (error !== null) throw new Error("remove_failed");
     },
     measure: async (body, video) => {
       if (video) return videoSize(body);
