@@ -435,8 +435,8 @@
     "id": "w8-0i-place-cap",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "scripts/workforce/placement.ts",
-    "find": "      if (!inside(piece.dir, photo) || size > PHOTO_MAX_BYTES || entry.photos >= PLACE_MAX_PHOTOS) {",
-    "replace": "      if (!inside(piece.dir, photo) || entry.photos >= PLACE_MAX_PHOTOS) {",
+    "find": "    return stat.isFile() && stat.size <= PHOTO_MAX_BYTES ? readFileSync(handle) : null;",
+    "replace": "    return stat.isFile() ? readFileSync(handle) : null;",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*places the photographs of the pieces a person's line names"
   },
@@ -457,6 +457,15 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*launches a run a person started with the whole toolkit"
+  },
+  {
+    "id": "w8-0i-place-fresh-file",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/placement.ts",
+    "find": "      rmSync(target, { force: true });\n      writeFileSync(target, bytes, { flag: \"wx\" });",
+    "replace": "      writeFileSync(target, bytes);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*places the photographs of the pieces a person's line names"
   },
   {
     "id": "w8-0i-runonce-placement-line",

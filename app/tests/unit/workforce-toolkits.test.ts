@@ -5,6 +5,7 @@
 import {
   copyFileSync,
   existsSync,
+  linkSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -396,6 +397,19 @@ describe("H115: role toolkits", () => {
     expect(existsSync(join(work, "other-piece"))).toBe(false);
     expect(launch.line).toContain(
       "The runner placed 1 photograph of 4a3c2563-c07a-481d-839b-ad0523827f69 in `./4a3c2563-c07a-481d-839b-ad0523827f69/` (1 left out",
+    );
+    // a hard link a run left where a copy goes is replaced by a new file, never written through into its other name
+    rmSync(join(placed, "photos", "a.jpg"));
+    linkSync(join(elsewhere, "secret.jpg"), join(placed, "photos", "a.jpg"));
+    colleagueLaunch(home, "social", "sonnet", false, {
+      id: "q",
+      outside: false,
+      inside: true,
+      line,
+    });
+    expect(readFileSync(join(elsewhere, "secret.jpg"), "utf8")).toBe("x");
+    expect(readFileSync(join(placed, "photos", "a.jpg"))).toEqual(
+      readFileSync(join(piece, "photos", "a.jpg")),
     );
     // a toolkit that does not render is placed nothing, even on a person's line
     colleagueLaunch(home, "editor", "sonnet", false, {

@@ -2,7 +2,18 @@
 // a render finds them beside its spec (`localSpec` in scripts/lib/shoot.mjs). A colleague cannot copy a photograph
 // itself: its Write tool writes text and `cp` is refused. Only on a run a person or an operator key started, only from
 // the places its toolkit names, only the pieces its waking line names by their folder's whole name.
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  fstatSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, extname, join, relative } from "node:path";
 import { PHOTO_MAX_BYTES, inside } from "../lib/confine.mjs";
 
@@ -73,8 +84,9 @@ function photosIn(dir: string, depth = 0): string[] {
 
 /**
  * Copies the photographs of each piece `line` names into `work/<piece>/`, keeping their folders (a Drive piece under
- * its group, `Carousels/...`). Each must stay inside its piece once links resolve and be at most 25 MB; a link already
- * standing where a copy goes is removed first, so a copy cannot be led out of the work folder.
+ * its group, `Carousels/...`). Each must stay inside its piece once links resolve and be a plain file of at most 25 MB;
+ * a link standing on the way to a copy is removed first and the copy is a new file, so it cannot be led out of the work
+ * folder or written through into another file.
  */
 export function placePieces(line: string, source: PieceSource, work: string): Placed[] {
   const placed = new Map<string, Placed>();
@@ -83,8 +95,9 @@ export function placePieces(line: string, source: PieceSource, work: string): Pl
     const entry = placed.get(piece.name) ?? { piece: piece.name, photos: 0, skipped: 0 };
     placed.set(piece.name, entry);
     for (const photo of photosIn(piece.dir)) {
-      const size = lstatSync(photo).size;
-      if (!inside(piece.dir, photo) || size > PHOTO_MAX_BYTES || entry.photos >= PLACE_MAX_PHOTOS) {
+      const bytes =
+        entry.photos < PLACE_MAX_PHOTOS && inside(piece.dir, photo) ? readPhoto(photo) : null;
+      if (bytes === null) {
         entry.skipped += 1;
         continue;
       }
@@ -93,11 +106,24 @@ export function placePieces(line: string, source: PieceSource, work: string): Pl
       mkdirSync(dirname(target), { recursive: true });
       if (!inside(work, target))
         throw new Error(`placing ${piece.name}: ${target} leads out of the folder`);
-      copyFileSync(photo, target);
+      // a fresh file: whatever stood there (a hard link to another file included) is unlinked, never written through
+      rmSync(target, { force: true });
+      writeFileSync(target, bytes, { flag: "wx" });
       entry.photos += 1;
     }
   }
   return [...placed.values()];
+}
+
+/** A photograph read through one open handle and checked on it: a plain file of at most 25 MB, or null. */
+function readPhoto(path: string): Buffer | null {
+  const handle = openSync(path, "r");
+  try {
+    const stat = fstatSync(handle);
+    return stat.isFile() && stat.size <= PHOTO_MAX_BYTES ? readFileSync(handle) : null;
+  } finally {
+    closeSync(handle);
+  }
 }
 
 /** Removes any link or junction on the way from `work` to `target` (a run may have left one; Windows makes them). */
