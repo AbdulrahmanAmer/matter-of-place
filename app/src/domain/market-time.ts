@@ -43,6 +43,19 @@ export function formatInZone(utcIso: string, zone: string, style: TimeStyle): st
   return `${text} ${SUFFIX[zone] ?? zone}`;
 }
 
+/** The calendar day (`2026-11-05`) it is in `zone` at the instant `now`: a market's own day, not the UTC day. */
+export function dayInZone(now: Date, zone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const field = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${field("year")}-${field("month")}-${field("day")}`;
+}
+
 const LOCAL_INPUT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
 
 /** Minutes `zone` is ahead of UTC at the instant `utcMs`. */

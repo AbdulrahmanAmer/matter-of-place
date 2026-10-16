@@ -1,5 +1,6 @@
 import { formatInZone, marketTimezone } from "../../domain/market-time";
-import { marketName, sourceName } from "./interest-names";
+import { marketName } from "../../lib/market-names";
+import { sourceName } from "./interest-names";
 import { useInterest } from "./newsletter-queries";
 
 // The Interest screen (operator, 2026-10-15: "my partner put something in and added his email and got a confirmation

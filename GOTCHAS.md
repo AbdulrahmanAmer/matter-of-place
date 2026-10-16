@@ -3022,6 +3022,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never pass a path that starts with `/tmp` between the shell and node. Use the session scratchpad directory by its full Windows or `/c/...` path, or `os.tmpdir()` inside node; a file that must be read by both is named by one absolute path both resolve the same way. P-015 covers the other direction (Git Bash rewrites an argument that starts with `/`).
 - proof: `node -e "console.log(require('path').resolve('/tmp'))"` → `E:\tmp`, while `cygpath -w /tmp` → `C:\Users\DELL\AppData\Local\Temp` (measured 2026-10-04, working tree on E:).
 - added: 2026-10-04
+- hit again: 2026-10-16, W8 0d second half: a heredoc wrote `/tmp/w8-0d-fix-calls.mjs` and `node /tmp/...` then failed with `Cannot find module 'C:\Users\DELL\AppData\Local\Temp\w8-0d-fix-calls.mjs'`; the script went in a file written with the Write tool, outside the tree, named by one path.
 - hit again: 2026-10-11, L1 g1: `git show origin/main:app/supabase/config.toml > /tmp/l1-config-main.toml`, then a `node -` script reading the same `/tmp` path failed with `ENOENT` on `E:\tmp\l1-config-main.toml`; the second attempt named the session scratchpad by its full path for both.
 
 ## P-916 · A db test that asserts another slice's table is absent goes red for good when that slice's migration reaches mop-dev
@@ -8187,6 +8188,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
 - proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
 - added: 2026-10-15
+- hit again: 2026-10-16, W8 0d second half: `runOnce` (now exported for the walk-through test) calls `resolve(import.meta.dir, ...)` for W2.md inside the function, so under vitest every run failed with `The "paths[0]" argument must be of type string. Received undefined` and the run was marked failed. Those lines are the run-start code another branch owns, so the test (`tests/unit/workforce-escalation.test.ts`) mocks `node:path`'s `resolve` to give an undefined first part the daemon's own folder; a module that is free to change takes `fileURLToPath(import.meta.url)` instead.
 
 ## P-3480 · Work the runner gates on "no colleague run in flight" never happens while Matter's live session runs
 - symptom: 2026-10-15 11:10, a brand reel queued in the studio after PR 419 went live stayed `queued` for four minutes of passes; `daemon.log` showed no `reel pass started`. The office's runs list held Matter's own `schedule` run, `running` since 08:09Z: the live session.
@@ -8399,4 +8401,37 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: a registry entry names the file and text it breaks; a move changes both, and the entry belongs to another slice.
 - rule: when a constant or helper moves, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` and repoint every STALE entry (file, find, replace) in the same commit, then replay each one and read its red output. Two vitest runs at once on this laptop make every component file fail with `Timeout waiting for worker to respond` (G-031 again): run component, unit and registry replays one after another.
 - proof: `node scripts/watchfail.mjs --registry tests/mutations --only b7-g9-ui-warning-80` prints `WATCHED-FAIL OK` with the entry's `file` at `src/domain/usage-gauges.ts`.
+- added: 2026-10-16
+
+## P-3550 · After the launch switch mop-dev refuses every db test, so a new SQL function is proved on a native cluster holding a stub of only the tables it names
+- symptom: 2026-10-15, W7 item 2: the db test of `email_reply_mark`, run the P-312 way (the unmerged migration as `MOP_MUTATION_SQL` on mop-dev), died in `tests/db/global-setup.ts` with `Error: refusing: production database` (ruling H35 (6)); a fresh worktree has no `.env`, so the loader first printed `ENOENT ... w7-2\.env` (the fix is in P-051: load the main checkout's through its own loader).
+- cause: there is one database and it is production now; `assertNotProduction` refuses db tests against it, and only CI's stack runs them. The P-312 route is closed, and P-718's full restore of mop-dev's schema is heavy for one function.
+- rule: for a function that needs only `write_audit` and a few tables, `initdb` a throwaway cluster (P-718), create the three roles and `auth.users`, copy the enums and the tables the function and `write_audit` read (`user_roles`, `action_roles`, `audit_log`, `pii_columns`, its own table) verbatim from their migrations, load the real function files and the generated `action_roles` migration, and run the one db test with `DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/mop` through `node node_modules/vitest/vitest.mjs`. `sql` registry entries replay the same way. Say in the PR that the proof is a stub schema and the CI db job is the one that counts.
+- proof: `cd app && eval "$(node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev)" && env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/email-reply-mark.db.test.ts` → `Error: refusing: production database`; the same file on the stub cluster → `Tests  3 passed (3)`, and `node scripts/watchfail.mjs --registry tests/mutations --only w7-2-sql-audit` with that `DEV_DB_URL` → `WATCHED-FAIL OK W7-2:w7-2-sql-audit` (measured 2026-10-15).
+- added: 2026-10-15
+
+## P-3551 · A `sql` registry entry that comments out one line of a multi-line statement goes red on the compile error, and `expect` (the test title) cannot tell
+- symptom: 2026-10-16, W7 item 2 review: the entry `w7-2-sql-audit` replaced `perform public.write_audit(` with `perform 1; -- public.write_audit(`, which left the argument lines as a bare statement. `create or replace function` failed to compile inside the test's transaction, the case went red, and `watchfail.mjs` printed `WATCHED-FAIL OK` because `expect` is only the `× <test title>` line. The audit-row protection was never watched.
+- cause: the verdict reads the test title, which a syntax error and the assertion it names both turn red. A mutation that is cut by line is not a mutation of the statement.
+- rule: a `sql` entry removes or replaces a whole statement (`perform 1;` for a whole `perform ...;`), generated from the real function file by a script that asserts its target occurs once, never typed by hand; after the verdict, read the red output once (apply the entry's sql to the stub cluster, run the test) and see the assertion's own diff (`expected [] to deeply equal [ Array(1) ]`), not a `syntax error`. When the real function changes, every `sql` entry that embeds a copy of it is regenerated in the same commit (a stale copy turns the new assertion red for the wrong reason).
+- proof: `psql -h 127.0.0.1 -p <stub port> -U postgres -d mop -f <the entry's sql>` prints no error, then `DEV_DB_URL=postgresql://postgres@127.0.0.1:<stub port>/mop node node_modules/vitest/vitest.mjs run --project db tests/db/email-reply-mark.db.test.ts -t "marks a reply answered"` → `AssertionError: expected [] to deeply equal [ Array(1) ]` for `w7-2-sql-audit` (measured 2026-10-16).
+- added: 2026-10-16
+
+## P-3580 · A new feature folder passed every local check and was missing from the folder map: CI's layout check fails with "outside the folder map"
+- symptom: 2026-10-16, PR 442 (W7 3): `bun run layout` printed `app/src/admin/campaigns/CampaignsPage.tsx: outside the folder map` for 8 files (`src/admin/campaigns`, `src/server/campaigns`, `tests/unit/campaigns`). The first build ran tsc, eslint, prettier and the tests but not `layout`, so the branch would have failed CI's check.
+- rule: a new folder under `src/admin`, `src/server` or `tests/unit` is added to `ADMIN_FEATURES`, `SERVER_DOMAINS` or `UNIT_AREAS` in `app/scripts/check-layout.mjs` in the same change, and `bun run layout` runs before the first push.
+- proof: `cd app && bun run layout` → `layout: OK`; with `campaigns` removed from `ADMIN_FEATURES` it lists the `src/admin/campaigns` files as outside the folder map.
+- added: 2026-10-16
+
+## P-3581 · A date taken with `new Date().toISOString().slice(0, 10)` is the UTC day, so a market's state flips hours early or late
+- symptom: 2026-10-16, PR 442 review: the Campaigns list showed a California campaign ending Nov 5 as `Ended` at 5 PM Pacific on Nov 5 (UTC is already Nov 6), and a New York campaign starting Oct 5 as `Running` from 9 PM Eastern on Oct 4.
+- rule: the day of a market is `dayInZone(now, marketTimezone(slug))` from `src/domain/market-time.ts`; never slice an ISO string for a business date (R29: business dates use an explicit IANA zone).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-3-screen-market-day` → `WATCHED-FAIL OK` (the zone replaced by UTC turns `keeps a California campaign running through the evening of its last day` red); `--only w7-3-market-day-zone` likewise for `dayInZone`.
+- added: 2026-10-16
+
+## P-3590 · `workspace/05-plans/ASSUMED.md` and `GOTCHAS.md` are past the Read tool's 256 KB limit, so Edit cannot touch them
+- symptom: 2026-10-16, W8 0d second half: `Read` of ASSUMED.md at the last line refused with `File content (267.2KB) exceeds maximum allowed size (256KB)`, and Edit needs a Read first, so the next ruling row could not be added with the editor.
+- cause: Read checks the whole file's size even with an offset; ASSUMED.md is one table with very long rows and GOTCHAS.md is about 1.8 MB.
+- rule: add a ruling row or a bank entry with a small script in a file outside the tree that checks its anchor (the number is free, the table ends with `|` and a newline) and appends or inserts by index, never with a replacement string; read the part you need with `grep -n` or `sed -n` first.
+- proof: `wc -c workspace/05-plans/ASSUMED.md GOTCHAS.md` → both above 262144 bytes (267,000 and 1,866,000 on 2026-10-16).
 - added: 2026-10-16

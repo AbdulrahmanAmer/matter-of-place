@@ -174,6 +174,15 @@ export const navEntries: readonly NavEntry[] = [
     hidden: true,
     parent: 5,
   },
+  // W7 item 3: what each paid property is running, read only, leading to its Reports.
+  {
+    screen: 33,
+    path: "/admin/campaigns",
+    routeId: "/admin/campaigns/",
+    group: "Clients",
+    label: "Campaigns",
+    requiresAction: "reports.list",
+  },
   {
     screen: 22,
     path: "/admin/reports",
