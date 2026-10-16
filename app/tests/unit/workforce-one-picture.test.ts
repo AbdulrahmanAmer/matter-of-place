@@ -127,17 +127,14 @@ describe("one file per picture (W7 item 9)", () => {
     expect(groups[0]?.also.map((image) => image.width)).toEqual([960]);
   });
 
-  it("keeps two different pictures apart even when their addresses look like sizes of one", () => {
+  it("keeps two different pictures apart even when their addresses are sizes of one", () => {
+    // two real pictures far apart, named as two Zillow sizes of one picture (one family, the loose limit)
     const same = [house[0], garden[0]].flatMap((image, index) =>
       image === undefined
         ? []
-        : [
-            {
-              ...image,
-              url: `https://cdn.example.com/photos/IMG_${String(1234 + index)}_1024.jpg`,
-            },
-          ],
+        : [{ ...image, url: `${ZILLOW}/${HOUSE}-cc_ft_${index === 0 ? "1536" : "768"}.jpg` }],
     );
+    expect(new Set(same.map((image) => sizeFamily(image.url, image))).size).toBe(1);
     expect(onePerPicture(same)).toHaveLength(2);
   });
 
@@ -155,6 +152,64 @@ describe("one file per picture (W7 item 9)", () => {
     const stranger = at("upload:7", "fff000ffffffffff", 960);
     expect(onePerPicture([full, cropped])).toHaveLength(1);
     expect(onePerPicture([full, stranger])).toHaveLength(2);
+  });
+
+  // W7 item 9 review: a camera's photo number is the picture's own id, never a size mark.
+  const at = (url: string, dhash: string, width: number): Picture => ({
+    url,
+    width,
+    height: (width * 3) / 4,
+    bytes: width,
+    dhash,
+  });
+  /** The hash with its lowest `bits` bits turned over. */
+  const turned = (dhash: string, bits: number) =>
+    (BigInt(`0x${dhash}`) ^ ((1n << BigInt(bits)) - 1n)).toString(16).padStart(16, "0");
+
+  it("keeps two camera-numbered pictures twelve bits apart as two", () => {
+    const first = at("https://cdn.example.com/photos/IMG_1234.jpg", "ffffffffffffffff", 1600);
+    const second = at(
+      "https://cdn.example.com/photos/IMG_1235.jpg",
+      turned("ffffffffffffffff", 12),
+      1600,
+    );
+    expect(sizeFamily(first.url, first)).toBe("cdn.example.com/photos/IMG-1234");
+    expect(onePerPicture([first, second])).toHaveLength(2);
+    // the image's own width is a size mark, so the sizes of one picture still share a family
+    expect(sizeFamily("https://cdn.example.com/photos/IMG_1234_1600.jpg", first)).toBe(
+      sizeFamily(first.url, first),
+    );
+  });
+
+  it("joins a picture to a group only when it matches every member, so groups never chain", () => {
+    const a = at("upload:0", "ffffffffffffffff", 1600);
+    const b = at("upload:1", turned("ffffffffffffffff", 6), 1200);
+    const c = at("upload:2", turned("ffffffffffffffff", 12), 800);
+    expect(onePerPicture([a, b, c]).map((group) => group.also.length)).toEqual([1, 0]);
+  });
+
+  it("merges the Fairfield set, five pictures in three sizes each, to five", () => {
+    const pictures = [
+      "0000000000000000",
+      "ffffffff00000000",
+      "00000000ffffffff",
+      "ffff0000ffff0000",
+      "0000ffff0000ffff",
+    ];
+    const images = [576, 960, 1536].flatMap((width) =>
+      pictures.map((dhash, index) =>
+        at(
+          `${ZILLOW}/${String(index + 1).repeat(32)}-cc_ft_${String(width)}.jpg`,
+          // the 576 size is a re-crop, twelve bits off the largest; the 960 size three
+          width === 1536 ? dhash : turned(dhash, width === 960 ? 3 : 12),
+          width,
+        ),
+      ),
+    );
+    const groups = onePerPicture(images);
+    expect(groups.map((group) => [group.kept.width, group.also.length])).toEqual(
+      pictures.map(() => [1536, 2]),
+    );
   });
 });
 

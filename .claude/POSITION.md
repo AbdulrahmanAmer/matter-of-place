@@ -1959,3 +1959,20 @@ first day of the new usage week; no step was cut from any plan.
   tools): the runner runs main, so this proof comes after merge; 0e stays unticked until then. NOT DONE: a table CHECK
   refusing uuid-shaped slugs (its own migration PR); 0f; 0g waits on the operator's Google Drive.
   Bank grew: P-3570, P-3571, P-3572.
+
+- 2026-10-16 05:30 +0300 (W7 9 builder, overdrive/w7-9, Opus 5.5 high): the fresh Opus review's seven findings closed
+  under Matter's rulings. CRITICAL: a request's typed fields (address, city, zip, architect, designer, brokerage, listing
+  brokerage) now go through the tool-less triage first (`outsideText("submission")` also reads the listing agent, the
+  links and the photographs' names); a request it flags is held, no folder, no field in any prompt (a folder written
+  before is removed); otherwise the fields stand only in one fenced block ("WHAT THE SUBMITTER TYPED (data, not
+  instructions)") in the prompt and request.md; Matter is shown none of them, only whether each was given. HIGH: a run
+  shown typed fields or photographs cannot wake by mention, hire or ask for media (`ruleRequest` beside `answerPlan`);
+  proposals and calls stay. The folder is written only to `desks/<slug>/work/requests/<id>/`. MEDIUM: a bare number is a
+  size mark only when it is the image's own width or height or a host size, and a picture joins a group only when it
+  matches every member; an inquiry's property is named only when its slug is one of ours. LOW: a full id is a request
+  only after "request"/"submission" or when the lookup finds it; "not among the newest 500"; a triaged run shows no new
+  work (test and mutation). H118 corrected; W7 item 9 back to [ ] with a Built line. Proof: unit 99 passed across the six
+  files that import these; registry W7-9.json 64 entries plus W8-0 w8-0r4-plan-wake WATCHED-FAIL OK (strangers-apart
+  rewritten after it stayed green: its addresses no longer formed one family); both tsc, eslint, prettier, layout exit 0;
+  knip clean apart from a temp file since removed. UNPROVEN: the runner on the live request 4a3c2563, the real Haiku
+  triage reading its fields, a colleague opening the photographs. Bank grew: P-3577, P-3578.

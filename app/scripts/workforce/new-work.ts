@@ -1,7 +1,8 @@
 // W7 item 9 (the item's own text): "the content of new work, not only its count: the newest submissions and inquiries in
 // short form (market, type, price band, state) for the Editor and the Concierge, so a briefing can name the request it
 // is about". The block is built from structured columns only (enums, numbers, dates, ids), never a word the person
-// typed, read once a pass and shown to the owners of those two sources in every run that carries no outside message.
+// typed (an inquiry's property slug is shown only when it is one of our properties), read once a pass and shown to the
+// owners of those two sources in every run that carries no outside message.
 import type { Db } from "../../src/server/lib/db.ts";
 import type { SourceName } from "./criteria.ts";
 import { field, priceReading } from "./request-desk.ts";
@@ -46,12 +47,12 @@ export function newWorkBlock(
   inquiries: readonly NewInquiry[],
   markets: ReadonlyMap<string, string>,
 ): string {
+  // The slug comes from the public inquiry form: it is named only when it is one of our properties, never as typed.
   const about = (inquiry: NewInquiry) => {
     const slug = inquiry.subject_slug ?? "";
-    if (inquiry.subject_kind !== "property" || !SLUG.test(slug) || slug.length > 80)
-      return "no property named";
     const market = markets.get(slug);
-    return `the property ${slug}${market === undefined ? "" : ` (${field(market)} market)`}`;
+    if (inquiry.subject_kind !== "property" || market === undefined) return "no property named";
+    return `the property ${field(slug)} (${field(market)} market)`;
   };
   return [
     "New work, newest first (from our records' structured fields; name a request by its id to brief on it):",

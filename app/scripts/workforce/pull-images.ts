@@ -113,24 +113,31 @@ export interface Picture {
 }
 
 // The marks image hosts add to one picture's name for each size: 1536x1152, -cc_ft_768, _960, w640,
-// -uncropped_scaled_within_1536_1152. A picture's own id (a long hash, a photo number) is never one of them.
+// -uncropped_scaled_within_1536_1152. A picture's own id (a long hash, a photo number such as IMG_1234) is never one of
+// them: a bare number is a size mark only when it is the image's own width or height or one of the hosts' sizes.
 const SIZE_WORDS = new Set(["cc", "ft", "uncropped", "scaled", "within", "thumb", "resized"]);
-const sizeMark = (token: string) =>
-  /^\d{3,4}$/.test(token) ||
+const HOST_SIZES = new Set([192, 384, 576, 768, 960, 1024, 1152, 1280, 1344, 1536, 1920, 2048]);
+const sizeMark = (token: string, own: readonly number[]) =>
+  (/^\d{3,4}$/.test(token) && (HOST_SIZES.has(Number(token)) || own.includes(Number(token)))) ||
   /^\d+x\d+$/i.test(token) ||
   /^[wh]\d{2,4}$/i.test(token) ||
   SIZE_WORDS.has(token.toLowerCase());
 
-/** The address of a picture without its size marks: the sizes of one picture share it (Zillow's do). */
-export function sizeFamily(url: string): string {
+/**
+ * The address of a picture without its size marks: the sizes of one picture share it (Zillow's do). `size` is the
+ * image's own width and height, when it has been read.
+ */
+export function sizeFamily(url: string, size?: { width: number; height: number }): string {
+  const own = size === undefined ? [] : [size.width, size.height];
+  const mark = (token: string) => sizeMark(token, own);
   try {
     const { host, pathname } = new URL(url);
     const parts = pathname.split("/").filter((part) => part !== "");
     const name = (parts.pop() ?? "").replace(/\.[a-z0-9]+$/i, "");
     const tokens = (text: string) => text.split(/[-_.,]/).filter((token) => token !== "");
-    const dirs = parts.filter((part) => !tokens(part).every(sizeMark));
+    const dirs = parts.filter((part) => !tokens(part).every(mark));
     const stem = tokens(name)
-      .filter((token) => !sizeMark(token))
+      .filter((token) => !mark(token))
       .join("-");
     return `${host}/${[...dirs, stem].join("/")}`;
   } catch {
@@ -155,15 +162,19 @@ const SAME_FAMILY_BITS = 16;
 
 /** Whether two images are one picture: their shapes match, more loosely when their addresses are one family. */
 export function samePicture(a: Picture, b: Picture): boolean {
-  const limit = sizeFamily(a.url) === sizeFamily(b.url) ? SAME_FAMILY_BITS : SAME_PICTURE_BITS;
+  const limit =
+    sizeFamily(a.url, a) === sizeFamily(b.url, b) ? SAME_FAMILY_BITS : SAME_PICTURE_BITS;
   return hashDistance(a.dhash, b.dhash) <= limit;
 }
 
-/** Groups images by picture, in the order the pictures first appear, and keeps the largest of each. */
+/**
+ * Groups images by picture, in the order the pictures first appear, and keeps the largest of each. An image joins a
+ * group only when it is the same picture as every member, so two near pictures never chain into one through a third.
+ */
 export function onePerPicture<T extends Picture>(images: readonly T[]): { kept: T; also: T[] }[] {
   const groups: T[][] = [];
   for (const image of images) {
-    const group = groups.find((members) => members.some((member) => samePicture(member, image)));
+    const group = groups.find((members) => members.every((member) => samePicture(member, image)));
     if (group === undefined) groups.push([image]);
     else group.push(image);
   }

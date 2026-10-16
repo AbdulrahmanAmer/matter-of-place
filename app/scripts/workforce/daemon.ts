@@ -294,19 +294,31 @@ export function answerPlan(input: {
   triage: Triage | null;
   power: "full" | "read";
   cause: string;
+  /** W7 item 9: the run was shown what a submitter typed or sent (`context`'s `request`). */
+  request?: boolean;
 }) {
   const { agent, shape, triage, power } = input;
   const isMatter = agent.slug === "matter";
   const ruled = ruleOutside(input.answer, shape.rule);
-  const result = ruled.kept;
+  const fromRequest = ruleRequest(ruled.kept, input.request === true);
+  const result = fromRequest.kept;
   const fixed = outsideWords(shape.rule);
   const full = isMatter && power === "full";
+  const dropped = [
+    ...(ruled.dropped.length === 0
+      ? []
+      : [
+          `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage === null ? "a held outside message" : triage.source} (W8 0c).`,
+        ]),
+    ...(fromRequest.dropped.length === 0
+      ? []
+      : [
+          `Not done: ${fromRequest.dropped.join(", ")}; a run shown a request's typed fields or photographs may not (W7 item 9).`,
+        ]),
+  ];
   return {
     result,
-    dropped:
-      ruled.dropped.length === 0
-        ? null
-        : `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage === null ? "a held outside message" : triage.source} (W8 0c).`,
+    dropped: dropped.length === 0 ? null : dropped.join(" "),
     keepNote: full,
     // W2 step 5 and W7 item 20: Matter at full power, or a colleague with `request_reel` (one reel); a Matter read
     // run asks for no media (W8 review), and a triaged run has none left after the ruling.
@@ -319,7 +331,7 @@ export function answerPlan(input: {
             author_id: shape.place.author_id,
             body: result.reply.slice(0, 20000),
           },
-    wake: input.cause !== "message" && ruled.wakeMentioned,
+    wake: input.cause !== "message" && ruled.wakeMentioned && fromRequest.wakeMentioned,
     proposals: result.proposals
       .filter((proposal) => agent.tools.includes(allowedProposal[proposal.action] ?? ""))
       .map((proposal) => ({
@@ -330,6 +342,27 @@ export function answerPlan(input: {
     summary: fixed?.run ?? (result.task || result.reply).slice(0, 300),
     // W8 0d: only Matter's read of a held message can let its owner answer it.
     allow: shape.rule === "held" && input.answer.allow,
+  };
+}
+
+/**
+ * W7 item 9 (review of 2026-10-16): a run shown a request's typed fields or photographs (request-desk.ts) holds words
+ * a submitter chose, so its answer reaches no other colleague's run: no colleague woken by a mention, no hire, no media
+ * request (the one-hop path `ruleOutside` closes for outside messages). Its proposals and calls stay, each waiting for
+ * a person as before. It widens nothing and changes nothing about how the run was launched. Exported for its test.
+ */
+export function ruleRequest<A extends { hire: readonly unknown[]; media: readonly unknown[] }>(
+  answer: A,
+  received: boolean,
+): { kept: A; wakeMentioned: boolean; dropped: string[] } {
+  if (!received) return { kept: answer, wakeMentioned: true, dropped: [] };
+  return {
+    kept: { ...answer, hire: [], media: [] },
+    wakeMentioned: false,
+    dropped: [
+      ...(answer.hire.length > 0 ? ["hires"] : []),
+      ...(answer.media.length > 0 ? ["media"] : []),
+    ],
   };
 }
 
@@ -436,10 +469,19 @@ export async function context(
         ? woke
         : { ...woke, body: shownBody(woke) };
   parts.push(...groundingLines(wokeShown, pending));
-  // W7 item 9: a run about a request receives the request itself (request-desk.ts), named by its event or its line.
+  // W7 item 9: a run about a request receives the request itself (request-desk.ts), named by its event or its line,
+  // after the triage read what its submitter typed; a request the triage holds shows nothing of it.
   const line = woke === null ? null : shownBody(woke);
-  if (triage === null || owns(triage.source))
-    parts.push(...(await requestDesk(client, run.agent_id, event, line, triage !== null)));
+  const desk =
+    triage === null || owns(triage.source)
+      ? await requestDesk(client, run.agent_id, event, line, {
+          triage,
+          // the same rule as runShape's terminal: a colleague run a person started, about no outside message
+          terminal: triage === null && startedInside,
+          ask,
+        })
+      : { lines: [], received: false };
+  parts.push(...desk.lines);
   // W8 fourth review: a run about an outside message sees the triage, its own pending list and the site's facts, and
   // nothing of the company's inside (no thread history, decisions or counts), so no reply can carry them.
   if (triage === null) {
@@ -496,7 +538,7 @@ export async function context(
   // W8 0d: the record a held line names, for Matter's read of it (the runner wrote it, last in the line).
   const heldRecord =
     matterReadsHeld && woke?.author_id === HELD_AUTHOR ? recordOf(woke.body) : null;
-  return { situation: parts.join("\n\n"), triage, heldRecord };
+  return { situation: parts.join("\n\n"), triage, heldRecord, request: desk.received };
 }
 
 /**
@@ -643,7 +685,12 @@ async function runOnce(client: Db): Promise<boolean> {
     // W8 0e: a key's line counts only if its account is an unrevoked agent key.
     const woke = { author_kind: authorKind, author_id: wokeBy };
     const startedInside = await startedInsideFor(client, run.cause, woke);
-    const { situation, triage, heldRecord } = await context(
+    const {
+      situation,
+      triage,
+      heldRecord,
+      request: shownRequest,
+    } = await context(
       client,
       run,
       thread,
@@ -746,6 +793,7 @@ async function runOnce(client: Db): Promise<boolean> {
       triage,
       power,
       cause: run.cause,
+      request: shownRequest,
     });
     const result = plan.result;
     const { place } = shape;

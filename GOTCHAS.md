@@ -8363,6 +8363,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `bun E:/mop-build/.tmp/probe-0e/hook-control.ts E:/mop-build/w8-0e/app` → `plain: HOOK RAN`, `restricted: hook did not run`, `sources_project: HOOK RAN`, `sources_empty: hook did not run` (measured 2026-10-15). And a planted memory file: `bun E:/mop-build/.tmp/probe-0e/claudemd.ts E:/mop-build/w8-0e/app` → a plain run reads `CLAUDE.md` and `claude.md` (Windows ignores case, so the sweep compares names in lower case), a run with the runner's arguments reads neither (measured 2026-10-16).
 - added: 2026-10-15
 
+## P-3577 · A `context()` test of an event-woken submission run needs `maybeSingle` from the fake database
+- symptom: 2026-10-16, W7 9 review fix: two new `context()` tests on a `submission.received` event failed with `TypeError: client.from(...).select(...).eq(...).maybeSingle is not a function`; every earlier `context()` test used a person's line or an inquiry event, so `requestSequence` (grounding.ts) never ran under `fakeDb`.
+- rule: `tests/fixtures/fake-db.ts` now answers `maybeSingle()` with the first registered row (or null); a runner read that ends in another builder method (`single`, `range`) is added there the same way, never worked around in the test.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts` → the cases "shows a triaged run the request fenced" and "not a triaged run" pass; without `maybeSingle` in the fixture they fail with the TypeError above.
+- added: 2026-10-16
+
+## P-3578 · Generate a registry after prettier, never before: prettier rewraps the lines a `find` names
+- symptom: 2026-10-16, W7 9: the registry was written before `prettier --write`; prettier joined the two-line `sizeMark` condition into one line, and the entry `w7-9-family-size-marks` found 0 occurrences (edit-impact: STALE).
+- rule: format every edited file first, then write or update registry `find` strings from the formatted text, then `node scripts/watchfail.mjs --registry tests/mutations --check`.
+- proof: `cd app && node ~/.claude/hooks/edit-impact.mjs --changed ..` prints no STALE line for W7-9 after the registry was regenerated from the formatted files (2026-10-16).
+- added: 2026-10-16
+
 ## P-3576 · A new file anywhere under `app/` fails CI's first step until the folder map names it
 - symptom: 2026-10-16: three PRs in one evening went red in 23 to 30 seconds on `layout: <file>: outside the folder map` (PR 442's `src/admin/campaigns/*`, PR 439's `src/server/redirect-links/service.ts`, PR 443's `scripts/workforce/settings-terminal.json`), each after a full local round of tests, typecheck, lint and watched-fails that never ran the layout check.
 - rule: run `bun run layout` from `app/` before every push that adds a file; a file in an existing folder is added to that folder's row in `scripts/check-layout.mjs`, a new folder needs its STANDARDS row too (or the file goes under an existing folder, as PR 439's did). The builders' How block says so.
