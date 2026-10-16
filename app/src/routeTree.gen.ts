@@ -164,6 +164,7 @@ import { Route as ApiAdminSettingsNotificationsRouteImport } from './routes/api/
 import { Route as ApiAdminSettingsProductsRouteImport } from './routes/api/admin/settings.products'
 import { Route as ApiAdminSettingsRedirectsRouteImport } from './routes/api/admin/settings.redirects'
 import { Route as ApiAdminSettingsSiteRouteImport } from './routes/api/admin/settings.site'
+import { Route as ApiAdminSettingsUsageRouteImport } from './routes/api/admin/settings.usage'
 import { Route as ApiAdminStoriesIndexRouteImport } from './routes/api/admin/stories.index'
 import { Route as ApiAdminStoriesIdRouteImport } from './routes/api/admin/stories.$id'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
@@ -1086,6 +1087,11 @@ const ApiAdminSettingsSiteRoute = ApiAdminSettingsSiteRouteImport.update({
   path: '/api/admin/settings/site',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminSettingsUsageRoute = ApiAdminSettingsUsageRouteImport.update({
+  id: '/api/admin/settings/usage',
+  path: '/api/admin/settings/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminStoriesIndexRoute = ApiAdminStoriesIndexRouteImport.update({
   id: '/api/admin/stories/',
   path: '/api/admin/stories/',
@@ -1787,6 +1793,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
+  '/api/admin/settings/usage': typeof ApiAdminSettingsUsageRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -2036,6 +2043,7 @@ export interface FileRoutesByTo {
   '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
+  '/api/admin/settings/usage': typeof ApiAdminSettingsUsageRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -2291,6 +2299,7 @@ export interface FileRoutesById {
   '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
+  '/api/admin/settings/usage': typeof ApiAdminSettingsUsageRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -2546,6 +2555,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
+    | '/api/admin/settings/usage'
     | '/api/admin/stories/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
@@ -2795,6 +2805,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
+    | '/api/admin/settings/usage'
     | '/api/admin/stories/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
@@ -3049,6 +3060,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
+    | '/api/admin/settings/usage'
     | '/api/admin/stories/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
@@ -3238,6 +3250,7 @@ export interface RootRouteChildren {
   ApiAdminSettingsProductsRoute: typeof ApiAdminSettingsProductsRouteWithChildren
   ApiAdminSettingsRedirectsRoute: typeof ApiAdminSettingsRedirectsRoute
   ApiAdminSettingsSiteRoute: typeof ApiAdminSettingsSiteRoute
+  ApiAdminSettingsUsageRoute: typeof ApiAdminSettingsUsageRoute
   ApiAdminStoriesIdRoute: typeof ApiAdminStoriesIdRouteWithChildren
   ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
   ApiAdminSubmissionsDeclineReasonsRoute: typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -4353,6 +4366,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/settings/site'
       fullPath: '/api/admin/settings/site'
       preLoaderRoute: typeof ApiAdminSettingsSiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/settings/usage': {
+      id: '/api/admin/settings/usage'
+      path: '/api/admin/settings/usage'
+      fullPath: '/api/admin/settings/usage'
+      preLoaderRoute: typeof ApiAdminSettingsUsageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/stories/': {
@@ -5873,6 +5893,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminSettingsProductsRoute: ApiAdminSettingsProductsRouteWithChildren,
   ApiAdminSettingsRedirectsRoute: ApiAdminSettingsRedirectsRoute,
   ApiAdminSettingsSiteRoute: ApiAdminSettingsSiteRoute,
+  ApiAdminSettingsUsageRoute: ApiAdminSettingsUsageRoute,
   ApiAdminStoriesIdRoute: ApiAdminStoriesIdRouteWithChildren,
   ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
   ApiAdminSubmissionsDeclineReasonsRoute:
