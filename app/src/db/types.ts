@@ -163,14 +163,14 @@ isOneToOne: false
                   ]
                 },"agent_runs": {
                   Row: {
-                    "agent_id": string,"cause": string,"cost_microusd": number,"created_at": string,"error": string | null,"event_id": string | null,"finished_at": string | null,"id": string,"input_tokens": number,"lease_until": string | null,"lessons_used": (string)[],"message_id": string | null,"output_tokens": number,"session_id": string | null,"started_at": string | null,"state": string,"summary": string | null,"turns": number,"worker": string | null
+                    "agent_id": string,"cause": string,"cost_microusd": number,"created_at": string,"error": string | null,"event_id": string | null,"finished_at": string | null,"id": string,"input_tokens": number,"lease_until": string | null,"lessons_used": (string)[],"message_id": string | null,"output_tokens": number,"reply_message_id": string | null,"session_id": string | null,"started_at": string | null,"state": string,"summary": string | null,"turns": number,"worker": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "agent_id": string,"cause": string,"cost_microusd"?: number,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"input_tokens"?: number,"lease_until"?: string | null,"lessons_used"?: (string)[],"message_id"?: string | null,"output_tokens"?: number,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
+                    "agent_id": string,"cause": string,"cost_microusd"?: number,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"input_tokens"?: number,"lease_until"?: string | null,"lessons_used"?: (string)[],"message_id"?: string | null,"output_tokens"?: number,"reply_message_id"?: string | null,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
                   }
                   Update: {
-                    "agent_id"?: string,"cause"?: string,"cost_microusd"?: number,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"input_tokens"?: number,"lease_until"?: string | null,"lessons_used"?: (string)[],"message_id"?: string | null,"output_tokens"?: number,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
+                    "agent_id"?: string,"cause"?: string,"cost_microusd"?: number,"created_at"?: string,"error"?: string | null,"event_id"?: string | null,"finished_at"?: string | null,"id"?: string,"input_tokens"?: number,"lease_until"?: string | null,"lessons_used"?: (string)[],"message_id"?: string | null,"output_tokens"?: number,"reply_message_id"?: string | null,"session_id"?: string | null,"started_at"?: string | null,"state"?: string,"summary"?: string | null,"turns"?: number,"worker"?: string | null
                   }
                   Relationships: [
                     {
@@ -182,6 +182,12 @@ isOneToOne: false
     },{
       foreignKeyName: "agent_runs_message_id_fkey"
       columns: ["message_id"]
+isOneToOne: false
+      referencedRelation: "agent_messages"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "agent_runs_reply_message_id_fkey"
+      columns: ["reply_message_id"]
 isOneToOne: false
       referencedRelation: "agent_messages"
       referencedColumns: ["id"]
@@ -2336,6 +2342,9 @@ isOneToOne: false
                            },
 "upsert_subscriber":
 { Args: { "p": Json }; Returns: string
+                           },
+"user_id_by_email":
+{ Args: { "p_email": string }; Returns: string
                            },
 "void_payment":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_payment_id": string,"p_reason": string,"p_request_id": string }; Returns: {
