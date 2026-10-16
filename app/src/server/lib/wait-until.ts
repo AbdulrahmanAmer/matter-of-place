@@ -8,6 +8,11 @@ const WorkerRequest = z.object({
   waitUntil: z.custom<WaitUntil>((value) => typeof value === "function"),
 });
 
+/** Whether the Worker's `waitUntil` is on the request; false in the dev server and wherever it does not reach. */
+export function carriesWaitUntil(request: Request): boolean {
+  return WorkerRequest.safeParse(request).success;
+}
+
 /** The way to keep work running after the response: the one `start.ts` and the public pipeline share. */
 export function waitUntilOf(request: Request): WaitUntil {
   const worker = WorkerRequest.safeParse(request);

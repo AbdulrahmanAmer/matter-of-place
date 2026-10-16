@@ -150,7 +150,7 @@
     "find": "${padIndex(index + 1)} / ${padIndex(total)}",
     "replace": "${padIndex(index)} / ${padIndex(total)}",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
-    "expect": "× carries the position, the location and one photograph on a photograph slide"
+    "expect": "× .*carries the position and one photograph on a photograph slide"
   },
   {
     "id": "b9g4-slide-photo-price",
