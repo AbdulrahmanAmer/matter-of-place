@@ -62,7 +62,7 @@ describe("AccountRoom", () => {
         signingOut={false}
       />,
     );
-    const shown = screen.getAllByRole("listitem").map((item) => item.textContent ?? "");
+    const shown = screen.getAllByRole("listitem").map((item) => item.textContent);
     expect(shown).toHaveLength(submissionStates.length);
     submissionStates.forEach((workflow_state, index) => {
       const sentence = requestStatusLines[workflow_state];
