@@ -1967,6 +1967,21 @@ first day of the new usage week; no step was cut from any plan.
   the folder map (`check-layout.mjs`, P-3580). Proof: tsc both configs, eslint, prettier, knip exit 0; unit 24 and component
   14 passed; registry replay `--changed origin/main` 35 ok 0 bad (8 new `w7-3-*` entries). UNPROVEN: the list rendered in a
   browser on a preview against mop-dev. Bank grew: P-3580, P-3581.
+- 2026-10-16 03:00 +0300: orchestrator, Cloudflare and site audit (operator: "check the website performance as code and pages,
+  check the dns records, check everything and fix anything you find"). Done and read back: CAA (issue and issuewild for
+  letsencrypt.org, pki.goog, ssl.com, sectigo.com, digicert.com; iodef security@), all five certificate packs `active` after;
+  MTA-STS live (policy 200 via DoH, TXT `id=20261016`); DNS 35 records, none dangling or left from Lovable; Security
+  Insights full scan: security.txt and AI Labyrinth archived (security.txt is served; Labyrinth left off on purpose), the
+  one left is MFA on the Cloudflare login (OPERATOR'S: account security). WAF: free managed ruleset (31 rules) on, DDoS L7
+  on, www-to-apex redirect and the API burst rate limit on. Worker last 24 h: 4.09k requests, 0 errors, assets 0 4xx/5xx.
+  Cache headers right (HTML `max-age=0, must-revalidate`, `/assets/*` a year immutable); zone browser TTL does not override.
+  PageSpeed 6 pages: desktop 100 perf on all, mobile 92 to 99; a11y 98 on /markets and /california/guide for heading
+  order. Fixed on fix/robots-signals-headings: footer group headings h2, MarketCard/MarketGrid take a level (h2 on
+  /markets), Content-Signal `search=yes, ai-input=yes, ai-train=no` in robots.txt (ruling H114) held by check-seo, tests and
+  3 new mutation entries; the runClaude "keeps working" test outlives a cold start (P-3603). Markdown for Agents is Pro:
+  off. Cloudflare's own Issues tracker left off (Sentry is the tracker). UNPROVEN until deploy: PageSpeed a11y 100 on
+  the two pages. Fairfield lane test: Julian's verdict FAIL (decline) at 01:13 with five reasons; Maya not re-woken after
+  her files landed (P-3602), sent to Matter with the stale bounce in Julian's address check. Bank grew: P-3600..P-3603.
 
 - 2026-10-15 W7 item 2 (PR 441, feat/w7-2-replies): the Sent emails screen has a Replies part: each `email_replies` row beside the
   email it answers (through `send_id`), owner, state, and buttons answered / ignored; opening a `new` reply marks it
