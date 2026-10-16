@@ -106,12 +106,8 @@ export const PUBLIC_FORMS = [
     api: "/api/public/search",
     writes: false,
     turnstile: false,
-    components: [
-      "components/search/home-finder.tsx",
-      "components/layout/search-overlay.tsx",
-    ],
-    reason:
-      "reads the catalog and writes nothing; the route has its own rate limit",
+    components: ["components/search/home-finder.tsx", "components/layout/search-overlay.tsx"],
+    reason: "reads the catalog and writes nothing; the route has its own rate limit",
   },
   {
     id: "not-found-search",
@@ -121,8 +117,7 @@ export const PUBLIC_FORMS = [
     writes: false,
     turnstile: false,
     components: ["components/layout/not-found.tsx"],
-    reason:
-      "a GET form that navigates to /properties and sends nothing to the API",
+    reason: "a GET form that navigates to /properties and sends nothing to the API",
   },
 ];
 
@@ -132,13 +127,7 @@ export const PUBLIC_FORMS = [
  * @returns {string[]}
  */
 export function formPages(forms = PUBLIC_FORMS) {
-  return [
-    ...new Set(
-      forms
-        .flatMap((form) => form.routes)
-        .filter((route) => !route.includes(":")),
-    ),
-  ];
+  return [...new Set(forms.flatMap((form) => form.routes).filter((route) => !route.includes(":")))];
 }
 
 /**
