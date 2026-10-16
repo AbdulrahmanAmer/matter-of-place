@@ -88,19 +88,21 @@ async function readNewWork(client: Db): Promise<string> {
         .limit(NEWEST),
     ]);
     if (requests.error !== null || inquiries.error !== null) throw new Error("not read");
+    // only a slug shaped as ours reaches the lookup: a visitor's quotes or commas never enter the `in` filter
     const slugs = inquiries.data.flatMap((row) =>
       row.subject_slug !== null && SLUG.test(row.subject_slug) ? [row.subject_slug] : [],
     );
-    const properties =
-      slugs.length === 0
-        ? []
-        : ((await client.from("properties").select("slug, market_slug").in("slug", slugs)).data ??
-          []);
-    return newWorkBlock(
-      requests.data.slice(0, NEWEST),
-      inquiries.data.slice(0, NEWEST),
-      new Map(properties.map((row) => [row.slug, row.market_slug])),
-    );
+    const markets = new Map<string, string>();
+    if (slugs.length > 0) {
+      const properties = await client
+        .from("properties")
+        .select("slug, market_slug")
+        .in("slug", slugs);
+      // a failed lookup says the read failed, never "no property named"
+      if (properties.error !== null) throw new Error("not read");
+      for (const row of properties.data) markets.set(row.slug, row.market_slug);
+    }
+    return newWorkBlock(requests.data.slice(0, NEWEST), inquiries.data.slice(0, NEWEST), markets);
   } catch {
     return "The newest requests and inquiries could not be read this pass; say so if a briefing needs them.";
   }

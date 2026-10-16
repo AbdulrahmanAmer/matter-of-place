@@ -355,7 +355,7 @@ export function answerPlan(input: {
 }
 
 /**
- * W7 item 9a (reviews of 2026-10-16, ruling H123): a run shown a request's typed fields or photographs
+ * W7 item 9a (reviews of 2026-10-16, ruling H132): a run shown a request's typed fields or photographs
  * (request-desk.ts) holds words a submitter chose, so its answer reaches no other colleague's run: no colleague woken by
  * a mention, no admin call (its reason becomes a thread line and a team line), no hire, no media request (the one-hop
  * paths `ruleOutside` closes for outside messages). Its proposals stay, each waiting for a person, under fixed words
@@ -387,7 +387,7 @@ export const REQUEST_WORDS = {
 };
 
 /**
- * W7 item 9a (third review, ruling H123): how a run goes, from what its context showed it, decided in one tested place
+ * W7 item 9a (third review, ruling H132): how a run goes, from what its context showed it, decided in one tested place
  * the runner only carries out (`runOnce`). A run shown a request is shaped like a run about an outside message: no
  * terminal and no web search, no admin call or hire offered, launched shut off (`outside`: no tool at all on this
  * runner; the outside toolkit of ruling H115 reads its own folder and writes and runs nothing), and its reply written in
@@ -555,15 +555,17 @@ export async function context(
         : { ...woke, body: shownBody(woke) };
   parts.push(...groundingLines(wokeShown, pending));
   // W7 item 9a: a run of the request's owner about a request receives the request itself (request-desk.ts), named by
-  // its event or its line, after the triage read what its submitter typed; no one else is shown a request (H123).
+  // its event or its line, after the triage read and classified what its submitter typed; no one else is shown a
+  // request (H132).
   const line = woke === null ? null : shownBody(woke);
   const desk = owns("submission")
     ? await requestDesk(client, run.agent_id, event, line, { triage, ask })
     : { lines: [], received: false };
   parts.push(...desk.lines);
   // W8 fourth review: a run about an outside message sees the triage, its own pending list and the site's facts, and
-  // nothing of the company's inside (no thread history, decisions or counts), so no reply can carry them.
-  if (triage === null) {
+  // nothing of the company's inside (no thread history, decisions or counts), so no reply can carry them. A run shown a
+  // request's typed fields is such a run whatever woke it (H132: the path of W8 0a to 0c, no second one).
+  if (triage === null && !desk.received) {
     const { data: messages } = await client
       .from("agent_messages")
       .select("author_kind, author_id, author_name, body, created_at")

@@ -56,6 +56,37 @@ const request = {
 // The request side of a whole record is proved in workforce-request-desk.test.ts (the Editor's briefing).
 const world = () => fakeDb({ tables: { submissions: [], inquiries: [inquiry()], properties: [] } });
 
+/**
+ * A database that records each query's chain (the shared fake ignores order, limit and filters): its tables answer the
+ * rows given, a table in `failing` answers an error.
+ */
+function recorded(tables: Record<string, unknown[]>, failing: readonly string[] = []) {
+  const chains: { table: string; steps: unknown[][] }[] = [];
+  const from = (table: string) => {
+    const steps: unknown[][] = [];
+    chains.push({ table, steps });
+    const answer = failing.includes(table)
+      ? { data: null, error: new Error(`${table} is down`) }
+      : { data: tables[table] ?? [], error: null };
+    const step = (name: string, args: unknown[]): unknown => {
+      steps.push([name, ...args]);
+      return query;
+    };
+    const query = Object.assign(Promise.resolve(answer), {
+      select: (...args: unknown[]) => step("select", args),
+      order: (...args: unknown[]) => step("order", args),
+      limit: (...args: unknown[]) => step("limit", args),
+      in: (...args: unknown[]) => step("in", args),
+    });
+    return query;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- a recording stand-in for the client
+  return { db: { from } as unknown as Db, chains };
+}
+
+const owner = (source: "submission" | "inquiry" | "email_reply" | "privacy_request") =>
+  ownsSource(source, "editor");
+
 beforeEach(() => {
   forgetNewWork();
 });
@@ -160,6 +191,72 @@ describe("new work in the briefing (W7 item 9)", () => {
     await beginPass(db);
     await newWorkLines(db, owns);
     expect([reads(), touched]).toEqual([2, ["agents", "agents"]]);
+  });
+
+  it("reads the newest of each, newest first: received_at descending on both tables", async () => {
+    const { db, chains } = recorded({ submissions: [request], inquiries: [] });
+    await newWorkLines(db, owner);
+    for (const table of ["submissions", "inquiries"])
+      expect([table, chains.find((chain) => chain.table === table)?.steps.slice(1)]).toEqual([
+        table,
+        [
+          ["order", "received_at", { ascending: false }],
+          ["limit", 5],
+        ],
+      ]);
+  });
+
+  it("names the market of an inquiry's property from our properties table", async () => {
+    const { db, chains } = recorded({
+      submissions: [],
+      inquiries: [inquiry()],
+      properties: [{ slug: "the-malibu-house", market_slug: "los-angeles" }],
+    });
+    const [block] = await newWorkLines(db, owner);
+    expect(block).toContain(
+      `- inquiry ${INQUIRY}: showing, new, about the property the-malibu-house (los-angeles market)`,
+    );
+    expect(chains.find((chain) => chain.table === "properties")?.steps).toEqual([
+      ["select", "slug, market_slug"],
+      ["in", "slug", ["the-malibu-house"]],
+    ]);
+  });
+
+  it("says the work could not be read when the property lookup fails, never 'no property named'", async () => {
+    const { db } = recorded({ submissions: [], inquiries: [inquiry()] }, ["properties"]);
+    const lines = await newWorkLines(db, owner);
+    expect(lines).toEqual([
+      "The newest requests and inquiries could not be read this pass; say so if a briefing needs them.",
+    ]);
+  });
+
+  it("never passes a slug with quotes, commas or spaces to the property lookup", async () => {
+    const typed = ['malibu", "x', "a,b", "the house", "x)or(slug.neq.y", "UPPER"];
+    const { db, chains } = recorded({
+      submissions: [],
+      inquiries: [
+        ...typed.map((subject_slug, index) =>
+          inquiry({ id: `5555555${String(index)}-5555-4555-8555-555555555555`, subject_slug }),
+        ),
+        inquiry(),
+      ],
+      properties: [],
+    });
+    await newWorkLines(db, owner);
+    expect(chains.find((chain) => chain.table === "properties")?.steps).toContainEqual([
+      "in",
+      "slug",
+      ["the-malibu-house"],
+    ]);
+    // only typed slugs: no lookup at all
+    forgetNewWork();
+    const only = recorded({
+      submissions: [],
+      inquiries: typed.map((subject_slug) => inquiry({ subject_slug })),
+    });
+    const [block] = await newWorkLines(only.db, owner);
+    expect(only.chains.map((chain) => chain.table)).not.toContain("properties");
+    for (const slug of typed) expect(block).not.toContain(slug);
   });
 
   it("says the newest work could not be read instead of failing the run", async () => {

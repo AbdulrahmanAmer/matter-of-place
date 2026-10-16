@@ -138,8 +138,8 @@
     "id": "w7-9-typed-fenced",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "  return [...made.facts, TYPED_OPEN, ...made.typed, TYPED_CLOSE].join(\"\\n\");",
-    "replace": "  return [...made.facts, ...made.typed].join(\"\\n\");",
+    "find": "  return [...made.facts, classifiedLine(triage), fence.open, ...made.typed, fence.close].join(\"\\n\");",
+    "replace": "  return [...made.facts, classifiedLine(triage), ...made.typed].join(\"\\n\");",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*shows the typed fields only inside one fenced block"
   },
@@ -147,7 +147,7 @@
     "id": "w7-9-typed-desk-fenced",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "${[TYPED_OPEN, ...made.typed, TYPED_CLOSE].join(\"\\n\")}\\n`,",
+    "find": "${[fence.open, ...made.typed, fence.close].join(\"\\n\")}\\n`,",
     "replace": "${made.typed.join(\"\\n\")}\\n`,",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*shows the typed fields only inside one fenced block"
@@ -393,7 +393,7 @@
     "find": "    parts.push(...(await newWorkLines(client, owns)));",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*briefs the Editor a person asked to review request"
+    "expect": "× .*briefs the Editor a person woke on no request with the new work"
   },
   {
     "id": "w7-9-new-work-inside-only",
@@ -817,5 +817,95 @@
     "replace": "[item.name, \"\"]",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*an instruction in a photograph's address reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-request-run-sees-no-inside",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (triage === null && !desk.received) {",
+    "replace": "  if (triage === null) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*briefs the Editor a person asked to review request 4a3c2563 with the triaged request and nothing inside"
+  },
+  {
+    "id": "w7-9-fence-names-source",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "what ${who} typed into our property submission form, request ${id}`,",
+    "replace": "WHAT THE SUBMITTER TYPED`,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*shows the typed fields only inside one fenced block"
+  },
+  {
+    "id": "w7-9-classified-before-fence",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  return [...made.facts, classifiedLine(triage), fence.open,",
+    "replace": "  return [...made.facts, fence.open,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*shows the typed fields only inside one fenced block"
+  },
+  {
+    "id": "w7-9-held-out-of-criteria",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "    if (sorted === null || !answerable(sorted)) {",
+    "replace": "    if (sorted === null || sorted.instructions_to_ai) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*shows nothing of a request the triage holds as outside what a request may ask"
+  },
+  {
+    "id": "w7-9-typed-table-covers-fence",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "      `Listing brokerage: ${field(row.listing_agent_brokerage)}`,",
+    "replace": "      `Listing brokerage: ${field(row.listing_agent_brokerage)}`,\n      `Package again: ${field(row.package)}`,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*fences every typed line the desk shows"
+  },
+  {
+    "id": "w7-9-newest-requests-desc",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": ".select(\"id, received_at, state, property_type, price, workflow_state\")\n        .order(\"received_at\", { ascending: false })",
+    "replace": ".select(\"id, received_at, state, property_type, price, workflow_state\")\n        .order(\"received_at\", { ascending: true })",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*reads the newest of each, newest first"
+  },
+  {
+    "id": "w7-9-newest-inquiries-desc",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": ".select(\"id, received_at, intent, state, subject_kind, subject_slug\")\n        .order(\"received_at\", { ascending: false })",
+    "replace": ".select(\"id, received_at, intent, state, subject_kind, subject_slug\")\n        .order(\"received_at\", { ascending: true })",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*reads the newest of each, newest first"
+  },
+  {
+    "id": "w7-9-property-lookup-error",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": "      if (properties.error !== null) throw new Error(\"not read\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*says the work could not be read when the property lookup fails"
+  },
+  {
+    "id": "w7-9-property-market",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": "      for (const row of properties.data) markets.set(row.slug, row.market_slug);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*names the market of an inquiry's property"
+  },
+  {
+    "id": "w7-9-slug-filter",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/new-work.ts",
+    "find": "      row.subject_slug !== null && SLUG.test(row.subject_slug) ? [row.subject_slug] : [],",
+    "replace": "      row.subject_slug !== null ? [row.subject_slug] : [],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*never passes a slug with quotes"
   }
 ]

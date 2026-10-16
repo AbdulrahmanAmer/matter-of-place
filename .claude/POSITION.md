@@ -2155,3 +2155,21 @@ first day of the new usage week; no step was cut from any plan.
   00:35 UTC; it lands with PR 447). Fairfield lane test closed: FAIL (Julian and Matter), set in Drive, three abstract reels
   rejected by hand with notes. Laptop: 16 GB of runaway task logs deleted on the operator's word; held at Idle for an OmniSuite
   film export, then restored. Bank grew: P-3606, P-3607.
+
+- 2026-10-16 18:05 +0300 (W7 9 builder, fourth round, overdrive/w7-9, Opus 5.5 high): merged origin/overdrive/finish-2
+  (69909ab8; both sides of POSITION and ASSUMED kept; the bank merge dropped finish-2's P-3578, P-3700, P-3701 with no
+  marker, appended as P-3704 to P-3706; migration-order OK). The third review's findings, under the operator's own ruling
+  H132 (typed fields may reach the owner, through the triage path only): (high) the fence now names its source ("OUTSIDE
+  CONTENT ... what an agent typed into our property submission form, request <id>"), the prompt carries the triage's
+  classification before it, and a run shown a request is a run about an outside message whatever woke it (`context`:
+  `triage === null && !desk.received`, so no thread history, decisions, counts or new work); held as out of criteria, an
+  unreadable answer or a failed triage call shows nothing; a test proves every fenced line is a field the triage table
+  covers; code and test comments point to H132. (medium) newest first proven: a recording stand-in asserts
+  `order("received_at", {ascending: false})` and `limit(5)` on both tables, registry `w7-9-newest-*-desc`. (low) the
+  property lookup's error fails the read ("could not be read", never "no property named"), a registered property row gives
+  "(los-angeles market)", the SLUG filter keeps quoted or comma slugs out of `in()` (`w7-9-property-*`,
+  `w7-9-slug-filter`). (low) W7.md Built lines name overdrive/w7-9. W7-9.json 101 entries; W8-0's
+  `w8-0r4-triaged-sees-no-inside` repointed to the new condition. No local CI (operator, 2026-10-16); only the two test
+  files run. UNPROVEN: the runner on the live request 4a3c2563, the real Haiku triage reading its fields, the Editor
+  opening the photographs (needs the toolkits change), a pull of the live Fairfield listing giving five files, and every
+  registry entry's red (CI replays them). Bank: P-3705 hit again.

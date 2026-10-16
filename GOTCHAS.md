@@ -8671,6 +8671,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-16, `git merge origin/overdrive/finish` into overdrive/followups-a: `git status` showed `UU GOTCHAS.md` and `ls-files -u` three stages, yet `grep '^<<<<<<<'` printed nothing; the other side's new P-3694 and P-3695 had the numbers this branch had already used for different entries.
 - cause: both sides appended entries at the end of one file under a rerun number counter; the file on disk was already a union of text, so the markers are not the signal, the staged stages are.
 - rule: after a merge that touches the bank, diff the sorted lines of stage 2 and stage 3 against the file (`git show :3:GOTCHAS.md | sort -u` against `sort -u GOTCHAS.md`, `comm -23`) to see what is missing, append the missing entries under the next free numbers, then `git add`; never trust the absence of markers.
+- hit again: 2026-10-16, `git merge origin/overdrive/finish-2` into overdrive/w7-9: the merge driver printed "both sides changed P-3700, P-3701; ours kept" and left no marker; `comm -23` of stage 3 against the file showed three of finish-2's entries gone (its P-3578, P-3700, P-3701), appended as P-3704 to P-3706 (merge 69909ab8).
 - proof: `git ls-files -u GOTCHAS.md` lists stages 1 to 3 while `grep -c '^<<<<<<<' GOTCHAS.md` prints 0; `comm -23` of their side against the file printed 9 lines before the append and none after.
 - added: 2026-10-16
 
