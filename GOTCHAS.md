@@ -8422,3 +8422,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a test that spawns a process gives it a limit well above a cold start (1.5 s or more) and makes the work outlast the limit by a clear margin (the talk mode now works 3 s, printing every 100 ms); never a sub-second limit on process start.
 - proof: `cd app && bunx vitest run tests/unit/workforce-cli.test.ts` passes with the laptop loaded (2026-10-16).
 - added: 2026-10-16
+
+## P-3604 · A wait loop that gives up does not mean the replay ended; never touch the worktree while watchfail runs
+- symptom: 2026-10-16, a 10-minute wait on the pre-push log returned while `scripts/watchfail.mjs` was still applying mutations one by one; I then applied and reverted a mutation in `market-card.tsx` by hand in the same worktree, and `git status` showed `footer.tsx` mutated (the replay's own `modifiedClick` mutation, mid-run), which looked like stray damage.
+- rule: a wait loop ends on the job's own end marker (`^exit` written after the command), never on its timeout alone; until that marker is in the log, no edit, `sed`, `git checkout` or second test run in that worktree. Hand-check a mutation in a copy, or after the replay has printed its summary.
+- proof: `grep -c "^exit" <scratchpad>/prepush2.log` was 0 while `tail -3` showed `mutated src/components/layout/footer.tsx:57` (2026-10-16).
+- added: 2026-10-16
+
+## P-3605 · A mutation entry for a `.test.tsx` file runs under `--project component`, not `unit`
+- symptom: 2026-10-16, entry `market-card-heading-level` (B13) ran `bunx vitest run --project unit tests/unit/no-image.test.tsx` and watchfail said `wrong reason`: the red run printed `No test files found` because the unit project includes only `*.test.ts`.
+- rule: `tests/unit/**/*.test.tsx` belongs to the `component` project (`vitest.config.ts`); a registry `run` names the project the file's extension falls in. When watchfail says "wrong reason" with an empty red run, read the red run's own output first.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only market-card-heading-level` → `WATCHED-FAIL OK` with `--project component`, `wrong reason ... No test files found` with `--project unit` (2026-10-16).
+- added: 2026-10-16
