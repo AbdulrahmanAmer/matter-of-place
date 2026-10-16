@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type { Json } from "../../../db/index.ts";
-import { ADMIN_PAGE_MAX } from "../../../domain/admin-page.ts";
 import {
   adminProposedPostSchema,
   postFileSchema,
@@ -60,9 +59,6 @@ interface ChannelRow {
 
 const notFound = () => new AppError("not_found", undefined, "This proposed post does not exist.");
 
-/** PostgREST's 416 for an offset past the last match (G-252); `offset = total` still answers an empty page. */
-const PAST_LAST_ROW = "PGRST103";
-
 const withUrl = <T extends { key: string }>(file: T) => ({ ...file, url: mediaUrl(file.key) });
 
 function toAdmin(post: PostRow, channels: readonly ChannelRow[]): AdminProposedPost {
@@ -102,40 +98,66 @@ async function channelsOf(db: Db, ids: readonly string[]): Promise<ChannelRow[]>
   return data;
 }
 
-function noCount(): never {
-  throw new Error("channels.proposed_list answered without a count");
+/** A page starts after the post it names: its `created_at` exactly as listed, then its id. */
+const CURSOR = /^(\d{4}-\d\d-\d\dT[\d:.]+(?:Z|[+-]\d\d:\d\d))~([0-9a-f-]{36})$/;
+
+/** Up to `take` posts of the filter, newest first; `after` keeps those listed after the named post. */
+async function newestPosts(
+  db: Db,
+  status: ProposedPostFilters["status"],
+  take: number,
+  after?: { at: string; id: string; ties: boolean },
+): Promise<PostRow[]> {
+  let query = db.from("proposed_posts").select(POST_COLUMNS);
+  if (status !== undefined) query = query.eq("status", status);
+  if (after !== undefined) {
+    query = after.ties
+      ? query.eq("created_at", after.at).lt("id", after.id)
+      : query.lt("created_at", after.at);
+  }
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(take);
+  if (error !== null) throw fromRpcError(error);
+  return data;
 }
 
-function matching(db: Db, filters: ProposedPostFilters, head: boolean) {
-  let query = db.from("proposed_posts").select(POST_COLUMNS, { count: "exact", head });
-  if (filters.status !== undefined) query = query.eq("status", filters.status);
-  return query;
-}
-
-/** `GET /api/admin/proposed-posts`: 50 a page, newest first, each with the channels of its current revision. */
+/**
+ * `GET /api/admin/proposed-posts`: one keyset page (invariant 17c), newest first, each post with the channels of its
+ * current revision.
+ */
 export async function listProposedPosts(
   actor: AdminActor,
   db: Db,
   filters: ProposedPostFilters,
-): Promise<{ items: AdminProposedPost[]; total: number }> {
+): Promise<{ items: AdminProposedPost[]; next_cursor: string | null }> {
   authorize(actor, "channels.proposed_list");
-  const first = (filters.page - 1) * ADMIN_PAGE_MAX;
-  const { data, error, count } = await matching(db, filters, false)
-    .order("created_at", { ascending: false })
-    .order("id")
-    .range(first, first + ADMIN_PAGE_MAX - 1);
-  if (error?.code === PAST_LAST_ROW) {
-    const counted = await matching(db, filters, true);
-    if (counted.error !== null) throw fromRpcError(counted.error);
-    return { items: [], total: counted.count ?? noCount() };
+  const take = filters.limit + 1;
+  let posts: PostRow[];
+  if (filters.cursor === undefined) posts = await newestPosts(db, filters.status, take);
+  else {
+    const [, at, id] = CURSOR.exec(filters.cursor) ?? [];
+    if (at === undefined || id === undefined) {
+      throw new AppError("validation", undefined, "This page link is no longer valid.");
+    }
+    const ties = await newestPosts(db, filters.status, take, { at, id, ties: true });
+    const older =
+      ties.length >= take
+        ? []
+        : await newestPosts(db, filters.status, take - ties.length, { at, id, ties: false });
+    posts = [...ties, ...older];
   }
-  if (error !== null) throw fromRpcError(error);
-  if (count === null) return noCount();
+  const page = posts.slice(0, filters.limit);
   const channels = await channelsOf(
     db,
-    data.map((post) => post.id),
+    page.map((post) => post.id),
   );
-  return { items: data.map((post) => toAdmin(post, channels)), total: count };
+  const last = posts.length > filters.limit ? page.at(-1) : undefined;
+  return {
+    items: page.map((post) => toAdmin(post, channels)),
+    next_cursor: last === undefined ? null : `${last.created_at}~${last.id}`,
+  };
 }
 
 /** `GET /api/admin/proposed-posts/:id`: the post, its current channels and every revision sent back. */

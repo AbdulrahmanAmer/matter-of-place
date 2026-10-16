@@ -99,6 +99,15 @@
     "expect": "× .*shows each post with the channels of its current revision"
   },
   {
+    "id": "w8-10-keyset-ties",
+    "test": "tests/unit/proposed-posts.service.test.ts",
+    "file": "src/server/publishing/proposed-posts/service.ts",
+    "find": "      ? query.eq(\"created_at\", after.at).lt(\"id\", after.id)",
+    "replace": "      ? query.eq(\"created_at\", after.at)",
+    "run": "bunx vitest run --project unit tests/unit/proposed-posts.service.test.ts",
+    "expect": "× .*pages newest first by a keyset cursor"
+  },
+  {
     "id": "w8-10-skip-test-post",
     "test": "tests/unit/channels/post-to-channel.test.ts",
     "file": "src/server/channels/index.ts",

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 import type { SocialChannel } from "./channels.ts";
 
 // W8 item 10 (rulings H116, H117): a post a colleague or a person proposes, before it is anything a channel posts. The
@@ -183,9 +184,9 @@ export const proposedPostReviseSchema = proposedPostIdSchema.extend({
 });
 export type ProposedPostRevise = z.infer<typeof proposedPostReviseSchema>;
 
-export const proposedPostFilters = z.object({
+/** `GET /api/admin/proposed-posts`: one keyset page (invariant 17c), optionally of one status. */
+export const proposedPostFilters = adminPageSchema.extend({
   status: z.enum(proposedPostStatuses).optional(),
-  page: z.coerce.number().int().min(1).default(1),
 });
 export type ProposedPostFilters = z.infer<typeof proposedPostFilters>;
 
@@ -220,10 +221,7 @@ export const adminProposedPostSchema = z.object({
 });
 export type AdminProposedPost = z.infer<typeof adminProposedPostSchema>;
 
-export const proposedPostListSchema = z.object({
-  items: z.array(adminProposedPostSchema),
-  total: z.number().int(),
-});
+export const proposedPostListSchema = adminPageAnswer(adminProposedPostSchema);
 
 export const postRevisionSchema = z.object({
   revision: z.number().int(),

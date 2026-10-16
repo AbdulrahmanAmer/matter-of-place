@@ -194,9 +194,52 @@ describe("proposing and listing", () => {
       proposed_posts: [row],
       proposed_post_channels: [channel(1, "proposed/a/old.jpg"), channel(2, "proposed/b/new.jpg")],
     });
-    const listed = await listProposedPosts(person, db, { page: 1 });
+    const listed = await listProposedPosts(person, db, { limit: 50 });
     expect(
       listed.items.map((item) => item.channels.map((c) => c.images.map((image) => image.url))),
     ).toEqual([[["/media/proposed/b/new.jpg"]]]);
+  });
+
+  it("pages newest first by a keyset cursor, a post on the same instant included once", async () => {
+    const post = (id: string, at: string) => ({
+      id,
+      title: id,
+      property_id: null,
+      submission_id: null,
+      proposer_kind: "human" as const,
+      proposer_agent: null,
+      proposer_user: USER,
+      test: false,
+      status: "proposed" as const,
+      revision: 1,
+      rejection_note: null,
+      approved_at: null,
+      approved_by: null,
+      run_id: null,
+      created_at: at,
+      updated_at: at,
+    });
+    const newest = "3f2a9c1d-0000-4000-8000-0000000000c3";
+    const tieHigh = "3f2a9c1d-0000-4000-8000-0000000000c2";
+    const tieLow = "3f2a9c1d-0000-4000-8000-0000000000c1";
+    const db = withTables(fakeDb(), {
+      proposed_posts: [
+        post(tieLow, "2026-10-16T05:00:00Z"),
+        post(newest, "2026-10-16T06:00:00Z"),
+        post(tieHigh, "2026-10-16T05:00:00Z"),
+      ],
+      proposed_post_channels: [],
+    });
+    const first = await listProposedPosts(person, db, { limit: 2 });
+    const second = await listProposedPosts(person, db, {
+      limit: 2,
+      cursor: first.next_cursor ?? "",
+    });
+    expect([
+      first.items.map((item) => item.id),
+      first.next_cursor,
+      second.items.map((item) => item.id),
+      second.next_cursor,
+    ]).toEqual([[newest, tieHigh], `2026-10-16T05:00:00Z~${tieHigh}`, [tieLow], null]);
   });
 });
