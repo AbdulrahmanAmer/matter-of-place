@@ -177,7 +177,7 @@ describe("W8 0h: the replayed real messages go where the item says", () => {
     expect(ours.args.p_source).toBe("our_mail");
   });
 
-  it("withholds the subject of a service whose subjects can carry outside words (a Sentry issue title)", () => {
+  it("withholds the subject of a service whose subjects can carry outside words, like Sentry", () => {
     const sentry = inboundRecord(
       asMessage(SEARCH_CONSOLE, {
         from: "noreply@md.getsentry.com",

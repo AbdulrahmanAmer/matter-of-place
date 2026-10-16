@@ -33,6 +33,10 @@ declare
   v_id uuid;
   v_event uuid;
   v_line uuid;
+  -- Only one of our aliases is kept or put in the event; anything else is null.
+  v_alias text := case
+    when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias
+  end;
 begin
   -- W8 0h (operator, 2026-10-16): one message of the admin@ mailbox, as the laptop runner sorted it
   -- (scripts/workforce/mail.ts, service-notice.ts). It is recorded once: an id this table or email_replies already
@@ -78,7 +82,7 @@ begin
     -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's
     -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the
     -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text.
-    v_owners := array[case when p_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];
+    v_owners := array[case when v_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];
     select a.slug, a.id into v_owner, v_agent
     from public.agents a
     where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'
@@ -96,7 +100,7 @@ begin
   values (
     p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),
     left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),
-    case when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias end,
+    v_alias,
     left(coalesce(p_subject, ''), 500), left(coalesce(p_body, ''), 6000),
     (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),
     p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),
@@ -110,7 +114,7 @@ begin
   if v_state = 'new' then
     -- The event carries the row's id and the alias (our words) only: no part of the message reaches a prompt from it.
     v_event := public.emit_event(
-      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', p_alias)
+      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', v_alias)
     );
     if v_agent is not null then
       insert into public.agent_runs (agent_id, cause, event_id) values (v_agent, 'event', v_event)

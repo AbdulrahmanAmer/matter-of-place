@@ -1991,3 +1991,20 @@ first day of the new usage week; no step was cut from any plan.
   (7) Lead copy reworded. `tests/mutations/W7-2.json` holds 28 entries (24 file, 4 sql), all WATCHED-FAIL OK.
   UNPROVEN: the function on the real database (stub native cluster only; the CI db job counts), the route and service
   end to end, a real reply read through the screen. Bank grew: P-3551.
+
+- 2026-10-16 W8 0h, every email that reaches us is seen (overdrive/w8-0h, not merged; Matter merges into overdrive/finish).
+  `inbound_mail` + `inbound_mail_record` (migrations 20261016023717 and 20261016045034): every message of every admin@
+  folder but Drafts, Templates, Sent, Trash and Outbox is recorded once (never an id `email_replies` holds); replies to our
+  mail stay on the W4 path. A person's email emits `email.received` (the 20th catalog event) and queues its owner by alias
+  (listings@ Editor, else Concierge, never Matter); the owner sees only the tool-less triage (`email_inbound` in
+  criteria.ts, `outsideText` reads the row). An authenticated known service (first Authentication-Results inside Zoho's
+  trace block, dmarc=pass for the From domain) becomes the runner's line in Matter's thread at read power; its subject is
+  fenced, or withheld for senders whose subjects relay outside words. DMARC and TLS reports are parsed with limits; only a
+  failure, an unparsed report or a non-report notice wakes Matter. Caps 20 people/6 notices an hour; spam, bulk and our own
+  mail kept for a person; an unread folder beats `mail_folders` (ops_health). The retention job now purges
+  `email_replies` (it never did) and `inbound_mail`. Inbound mail part on Sent emails (`GET /api/admin/emails/inbound`,
+  audit.list). Replayed the real Google DMARC (2 records, all pass: recorded), TLS (1 ok: recorded) and Search Console
+  notice (escalated) as fixtures; a spoofed sc-noreply is a stranger's. Registry `tests/mutations/W8-0h.json` (40).
+  Ruling H121. UNPROVEN: a live run on the merged code; a real person's email (none in the mailbox; crafted fixture);
+  the function on the real database (stub cluster only; the CI db job counts); a real Matter answer to a notice.
+  Bank grew: P-4501 to P-4505, P-722 hit again.

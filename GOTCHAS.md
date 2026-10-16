@@ -3185,6 +3185,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node node_modules/vitest/vitest.mjs run --project unit tests/unit/assets/steps.test.ts -t "approved render_cover untouched by a second publish" 2>&1 | grep -a "Tests "` → `Tests  1 passed` (2026-10-04, B9 g6).
 - hit again: 2026-10-06, B7 g4: the db case `refuses a visual editor through write_audit (42501) and moves nothing` replayed as `WATCHED-FAIL BAD: stayed green`; run alone with the mutation it printed `Tests  16 skipped (16)`, because `(42501)` is a regex group and matches the title without its parentheses. The title became `... write_audit with 42501 ...` and the entry replayed `WATCHED-FAIL OK`. Before writing a db title, keep `(`, `)`, `*`, `+`, `?` and `[` out of it.
 - added: 2026-10-04
+- hit again: 2026-10-16, W8 0h: `w8-0h-subject-withheld` stayed green because its title ended in `(a Sentry issue title)`; under `-t` the parentheses are a regex group, the title matched nothing and zero tests ran. The title lost its parentheses and the entry was replayed red.
 
 ## P-723 · A live proof that reads a row only a lane's migration seeds fails before that migration is on main
 - symptom: B9 g7's `bun run scripts/caption-golden.ts` printed `caption_model_missing` and exited 1 against mop-dev, although the CLI answered: `settings.caption_model` is seeded by B9 g6's migration, which no lane pushes (DB-01, H57), so the row did not exist.
@@ -8436,4 +8437,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: W8 0h: `node scripts/load-env.mjs --profile dev` in the worktree failed `ENOENT ... od-w8-0h/.env`; from the main checkout it refused with `load-env: .env has no OMNIKOM_MOCK_SECRET`, so no schema dump; H35 refuses mop-dev for db tests anyway.
 - rule: copy a stopped stub cluster (W7 item 2's `w7-2-pg`) to the scratch folder, start it on a port of its own, add the tables the function touches from their migrations, apply the branch's migrations, and run the db test with `DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/<db>`; generate the types from it and splice only the new entries into `src/db/types.ts`. The PR's CI db job stays the one that counts.
 - proof: `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:55492/mopw env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/inbound-mail.db.test.ts` → `Tests  8 passed (8)` (2026-10-16, while that cluster runs).
+- added: 2026-10-16
+
+## P-4505 · `watchfail --changed` from the brief's base replays main's entries when the branch already merged main, and a stopped replay leaves its mutation
+- symptom: W8 0h: `--changed 544a7db5` (the merge-base with overdrive/finish) also selected every entry of the files main brought in through the branch's own merge commit, so it replayed authz entries for minutes; stopping it left `checkLayout();` inserted in `app/scripts/check-layout.mjs`.
+- rule: replay from the commit before your own first commit (`git log --oneline` → the parent of your first commit), and after stopping any replay run `git status --short` and `git restore` every file it left changed before the next step.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed 89d5bdc4 --kinds unit` selects only W8 0h's files and the entries anchored on them.
 - added: 2026-10-16
