@@ -529,11 +529,13 @@ describe(
     it("copies the cleaned photographs afresh for each run: a file a run replaced in its desk is not kept", async () => {
       const whole = world({ media: MEDIA.filter((item) => item.id !== "m7") });
       const root = tempHome();
-      await requestDesk(whole, EDITOR, event, null, clean, root);
+      // the folder itself, written twice from the cache (a run's requests are also cleared before it, by requestDesk)
+      const desk = () => writeRequestDesk(whole, request(), work(root), cache(root));
+      await desk();
       const made = readFileSync(join(cache(root), "01.webp"));
       writeFileSync(join(work(root), "photos", "01.webp"), "a replaced picture");
       writeFileSync(join(work(root), "photos", "04.webp"), "a planted picture");
-      await requestDesk(whole, EDITOR, event, null, clean, root);
+      await desk();
       expect(readFileSync(join(work(root), "photos", "01.webp"))).toEqual(made);
       expect(readdirSync(join(work(root), "photos")).sort()).toEqual([
         "01.webp",
@@ -622,8 +624,11 @@ describe(
       const [social] = others;
       if (social === undefined) throw new Error("no fixture");
       const run = { agent_id: social.id, cause: "message", event_id: null, message_id: LINE };
+      const db = world({
+        agent_messages: [personLine("social", "@social post request 4a3c2563")],
+      });
       const { situation, request } = await context(
-        world({ agent_messages: [personLine("social", "@social post request 4a3c2563")] }),
+        db,
         run,
         "social",
         noTriage,
@@ -634,6 +639,8 @@ describe(
       expect(request).toBe(false);
       for (const shown of ["The request this run is about", "Old Ranch", "Price:", "requests/"])
         expect(situation).not.toContain(shown);
+      // the desk is never asked: no colleague row is read for it, no request looked up
+      expect(db.calls.filter((call) => call.name === "agents")).toEqual([]);
     });
 
     it("shows a triaged run the request fenced and no new work, which stays inside", async () => {
@@ -776,7 +783,10 @@ describe("a run shown a request cannot reach another colleague's run (W7 item 9 
       media: [{ skill: "reel", name: "The house", kind: "brand", titles: ["The house"] }],
     }),
   );
-  const social = { slug: "editor", tools: ["draft_post", "admin_call", "request_reel", "hire"] };
+  const social = {
+    slug: "editor",
+    tools: ["draft_post", "admin_call", "request_reel", "hire", "research"],
+  };
 
   it("wakes no one, makes no call, hires no one and asks for no media, and keeps its proposals", () => {
     const plan = answerPlan({
@@ -845,7 +855,7 @@ describe("a run shown a request cannot reach another colleague's run (W7 item 9 
       false,
       false,
     ]);
-    expect(decided.shape.agent.tools).toEqual(["draft_post", "request_reel"]);
+    expect(decided.shape.agent.tools).toEqual(["draft_post", "request_reel", "research"]);
   });
 
   it("leaves a run shown no request as the runner shaped it before", () => {

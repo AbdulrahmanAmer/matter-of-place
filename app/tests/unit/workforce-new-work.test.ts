@@ -135,7 +135,7 @@ describe("new work in the briefing (W7 item 9)", () => {
     const base = world();
     const touched: string[] = [];
     // the fake database has no update: Matter's touch at the start of a pass is recorded here
-    const from = (table: string) =>
+    const from = (table: "agents" | "submissions" | "inquiries" | "properties") =>
       table === "agents"
         ? {
             update: () => ({
@@ -149,7 +149,7 @@ describe("new work in the briefing (W7 item 9)", () => {
           }
         : base.from(table);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake database plus Matter's touch
-    const db = { ...base, from } as unknown as Db;
+    const db = { from } as unknown as Db;
     const owns = (source: "submission" | "inquiry" | "email_reply" | "privacy_request") =>
       ownsSource(source, "editor");
     const reads = () => base.calls.filter((call) => call.name === "inquiries").length;

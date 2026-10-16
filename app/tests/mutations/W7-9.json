@@ -120,19 +120,10 @@
     "id": "w7-9-desk-work-only",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "    const folder = isMatter ? null : join(home, \"desks\", slug, \"work\", \"requests\", row.id);",
-    "replace": "    const folder = isMatter ? null : join(home, \"desks\", slug, \"requests\", row.id);",
+    "find": "    const folder = join(home, \"desks\", slug, \"work\", \"requests\", row.id);",
+    "replace": "    const folder = join(home, \"desks\", slug, \"requests\", row.id);",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*writes request.md, the sequence and one photo per picture into the work folder only"
-  },
-  {
-    "id": "w7-9-desk-terminal-path",
-    "test": "tests/unit/workforce-request-desk.test.ts",
-    "file": "scripts/workforce/request-desk.ts",
-    "find": "run.terminal ? \"in your work folder, \" : \"in your desk, work/\"",
-    "replace": "false ? \"in your work folder, \" : \"in your desk, work/\"",
-    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*names the folder from inside the work folder"
   },
   {
     "id": "w7-9-desk-one-per-picture",
@@ -147,8 +138,8 @@
     "id": "w7-9-typed-fenced",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "    ...(showTyped ? [TYPED_OPEN, ...made.typed, TYPED_CLOSE] : [made.givenLine]),",
-    "replace": "    ...(showTyped ? made.typed : [made.givenLine]),",
+    "find": "  return [...made.facts, TYPED_OPEN, ...made.typed, TYPED_CLOSE].join(\"\\n\");",
+    "replace": "  return [...made.facts, ...made.typed].join(\"\\n\");",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*shows the typed fields only inside one fenced block"
   },
@@ -270,33 +261,6 @@
     "expect": "× .*resolves a short id, adds the sequence's section"
   },
   {
-    "id": "w7-9-toolless",
-    "test": "tests/unit/workforce-request-desk.test.ts",
-    "file": "scripts/workforce/request-desk.ts",
-    "find": "          (run.triage !== null",
-    "replace": "          (false",
-    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*tells a run with no file tool to work from the facts"
-  },
-  {
-    "id": "w7-9-matter-no-typed",
-    "test": "tests/unit/workforce-request-desk.test.ts",
-    "file": "scripts/workforce/request-desk.ts",
-    "find": "      `The request this run is about, from our record:\\n${requestBlock(desk.made, !isMatter)}`,",
-    "replace": "      `The request this run is about, from our record:\\n${requestBlock(desk.made, true)}`,",
-    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*gives Matter only whether each typed field was given"
-  },
-  {
-    "id": "w7-9-matter-no-folder",
-    "test": "tests/unit/workforce-request-desk.test.ts",
-    "file": "scripts/workforce/request-desk.ts",
-    "find": "isMatter ? null : join(home",
-    "replace": "false ? null : join(home",
-    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*gives Matter only whether each typed field was given"
-  },
-  {
     "id": "w7-9-colleague-fails-closed",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
@@ -318,7 +282,7 @@
     "id": "w7-9-retry-unread",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "      last.unread === 0 &&\n",
+    "find": "    last.unread === 0 &&\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*reads the photographs again only when they change"
@@ -327,8 +291,8 @@
     "id": "w7-9-photo-cache",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "      last.signature === signature &&",
-    "replace": "      false &&",
+    "find": "    last.signature === signature &&",
+    "replace": "    false &&",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*reads the photographs again only when they change"
   },
@@ -345,8 +309,8 @@
     "id": "w7-9-held-request",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "      if (sorted === null || !answerable(sorted)) {",
-    "replace": "      if (false) {",
+    "find": "    if (sorted === null || !answerable(sorted)) {",
+    "replace": "    if (false) {",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*holds a request whose typed fields try to direct the AI"
   },
@@ -354,8 +318,8 @@
     "id": "w7-9-held-person-run",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "      if (sorted === null || !answerable(sorted)) {",
-    "replace": "      if (false) {",
+    "find": "    if (sorted === null || !answerable(sorted)) {",
+    "replace": "    if (false) {",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*not a person-started Editor run"
   },
@@ -363,8 +327,8 @@
     "id": "w7-9-held-removes-folder",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "        rmSync(folder, { recursive: true, force: true });\n        lines.push(",
-    "replace": "        lines.push(",
+    "find": "  rmSync(join(home, \"desks\", slug, \"work\", \"requests\"), { recursive: true, force: true });\n",
+    "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*holds a request whose typed fields try to direct the AI"
   },
@@ -372,37 +336,19 @@
     "id": "w7-9-own-triage-reused",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "        run.triage?.source === \"submission\" && run.triage.about === `submission ${row.id}`",
-    "replace": "        false",
+    "find": "      run.triage?.source === \"submission\" && run.triage.about === `submission ${row.id}`",
+    "replace": "      false",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*shows a triaged run the request fenced and no new work"
-  },
-  {
-    "id": "w7-9-received-flag",
-    "test": "tests/unit/workforce-request-desk.test.ts",
-    "file": "scripts/workforce/request-desk.ts",
-    "find": "    received ||= !isMatter;",
-    "replace": "    received ||= true;",
-    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*gives Matter only whether each typed field was given"
   },
   {
     "id": "w7-9-received-colleague",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "    received ||= !isMatter;",
+    "find": "    received = true;\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*writes request.md, the sequence and one photo per picture into the work folder only"
-  },
-  {
-    "id": "w7-9-triage-reads-architect",
-    "test": "tests/unit/workforce-request-desk.test.ts",
-    "file": "scripts/workforce/triage.ts",
-    "find": "          [\"Architect\", row.architect],",
-    "replace": "",
-    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*holds a request whose typed fields try to direct the AI"
   },
   {
     "id": "w7-9-triage-architect-person-run",
@@ -426,8 +372,8 @@
     "id": "w7-9-context-desk",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    triage === null || owns(triage.source)\n      ? await requestDesk(",
-    "replace": "    false\n      ? await requestDesk(",
+    "find": "  const desk = owns(\"submission\")",
+    "replace": "  const desk = false",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*briefs the Editor a person asked to review request"
   },
@@ -437,15 +383,6 @@
     "file": "scripts/workforce/daemon.ts",
     "find": "  return { situation: parts.join(\"\\n\\n\"), triage, heldRecord, request: desk.received };",
     "replace": "  return { situation: parts.join(\"\\n\\n\"), triage, heldRecord, request: false };",
-    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*briefs the Editor a person asked to review request"
-  },
-  {
-    "id": "w7-9-context-terminal",
-    "test": "tests/unit/workforce-request-desk.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "          terminal: triage === null && startedInside,",
-    "replace": "          terminal: false,",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*briefs the Editor a person asked to review request"
   },
@@ -471,28 +408,28 @@
     "id": "w7-9-rule-request-hire",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    kept: { ...answer, hire: [], media: [] },",
-    "replace": "    kept: { ...answer, media: [] },",
+    "find": "    kept: { ...answer, actions: [], hire: [], media: [] },",
+    "replace": "    kept: { ...answer, actions: [], media: [] },",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*wakes no one, hires no one and asks for no media"
+    "expect": "× .*wakes no one, makes no call, hires no one and asks for no media"
   },
   {
     "id": "w7-9-rule-request-media",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    kept: { ...answer, hire: [], media: [] },",
-    "replace": "    kept: { ...answer, hire: [] },",
+    "find": "    kept: { ...answer, actions: [], hire: [], media: [] },",
+    "replace": "    kept: { ...answer, actions: [], hire: [] },",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*wakes no one, hires no one and asks for no media"
+    "expect": "× .*wakes no one, makes no call, hires no one and asks for no media"
   },
   {
     "id": "w7-9-rule-request-wake",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    kept: { ...answer, hire: [], media: [] },\n    wakeMentioned: false,",
-    "replace": "    kept: { ...answer, hire: [], media: [] },\n    wakeMentioned: true,",
+    "find": "    kept: { ...answer, actions: [], hire: [], media: [] },\n    wakeMentioned: false,",
+    "replace": "    kept: { ...answer, actions: [], hire: [], media: [] },\n    wakeMentioned: true,",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*wakes no one, hires no one and asks for no media"
+    "expect": "× .*wakes no one, makes no call, hires no one and asks for no media"
   },
   {
     "id": "w7-9-plan-uses-request",
@@ -501,7 +438,7 @@
     "find": "  const fromRequest = ruleRequest(ruled.kept, input.request === true);",
     "replace": "  const fromRequest = ruleRequest(ruled.kept, false);",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*wakes no one, hires no one and asks for no media"
+    "expect": "× .*wakes no one, makes no call, hires no one and asks for no media"
   },
   {
     "id": "w7-9-plan-wake-joined",
@@ -510,7 +447,7 @@
     "find": "    wake: input.cause !== \"message\" && ruled.wakeMentioned && fromRequest.wakeMentioned,",
     "replace": "    wake: input.cause !== \"message\" && ruled.wakeMentioned,",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*wakes no one, hires no one and asks for no media"
+    "expect": "× .*wakes no one, makes no call, hires no one and asks for no media"
   },
   {
     "id": "w7-9-rule-request-off",
@@ -574,5 +511,311 @@
     "replace": "    throw new Error(\"unread\");",
     "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
     "expect": "× .*says the newest work could not be read"
+  },
+  {
+    "id": "w7-9-owner-run-clears",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  rmSync(join(home, \"desks\", slug, \"work\", \"requests\"), { recursive: true, force: true });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*starts every Editor run with no request but its own in the work folder"
+  },
+  {
+    "id": "w7-9-owner-desk-only",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  if (!ownsSource(\"submission\", slug)) return { lines: [], received: false };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*shows a request to no one but its owner"
+  },
+  {
+    "id": "w7-9-owner-context-gate",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  const desk = owns(\"submission\")",
+    "replace": "  const desk = true",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*shows no request to a colleague that does not own requests"
+  },
+  {
+    "id": "w7-9-not-shown-wording",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "is not shown to you: the triage found that what its submitter typed",
+    "replace": "is held for Matter: the triage found that what its submitter typed",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*holds a request whose typed fields try to direct the AI"
+  },
+  {
+    "id": "w7-9-photo-stamp-outside",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  const stamp = `${cache}.json`;",
+    "replace": "  const stamp = join(dirname(folder), \".media.json\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*keeps the photographs' stamp outside the desk"
+  },
+  {
+    "id": "w7-9-photo-stamp-unparsed",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "    last = JSON.parse(readFileSync(stamp, \"utf8\"));\n  } catch {\n    // no stamp, or one that does not parse: made again (a cache miss, never a failed run)\n    return null;\n  }",
+    "replace": "    if (!existsSync(stamp)) return null;\n    last = JSON.parse(readFileSync(stamp, \"utf8\"));\n  } finally {\n    // a stamp that does not parse fails the run\n  }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*keeps the photographs' stamp outside the desk"
+  },
+  {
+    "id": "w7-9-photo-copy-afresh",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  rmSync(folder, { recursive: true, force: true });\n  if (existsSync(cache)) cpSync",
+    "replace": "  if (existsSync(cache)) cpSync",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*copies the cleaned photographs afresh for each run"
+  },
+  {
+    "id": "w7-9-rule-request-calls",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    kept: { ...answer, actions: [], hire: [], media: [] },",
+    "replace": "    kept: { ...answer, hire: [], media: [] },",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*wakes no one, makes no call, hires no one and asks for no media"
+  },
+  {
+    "id": "w7-9-request-words",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  const fixed = outsideWords(shape.rule) ?? (input.request === true ? REQUEST_WORDS : null);",
+    "replace": "  const fixed = outsideWords(shape.rule);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*leaves only fixed words as its proposals' summaries and its run summary"
+  },
+  {
+    "id": "w7-9-run-from-place",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        place: { thread: agent.slug, author_id: `${OUTSIDE_REPLY_PREFIX}${agent.slug}` },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*places a request run's reply in its own thread as an outside reply"
+  },
+  {
+    "id": "w7-9-run-from-terminal",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        terminal: false,\n        research: false,",
+    "replace": "        research: false,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*shapes a run shown a request, even one a person started"
+  },
+  {
+    "id": "w7-9-run-from-research",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        terminal: false,\n        research: false,",
+    "replace": "        terminal: false,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*shapes a run shown a request, even one a person started"
+  },
+  {
+    "id": "w7-9-run-from-tools",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "          tools: base.agent.tools.filter((tool) => tool !== \"admin_call\" && tool !== \"hire\"),",
+    "replace": "          tools: base.agent.tools,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*shapes a run shown a request, even one a person started"
+  },
+  {
+    "id": "w7-9-run-from-outside",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    outside: seen.triage !== null || seen.request,",
+    "replace": "    outside: seen.triage !== null,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*shapes a run shown a request, even one a person started"
+  },
+  {
+    "id": "w7-9-run-from-launch",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    outside: seen.triage !== null || seen.request,",
+    "replace": "    outside: seen.triage !== null,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*launches a run shown a request, even one a person started"
+  },
+  {
+    "id": "w7-9-run-from-plan",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        cause,\n        request: seen.request,\n      }),",
+    "replace": "        cause,\n      }),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*places a request run's reply in its own thread as an outside reply"
+  },
+  {
+    "id": "w7-9-begin-pass",
+    "test": "tests/unit/workforce-new-work.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  forgetNewWork();\n}",
+    "replace": "}",
+    "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
+    "expect": "× .*is read afresh when the runner begins its next pass"
+  },
+  {
+    "id": "w7-9-triage-row-name",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Name\", row.submitter_name],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the submitter's name reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-address",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "`${row.address}, ${row.city} ${row.zip}`",
+    "replace": "`, ${row.city} ${row.zip}`",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the address reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-city",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "`${row.address}, ${row.city} ${row.zip}`",
+    "replace": "`${row.address},  ${row.zip}`",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the city reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-zip",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "`${row.address}, ${row.city} ${row.zip}`",
+    "replace": "`${row.address}, ${row.city} `",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the zip reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-architect",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Architect\", row.architect],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the architect reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-designer",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Designer\", row.designer],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the designer reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-brokerage",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Brokerage\", row.brokerage],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the brokerage reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-listing-agent",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Listing agent\", row.listing_agent_name],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the listing agent reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-listing-brokerage",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Listing brokerage\", row.listing_agent_brokerage],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the listing brokerage reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-story",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Story\", row.story],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the story reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-significance",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Significance\", row.significance],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the significance reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-listing-link",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Listing link\", row.listing_url],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the listing link reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-photography-link",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Photography link\", row.photography_url],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the photography link reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-source-link",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Source link\", row.source_url],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the source link reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-video-link",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "          [\"Video link\", row.video_url],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in the video link reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-photo-name",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "[item.name, item.source_url ?? \"\"]",
+    "replace": "[\"\", item.source_url ?? \"\"]",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in a photograph's name reaches the triage, and no prompt"
+  },
+  {
+    "id": "w7-9-triage-row-photo-address",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "[item.name, item.source_url ?? \"\"]",
+    "replace": "[item.name, \"\"]",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*an instruction in a photograph's address reaches the triage, and no prompt"
   }
 ]

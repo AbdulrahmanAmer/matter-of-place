@@ -210,8 +210,8 @@
     "id": "w8-0d2-explain-dropped-words",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "        : shape.rule === \"explain\"\n",
-    "replace": "        : shape.rule === \"held\"\n",
+    "find": "          shape.rule === \"explain\"\n",
+    "replace": "          shape.rule === \"held\"\n",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*lets neither an explanation nor an allowed run propose a social post"
   },
