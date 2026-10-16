@@ -69,6 +69,26 @@ describe("the staff policy from the weekly allowance", () => {
     expect(policy).toMatchObject({ matterModel: OPUS, backlog: "all", personOnly: true });
   });
 
+  it("sets the allowance aside when the operator says so: full staff at any reading, the week still shown", () => {
+    for (const percent of [40, 85, 97]) {
+      expect(
+        policyFor(readingOf(usage(percent), NOW), { allowance: "ignore" }, null),
+      ).toMatchObject({
+        matterModel: OPUS,
+        backlog: "all",
+        personOnly: false,
+        colleagueCeiling: "opus",
+        week: percent,
+      });
+    }
+    expect(policyFor(null, { allowance: "ignore" }, null)).toMatchObject({
+      matterModel: OPUS,
+      colleagueCeiling: "opus",
+      week: null,
+    });
+    expect(policyFor(readingOf(usage(95), NOW), {}, null)).toMatchObject({ personOnly: true });
+  });
+
   it("keeps the last policy when the allowance is unreadable, and never falls back to full power", () => {
     const last = at(95);
     expect(policyFor(null, {}, last)).toEqual(last);
