@@ -8514,3 +8514,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: an endpoint that must not say whether an account exists does the same work for every input before it answers and moves the lookup and anything after it past the answer (`waitUntilOf(request)`, or a job); its test holds the lookup unanswered and races the answer against a timer, so an answer that waits for the lookup loses (`tests/unit/account.service.test.ts`).
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w6-7-svc-after-answer` → `WATCHED-FAIL OK` (the answer awaiting the lookup gets `"waited for the lookup"`).
 - added: 2026-10-16
+
+## P-3591 · A state check on `assets.status` written as a deny-list misses `published`
+- symptom: 2026-10-16, W8 item 9: the first `rerender_asset` check refused an agent only when the latest revision was `approved`; the security hook on the commit pointed out that a `published` revision (`assetStatuses` is pending, approved, rejected, published; `mark_social_post_posted` moves approved to published) would still be superseded, so Matter's key could take a live visual back.
+- cause: the check named the one state the author had in mind instead of the states the action is for.
+- rule: a refusal that depends on an asset's state lists the states that are allowed (`not in ('pending', 'rejected')`), never the ones that are not; read `assetStatuses` in `src/domain/assets.ts` before writing one, and give the db test a case for every state the check refuses.
+- proof: the throwaway-cluster probe of `20261016045347_w8_9_agent_asset_decisions.sql` (W8 item 9's builder log) answers `ERROR:  asset_not_rejectable` for an agent's re-render of a published revision and passes the check for a rejected one; `tests/db/assets.db.test.ts` case "lets an agent key ask for a new render of a rejected asset" holds `stays: [{ revision: 1, status: "published" }]` (CI's db job).
+- added: 2026-10-16

@@ -12,6 +12,7 @@ import {
 
 const routes = adminRoutes();
 const STORY = "/api/admin/stories/0b2f3c1e-0000-4000-8000-000000000001";
+const ASSET = "3f2a9c1d-0000-4000-8000-0000000000c1";
 const story = {
   method: "PATCH",
   path: STORY,
@@ -59,6 +60,49 @@ describe("Matter's admin calls", () => {
       "not a call the runner can read",
     ]);
     expect(MAX_CALLS).toBe(10);
+  });
+
+  it("turns Matter's assets.reject and assets.re_render into the asset's own routes (W8 item 9)", () => {
+    const allowed = ["assets.reject", "assets.re_render"];
+    const made = (raw: unknown) => {
+      const result = checkCall(raw, routes, allowed);
+      if (!result.ok) throw new Error(result.reason);
+      return [result.route.action, result.call.method, result.call.path, result.call.body];
+    };
+    expect([
+      made({ action: "assets.reject", id: ASSET, note: "The stair is cut off at the top." }),
+      made({ action: "assets.re_render", id: ASSET }),
+    ]).toEqual([
+      [
+        "assets.reject",
+        "POST",
+        `/api/admin/assets/${ASSET}/reject`,
+        { note: "The stair is cut off at the top." },
+      ],
+      ["assets.re_render", "POST", `/api/admin/assets/${ASSET}/rerender`, {}],
+    ]);
+  });
+
+  it("refuses an approve, an unknown action, a bad id, an empty note and a key without the permission, with the reason (W8 item 9)", () => {
+    const reason = (raw: unknown, allowed = ["assets.reject", "assets.re_render"]) => {
+      const result = checkCall(raw, routes, allowed);
+      return result.ok ? "made" : result.reason;
+    };
+    expect([
+      reason({ action: "assets.approve", id: ASSET }),
+      reason({ action: "assets.delete", id: ASSET }),
+      reason({ action: "assets.reject", id: "the-stair-reel", note: "Too dark." }),
+      reason({ action: "assets.re_render", id: `${ASSET}/../../workforce/messages` }),
+      reason({ action: "assets.reject", id: ASSET, note: "   " }),
+      reason({ action: "assets.reject", id: ASSET, note: "Too dark." }, ["assets.re_render"]),
+    ]).toEqual([
+      "assets.approve stays a person's (manual_approval)",
+      "assets.delete is not an action the runner knows",
+      "assets.reject needs the id of an asset",
+      "assets.re_render needs the id of an asset",
+      "assets.reject needs a note for the record",
+      "Matter's key may not do assets.reject",
+    ]);
   });
 
   it("puts the call in words for Approvals, with the call itself for the runner", () => {

@@ -2787,8 +2787,8 @@
     "id": "b9g1-fanout-after-commit",
     "test": "tests/unit/assets/service.test.ts",
     "file": "src/server/assets/service.ts",
-    "find": "  await planEvent(db, data);\n  return { asset_id: input.id, event_id: data };\n}\n\n/** `POST /api/admin/assets/:id/reject`",
-    "replace": "  return { asset_id: input.id, event_id: data };\n}\n\n/** `POST /api/admin/assets/:id/reject`",
+    "find": "  await planEvent(db, data);\n  return { asset_id: input.id, event_id: data };\n}\n\n/**\n * `POST /api/admin/assets/:id/reject`",
+    "replace": "  return { asset_id: input.id, event_id: data };\n}\n\n/**\n * `POST /api/admin/assets/:id/reject`",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"plan the event their SQL function returned\"",
     "expect": "× .*plan the event their SQL function returned[\\s\\S]*\"eventId\": \"evt-approved\""
   },
