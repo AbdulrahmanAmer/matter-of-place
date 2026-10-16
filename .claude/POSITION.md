@@ -2119,3 +2119,6 @@ first day of the new usage week; no step was cut from any plan.
   both tsc exit 0, eslint exit 0, prettier clean, knip exit 0, layout OK (3530 files), gitleaks no leaks. UNPROVEN: the runner on the live request 4a3c2563,
   the real Haiku triage reading its fields, the Editor opening the photographs (needs the toolkits change), a pull of
   the live Fairfield listing giving five files. Bank grew: P-3701, P-3702, P-3703; P-112 and P-503 hit again.
+  Third merge of overdrive/finish (5b772b6d; the layout map keeps drive-copy.ts, new-work.ts and request-desk.ts):
+  both tsc, eslint, prettier, knip exit 0, layout OK (3563 files), unit 141 passed, gitleaks no leaks; B1b:aj stayed
+  green once right after the unit run and replayed WATCHED-FAIL OK alone (the merge changed only a glob in that file).
