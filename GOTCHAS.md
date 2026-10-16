@@ -8515,28 +8515,28 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w6-7-svc-after-answer` → `WATCHED-FAIL OK` (the answer awaiting the lookup gets `"waited for the lookup"`).
 - added: 2026-10-16
 
-## P-3690 · A window bounded by two other rows (the held line, Matter's run) shows another run's reply; bind a reply to the run that wrote it
+## P-3694 · A window bounded by two other rows (the held line, Matter's run) shows another run's reply; bind a reply to the run that wrote it
 - symptom: 2026-10-16, the review of W8 0d: Matter's prompt took the owner's newest `outside-reply:<owner>` between the held line and Matter's own run, but the owner writes every outside reply into one thread, so a run on another inquiry that finished inside that wait was shown as "the owner's explanation" while the thread said the explanation had failed.
 - cause: the window was named by rows around the explanation, not by the explanation's own run, and a failed run left no mark the reader looked at.
 - rule: a reader that wants "what run R wrote" reads R's `agent_runs` row (agent, message id, `state = done`) and takes only lines between its `started_at` and `finished_at`; no row, an unfinished run or a failed one is "none". The in-memory test database owns the clock for `finished_at` (it is stamped from the same ticking counter as `created_at`), or a real-time `finished_at` is older than the rows it should bound. A paused or switched-off owner is never claimed (`claim_agent_run` takes idle and working colleagues), so a hold checks the owner's state and queues the next reader directly.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0d3-explanation-run-done` → `WATCHED-FAIL OK` (the state check removed turns `finds the owner's explanation in the owner's own run` red).
 - added: 2026-10-16
 
-## P-3691 · A whole-prompt `not.toContain` of a line the thread history also shows fenced goes red for the wrong reason
+## P-3695 · A whole-prompt `not.toContain` of a line the thread history also shows fenced goes red for the wrong reason
 - symptom: 2026-10-16, W8 0d follow-up: the new failed-explanation case asserted that an unrelated reply was absent from Matter's whole prompt and failed, because the prompt's thread history lists every `outside-reply` line (fenced) in its own section.
 - cause: the same line legitimately appears in two sections; only one of them is the thing under test.
 - rule: assert on the section's own words (here the absence of the heading `The owner's explanation to the team` and the presence of `The owner's explanation: none.`), never on the absence of a line the history may show.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "says a failed explanation"` → `1 passed`; with the explanation window opened to the whole thread (`w8-0d2-explanation-newer`) it fails on `The owner's explanation to the team`.
 - added: 2026-10-16
 
-## P-3692 · A throwaway Postgres built from 145 migrations takes about 30 minutes on a busy laptop, dies with its background job, and can crash with 0xC0000142 mid-build
+## P-3696 · A throwaway Postgres built from 145 migrations takes about 30 minutes on a busy laptop, dies with its background job, and can crash with 0xC0000142 mid-build
 - symptom: 2026-10-16, W6 item 7 follow-up: the build script (initdb, start, apply every migration) was stopped at its 30-minute job limit after 138 files, and the server had also crashed (`client backend was terminated by exception 0xC0000142`) leaving a postmaster that answered nothing and a `postmaster.pid` the next start refused.
 - cause: the machine was loaded by other builders; the server was a child of the job that built the database, so it went when the job did; a crashed postmaster stays in `reinitializing` and holds the lock file.
 - rule: run the server as its own background job (`postgres -D <dir> -p <port>` in the foreground, timeout 2 hours) and apply the migrations from a second script that takes a first file number, so a stop resumes (`FAILED <n> <file>` names it; `create or replace function` files are safe to apply twice). A stuck postmaster of your own cluster (the first line of its `postmaster.pid`) is killed with `taskkill /F /T /PID`, never another builder's. Do not start the build before the migrations are final: a late `db:fn` migration is applied by the resume script, which needs no rebuild.
 - proof: `psql -h 127.0.0.1 -p <port> -U postgres -d <db> -Atc "select count(*) from public.contacts"` → `0` once the last file is applied; the resume log ends `done through 145`.
 - added: 2026-10-16
 
-## P-3693 · A registry `find` that is one line of a shared service matches twice once a sibling function repeats it
+## P-3697 · A registry `find` that is one line of a shared service matches twice once a sibling function repeats it
 - symptom: 2026-10-16, `inviteExisting` repeated `p_note: "invite",` beside `inviteUser`'s, and `B7:b7-14-svc-invite-note` went STALE (its find occurs 2 times) while its replay would have changed the wrong block.
 - cause: the entry's `find` was a bare line, unique only until a second function used the same call shape.
 - rule: when a new function repeats a call shape of an existing one in the same file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` before any replay and make each entry's `find` include its indentation or a neighbouring line; the leading newline plus the exact indent separates a nested block from a shallower one.
@@ -8572,4 +8572,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-16, W7 4: `bunx vitest run --project component src/admin/workforce/team-memory.test.tsx` → `[vitest-pool-runner]: Timeout waiting for worker to respond` twice, no test run, while the laptop held ~46 node processes; `--pool=threads` ran all 18 tests in 18 s.
 - rule: when a component run says `Failed to start forks worker`, rerun it with `--pool=threads` before calling anything red; a registry entry's `run` may carry `--pool=threads` (W7-4.json does). Two replays in a row then went `BAD: wrong reason` once each for entries that were `WATCHED-FAIL OK` alone, so a BAD under load is rerun alone before it is believed.
 - proof: `cd app && bunx vitest run --project component --pool=threads src/admin/workforce/team-memory.test.tsx` → `Tests 18 passed (18)`.
+- added: 2026-10-16
+
+## P-3579 · A reel about a property filed as `brand` shows no photograph of it, and nothing in the route or the review noticed (H110 miss)
+- symptom: 2026-10-16, the Fairfield test: Maya's request was `kind: "brand"` with her three picks named in prose, because the house was not on the site (a campaign reel needs `property_id`). The studio drew abstract models and a flat-roofed box for a 2021 pitched-roof house; the gate and the review passed it (it was well made), and the operator caught it: "a reader would be misled about the home".
+- cause: `shotsFor` returns no photographs for `brand`, the scene prompt said "no photographs", and the review only refused a photograph that is not the subject's, never the absence of one. A request had no way to carry its own pictures.
+- rule: a reel about a property carries that property's photographs: kind `campaign` with `property_id`, or with `photos` (paths under the requester's own work folder, read through `deskPhoto`, confined by realpath); `brand` refuses `photos`; the scene must draw `spec.shots` (else sent back before filming); the review is told how many photographs were supplied and refuses a reel that shows none or draws a house in their place. A reel for a property that is not on the site is kept in the studio, not recorded in Visuals (a visual needs its subject).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-h110-scene-draws-shots` → `WATCHED-FAIL OK`; `reelRequestSchema.safeParse({...brand, photos: [...]})` is `success: false`.
+- added: 2026-10-16
+
+## P-3578 · A studio refusal that names the engine's own drawing cannot be fixed by the designer, so its revisions are spent for nothing
+- symptom: 2026-10-16: the Fairfield test reel was refused in review three times (REVISIONS 2) for "a soft, blurred oval of light on the doorway floor" and a reflection that "fades smoothly"; the designer, confined to the studio folder, can only edit `scene/`, and the pool and the mirrored floor are drawn by `launch/engine/moves/door.mjs` (`ctx.filter = "blur(9px)"`).
+- rule: when a review refusal names a drawing that belongs to the engine (the door move's pool, reflection, beam), the redraw brief says so: draw that shot in `scene.mjs` with flat polygons, or cut the shot; and the engine fix is a PR of its own, not a revision loop.
+- proof: `grep -n 'blur(9px)' launch/engine/moves/door.mjs` → line 483; the refused brief's `reason` in `~/.mop-workforce/studio/2026-10-16-fairfield-test-reel/brief.json` (before the requeue) names the doorway floor.
 - added: 2026-10-16
