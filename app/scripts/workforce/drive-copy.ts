@@ -4,10 +4,19 @@
 // a secret even inside an allowed folder. Never the .env file, the creds folder, keys or tokens.
 //   bun scripts/workforce/drive-copy.ts           copy, then beat `drive_copy` (ops_health names a stale or failed copy)
 //   bun scripts/workforce/drive-copy.ts --plan    list what would be copied, copy nothing
-// The nightly "MOP Backup" task runs it after the database dump (~/.mop-workforce/backup-local.mjs, ruling H114).
-import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
+// The nightly "MOP Backup" task runs it after the database dump (~/.mop-workforce/backup-local.mjs, ruling H122).
+import {
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, relative } from "node:path";
+import { dirname, extname, join, relative } from "node:path";
 
 /** The folder Google Drive for desktop mirrors (W8 item 8). */
 export const DRIVE_ROOT = "G:/My Drive/Matter of Place";
@@ -22,9 +31,28 @@ export interface CopyRule {
   files?: readonly string[];
   /** Folders below `from` that are render scratch, rebuilt on every run. */
   skipDirs?: readonly string[];
+  /** Only files with these extensions (lower case, with the dot): what a piece of work or a note is made of. */
+  types?: readonly string[];
   /** Only the newest `keep` files whose name matches `pattern` (the encrypted database dumps). */
   newest?: { pattern: RegExp; keep: number };
 }
+
+/** What a studio piece is made of (review, third finding of 2026-10-16): briefs, scenes, stills, finished films. */
+const PIECE_TYPES = [
+  ".json",
+  ".md",
+  ".txt",
+  ".html",
+  ".mjs",
+  ".vtt",
+  ".svg",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".mp4",
+  ".wav",
+];
 
 /** The allow-list: each folder the copy may read, and where its copy goes under `Backups`. */
 export function copyRules(home: string, backups: string, dumps: string): CopyRule[] {
@@ -34,6 +62,7 @@ export function copyRules(home: string, backups: string, dumps: string): CopyRul
       from: join(home, "studio"),
       to: join(backups, "Studio"),
       skipDirs: ["shots", "reference", "frames", "cache", ".cache", "tmp", "node_modules"],
+      types: PIECE_TYPES,
     },
     {
       name: "Matter's notes, live state and goal list",
@@ -45,6 +74,7 @@ export function copyRules(home: string, backups: string, dumps: string): CopyRul
       name: "the team's knowledge",
       from: join(home, "matter", "knowledge"),
       to: join(backups, "Knowledge"),
+      types: [".md", ".txt", ".json"],
     },
     {
       name: "the encrypted database backups",
@@ -61,8 +91,32 @@ const SECRET_SHAPES = [
   /(^|\/)credentials?(\.json)?$/i,
   /\.(pem|key|p12|pfx)$/i,
   /(^|\/)[^/]*(token|secret|password)[^/]*$/i,
-  /(^|\/)\.(ssh|aws|claude)(\/|$)/i,
+  /(^|\/)\.(ssh|aws|claude|gnupg|config)(\/|$)/i,
+  /(^|\/)\.(claude|git-credentials|npmrc|pgpass|netrc|envrc|bash_history)(\.json)?$/i,
+  /(^|\/)id_(rsa|dsa|ecdsa|ed25519)(\.pub)?$/i,
+  /\.(ppk|keystore|jks|kdbx|gpg|asc)$/i,
+  /(^|\/)[^/]*\.env([.-][^/]*)?$/i,
+  /(^|\/)service-account[^/]*\.json$/i,
 ];
+
+/** Text that looks like a key or a login wherever it sits: a file holding one is never copied (review, 2026-10-16). */
+const SECRET_TEXT = [
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+  /\bsk-[A-Za-z0-9_-]{20,}/,
+  /\bsb_(secret|publishable)_[A-Za-z0-9_-]{20,}/,
+  /\beyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+  /\b(ghp|gho|ghs|github_pat)_[A-Za-z0-9_]{20,}/,
+  /\bAKIA[0-9A-Z]{16}\b/,
+  /\bxox[abprs]-[A-Za-z0-9-]{10,}/,
+  /\b(api[_-]?key|secret|token|password|passwd)["']?\s*[:=]\s*["']?[A-Za-z0-9_\-+/=.]{16,}/i,
+];
+const TEXT_TYPES = new Set([".json", ".md", ".txt", ".html", ".mjs", ".vtt", ".svg"]);
+const SCAN_MAX_BYTES = 2_000_000;
+
+/** Whether the text of a file looks like it holds a secret. */
+export function holdsSecret(text: string): boolean {
+  return SECRET_TEXT.some((shape) => shape.test(text));
+}
 
 /** A second guard inside an allowed folder: a path shaped like a secret is never copied. */
 export function refused(relativePath: string): boolean {
@@ -80,11 +134,28 @@ export interface Planned {
 export function plan(rule: CopyRule): { copy: Planned[]; refused: string[] } {
   const copy: Planned[] = [];
   const skipped: string[] = [];
-  if (!existsSync(rule.from)) return { copy, refused: skipped };
+  // a link or junction as a rule's own folder would copy whatever it points to (review, 2026-10-16)
+  if (!existsSync(rule.from) || lstatSync(rule.from).isSymbolicLink())
+    return { copy, refused: skipped };
   const consider = (from: string, to: string) => {
     const rel = relative(rule.from, from);
+    const kind = lstatSync(from);
+    if (kind.isSymbolicLink() || !kind.isFile()) {
+      skipped.push(`${rel} (a link)`);
+      return;
+    }
     if (refused(rel)) {
       skipped.push(rel);
+      return;
+    }
+    const type = extname(from).toLowerCase();
+    if (rule.types !== undefined && !rule.types.includes(type)) return;
+    if (
+      TEXT_TYPES.has(type) &&
+      kind.size <= SCAN_MAX_BYTES &&
+      holdsSecret(readFileSync(from, "utf8"))
+    ) {
+      skipped.push(`${rel} (its text looks like a secret)`);
       return;
     }
     const size = statSync(from).size;
@@ -99,7 +170,7 @@ export function plan(rule: CopyRule): { copy: Planned[]; refused: string[] } {
   if (rule.files !== undefined) {
     for (const file of rule.files) {
       const from = join(rule.from, file);
-      if (existsSync(from) && statSync(from).isFile()) consider(from, join(rule.to, file));
+      if (existsSync(from)) consider(from, join(rule.to, file));
     }
     return { copy, refused: skipped };
   }
@@ -146,28 +217,48 @@ export interface CopyResult {
   files: number;
   bytes: number;
   refused: number;
+  /** Files that could not be copied (locked, Drive full): the rest are still copied and the beat says ok false. */
+  failed: number;
+  error?: string;
 }
 
 /** Copy every rule's plan; when the Drive folder is missing, copy nothing and say so. */
 export function copyAll(root: string, rules: readonly CopyRule[], dryRun = false): CopyResult {
-  if (!existsSync(root)) return { ok: false, missing: true, files: 0, bytes: 0, refused: 0 };
+  if (!existsSync(root))
+    return { ok: false, missing: true, files: 0, bytes: 0, refused: 0, failed: 0 };
   let files = 0;
   let bytes = 0;
   let refusedCount = 0;
+  let failed = 0;
+  let error: string | undefined;
   for (const rule of rules) {
     const { copy, refused: skipped } = plan(rule);
     refusedCount += skipped.length;
     for (const item of copy) {
-      if (!dryRun) {
-        mkdirSync(dirname(item.to), { recursive: true });
-        copyFileSync(item.from, item.to);
+      try {
+        if (!dryRun) {
+          mkdirSync(dirname(item.to), { recursive: true });
+          copyFileSync(item.from, item.to);
+        }
+        files += 1;
+        bytes += item.bytes;
+      } catch (failure) {
+        failed += 1;
+        error ??=
+          failure instanceof Error ? failure.message.slice(0, 200) : "a file could not be copied";
       }
-      files += 1;
-      bytes += item.bytes;
     }
     if (!dryRun) for (const stale of staleDumps(rule)) rmSync(stale, { force: true });
   }
-  return { ok: true, missing: false, files, bytes, refused: refusedCount };
+  return {
+    ok: failed === 0,
+    missing: false,
+    files,
+    bytes,
+    refused: refusedCount,
+    failed,
+    ...(error === undefined ? {} : { error }),
+  };
 }
 
 async function main(): Promise<void> {
@@ -181,12 +272,26 @@ async function main(): Promise<void> {
         `${rule.name}: ${String(copy.length)} to copy, ${String(skipped.length)} refused`,
       );
     }
-  const result = copyAll(DRIVE_ROOT, rules, dryRun);
+  let result: CopyResult;
+  try {
+    result = copyAll(DRIVE_ROOT, rules, dryRun);
+  } catch (failure) {
+    // a crash is beaten as a failure too, so the health check names it, never silence (review, 2026-10-16)
+    result = {
+      ok: false,
+      missing: false,
+      files: 0,
+      bytes: 0,
+      refused: 0,
+      failed: 0,
+      error: failure instanceof Error ? failure.message.slice(0, 200) : "the copy stopped",
+    };
+  }
   const stamp = new Date().toISOString();
   console.log(
     result.missing
       ? `${stamp} drive copy: the Drive folder ${DRIVE_ROOT} is missing; nothing copied`
-      : `${stamp} drive copy: ${String(result.files)} files, ${String(result.bytes)} bytes${dryRun ? " (plan only)" : ""}, ${String(result.refused)} refused`,
+      : `${stamp} drive copy: ${String(result.files)} files, ${String(result.bytes)} bytes${dryRun ? " (plan only)" : ""}, ${String(result.refused)} refused, ${String(result.failed)} failed${result.error === undefined ? "" : ` (${result.error})`}`,
   );
   if (dryRun) return;
   // The health check reads this beat (ops_health, `drive_copy`): a missing folder or no copy for a day is named there.

@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   rmSync,
   statSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from "node:fs";
@@ -125,7 +126,99 @@ describe("W8 0g: the copy to Google Drive", () => {
       files: 0,
       bytes: 0,
       refused: 0,
+      failed: 0,
     });
     expect(existsSync(drive)).toBe(false);
+  });
+
+  it("refuses the login and key files a studio folder could hold, by name", () => {
+    expect(
+      [
+        ".credentials.json",
+        ".claude.json",
+        ".git-credentials",
+        ".npmrc",
+        ".pgpass",
+        ".netrc",
+        "id_rsa",
+        "id_ed25519",
+        "key.ppk",
+        "dev.env",
+        ".env-backup",
+        ".envrc",
+        "service-account-prod.json",
+        "a/.ssh/config",
+      ].map(refused),
+    ).toEqual(Array(14).fill(true));
+  });
+
+  it("copies only the file types a piece of work is made of", () => {
+    const { drive, home, rules } = world();
+    const piece = join(home, "studio", "2026-10-15-reel");
+    writeFileSync(join(piece, "tool.exe"), "x");
+    writeFileSync(join(piece, "notes"), "x");
+    copyAll(drive, rules);
+    const there = (name: string) =>
+      existsSync(join(drive, "Backups", "Studio", "2026-10-15-reel", name));
+    expect([there("brief.json"), there("tool.exe"), there("notes")]).toEqual([true, false, false]);
+  });
+
+  it("refuses a file whose text looks like a key, a login or a token, and counts it", () => {
+    const { drive, home, rules } = world();
+    const piece = join(home, "studio", "2026-10-15-reel");
+    const fake = ["sk", "ant", "x".repeat(30)].join("-");
+    writeFileSync(join(piece, "status.md"), `a pasted line ${fake}`);
+    writeFileSync(
+      join(piece, "login.json"),
+      JSON.stringify({ password: "correct-horse-battery-staple" }),
+    );
+    writeFileSync(join(piece, "plain.md"), "a calm note about a reel");
+    const result = copyAll(drive, rules);
+    const there = (name: string) =>
+      existsSync(join(drive, "Backups", "Studio", "2026-10-15-reel", name));
+    expect([there("status.md"), there("login.json"), there("plain.md")]).toEqual([
+      false,
+      false,
+      true,
+    ]);
+    expect(result.refused).toBe(4);
+  });
+
+  it("does not follow a link or a junction at a rule's own folder, a named file or an encrypted dump", () => {
+    const { drive, home, dumps, rules } = world();
+    const outside = join(home, "..", "outside");
+    mkdirSync(outside, { recursive: true });
+    writeFileSync(join(outside, "private.md"), "private");
+    rmSync(join(home, "matter", "knowledge"), { recursive: true, force: true });
+    symlinkSync(outside, join(home, "matter", "knowledge"), "junction");
+    copyAll(drive, rules);
+    expect(existsSync(join(drive, "Backups", "Knowledge", "private.md"))).toBe(false);
+    // a link as a named file or a dump is refused where the system allows creating one without privileges
+    try {
+      rmSync(join(home, "matter", "notes.md"));
+      symlinkSync(join(outside, "private.md"), join(home, "matter", "notes.md"), "file");
+      rmSync(join(dumps, "mop-dev-2026-10-09.dump.p7m"));
+      symlinkSync(join(outside, "private.md"), join(dumps, "mop-dev-2026-10-09.dump.p7m"), "file");
+    } catch {
+      return;
+    }
+    rmSync(join(drive, "Backups"), { recursive: true, force: true });
+    copyAll(drive, rules);
+    expect(existsSync(join(drive, "Backups", "Matter", "notes.md"))).toBe(false);
+    expect(existsSync(join(drive, "Backups", "Database", "mop-dev-2026-10-09.dump.p7m"))).toBe(
+      false,
+    );
+  });
+
+  it("goes on past a file it cannot copy and says so, so the beat is not ok", () => {
+    const { drive, rules } = world();
+    // a file where a folder must be: the studio copy of one piece fails, the notes still arrive
+    mkdirSync(join(drive, "Backups"), { recursive: true });
+    writeFileSync(join(drive, "Backups", "Studio"), "a file where the Studio folder should be");
+    const result = copyAll(drive, rules);
+    expect(result.ok).toBe(false);
+    expect(result.failed).toBeGreaterThan(0);
+    expect(result.error).toBeDefined();
+    expect(existsSync(join(drive, "Backups", "Matter", "notes.md"))).toBe(true);
   });
 });
