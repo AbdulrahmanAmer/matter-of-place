@@ -874,29 +874,31 @@ export async function runOnce(client: Db): Promise<boolean> {
         power === "full",
       );
     }
-    await client
+    const finished = {
+      state: "done" as const,
+      finished_at: new Date().toISOString(),
+      // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
+      // its own words could carry the outside text into the meeting and the live session's digest.
+      summary: plan.summary,
+      session_id: "session" in answer && typeof answer.session === "string" ? answer.session : null,
+      turns: 1,
+      lessons_used: shown.map((lesson) => lesson.id),
+      ...(answer.usage === undefined
+        ? {}
+        : {
+            input_tokens: inputTokens(answer.usage),
+            output_tokens: answer.usage.output_tokens,
+            cost_microusd: costMicroUsd(agent.model, answer.usage),
+          }),
+    };
+    // W8 0d second review: the line this run wrote as its reply, which Matter's read shows as the explanation.
+    const { error: finishFailed } = await client
       .from("agent_runs")
-      .update({
-        state: "done",
-        finished_at: new Date().toISOString(),
-        // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
-        // its own words could carry the outside text into the meeting and the live session's digest.
-        summary: plan.summary,
-        // W8 0d second review: the line this run wrote as its reply, which Matter's read shows as the explanation.
-        reply_message_id: replyId,
-        session_id:
-          "session" in answer && typeof answer.session === "string" ? answer.session : null,
-        turns: 1,
-        lessons_used: shown.map((lesson) => lesson.id),
-        ...(answer.usage === undefined
-          ? {}
-          : {
-              input_tokens: inputTokens(answer.usage),
-              output_tokens: answer.usage.output_tokens,
-              cost_microusd: costMicroUsd(agent.model, answer.usage),
-            }),
-      })
+      .update({ ...finished, reply_message_id: replyId })
       .eq("id", run.id);
+    // The runner follows main at once, the migration that adds the column reaches the database with deploy's dev job:
+    // in between the update above fails, and a run left `running` would be claimed and answered again (followups review).
+    if (finishFailed !== null) await client.from("agent_runs").update(finished).eq("id", run.id);
     // A lesson shown is a lesson used: its count ranks it, and the weekly review promotes the ones used often.
     const now = new Date().toISOString();
     for (const lesson of shown) {

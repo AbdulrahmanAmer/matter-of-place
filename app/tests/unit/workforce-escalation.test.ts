@@ -188,6 +188,7 @@ function memoryDb(
   seed: Record<string, Row[]>,
   refuse: ReadonlySet<string> = new Set(),
   clockAhead = 0,
+  absent: ReadonlySet<string> = new Set(),
 ) {
   const tables: Record<string, Row[]> = seed;
   const base = Date.now() + clockAhead;
@@ -302,6 +303,9 @@ function memoryDb(
         })),
       update: (patch: Row) =>
         query(table, (rows) => {
+          // a column whose migration has not reached the database yet: the whole update is refused, as Postgres does
+          if (Object.keys(patch).some((column) => absent.has(column)))
+            return { data: null, error: new Error("column does not exist") };
           for (const row of rows) Object.assign(row, patch);
           return { data: null, error: null };
         }),
@@ -334,7 +338,11 @@ const agentRow = (id: string, slug: string, name: string, tools: string[]): Row 
 });
 
 /** The office before an inquiry with an instruction in it arrives: Matter, the Concierge, and one queued event run. */
-function office(refuse: ReadonlySet<string> = new Set(), clockAhead = 0) {
+function office(
+  refuse: ReadonlySet<string> = new Set(),
+  clockAhead = 0,
+  absent: ReadonlySet<string> = new Set(),
+) {
   const memory = memoryDb(
     {
       agents: [
@@ -376,6 +384,7 @@ function office(refuse: ReadonlySet<string> = new Set(), clockAhead = 0) {
     },
     refuse,
     clockAhead,
+    absent,
   );
   void memory.insert("agent_runs", { agent_id: CONCIERGE_ID, cause: "event", event_id: EVENT_ID });
   const { tables } = memory;
@@ -461,6 +470,15 @@ describe("W8 0d: a held message is explained by its owner, then decided by Matte
     ]);
     expect(room.rows("agents")).toHaveLength(2);
     expect(await runOnce(room.db)).toBe(false);
+  });
+
+  it("finishes the owner's run although the column for its reply has not reached the database yet", async () => {
+    answers(matterSays({ allow: false }));
+    const room = office(new Set(), 0, new Set(["reply_message_id"]));
+    await runOnce(room.db);
+    await runOnce(room.db);
+    const held = room.held();
+    expect(room.runsOn(CONCIERGE_ID, held?.["id"]).map((run) => run["state"])).toEqual(["done"]);
   });
 
   it("shows the explanation to Matter although the database clock is an hour ahead of the runner's laptop", async () => {
