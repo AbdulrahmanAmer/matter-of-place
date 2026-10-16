@@ -1,0 +1,47 @@
+[
+  {
+    "id": "w8-runner-stale-tasks",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "if (now - startedAt > maxMs) dropped.push(key);",
+    "replace": "if (false) dropped.push(key);",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*records when a task started and forgets one"
+  },
+  {
+    "id": "w8-runner-task-start-time",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "next.set(key, now);",
+    "replace": "next.set(key, 0);",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*records when a task started and forgets one"
+  },
+  {
+    "id": "w8-runner-allowance-ignore",
+    "test": "tests/unit/usage-policy.test.ts",
+    "file": "scripts/workforce/usage-policy.ts",
+    "find": "override.allowance === \"ignore\"",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/usage-policy.test.ts",
+    "expect": "× .*sets the allowance aside when the operator says so"
+  },
+  {
+    "id": "w8-runner-allowance-ceiling",
+    "test": "tests/unit/usage-policy.test.ts",
+    "file": "scripts/workforce/usage-policy.ts",
+    "find": "          ...tier(0),",
+    "replace": "          ...tier(95),",
+    "run": "bunx vitest run --project unit tests/unit/usage-policy.test.ts",
+    "expect": "× .*sets the allowance aside when the operator says so"
+  },
+  {
+    "id": "w8-runner-config-allowance",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/workforce/config.ts",
+    "find": "...(allowance === \"ignore\" ? { allowance } : {}),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*reads the operator's order to set the allowance aside"
+  }
+]

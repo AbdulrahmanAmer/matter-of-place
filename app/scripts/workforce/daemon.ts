@@ -47,7 +47,7 @@ import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } f
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
 import type { SourceName } from "./criteria.ts";
-import { explainsHeld, handToMatter, ownerExplanation } from "./explain.ts";
+import { explainsHeld, handToMatter, handUnavailableOwners, ownerExplanation } from "./explain.ts";
 import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
 import {
   allowLine,
@@ -548,6 +548,8 @@ export async function holdForMatter(
       );
     return;
   }
+  // An owner that is paused or off at any time after this never claims the run: `handUnavailableOwners` (explain.ts),
+  // swept at the start of every runner loop, hands such a line to Matter.
   const { error: queueError } = await client
     .from("agent_runs")
     .insert({ agent_id: ownerRow.id, cause: "message", message_id: held.id });
@@ -606,6 +608,9 @@ function promptFor(
 
 /** One claimed run, start to end. Exported for the W8 0d test that walks a held message through the runner. */
 export async function runOnce(client: Db): Promise<boolean> {
+  // W8 0d second review: an explanation queued for an owner that is paused or off is handed to Matter, whatever the
+  // loop does next (explain.ts).
+  await handUnavailableOwners(client);
   const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
   const { count } = await client
     .from("agent_runs")
@@ -732,10 +737,14 @@ export async function runOnce(client: Db): Promise<boolean> {
             business: lessons,
             power,
             held: matterReadsHeld,
-            // W8 0d: the owner's explanation, fenced as data; null when it failed or said nothing
+            // W8 0d: the owner's explanation, fenced as data; null when there is none (its run failed, said nothing, or never ran)
             explanation:
               matterReadsHeld && run.message_id !== null
-                ? await ownerExplanation(client, { id: run.message_id, thread }, run.created_at)
+                ? await ownerExplanation(
+                    client,
+                    { id: run.message_id, thread },
+                    (agents ?? []).find((row) => row.slug === thread)?.id ?? "",
+                  )
                 : null,
           }),
           matterEnv(),
@@ -789,6 +798,7 @@ export async function runOnce(client: Db): Promise<boolean> {
       );
     const media = plan.media;
     let reel: { request_id: string; name: string } | null = null;
+    let replyId: string | null = null;
 
     if (plan.reply !== null) {
       // W8 0e (second review): the woken colleagues read this reply, never whatever line is newest by then.
@@ -803,6 +813,7 @@ export async function runOnce(client: Db): Promise<boolean> {
         })
         .select("id")
         .single();
+      replyId = written?.id ?? null;
       // A colleague handing work to another wakes them, once.
       const handed = mentionedSlugs(result.reply).filter((slug) => slug !== agent.slug);
       const targets = (agents ?? []).filter(
@@ -868,27 +879,31 @@ export async function runOnce(client: Db): Promise<boolean> {
         power === "full",
       );
     }
-    await client
+    const finished = {
+      state: "done" as const,
+      finished_at: new Date().toISOString(),
+      // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
+      // its own words could carry the outside text into the meeting and the live session's digest.
+      summary: plan.summary,
+      session_id: "session" in answer && typeof answer.session === "string" ? answer.session : null,
+      turns: 1,
+      lessons_used: shown.map((lesson) => lesson.id),
+      ...(answer.usage === undefined
+        ? {}
+        : {
+            input_tokens: inputTokens(answer.usage),
+            output_tokens: answer.usage.output_tokens,
+            cost_microusd: costMicroUsd(agent.model, answer.usage),
+          }),
+    };
+    // W8 0d second review: the line this run wrote as its reply, which Matter's read shows as the explanation.
+    const { error: finishFailed } = await client
       .from("agent_runs")
-      .update({
-        state: "done",
-        finished_at: new Date().toISOString(),
-        // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
-        // its own words could carry the outside text into the meeting and the live session's digest.
-        summary: plan.summary,
-        session_id:
-          "session" in answer && typeof answer.session === "string" ? answer.session : null,
-        turns: 1,
-        lessons_used: shown.map((lesson) => lesson.id),
-        ...(answer.usage === undefined
-          ? {}
-          : {
-              input_tokens: inputTokens(answer.usage),
-              output_tokens: answer.usage.output_tokens,
-              cost_microusd: costMicroUsd(agent.model, answer.usage),
-            }),
-      })
+      .update({ ...finished, reply_message_id: replyId })
       .eq("id", run.id);
+    // The runner follows main at once, the migration that adds the column reaches the database with deploy's dev job:
+    // in between the update above fails, and a run left `running` would be claimed and answered again (followups review).
+    if (finishFailed !== null) await client.from("agent_runs").update(finished).eq("id", run.id);
     // A lesson shown is a lesson used: its count ranks it, and the weekly review promotes the ones used often.
     const now = new Date().toISOString();
     for (const lesson of shown) {

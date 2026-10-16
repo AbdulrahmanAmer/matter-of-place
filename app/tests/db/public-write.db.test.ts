@@ -149,7 +149,8 @@ describe("create_submission", () => {
     expect(outcome.rows).toBe(1);
   });
 
-  it("links one contact per email, keeps its first kind and refreshes name and phone", async () => {
+  // W6 item 7 review, ruling H119 (5): the name first recorded stays, since the client room greets a person by it.
+  it("links one contact per email, keeps its first kind and name and refreshes the phone", async () => {
     const contact = await withRollback(async (db) => {
       await createSubmission(db, submission("person@example.invalid", { submitter_phone: "111" }));
       await createSubmission(
@@ -176,7 +177,7 @@ describe("create_submission", () => {
       return contacts.rows;
     });
     expect(contact).toEqual([
-      { kind: "agent", name: "New Name", phone: "222", brokerage: "Test Brokerage", linked: 2 },
+      { kind: "agent", name: "Test Agent", phone: "222", brokerage: "Test Brokerage", linked: 2 },
     ]);
   });
 

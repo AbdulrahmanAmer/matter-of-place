@@ -42,6 +42,13 @@ begin
   ) then
     v_failing := array_append(v_failing, 'mail_folders');
   end if;
+  -- W8 0g: the nightly copy to Google Drive beats `drive_copy` after the backup; a missing Drive folder beats ok false.
+  if v_backup and not exists (
+    select 1 from public.ops_heartbeats
+    where name = 'drive_copy' and at >= p_now - interval '26 hours' and detail ->> 'ok' = 'true'
+  ) then
+    v_failing := array_append(v_failing, 'drive_copy');
+  end if;
   -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.
   if exists (
     select 1 from public.jobs

@@ -89,6 +89,21 @@ its owned files, the branch and the start time to `~/.mop-workforce/builders/run
 - **Two failed attempts on the same obstacle end the builder:** stop it, record `BLOCKED: <obstacle> - <what would
   unblock it>` in the PR, and either rebrief with what was learned or take the item yourself.
 
+## 5b. No local CI (operator, 2026-10-16)
+His words: "can we just stop using the local ci run? since we are staying public on git for some time till we are done with
+everything regarding the building process" and "saves us time and frees up the hardware from load so it is more focused on
+building the code itself". The repository is public, so GitHub's CI is free; it runs on pull requests to `main`. From 2026-10-16:
+- The one pull request of overdrive is opened as a DRAFT from `overdrive/finish` into `main` as soon as it has content. Every push
+  to `overdrive/finish` makes GitHub run the full CI on it (check, build, bundle-check, db, `watchfail --changed`, e2e, SEO).
+- Nobody runs CI on the laptop, builders and Matter alike: never `bun run check`, `tsc`, `eslint`, `knip`, `prettier --check`, the
+  full test suite, `bun run build` or `watchfail` locally. A builder may run the one test file it is writing, and format its own
+  files with `prettier --write`.
+- Matter merges a builder's branch into `overdrive/finish` when its fresh Opus review passes (the review reads the diff; it does
+  not run checks), pushes, and reads the draft's result with `gh pr checks`. A red job goes back to the item's builder with CI's
+  own output; the builder fixes forward on its branch.
+- When every in-flight item is merged and the draft's CI is green, it is marked ready and merged through the gate
+  (`node workspace/05-plans/merge-gate.mjs <pr>`), never `gh pr merge`.
+
 ## 6. Review and merge (Matter, every PR)
 
 1. **The draft (within 30 minutes):** does the diff build the item, in the files named, extending what exists? If it
