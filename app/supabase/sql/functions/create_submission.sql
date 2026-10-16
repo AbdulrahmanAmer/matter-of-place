@@ -57,12 +57,13 @@ begin
   order by s.received_at
   limit 1;
 
-  -- Invariant 22 (S55): one person is one row. The kind first recorded stays; the request keeps what was typed.
+  -- Invariant 22 (S55): one person is one row. The kind and the name first recorded stay (W6 item 7 review, ruling
+  -- H119 (5): the room says "Signed in as <name>", so a name an outsider typed with someone else's address never
+  -- replaces it); the request keeps what was typed.
   insert into public.contacts as c (kind, name, email, phone, brokerage)
   values (v.submitter_kind, v.submitter_name, lower(v.submitter_email), v.submitter_phone, v.brokerage)
   on conflict ((lower(email))) do update
-  set name = excluded.name,
-    phone = coalesce(excluded.phone, c.phone),
+  set phone = coalesce(excluded.phone, c.phone),
     brokerage = coalesce(excluded.brokerage, c.brokerage)
   returning c.id into v_contact_id;
 

@@ -1289,6 +1289,8 @@ function filterDb(tables: Record<string, Record<string, unknown>[]>): Db {
 function recorder(failing: Partial<Record<string, true>>) {
   const inserts: [string, unknown][] = [];
   const from = (table: string) => ({
+    // the hold reads its owner's state (W8 0d review): an idle colleague, whose explanation is queued
+    select: () => ({ eq: () => ({ limit: () => Promise.resolve({ data: [{ state: "idle" }] }) }) }),
     insert: (row: unknown) => {
       inserts.push([table, row]);
       const error = failing[table] === true ? new Error("refused") : null;

@@ -24,11 +24,11 @@ export function postureChoices(): string {
 }
 
 /**
- * The posture an allowance carries: none given means `answer` (an allowance from before W8 0d's second half), one of
- * the four is itself, and anything else is null, so the allowance is not made.
+ * The posture an allowance carries: one of the four is itself; none given, or anything off the list, is null, so the
+ * allowance is not made (H117: Matter has read the outside text, so a missing `how` fails closed, never to the widest).
  */
 export function postureOf(how: Posture | typeof HOW_OFF_LIST | undefined): Posture | null {
-  if (how === undefined) return "answer";
+  if (how === undefined) return null;
   return how === HOW_OFF_LIST ? null : how;
 }
 
