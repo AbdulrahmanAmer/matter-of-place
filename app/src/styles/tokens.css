@@ -97,6 +97,8 @@
   --social-carousel-h: 1350px;
   --social-carousel-margin: 72px;
   --social-carousel-photo-h: 920px;
+  /* an inner photograph slide: the band holds the wordmark and the counter only, the photograph takes the rest */
+  --social-carousel-compact-band: 100px;
   --social-carousel-mark-h: 18px;
   --social-carousel-mark-top: 40px;
   --social-carousel-marker-size: 15px;

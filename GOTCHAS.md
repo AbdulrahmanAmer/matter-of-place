@@ -8552,3 +8552,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a reel about a property carries that property's photographs: kind `campaign` with `property_id`, or with `photos` (paths under the requester's own work folder, read through `deskPhoto`, confined by realpath); `brand` refuses `photos`; the scene must draw `spec.shots` (else sent back before filming); the review is told how many photographs were supplied and refuses a reel that shows none or draws a house in their place. A reel for a property that is not on the site is kept in the studio, not recorded in Visuals (a visual needs its subject).
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-h110-scene-draws-shots` → `WATCHED-FAIL OK`; `reelRequestSchema.safeParse({...brand, photos: [...]})` is `success: false`.
 - added: 2026-10-16
+
+## P-3578 · A studio refusal that names the engine's own drawing cannot be fixed by the designer, so its revisions are spent for nothing
+- symptom: 2026-10-16: the Fairfield test reel was refused in review three times (REVISIONS 2) for "a soft, blurred oval of light on the doorway floor" and a reflection that "fades smoothly"; the designer, confined to the studio folder, can only edit `scene/`, and the pool and the mirrored floor are drawn by `launch/engine/moves/door.mjs` (`ctx.filter = "blur(9px)"`).
+- rule: when a review refusal names a drawing that belongs to the engine (the door move's pool, reflection, beam), the redraw brief says so: draw that shot in `scene.mjs` with flat polygons, or cut the shot; and the engine fix is a PR of its own, not a revision loop.
+- proof: `grep -n 'blur(9px)' launch/engine/moves/door.mjs` → line 483; the refused brief's `reason` in `~/.mop-workforce/studio/2026-10-16-fairfield-test-reel/brief.json` (before the requeue) names the doorway floor.
+- added: 2026-10-16

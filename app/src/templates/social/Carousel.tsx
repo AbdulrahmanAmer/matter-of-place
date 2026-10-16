@@ -9,16 +9,19 @@ interface CarouselSlideProps {
   /** Zero-based position of the slide in the planned carousel. */
   index: number;
   total: number;
+  /** The square LinkedIn crop keeps the full band; every other photograph slide carries the compact one. */
+  square?: boolean;
 }
 
 /** One 1080×1350 slide: the cover carries the full frame, the others one photograph and the lines that slide needs. */
-export function CarouselSlide({ spec, slide, index, total }: CarouselSlideProps) {
+export function CarouselSlide({ spec, slide, index, total, square = false }: CarouselSlideProps) {
   const { property, images } = spec;
   const photo = images[slide.image];
   const frame = {
     format: "carousel",
     image: photo ? <img src={photo.url} alt={photo.alt} /> : null,
-    marker: `${padIndex(index + 1)} / ${padIndex(total)}`,
+    // a single post is not counted
+    marker: total > 1 ? `${padIndex(index + 1)} / ${padIndex(total)}` : undefined,
     location: locationLine(property),
   } as const;
 
@@ -46,6 +49,10 @@ export function CarouselSlide({ spec, slide, index, total }: CarouselSlideProps)
     case "close":
       return <SocialFrame {...frame} headline={property.title} />;
     case "photo":
-      return <SocialFrame {...frame} />;
+      return square ? (
+        <SocialFrame {...frame} />
+      ) : (
+        <SocialFrame {...frame} location={undefined} compact />
+      );
   }
 }

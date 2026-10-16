@@ -10,6 +10,8 @@ interface SocialFrameProps {
   headline?: string;
   price?: string;
   specs?: string;
+  /** A band of the wordmark and the counter only; the photograph takes the rest of the frame. */
+  compact?: boolean;
 }
 
 /** Outlines of the horizontal wordmark (brand/logo/wordmark), filled with the ink of the band. */
@@ -38,9 +40,12 @@ export function SocialFrame({
   headline,
   price,
   specs,
+  compact = false,
 }: SocialFrameProps) {
   return (
-    <div className={`social-frame social-frame--${format}`}>
+    <div
+      className={`social-frame social-frame--${format}${compact ? " social-frame--compact" : ""}`}
+    >
       <div className="social-frame__photo">{image}</div>
       <Wordmark />
       {marker ? <p className="social-frame__marker">{marker}</p> : null}
