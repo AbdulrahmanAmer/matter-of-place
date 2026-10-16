@@ -106,7 +106,7 @@ export const rlsMatrix: Record<string, Access> = {
 };
 
 /**
- * W6 item 7, ruling H114 (2): what a client (a signed-in person whose confirmed email is a contact's) may do to each
+ * W6 item 7, ruling H119 (2): what a client (a signed-in person whose confirmed email is a contact's) may do to each
  * table, on their own rows. Nothing: the base tables carry staff-only columns, so a client's rows reach the room only
  * through `account_room`. A later slice that opens a row to a client lists the table and operation here.
  */

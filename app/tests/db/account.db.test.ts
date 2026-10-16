@@ -1,4 +1,4 @@
-// W6 item 7, ruling H114: the client room's one read. A client is the auth user whose confirmed email is a contact's
+// W6 item 7, ruling H119: the client room's one read. A client is the auth user whose confirmed email is a contact's
 // email; `account_room` answers that contact's requests and nothing else, and only the service role may call it.
 import { describe, expect, it } from "vitest";
 import { asRole, createAuthUser, withRollback, type Db } from "../fixtures/db";
@@ -181,7 +181,7 @@ describe("account_room", () => {
   });
 });
 
-// Ruling H114 (4): a sign-in link is queued only for an address that is a contact's, never archived, whatever its
+// Ruling H119 (4): a sign-in link is queued only for an address that is a contact's, never archived, whatever its
 // letter case; only the service role asks, since the answer says who has sent us a property.
 describe("account_can_sign_in", () => {
   async function canSignIn(db: Db, email: string): Promise<unknown> {

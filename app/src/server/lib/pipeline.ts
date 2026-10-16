@@ -117,7 +117,7 @@ export function neverCached(request: Request, pathname: string, response?: Respo
     (request.method !== "GET" && request.method !== "HEAD") ||
     isAdmin(path) ||
     NEVER_CACHED_PREFIXES.some((prefix) => path.startsWith(prefix)) ||
-    // The client room (ruling H114): a person's own page, whatever header its route sets. Not a NEVER_CACHED_PREFIXES
+    // The client room (ruling H119): a person's own page, whatever header its route sets. Not a NEVER_CACHED_PREFIXES
     // entry, which would also take it out of the maintenance page.
     isAccountPath(path) ||
     search.has("preview") ||

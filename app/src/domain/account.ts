@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { submissionStates } from "./contracts.ts";
 
-// W6 item 7, ruling H114: the client room. Field names are those `account_room` returns.
+// W6 item 7, ruling H119: the client room. Field names are those `account_room` returns.
 
 /** One of the client's own requests, by address and state. */
 const accountRequestSchema = z.object({
@@ -21,7 +21,7 @@ export const accountRoomSchema = z.object({
 
 /**
  * The client room's pages: never stored by the edge and never given a third-party script, since the address of the
- * confirm page carries a sign-in token (ruling H114). `path` is decoded and lower case, as the router matches it.
+ * confirm page carries a sign-in token (ruling H119). `path` is decoded and lower case, as the router matches it.
  */
 export const isAccountPath = (path: string): boolean =>
   path === "/account" || path.startsWith("/account/");

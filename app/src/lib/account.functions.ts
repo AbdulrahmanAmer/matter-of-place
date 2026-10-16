@@ -5,7 +5,7 @@ import type * as AccountService from "../server/account/service";
 import type { Db } from "../server/lib/db";
 import type { env } from "../server/lib/env";
 
-// W6 item 7, ruling H114 (4): the client room's calls to the Worker. Each is a POST, which the edge never stores, and
+// W6 item 7, ruling H119 (4): the client room's calls to the Worker. Each is a POST, which the edge never stores, and
 // each answer is `private, no-store` and carries the session cookies the call wrote (a sign-in, a refresh, a sign-out).
 // The server modules load inside the handlers, as `archive.functions.ts` does.
 

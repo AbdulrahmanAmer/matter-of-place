@@ -35,7 +35,7 @@ function matchedPath(pathname: string): string {
 /**
  * Loads Google Analytics on a public page once the visitor has allowed it (GP-02). Mounted only in the public layout
  * `_site.tsx`, so no admin page loads it (FE-02). Renders nothing; with no measurement id it does nothing. A visit that
- * opens on the client room never loads it (ruling H114): its sign-in link carries a token, which a page view would
+ * opens on the client room never loads it (ruling H119): its sign-in link carries a token, which a page view would
  * send to Google.
  */
 export function Ga4Loader() {

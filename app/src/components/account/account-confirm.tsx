@@ -18,7 +18,7 @@ function takeLinkToken(location: Location, history: History): string | null {
 }
 
 /**
- * The confirm page (W6 item 7, ruling H114 (4)): the button spends the token, so a mail scanner that opens the link
+ * The confirm page (W6 item 7, ruling H119 (4)): the button spends the token, so a mail scanner that opens the link
  * first cannot use it up. A person on the team is sent to the admin sign-in instead.
  */
 export function AccountConfirm({ onDone }: { onDone: (status: AccountConfirmStatus) => void }) {

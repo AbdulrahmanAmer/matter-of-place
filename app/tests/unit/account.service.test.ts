@@ -15,7 +15,7 @@ import { getSessionUser, takeIssuedCookies } from "../../src/server/lib/session"
 import { verifyTurnstile } from "../../src/server/lib/turnstile";
 import { fakeDb, type FakeDbOptions } from "../fixtures/fake-db";
 
-// W6 item 7, ruling H114: the client room's service. The room reads `account_room` with the verified session's user
+// W6 item 7, ruling H119: the client room's service. The room reads `account_room` with the verified session's user
 // only; every address takes the same path before the answer, which is always `sent`, and a contact's address gets a
 // `send_email` job after it; the link is spent by a same-origin post, never by a person on the team.
 

@@ -8,7 +8,7 @@ import { definitionRow } from "../../../src/templates/email/index";
 import { inserted } from "../../fixtures/email-rows";
 import { fakeDb } from "../../fixtures/fake-db";
 
-// W6 item 7, ruling H114 (4): the client's sign-in email. The `send_email` job makes the link when it runs, for an
+// W6 item 7, ruling H119 (4): the client's sign-in email. The `send_email` job makes the link when it runs, for an
 // address that is still a contact's, from an auth user made unconfirmed; the link carries the token in its fragment and
 // goes only to the address it signs in.
 

@@ -1,7 +1,7 @@
 -- down: delete from public.email_templates where key = 'account_link';
 set lock_timeout = '5s';
 
--- W6 item 7, ruling H114 (4): the client's sign-in link, in B5's row shape (G46). The same copy as
+-- W6 item 7, ruling H119 (4): the client's sign-in link, in B5's row shape (G46). The same copy as
 -- src/templates/email/account-link.tsx. It is sent by a `send_email` job the client room's sign-in form queues for an
 -- address that is a contact; the step makes the link when it runs, so no token is stored. An edited row survives a
 -- replay.

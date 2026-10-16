@@ -2,7 +2,7 @@ import { variablesByKey } from "../../domain/email.ts";
 import { Threshold } from "./house/threshold.tsx";
 import type { EmailDefinition, EmailProps } from "./layout.tsx";
 
-// W6 item 7, ruling H114 (4): the client's sign-in link. The job that sends it makes the link when it runs, so the
+// W6 item 7, ruling H119 (4): the client's sign-in link. The job that sends it makes the link when it runs, so the
 // token is never stored; the link opens `/account/confirm` with the token in its fragment, which no server receives.
 export const definition: EmailDefinition = {
   key: "account_link",

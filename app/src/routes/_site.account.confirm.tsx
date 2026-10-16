@@ -3,7 +3,7 @@ import { AccountConfirm } from "../components/account/account-confirm";
 import { PageIntro } from "../components/site/page-intro";
 import { pageHead } from "../lib/seo";
 
-// W6 item 7, ruling H114 (4): the email link opens this page with the token in its fragment, and the page takes it out
+// W6 item 7, ruling H119 (4): the email link opens this page with the token in its fragment, and the page takes it out
 // of the address before anything else runs. The page is never rendered on the server nor kept by the edge, and the
 // layout loads no analytics on it (`Ga4Loader`).
 export const Route = createFileRoute("/_site/account/confirm")({

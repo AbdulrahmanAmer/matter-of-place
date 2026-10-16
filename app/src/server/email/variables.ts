@@ -201,7 +201,7 @@ export async function resolveRecipient(
     if (actor === null) throw recipientMissing();
     return { to: [actor], entity: text(data, "entity"), entityId: text(data, "entity_id") };
   }
-  // A sign-in link goes only to the address it signs in, whatever a recipe names (ruling H114 (4)).
+  // A sign-in link goes only to the address it signs in, whatever a recipe names (ruling H119 (4)).
   if (key === "account_link") return { to: [need(data, "email")], entity: null, entityId: null };
   switch (params.to ?? defaultRecipient[key] ?? "") {
     case "submitter":

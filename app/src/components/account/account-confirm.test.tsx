@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { confirmAccountLinkFn } from "../../lib/account.functions";
 import { AccountConfirm } from "./account-confirm";
 
-// W6 item 7, ruling H114 (4): the confirm page takes the token out of the address before anything else can read it,
+// W6 item 7, ruling H119 (4): the confirm page takes the token out of the address before anything else can read it,
 // spends it only on a press, and sends a person on the team to the admin sign-in. The server call is replaced.
 
 vi.mock("../../lib/account.functions", () => ({ confirmAccountLinkFn: vi.fn() }));

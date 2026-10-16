@@ -21,7 +21,7 @@ import { authClient, getSessionUser, takeIssuedCookies } from "../lib/session.ts
 import { verifyTurnstile } from "../lib/turnstile.ts";
 import { waitUntilOf } from "../lib/wait-until.ts";
 
-// W6 item 7, ruling H114: the client room's sign-in, sign-out and its one read. A client is the signed-in person whose
+// W6 item 7, ruling H119: the client room's sign-in, sign-out and its one read. A client is the signed-in person whose
 // confirmed email is a contact's; the room reads only through `account_room`, given the verified session's user.
 
 type WorkerEnv = typeof env;

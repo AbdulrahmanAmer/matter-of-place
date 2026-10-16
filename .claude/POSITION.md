@@ -1960,7 +1960,7 @@ first day of the new usage week; no step was cut from any plan.
   refusing uuid-shaped slugs (its own migration PR); 0f; 0g waits on the operator's Google Drive.
   Bank grew: P-3570, P-3571, P-3572.
 - 2026-10-16 05:10 +0300: W6 item 7 back on `overdrive/w6-7` after a fresh Opus review (two high, four medium, three
-  low). Merged `origin/overdrive/finish` first: W8 0e had taken H113, so the client room's ruling is now H114 (P-3674).
+  low). Merged `origin/overdrive/finish` first: W8 0e had taken H113, so the client room's ruling is now H119 (P-3674).
   Fixed: client links no longer go through Supabase's one magic-link template (it opens `/admin/auth/confirm`) nor its
   10-an-hour mail limit: the form answers "sent" before any lookup, and a contact's address gets a `send_email` job of
   the new template `account_link` whose step makes the auth user (unconfirmed) and the link (`generateLink`) when it

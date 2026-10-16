@@ -1,6 +1,6 @@
 import type { Db } from "../lib/db.ts";
 
-// W6 item 7, ruling H114 (4): the client's sign-in link, made by the `send_email` job that mails it (template
+// W6 item 7, ruling H119 (4): the client's sign-in link, made by the `send_email` job that mails it (template
 // `account_link`), so the token lives only in the email. This file is loaded by the Deno job runner: imports carry `.ts`.
 
 /** The address the link is for is no longer a contact's (archived since it was asked for, or never one). */

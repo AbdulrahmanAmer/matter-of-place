@@ -1,5 +1,5 @@
 /**
- * A signed-in person whose address holds no request with us (W6 item 7, ruling H114 (3)): a calm page and no data.
+ * A signed-in person whose address holds no request with us (W6 item 7, ruling H119 (3)): a calm page and no data.
  */
 export function AccountNotFound({
   onSignOut,

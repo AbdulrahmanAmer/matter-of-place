@@ -8,7 +8,7 @@ as $$
 declare
   v_contact public.contacts;
 begin
-  -- W6 item 7, ruling H114 (3): the room of the signed-in person `p_user` (the Worker passes the verified session's
+  -- W6 item 7, ruling H119 (3): the room of the signed-in person `p_user` (the Worker passes the verified session's
   -- user, never a browser value), through the same mapping the row rules use. Null when no contact matches.
   select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);
   if not found then
