@@ -212,6 +212,27 @@ describe("what decides before any platform call", () => {
     expect([posts, meta.publish.mock.calls]).toEqual([[], []]);
   });
 
+  it("a proposed post's asset posts to its own channel only, and a test post's to none (W8 item 10)", async () => {
+    const proposed = (channel: string, test: boolean) =>
+      world({ kind: "carousel", meta: { proposed_post: { channel, test }, captions: {} } });
+    const other = proposed("linkedin", false);
+    const otherAdapter = adapter("instagram");
+    const rehearsal = proposed("instagram", true);
+    const rehearsalAdapter = adapter("instagram");
+    const own = proposed("instagram", false);
+    const ownAdapter = adapter("instagram");
+    expect([
+      await postToChannel(ctxOf(other.db), otherAdapter, ASSET, LIVE),
+      await postToChannel(ctxOf(rehearsal.db), rehearsalAdapter, ASSET, LIVE),
+      (await postToChannel(ctxOf(own.db), ownAdapter, ASSET, LIVE)).status,
+    ]).toEqual([
+      { status: "done", result: "skipped_other_channel" },
+      { status: "done", result: "skipped_test_post" },
+      "done",
+    ]);
+    expect([other.posts, rehearsal.posts, ownAdapter.creates.length]).toEqual([[], [], 1]);
+  });
+
   it("a disabled channel returns skipped_disabled and writes no row", async () => {
     const { db, posts } = world({ kind: "cover", enabled: { facebook: false } });
     expect(await postToChannel(ctxOf(db), adapter("facebook"), ASSET, LIVE)).toEqual({

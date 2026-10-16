@@ -130,7 +130,14 @@ channels.cancel                    CE MO AD
 channels.metrics_refresh           CE MO AD
 channels.mark_withdrawn            CE MO AD | H
 channels.ids_put                   MO AD | H
-reports.list                       CE ME VE MO CO AD
+channels.proposed_list             CE ME VE MO CO AD
+channels.proposed_get              CE ME VE MO CO AD
+channels.proposed_create           CE MO AD
+channels.proposed_revise           CE MO AD
+channels.proposed_approve          CE AD
+channels.proposed_reject           CE AD
+channels.proposed_rerender         CE AD
+reports.list                      CE ME VE MO CO AD
 reports.get                        CE ME VE MO CO AD
 reports.export                     CE ME VE MO CO AD
 reports.email                      CE ME | H

@@ -2,6 +2,7 @@
 // 2026-10-13 test 2 (P-3452): Matter's prose named `{{property_address}}`, the old reader cut from the first "{" and
 // failed, and a proposal Matter said it had filed was dropped. The reader now tries each "{" until one parses.
 import { z } from "zod";
+import { jsonValue } from "../../src/domain/json-value.ts";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import { mediaRequestSchema } from "./media.ts";
 import { reelRequestSchema } from "./reel.ts";
@@ -17,6 +18,9 @@ export const outcome = z.object({
         content: z.object({
           body: z.string().min(1).max(20000),
           to: z.string().max(300).optional(),
+          // W8 item 10: a social post's channels, formats, files and captions. Read loosely here and checked when it
+          // is filed, so a malformed post is refused with its reason instead of dropping the whole answer.
+          post: jsonValue.optional(),
         }),
       }),
     )

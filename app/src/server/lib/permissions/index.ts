@@ -11,6 +11,7 @@ import { payments } from "./payments.ts";
 import { newsletter } from "./newsletter.ts";
 import { people } from "./people.ts";
 import { properties } from "./properties.ts";
+import { proposedPosts } from "./proposed-posts.ts";
 import { reports } from "./reports.ts";
 import { settings } from "./settings.ts";
 import { stories } from "./stories.ts";
@@ -34,6 +35,7 @@ export const permissions = [
   ...payments,
   ...newsletter,
   ...channels,
+  ...proposedPosts,
   ...reports,
   ...people,
   ...jobs,

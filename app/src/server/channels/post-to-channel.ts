@@ -17,7 +17,7 @@ import { enqueueJob } from "../lib/jobs.ts";
 import { liveSideEffects, readVar } from "../lib/runtime-env.ts";
 import { captureException } from "../lib/sentry.ts";
 import { approvalStillValid } from "./approval.ts";
-import { targetsFor } from "./index.ts";
+import { proposedSkip, targetsFor } from "./index.ts";
 import { GraphError } from "./meta.ts";
 import { ChannelApiError } from "./oauth-tokens.ts";
 import type { Channel, SocialAsset } from "./types.ts";
@@ -401,6 +401,8 @@ export async function postToChannel(
   const channel = adapter.id;
   const subject = await loadSubject(ctx, assetId);
   if (subject === null) return done("skipped_not_a_property_asset");
+  const proposed = proposedSkip(subject.asset.meta, channel);
+  if (proposed !== null) return done(proposed);
   const targets = targetsFor(subject.asset.kind, {
     linkedin: { multi_image: await loadMultiImage(ctx) },
   });
