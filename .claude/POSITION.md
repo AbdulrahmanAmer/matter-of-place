@@ -2108,3 +2108,17 @@ first day of the new usage week; no step was cut from any plan.
   00:35 UTC; it lands with PR 447). Fairfield lane test closed: FAIL (Julian and Matter), set in Drive, three abstract reels
   rejected by hand with notes. Laptop: 16 GB of runaway task logs deleted on the operator's word; held at Idle for an OmniSuite
   film export, then restored. Bank grew: P-3606, P-3607.
+
+## 2026-10-16 17:40 +0300 · followups-b (W8 0d, W6 7; third round, Sonnet 5.5)
+Branch `overdrive/followups-b` from `origin/overdrive/finish-2`. (1) `handUnavailableOwners` (explain.ts): the `explainsHeld`
+filter now has a `runOnce` test (paused and off owner, queued runs on a human line and an `email` system line stay queued, no
+Matter run, no `OWNER_UNAVAILABLE`); the close-run update uses `.select("id")` and skips when no row came back (another runner
+claimed it), tested through a hook in the test database; OWNER_UNAVAILABLE doc says "after the hold". Test database:
+`update().select()` returns rows, `hooks.beforeRead`, `claim_agent_run` takes only an idle or working owner. (2) Team invite of an
+existing account: no migration allowed, so each role stays its own `grant_role` call and a later failure names the roles already
+given (`partialInvite`, `team_write_failed`); test in team.service.test.ts. (3) W8.md first follow-up marked superseded, dead
+select stub removed from `workforce-triage.test.ts`. Registry: W8-0d.json `w8-0d5-sweep-only-held-lines`,
+`w8-0d5-sweep-claimed-meanwhile`; W6-7.json `w6-7h-invite-partial-named`. Ran here (the files written): workforce-escalation
+20 passed, team.service 14 passed, workforce-triage 50 passed. UNPROVEN: the three new registry entries (CI replays, not run
+here), tsc, lint, knip (not run, by rule), "grant all roles in one SQL call" (needs a migration; NOT DONE, the failure names
+the roles instead). Bank grew: P-3702.

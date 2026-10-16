@@ -8639,3 +8639,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a mock database stamps only the columns the real one stamps (`created_at`, `started_at` by `claim_agent_run`); a column the runner sends keeps what it sent; give the mock a clock offset and run one walk-through with the database an hour ahead. Bind a reply to the run that wrote it by id (`agent_runs.reply_message_id`), never by a window of times across two clocks.
 - proof: `bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "database clock is an hour ahead"` is green with the id and red with the old `gte`/`lte` window (registry `w8-0d4-explanation-by-reply-id`, `w8-0d4-reply-id-recorded`).
 - added: 2026-10-16
+
+## P-3702 · A registry `find` that is unique today stops being unique when a neighbouring block gains one level of indent
+- symptom: 2026-10-16, followups-b: wrapping the grant loop of `inviteExisting` in a `try` moved its `p_note: "invite",` to the indent `inviteUser` already had; `edit-impact` printed STALE for `b7-14-svc-invite-note` (found 2 times) and `w6-7f-invite-existing-note` (found 0 times) before any test ran.
+- cause: the two entries matched on indentation, which a wrapper changes; two near-identical loops in one file are told apart only by their depth.
+- rule: change a block without changing its indent (here `.catch(...)` on the call, not a `try`) or write the new `find` with a line only one of them has; read the `edit-impact` STALE notes before the first run. A test database that is asked to claim or update must model the rule the real function has (an idle or working owner; the rows an update returns), or a sweep test passes for the wrong reason.
+- proof: `node ~/.claude/hooks/edit-impact.mjs --changed .` prints no STALE line for `src/server/team/service.ts` at followups-b.
+- added: 2026-10-16

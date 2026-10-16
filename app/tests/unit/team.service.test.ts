@@ -264,6 +264,35 @@ describe("inviteUser", () => {
     expect(error).toBeInstanceOf(AppError);
     expect(authAdmin.deleteUser).not.toHaveBeenCalled();
   });
+
+  it("names the roles already given when a later grant of an existing account fails", async () => {
+    const granted: string[] = [];
+    const { db, authAdmin } = world(
+      {
+        grant_role: (args) => {
+          const { p_role } = roleRowSchema.parse(args);
+          if (p_role === "visual_editor") return new Error("connection reset");
+          granted.push(p_role);
+          return "role-row-3";
+        },
+      },
+      { user_roles: [] },
+    );
+    await exists(authAdmin);
+    const error = await failureOf(
+      inviteUser(admin, db, {
+        email: "client@example.test",
+        display_name: "Former Client",
+        roles: ["managing_editor", "visual_editor"],
+      }),
+    );
+    expect(granted).toEqual(["managing_editor"]);
+    expect(error instanceof AppError ? [error.code, error.message] : error).toEqual([
+      "team_write_failed",
+      "The account has these roles already: managing_editor. The other roles were not given. Grant them from the team list.",
+    ]);
+    expect(authAdmin.deleteUser).not.toHaveBeenCalled();
+  });
 });
 
 describe("last admin", () => {

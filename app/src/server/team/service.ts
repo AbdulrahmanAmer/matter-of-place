@@ -338,6 +338,20 @@ async function keepOrDelete<T>(db: Db, userId: string, write: () => Promise<T>):
   }
 }
 
+/**
+ * The failure of a later grant when an existing account was given roles one call at a time: the roles before it stay,
+ * so the answer names them. A failure of the first grant is passed on as it is.
+ */
+function partialInvite(userId: string, given: readonly string[], failure: unknown): unknown {
+  if (given.length === 0) return failure;
+  logLine("error", "team_invite_partial", { userId, code: fromRpcError(failure).code, given });
+  return new AppError(
+    "team_write_failed",
+    undefined,
+    `The account has these roles already: ${given.join(", ")}. The other roles were not given. Grant them from the team list.`,
+  );
+}
+
 /** `GET team/users`: one page of people and agent accounts with their roles. */
 export async function listUsers(
   actor: AdminActor,
@@ -364,7 +378,8 @@ export async function listUsers(
  * refusal: `grant_role` would start a new role of a switched-off person disabled and cannot repeat a role, so
  * re-enabling is `setUserDisabled`'s path. The user is read by address through `user_id_by_email` (the admin API has
  * no such read, and a generated link would mint a live sign-in token). The account is never deleted when a grant fails:
- * it was not made here, and `grant_role` is safe to repeat.
+ * it was not made here, and `grant_role` is safe to repeat. Each role is its own call, so a failure after the first
+ * keeps the earlier roles, and the answer names them (`partialInvite`).
  */
 async function inviteExisting(
   actor: AdminActor,
@@ -388,6 +403,7 @@ async function inviteExisting(
   if (held.data.length > 0) {
     throw new AppError("already_exists", undefined, "This address already has an account.");
   }
+  const given: string[] = [];
   for (const role of input.roles) {
     await rpcOrThrow(
       db.rpc("grant_role", {
@@ -397,7 +413,10 @@ async function inviteExisting(
         p_display_name: input.display_name,
         ...auditContext(actor),
       }),
-    );
+    ).catch((failure: unknown) => {
+      throw partialInvite(userId, given, failure);
+    });
+    given.push(role);
   }
   return { user_id: userId, mailed: false };
 }

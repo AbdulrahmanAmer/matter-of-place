@@ -721,5 +721,14 @@
     "sql": "create or replace function public.user_id_by_email(p_email text) returns uuid language sql stable security definer set search_path = '' as $$ select u.id from auth.users u where u.email = p_email limit 1; $$;",
     "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"finds the user of an address ignoring case\"",
     "expect": "FAIL .*account\\.db\\.test\\.ts > user_id_by_email > finds the user of an address ignoring case, and answers null for an address nobody holds"
+  },
+  {
+    "id": "w6-7h-invite-partial-named",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "    given.push(role);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*names the roles already given when a later grant of an existing account fails"
   }
 ]
