@@ -2006,3 +2006,20 @@ first day of the new usage week; no step was cut from any plan.
   (7) Lead copy reworded. `tests/mutations/W7-2.json` holds 28 entries (24 file, 4 sql), all WATCHED-FAIL OK.
   UNPROVEN: the function on the real database (stub native cluster only; the CI db job counts), the route and service
   end to end, a real reply read through the screen. Bank grew: P-3551.
+- 2026-10-16 05:10 +0300: orchestrator. PR 445 merged (CI green incl. e2e) and proven live: robots.txt serves
+  `Content-Signal: search=yes, ai-input=yes, ai-train=no`; /markets headings 1,2,2,2,2,2,2,2 and /california/guide
+  1,2,2,2,2 (no skips); PageSpeed mobile accessibility 100 on both (was 98). Fairfield lane test (4a3c2563, 2400 Azure
+  Pl, contact dave@omnikom.io): verdict FAIL from Julian (01:13, five reasons: builder house, vinyl and stock finishes,
+  no place story, a $4,300/month rental, five thin photographs) and from Matter (04:56). Nothing posted, nothing sent to
+  the owner. Drive `Social Media/{Carousels,Posts}/2400 Azure Pl, Fairfield (TEST)`: Instagram carousel 3 x 1080x1350,
+  LinkedIn 3 x 1080x1080, Instagram post 1080x1350, covers for LinkedIn 1200x627, X 1200x675, generic 1200x630; no
+  price on any (a rental). Found and sent back: inner slides and the single post had an empty third of black (template
+  fixed by Matter: no price means the title takes the line); the Instagram post size was missing (added); the studio
+  refused the first reel (glow and gradient, gate right); the second reel is all abstract models with a flat-roofed
+  house, which breaks H110 (a property piece shows its own photographs): Matter building the route and review fix in
+  `od-reelphotos`. Gaps the test proved: colleagues' desks sealed (role toolkits, in review), a colleague not woken
+  after her files landed (P-3602), Julian read the old bounce record, Matter's key may not file Start review.
+  Overdrive at 05:05 (Matter's live state): nothing merged into overdrive/finish yet; w6-7, w7-9 in fix builds; w7-7
+  fixed, waits re-review; w8-0d built, waits review; w7-4 fix and W8 0h (inbound mail) not started, told to fill the
+  two free builder slots now and merge each item into overdrive/finish as its review passes. Matter's live-state.md was
+  2 h stale while he worked; he now rewrites it at every step boundary. OPERATOR'S: Cloudflare MFA for admin@.
