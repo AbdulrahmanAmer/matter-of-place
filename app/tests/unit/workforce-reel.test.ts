@@ -7,6 +7,7 @@ import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
   briefId,
   COPY_RULE,
+  deskPhoto,
   GATE_RULES,
   mediaFor,
   nextReel,
@@ -49,6 +50,7 @@ function deps(
   return {
     db,
     download: () => Promise.resolve(new Uint8Array([1])),
+    desk: () => new Uint8Array([2]),
     design: (folder) => {
       log.push("design");
       for (const file of ["scene.html", "scene.mjs", "cues.mjs"]) {
@@ -357,5 +359,132 @@ describe("Social and Campaigns ask for a reel (W7 item 20)", () => {
     );
     const folder = queueReel(brand, from, studio());
     expect(briefId(folder)).toBe(brief(folder).id);
+  });
+});
+
+describe("a reel about a property shows that property's own photographs (H110)", () => {
+  const own = {
+    ...brand,
+    name: "Fairfield",
+    kind: "campaign" as const,
+    photos: [
+      "requests/r1/photos/1-front-from-the-street.jpg",
+      "requests/r1/photos/2-entry-stair.jpg",
+    ],
+  };
+  const sceneWith = (text: string): Partial<ReelDeps> => ({
+    design: (folder) => {
+      for (const file of ["scene.html", "cues.mjs"])
+        writeFileSync(join(folder, "scene", file), "x");
+      writeFileSync(join(folder, "scene", "scene.mjs"), text);
+      return Promise.resolve('{"duration_s": 18}');
+    },
+  });
+
+  it("takes the photographs of a property not on the site as the request's own, never for a brand piece", () => {
+    expect(reelRequestSchema.safeParse(own).success).toBe(true);
+    expect(reelRequestSchema.safeParse({ ...own, photos: undefined }).success).toBe(false);
+    expect(reelRequestSchema.safeParse({ ...brand, photos: own.photos }).success).toBe(false);
+  });
+
+  it("reads a picture from the requester's own work folder and refuses a path that leaves it or is no picture", () => {
+    const home = mkdtempSync(join(tmpdir(), "home-"));
+    const work = join(home, ".mop-workforce", "desks", "social", "work");
+    mkdirSync(join(work, "requests", "r1", "photos"), { recursive: true });
+    writeFileSync(join(work, "requests", "r1", "photos", "1-front.jpg"), "picture");
+    writeFileSync(join(work, "requests", "r1", "notes.md"), "notes");
+    writeFileSync(join(home, ".mop-workforce", "secret.jpg"), "not yours");
+    expect(
+      Buffer.from(deskPhoto("social", "requests/r1/photos/1-front.jpg", home)).toString(),
+    ).toBe("picture");
+    const refused = (agent: string, rel: string) => {
+      try {
+        deskPhoto(agent, rel, home);
+        return "read";
+      } catch (failure) {
+        return failure instanceof Error ? failure.message.split(":")[0] : "other";
+      }
+    };
+    expect([
+      refused("social", "../../../secret.jpg"),
+      refused("social", "requests/r1/notes.md"),
+      refused("social", "requests/r1/photos"),
+      refused("social/../editor", "requests/r1/photos/1-front.jpg"),
+      refused("social", "requests/r1/photos/missing.jpg"),
+    ]).toEqual([
+      "photo_refused",
+      "photo_refused",
+      "photo_refused",
+      "photo_refused",
+      "photo_unavailable",
+    ]);
+  });
+
+  it("films a property reel from the request's pictures, tells the reviewer to look for them, and keeps the film out of Visuals when the property is not on the site", async () => {
+    const root = studio();
+    const folder = queueReel(own, from, root);
+    const log: string[] = [];
+    const db = recording();
+    const seen: string[] = [];
+    const run = deps(
+      {
+        ...sceneWith("for (const shot of spec.shots) draw(shot.src)"),
+        download: () => Promise.reject(new Error("the bucket is for the site's own pictures")),
+        desk: (agent, rel) => {
+          seen.push(`${agent} ${rel}`);
+          return new Uint8Array([3]);
+        },
+        review: (_folder, _mp4, prompt) => {
+          seen.push(prompt);
+          return Promise.resolve('{"pass": true, "reasons": []}');
+        },
+      },
+      log,
+      db,
+    );
+    expect(await reelPass(run, root)).toBe("reel Fairfield: done (kept in the studio)");
+    expect(seen.slice(0, 2)).toEqual([
+      "social requests/r1/photos/1-front-from-the-street.jpg",
+      "social requests/r1/photos/2-entry-stair.jpg",
+    ]);
+    expect(seen[2]).toMatch(
+      /2 of the subject's own photographs were supplied.*Refuse it if the stills show none/,
+    );
+    expect(readFileSync(join(folder, "shots", "0.jpg"))).toEqual(Buffer.from([3]));
+    expect([db.calls, log.some((line) => line.startsWith("upload"))]).toEqual([[], false]);
+    expect(brief(folder)).toMatchObject({ state: "done" });
+    expect(log.at(-1)).toContain("not on the site, so it is not in Visuals");
+  });
+
+  it("sends back a scene that draws none of the photographs, before any film is made", async () => {
+    const root = studio();
+    queueReel(own, from, root);
+    const log: string[] = [];
+    const run = deps(sceneWith("drawHouseModel()"), log);
+    expect(await reelPass(run, root)).toMatch(
+      /^reel Fairfield: failed \(gate_failed: scene\.mjs does not draw spec\.shots/,
+    );
+    expect(log.filter((line) => line === "render")).toEqual([]);
+  });
+
+  it("tells the designer to show the photographs and the reviewer to refuse a drawn house", () => {
+    const queued: Brief = {
+      id: "8d5f2c1e-1a2b-4c3d-9e8f-0a1b2c3d4e5f",
+      at: "2026-10-15T09:00:00Z",
+      request: own,
+      from,
+      state: "queued",
+    };
+    expect(
+      scenePrompt(queued, [{ key: "k", alt: "front", orientation: "landscape", file: "0.jpg" }]),
+    ).toMatch(/Never draw, model or imitate the house/);
+    expect(scenePrompt({ ...queued, request: brand }, [])).not.toMatch(
+      /Never draw, model or imitate/,
+    );
+    expect(reviewPrompt(queued, 5)).toMatch(
+      /a drawing or a model of a house stands in for the subject \(a drawn house is not the house\)/,
+    );
+    expect(reviewPrompt({ ...queued, request: brand })).toMatch(/shows no property's photographs/);
+    expect(REEL_TOOL_LINE).toMatch(/"photos".*a "brand" reel never shows a property/);
   });
 });
