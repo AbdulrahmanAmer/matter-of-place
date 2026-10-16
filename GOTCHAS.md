@@ -8565,3 +8565,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after any merge or script that touches `app/scripts/check-layout.mjs` (or any `.mjs`/`.json` a script rewrote), run `node --check` on it (one second, a parse, not a CI run); `merge-branch.sh` now does it after every merge.
 - proof: `node --check app/scripts/check-layout.mjs` prints `SyntaxError: Invalid or unexpected token` with the quote missing and nothing with it restored (2026-10-16).
 - added: 2026-10-16
+
+## P-3693 · `exactOptionalPropertyTypes` refuses `prop: undefined` for an optional prop: leave the key out
+- symptom: 2026-10-16, draft PR 447 CI round 3: six TS2375 errors in `src/templates/social/Carousel.tsx`: `marker: string | undefined` and `location={undefined}` against `marker?: string` and `location?: string`.
+- cause: the single-post counter was written as `marker: total > 1 ? "..." : undefined`, and the compact slide as `location={undefined}`; with no local `tsc` (no-local-CI order) nothing saw it before CI.
+- rule: build props so an absent value is left out (`...(cond ? { marker } : {})`), never set to `undefined`; a slide that drops a prop spreads a base object that never had it.
+- proof: CI `check` job, `tsc --noEmit -p tsconfig.json`: six TS2375 on the old shape, none on the new (run 38878332417 and its successor).
+- added: 2026-10-16
