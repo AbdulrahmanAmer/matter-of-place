@@ -81,6 +81,8 @@ export const rlsMatrix: Record<string, Access> = {
   email_messages: staffRead,
   // W4: written only by email_reply_record under the service role.
   email_replies: staffRead,
+  // W8 0h: written only by inbound_mail_record under the service role.
+  inbound_mail: staffRead,
   email_suppressions: staffRead,
   email_events: staffRead,
   channel_settings: { select: staffRoles, insert: automation, update: automation },

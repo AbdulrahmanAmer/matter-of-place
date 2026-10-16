@@ -78,7 +78,8 @@ begin
   if v_state = 'new' then
     -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's
     -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the
-    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text.
+    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text. A property offered to any other
+    -- address is handed to the Editor by the runner once the triage says so (inbound-mail.ts, handToEditor).
     v_owners := array[case when v_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];
     select a.slug, a.id into v_owner, v_agent
     from public.agents a
@@ -98,7 +99,9 @@ begin
     p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),
     left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),
     v_alias,
-    left(coalesce(p_subject, ''), 500), left(coalesce(p_body, ''), 6000),
+    -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.
+    left(coalesce(p_subject, ''), 500),
+    case when p_source = 'email_inbound' then left(coalesce(p_body, ''), 6000) else '' end,
     (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),
     p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),
     left(coalesce(p_summary, ''), 2000), p_report, v_owner, v_state
@@ -127,6 +130,11 @@ begin
     values ('matter', 'system', 'mailbox', 'Mailbox', left(p_line, 4000) || E'\nRecord: service_notice ' || v_id || '.')
     returning id into v_line;
     insert into public.agent_runs (agent_id, cause, message_id) values (v_agent, 'message', v_line);
+  elsif v_state = 'escalated' then
+    -- W8 0h review: with Matter off, the team is told, as for a person's email with no colleague on.
+    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
+    values ('team', 'system', 'system', 'Mailbox',
+      'A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).');
   end if;
   return v_id;
 end;

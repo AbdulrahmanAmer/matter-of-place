@@ -21,25 +21,6 @@ interface MediaRow {
 type MediaLister = "retention_declined_media" | "retention_accepted_media";
 type KeepCounter = "retention_anonymise_inquiries" | "retention_anonymise_contacts";
 
-const POLICY_KEYS = [
-  "declined_submission_media",
-  "accepted_submission_media",
-  "inquiries_anonymise",
-  "contacts_anonymise",
-  "analytics_events",
-  "analytics_daily",
-  "subject_requests",
-  "jobs_dead",
-  "events_processed",
-  "email_pii",
-  "unconfirmed_subscribers",
-  "cron_history",
-  "job_wait_events",
-  "agent_approvals_decided",
-  "agent_runs_finished",
-  "agent_messages",
-] as const;
-
 // The plain row deletes of retention_delete_rows, in order: jobs_dead before events_processed, so a dead job's event
 // goes with it once both are old enough (G16).
 const ROW_KEYS_BEFORE_EMAIL = [
@@ -180,7 +161,6 @@ export const retention: SystemJobDefinition = {
   async run(ctx, params) {
     const { db } = ctx;
     const dryRun = isDryRun(params);
-    const policies = await readPolicies(db, POLICY_KEYS);
     const after: Record<string, Tally> = {};
     // Each step runs only while its row is enabled with a period, in the order G16 needs.
     const steps: [string, (policy: Policy) => Promise<Tally>][] = [
@@ -211,6 +191,11 @@ export const retention: SystemJobDefinition = {
         () => counted((dry) => deleteRows(db, key, dry), dryRun),
       ]),
     ];
+    // W8 0h review: the policies read are the steps' own keys, so a step can never be added without its row being read.
+    const policies = await readPolicies(
+      db,
+      steps.map(([key]) => key),
+    );
 
     // The aggregates are written before the partitions they come from can be dropped.
     const rolledUp = dryRun ? 0 : await rollupRecentDays(ctx);

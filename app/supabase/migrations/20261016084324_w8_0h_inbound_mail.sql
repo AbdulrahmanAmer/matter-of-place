@@ -41,7 +41,9 @@ create table public.inbound_mail (
   state text not null default 'new' check (state in (
     'new', 'routed', 'held', 'escalated', 'recorded', 'ignored', 'spam', 'capped'
   )),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.
+  constraint inbound_mail_body_person_only check (source = 'email_inbound' or body = '')
 );
 create index inbound_mail_received_at_idx on public.inbound_mail (received_at desc, id desc);
 -- The hour's cap counts by source and creation time.

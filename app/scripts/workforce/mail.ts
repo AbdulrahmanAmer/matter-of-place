@@ -18,8 +18,10 @@ import { sortMessage, type Attachment } from "./service-notice.ts";
 const EVERY_MS = 5 * 60_000;
 const FIRST_LOOK_MS = 3 * 86_400_000;
 const PAGE = 50;
-/** At most this many pages of one folder a check; a folder with more new mail is named, never silently cut. */
-const MAX_PAGES = 6;
+/** At most this many pages listed to reach a folder's cursor; a folder with more new mail is named and not moved. */
+const MAX_PAGES = 40;
+/** At most this many new messages of one folder are read a check, oldest first; the rest wait for the next check. */
+export const PER_CHECK = 100;
 const OWN_DOMAIN = "matterofplace.com";
 /** The folders that are not mail sent to us (W8 0h); Sent is our own mail, already in `email_messages`. */
 export const SKIPPED_FOLDERS = ["Drafts", "Templates", "Sent", "Trash", "Outbox"] as const;
@@ -195,7 +197,7 @@ type Zoho = ReturnType<typeof zohoClient>;
 
 // ---------- the pass ----------
 
-/** When the mailbox was last checked, and per folder the newest message read (ms). */
+/** When the mailbox was last checked, and per folder the time up to which every message was handled (ms). */
 type Cursor = { checked: number; at: number; folders: Record<string, number> };
 
 function readCursor(file: string, now: number): Cursor {
@@ -241,13 +243,17 @@ async function knownIds(client: Db, ids: readonly string[]): Promise<Set<string>
 
 type Listed = z.infer<typeof messageSchema> & { received: number };
 
-/** A folder's messages newer than its cursor, oldest first; `more` when MAX_PAGES did not reach the cursor. */
+/**
+ * A folder's messages newer than its cursor, oldest first. The list call takes no date, and its oldest-first order
+ * starts at the folder's first message, so the pass lists newest first until it meets the cursor (or the folder's
+ * end); `reached` is false when MAX_PAGES did not get there, and then nothing of the folder is read (W8 0h review).
+ */
 async function newMessages(
   zoho: Zoho,
   account: string,
   folder: string,
   since: number,
-): Promise<{ rows: Listed[]; more: boolean }> {
+): Promise<{ rows: Listed[]; reached: boolean }> {
   const rows: Listed[] = [];
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const list = z
@@ -260,9 +266,19 @@ async function newMessages(
       .map((row) => ({ ...row, received: Number(row.receivedTime) }));
     rows.push(...list.filter((row) => row.received > since));
     if (list.length < PAGE || list.some((row) => row.received <= since))
-      return { rows: rows.sort((a, b) => a.received - b.received), more: false };
+      return { rows: rows.sort((a, b) => a.received - b.received), reached: true };
   }
-  return { rows: rows.sort((a, b) => a.received - b.received), more: true };
+  return { rows: [], reached: false };
+}
+
+/**
+ * Where a folder's cursor may stand once `rows[index]` (oldest first) was handled: at its time, or one millisecond
+ * before the next message when that one shares the time, so a message is never passed over unread.
+ */
+function cursorAfter(rows: readonly { received: number }[], index: number): number {
+  const here = rows[index]?.received ?? 0;
+  const next = rows[index + 1]?.received;
+  return next === undefined ? here : Math.min(here, next - 1);
 }
 
 /** A message's attachments: names always, bytes only for a report a service notice may carry. */
@@ -340,21 +356,21 @@ export async function checkMail(
       cursor.folders[folderId] ??
       (folder.folderType === "Inbox" && name === "Inbox" ? cursor.at : now - FIRST_LOOK_MS);
     try {
-      const { rows, more } = await newMessages(zoho, id, folderId, since);
-      if (more) done.unread.push(`${name} (more new mail than one check reads)`);
+      const { rows, reached } = await newMessages(zoho, id, folderId, since);
+      if (!reached) done.unread.push(`${name} (more new mail than one check can list)`);
+      // Oldest first, PER_CHECK at most; the cursor moves only over what was handled, so the rest is read next check.
+      const batch = rows.slice(0, PER_CHECK);
       const known = await knownIds(
         client,
-        rows.map((row) => row.messageId),
+        batch.map((row) => row.messageId),
       );
-      let newest = since;
-      for (const row of rows) {
+      for (const [index, row] of batch.entries()) {
         if (!known.has(row.messageId)) {
           const kind = await oneMessage(client, zoho, id, folderId, folder, name, row);
           if (kind === "reply") done.replies += 1;
           if (kind === "inbound") done.inbound += 1;
         }
-        newest = Math.max(newest, row.received);
-        next.folders[folderId] = newest;
+        next.folders[folderId] = Math.max(since, cursorAfter(rows, index));
       }
     } catch (failure: unknown) {
       console.log(
@@ -415,7 +431,8 @@ async function oneMessage(
     receivedAt: row.received,
     header,
     content: await readContent(),
-    // Report bytes are fetched only for an authenticated service's notice (sortMessage reads the header first).
+    // Report bytes are fetched for every authenticated service's notice, whatever its folder (sortMessage reads the
+    // header first); nobody else's attachment is ever opened.
     attachments: has
       ? await attachmentsOf(
           zoho,
@@ -427,7 +444,7 @@ async function oneMessage(
             subject: row.subject,
             header,
             automatic,
-          }).state === "escalated",
+          }).source === "service_notice",
         )
       : [],
     automatic,

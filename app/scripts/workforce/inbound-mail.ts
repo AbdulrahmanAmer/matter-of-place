@@ -86,7 +86,13 @@ export function inboundRecord(message: InboundMessage): Recorded {
     header: message.header,
     automatic: message.automatic,
   });
-  const notice = readNotice(sorted, message.attachments);
+  const notice = readNotice(sorted, {
+    attachments: message.attachments,
+    folderName: message.folder.name,
+    header: message.header,
+    from: message.from,
+    content: message.content,
+  });
   const alias = aliasOf(message.header);
   const line =
     notice.state === "escalated"
@@ -97,6 +103,7 @@ export function inboundRecord(message: InboundMessage): Recorded {
           from: message.from,
           subject: message.subject,
           summary: notice.summary,
+          detail: notice.detail,
           reports: notice.reports,
         })
       : "";
@@ -110,7 +117,10 @@ export function inboundRecord(message: InboundMessage): Recorded {
       p_name: message.fromName,
       p_alias: alias ?? "",
       p_subject: message.subject,
-      p_body: plainText(message.content).slice(0, BODY_CAP),
+      // W8 0h review: a service's or our own mail keeps its subject and labels, never its body (login and verification
+      // codes of the accounts on admin@ arrive that way); a person's email keeps its words for the person who answers.
+      p_body:
+        sorted.source === "email_inbound" ? plainText(message.content).slice(0, BODY_CAP) : "",
       p_received_at: new Date(message.receivedAt).toISOString(),
       p_attachments: message.attachments.map((attachment) => attachment.name),
       p_source: sorted.source,
@@ -142,7 +152,12 @@ export async function noteTriage(
   gate: "inside" | "not_owner" | "hold" | "answer" | "explain",
 ): Promise<void> {
   // An explanation (W8 0d) is the owner's run on a line already held: the row already says held.
-  if (triage?.source !== "email_inbound" || gate === "inside" || gate === "not_owner" || gate === "explain")
+  if (
+    triage?.source !== "email_inbound" ||
+    gate === "inside" ||
+    gate === "not_owner" ||
+    gate === "explain"
+  )
     return;
   const id = /^email_inbound ([0-9a-f-]{36})$/.exec(triage.about)?.[1];
   if (id === undefined) return;
@@ -155,4 +170,45 @@ export async function noteTriage(
     .eq("id", id)
     .eq("source", "email_inbound");
   if (error !== null) console.log("mail: the triage of an inbound message was not written back");
+}
+
+/**
+ * W8 0h review (H121 (1)): a person offering a property is the Editor's, whatever address they wrote to. The SQL chose
+ * the owner by alias; when another colleague's triage says `list_a_property` and the message may be answered, the run
+ * is handed to the Editor on the same event (the Editor's own run triages it again) and the row names the Editor. True
+ * when it was handed, so this run ends; false when it is the Editor's already, the Editor is off, or anything failed.
+ */
+export async function handToEditor(
+  client: Db,
+  triage: Triage | null,
+  gate: "inside" | "not_owner" | "hold" | "answer" | "explain",
+  agentSlug: string,
+  eventId: string | null,
+): Promise<boolean> {
+  if (triage?.source !== "email_inbound" || triage.intent !== "list_a_property") return false;
+  if (gate !== "answer" || agentSlug === "editor" || eventId === null) return false;
+  const id = /^email_inbound ([0-9a-f-]{36})$/.exec(triage.about)?.[1];
+  if (id === undefined) return false;
+  const { data: editor } = await client
+    .from("agents")
+    .select("id")
+    .eq("slug", "editor")
+    .neq("state", "off")
+    .limit(1);
+  const editorId = editor?.[0]?.id;
+  if (editorId === undefined) return false;
+  const { error } = await client
+    .from("agent_runs")
+    .upsert([{ agent_id: editorId, cause: "event", event_id: eventId }], {
+      onConflict: "agent_id,event_id",
+      ignoreDuplicates: true,
+    });
+  if (error !== null) return false;
+  const { error: named } = await client
+    .from("inbound_mail")
+    .update({ owner_slug: "editor" })
+    .eq("id", id)
+    .eq("source", "email_inbound");
+  if (named !== null) console.log("mail: the new owner of an inbound message was not written back");
+  return true;
 }

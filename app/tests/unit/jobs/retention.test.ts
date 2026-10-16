@@ -79,7 +79,13 @@ function setup({ keys = ALL_KEYS, declined = 0, storageFails = false }: Setup = 
   return Object.assign(db, {
     from: (name: string) => {
       db.calls.push({ kind: "from", name, args: [] });
-      return { select: () => ({ in: () => Promise.resolve({ data: rows, error: null }) }) };
+      // Like the database, only the rows whose key the job asked for come back (W8 0h review).
+      return {
+        select: () => ({
+          in: (_column: string, asked: readonly string[]) =>
+            Promise.resolve({ data: rows.filter((row) => asked.includes(row.key)), error: null }),
+        }),
+      };
     },
   });
 }

@@ -140,6 +140,56 @@ describe("inbound mail", () => {
     expect(seen).toEqual({ runs: 0, lines: 0 });
   });
 
+  it("keeps no body for a service's or our own mail, and the table refuses one", async () => {
+    const seen = await withRollback(async (db) => {
+      const notice = await record(db, { source: "service_notice", state: "recorded" });
+      const ours = await record(db, { source: "our_mail", state: "ignored" });
+      const person = await record(db, { state: "spam" });
+      const bodies = await db.query<{ source: string; body: string }>(
+        "select source, body from public.inbound_mail where id = any ($1::uuid[]) order by source",
+        [[notice, ours, person]],
+      );
+      const refused = await db
+        .query(
+          `insert into public.inbound_mail (provider_id, folder, received_at, source, body)
+           values ('w8-0h-body', 'Inbox', now(), 'service_notice', 'Your code is 123456')`,
+        )
+        .then(
+          () => "inserted",
+          (failure: unknown) => (failure instanceof Error ? failure.message : String(failure)),
+        );
+      return { bodies: bodies.rows, refused };
+    });
+    expect(seen.bodies).toEqual([
+      { source: "email_inbound", body: "Is it available?" },
+      { source: "our_mail", body: "" },
+      { source: "service_notice", body: "" },
+    ]);
+    expect(seen.refused).toContain("inbound_mail_body_person_only");
+  });
+
+  it("tells the team when a service notice arrives with Matter off, and queues no run", async () => {
+    const seen = await withRollback(async (db) => {
+      await db.query("update public.agents set state = 'off' where slug = 'matter'");
+      await record(db, {
+        source: "service_notice",
+        state: "escalated",
+        line: "@matter A notice from Google arrived in the Notification folder.",
+      });
+      const lines = await db.query<{ thread: string; body: string }>(
+        "select thread, body from public.agent_messages order by created_at",
+      );
+      return { lines: lines.rows, matter: await runsOf(db, "matter") };
+    });
+    expect(seen.lines).toEqual([
+      {
+        thread: "team",
+        body: "A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).",
+      },
+    ]);
+    expect(seen.matter).toEqual([]);
+  });
+
   it("keeps a person's email past the hour's cap for a person, and tells the team once", async () => {
     const seen = await withRollback(async (db) => {
       for (let index = 0; index < 20; index += 1) await record(db);

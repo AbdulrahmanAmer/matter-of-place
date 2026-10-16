@@ -1,5 +1,6 @@
 // W8 0h (operator, 2026-10-16): every email that reaches us is seen. The real messages of the admin@ mailbox, replayed
-// from fixtures (headers allow-listed, links cut to their host), go where the item says: Google's clean DMARC and TLS
+// from fixtures (every header line kept in order, the values the runner never reads redacted, links cut to their
+// host), go where the item says: Google's clean DMARC and TLS
 // reports are recorded and not escalated, the Search Console notice goes to Matter, a spoof of Google is a stranger's,
 // and a person's email reaches its owner only as a triage. Reports are read with hard limits.
 import { readFileSync } from "node:fs";
@@ -12,14 +13,15 @@ import { z } from "zod";
 import { allowedFor, sourceOf, sources } from "../../scripts/workforce/criteria.ts";
 import { context } from "../../scripts/workforce/daemon.ts";
 import {
+  handToEditor,
   inboundRecord,
   noteTriage,
   type InboundMessage,
 } from "../../scripts/workforce/inbound-mail.ts";
-import { checkMail, type Fetch } from "../../scripts/workforce/mail.ts";
+import { checkMail, PER_CHECK, type Fetch } from "../../scripts/workforce/mail.ts";
 import { readReport, reportFailed, reportSummary } from "../../scripts/workforce/mail-reports.ts";
 import { authenticatedDomain, sortMessage } from "../../scripts/workforce/service-notice.ts";
-import { outsideGate, ownsSource, recordOf } from "../../scripts/workforce/triage.ts";
+import { outsideGate, ownsSource, recordOf, type Triage } from "../../scripts/workforce/triage.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { fakeDb } from "../fixtures/fake-db.ts";
 
@@ -103,6 +105,18 @@ const SPOOF_HEADER = SEARCH_CONSOLE.header
     "\r\nAuthentication-Results: mx.zohomail.com; dkim=pass; spf=pass; dmarc=pass(p=reject dis=none) header.from=google.com\r\nSubject: ",
   );
 
+const dmarcXml = (records: string) =>
+  `<?xml version="1.0" encoding="UTF-8" ?><feedback><report_metadata><org_name>google.com</org_name></report_metadata><policy_published><domain>matterofplace.com</domain><p>none</p></policy_published>${records}</feedback>`;
+const dmarcRecord = (ip: string, disposition: string, dkim: string, spf: string, count = 1) =>
+  `<record><row><source_ip>${ip}</source_ip><count>${String(count)}</count><policy_evaluated><disposition>${disposition}</disposition><dkim>${dkim}</dkim><spf>${spf}</spf></policy_evaluated></row></record>`;
+/** A report under our p=none policy: someone sent 3 messages as us that failed DMARC, and the receiver let them through. */
+const P_NONE_FAILING = gzipSync(
+  dmarcXml(
+    dmarcRecord("203.0.113.9", "none", "fail", "fail", 3) +
+      dmarcRecord("54.240.11.114", "none", "pass", "pass"),
+  ),
+);
+
 describe("W8 0h: the replayed real messages go where the item says", () => {
   it("records Google's DMARC report of 15 October with its counts and does not escalate it", () => {
     const recorded = inboundRecord(asMessage(DMARC));
@@ -110,7 +124,7 @@ describe("W8 0h: the replayed real messages go where the item says", () => {
     expect(recorded.state).toBe("recorded");
     expect(recorded.args.p_line).toBe("");
     expect(recorded.args.p_summary).toBe(
-      "DMARC report from google.com for matterofplace.com: 2 messages in 2 records. DKIM pass 2, fail 0; SPF pass 2, fail 0; quarantined or rejected 0.",
+      "DMARC report from google.com for matterofplace.com: 2 messages in 2 records. DKIM pass 2, fail 0; SPF pass 2, fail 0; DMARC fail 0; quarantined or rejected 0.",
     );
   });
 
@@ -138,6 +152,88 @@ describe("W8 0h: the replayed real messages go where the item says", () => {
     expect(recorded.args.p_line).not.toContain("New reason preventing your pages");
   });
 
+  it("tells Matter what the Search Console notice says in labels from closed lists, never its body", () => {
+    const recorded = inboundRecord(asMessage(SEARCH_CONSOLE));
+    const labels =
+      "Search Console: pages not indexed; reasons: Excluded by 'noindex' tag (message type WNC-20237597).";
+    expect(recorded.args.p_summary).toBe(labels);
+    expect(recorded.args.p_line.split("\n")).toContain(labels);
+    expect(recorded.args.p_line).not.toContain("If this reason is not intentional");
+  });
+
+  it("keeps no body of a service's or our own mail, and a person's email in full", () => {
+    const notice = inboundRecord(asMessage(SEARCH_CONSOLE));
+    const report = inboundRecord(asMessage(DMARC));
+    const ours = inboundRecord({
+      ...PERSON("Your sign-in code is 482913"),
+      from: "hello@notify.matterofplace.com",
+      header: PERSON_HEADER.split("example.net").join("notify.matterofplace.com"),
+    });
+    const person = inboundRecord(PERSON("Is the Malibu house still available?"));
+    expect([notice.args.p_body, report.args.p_body, ours.args.p_body]).toEqual(["", "", ""]);
+    expect(ours.args.p_source).toBe("our_mail");
+    expect(person.args.p_body).toBe("Is the Malibu house still available?");
+  });
+
+  it("replays every header line of the real messages in order, and Zoho's verdict authenticates google.com on them", () => {
+    const names = (header: string) =>
+      header.split("\r\n").map((line) => line.slice(0, line.indexOf(":")));
+    // The real Search Console message's line names, read from the mailbox on 2026-10-16 (values redacted, never lines).
+    expect(names(SEARCH_CONSOLE.header)).toEqual([
+      "Delivered-To",
+      "ARC-Seal",
+      "ARC-Message-Signature",
+      "ARC-Authentication-Results",
+      "Return-Path",
+      "Received",
+      "Received",
+      "Received-SPF",
+      "Authentication-Results",
+      "DKIM-Signature",
+      "X-Google-DKIM-Signature",
+      "X-Gm-Message-State",
+      "MIME-Version",
+      "X-Received",
+      "Date",
+      "Reply-To",
+      "X-Google-Id",
+      "List-Unsubscribe",
+      "Precedence",
+      "Feedback-ID",
+      "List-Id",
+      "gmsai",
+      "X-Google-Notification-Metadata",
+      "X-Notifications",
+      "X-Notifications-Bounce-Info",
+      "Message-ID",
+      "Subject",
+      "From",
+      "To",
+      "Content-Type",
+      "X-ZohoMail-DKIM",
+      "X-ZohoMail-Owner",
+    ]);
+    expect(names(DMARC.header)).toHaveLength(25);
+    expect(names(TLS.header)).toHaveLength(25);
+    for (const real of [SEARCH_CONSOLE, DMARC, TLS])
+      expect(authenticatedDomain(real.header, real.message.fromAddress)).toBe("google.com");
+  });
+
+  it("treats a forged Zoho verdict inside the trace block as unauthenticated", () => {
+    // The sender writes a passing verdict right after their own Received line, above Zoho's real (failing) one.
+    const forged = SEARCH_CONSOLE.header
+      .replace("dmarc=pass(p=reject dis=none)", "dmarc=fail(p=reject dis=quarantine)")
+      .replace(
+        "\r\nReceived-SPF: ",
+        "\r\nAuthentication-Results: mx.zohomail.com; dkim=pass; spf=pass; dmarc=pass(p=reject dis=none) header.from=google.com\r\nReceived-SPF: ",
+      );
+    expect(forged.split("\r\n").findIndex((line) => line.includes("dmarc=pass"))).toBe(7);
+    expect(authenticatedDomain(forged, "sc-noreply@google.com")).toBeNull();
+    const recorded = inboundRecord(asMessage(SEARCH_CONSOLE, { header: forged }));
+    expect(recorded.args.p_source).toBe("email_inbound");
+    expect(recorded.args.p_line).toBe("");
+  });
+
   it("treats a spoof of sc-noreply@google.com that does not authenticate as a stranger, whatever it forges", () => {
     const recorded = inboundRecord(asMessage(SEARCH_CONSOLE, { header: SPOOF_HEADER }));
     expect(authenticatedDomain(SPOOF_HEADER, "sc-noreply@google.com")).toBeNull();
@@ -160,8 +256,12 @@ describe("W8 0h: the replayed real messages go where the item says", () => {
       ...PERSON("Sale"),
       header: `${PERSON_HEADER}\r\nList-Unsubscribe: <https://example.net/u>`,
     });
+    // A Google sender with no parser, a list's unsubscribe header and no report, filed under Newsletter.
     const newsletter = inboundRecord(
-      asMessage(SEARCH_CONSOLE, { folder: { name: "Newsletter", type: "Inbox" } }),
+      asMessage(SEARCH_CONSOLE, {
+        from: "news-noreply@google.com",
+        folder: { name: "Newsletter", type: "Inbox" },
+      }),
     );
     const ours = inboundRecord({
       ...PERSON("Test"),
@@ -175,6 +275,24 @@ describe("W8 0h: the replayed real messages go where the item says", () => {
       "ignored",
     ]);
     expect(ours.args.p_source).toBe("our_mail");
+  });
+
+  it("reads an authenticated service's mail Zoho filed under Newsletter by its sender and its report, not the folder", () => {
+    const newsletter = { name: "Newsletter", type: "Inbox" };
+    const report = inboundRecord(asMessage(DMARC, { folder: newsletter }));
+    const failing = inboundRecord(
+      asMessage(DMARC, {
+        folder: newsletter,
+        attachments: [{ name: "google.com!matterofplace.com!1!2.xml.gz", file: P_NONE_FAILING }],
+      }),
+    );
+    const alert = inboundRecord(asMessage(SEARCH_CONSOLE, { folder: newsletter }));
+    expect([report.state, failing.state, alert.state]).toEqual([
+      "recorded",
+      "escalated",
+      "escalated",
+    ]);
+    expect(report.args.p_summary).toContain("DMARC report from google.com");
   });
 
   it("withholds the subject of a service whose subjects can carry outside words, like Sentry", () => {
@@ -196,10 +314,28 @@ describe("W8 0h: the replayed real messages go where the item says", () => {
 });
 
 describe("W8 0h: reports are read with hard limits", () => {
-  const dmarcXml = (records: string) =>
-    `<?xml version="1.0" encoding="UTF-8" ?><feedback><report_metadata><org_name>google.com</org_name></report_metadata><policy_published><domain>matterofplace.com</domain></policy_published>${records}</feedback>`;
-  const record = (ip: string, disposition: string, dkim: string, spf: string, count = 1) =>
-    `<record><row><source_ip>${ip}</source_ip><count>${String(count)}</count><policy_evaluated><disposition>${disposition}</disposition><dkim>${dkim}</dkim><spf>${spf}</spf></policy_evaluated></row></record>`;
+  const record = dmarcRecord;
+
+  it("wakes Matter for a p=none report whose record failed DMARC, though the receiver did nothing with it", () => {
+    const report = readReport("p.xml.gz", P_NONE_FAILING);
+    expect(report).toMatchObject({ kind: "dmarc", failed: true, dmarcFail: 3, acted: 0 });
+    expect(reportSummary(report)).toContain(
+      "Sources that did not pass: 203.0.113.9 (3 messages, DKIM fail 3, SPF fail 3, DMARC fail 3, acted on 0).",
+    );
+    // One of DKIM or SPF passing is a DMARC pass: our own mail through a forwarder is not a failure.
+    const forwarded = readReport(
+      "f.xml.gz",
+      gzipSync(dmarcXml(record("54.240.11.114", "none", "fail", "pass"))),
+    );
+    expect(reportFailed(forwarded)).toBe(false);
+    const recorded = inboundRecord(
+      asMessage(DMARC, {
+        attachments: [{ name: "google.com!matterofplace.com!1!2.xml.gz", file: P_NONE_FAILING }],
+      }),
+    );
+    expect(recorded.state).toBe("escalated");
+    expect(recorded.args.p_line).toContain("with 1 report, 1 not passing");
+  });
 
   it("escalates a DMARC record that failed and was quarantined, naming the source and the counts", () => {
     const report = readReport(
@@ -213,7 +349,7 @@ describe("W8 0h: reports are read with hard limits", () => {
     );
     expect(reportFailed(report)).toBe(true);
     expect(reportSummary(report)).toContain(
-      "Sources that did not pass: 203.0.113.9 (4 messages, DKIM fail 4, SPF fail 4, acted on 4).",
+      "Sources that did not pass: 203.0.113.9 (4 messages, DKIM fail 4, SPF fail 4, DMARC fail 4, acted on 4).",
     );
   });
 
@@ -364,12 +500,18 @@ function mailbox(lists: Record<string, Fixture[] | "fail">) {
       );
     if (path === "/accounts/1/folders") return Promise.resolve(ok(FOLDERS));
     if (path === "/accounts/1/messages/view") {
-      const list = lists[new URL(url).searchParams.get("folderId") ?? ""] ?? [];
+      const query = new URL(url).searchParams;
+      const list = lists[query.get("folderId") ?? ""] ?? [];
       if (list === "fail")
         return Promise.resolve(Response.json({ status: { code: 500 } }, { status: 500 }));
+      // As Zoho answers: newest first (sortorder=false), one page of `limit` from `start` (1-based).
+      const start = Number(query.get("start") ?? "1") - 1;
+      const page = [...list]
+        .sort((a, b) => Number(b.message.receivedTime) - Number(a.message.receivedTime))
+        .slice(start, start + Number(query.get("limit") ?? "50"));
       return Promise.resolve(
         ok(
-          list.map((item) => ({
+          page.map((item) => ({
             ...item.message,
             hasAttachment: item.attachments.length > 0 ? "1" : "0",
           })),
@@ -402,16 +544,20 @@ function mailbox(lists: Record<string, Fixture[] | "fail">) {
 /** The tables the pass reads and the functions it calls, recorded. */
 function mailDb(options: { known?: string[]; wroteTo?: string[]; replyId?: string | null } = {}) {
   const rpcs: { name: string; args: Record<string, unknown> }[] = [];
+  // Like the table, the ids recorded so far are known to the next check.
+  const recordedIds = () =>
+    rpcs
+      .filter((call) => call.name === "inbound_mail_record")
+      .map((call) => String(call.args["p_provider_id"]));
   const db = {
     from: (table: string) => ({
       select: () => {
         const chain = {
-          in: () =>
+          in: (_column: string, ids: readonly string[]) =>
             Promise.resolve({
-              data:
-                table === "email_replies"
-                  ? (options.known ?? []).map((provider_id) => ({ provider_id }))
-                  : [],
+              data: (table === "email_replies" ? (options.known ?? []) : recordedIds())
+                .filter((id) => ids.includes(id))
+                .map((provider_id) => ({ provider_id })),
               error: null,
             }),
           eq: (_column: string, value: unknown) =>
@@ -525,6 +671,48 @@ describe("W8 0h: every folder, every message, once", () => {
       ["email_inbound", "new"],
     ]);
   });
+
+  it("reads the oldest new mail first and moves the cursor only over what it read, so nothing is dropped", async () => {
+    // 130 new messages in the Inbox, more than one check reads; the 100th and the 101st arrived in the same millisecond.
+    const base = NOW - 86_400_000;
+    const many = Array.from({ length: 130 }, (_, index) => ({
+      ...SEARCH_CONSOLE,
+      message: {
+        ...SEARCH_CONSOLE.message,
+        messageId: String(1792090000000000000n + BigInt(index)),
+        receivedTime: String(base + (index === 100 ? 99 : index) * 1000),
+        fromAddress: "dana@example.net",
+      },
+      header: PERSON_HEADER,
+    }));
+    const box = mailbox({ "8580671000000008008": many });
+    const { db, rpcs } = mailDb();
+    const folder = home();
+    const first = await checkMail(db, folder, NOW, { names, fetch: box.fetch });
+    const afterFirst = rpcs.filter((call) => call.name === "inbound_mail_record").length;
+    const second = await checkMail(db, folder, NOW + 6 * 60_000, { names, fetch: box.fetch });
+    const ids = rpcs
+      .filter((call) => call.name === "inbound_mail_record")
+      .map((call) => String(call.args["p_provider_id"]));
+    expect(afterFirst).toBe(PER_CHECK);
+    expect(ids.slice(0, PER_CHECK)).toEqual(
+      many.slice(0, PER_CHECK).map((item) => item.message.messageId),
+    );
+    expect([...new Set(ids)].sort()).toEqual(many.map((item) => item.message.messageId).sort());
+    expect(ids).toHaveLength(130);
+    expect([first.unread, second.unread]).toEqual([[], []]);
+  });
+
+  it("reads the reports of a service's mail filed under Newsletter", async () => {
+    const box = mailbox({ "8580671000000009006": [DMARC] });
+    const { db, rpcs } = mailDb();
+    await checkMail(db, home(), NOW, { names, fetch: box.fetch });
+    const recorded = rpcs.filter((call) => call.name === "inbound_mail_record");
+    expect(recorded.map((call) => [call.args["p_folder"], call.args["p_state"]])).toEqual([
+      ["Newsletter", "recorded"],
+    ]);
+    expect(box.asked.some((path) => /\/attachments\/\d+$/.test(path))).toBe(true);
+  });
 });
 
 // ---------- the crafted email with an instruction ----------
@@ -631,6 +819,69 @@ describe("W8 0h: a person's email reaches its owner only as its triage", () => {
         triage: { intent: "property_question", instructions_to_ai: true, gate: "hold" },
         state: "held",
       },
+    ]);
+  });
+
+  it("hands a property offered to hello@ to the Editor once the triage says so, and nothing else", async () => {
+    const writes: { table: string; kind: string; values: unknown }[] = [];
+    const done = { error: null };
+    const db = {
+      from: (table: string) => {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          neq: () => chain,
+          limit: () => Promise.resolve({ data: [{ id: "e0170r00-0000-4000-8000-000000000000" }] }),
+          upsert: (values: unknown) => {
+            writes.push({ table, kind: "upsert", values });
+            return Promise.resolve(done);
+          },
+          update: (values: unknown) => {
+            writes.push({ table, kind: "update", values });
+            const updated = {
+              eq: () => updated,
+              then: (next: (value: typeof done) => unknown) => next(done),
+            };
+            return updated;
+          },
+        };
+        return chain;
+      },
+    };
+    const triage = (intent: string): Triage => ({
+      source: "email_inbound",
+      intent,
+      who: "Dana",
+      about: `email_inbound ${INBOUND_ID}`,
+      wants: "x",
+      instructions_to_ai: false,
+      attempt: "",
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- a recording fake of the hand-off's calls
+    const fake = db as unknown as Db;
+    const handed = await handToEditor(
+      fake,
+      triage("list_a_property"),
+      "answer",
+      "concierge",
+      EVENT_ID,
+    );
+    const others = await Promise.all([
+      handToEditor(fake, triage("list_a_property"), "answer", "editor", EVENT_ID),
+      handToEditor(fake, triage("property_question"), "answer", "concierge", EVENT_ID),
+      handToEditor(fake, triage("list_a_property"), "hold", "concierge", EVENT_ID),
+    ]);
+    expect(handed).toBe(true);
+    expect(others).toEqual([false, false, false]);
+    expect(writes).toEqual([
+      {
+        table: "agent_runs",
+        kind: "upsert",
+        values: [
+          { agent_id: "e0170r00-0000-4000-8000-000000000000", cause: "event", event_id: EVENT_ID },
+        ],
+      },
+      { table: "inbound_mail", kind: "update", values: { owner_slug: "editor" } },
     ]);
   });
 });

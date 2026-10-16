@@ -23,6 +23,8 @@ export type SourceCount = {
   dkimFail: number;
   spfPass: number;
   spfFail: number;
+  /** Messages DMARC itself failed: neither DKIM nor SPF passed in the receiver's evaluation. */
+  dmarcFail: number;
   /** Messages the receiver quarantined or rejected. */
   acted: number;
 };
@@ -37,9 +39,14 @@ export type DmarcReport = {
   dkimFail: number;
   spfPass: number;
   spfFail: number;
+  dmarcFail: number;
   acted: number;
   sources: SourceCount[];
-  /** A record whose DKIM or SPF did not pass and which the receiver did not leave alone (disposition other than none). */
+  /**
+   * A record DMARC failed (neither DKIM nor SPF passed in `policy_evaluated`), whatever the receiver did with it: our
+   * published policy is p=none (ASSUMED A20), so every disposition is none and only DMARC's own verdict can say that
+   * someone sends as us or that our own signing broke (W8 0h review).
+   */
   failed: boolean;
 };
 
@@ -170,8 +177,11 @@ export function parseDmarc(xmlBytes: Buffer): DmarcReport {
     const disposition = (tag(record, "disposition") ?? "").trim().toLowerCase();
     if (!["none", "quarantine", "reject"].includes(disposition))
       throw new Refused("a disposition is not one DMARC knows");
-    const dkim = verdict(tag(record, "dkim"));
-    const spf = verdict(tag(record, "spf"));
+    // The receiver's DMARC evaluation, never the raw auth_results (whose <dkim> holds child elements, not a verdict).
+    const evaluated = /<policy_evaluated>([\s\S]{0,2000}?)<\/policy_evaluated>/.exec(record)?.[1];
+    if (evaluated === undefined) throw new Refused("a record has no DMARC evaluation");
+    const dkim = verdict(tag(evaluated, "dkim"));
+    const spf = verdict(tag(evaluated, "spf"));
     const row = bySource.get(ip) ?? {
       ip,
       messages: 0,
@@ -179,14 +189,18 @@ export function parseDmarc(xmlBytes: Buffer): DmarcReport {
       dkimFail: 0,
       spfPass: 0,
       spfFail: 0,
+      dmarcFail: 0,
       acted: 0,
     };
     row.messages += messages;
     row[dkim === "pass" ? "dkimPass" : "dkimFail"] += messages;
     row[spf === "pass" ? "spfPass" : "spfFail"] += messages;
+    if (dkim !== "pass" && spf !== "pass") {
+      row.dmarcFail += messages;
+      failed = true;
+    }
     if (disposition !== "none") row.acted += messages;
     bySource.set(ip, row);
-    if ((dkim !== "pass" || spf !== "pass") && disposition !== "none") failed = true;
   }
   const sources = [...bySource.values()];
   const sum = (key: keyof Omit<SourceCount, "ip">) =>
@@ -202,6 +216,7 @@ export function parseDmarc(xmlBytes: Buffer): DmarcReport {
     dkimFail: sum("dkimFail"),
     spfPass: sum("spfPass"),
     spfFail: sum("spfFail"),
+    dmarcFail: sum("dmarcFail"),
     acted: sum("acted"),
     sources,
     failed,
@@ -315,7 +330,7 @@ export function reportSummary(report: Report | Unparsed): string {
     const failing = report.sources.filter((row) => row.dkimFail + row.spfFail > 0);
     return [
       `DMARC report from ${report.org} for ${report.domain}: ${String(report.messages)} messages in ${String(report.records)} records.`,
-      `DKIM pass ${String(report.dkimPass)}, fail ${String(report.dkimFail)}; SPF pass ${String(report.spfPass)}, fail ${String(report.spfFail)}; quarantined or rejected ${String(report.acted)}.`,
+      `DKIM pass ${String(report.dkimPass)}, fail ${String(report.dkimFail)}; SPF pass ${String(report.spfPass)}, fail ${String(report.spfFail)}; DMARC fail ${String(report.dmarcFail)}; quarantined or rejected ${String(report.acted)}.`,
       ...(failing.length === 0
         ? []
         : [
@@ -323,7 +338,7 @@ export function reportSummary(report: Report | Unparsed): string {
               .slice(0, 10)
               .map(
                 (row) =>
-                  `${row.ip} (${String(row.messages)} messages, DKIM fail ${String(row.dkimFail)}, SPF fail ${String(row.spfFail)}, acted on ${String(row.acted)})`,
+                  `${row.ip} (${String(row.messages)} messages, DKIM fail ${String(row.dkimFail)}, SPF fail ${String(row.spfFail)}, DMARC fail ${String(row.dmarcFail)}, acted on ${String(row.acted)})`,
               )
               .join("; ")}.`,
           ]),
