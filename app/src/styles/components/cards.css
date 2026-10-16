@@ -116,7 +116,7 @@
   opacity: 0.85;
 }
 
-.market-card h3 {
+.market-card :is(h2, h3) {
   font-size: 46px;
   line-height: 1;
   margin: 8px 0;
@@ -138,7 +138,7 @@
     padding: 28px;
   }
 
-  .market-card h3 {
+  .market-card :is(h2, h3) {
     font-size: clamp(36px, 3.6vw, 58px);
   }
 }
@@ -275,12 +275,12 @@
   text-underline-offset: 6px;
 }
 
-.market-card h3 {
+.market-card :is(h2, h3) {
   font-weight: 300;
   transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.market-card:hover h3 {
+.market-card:hover :is(h2, h3) {
   transform: translateY(-6px);
 }
 
@@ -292,7 +292,7 @@
   .property-card:hover img,
   .market-card:hover img,
   .story-card:hover img,
-  .market-card:hover h3 {
+  .market-card:hover :is(h2, h3) {
     transform: none;
   }
 }
@@ -333,7 +333,7 @@
   color: color-mix(in oklab, var(--primary-foreground) 72%, transparent);
 }
 
-.market-card-opening h3 {
+.market-card-opening :is(h2, h3) {
   margin: 4px 0 0;
   font-size: clamp(44px, 4.6vw, 72px);
   line-height: 0.95;
@@ -376,7 +376,7 @@
   transform: translateX(8px);
 }
 
-.market-card-opening:hover h3 {
+.market-card-opening:hover :is(h2, h3) {
   transform: none;
 }
 

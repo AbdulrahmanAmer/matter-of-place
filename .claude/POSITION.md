@@ -1967,6 +1967,21 @@ first day of the new usage week; no step was cut from any plan.
   the folder map (`check-layout.mjs`, P-3580). Proof: tsc both configs, eslint, prettier, knip exit 0; unit 24 and component
   14 passed; registry replay `--changed origin/main` 35 ok 0 bad (8 new `w7-3-*` entries). UNPROVEN: the list rendered in a
   browser on a preview against mop-dev. Bank grew: P-3580, P-3581.
+- 2026-10-16 03:00 +0300: orchestrator, Cloudflare and site audit (operator: "check the website performance as code and pages,
+  check the dns records, check everything and fix anything you find"). Done and read back: CAA (issue and issuewild for
+  letsencrypt.org, pki.goog, ssl.com, sectigo.com, digicert.com; iodef security@), all five certificate packs `active` after;
+  MTA-STS live (policy 200 via DoH, TXT `id=20261016`); DNS 35 records, none dangling or left from Lovable; Security
+  Insights full scan: security.txt and AI Labyrinth archived (security.txt is served; Labyrinth left off on purpose), the
+  one left is MFA on the Cloudflare login (OPERATOR'S: account security). WAF: free managed ruleset (31 rules) on, DDoS L7
+  on, www-to-apex redirect and the API burst rate limit on. Worker last 24 h: 4.09k requests, 0 errors, assets 0 4xx/5xx.
+  Cache headers right (HTML `max-age=0, must-revalidate`, `/assets/*` a year immutable); zone browser TTL does not override.
+  PageSpeed 6 pages: desktop 100 perf on all, mobile 92 to 99; a11y 98 on /markets and /california/guide for heading
+  order. Fixed on fix/robots-signals-headings: footer group headings h2, MarketCard/MarketGrid take a level (h2 on
+  /markets), Content-Signal `search=yes, ai-input=yes, ai-train=no` in robots.txt (ruling H114) held by check-seo, tests and
+  3 new mutation entries; the runClaude "keeps working" test outlives a cold start (P-3603). Markdown for Agents is Pro:
+  off. Cloudflare's own Issues tracker left off (Sentry is the tracker). UNPROVEN until deploy: PageSpeed a11y 100 on
+  the two pages. Fairfield lane test: Julian's verdict FAIL (decline) at 01:13 with five reasons; Maya not re-woken after
+  her files landed (P-3602), sent to Matter with the stale bounce in Julian's address check. Bank grew: P-3600..P-3603.
 
 - 2026-10-15 W7 item 2 (PR 441, feat/w7-2-replies): the Sent emails screen has a Replies part: each `email_replies` row beside the
   email it answers (through `send_id`), owner, state, and buttons answered / ignored; opening a `new` reply marks it
@@ -1991,6 +2006,23 @@ first day of the new usage week; no step was cut from any plan.
   (7) Lead copy reworded. `tests/mutations/W7-2.json` holds 28 entries (24 file, 4 sql), all WATCHED-FAIL OK.
   UNPROVEN: the function on the real database (stub native cluster only; the CI db job counts), the route and service
   end to end, a real reply read through the screen. Bank grew: P-3551.
+- 2026-10-16 05:10 +0300: orchestrator. PR 445 merged (CI green incl. e2e) and proven live: robots.txt serves
+  `Content-Signal: search=yes, ai-input=yes, ai-train=no`; /markets headings 1,2,2,2,2,2,2,2 and /california/guide
+  1,2,2,2,2 (no skips); PageSpeed mobile accessibility 100 on both (was 98). Fairfield lane test (4a3c2563, 2400 Azure
+  Pl, contact dave@omnikom.io): verdict FAIL from Julian (01:13, five reasons: builder house, vinyl and stock finishes,
+  no place story, a $4,300/month rental, five thin photographs) and from Matter (04:56). Nothing posted, nothing sent to
+  the owner. Drive `Social Media/{Carousels,Posts}/2400 Azure Pl, Fairfield (TEST)`: Instagram carousel 3 x 1080x1350,
+  LinkedIn 3 x 1080x1080, Instagram post 1080x1350, covers for LinkedIn 1200x627, X 1200x675, generic 1200x630; no
+  price on any (a rental). Found and sent back: inner slides and the single post had an empty third of black (template
+  fixed by Matter: no price means the title takes the line); the Instagram post size was missing (added); the studio
+  refused the first reel (glow and gradient, gate right); the second reel is all abstract models with a flat-roofed
+  house, which breaks H110 (a property piece shows its own photographs): Matter building the route and review fix in
+  `od-reelphotos`. Gaps the test proved: colleagues' desks sealed (role toolkits, in review), a colleague not woken
+  after her files landed (P-3602), Julian read the old bounce record, Matter's key may not file Start review.
+  Overdrive at 05:05 (Matter's live state): nothing merged into overdrive/finish yet; w6-7, w7-9 in fix builds; w7-7
+  fixed, waits re-review; w8-0d built, waits review; w7-4 fix and W8 0h (inbound mail) not started, told to fill the
+  two free builder slots now and merge each item into overdrive/finish as its review passes. Matter's live-state.md was
+  2 h stale while he worked; he now rewrites it at every step boundary. OPERATOR'S: Cloudflare MFA for admin@.
 
 - 2026-10-16 W8 0d second half (overdrive/w8-0d, pushed, no PR; Matter merges into overdrive/finish): a held message is
   explained before it is decided. `holdForMatter` now queues the OWNER's run on the held line (cap unchanged); that run

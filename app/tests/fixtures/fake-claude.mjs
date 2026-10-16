@@ -25,7 +25,8 @@ process.stdin.on("end", () => {
     return;
   }
   if (mode === "talk") {
-    // Works for about 600 ms in total, printing every 60 ms: longer than the test's 400 ms silence limit in one go.
+    // Works for about 3 s in total, printing every 100 ms: twice the test's 1.5 s silence limit in one go, while the
+    // limit itself still covers a cold start of this process on a loaded machine (a 400 ms limit did not, P-3603).
     let n = 0;
     const tick = setInterval(() => {
       n += 1;
@@ -33,11 +34,11 @@ process.stdin.on("end", () => {
         type: "assistant",
         message: { content: [{ type: "text", text: `step ${String(n)}` }] },
       });
-      if (n === 10) {
+      if (n === 30) {
         clearInterval(tick);
         result();
       }
-    }, 60);
+    }, 100);
     return;
   }
   if (mode === "tool-mentions-limit") {

@@ -8435,3 +8435,39 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: add a ruling row or a bank entry with a small script in a file outside the tree that checks its anchor (the number is free, the table ends with `|` and a newline) and appends or inserts by index, never with a replacement string; read the part you need with `grep -n` or `sed -n` first.
 - proof: `wc -c workspace/05-plans/ASSUMED.md GOTCHAS.md` → both above 262144 bytes (267,000 and 1,866,000 on 2026-10-16).
 - added: 2026-10-16
+
+## P-3600 · The robots.txt body is pinned in three tests and one live check; a change to it touches all four
+- symptom: 2026-10-16, adding the `Content-Signal` line to `src/server/seo/robots.ts`: `tests/unit/robots.test.ts` was updated, and the full suite then failed two tests in `tests/unit/seo-cache.test.ts` ("is not stored for a workers.dev host...", "answers the indexable body the same with and without a cookie"), which keep their own copy of the body (`INDEXABLE_ROBOTS`).
+- rule: a robots.txt change edits `robots.ts`, `tests/unit/robots.test.ts` (`INDEXABLE_BODY`), `tests/unit/seo-cache.test.ts` (`INDEXABLE_ROBOTS`), `tests/unit/check-seo.test.ts` (two fixtures) and, when the line must hold live, `scripts/check-seo.ts` `checkRobots`. Find them all first: `grep -rln "Disallow: /admin" app/src app/tests app/scripts`.
+- proof: `grep -rln "Disallow: /admin" app/src app/tests app/scripts` lists the five files (2026-10-16).
+- added: 2026-10-16
+
+## P-3601 · The Cloudflare token in the runner's .env cannot read analytics; read edge errors in the dashboard
+- symptom: 2026-10-16, the GraphQL `httpRequestsAdaptiveGroups` query for 4xx/5xx by path answered `authz: ... does not have permission 'com.cloudflare.api.account.zone.analytics.read'`.
+- rule: for errors and traffic use the dashboard (Workers & Pages › matter-of-place › Metrics: requests, errors, assets by status) or add Analytics Read to the token by hand; the token's other scopes (DNS, zone settings, rulesets, certificates) work.
+- proof: `cd E:/mop-build/live && env -u CLOUDFLARE_API_TOKEN -u CLOUDFLARE_ACCOUNT_ID node --env-file=.env <scratchpad>/cf-errors.mjs` → `status query: [{"message":"Actor ... does not have permission 'com.cloudflare.api.account.zone.analytics.read'` (2026-10-16).
+- added: 2026-10-16
+
+## P-3602 · A colleague woken before her files land is never woken again
+- symptom: 2026-10-16, Fairfield lane test: Maya's run at 01:55 found her desk empty and refused (rightly); Matter copied the request, photographs and Julian's review into `desks/social/work/requests/<id>/` at 01:57, and no run followed for over an hour, so the posts were never made.
+- rule: whoever puts material in a desk wakes that colleague after the copy, in the same step, never before it; a colleague's "my desk is empty, wake me when it is there" is a wait to track until a later run of hers answers.
+- proof: `ls -la ~/.mop-workforce/desks/social/work/requests/4a3c2563-c07a-481d-839b-ad0523827f69/` shows the files at 01:57; Maya's last line in the social thread is 01:55 (2026-10-16).
+- added: 2026-10-16
+
+## P-3603 · A child-process test with a sub-second silence limit fails when the machine is busy
+- symptom: 2026-10-16, `tests/unit/workforce-cli.test.ts` "lets a colleague who keeps working run past the silence limit" failed twice with `the colleague went silent for 0 minutes` while Matter's builders were running: the fake CLI took longer than the 400 ms limit just to start and print its first line.
+- rule: a test that spawns a process gives it a limit well above a cold start (1.5 s or more) and makes the work outlast the limit by a clear margin (the talk mode now works 3 s, printing every 100 ms); never a sub-second limit on process start.
+- proof: `cd app && bunx vitest run tests/unit/workforce-cli.test.ts` passes with the laptop loaded (2026-10-16).
+- added: 2026-10-16
+
+## P-3604 · A wait loop that gives up does not mean the replay ended; never touch the worktree while watchfail runs
+- symptom: 2026-10-16, a 10-minute wait on the pre-push log returned while `scripts/watchfail.mjs` was still applying mutations one by one; I then applied and reverted a mutation in `market-card.tsx` by hand in the same worktree, and `git status` showed `footer.tsx` mutated (the replay's own `modifiedClick` mutation, mid-run), which looked like stray damage.
+- rule: a wait loop ends on the job's own end marker (`^exit` written after the command), never on its timeout alone; until that marker is in the log, no edit, `sed`, `git checkout` or second test run in that worktree. Hand-check a mutation in a copy, or after the replay has printed its summary.
+- proof: `grep -c "^exit" <scratchpad>/prepush2.log` was 0 while `tail -3` showed `mutated src/components/layout/footer.tsx:57` (2026-10-16).
+- added: 2026-10-16
+
+## P-3605 · A mutation entry for a `.test.tsx` file runs under `--project component`, not `unit`
+- symptom: 2026-10-16, entry `market-card-heading-level` (B13) ran `bunx vitest run --project unit tests/unit/no-image.test.tsx` and watchfail said `wrong reason`: the red run printed `No test files found` because the unit project includes only `*.test.ts`.
+- rule: `tests/unit/**/*.test.tsx` belongs to the `component` project (`vitest.config.ts`); a registry `run` names the project the file's extension falls in. When watchfail says "wrong reason" with an empty red run, read the red run's own output first.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only market-card-heading-level` → `WATCHED-FAIL OK` with `--project component`, `wrong reason ... No test files found` with `--project unit` (2026-10-16).
+- added: 2026-10-16
