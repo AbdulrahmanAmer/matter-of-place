@@ -68,9 +68,9 @@ export function toolkitFor(slug: string): Toolkit {
 }
 
 /**
- * A run about an outside message (an inquiry, a request, an email) keeps the triage of W8 0a: it reads its own folder
- * only, where the runner puts structured facts and photographs, never the person's own words, and writes and runs
- * nothing.
+ * A run about an outside message (an inquiry, a request, an email) keeps the triage of W8 0a: it reads only a folder of
+ * its own, made empty for that run (`desks/<slug>/outside/<run id>`), never the work folder where other runs leave
+ * drafts, and writes and runs nothing. The runner puts nothing there yet: placing the facts and photographs is NOT DONE.
  */
 export const outsideToolkit: Toolkit = { read: ["own_folder"], write: [], render: [] };
 
@@ -104,6 +104,10 @@ export function toolkitWords(toolkit: Toolkit, tools: readonly string[]): string
     ...(toolkit.write.length === 0 && toolkit.render.length === 0
       ? []
       : ["Writes and renders only on work a person started; otherwise it only reads."]),
-    "No other command, no keys, nothing sent outside the company without a person's approval.",
+    // measured on the real CLI (GOTCHAS P-3577): with a shell, simple reads run inside its places, and so does a
+    // redirect into a place it may write
+    toolkit.render.length === 0
+      ? "No command, no keys, nothing sent outside the company without a person's approval."
+      : "Other commands only as simple reads and writes inside its places (such as ls, cat, grep); no keys, nothing sent outside the company without a person's approval.",
   ];
 }

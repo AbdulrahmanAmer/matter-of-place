@@ -9,7 +9,7 @@ import puppeteer from "puppeteer-core";
 import { renderToStaticMarkup } from "react-dom/server";
 import sharp from "sharp";
 import { z } from "zod";
-import { confineRender, inside, realPath } from "./confine.mjs";
+import { PHOTO_MAX_BYTES, confineRender, inside, realPath } from "./confine.mjs";
 import { mediaKey } from "./media-key.mjs";
 import { putIfMissing } from "./media-store.mjs";
 import { imageSize } from "./png-size.mjs";
@@ -327,9 +327,6 @@ const localSchema = z.object({
     .max(12),
   slides: z.array(slideSchema).optional(),
 });
-
-/** The largest photograph a local spec may name (a phone's full-size JPEG is well under it). */
-export const PHOTO_MAX_BYTES = 25 * 1024 * 1024;
 
 /**
  * A colleague's spec file as a render spec. Each photograph must sit inside the spec's own folder once links and

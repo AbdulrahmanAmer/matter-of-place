@@ -623,8 +623,8 @@
     "id": "w8-0e-desk-sweep",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    if (runConfigName(entry.name)) rmSync(path, { recursive: true, force: true });\n    else if",
-    "replace": "    if",
+    "find": "    if (runConfigName(entry.name)) return [path];\n",
+    "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*sweeps what configures a run out of the whole desk"
   },

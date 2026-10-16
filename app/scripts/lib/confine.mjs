@@ -4,6 +4,9 @@
 import { realpathSync } from "node:fs";
 import { basename, delimiter, dirname, isAbsolute, relative, resolve } from "node:path";
 
+/** The largest photograph a render takes or the runner places (a phone's full-size JPEG is well under it). */
+export const PHOTO_MAX_BYTES = 25 * 1024 * 1024;
+
 /**
  * A path made real: its longest existing part through `realpathSync`, the rest appended (the output folder may not exist).
  * @param {string} target

@@ -89,6 +89,7 @@ import {
   type ToolkitPaths,
   type ToolkitRules,
 } from "./toolkit-args.ts";
+import { placePieces, placedLine } from "./placement.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -181,15 +182,28 @@ function runConfigName(name: string): boolean {
 export function deskFor(home: string, slug: string): string {
   const desk = join(home, "desks", slug);
   mkdirSync(join(desk, "work"), { recursive: true });
-  sweep(desk, 0);
+  sweep(desk);
   return join(desk, "work");
 }
 
-function sweep(dir: string, depth: number): void {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+/** Everything under `dir` that would configure a run, eight levels deep, never through a link. */
+function runConfigIn(dir: string, depth = 0): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    if (runConfigName(entry.name)) rmSync(path, { recursive: true, force: true });
-    else if (entry.isDirectory() && !entry.isSymbolicLink() && depth < 8) sweep(path, depth + 1);
+    if (runConfigName(entry.name)) return [path];
+    return entry.isDirectory() && !entry.isSymbolicLink() && depth < 8
+      ? runConfigIn(path, depth + 1)
+      : [];
+  });
+}
+
+/** Removes run config from a folder the runner owns (a desk, the studio), and says each removal in the runner's log. */
+function sweep(dir: string): void {
+  for (const path of runConfigIn(dir)) {
+    rmSync(path, { recursive: true, force: true });
+    console.log(
+      `${new Date().toISOString()} removed ${path} before a run: it would configure the run`,
+    );
   }
 }
 
@@ -211,24 +225,30 @@ export interface ColleagueLaunch {
   line: string;
   env: Record<string, string>;
   settingsFile: string;
+  /** What the runner removes when the run ends: the settings file, and an outside run's own folder. */
+  cleanup: string[];
 }
 
 /**
  * H115: a colleague run's command line, folder and the line that tells it its tools, from its toolkit. A run about an
- * outside message gets `outsideToolkit` (W8 0a: it reads only its folder, where the runner puts facts and photographs,
- * never the person's words). A run a person or an operator key started (`inside`, `startedInsideFor`) gets its whole
- * toolkit; any other run (an event, a schedule, a mention) its reads only, since its history may hold a line that
- * carried outside words (review of 2026-10-16). Every place it may write is swept of run config first, and the run's
- * own settings file is named by its run id.
+ * outside message gets `outsideToolkit` in a folder of its own, `desks/<slug>/outside/<run id>`, made empty for it and
+ * removed after it (review of 2026-10-16: never the work folder, where other runs leave drafts); the runner fills it
+ * with nothing yet (the facts and photographs of W8 0a, NOT DONE). A run a person or an operator key started (`inside`,
+ * `startedInsideFor`) gets its whole toolkit, and the photographs of the pieces its line names placed in its folder
+ * (`placePieces`); any other run (an event, a schedule, a mention) its reads only, since its history may hold a line
+ * that carried outside words. Every place it may write is swept of run config first (the Drive folder is the
+ * operator's: what is found there refuses the run and is named, never deleted), and the settings file, named by the
+ * run id, is written last.
  */
 export function colleagueLaunch(
   home: string,
   slug: string,
   model: string,
   research: boolean,
-  run: { id: string; outside: boolean; inside: boolean },
+  run: { id: string; outside: boolean; inside: boolean; line?: string },
 ): ColleagueLaunch {
-  const cwd = deskFor(home, slug);
+  const work = deskFor(home, slug);
+  const cwd = run.outside ? join(home, "desks", slug, "outside", run.id) : work;
   const toolkit = run.outside
     ? outsideToolkit
     : run.inside
@@ -240,43 +260,79 @@ export function colleagueLaunch(
   for (const dir of writePlaces(toolkit, paths)) {
     if (dir === paths.studio) mkdirSync(dir, { recursive: true });
     if (!existsSync(dir)) throw new Error(`${dir} is not on this laptop`);
-    sweep(dir, 0);
+    if (dir !== paths.driveSocial) sweep(dir);
+    else {
+      const found = runConfigIn(dir);
+      if (found.length > 0)
+        throw new Error(
+          `the Drive folder holds files that would configure a run; a person removes them first: ${found.join(", ")}`,
+        );
+    }
   }
+  const placed =
+    run.inside && !run.outside && toolkit.render.length > 0
+      ? placePieces(
+          run.line ?? "",
+          {
+            studio: toolkit.read.includes("studio") ? paths.studio : null,
+            driveSocial:
+              toolkit.read.includes("drive_social") || toolkit.write.includes("drive_social")
+                ? paths.driveSocial
+                : null,
+          },
+          work,
+        )
+      : [];
   const roots = renderRoots(toolkit, paths);
   const settingsFile = join(home, "settings", `${run.id}.json`);
+  const launch: ColleagueLaunch = {
+    args: colleagueArgs(model, rules, settingsFile),
+    cwd,
+    line: [toolkitLine(toolkit, paths, searches), placedLine(placed)]
+      .filter((text) => text !== "")
+      .join(" "),
+    // what the render wrapper confines a render to
+    env:
+      toolkit.render.length === 0
+        ? {}
+        : {
+            MOP_RENDER_WORK: cwd,
+            MOP_RENDER_OUT_ROOTS: roots.join(delimiter),
+            // a carousel takes over the CLI's two-minute default (probe of 2026-10-16), which sends it to the background
+            BASH_DEFAULT_TIMEOUT_MS: String(10 * 60_000),
+          },
+    settingsFile,
+    cleanup: [settingsFile, ...(run.outside ? [cwd] : [])],
+  };
+  if (run.outside) {
+    // only the runner fills it: whatever an earlier attempt of this run left is gone
+    rmSync(cwd, { recursive: true, force: true });
+    mkdirSync(cwd, { recursive: true });
+  }
   mkdirSync(dirname(settingsFile), { recursive: true });
   writeFileSync(
     settingsFile,
     JSON.stringify({ permissions: { allow: rules.allow, deny: rules.deny } }),
   );
-  return {
-    args: colleagueArgs(model, rules, settingsFile),
-    cwd,
-    line: toolkitLine(toolkit, paths, searches),
-    // what the render wrapper confines a render to
-    env:
-      toolkit.render.length === 0
-        ? {}
-        : { MOP_RENDER_WORK: cwd, MOP_RENDER_OUT_ROOTS: roots.join(delimiter) },
-    settingsFile,
-  };
+  return launch;
 }
 
+/** A colleague's run; the prompt is built inside, so whatever stops it, the run's files are removed. */
 async function askClaude(
-  prompt: string,
   launch: ColleagueLaunch,
+  prompt: (toolkit: string) => string,
 ): Promise<{ text: string; session?: string; usage?: CliUsage }> {
   try {
     return await runClaude({
       args: launch.args,
       cwd: launch.cwd,
       env: { ...childEnv(), ...launch.env },
-      prompt,
+      prompt: prompt(launch.line),
       idleMs: CLI_IDLE_MS,
       who: "the colleague",
     });
   } finally {
-    rmSync(launch.settingsFile, { force: true });
+    for (const path of launch.cleanup) rmSync(path, { recursive: true, force: true });
   }
 }
 
@@ -695,16 +751,18 @@ export async function runOnce(client: Db): Promise<boolean> {
   let thread = "team";
   let authorKind: string | null = null;
   let wokeBy: string | null = null;
+  let wokeBody: string | null = null;
   if (run.message_id !== null) {
     const { data: message } = await client
       .from("agent_messages")
-      .select("thread, author_kind, author_id")
+      .select("thread, author_kind, author_id, body")
       .eq("id", run.message_id)
       .single();
     // A line that cannot be read fails the run inside `context` (W8 review), where the failure is recorded.
     thread = message?.thread ?? "team";
     authorKind = message?.author_kind ?? null;
     wokeBy = message?.author_id ?? null;
+    wokeBody = message?.body ?? null;
   }
   // W8 0d: the owner's run on a held line explains it, and any end of it hands the line to Matter.
   const explains =
@@ -811,9 +869,15 @@ export async function runOnce(client: Db): Promise<boolean> {
               models["sonnet"] ??
               "claude-sonnet-5-5",
             shape.research,
-            { id: run.id, outside: triage !== null, inside: startedInside },
+            {
+              id: run.id,
+              outside: triage !== null,
+              inside: startedInside,
+              // the pieces whose photographs the runner places: only a person's or a key's line names them
+              ...(startedInside && triage === null && wokeBody !== null ? { line: wokeBody } : {}),
+            },
           );
-          return askClaude(
+          return askClaude(launch, (toolkit) =>
             promptFor(
               // W8 0c: a run about an outside message is not offered admin calls or hires at all.
               shape.agent,
@@ -822,9 +886,8 @@ export async function runOnce(client: Db): Promise<boolean> {
               lessons,
               staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
               triage === null ? knowledgeBlock(situation) : "",
-              launch.line,
+              toolkit,
             ),
-            launch,
           );
         })();
     // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no

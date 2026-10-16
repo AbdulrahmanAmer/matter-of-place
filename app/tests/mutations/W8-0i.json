@@ -120,8 +120,8 @@
     "id": "w8-0i-runonce-started-inside",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "            { id: run.id, outside: triage !== null, inside: startedInside },",
-    "replace": "            { id: run.id, outside: triage !== null, inside: true },",
+    "find": "              inside: startedInside,\n",
+    "replace": "              inside: true,\n",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*gives Social only its reads when a colleague's mention woke it"
   },
@@ -156,8 +156,8 @@
     "id": "w8-0i-sweep-write-places",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    if (!existsSync(dir)) throw new Error(`${dir} is not on this laptop`);\n    sweep(dir, 0);\n",
-    "replace": "    if (!existsSync(dir)) throw new Error(`${dir} is not on this laptop`);\n",
+    "find": "    if (dir !== paths.driveSocial) sweep(dir);\n",
+    "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*sweeps what configures bun, node or a run out of every place the run may write"
   },
@@ -313,5 +313,158 @@
     "replace": "      : []),",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*says in words what each colleague may do"
+  },
+  {
+    "id": "w8-0i-words-no-command",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "src/domain/toolkits.ts",
+    "find": "      ? \"No command, no keys, nothing sent outside the company without a person's approval.\"",
+    "replace": "      ? \"No other command, no keys, nothing sent outside the company without a person's approval.\"",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*says in words what each colleague may do"
+  },
+  {
+    "id": "w8-0i-table-concierge-reads",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "src/domain/toolkits.ts",
+    "find": "  concierge: { read: [\"own_folder\", \"knowledge\"], write: [\"own_folder\"], render: [] },",
+    "replace": "  concierge: { read: [\"own_folder\", \"studio\", \"knowledge\"], write: [\"own_folder\"], render: [] },",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*holds every colleague's rules"
+  },
+  {
+    "id": "w8-0i-credentials-deny",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "      `Read(${root}/${anyCase(\"**/*credentials*\")})`,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*holds every colleague's rules"
+  },
+  {
+    "id": "w8-0i-outside-no-search",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  const searches = research && !run.outside;",
+    "replace": "  const searches = research;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*launches a run no person started with the toolkit's reads only, and one about outside text"
+  },
+  {
+    "id": "w8-0i-outside-own-folder-per-run",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  const cwd = run.outside ? join(home, \"desks\", slug, \"outside\", run.id) : work;",
+    "replace": "  const cwd = work;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*launches a run no person started with the toolkit's reads only, and one about outside text"
+  },
+  {
+    "id": "w8-0i-outside-folder-empty",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    rmSync(cwd, { recursive: true, force: true });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*launches a run no person started with the toolkit's reads only, and one about outside text"
+  },
+  {
+    "id": "w8-0i-runonce-outside",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "              outside: triage !== null,\n",
+    "replace": "              outside: false,\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*runs the owner's run on an outside message with the outside toolkit"
+  },
+  {
+    "id": "w8-0i-runonce-cleanup",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    for (const path of launch.cleanup) rmSync(path, { recursive: true, force: true });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*runs the owner's run on an outside message with the outside toolkit in a folder of its own, removed after it"
+  },
+  {
+    "id": "w8-0i-drive-refused-not-deleted",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    if (dir !== paths.driveSocial) sweep(dir);\n    else {",
+    "replace": "    sweep(dir);\n    if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*refuses a run while the operator's Drive folder holds run config"
+  },
+  {
+    "id": "w8-0i-sweep-logged",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      `${new Date().toISOString()} removed ${path} before a run: it would configure the run`,",
+    "replace": "      `${new Date().toISOString()} swept a file before a run`,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*sweeps what configures bun, node or a run out of every place the run may write"
+  },
+  {
+    "id": "w8-0i-place-only-person",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    run.inside && !run.outside && toolkit.render.length > 0",
+    "replace": "    !run.outside && toolkit.render.length > 0",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*places the photographs of the pieces a person's line names"
+  },
+  {
+    "id": "w8-0i-place-only-renderers",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    run.inside && !run.outside && toolkit.render.length > 0",
+    "replace": "    run.inside && !run.outside",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*places the photographs of the pieces a person's line names"
+  },
+  {
+    "id": "w8-0i-place-named-only",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/placement.ts",
+    "find": "  const named = (name: string) => name.length >= NAME_MIN && said.includes(name.toLowerCase());",
+    "replace": "  const named = (name: string) => name.length >= NAME_MIN;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*places the photographs of the pieces a person's line names"
+  },
+  {
+    "id": "w8-0i-place-cap",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/placement.ts",
+    "find": "      if (!inside(piece.dir, photo) || size > PHOTO_MAX_BYTES || entry.photos >= PLACE_MAX_PHOTOS) {",
+    "replace": "      if (!inside(piece.dir, photo) || entry.photos >= PLACE_MAX_PHOTOS) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*places the photographs of the pieces a person's line names"
+  },
+  {
+    "id": "w8-0i-place-no-link",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/placement.ts",
+    "find": "      clearLinks(work, target);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*places the photographs of the pieces a person's line names"
+  },
+  {
+    "id": "w8-0i-render-bash-timeout",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "            BASH_DEFAULT_TIMEOUT_MS: String(10 * 60_000),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*launches a run a person started with the whole toolkit"
+  },
+  {
+    "id": "w8-0i-runonce-placement-line",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "              ...(startedInside && triage === null && wokeBody !== null ? { line: wokeBody } : {}),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*gives Social only its reads when a colleague's mention woke it, and its whole toolkit on a person's line"
   }
 ]

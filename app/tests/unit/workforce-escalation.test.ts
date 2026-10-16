@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import type * as Os from "node:os";
 import type * as Path from "node:path";
 import { tmpdir } from "node:os";
@@ -70,7 +70,7 @@ vi.mock("node:path", async (importOriginal) => {
 
 const cli = vi.hoisted(() => ({
   prompts: [] as { who: string; prompt: string }[],
-  launches: [] as (readonly string[])[],
+  launches: [] as { args: readonly string[]; cwd: string; settings: string }[],
   answer: (who: string, prompt: string): string | Error => `${who} ${prompt}`.slice(0, 0),
 }));
 
@@ -80,13 +80,26 @@ const ask = (who: string, prompt: string) => {
   return out instanceof Error ? Promise.reject(out) : Promise.resolve({ text: out });
 };
 
-vi.mock("../../scripts/workforce/cli.ts", async (importOriginal) => ({
-  ...(await importOriginal<typeof Cli>()),
-  runClaude: (input: { who: string; prompt: string; args?: readonly string[] }) => {
-    cli.launches = [...cli.launches, input.args ?? []];
-    return ask(input.who, input.prompt);
-  },
-}));
+vi.mock("../../scripts/workforce/cli.ts", async (importOriginal) => {
+  const fs = await import("node:fs");
+  return {
+    ...(await importOriginal<typeof Cli>()),
+    runClaude: (input: { who: string; prompt: string; args?: readonly string[]; cwd?: string }) => {
+      // the settings file as the run sees it: the runner removes it when the run ends
+      const args = input.args ?? [];
+      const file = args.includes("--settings") ? args[args.indexOf("--settings") + 1] : undefined;
+      cli.launches = [
+        ...cli.launches,
+        {
+          args,
+          cwd: input.cwd ?? "",
+          settings: file === undefined ? "" : fs.readFileSync(file, "utf8"),
+        },
+      ];
+      return ask(input.who, input.prompt);
+    },
+  };
+});
 
 // Matter's desk is a git worktree and its inputs read the atlas: neither belongs in a unit test.
 vi.mock("../../scripts/matter/run.ts", async (importOriginal) => ({
@@ -970,7 +983,12 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
         agentRow(SOCIAL_ID, "social", "Social", ["read_business", "chat", "draft_post"]),
       ],
       agent_messages: [
-        { id: LINE_ID, thread: "team", body: "@social plan the Fairfield carousel", ...author },
+        {
+          id: LINE_ID,
+          thread: "team",
+          body: "@social plan the Fairfield carousel from 4a3c2563-c07a-481d-839b-ad0523827f69",
+          ...author,
+        },
       ],
       agent_approvals: [],
       agent_lessons: [],
@@ -985,26 +1003,60 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
     return memory.db;
   };
 
+  const home = join(tmpdir(), "mop-w8-0d-home", ".mop-workforce");
+  const PIECE = "4a3c2563-c07a-481d-839b-ad0523827f69";
+  const placed = join(home, "desks", "social", "work", PIECE, "a.jpg");
+  const tools = () => {
+    const args = cli.launches.at(-1)?.args ?? [];
+    return args[args.indexOf("--tools") + 1];
+  };
+
   it("gives Social only its reads when a colleague's mention woke it, and its whole toolkit on a person's line", async () => {
-    // the Drive folder the runner's config names, inside the test's own home
-    const home = join(tmpdir(), "mop-w8-0d-home", ".mop-workforce");
+    // the Drive folder the runner's config names, and a studio piece, inside the test's own home
     mkdirSync(join(home, "drive-social"), { recursive: true });
     writeFileSync(
       join(home, "config.json"),
       JSON.stringify({ driveSocial: join(home, "drive-social") }),
     );
+    mkdirSync(join(home, "studio", PIECE), { recursive: true });
+    copyFileSync("src/assets/los-altos.jpg", join(home, "studio", PIECE, "a.jpg"));
+    rmSync(join(home, "desks", "social"), { recursive: true, force: true });
     cli.answer = () => JSON.stringify({ reply: "On it.", task: "Planned", proposals: [] });
-    const tools = () => {
-      const args = cli.launches.at(-1) ?? [];
-      return args[args.indexOf("--tools") + 1];
-    };
     expect(
       await runOnce(wokenBy({ author_kind: "agent", author_id: "chief", author_name: "Chief" })),
     ).toBe(true);
     expect(tools()).toBe("Read,Glob,Grep");
+    // a mention places nothing
+    expect(existsSync(placed)).toBe(false);
     expect(
       await runOnce(wokenBy({ author_kind: "human", author_id: "u1", author_name: "Dave" })),
     ).toBe(true);
     expect(tools()).toBe("Read,Glob,Grep,Write,Edit,Bash");
+    // the person's line names the piece: its photographs are in Social's folder, and the run is told where
+    expect(existsSync(placed)).toBe(true);
+    expect(lastPrompt("the colleague")).toContain(
+      `The runner placed 1 photograph of ${PIECE} in \`./${PIECE}/\`.`,
+    );
+    // the run's settings file is gone once it ends
+    expect(existsSync(join(home, "settings"))).toBe(true);
+    expect(readdirSync(join(home, "settings"))).toEqual([]);
+  });
+
+  it("runs the owner's run on an outside message with the outside toolkit in a folder of its own, removed after it", async () => {
+    answers(matterSays({ allow: true, how: "ask_one_question" }));
+    const room = office();
+    expect(await runOnce(room.db)).toBe(true);
+    // the owner's run on the held line: triaged, so the outside toolkit, never its reads or its work folder
+    expect(await runOnce(room.db)).toBe(true);
+    const run = room.runsOn(CONCIERGE_ID, room.held()?.["id"])[0];
+    const launch = cli.launches.at(-1);
+    const own = join(home, "desks", "concierge", "outside", String(run?.["id"]));
+    expect(launch?.cwd).toBe(own);
+    expect(tools()).toBe("Read,Glob,Grep");
+    expect(launch?.args).not.toContain("--add-dir");
+    expect(launch?.settings).toContain('"allow":["Read(./**)"]');
+    // its folder and its settings file are removed when it ends
+    expect(existsSync(own)).toBe(false);
+    expect(existsSync(join(home, "settings", `${String(run?.["id"])}.json`))).toBe(false);
   });
 });
