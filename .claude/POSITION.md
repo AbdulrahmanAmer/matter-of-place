@@ -1991,3 +1991,18 @@ first day of the new usage week; no step was cut from any plan.
   (7) Lead copy reworded. `tests/mutations/W7-2.json` holds 28 entries (24 file, 4 sql), all WATCHED-FAIL OK.
   UNPROVEN: the function on the real database (stub native cluster only; the CI db job counts), the route and service
   end to end, a real reply read through the screen. Bank grew: P-3551.
+
+- 2026-10-16 W8 0d second half (overdrive/w8-0d, pushed, no PR; Matter merges into overdrive/finish): a held message is
+  explained before it is decided. `holdForMatter` now queues the OWNER's run on the held line (cap unchanged); that run
+  is an explanation (`explainsHeld` reads the line's thread, kind and id from the database; `outsideOf` gives the
+  record `explain`, `outsideGate` says "explain", `runShape` rules it "explain", `ruleOutside` keeps nothing, the drop
+  is said in fixed words, the reply is `outside-reply:<owner>`). Any end of it calls `handToMatter` (explain.ts), which
+  queues Matter's read once per line and says a failure; a usage-limit stop requeues. Matter's held prompt carries the
+  owner's explanation (`ownerExplanation`: newest `outside-reply:<owner>` after the held line and not after Matter's
+  run, fenced, 3,000 chars) or "none", and names four postures (posture.ts); `how` reaches the owner only as the
+  runner's words in `allowLine`, none means answer, off the list allows nothing (`HOW_REFUSED`). Ruling H114. Tests:
+  tests/unit/workforce-escalation.test.ts walks the runner's own `runOnce` (exported) on an in-memory database;
+  tests/mutations/W8-0d.json holds 35 entries, all WATCHED-FAIL OK (one first stayed green and one went red on a
+  TypeError; both fixed, the red assertions read); 10 W8-0 entries replayed OK, 4 updated for moved lines. W8 item 0d
+  stays [ ] with a "Built 2026-10-16" line. UNPROVEN: a real test message held, explained and decided in the Office
+  (needs the runner on the merged code). Bank grew: P-3590; P-3478 and P-1303 hit again.

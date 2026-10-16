@@ -31,7 +31,7 @@
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/triage.ts",
     "find": "    triage !== \"held\" && triage !== \"explain\" && allowedFor(triage.source, action);",
-    "replace": "    triage !== \"held\" && allowedFor(triage.source, action);",
+    "replace": "    triage !== \"held\" && (triage === \"explain\" || allowedFor(triage.source, action));",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*lets neither an explanation nor an allowed run propose a social post"
   },

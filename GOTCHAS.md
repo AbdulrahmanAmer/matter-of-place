@@ -3022,6 +3022,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never pass a path that starts with `/tmp` between the shell and node. Use the session scratchpad directory by its full Windows or `/c/...` path, or `os.tmpdir()` inside node; a file that must be read by both is named by one absolute path both resolve the same way. P-015 covers the other direction (Git Bash rewrites an argument that starts with `/`).
 - proof: `node -e "console.log(require('path').resolve('/tmp'))"` → `E:\tmp`, while `cygpath -w /tmp` → `C:\Users\DELL\AppData\Local\Temp` (measured 2026-10-04, working tree on E:).
 - added: 2026-10-04
+- hit again: 2026-10-16, W8 0d second half: a heredoc wrote `/tmp/w8-0d-fix-calls.mjs` and `node /tmp/...` then failed with `Cannot find module 'C:\Users\DELL\AppData\Local\Temp\w8-0d-fix-calls.mjs'`; the script went in a file written with the Write tool, outside the tree, named by one path.
 - hit again: 2026-10-11, L1 g1: `git show origin/main:app/supabase/config.toml > /tmp/l1-config-main.toml`, then a `node -` script reading the same `/tmp` path failed with `ENOENT` on `E:\tmp\l1-config-main.toml`; the second attempt named the session scratchpad by its full path for both.
 
 ## P-916 · A db test that asserts another slice's table is absent goes red for good when that slice's migration reaches mop-dev
@@ -8187,6 +8188,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a script module that a test imports takes its folder from `dirname(fileURLToPath(import.meta.url))` (as `atlas.ts` does); `import.meta.dir` only inside a function the tests never call, or in a file no test imports (`daemon.ts`).
 - proof: with the line back as `import.meta.dir`, the run above prints `Tests  no tests` and the TypeError; with `fileURLToPath` it collects the file.
 - added: 2026-10-15
+- hit again: 2026-10-16, W8 0d second half: `runOnce` (now exported for the walk-through test) calls `resolve(import.meta.dir, ...)` for W2.md inside the function, so under vitest every run failed with `The "paths[0]" argument must be of type string. Received undefined` and the run was marked failed. Those lines are the run-start code another branch owns, so the test (`tests/unit/workforce-escalation.test.ts`) mocks `node:path`'s `resolve` to give an undefined first part the daemon's own folder; a module that is free to change takes `fileURLToPath(import.meta.url)` instead.
 
 ## P-3480 · Work the runner gates on "no colleague run in flight" never happens while Matter's live session runs
 - symptom: 2026-10-15 11:10, a brand reel queued in the studio after PR 419 went live stayed `queued` for four minutes of passes; `daemon.log` showed no `reel pass started`. The office's runs list held Matter's own `schedule` run, `running` since 08:09Z: the live session.
@@ -8411,4 +8413,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-16, PR 442 review: the Campaigns list showed a California campaign ending Nov 5 as `Ended` at 5 PM Pacific on Nov 5 (UTC is already Nov 6), and a New York campaign starting Oct 5 as `Running` from 9 PM Eastern on Oct 4.
 - rule: the day of a market is `dayInZone(now, marketTimezone(slug))` from `src/domain/market-time.ts`; never slice an ISO string for a business date (R29: business dates use an explicit IANA zone).
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-3-screen-market-day` → `WATCHED-FAIL OK` (the zone replaced by UTC turns `keeps a California campaign running through the evening of its last day` red); `--only w7-3-market-day-zone` likewise for `dayInZone`.
+- added: 2026-10-16
+
+## P-3590 · `workspace/05-plans/ASSUMED.md` and `GOTCHAS.md` are past the Read tool's 256 KB limit, so Edit cannot touch them
+- symptom: 2026-10-16, W8 0d second half: `Read` of ASSUMED.md at the last line refused with `File content (267.2KB) exceeds maximum allowed size (256KB)`, and Edit needs a Read first, so the next ruling row could not be added with the editor.
+- cause: Read checks the whole file's size even with an offset; ASSUMED.md is one table with very long rows and GOTCHAS.md is about 1.8 MB.
+- rule: add a ruling row or a bank entry with a small script in a file outside the tree that checks its anchor (the number is free, the table ends with `|` and a newline) and appends or inserts by index, never with a replacement string; read the part you need with `grep -n` or `sed -n` first.
+- proof: `wc -c workspace/05-plans/ASSUMED.md GOTCHAS.md` → both above 262144 bytes (267,000 and 1,866,000 on 2026-10-16).
 - added: 2026-10-16
