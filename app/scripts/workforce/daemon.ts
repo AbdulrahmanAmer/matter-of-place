@@ -48,6 +48,8 @@ import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
 import { fileProposedPost, isStructuredPost, POST_TOOL_LINE, postDeps } from "./proposed-post.ts";
 import type { SourceName } from "./criteria.ts";
+import { explainsHeld, handToMatter, ownerExplanation } from "./explain.ts";
+import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
 import {
   allowLine,
   HELD_AUTHOR,
@@ -305,7 +307,9 @@ export function answerPlan(input: {
     dropped:
       ruled.dropped.length === 0
         ? null
-        : `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage === null ? "a held outside message" : triage.source} (W8 0c).`,
+        : shape.rule === "explain"
+          ? `Not proposed: ${ruled.dropped.join(", ")}; an explanation of a held message proposes nothing (W8 0d).`
+          : `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage === null ? "a held outside message" : triage.source} (W8 0c).`,
     keepNote: full,
     // W2 step 5 and W7 item 20: Matter at full power, or a colleague with `request_reel` (one reel); a Matter read
     // run asks for no media (W8 review), and a triaged run has none left after the ruling.
@@ -329,22 +333,31 @@ export function answerPlan(input: {
     summary: fixed?.run ?? (result.task || result.reply).slice(0, 300),
     // W8 0d: only Matter's read of a held message can let its owner answer it.
     allow: shape.rule === "held" && input.answer.allow,
+    // and how, as one of the closed postures (null: a "how" off the list, so no allowance is made, H117)
+    how: shape.rule === "held" && input.answer.allow ? postureOf(input.answer.how) : null,
   };
 }
 
 /**
  * W8 0d: Matter's decision that a held message may be answered. The runner writes it in the owner's thread in its own
  * words with the record, and wakes the owner on it; that run triages the record afresh and may propose within the
- * criteria only (a person approves). A decision that cannot be written fails the run. Exported for its test.
+ * criteria only (a person approves). The posture reaches it only in the runner's fixed words; an allowance in a posture
+ * off the list is not made, and the thread says so. A decision that cannot be written fails the run. Exported for its
+ * test.
  */
 export async function allowForOwner(
   client: Db,
   agents: readonly { id: string; slug: string }[],
   owner: string,
   record: { source: SourceName; id: string },
+  how: Posture | null,
 ): Promise<void> {
   const ownerRow = agents.find((row) => row.slug === owner);
   if (ownerRow === undefined) throw new Error("the held message's owner is not in the team");
+  if (how === null) {
+    await say(client, owner, HOW_REFUSED);
+    return;
+  }
   const { data: rows, error } = await client
     .from("agent_messages")
     .insert({
@@ -352,7 +365,7 @@ export async function allowForOwner(
       author_kind: "system",
       author_id: MATTER_ALLOWS_AUTHOR,
       author_name: "Matter",
-      body: allowLine(record, owner),
+      body: allowLine(record, owner, how),
     })
     .select("id");
   const line = rows?.[0];
@@ -426,7 +439,8 @@ export async function context(
       .then(({ data }) => data ?? []),
   ]);
   // W8 0b: an outside message reaches the prompt only as its triage; its text stays in the database for a person.
-  const triage = await triageRun(client, ask, event, woke, owns);
+  // W8 0d: Matter's read of a held line is no triaged run (its owner's explanation of that line is).
+  const triage = await triageRun(client, ask, event, matterReadsHeld ? null : woke, owns);
   if (triage !== null) parts.push(...triageLines(triage));
   const wokeShown =
     woke === null
@@ -493,9 +507,10 @@ export async function context(
 }
 
 /**
- * W8 0d: holds an outside message for Matter in its owner's thread and queues Matter's run on it. A hold that cannot be
- * made fails the run, so the message is never dropped in silence: Matter missing, the line not written, or Matter's run
- * not queued. Exported for its test.
+ * W8 0d: holds an outside message for Matter in its owner's thread and queues the owner's run on it first: the owner
+ * explains the context to the team, and the end of that run queues Matter's (explain.ts, `handToMatter`). A hold that
+ * cannot be made fails the run, so the message is never dropped in silence: Matter or the owner missing, the line not
+ * written, or the owner's run not queued. Exported for its test.
  */
 export async function holdForMatter(
   client: Db,
@@ -506,6 +521,9 @@ export async function holdForMatter(
 ): Promise<void> {
   const matterRow = agents.find((row) => row.slug === "matter");
   if (matterRow === undefined) throw new Error("Matter is not in the team, so nothing can be held");
+  const ownerRow = agents.find((row) => row.slug === owner);
+  if (ownerRow === undefined)
+    throw new Error("the owner of the held message is not in the team, so it cannot be explained");
   const { data: heldRows, error: heldError } = await client
     .from("agent_messages")
     .insert({
@@ -532,8 +550,9 @@ export async function holdForMatter(
   }
   const { error: queueError } = await client
     .from("agent_runs")
-    .insert({ agent_id: matterRow.id, cause: "message", message_id: held.id });
-  if (queueError !== null) throw new Error("Matter's run on the held line could not be queued");
+    .insert({ agent_id: ownerRow.id, cause: "message", message_id: held.id });
+  if (queueError !== null)
+    throw new Error("the owner's explanation of the held line could not be queued");
 }
 
 /** How many held messages an hour Matter reads; the rest wait for a person (W8 fourth review). */
@@ -586,7 +605,8 @@ function promptFor(
   ].join("\n\n");
 }
 
-async function runOnce(client: Db): Promise<boolean> {
+/** One claimed run, start to end. Exported for the W8 0d test that walks a held message through the runner. */
+export async function runOnce(client: Db): Promise<boolean> {
   const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
   const { count } = await client
     .from("agent_runs")
@@ -627,6 +647,10 @@ async function runOnce(client: Db): Promise<boolean> {
     authorKind = message?.author_kind ?? null;
     wokeBy = message?.author_id ?? null;
   }
+  // W8 0d: the owner's run on a held line explains it, and any end of it hands the line to Matter.
+  const explains =
+    run.message_id !== null &&
+    explainsHeld(agent.slug, { thread, author_kind: authorKind, author_id: wokeBy });
   await client
     .from("agents")
     .update({ state: "working", current_task: "Reading", last_seen_at: new Date().toISOString() })
@@ -648,6 +672,8 @@ async function runOnce(client: Db): Promise<boolean> {
     );
     // W8 0a/0d: an outside message is answered by its owner only; anyone else it woke does nothing with it.
     const gate = outsideGate(triage, agent.slug);
+    if (explains && gate !== "explain")
+      throw new Error("the held line names no record its owner can explain");
     if (gate === "not_owner") {
       await client
         .from("agent_runs")
@@ -703,6 +729,11 @@ async function runOnce(client: Db): Promise<boolean> {
             business: lessons,
             power,
             held: matterReadsHeld,
+            // W8 0d: the owner's explanation, fenced as data; null when it failed or said nothing
+            explanation:
+              matterReadsHeld && run.message_id !== null
+                ? await ownerExplanation(client, { id: run.message_id, thread }, run.created_at)
+                : null,
           }),
           matterEnv(),
           power,
@@ -746,7 +777,7 @@ async function runOnce(client: Db): Promise<boolean> {
     if (plan.dropped !== null) await say(client, place.thread, plan.dropped);
     if (plan.keepNote) keepNote(result.note);
     if (plan.allow && heldRecord !== null)
-      await allowForOwner(client, agents ?? [], thread, heldRecord);
+      await allowForOwner(client, agents ?? [], thread, heldRecord, plan.how);
     if (plan.allow && heldRecord === null)
       await say(
         client,
@@ -880,6 +911,8 @@ async function runOnce(client: Db): Promise<boolean> {
         .update({ uses: lesson.uses + 1, last_used_at: now })
         .eq("id", lesson.id);
     }
+    if (explains && run.message_id !== null)
+      await handToMatter(client, agents ?? [], run.message_id, thread, false);
     console.log(`${new Date().toISOString()} ${agent.slug} done`);
   } catch (failure) {
     if (failure instanceof UsageLimitError) {
@@ -911,6 +944,9 @@ async function runOnce(client: Db): Promise<boolean> {
         ? `Matter stopped before finishing: ${message}. The work so far stays in Matter's desk; your next message picks it up from there.`
         : `${agent.name} stopped before finishing: ${message}.`,
     );
+    // W8 0d: a failed explanation is said, and does not stop Matter's decision.
+    if (explains && run.message_id !== null)
+      await handToMatter(client, agents ?? [], run.message_id, thread, true);
   } finally {
     await client
       .from("agents")

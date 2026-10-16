@@ -45,6 +45,7 @@ const HOUSES = [
       "accepted",
       "awaiting_assets",
       "newsletter_welcome",
+      "account_link",
       "newsletter_confirm",
       "interest_confirm",
       "market_open",

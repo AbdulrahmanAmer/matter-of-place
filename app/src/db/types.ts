@@ -1446,6 +1446,12 @@ isOneToOne: false
             "accept_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: string
                            },
+"account_can_sign_in":
+{ Args: { "p_email": string }; Returns: boolean
+                           },
+"account_room":
+{ Args: { "p_user": string }; Returns: Json
+                           },
 "activate_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: {
               "copy_job_id": string,"event_id": string,"property_id": string
@@ -1738,6 +1744,9 @@ isOneToOne: false
                            },
 "email_message_finish":
 { Args: { "p_error"?: string,"p_id": string,"p_resend_id"?: string,"p_status": string }; Returns: undefined
+                           },
+"email_reply_mark":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_reply_id": string,"p_request_id": string,"p_state": string }; Returns: string
                            },
 "email_reply_record":
 { Args: { "p_body": string,"p_from": string,"p_name": string,"p_provider_id": string,"p_received_at": string,"p_subject": string }; Returns: string

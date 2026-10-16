@@ -8,6 +8,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { assetIdInputSchema, assetRejectInputSchema } from "../../src/domain/admin-assets.ts";
 import { jsonValue } from "../../src/domain/json-value.ts";
 
 const app = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -65,13 +66,61 @@ export function adminRoutes(dir: string = join(app, "src/routes/api/admin")): Ad
 export type CallCheck =
   { ok: true; call: AdminCall; route: AdminRoute } | { ok: false; reason: string };
 
+type Refused = { ok: false; reason: string };
+
+/** Matter's own words for a named decision, or the runner's when it gave none. */
+const whyOf = (raw: unknown, fallback: string): string => {
+  const why = z
+    .string()
+    .trim()
+    .min(1)
+    .max(500)
+    .safeParse(Reflect.get(Object(raw), "why"));
+  return why.success ? why.data : fallback.slice(0, 500);
+};
+
+/**
+ * W8 item 9 (operator, 2026-10-16: "Matter should be able to reject those in my place"): a decision on a visual Matter
+ * names by its action, `{"action": "assets.reject", "id", "note"}` or `{"action": "assets.re_render", "id"}`, as the
+ * admin call it stands for. Null for anything with a method, which is an ordinary call; approving stays a person's.
+ */
+function namedCall(raw: unknown): { ok: true; call: AdminCall } | Refused | null {
+  const named = z.object({ action: z.string(), method: z.undefined() }).safeParse(raw);
+  if (!named.success) return null;
+  const action = named.data.action.slice(0, 60);
+  if (action === "assets.approve")
+    return { ok: false, reason: "assets.approve stays a person's (manual_approval)" };
+  if (action !== "assets.reject" && action !== "assets.re_render")
+    return { ok: false, reason: `${action} is not an action the runner knows` };
+  const target = assetIdInputSchema.safeParse(raw);
+  if (!target.success) return { ok: false, reason: `${action} needs the id of an asset` };
+  const { id } = target.data;
+  if (action === "assets.re_render") {
+    const why = whyOf(raw, "Matter asks for a new render of this visual");
+    return {
+      ok: true,
+      call: { method: "POST", path: `/api/admin/assets/${id}/rerender`, body: {}, why },
+    };
+  }
+  const reject = assetRejectInputSchema.safeParse(raw);
+  if (!reject.success) return { ok: false, reason: "assets.reject needs a note for the record" };
+  const { note } = reject.data;
+  const why = whyOf(raw, `Matter rejects this visual: ${note}`);
+  return {
+    ok: true,
+    call: { method: "POST", path: `/api/admin/assets/${id}/reject`, body: { note }, why },
+  };
+}
+
 /** A call Matter may propose: a write route that exists, with that method, and that the agent key may perform. */
 export function checkCall(
   raw: unknown,
   routes: readonly AdminRoute[],
   allowed: readonly string[],
 ): CallCheck {
-  const parsed = adminCallSchema.safeParse(raw);
+  const named = namedCall(raw);
+  if (named?.ok === false) return named;
+  const parsed = adminCallSchema.safeParse(named === null ? raw : named.call);
   if (!parsed.success) return { ok: false, reason: "not a call the runner can read" };
   const call = parsed.data;
   const route = routes.find(

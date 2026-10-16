@@ -14,6 +14,7 @@ import {
   shouldMove,
   shouldRotate,
   shouldTouch,
+  withoutStaleTasks,
 } from "../../scripts/matter/live";
 
 // W5 item 1: Matter's live session (operator, 2026-10-13: "work and keep building ... with status update ... if I text
@@ -145,20 +146,48 @@ describe("the laptop's switches", () => {
       workforceOverride(join(tmpdir(), "no-such-config.json")),
     ]).toEqual([{ matterModel: "claude-sonnet-5-5", backlog: "off" }, {}, {}]);
   });
+
+  it("reads the operator's order to set the allowance aside, and nothing for follow", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mop-config-"));
+    const ignore = join(dir, "ignore.json");
+    const follow = join(dir, "follow.json");
+    writeFileSync(ignore, JSON.stringify({ matterModel: "claude-opus-5-5", allowance: "ignore" }));
+    writeFileSync(follow, JSON.stringify({ allowance: "follow" }));
+    expect([workforceOverride(ignore), workforceOverride(follow)]).toEqual([
+      { allowance: "ignore", matterModel: "claude-opus-5-5" },
+      {},
+    ]);
+  });
 });
 
 describe("a background task keeps the session busy (2026-10-13, a rotation dropped a running W4 check)", () => {
   it("opens a task on its start and closes it on its finish, and is idle only with nothing open", () => {
-    const started = openTasks(new Set(), { id: "t-1", label: "bun run check", state: "started" });
+    const started = openTasks(new Map(), { id: "t-1", label: "bun run check", state: "started" });
     const second = openTasks(started, { id: "t-2", label: "tests", state: "started" });
     const oneDone = openTasks(second, { id: "t-1", label: "bun run check", state: "done" });
     const allDone = openTasks(oneDone, { id: "t-2", label: "tests", state: "done" });
-    expect([...oneDone]).toEqual(["t-2"]);
+    expect([...oneDone.keys()]).toEqual(["t-2"]);
     expect([isIdle(0, oneDone.size), isIdle(0, allDone.size), isIdle(1, 0)]).toEqual([
       false,
       true,
       false,
     ]);
+  });
+});
+
+describe("a task that never reports back does not hold the session busy for ever (2026-10-16, P-3580)", () => {
+  it("records when a task started and forgets one that is still open after three hours", () => {
+    const hour = 60 * 60_000;
+    const open = openTasks(
+      openTasks(new Map(), { id: "old", label: "a", state: "started" }, 0),
+      { id: "new", label: "b", state: "started" },
+      2 * hour,
+    );
+    expect(withoutStaleTasks(open, 2.5 * hour)).toEqual({ open, dropped: [] });
+    const later = withoutStaleTasks(open, 3 * hour + 1);
+    expect([[...later.open.keys()], later.dropped]).toEqual([["new"], ["old"]]);
+    expect(isIdle(0, later.open.size)).toBe(false);
+    expect(isIdle(0, withoutStaleTasks(open, 6 * hour).open.size)).toBe(true);
   });
 });
 

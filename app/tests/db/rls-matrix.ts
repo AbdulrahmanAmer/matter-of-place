@@ -110,6 +110,18 @@ export const rlsMatrix: Record<string, Access> = {
 };
 
 /**
+ * W6 item 7, ruling H119 (2): what a client (a signed-in person whose confirmed email is a contact's) may do to each
+ * table, on their own rows. Nothing: the base tables carry staff-only columns, so a client's rows reach the room only
+ * through `account_room`. A later slice that opens a row to a client lists the table and operation here.
+ */
+export const clientAccess: Partial<Record<string, readonly TableOperation[]>> = {};
+
+/** Whether a client may run `op` on their own row of `table`; another client's row is always refused. */
+export function clientAllows(table: string, op: TableOperation): boolean {
+  return clientAccess[table]?.includes(op) ?? false;
+}
+
+/**
  * The only functions in `public` or `app` that `authenticated` may execute. The policies call these two, and they sit
  * in `app`, outside the API, so no one reaches them through /rest/v1/rpc (security advisor lint 0029).
  */
