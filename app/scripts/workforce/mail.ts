@@ -18,7 +18,7 @@ import { sortMessage, type Attachment } from "./service-notice.ts";
 const EVERY_MS = 5 * 60_000;
 const FIRST_LOOK_MS = 3 * 86_400_000;
 const PAGE = 50;
-/** At most this many pages listed to reach a folder's cursor; a folder with more new mail is named and not moved. */
+/** At most this many pages listed newest first to reach a folder's cursor; past them the backlog is read oldest first. */
 const MAX_PAGES = 40;
 /** At most this many new messages of one folder are read a check, oldest first; the rest wait for the next check. */
 export const PER_CHECK = 100;
@@ -243,32 +243,78 @@ async function knownIds(client: Db, ids: readonly string[]): Promise<Set<string>
 
 type Listed = z.infer<typeof messageSchema> & { received: number };
 
+/** One page of a folder's list, newest first or oldest first. */
+async function listPage(
+  zoho: Zoho,
+  account: string,
+  folder: string,
+  page: number,
+  oldestFirst: boolean,
+): Promise<Listed[]> {
+  return z
+    .array(messageSchema)
+    .parse(
+      await zoho.json(
+        `/accounts/${account}/messages/view?folderId=${folder}&start=${String(page * PAGE + 1)}&limit=${String(PAGE)}&sortorder=${String(oldestFirst)}`,
+      ),
+    )
+    .map((row) => ({ ...row, received: Number(row.receivedTime) }));
+}
+
 /**
- * A folder's messages newer than its cursor, oldest first. The list call takes no date, and its oldest-first order
- * starts at the folder's first message, so the pass lists newest first until it meets the cursor (or the folder's
- * end); `reached` is false when MAX_PAGES did not get there, and then nothing of the folder is read (W8 0h review).
+ * A folder's messages newer than its cursor, oldest first. The list call takes no date. New mail is usually a page or
+ * two, so the pass lists newest first until it meets the cursor (or the folder's end); when MAX_PAGES do not get there,
+ * it reads the backlog from its oldest message instead (`oldestAfter`), so a folder always moves (W8 0h review).
  */
 async function newMessages(
   zoho: Zoho,
   account: string,
   folder: string,
   since: number,
-): Promise<{ rows: Listed[]; reached: boolean }> {
+): Promise<Listed[]> {
   const rows: Listed[] = [];
   for (let page = 0; page < MAX_PAGES; page += 1) {
-    const list = z
-      .array(messageSchema)
-      .parse(
-        await zoho.json(
-          `/accounts/${account}/messages/view?folderId=${folder}&start=${String(page * PAGE + 1)}&limit=${String(PAGE)}&sortorder=false`,
-        ),
-      )
-      .map((row) => ({ ...row, received: Number(row.receivedTime) }));
+    const list = await listPage(zoho, account, folder, page, false);
     rows.push(...list.filter((row) => row.received > since));
     if (list.length < PAGE || list.some((row) => row.received <= since))
-      return { rows: rows.sort((a, b) => a.received - b.received), reached: true };
+      return rows.sort((a, b) => a.received - b.received);
   }
-  return { rows: [], reached: false };
+  return oldestAfter(zoho, account, folder, since);
+}
+
+/**
+ * The oldest messages past the cursor, at least PER_CHECK and one more when there are. The first oldest-first page that
+ * ends past the cursor is found by doubling and then halving (a few list calls in any folder), and read from there.
+ */
+async function oldestAfter(
+  zoho: Zoho,
+  account: string,
+  folder: string,
+  since: number,
+): Promise<Listed[]> {
+  const endsPast = async (page: number) => {
+    const list = await listPage(zoho, account, folder, page, true);
+    return list.length < PAGE || (list.at(-1)?.received ?? 0) > since;
+  };
+  // `low` ends at or before the cursor (-1: none known), `high` ends past it or is past the folder's end.
+  let low = -1;
+  let high = 0;
+  while (!(await endsPast(high))) {
+    low = high;
+    high = high * 2 + 1;
+  }
+  while (high - low > 1) {
+    const middle = Math.floor((low + high) / 2);
+    if (await endsPast(middle)) high = middle;
+    else low = middle;
+  }
+  const rows: Listed[] = [];
+  for (let page = high; rows.length <= PER_CHECK; page += 1) {
+    const list = await listPage(zoho, account, folder, page, true);
+    rows.push(...list.filter((row) => row.received > since));
+    if (list.length < PAGE) break;
+  }
+  return rows.sort((a, b) => a.received - b.received);
 }
 
 /**
@@ -356,8 +402,7 @@ export async function checkMail(
       cursor.folders[folderId] ??
       (folder.folderType === "Inbox" && name === "Inbox" ? cursor.at : now - FIRST_LOOK_MS);
     try {
-      const { rows, reached } = await newMessages(zoho, id, folderId, since);
-      if (!reached) done.unread.push(`${name} (more new mail than one check can list)`);
+      const rows = await newMessages(zoho, id, folderId, since);
       // Oldest first, PER_CHECK at most; the cursor moves only over what was handled, so the rest is read next check.
       const batch = rows.slice(0, PER_CHECK);
       const known = await knownIds(

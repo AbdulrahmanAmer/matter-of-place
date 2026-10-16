@@ -504,10 +504,11 @@ function mailbox(lists: Record<string, Fixture[] | "fail">) {
       const list = lists[query.get("folderId") ?? ""] ?? [];
       if (list === "fail")
         return Promise.resolve(Response.json({ status: { code: 500 } }, { status: 500 }));
-      // As Zoho answers: newest first (sortorder=false), one page of `limit` from `start` (1-based).
+      // As Zoho answers: newest first (sortorder=false) or oldest first (true), one page of `limit` from `start`.
       const start = Number(query.get("start") ?? "1") - 1;
+      const order = query.get("sortorder") === "true" ? 1 : -1;
       const page = [...list]
-        .sort((a, b) => Number(b.message.receivedTime) - Number(a.message.receivedTime))
+        .sort((a, b) => order * (Number(a.message.receivedTime) - Number(b.message.receivedTime)))
         .slice(start, start + Number(query.get("limit") ?? "50"));
       return Promise.resolve(
         ok(
@@ -701,6 +702,37 @@ describe("W8 0h: every folder, every message, once", () => {
     expect([...new Set(ids)].sort()).toEqual(many.map((item) => item.message.messageId).sort());
     expect(ids).toHaveLength(130);
     expect([first.unread, second.unread]).toEqual([[], []]);
+  });
+
+  it("works through a backlog longer than forty pages from its oldest new message", async () => {
+    // 300 messages older than the cursor, then 2050 new ones: more than the newest-first listing reaches.
+    const person = (index: number, at: number) => ({
+      ...SEARCH_CONSOLE,
+      message: {
+        ...SEARCH_CONSOLE.message,
+        messageId: String(1792100000000000000n + BigInt(index)),
+        receivedTime: String(at),
+        fromAddress: "dana@example.net",
+      },
+      header: PERSON_HEADER,
+    });
+    const old = Array.from({ length: 300 }, (_, index) =>
+      person(index, NOW - 4 * 86_400_000 + index * 1000),
+    );
+    const fresh = Array.from({ length: 2050 }, (_, index) =>
+      person(300 + index, NOW - 86_400_000 + index * 1000),
+    );
+    const box = mailbox({ "8580671000000008008": [...old, ...fresh] });
+    const { db, rpcs } = mailDb();
+    const done = await checkMail(db, home(), NOW, { names, fetch: box.fetch });
+    const ids = rpcs
+      .filter((call) => call.name === "inbound_mail_record")
+      .map((call) => String(call.args["p_provider_id"]));
+    expect(ids).toEqual(fresh.slice(0, PER_CHECK).map((item) => item.message.messageId));
+    expect(done.unread).toEqual([]);
+    // The oldest-first search took a few list calls, not a walk of the folder.
+    const oldestFirst = box.asked.filter((path) => path.includes("sortorder=true"));
+    expect(oldestFirst.length).toBeLessThan(12);
   });
 
   it("reads the reports of a service's mail filed under Newsletter", async () => {
