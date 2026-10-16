@@ -1,0 +1,317 @@
+[
+  {
+    "id": "w8-0d2-owner-explains-first",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    .insert({ agent_id: ownerRow.id, cause: \"message\", message_id: held.id });",
+    "replace": "    .insert({ agent_id: matterRow.id, cause: \"message\", message_id: held.id });",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*holds for Matter in the owner's thread, queues the owner's explanation first"
+  },
+  {
+    "id": "w8-0d2-held-line-explains",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    return record === null ? null : { ...record, explain: true };",
+    "replace": "    return record === null ? null : record;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*knows an explanation from the database row of its waking line"
+  },
+  {
+    "id": "w8-0d2-explain-gate",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (triage.explain === true) return \"explain\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*triages the record afresh as an explanation that can neither answer nor hold again"
+  },
+  {
+    "id": "w8-0d2-explain-keeps-nothing",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    triage !== \"held\" && triage !== \"explain\" && allowedFor(triage.source, action);",
+    "replace": "    triage !== \"held\" && allowedFor(triage.source, action);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*lets neither an explanation nor an allowed run propose a social post"
+  },
+  {
+    "id": "w8-0d2-explain-rule",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    rule: matterReadsHeld ? \"held\" : triage?.explain === true ? \"explain\" : triage,",
+    "replace": "    rule: matterReadsHeld ? \"held\" : triage,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*lets neither an explanation nor an allowed run propose a social post"
+  },
+  {
+    "id": "w8-0d2-explain-prompt",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    ...(triage.explain === true\n      ? explainLines(triage)",
+    "replace": "    ...(triage.explain === undefined\n      ? explainLines(triage)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*tells the owner to explain, in fixed words"
+  },
+  {
+    "id": "w8-0d2-explain-sticks",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    ...(outside.explain === true ? { explain: true as const } : {}),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*triages the record afresh as an explanation that can neither answer nor hold again"
+  },
+  {
+    "id": "w8-0d2-nothing-inside-explain",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "the runner drops anything you propose. ${NOTHING_INSIDE}`",
+    "replace": "the runner drops anything you propose.`",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*tells the owner to explain, in fixed words"
+  },
+  {
+    "id": "w8-0d2-nothing-inside-allow",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    NOTHING_INSIDE,\n    `Record:",
+    "replace": "    `Record:",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*writes the posture in the runner's own words"
+  },
+  {
+    "id": "w8-0d2-posture-words",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "and how: ${postureWords[how]}.",
+    "replace": "and how: ${how}.",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*writes the posture in the runner's own words"
+  },
+  {
+    "id": "w8-0d2-explain-run-words",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "      run: \"Explained an outside message held for Matter\",",
+    "replace": "      run: \"Answered an outside message\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*lets neither an explanation nor an allowed run propose a social post"
+  },
+  {
+    "id": "w8-0d2-explains-own-thread",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "    line.thread === agentSlug",
+    "replace": "    line.thread !== \"\"",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*knows an explanation from the database row of its waking line"
+  },
+  {
+    "id": "w8-0d2-hand-once",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "    if ((queued.count ?? 0) > 0) return \"already\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*queues Matter's read once per held line"
+  },
+  {
+    "id": "w8-0d2-failure-said",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "  if (failed) await tell(EXPLANATION_FAILED);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*queues Matter's read once per held line"
+  },
+  {
+    "id": "w8-0d2-explanation-newer",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "    .gt(\"created_at\", heldAt)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*finds the owner's explanation between the held line and Matter's run"
+  },
+  {
+    "id": "w8-0d2-explanation-before-matter",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "    .lte(\"created_at\", matterRunAt)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*finds the owner's explanation between the held line and Matter's run"
+  },
+  {
+    "id": "w8-0d2-explanation-fenced",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "    : shownBody({ author_id: line.author_id, body: line.body.slice(0, EXPLANATION_MAX) });",
+    "replace": "    : line.body.slice(0, EXPLANATION_MAX);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*finds the owner's explanation between the held line and Matter's run"
+  },
+  {
+    "id": "w8-0d2-explanation-capped",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "body: line.body.slice(0, EXPLANATION_MAX) }",
+    "replace": "body: line.body }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*finds the owner's explanation between the held line and Matter's run"
+  },
+  {
+    "id": "w8-0d2-matter-read-untriaged",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  const triage = await triageRun(client, ask, event, matterReadsHeld ? null : woke, owns);",
+    "replace": "  const triage = await triageRun(client, ask, event, woke, owns);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*holds an inquiry with an instruction, has the owner explain it"
+  },
+  {
+    "id": "w8-0d2-explanation-to-matter",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "              matterReadsHeld && run.message_id !== null",
+    "replace": "              !matterReadsHeld && run.message_id !== null",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*holds an inquiry with an instruction, has the owner explain it"
+  },
+  {
+    "id": "w8-0d2-hand-on-end",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      await handToMatter(client, agents ?? [], run.message_id, thread, false);",
+    "replace": "      void handToMatter;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*holds an inquiry with an instruction, has the owner explain it"
+  },
+  {
+    "id": "w8-0d2-hand-on-failure",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      await handToMatter(client, agents ?? [], run.message_id, thread, true);",
+    "replace": "      void handToMatter;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*says a failed explanation in the thread and still queues Matter's read, once"
+  },
+  {
+    "id": "w8-0d2-unexplained-fails",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    if (explains && gate !== \"explain\")\n",
+    "replace": "    if (explains && gate === \"not_owner\")\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*fails closed on a held line that names no record"
+  },
+  {
+    "id": "w8-0d2-explain-dropped-words",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        : shape.rule === \"explain\"\n",
+    "replace": "        : shape.rule === \"held\"\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*lets neither an explanation nor an allowed run propose a social post"
+  },
+  {
+    "id": "w8-0d2-usage-limit-requeues",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    if (failure instanceof UsageLimitError) {",
+    "replace": "    if (failure instanceof TypeError) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*puts an explanation stopped by the usage limit back in the queue"
+  },
+  {
+    "id": "w8-0d2-how-only-held",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    how: shape.rule === \"held\" && input.answer.allow ? postureOf(input.answer.how) : null,",
+    "replace": "    how: postureOf(input.answer.how),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*reads Matter's how as one of four postures"
+  },
+  {
+    "id": "w8-0d2-how-refused-said",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    await say(client, owner, HOW_REFUSED);\n    return;",
+    "replace": "    return;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*writes the posture in the runner's own words"
+  },
+  {
+    "id": "w8-0d2-how-refused-no-allowance",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    await say(client, owner, HOW_REFUSED);\n    return;",
+    "replace": "    await say(client, owner, HOW_REFUSED);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*writes the posture in the runner's own words"
+  },
+  {
+    "id": "w8-0d2-how-off-list-e2e",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      await allowForOwner(client, agents ?? [], thread, heldRecord, plan.how);",
+    "replace": "      await allowForOwner(client, agents ?? [], thread, heldRecord, plan.how ?? \"answer\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*leaves the decision with a person when Matter names a how off the list"
+  },
+  {
+    "id": "w8-0d2-how-schema",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  how: z.enum(POSTURES).or(z.literal(HOW_OFF_LIST)).optional().catch(HOW_OFF_LIST),",
+    "replace": "  how: z.enum(POSTURES).or(z.literal(HOW_OFF_LIST)).optional(),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*reads Matter's how as one of four postures"
+  },
+  {
+    "id": "w8-0d2-how-default",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/posture.ts",
+    "find": "  if (how === undefined) return \"answer\";",
+    "replace": "  if (how === undefined) return null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*reads Matter's how as one of four postures"
+  },
+  {
+    "id": "w8-0d2-off-list-refused",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/posture.ts",
+    "find": "  return how === HOW_OFF_LIST ? null : how;",
+    "replace": "  return how === HOW_OFF_LIST ? \"answer\" : how;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*reads Matter's how as one of four postures"
+  },
+  {
+    "id": "w8-0d2-postures-named",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "How the owner may answer, if you allow it: ${postureChoices()}.",
+    "replace": "How the owner may answer, if you allow it: as you see fit.",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*gives Matter's held read the owner's explanation"
+  },
+  {
+    "id": "w8-0d2-nothing-inside-matter",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "for a person to approve. ${NOTHING_INSIDE}`",
+    "replace": "for a person to approve.`",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*gives Matter's held read the owner's explanation"
+  },
+  {
+    "id": "w8-0d2-absent-said",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "          input.explanation === undefined || input.explanation === null",
+    "replace": "          input.explanation === undefined",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*gives Matter's held read the owner's explanation"
+  }
+]
