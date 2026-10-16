@@ -8521,3 +8521,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a refusal that depends on an asset's state lists the states that are allowed (`not in ('pending', 'rejected')`), never the ones that are not; read `assetStatuses` in `src/domain/assets.ts` before writing one, and give the db test a case for every state the check refuses.
 - proof: the throwaway-cluster probe of `20261016045347_w8_9_agent_asset_decisions.sql` (W8 item 9's builder log) answers `ERROR:  asset_not_rejectable` for an agent's re-render of a published revision and passes the check for a rejected one; `tests/db/assets.db.test.ts` case "lets an agent key ask for a new render of a rejected asset" holds `stays: [{ revision: 1, status: "published" }]` (CI's db job).
 - added: 2026-10-16
+
+## P-3582 · A shell redirect to a relative path climbed out of the worktree and left a file in `E:\`
+- symptom: 2026-10-16 (W7 4), `cat > ../../../tmp_edit_office.mjs` from `app/` created an empty file at `E:\tmp_edit_office.mjs`, and the sandbox then refused to delete it (outside the worktree).
+- rule: never redirect to a relative path with `..`; scripts and logs go to `/tmp/<name>` or to a file made with the Write tool inside the worktree, and `git status` after a surprise redirect.
+- proof: `ls /e/tmp_edit_office.mjs` → the stray empty file, for the operator to remove (a human, not this session).
+- added: 2026-10-16
+
+## P-3583 · A list that filters and counts over a capped read shows counts of a slice as if they were totals
+- symptom: 2026-10-16, W7 4 review: `DecisionsPanel` filtered and counted on the client over the newest 200 rows, so `Open (n)` stopped being true after about 40 days and older open decisions vanished without a word.
+- rule: a list with a bound reads its true total beside the rows (`select(cols, { count: "exact" })`) and the screen says "Showing the newest N of M" when it is cut; a list a screen filters by status is filtered and counted on the server, each status capped on its own. A value outside its contract (`status`, `source`) fails the read with 503, never mapped to a real value (`inContract` in `src/server/workforce/service.ts`).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-4-decision-true-totals` → `WATCHED-FAIL OK`, its red run `reads each status on its own, newest 200 of each`.
+- added: 2026-10-16
+
+## P-3584 · In `dontAsk` mode a builder cannot edit `.claude/POSITION.md`, so a merge that conflicts there cannot be finished
+- symptom: 2026-10-16, W7 4 fix run: `git merge origin/overdrive/finish` conflicted only in `.claude/POSITION.md`; `Edit` and `sed -i` on it were refused ("running in don't ask mode"), edits under `app/`, `workspace/` and `GOTCHAS.md` were not. The merge was aborted and the fixes committed unmerged.
+- rule: a headless builder run that must merge or append to the position file needs `Edit(./.claude/POSITION.md)` in its allow list, or Matter merges and writes the block; a builder never works around the refusal through git or the shell.
+- proof: `Edit` on `.claude/POSITION.md` in a `dontAsk` run → "Permission to use Edit has been denied".
+- added: 2026-10-16
+
+## P-3585 · The component replay never started its worker under load: the forks pool timed out, the threads pool ran
+- symptom: 2026-10-16, W7 4: `bunx vitest run --project component src/admin/workforce/team-memory.test.tsx` → `[vitest-pool-runner]: Timeout waiting for worker to respond` twice, no test run, while the laptop held ~46 node processes; `--pool=threads` ran all 18 tests in 18 s.
+- rule: when a component run says `Failed to start forks worker`, rerun it with `--pool=threads` before calling anything red; a registry entry's `run` may carry `--pool=threads` (W7-4.json does). Two replays in a row then went `BAD: wrong reason` once each for entries that were `WATCHED-FAIL OK` alone, so a BAD under load is rerun alone before it is believed.
+- proof: `cd app && bunx vitest run --project component --pool=threads src/admin/workforce/team-memory.test.tsx` → `Tests 18 passed (18)`.
+- added: 2026-10-16
