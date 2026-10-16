@@ -8572,3 +8572,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: build props so an absent value is left out (`...(cond ? { marker } : {})`), never set to `undefined`; a slide that drops a prop spreads a base object that never had it.
 - proof: CI `check` job, `tsc --noEmit -p tsconfig.json`: six TS2375 on the old shape, none on the new (run 38878332417 and its successor).
 - added: 2026-10-16
+
+## P-3694 · Branches that each pass alone fail together on the tables every page, form and class must be named in
+- symptom: 2026-10-16, draft PR 447 CI round 5: four unit tests red after typecheck and lint were green: the client room's two pages missing from the route map (`routes-covered`), its two forms missing from the table of public forms (`turnstile-coverage`), `wf-mem__status` with no style rule (`admin-classes`), and `.credentials.json` not refused by name (`workforce-drive-copy`).
+- cause: each builder ran its own folder's tests; the tables that name every route, form and admin class live in other folders, and with no local full run nothing joined them before CI.
+- rule: a builder of a new page route, public form or admin class opens `tests/e2e/fixtures/routes.ts`, `workspace/audits/tools/public-forms.mjs` and `tests/unit/admin-classes.test.ts` and adds its rows in the same commit; the brief of every item that adds a page, a form or a class says so. A name-matching secret rule is tested with the dotfile spelling too (`.credentials.json`).
+- proof: CI `check` job, `vitest run --project unit`, round 5: 4 failed | 443 passed files; after the rows are added the four are green (round 6).
+- added: 2026-10-16

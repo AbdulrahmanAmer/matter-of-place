@@ -88,7 +88,7 @@ export function copyRules(home: string, backups: string, dumps: string): CopyRul
 const SECRET_SHAPES = [
   /(^|\/)\.env($|[./])/i,
   /(^|\/)creds?(\/|$)/i,
-  /(^|\/)credentials?(\.json)?$/i,
+  /(^|\/)\.?credentials?(\.json)?$/i,
   /\.(pem|key|p12|pfx)$/i,
   /(^|\/)[^/]*(token|secret|password)[^/]*$/i,
   /(^|\/)\.(ssh|aws|claude|gnupg|config)(\/|$)/i,

@@ -1,0 +1,56 @@
+[
+  {
+    "id": "w8-ci5-account-verifies",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "await verifyTurnstile(input.turnstile",
+    "replace": "await verifyTurnstileGone(input.turnstile",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts",
+    "expect": "× .*makes a form that writes through a server function ask for the token"
+  },
+  {
+    "id": "w8-ci5-account-asks",
+    "test": "tests/unit/security/turnstile-coverage.test.ts",
+    "file": "src/components/account/account-sign-in.tsx",
+    "find": "getTurnstileToken(\"account-send-link\")",
+    "replace": "getToken(\"account-send-link\")",
+    "run": "bunx vitest run --project unit tests/unit/security/turnstile-coverage.test.ts",
+    "expect": "× .*makes a form that writes through a server function ask for the token"
+  },
+  {
+    "id": "w8-ci5-route-account-index",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  \"_site.account.index.tsx\": \"/account\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "× .*are all classified"
+  },
+  {
+    "id": "w8-ci5-route-account-confirm",
+    "test": "tests/unit/routes-covered.test.ts",
+    "file": "tests/e2e/fixtures/routes.ts",
+    "find": "  \"_site.account.confirm.tsx\": \"/account/confirm\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/routes-covered.test.ts",
+    "expect": "× .*are all classified"
+  },
+  {
+    "id": "w8-ci5-wf-mem-status-rule",
+    "test": "tests/unit/admin-classes.test.ts",
+    "file": "src/styles/admin/workforce.css",
+    "find": ".wf-mem__status {\n  font-weight: 500;\n  white-space: nowrap;\n}\n\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/admin-classes.test.ts",
+    "expect": "× .*has a style rule for every admin class a screen names"
+  },
+  {
+    "id": "w8-ci5-dot-credentials",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "/(^|\\/)\\.?credentials?(\\.json)?$/i",
+    "replace": "/(^|\\/)credentials?(\\.json)?$/i",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*refuses the login and key files a studio folder could hold"
+  }
+]
