@@ -3,7 +3,7 @@
     "id": "w7-e2-kind-needs-subject",
     "test": "tests/unit/workforce-reel.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "if (field !== undefined && request[field] === undefined) {",
+    "find": "if (field !== undefined && request[field] === undefined && !own) {",
     "replace": "if (false) {",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*names the subject its kind needs"
@@ -133,5 +133,113 @@
     "replace": "a scene change",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*tells the designer what the gate measures"
+  },
+  {
+    "id": "w8-h110-brand-no-photos",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "if (!photosAllowed) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*takes the photographs of a property not on the site"
+  },
+  {
+    "id": "w8-h110-campaign-photos",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "const own = request.kind === \"campaign\" && request.photos !== undefined;",
+    "replace": "const own = true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*takes the photographs of a property not on the site"
+  },
+  {
+    "id": "w8-h110-desk-confined",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "if (inside === \"\" || inside.startsWith(\"..\") || isAbsolute(inside)) throw refused;",
+    "replace": "if (false) throw refused;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*reads a picture from the requester's own work folder"
+  },
+  {
+    "id": "w8-h110-desk-type",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "if (!PHOTO_TYPES.has(extname(real).toLowerCase()) || statSync(real).size > PHOTO_MAX_BYTES)\n    throw refused;",
+    "replace": "if (false) throw refused;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*reads a picture from the requester's own work folder"
+  },
+  {
+    "id": "w8-h110-desk-agent",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "if (!/^[a-z0-9-]+$/.test(agent)) throw refused;",
+    "replace": "if (false) throw refused;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*reads a picture from the requester's own work folder"
+  },
+  {
+    "id": "w8-h110-own-route",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "own.length > 0 ? deps.desk(brief.from.agent, shot.key) : await deps.download(shot.key)",
+    "replace": "await deps.download(shot.key)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*films a property reel from the request's pictures"
+  },
+  {
+    "id": "w8-h110-scene-draws-shots",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "!readFileSync(join(folder, \"scene\", \"scene.mjs\"), \"utf8\").includes(\"spec.shots\")",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*sends back a scene that draws none of the photographs"
+  },
+  {
+    "id": "w8-h110-review-count",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "reviewPrompt(brief, placed.length)",
+    "replace": "reviewPrompt(brief)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*films a property reel from the request's pictures"
+  },
+  {
+    "id": "w8-h110-not-recorded",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "if (request.kind === \"campaign\" && request.property_id === undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*films a property reel from the request's pictures"
+  },
+  {
+    "id": "w8-h110-review-refuses-drawn",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "(a drawn house is not the house).",
+    "replace": "(a drawn house is fine).",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*tells the designer to show the photographs"
+  },
+  {
+    "id": "w8-h110-scene-never-draw",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "Never draw, model or imitate the house or its rooms",
+    "replace": "Draw the house or its rooms",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*tells the designer to show the photographs"
+  },
+  {
+    "id": "w8-h110-tool-line",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "a \"brand\" reel never shows a property.",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*tells the designer to show the photographs"
   }
 ]

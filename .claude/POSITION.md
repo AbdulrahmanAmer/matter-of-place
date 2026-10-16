@@ -1972,6 +1972,15 @@ first day of the new usage week; no step was cut from any plan.
   tools): the runner runs main, so this proof comes after merge; 0e stays unticked until then. NOT DONE: a table CHECK
   refusing uuid-shaped slugs (its own migration PR); 0f; 0g waits on the operator's Google Drive.
   Bank grew: P-3570, P-3571, P-3572.
+
+- 2026-10-16 12:20 +0300: H110 fix (branch overdrive/reel-photos, review fixes): a reel request may carry `photos` only as a
+  campaign with no `property_id` (market, story, brand and campaign-with-property refuse it, 3 new schema cases), a desk picture's
+  file name never reaches the designer (alt text "photograph N"), ruling H124 records the kept-in-the-studio outcome (no Visuals
+  asset: a visual needs a subject). Proof: reel tests 21 passed; w8-h110-brand-no-photos and w8-h110-own-route WATCHED-FAIL OK (read).
+  The Fairfield re-render from the five pictures was made and passed the gate and the review on 2026-10-16 05:46 (studio folder
+  2026-10-16-fairfield-test-reel-2, `reel.mp4` 1080x1920, 21.2 s, replaced in Drive Reels, review sheet read by Matter); it was
+  rendered from this worktree, not from the live runner. UNPROVEN: the live runner on this code (it follows main); the picture
+  orientation is assumed landscape; the scene check is textual (the reviewer is the guard). Bank: P-3579.
 - 2026-10-16 05:10 +0300: W6 item 7 back on `overdrive/w6-7` after a fresh Opus review (two high, four medium, three
   low). Merged `origin/overdrive/finish` first: W8 0e had taken H113, so the client room's ruling is now H119 (P-3674).
   Fixed: client links no longer go through Supabase's one magic-link template (it opens `/admin/auth/confirm`) nor its
