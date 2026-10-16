@@ -588,7 +588,7 @@ body:has(.concierge-toggle) .access-tab {
 }
 
 :root[data-still] :is(.property-card, .market-card, .story-card):hover img,
-:root[data-still] .market-card:hover h3,
+:root[data-still] .market-card:hover :is(h2, h3),
 :root[data-still] .hero-index a:is(:hover, :focus-visible) .hero-index-name {
   transform: none;
 }

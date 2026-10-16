@@ -82,6 +82,7 @@ settings.redirects_put             AD | H R
 settings.products_put              AD | H R
 settings.products_preview          AD | H R
 audit.list                         CE AD
+audit.reply_mark                   CE AD
 audit.subject_requests             CE AD
 audit.subject_export               AD | H R
 audit.subject_delete               AD | H R

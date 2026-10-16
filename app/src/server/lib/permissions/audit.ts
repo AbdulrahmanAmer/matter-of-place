@@ -8,6 +8,8 @@ const auditReaders = ["chief_editor", "managing_editor", "commercial", "admin"] 
 
 export const audit = [
   { action: "audit.list", group: "audit", roles: readers },
+  // W7 item 2: a reply to our email is marked seen, answered or ignored by those who read the Sent emails screen.
+  { action: "audit.reply_mark", group: "audit", roles: readers },
   { action: "audit.subject_requests", group: "audit", roles: readers },
   { action: "audit.subject_export", group: "audit", ...guarded },
   { action: "audit.subject_delete", group: "audit", ...guarded },

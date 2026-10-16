@@ -1959,3 +1959,50 @@ first day of the new usage week; no step was cut from any plan.
   tools): the runner runs main, so this proof comes after merge; 0e stays unticked until then. NOT DONE: a table CHECK
   refusing uuid-shaped slugs (its own migration PR); 0f; 0g waits on the operator's Google Drive.
   Bank grew: P-3570, P-3571, P-3572.
+- 2026-10-16 01:00 +0300: W7 item 3 review fixes (PR 442, builder, Sonnet 5.5): the state of a campaign is read on its market's
+  own day (`dayInZone` in `domain/market-time`, Pacific for California, Eastern otherwise) instead of the UTC day; `campaigns`
+  is in `adminKeys` (STUB dropped); `package` is `z.enum(exposurePackages)` in the contract and the service; `marketName`
+  moved to `src/lib/market-names.ts` (Interest and Campaigns import it there); the plan box 3 is open again with a
+  `Built (PR 442)` line naming the follow-up 3b (link an approved campaign_plan to a campaigns row). Also `campaigns` added to
+  the folder map (`check-layout.mjs`, P-3580). Proof: tsc both configs, eslint, prettier, knip exit 0; unit 24 and component
+  14 passed; registry replay `--changed origin/main` 35 ok 0 bad (8 new `w7-3-*` entries). UNPROVEN: the list rendered in a
+  browser on a preview against mop-dev. Bank grew: P-3580, P-3581.
+- 2026-10-16 03:00 +0300: orchestrator, Cloudflare and site audit (operator: "check the website performance as code and pages,
+  check the dns records, check everything and fix anything you find"). Done and read back: CAA (issue and issuewild for
+  letsencrypt.org, pki.goog, ssl.com, sectigo.com, digicert.com; iodef security@), all five certificate packs `active` after;
+  MTA-STS live (policy 200 via DoH, TXT `id=20261016`); DNS 35 records, none dangling or left from Lovable; Security
+  Insights full scan: security.txt and AI Labyrinth archived (security.txt is served; Labyrinth left off on purpose), the
+  one left is MFA on the Cloudflare login (OPERATOR'S: account security). WAF: free managed ruleset (31 rules) on, DDoS L7
+  on, www-to-apex redirect and the API burst rate limit on. Worker last 24 h: 4.09k requests, 0 errors, assets 0 4xx/5xx.
+  Cache headers right (HTML `max-age=0, must-revalidate`, `/assets/*` a year immutable); zone browser TTL does not override.
+  PageSpeed 6 pages: desktop 100 perf on all, mobile 92 to 99; a11y 98 on /markets and /california/guide for heading
+  order. Fixed on fix/robots-signals-headings: footer group headings h2, MarketCard/MarketGrid take a level (h2 on
+  /markets), Content-Signal `search=yes, ai-input=yes, ai-train=no` in robots.txt (ruling H114) held by check-seo, tests and
+  3 new mutation entries; the runClaude "keeps working" test outlives a cold start (P-3603). Markdown for Agents is Pro:
+  off. Cloudflare's own Issues tracker left off (Sentry is the tracker). UNPROVEN until deploy: PageSpeed a11y 100 on
+  the two pages. Fairfield lane test: Julian's verdict FAIL (decline) at 01:13 with five reasons; Maya not re-woken after
+  her files landed (P-3602), sent to Matter with the stale bounce in Julian's address check. Bank grew: P-3600..P-3603.
+
+- 2026-10-15 W7 item 2 (PR 441, feat/w7-2-replies): the Sent emails screen has a Replies part: each `email_replies` row beside the
+  email it answers (through `send_id`), owner, state, and buttons answered / ignored; opening a `new` reply marks it
+  `seen`. Read: `GET /api/admin/emails/replies` (action `audit.list`). Write: `POST /api/admin/emails/replies/:id` (new
+  action `audit.reply_mark`, roles as `audit.list`), SQL function `email_reply_mark`, audited with ids and states only.
+  Files: `src/server/email/replies/service.ts`, `src/admin/audit/RepliesPart.tsx`, `supabase/sql/functions/email_reply_mark.sql`
+  with two migrations (`fn_email_reply_mark`, `action_roles`), `tests/mutations/W7-2.json` (18 entries, all
+  WATCHED-FAIL OK). Seen in headless Chrome (screenshots in E:/mop-build/w72-shots/).
+  UNPROVEN: the function on the real database (db tests refuse mop-dev after the switch, H35; passes 3 of 3 on a stub
+  native cluster; the PR's CI db job counts) and a real reply read through the screen. Reply column is narrow
+  (CSS under `src/styles/admin/` was not in this lane's files). Bank grew: P-3550.
+
+- 2026-10-16 W7 item 2 review fixes (PR 441, feat/w7-2-replies): the Opus review's seven findings. (1) The `w7-2-sql-audit` entry
+  commented out one line of a multi-line statement and went red on a compile error; it is now a whole `perform 1;`,
+  and the red run on the stub cluster shows `expected [] to deeply equal [ Array(1) ]` (the `seen.log` diff), not a
+  syntax error (P-3551). The three `sql` entries are regenerated from the real function file. (2) Opening a reply
+  under the filter "new" no longer drops it from view: `useMarkReply` writes `seen` into the cached pages and marks them
+  stale without reading again. (3) The sent emails are asked only for `status` and `search`. (4) The replies list is one
+  keyset page of fifty (`received_at~id`, `next_cursor`), with Next and Previous on the screen. (5) `email_reply_mark`
+  checks the caller against `action_roles` before its early return (new migration `20261015211418_fn_email_reply_mark.sql`).
+  (6) W7 item 2 is back to `[ ]` with a "Built (PR 441" line; Matter ticks it after the PR's CI db job is green.
+  (7) Lead copy reworded. `tests/mutations/W7-2.json` holds 28 entries (24 file, 4 sql), all WATCHED-FAIL OK.
+  UNPROVEN: the function on the real database (stub native cluster only; the CI db job counts), the route and service
+  end to end, a real reply read through the screen. Bank grew: P-3551.
