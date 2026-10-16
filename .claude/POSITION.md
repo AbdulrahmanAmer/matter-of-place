@@ -2065,3 +2065,26 @@ first day of the new usage week; no step was cut from any plan.
   TypeError; both fixed, the red assertions read); 10 W8-0 entries replayed OK, 4 updated for moved lines. W8 item 0d
   stays [ ] with a "Built 2026-10-16" line. UNPROVEN: a real test message held, explained and decided in the Office
   (needs the runner on the merged code). Bank grew: P-3590; P-3478 and P-1303 hit again.
+
+- 2026-10-16 W8 0i second round (overdrive/toolkits, pushed, no PR; Matter merges into overdrive/finish), after a fresh
+  Opus review FAILED the first (1 critical, 2 high, 2 medium, 4 low). Critical: a colleague started `bun <script>` from
+  its own folder, where bun reads `bunfig.toml` (preload) and `.env`. Now its one command is
+  `node <app>/scripts/workforce/render-run.mjs <carousel|post|story> --spec <file> --out <folder>` (one Bash rule per
+  renderer): the wrapper confines spec and output (`scripts/lib/confine.mjs`, shared with `shoot.mjs`), then starts bun
+  by its PATH entry outside every write place, from the app folder, `--config=<app>/bunfig.toml --no-env-file
+  --no-install`, with a clean environment; the render script reads the work folder from `MOP_RENDER_WORK`, never cwd.
+  Deny rules in any case (`anyCase`) and the runner's sweep now cover `bunfig.toml`, `.bunfig.toml`, `.env*`,
+  `package.json`, `tsconfig*.json`, `.npmrc` and the run config, in every write place (desk, studio, Drive). High: a
+  run gets its toolkit's writes and renders only when a person or an unrevoked key started it (`startedInside`); an
+  event, schedule or mention run gets `readOnly` (tested through `runOnce`). P-3577, H115 and the W8 Built line
+  corrected to what was measured. Medium/low: roots mutation can turn red; Office card shows each toolkit in words
+  (`OfficePage.tsx`, `office-toolkits.test.tsx`); `toolkitFor` own keys only; `localSpec` resolves links and caps 25 MB;
+  Drive path from `~/.mop-workforce/config.json` `driveSocial` (refused when missing); settings file per run id, removed
+  after the run. Live probes (`bun E:/mop-build/.tmp/probe-toolkit2/probe.ts`, exact `colleagueLaunch` arguments,
+  throwaway tree): control preload ran when bun started in its folder; through the wrapper a carousel and a story
+  rendered with that decoy present and it never ran; everything listed in P-3577 refused. Measured limit: read-only
+  commands run inside the run's places and `grep -r` read a planted `.env` there. Merge also fixed
+  origin/overdrive/finish's unparseable `check-layout.mjs` (P-3692). 0i stays [ ]. MATTER, BEFORE THE RERUN: add
+  `"driveSocial": "G:/My Drive/Matter of Place/Social Media"` to `~/.mop-workforce/config.json`, or Social's runs a
+  person starts fail with "sets no driveSocial". UNPROVEN: the Fairfield lane rerun with nothing by hand; the Office card
+  in a browser. Bank grew: P-3692; P-3577 rewritten.

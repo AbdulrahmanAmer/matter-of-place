@@ -1,4 +1,4 @@
-import { rmSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import type * as Os from "node:os";
 import type * as Path from "node:path";
 import { tmpdir } from "node:os";
@@ -68,6 +68,7 @@ vi.mock("node:path", async (importOriginal) => {
 
 const cli = vi.hoisted(() => ({
   prompts: [] as { who: string; prompt: string }[],
+  launches: [] as (readonly string[])[],
   answer: (who: string, prompt: string): string | Error => `${who} ${prompt}`.slice(0, 0),
 }));
 
@@ -79,7 +80,10 @@ const ask = (who: string, prompt: string) => {
 
 vi.mock("../../scripts/workforce/cli.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof Cli>()),
-  runClaude: (input: { who: string; prompt: string }) => ask(input.who, input.prompt),
+  runClaude: (input: { who: string; prompt: string; args?: readonly string[] }) => {
+    cli.launches = [...cli.launches, input.args ?? []];
+    return ask(input.who, input.prompt);
+  },
 }));
 
 // Matter's desk is a git worktree and its inputs read the atlas: neither belongs in a unit test.
@@ -775,5 +779,55 @@ describe("W8 0d: the explanation and the decision, piece by piece", () => {
       "Matter's read of the held message could not be queued; it waits in this thread for a person.",
       "Matter's read of the held message could not be queued; it waits in this thread for a person.",
     ]);
+  });
+});
+
+describe("H115, review of 2026-10-16: only a run a person started holds its toolkit's writes and renders", () => {
+  const SOCIAL_ID = "a0000000-0000-4000-8000-000000000003";
+  const LINE_ID = "f0000000-0000-4000-8000-000000000001";
+  /** Social woken by one line in the team chat. */
+  const wokenBy = (author: { author_kind: string; author_id: string; author_name: string }) => {
+    const memory = memoryDb({
+      agents: [
+        agentRow(MATTER_ID, "matter", "Matter", []),
+        agentRow(SOCIAL_ID, "social", "Social", ["read_business", "chat", "draft_post"]),
+      ],
+      agent_messages: [
+        { id: LINE_ID, thread: "team", body: "@social plan the Fairfield carousel", ...author },
+      ],
+      agent_approvals: [],
+      agent_lessons: [],
+      agent_decisions: [],
+      agent_runs: [],
+    });
+    void memory.insert("agent_runs", {
+      agent_id: SOCIAL_ID,
+      cause: "message",
+      message_id: LINE_ID,
+    });
+    return memory.db;
+  };
+
+  it("gives Social only its reads when a colleague's mention woke it, and its whole toolkit on a person's line", async () => {
+    // the Drive folder the runner's config names, inside the test's own home
+    const home = join(tmpdir(), "mop-w8-0d-home", ".mop-workforce");
+    mkdirSync(join(home, "drive-social"), { recursive: true });
+    writeFileSync(
+      join(home, "config.json"),
+      JSON.stringify({ driveSocial: join(home, "drive-social") }),
+    );
+    cli.answer = () => JSON.stringify({ reply: "On it.", task: "Planned", proposals: [] });
+    const tools = () => {
+      const args = cli.launches.at(-1) ?? [];
+      return args[args.indexOf("--tools") + 1];
+    };
+    expect(
+      await runOnce(wokenBy({ author_kind: "agent", author_id: "chief", author_name: "Chief" })),
+    ).toBe(true);
+    expect(tools()).toBe("Read,Glob,Grep");
+    expect(
+      await runOnce(wokenBy({ author_kind: "human", author_id: "u1", author_name: "Dave" })),
+    ).toBe(true);
+    expect(tools()).toBe("Read,Glob,Grep,Write,Edit,Bash");
   });
 });

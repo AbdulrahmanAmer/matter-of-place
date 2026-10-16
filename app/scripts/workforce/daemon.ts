@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { homedir, hostname } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { z } from "zod";
-import { outsideToolkit, toolkitFor } from "../../src/domain/toolkits.ts";
+import { outsideToolkit, readOnly, toolkitFor } from "../../src/domain/toolkits.ts";
 import { agentTools, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import {
@@ -77,7 +77,7 @@ import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
 import { bounceFacts, wakes } from "./bounce.ts";
 import { checkNewAddresses, refusedAddress } from "./email-check.ts";
-import { refreshPolicy, staffPolicy } from "./config.ts";
+import { driveSocialFolder, refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
 import { liveAlive } from "../matter/live-alive.ts";
 import {
@@ -85,6 +85,7 @@ import {
   renderRoots,
   toolkitLine,
   toolkitRules,
+  writePlaces,
   type ToolkitPaths,
   type ToolkitRules,
 } from "./toolkit-args.ts";
@@ -140,28 +141,42 @@ function colleagueArgs(model: string, rules: ToolkitRules, settingsFile: string)
   ];
 }
 
-/** The folders a toolkit names, on this laptop. */
+/** The folders a toolkit names, on this laptop; the Drive folder is the one the runner's config names (W8 item 8). */
 function toolkitPaths(home: string, own: string): ToolkitPaths {
   return {
     own,
     studio: join(home, "studio"),
     knowledge: join(home, "matter", "knowledge"),
-    // the folder Google Drive for desktop mirrors (W8 item 8)
-    driveSocial: "G:/My Drive/Matter of Place/Social Media",
+    driveSocial: driveSocialFolder(join(home, "config.json")),
     app: APP_DIR,
   };
 }
 
 /**
- * Names that configure a Claude run when found in its folder: a terminal may never leave one behind (second review).
- * Lower case, and compared in lower case: Windows finds `.Claude` or `claude.md` as the same file (third review).
+ * Names that configure a run when found in its folder: a Claude run (W8 0e, second review) or bun and node started there
+ * (H115, review of 2026-10-16). Compared in lower case: Windows finds `.Claude` or `claude.md` as the same file (third
+ * review). The toolkit's deny rules name the same (`RUN_CONFIG` in toolkit-args.ts).
  */
-const RUN_CONFIG = new Set([".claude", "claude.md", "claude.local.md", ".mcp.json"]);
+const RUN_CONFIG = new Set([
+  ".claude",
+  "claude.md",
+  "claude.local.md",
+  ".mcp.json",
+  "bunfig.toml",
+  ".bunfig.toml",
+  "package.json",
+  ".npmrc",
+]);
+
+function runConfigName(name: string): boolean {
+  const lower = name.toLowerCase();
+  return RUN_CONFIG.has(lower) || lower.startsWith(".env") || /^tsconfig.*\.json$/.test(lower);
+}
 
 /**
  * W8 0e and H115: a colleague's folder for every run, `desks/<slug>/work`, where the runner puts the material it was
- * woken for. Before each run, anything that would configure a run (`RUN_CONFIG`) is removed from the whole desk, so
- * what one run wrote can never steer the next.
+ * woken for. Before each run, anything that would configure a run is removed from the whole desk, so what one run
+ * wrote can never steer the next.
  */
 export function deskFor(home: string, slug: string): string {
   const desk = join(home, "desks", slug);
@@ -173,7 +188,7 @@ export function deskFor(home: string, slug: string): string {
 function sweep(dir: string, depth: number): void {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
-    if (RUN_CONFIG.has(entry.name.toLowerCase())) rmSync(path, { recursive: true, force: true });
+    if (runConfigName(entry.name)) rmSync(path, { recursive: true, force: true });
     else if (entry.isDirectory() && !entry.isSymbolicLink() && depth < 8) sweep(path, depth + 1);
   }
 }
@@ -190,25 +205,45 @@ export async function startedInsideFor(
   return startedFromInside(cause, woke, await keyAccountLive(client, woke));
 }
 
+export interface ColleagueLaunch {
+  args: string[];
+  cwd: string;
+  line: string;
+  env: Record<string, string>;
+  settingsFile: string;
+}
+
 /**
  * H115: a colleague run's command line, folder and the line that tells it its tools, from its toolkit. A run about an
  * outside message gets `outsideToolkit` (W8 0a: it reads only its folder, where the runner puts facts and photographs,
- * never the person's words), every other run its own toolkit. The run's settings file is written here, each run.
+ * never the person's words). A run a person or an operator key started (`inside`, `startedInsideFor`) gets its whole
+ * toolkit; any other run (an event, a schedule, a mention) its reads only, since its history may hold a line that
+ * carried outside words (review of 2026-10-16). Every place it may write is swept of run config first, and the run's
+ * own settings file is named by its run id.
  */
 export function colleagueLaunch(
   home: string,
   slug: string,
   model: string,
   research: boolean,
-  outside: boolean,
-): { args: string[]; cwd: string; line: string; env: Record<string, string> } {
+  run: { id: string; outside: boolean; inside: boolean },
+): ColleagueLaunch {
   const cwd = deskFor(home, slug);
-  const toolkit = outside ? outsideToolkit : toolkitFor(slug);
+  const toolkit = run.outside
+    ? outsideToolkit
+    : run.inside
+      ? toolkitFor(slug)
+      : readOnly(toolkitFor(slug));
   const paths = toolkitPaths(home, cwd);
-  const searches = research && !outside;
+  const searches = research && !run.outside;
   const rules = toolkitRules(toolkit, paths, searches);
+  for (const dir of writePlaces(toolkit, paths)) {
+    if (dir === paths.studio) mkdirSync(dir, { recursive: true });
+    if (!existsSync(dir)) throw new Error(`${dir} is not on this laptop`);
+    sweep(dir, 0);
+  }
   const roots = renderRoots(toolkit, paths);
-  const settingsFile = join(home, "settings", `${slug}.json`);
+  const settingsFile = join(home, "settings", `${run.id}.json`);
   mkdirSync(dirname(settingsFile), { recursive: true });
   writeFileSync(
     settingsFile,
@@ -218,22 +253,31 @@ export function colleagueLaunch(
     args: colleagueArgs(model, rules, settingsFile),
     cwd,
     line: toolkitLine(toolkit, paths, searches),
-    env: roots.length === 0 ? {} : { MOP_RENDER_OUT_ROOTS: roots.join(delimiter) },
+    // what the render wrapper confines a render to
+    env:
+      toolkit.render.length === 0
+        ? {}
+        : { MOP_RENDER_WORK: cwd, MOP_RENDER_OUT_ROOTS: roots.join(delimiter) },
+    settingsFile,
   };
 }
 
-function askClaude(
+async function askClaude(
   prompt: string,
-  launch: { args: string[]; cwd: string; env?: Record<string, string> },
+  launch: ColleagueLaunch,
 ): Promise<{ text: string; session?: string; usage?: CliUsage }> {
-  return runClaude({
-    args: launch.args,
-    cwd: launch.cwd,
-    env: { ...childEnv(), ...launch.env },
-    prompt,
-    idleMs: CLI_IDLE_MS,
-    who: "the colleague",
-  });
+  try {
+    return await runClaude({
+      args: launch.args,
+      cwd: launch.cwd,
+      env: { ...childEnv(), ...launch.env },
+      prompt,
+      idleMs: CLI_IDLE_MS,
+      who: "the colleague",
+    });
+  } finally {
+    rmSync(launch.settingsFile, { force: true });
+  }
 }
 
 // ---------- waking on events ----------
@@ -473,8 +517,8 @@ export async function context(
       parts.push(
         `The conversation so far (${thread === "team" ? "the team chat" : "your direct thread"}, oldest first):\n` +
           messages
-            // W8 0e (second review): a run that may hold a terminal reads only people's and keys' lines; any other
-            // line may carry words that passed through an outside message
+            // W8 0e and H115: a run a person or a key started, the only kind that holds its toolkit's writes and
+            // renders, reads only people's and keys' lines; any other line may carry words from an outside message
             .filter((message) => !startedInside || insideLine(message))
             .reverse()
             .map((message) => `${message.author_name}: ${shownBody(message)}`)
@@ -758,7 +802,7 @@ export async function runOnce(client: Db): Promise<boolean> {
               models["sonnet"] ??
               "claude-sonnet-5-5",
             shape.research,
-            triage !== null,
+            { id: run.id, outside: triage !== null, inside: startedInside },
           );
           return askClaude(
             promptFor(

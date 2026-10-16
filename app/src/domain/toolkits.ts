@@ -15,13 +15,16 @@ const places = {
 } as const;
 export type Place = keyof typeof places;
 
-/** The render scripts a toolkit can name: each runs one local spec into a folder, with no network and no upload. */
+/**
+ * The render scripts a toolkit can name: each runs one local spec into a folder, with no network and no upload. A
+ * colleague starts them only through the render wrapper (`scripts/workforce/render-run.mjs`), never bun itself.
+ */
 export const renderers = {
-  carousel: { script: "scripts/render-carousel.mjs", label: "renders a carousel" },
-  post: { script: "scripts/render-cover.mjs", label: "renders a single post" },
-  story: { script: "scripts/render-story.mjs", label: "renders a story" },
+  carousel: { script: "scripts/render-carousel.mjs", label: "a carousel" },
+  post: { script: "scripts/render-cover.mjs", label: "a single post" },
+  story: { script: "scripts/render-story.mjs", label: "a story" },
 } as const;
-type Renderer = keyof typeof renderers;
+export type Renderer = keyof typeof renderers;
 
 export interface Toolkit {
   read: readonly Place[];
@@ -60,7 +63,8 @@ const toolkits: Readonly<Record<string, Toolkit>> = {
 const baseToolkit: Toolkit = { read: ["own_folder"], write: ["own_folder"], render: [] };
 
 export function toolkitFor(slug: string): Toolkit {
-  return toolkits[slug] ?? baseToolkit;
+  // an own key only: a handle such as `constructor` or `__proto__` is no way to another toolkit
+  return Object.hasOwn(toolkits, slug) ? (toolkits[slug] ?? baseToolkit) : baseToolkit;
 }
 
 /**
@@ -70,8 +74,23 @@ export function toolkitFor(slug: string): Toolkit {
  */
 export const outsideToolkit: Toolkit = { read: ["own_folder"], write: [], render: [] };
 
-/** What a colleague may do, in the Office's words. */
-export function toolkitWords(toolkit: Toolkit, tools: readonly AgentTool[]): string[] {
+/**
+ * A run no person started (an event, a schedule, a colleague's mention) may read a line that carried outside words, so
+ * it gets its toolkit's reads only: it writes and runs nothing (review of 2026-10-16, H113's history rule).
+ */
+export function readOnly(toolkit: Toolkit): Toolkit {
+  return { read: toolkit.read, write: [], render: [] };
+}
+
+/** "a, b and c" */
+function series(items: readonly string[]): string {
+  return items.length < 2
+    ? items.join("")
+    : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1] ?? ""}`;
+}
+
+/** What a colleague may do on a run a person started, in the Office's words (the colleague's card). */
+export function toolkitWords(toolkit: Toolkit, tools: readonly string[]): string[] {
   const list = (items: readonly Place[]) => items.map((place) => places[place]).join("; ");
   return [
     `Reads ${list(toolkit.read)}.`,
@@ -79,9 +98,12 @@ export function toolkitWords(toolkit: Toolkit, tools: readonly AgentTool[]): str
     ...(toolkit.render.length === 0
       ? []
       : [
-          `Runs ${toolkit.render.map((name) => renderers[name].label).join(", ")}, from a local spec.`,
+          `Renders ${series(toolkit.render.map((name) => renderers[name].label))}, from a local spec.`,
         ]),
-    ...(tools.includes("research") ? ["Searches the web."] : []),
+    ...(tools.includes("research" satisfies AgentTool) ? ["Searches the web."] : []),
+    ...(toolkit.write.length === 0 && toolkit.render.length === 0
+      ? []
+      : ["Writes and renders only on work a person started; otherwise it only reads."]),
     "No other command, no keys, nothing sent outside the company without a person's approval.",
   ];
 }

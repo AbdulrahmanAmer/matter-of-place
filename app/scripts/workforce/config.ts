@@ -50,6 +50,15 @@ export function workforceOverride(file: string = CONFIG_FILE, now: Date = new Da
   };
 }
 
+/**
+ * The Google Drive Social Media folder on this laptop (`driveSocial` in config.json, read whatever its `until`), or null
+ * when it names none: a toolkit that writes there is then refused (ruling H115, review of 2026-10-16).
+ */
+export function driveSocialFolder(file: string = CONFIG_FILE): string | null {
+  const parsed = z.object({ driveSocial: z.string().min(3) }).safeParse(readJson(file));
+  return parsed.success ? parsed.data.driveSocial : null;
+}
+
 /** The policy the last pass wrote, or null before the first. */
 export function lastPolicy(file: string = POLICY_FILE): StaffPolicy | null {
   const parsed = policySchema.safeParse(readJson(file));

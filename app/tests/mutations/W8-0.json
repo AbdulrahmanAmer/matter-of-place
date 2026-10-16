@@ -623,7 +623,7 @@
     "id": "w8-0e-desk-sweep",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    if (RUN_CONFIG.has(entry.name.toLowerCase())) rmSync(path, { recursive: true, force: true });\n    else if",
+    "find": "    if (runConfigName(entry.name)) rmSync(path, { recursive: true, force: true });\n    else if",
     "replace": "    if",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*sweeps what configures a run out of the whole desk"
@@ -641,8 +641,8 @@
     "id": "w8-0e-sweep-any-case",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "RUN_CONFIG.has(entry.name.toLowerCase())",
-    "replace": "RUN_CONFIG.has(entry.name)",
+    "find": "  const lower = name.toLowerCase();\n  return RUN_CONFIG.has(lower)",
+    "replace": "  const lower = name;\n  return RUN_CONFIG.has(lower)",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*sweeps what configures a run out of the whole desk"
   },
