@@ -58,8 +58,10 @@ describe("W8 0g: the copy to Google Drive", () => {
         "k.pem",
         "a/api-token.txt",
         ".ssh/id",
+        // only the `.env` folder rule refuses a file inside a folder named .env
+        ".env/notes.txt",
       ].map(refused),
-    ).toEqual([true, true, true, true, true, true, true]);
+    ).toEqual([true, true, true, true, true, true, true, true]);
     expect(["brief.json", "out/reel.mp4", "notes.md", "environment.md"].map(refused)).toEqual([
       false,
       false,

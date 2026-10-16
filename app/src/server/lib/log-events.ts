@@ -36,6 +36,9 @@ export const LogEvent = [
   "password_limited",
   "password_audit_failed",
   "auth_send_failed",
+  // W6 item 7 review: the client link was queued with no Worker `waitUntil` on the request, so the enqueue after the
+  // answer may be cut off (unproven under Cloudflare; the dev server has none and logs it too).
+  "wait_until_missing",
   "jwks_fetch_failed",
   "confirm_secret_missing",
   "alert_report_failed",

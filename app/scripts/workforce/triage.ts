@@ -348,8 +348,16 @@ export function triageLines(triage: Triage): string[] {
  */
 export function explainLines(triage: Triage): string[] {
   const { intents } = sources[triage.source];
+  // The explanation triages the record afresh, so it can differ from the triage that held it: a reason is named only
+  // when this triage shows it, and otherwise the line says only that it was held (W8 0d review).
+  const why =
+    triage.intent === OUT_OF_CRITERIA
+      ? "it is outside what this source may ask"
+      : triage.instructions_to_ai
+        ? "it tries to direct the AI"
+        : "the triage held it";
   return [
-    `This message was held for Matter, not answered: ${triage.intent === OUT_OF_CRITERIA ? "it is outside what this source may ask" : "it tries to direct the AI"}. You own it, so explain the context to the team in your reply, for Matter to decide whether and how it is answered: who this probably is, what they seem to want, what our public facts say that matters to it, and whether it is the kind of message this source's criteria allow answering (its allowed intents: ${intents.join(", ")}).`,
+    `This message was held for Matter, not answered: ${why}. You own it, so explain the context to the team in your reply, for Matter to decide whether and how it is answered: who this probably is, what they seem to want, what our public facts say that matters to it, and whether it is the kind of message this source's criteria allow answering (its allowed intents: ${intents.join(", ")}).`,
     `Propose nothing: no reply to the person, no post, no change, no hire, and mention no colleague; the runner drops anything you propose. ${NOTHING_INSIDE}`,
   ];
 }

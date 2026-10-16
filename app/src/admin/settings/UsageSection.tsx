@@ -19,18 +19,18 @@ const bytes = (value: number) =>
 interface Gauge {
   /** How a figure of this line reads. */
   amount: (value: number) => string;
-  /** What the share is a share of; null when the line already says it. */
-  of: string | null;
+  /** What the share is a share of (not `usageGauges[...].of`, a limit in words); null when the line already says it. */
+  shareOf: string | null;
 }
 
 const count = (value: number) => formatNumber(Math.round(value));
 
 const GAUGES: Record<UsageLine["line"], Gauge> = {
-  workers_requests_day: { amount: count, of: "the free plan" },
-  storage_egress: { amount: bytes, of: "the free plan" },
-  sentry_errors: { amount: count, of: "the free plan" },
-  actions_minutes: { amount: count, of: "the free plan" },
-  claude_week: { amount: (value) => `${count(value)}% of the week used`, of: null },
+  workers_requests_day: { amount: count, shareOf: "the free plan" },
+  storage_egress: { amount: bytes, shareOf: "the free plan" },
+  sentry_errors: { amount: count, shareOf: "the free plan" },
+  actions_minutes: { amount: count, shareOf: "the free plan" },
+  claude_week: { amount: (value) => `${count(value)}% of the week used`, shareOf: null },
 };
 
 /** The name every screen gives a line (`domain/usage-gauges.ts`), with what its figure is of when the name does not say. */
@@ -63,7 +63,9 @@ function UsageRow({ line }: { line: UsageLine }) {
     <li aria-label={name}>
       <span className="admin-usage__name">{name}</span>
       <span>
-        {line.limit === null || gauge.of === null ? used : `${used} of ${gauge.amount(line.limit)}`}
+        {line.limit === null || gauge.shareOf === null
+          ? used
+          : `${used} of ${gauge.amount(line.limit)}`}
       </span>
       {line.limit === null || line.percent === null ? null : (
         <>
@@ -74,9 +76,9 @@ function UsageRow({ line }: { line: UsageLine }) {
             max={100}
             aria-label={`${name}, share used`}
           />
-          {gauge.of === null ? null : (
+          {gauge.shareOf === null ? null : (
             <span className="admin-usage__share">
-              {formatNumber(line.percent)}% of {gauge.of}
+              {formatNumber(line.percent)}% of {gauge.shareOf}
             </span>
           )}
         </>

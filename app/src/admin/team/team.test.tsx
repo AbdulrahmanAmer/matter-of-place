@@ -95,7 +95,7 @@ describe("screen 23", () => {
   });
 
   it("asks before sending an invitation and posts it only once confirmed", async () => {
-    const requested = serve({ ...reads(), [`POST ${USERS}`]: { user_id: "new" } });
+    const requested = serve({ ...reads(), [`POST ${USERS}`]: { user_id: "new", mailed: true } });
     mount();
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "new@example.invalid" } });
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Nell" } });
@@ -110,6 +110,20 @@ describe("screen 23", () => {
       ]);
     });
     expect(before).toEqual([]);
+    expect(await screen.findByText("Invitation sent.")).toBeTruthy();
+  });
+
+  it("says roles were given and no email was sent when the address already had an account", async () => {
+    serve({ ...reads(), [`POST ${USERS}`]: { user_id: "old", mailed: false } });
+    mount();
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "old@example.invalid" } });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Olle" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Visual Editor" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send invitation" }));
+    const dialog = await screen.findByRole("dialog", { name: "Send an invitation" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Send invitation" }));
+    expect(await screen.findByText(/no email was sent/)).toBeTruthy();
+    expect(screen.queryByText("Invitation sent.")).toBeNull();
   });
 
   it("offers Add a role on a person but not on an agent, which keeps the role it was made with", async () => {
