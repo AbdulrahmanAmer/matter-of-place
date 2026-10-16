@@ -1,4 +1,4 @@
--- down: re-run bun run db:fn inbound_mail_record ops_health retention_delete_rows from the previous commit of supabase/sql/functions/inbound_mail_record.sql, supabase/sql/functions/ops_health.sql, supabase/sql/functions/retention_delete_rows.sql
+-- down: re-run bun run db:fn inbound_mail_record ops_health retention_delete_rows export_subject delete_subject from the previous commit of supabase/sql/functions/inbound_mail_record.sql, supabase/sql/functions/ops_health.sql, supabase/sql/functions/retention_delete_rows.sql, supabase/sql/functions/export_subject.sql, supabase/sql/functions/delete_subject.sql
 set lock_timeout = '5s';
 
 create or replace function public.inbound_mail_record(
@@ -194,6 +194,13 @@ begin
   ) then
     v_failing := array_append(v_failing, 'mail_folders');
   end if;
+  -- W8 0g: the nightly copy to Google Drive beats `drive_copy` after the backup; a missing Drive folder beats ok false.
+  if v_backup and not exists (
+    select 1 from public.ops_heartbeats
+    where name = 'drive_copy' and at >= p_now - interval '26 hours' and detail ->> 'ok' = 'true'
+  ) then
+    v_failing := array_append(v_failing, 'drive_copy');
+  end if;
   -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.
   if exists (
     select 1 from public.jobs
@@ -286,3 +293,208 @@ $$;
 
 revoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;
 grant execute on function public.retention_delete_rows(text, boolean) to service_role;
+
+create or replace function public.export_subject(
+  p_subject_request_id uuid,
+  p_actor uuid,
+  p_actor_kind public.actor_kind,
+  p_request_id text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_row public.subject_requests;
+  v_email text;
+  v_contacts uuid[];
+  v_bundle jsonb;
+begin
+  -- Invariant 15 (GP-01): an access request, once identity is confirmed, gets one bundle of every row the address
+  -- appears in, and the request is fulfilled.
+  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;
+  if not found then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  if v_row.kind <> 'access' then
+    raise exception 'wrong_kind';
+  end if;
+  if v_row.status in ('fulfilled', 'rejected') then
+    raise exception 'wrong_state';
+  end if;
+  if v_row.verified_at is null then
+    raise exception 'not_verified';
+  end if;
+  v_email := lower(v_row.email);
+
+  -- S55: the person's contacts row with its notes, and every submission made under the address or linked to it.
+  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;
+  select jsonb_build_object(
+    'request', jsonb_build_object('id', v_row.id, 'kind', v_row.kind, 'received_at', v_row.received_at),
+    'email', v_email,
+    'subscribers', coalesce((
+      select jsonb_agg(to_jsonb(s) - 'confirm_token_hash' order by s.created_at)
+      from public.subscribers s where lower(s.email) = v_email
+    ), '[]'),
+    'inquiries', coalesce((
+      select jsonb_agg(to_jsonb(i) order by i.received_at)
+      from public.inquiries i where lower(i.email) = v_email
+    ), '[]'),
+    'contacts', coalesce((
+      select jsonb_agg(to_jsonb(c) order by c.created_at)
+      from public.contacts c where c.id = any (v_contacts)
+    ), '[]'),
+    'submissions', coalesce((
+      select jsonb_agg(to_jsonb(s) order by s.received_at)
+      from public.submissions s
+      where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts)
+    ), '[]'),
+    -- W8 0h review: every email the person sent us that the mailbox check recorded.
+    'inbound_mail', coalesce((
+      select jsonb_agg(to_jsonb(m) order by m.received_at)
+      from public.inbound_mail m where lower(m.from_email) = v_email
+    ), '[]')
+  ) into v_bundle;
+
+  update public.subject_requests r
+  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor
+  where r.id = p_subject_request_id;
+  -- Ids and counts only (invariant 18).
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'audit.subject_export', 'subject_request', p_subject_request_id,
+    jsonb_build_object('id', v_row.id, 'status', v_row.status),
+    jsonb_build_object(
+      'id', v_row.id, 'status', 'fulfilled',
+      'counts', jsonb_build_object(
+        'subscribers', jsonb_array_length(v_bundle -> 'subscribers'),
+        'inquiries', jsonb_array_length(v_bundle -> 'inquiries'),
+        'contacts', jsonb_array_length(v_bundle -> 'contacts'),
+        'submissions', jsonb_array_length(v_bundle -> 'submissions'),
+        'inbound_mail', jsonb_array_length(v_bundle -> 'inbound_mail')
+      )
+    ),
+    p_request_id
+  );
+  return v_bundle;
+end;
+$$;
+
+revoke execute on function public.export_subject(uuid, uuid, public.actor_kind, text)
+  from public, anon, authenticated;
+grant execute on function public.export_subject(uuid, uuid, public.actor_kind, text) to service_role;
+
+create or replace function public.delete_subject(
+  p_subject_request_id uuid,
+  p_actor uuid,
+  p_actor_kind public.actor_kind,
+  p_request_id text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_row public.subject_requests;
+  v_email text;
+  v_contacts uuid[];
+  v_inquiries uuid[];
+  v_subscribers int;
+  v_submissions int;
+  v_inbound int;
+  v_counts jsonb;
+begin
+  -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears
+  -- in. Nothing is hard deleted (GD-04): the rows stay for the counts and lose what names the person.
+  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;
+  if not found then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  if v_row.kind <> 'deletion' then
+    raise exception 'wrong_kind';
+  end if;
+  if v_row.status in ('fulfilled', 'rejected') then
+    raise exception 'wrong_state';
+  end if;
+  if v_row.verified_at is null then
+    raise exception 'not_verified';
+  end if;
+  v_email := lower(v_row.email);
+  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;
+  select coalesce(array_agg(i.id), '{}') into v_inquiries from public.inquiries i where lower(i.email) = v_email;
+
+  -- The same columns as B8's retention_anonymise_contacts (S55); the address becomes a hash no one can write to.
+  update public.submissions s
+  set submitter_name = '',
+    submitter_email = encode(sha256(convert_to(s.submitter_email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    submitter_phone = null,
+    listing_agent_name = null
+  where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts);
+  get diagnostics v_submissions = row_count;
+  update public.contacts c
+  set name = '',
+    email = encode(sha256(convert_to(c.email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    phone = null,
+    brokerage = null,
+    notes = null,
+    archived_at = now()
+  where c.id = any (v_contacts);
+  -- The same columns as B8's retention_anonymise_inquiries, so screen 11 shows both paths the same way.
+  update public.inquiries i
+  set name = '',
+    message = '',
+    phone = null,
+    location = null,
+    details = '{}'::jsonb,
+    attribution = '{}'::jsonb,
+    forwarded_payload = null,
+    email = encode(sha256(convert_to(i.email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    anonymised_at = now()
+  where i.id = any (v_inquiries);
+  -- G16: a webhook job of those inquiries keeps no copy of the old email or message.
+  update public.jobs
+  set result = result - 'body'
+  where type = 'webhook_omnikom'
+    and payload -> 'data' ->> 'inquiry_id' = any (v_inquiries::text[])
+    and result ? 'body';
+  update public.subscribers s
+  set email = encode(sha256(convert_to(s.email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    confirm_token_hash = null,
+    unsubscribed_at = coalesce(s.unsubscribed_at, now())
+  where lower(s.email) = v_email;
+  get diagnostics v_subscribers = row_count;
+  -- W8 0h review: the person's emails read from the mailbox keep their place and lose the address, name and words.
+  update public.inbound_mail m
+  set from_email = encode(sha256(convert_to(m.from_email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    from_name = null,
+    subject = '',
+    body = '',
+    attachments = '{}'
+  where lower(m.from_email) = v_email;
+  get diagnostics v_inbound = row_count;
+
+  update public.subject_requests r
+  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor
+  where r.id = p_subject_request_id;
+  v_counts := jsonb_build_object(
+    'subscribers', v_subscribers,
+    'inquiries', cardinality(v_inquiries),
+    'contacts', cardinality(v_contacts),
+    'submissions', v_submissions,
+    'inbound_mail', v_inbound
+  );
+  -- Ids and counts only (invariant 18): the audit trail keeps no copy of the address.
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'audit.subject_delete', 'subject_request', p_subject_request_id,
+    jsonb_build_object('id', v_row.id, 'status', v_row.status),
+    jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts),
+    p_request_id
+  );
+  return jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts);
+end;
+$$;
+
+revoke execute on function public.delete_subject(uuid, uuid, public.actor_kind, text)
+  from public, anon, authenticated;
+grant execute on function public.delete_subject(uuid, uuid, public.actor_kind, text) to service_role;

@@ -21,6 +21,9 @@ import type { Triage } from "./triage.ts";
 /** The text kept of a message, as `email_replies.body` keeps a reply's. */
 export const BODY_CAP = 6000;
 
+/** The parts of a message the pass could not read (W8 0h review), named in the row's summary in these words only. */
+export type UnreadPart = "the header" | "the text" | "the attachment list" | "the message";
+
 export type InboundMessage = {
   providerId: string;
   folder: { name: string; type: string };
@@ -33,6 +36,8 @@ export type InboundMessage = {
   content: string;
   attachments: readonly Attachment[];
   automatic: boolean;
+  /** What could not be read; the message is recorded with the rest and still reaches its owner. */
+  unread?: readonly UnreadPart[];
 };
 
 export type Recorded = {
@@ -126,7 +131,10 @@ export function inboundRecord(message: InboundMessage): Recorded {
       p_source: sorted.source,
       p_state: notice.state,
       p_service: sorted.service ?? "",
-      p_summary: notice.summary,
+      p_summary:
+        (message.unread ?? []).length === 0
+          ? notice.summary
+          : `${notice.summary.replace(/\.?$/, ".")} Not read: ${(message.unread ?? []).join(", ")}; a person reads it in the mailbox.`,
       p_report: reportJson(notice.reports),
       p_line: line,
     },

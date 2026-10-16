@@ -2,10 +2,12 @@
 // wakes its owner through email.received (the alias chooses the owner, never Matter); a service notice becomes the
 // runner's line in Matter's thread with the record last; a clean report wakes no one; an id email_replies holds is never
 // recorded twice; past the hour's cap a message waits for a person and the team is told once; ops_health names a
-// mailbox folder the runner could not read.
+// mailbox folder the runner could not read; a person's emails are in their export and anonymised on deletion.
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { withRollback, type Db } from "../fixtures/db";
+import { createStaffUser, withRollback, type Db } from "../fixtures/db";
+
+const STATUS = "select public.set_subject_request_status($1, $2, $3, 'human', 'r-subject', $4)";
 
 async function record(
   db: Db,
@@ -263,5 +265,60 @@ describe("inbound mail", () => {
       return { gone: gone.rows[0]?.n, left: left.rows.map((row) => row.provider_id) };
     });
     expect(seen).toEqual({ gone: 1, left: ["w8-0h-new"] });
+  });
+
+  it("exports a person's emails by their address and anonymises them on a deletion request", async () => {
+    const seen = await withRollback(async (db) => {
+      const admin = await createStaffUser(db, ["admin"]);
+      const confirmed = async (kind: string) => {
+        const read = await db.query<{ id: string }>(
+          "insert into public.subject_requests (email, kind) values ('DANA@example.net', $1) returning id",
+          [kind],
+        );
+        const id = read.rows[0]?.id ?? "";
+        await db.query(STATUS, [id, "start_verification", admin, null]);
+        await db.query(STATUS, [id, "confirm_identity", admin, "Replied from the address."]);
+        return id;
+      };
+      const mine = await record(db);
+      await db.query(
+        `insert into public.inbound_mail (provider_id, folder, from_email, from_name, subject, body, received_at, source)
+         values ('w8-0h-other', 'Inbox', 'someone@example.org', 'Someone', 'Hi', 'Hello', now(), 'email_inbound')`,
+      );
+      const exported = await db.query<{ bundle: { inbound_mail?: { id: string }[] } }>(
+        "select public.export_subject($1, $2, 'human', 'r-subject') as bundle",
+        [await confirmed("access"), admin],
+      );
+      const deleted = await db.query<{ result: { counts: Record<string, number> } }>(
+        "select public.delete_subject($1, $2, 'human', 'r-subject') as result",
+        [await confirmed("deletion"), admin],
+      );
+      const rows = await db.query<{
+        provider_id: string;
+        anonymised: boolean;
+        from_name: string | null;
+        subject: string;
+        body: string;
+      }>(
+        `select provider_id, from_email like '%@anonymised.invalid' as anonymised, from_name, subject, body
+         from public.inbound_mail where id = $1 or provider_id = 'w8-0h-other'
+         order by provider_id = 'w8-0h-other'`,
+        [mine],
+      );
+      return {
+        exported: exported.rows[0]?.bundle.inbound_mail?.map((row) => row.id),
+        counted: deleted.rows[0]?.result.counts["inbound_mail"],
+        rows: rows.rows.map(({ provider_id, ...row }) => ({
+          ...row,
+          mine: provider_id !== "w8-0h-other",
+        })),
+      };
+    });
+    expect(seen.exported).toEqual([expect.any(String)]);
+    expect(seen.counted).toBe(1);
+    expect(seen.rows).toEqual([
+      { anonymised: true, from_name: null, subject: "", body: "", mine: true },
+      { anonymised: false, from_name: "Someone", subject: "Hi", body: "Hello", mine: false },
+    ]);
   });
 });

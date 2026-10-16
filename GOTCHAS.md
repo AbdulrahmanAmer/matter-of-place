@@ -8458,6 +8458,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `psql -h 127.0.0.1 -p 55492 -U postgres -d postgres -Atc "select 'ok'"` → `ok` after the restart (2026-10-16).
 - added: 2026-10-16
 
+## P-4509 · An Edit whose new text ends in a space loses that space
+- symptom: W8 0h third round, 2026-10-16: an Edit replacing `` `${notice.summary} Not read: `` (old and new text both ending in `Not read: `) wrote `Not read:${...}`; two unit cases failed on `Not read:the text`, and the retry case looped a fourth refusal because its fake matched `Not read: the message`.
+- cause: the edit tool trims trailing whitespace off the strings it is given, so a space at the end of `new_string` never reaches the file.
+- rule: never end an Edit's `old_string` or `new_string` with a space; carry the next character (`Not read: ${`) so the space sits inside the text.
+- proof: `grep -n "Not read: \${" app/scripts/workforce/inbound-mail.ts` → one line; before the fix it printed nothing and `grep -n "Not read:\${"` printed the line (2026-10-16).
+- added: 2026-10-16
+
+## P-4510 · `check-migrations.mjs` reads the committed branch: an uncommitted rename crashes it with ENOENT
+- symptom: W8 0h third round: after `git mv` of a migration and `git rm` of another, `node scripts/check-migrations.mjs` threw `ENOENT: no such file or directory, open '...20261016084324_w8_0h_inbound_mail.sql'` (the old name).
+- cause: it lists names with `git diff origin/main...HEAD`, the commits, and reads each file from the working tree.
+- rule: commit a migration rename before the name scan; read a red ENOENT there as "not committed yet", not as a missing file.
+- proof: `cd app && node scripts/check-migrations.mjs` exits 0 after the commit that holds the rename (2026-10-16).
+- added: 2026-10-16
+
 ## P-4504 · A worktree cannot load the dev profile, and db tests refuse mop-dev since the switch: prove an unmerged function on a stub database
 - symptom: W8 0h: `node scripts/load-env.mjs --profile dev` in the worktree failed `ENOENT ... od-w8-0h/.env`; from the main checkout it refused with `load-env: .env has no OMNIKOM_MOCK_SECRET`, so no schema dump; H35 refuses mop-dev for db tests anyway.
 - rule: copy a stopped stub cluster (W7 item 2's `w7-2-pg`) to the scratch folder, start it on a port of its own, add the tables the function touches from their migrations, apply the branch's migrations, and run the db test with `DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/<db>`; generate the types from it and splice only the new entries into `src/db/types.ts`. The PR's CI db job stays the one that counts.

@@ -10,7 +10,8 @@ set lock_timeout = '5s';
 -- W8 0h (operator, 2026-10-16: "the company and Matter should be able to see all emails"): every message the laptop
 -- runner reads in the admin@ mailbox (every folder but Drafts, Templates, Sent, Trash and Outbox), recorded once by its
 -- Zoho id and only through inbound_mail_record. A reply to our own email stays in email_replies; the function refuses
--- an id either table holds. Staff read; only the service role writes. The sender's words are outside text: a person
+-- an id either table holds. The chief editor and the admin read it, as `audit.list` guards its screen and as privacy
+-- requests are read (W8 0h review); only the service role writes. The sender's words are outside text: a person
 -- reads them here, a colleague only ever sees a triage of them (W8 0b), and Matter only a notice's cleaned subject.
 create table public.inbound_mail (
   id uuid primary key default gen_random_uuid(),
@@ -53,9 +54,11 @@ alter table public.inbound_mail enable row level security;
 revoke all on table public.inbound_mail from anon, authenticated;
 grant select on table public.inbound_mail to authenticated;
 grant all on table public.inbound_mail to service_role;
-create policy inbound_mail_select_staff on public.inbound_mail for select to authenticated using (app.is_staff());
+create policy inbound_mail_select_privacy on public.inbound_mail for select to authenticated
+using (app.role_in('admin', 'chief_editor'));
 
--- Privacy: the sender and their words are personal data, covered by export, delete and retention.
+-- Privacy: the sender and their words are personal data. export_subject returns a person's rows by from_email,
+-- delete_subject anonymises them (the same migration's functions), and retention deletes every row after a year.
 insert into public.pii_columns (table_name, column_name)
 values ('inbound_mail', 'from_email'), ('inbound_mail', 'from_name'), ('inbound_mail', 'body')
 on conflict do nothing;

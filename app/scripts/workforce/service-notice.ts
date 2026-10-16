@@ -44,6 +44,22 @@ export const subjectShownFrom = [
   "noreply@notify.cloudflare.com",
 ] as const;
 
+/**
+ * The service addresses whose mail wakes Matter (W8 0h review): the senders above, and the alert senders of the other
+ * services, whose subjects stay withheld. Anyone can make Google, GitHub or a docs tool write to us (a shared document,
+ * a calendar invitation, an issue on a public repository), so any other address of a service's domain is recorded for a
+ * person and wakes no one. The first three were read in the mailbox (2026-10-16); the rest are ASSUMED (ruling H121).
+ */
+export const escalatedFrom = [
+  ...subjectShownFrom,
+  "analytics-noreply@google.com",
+  "noreply@md.getsentry.com",
+  "noreply@mail.app.supabase.io",
+  "noreply@resend.com",
+  "noreply@github.com",
+  "notifications@stripe.com",
+] as const;
+
 /** The aliases of admin@ (they all land in its mailbox), in the order one is chosen when a message names several. */
 export const aliases = [
   "hello",
@@ -157,7 +173,8 @@ export type Sorted = {
 
 /**
  * Where one message goes. Spam is recorded and goes nowhere. An authenticated known service is a notice, whatever folder
- * Zoho filed it in (`readNotice` reads its reports and decides). Our own authenticated mail is recorded. A message claiming
+ * Zoho filed it in; from an address of `escalatedFrom`, `readNotice` reads its reports and decides, from any other it is
+ * recorded for a person. Our own authenticated mail is recorded. A message claiming
  * a known service that does not authenticate is a stranger's and is triaged, whatever else it looks like. Bulk and
  * automatic mail from anyone else is recorded as ignored; everything else is a person writing to us.
  */
@@ -175,7 +192,14 @@ export function sortMessage(input: {
   if (input.folderType === "Spam")
     return { source: "email_inbound", state: "spam", service: null, why: "filed as spam" };
   if (service !== null && authenticated !== null)
-    return { source: "service_notice", state: "escalated", service, why: "a service notice" };
+    return (escalatedFrom as readonly string[]).includes(addressOf(from))
+      ? { source: "service_notice", state: "escalated", service, why: "a service notice" }
+      : {
+          source: "service_notice",
+          state: "recorded",
+          service,
+          why: "a service's mail from an address that wakes no one",
+        };
   if (service !== null)
     return {
       source: "email_inbound",

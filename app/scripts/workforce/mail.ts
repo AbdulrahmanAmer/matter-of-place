@@ -11,7 +11,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import type { Db } from "../../src/server/lib/db.ts";
-import { inboundRecord, recordInbound } from "./inbound-mail.ts";
+import { inboundRecord, recordInbound, type UnreadPart } from "./inbound-mail.ts";
 import { isReportName, MAX_COMPRESSED } from "./mail-reports.ts";
 import { sortMessage, type Attachment } from "./service-notice.ts";
 
@@ -139,7 +139,8 @@ const attachmentInfoSchema = z.object({
     .array(
       z.object({
         attachmentId: z.union([z.string(), z.number()]),
-        attachmentName: z.string().max(300),
+        // A sender chooses the name: a long one is cut, never refused (W8 0h review: one message must not stop a folder).
+        attachmentName: z.string().transform((name) => name.slice(0, 200)),
         attachmentSize: z.union([z.string(), z.number()]).optional(),
       }),
     )
@@ -197,8 +198,19 @@ type Zoho = ReturnType<typeof zohoClient>;
 
 // ---------- the pass ----------
 
-/** When the mailbox was last checked, and per folder the time up to which every message was handled (ms). */
-type Cursor = { checked: number; at: number; folders: Record<string, number> };
+/**
+ * When the mailbox was last checked, per folder the time up to which every message was handled (ms), and per message
+ * id the checks in a row whose recording of it failed.
+ */
+type Cursor = {
+  checked: number;
+  at: number;
+  folders: Record<string, number>;
+  tries: Record<string, number>;
+};
+
+/** After this many failed checks a message is recorded from its listing alone, named unread, and its folder moves on. */
+export const MAX_TRIES = 3;
 
 function readCursor(file: string, now: number): Cursor {
   try {
@@ -207,12 +219,13 @@ function readCursor(file: string, now: number): Cursor {
         at: z.number(),
         checked: z.number(),
         folders: z.record(z.string(), z.number()).default({}),
+        tries: z.record(z.string(), z.number()).default({}),
       })
       .parse(JSON.parse(readFileSync(file, "utf8")));
     return value;
   } catch {
     // first run: look back three days, so a message from today is not missed; each is recorded once (provider_id).
-    return { at: now - FIRST_LOOK_MS, checked: 0, folders: {} };
+    return { at: now - FIRST_LOOK_MS, checked: 0, folders: {}, tries: {} };
   }
 }
 
@@ -327,6 +340,13 @@ function cursorAfter(rows: readonly { received: number }[], index: number): numb
   return next === undefined ? here : Math.min(here, next - 1);
 }
 
+/** What the row's attachments say when their list could not be read. */
+const UNREAD_LIST: Attachment = {
+  name: "(the attachment list could not be read)",
+  file: null,
+  refused: "not read",
+};
+
 /** A message's attachments: names always, bytes only for a report a service notice may carry. */
 async function attachmentsOf(zoho: Zoho, base: string, wanted: boolean): Promise<Attachment[]> {
   const info = attachmentInfoSchema.parse(await zoho.json(`${base}/attachmentinfo`));
@@ -354,9 +374,11 @@ export type MailCheck = { replies: number; inbound: number; unread: string[] };
 
 /**
  * One look at every folder, at most every five minutes. A reply to our email goes to `email_reply_record` as before;
- * every other message is recorded once through `inbound_mail_record`. A folder that cannot be listed or a message that
- * cannot be recorded stops that folder where it is (its cursor stays before it), and the folder is named in the log
- * and in the `mail_folders` beat that `ops_health` reads.
+ * every other message is recorded once through `inbound_mail_record`. A part of a message Zoho will not give is named
+ * unread on its row, never a stopped folder. A folder that cannot be listed, or a message that cannot be recorded, stops
+ * that folder where it is (its cursor stays before it) and the folder is named in the log and in the `mail_folders`
+ * beat that `ops_health` reads; after MAX_TRIES such checks the message is recorded from its listing alone, named
+ * unread, and the folder moves on (W8 0h review).
  */
 export async function checkMail(
   client: Db,
@@ -393,7 +415,12 @@ export async function checkMail(
     await beat(["the mailbox"]);
     throw failure;
   }
-  const next: Cursor = { checked: now, at: cursor.at, folders: { ...cursor.folders } };
+  const next: Cursor = {
+    checked: now,
+    at: cursor.at,
+    folders: { ...cursor.folders },
+    tries: { ...cursor.tries },
+  };
   for (const folder of foldersToRead(folders)) {
     const folderId = String(folder.folderId);
     const name = folder.folderName === "" ? (folder.folderType ?? folderId) : folder.folderName;
@@ -411,10 +438,30 @@ export async function checkMail(
       );
       for (const [index, row] of batch.entries()) {
         if (!known.has(row.messageId)) {
-          const kind = await oneMessage(client, zoho, id, folderId, folder, name, row);
+          const tries = next.tries[row.messageId] ?? 0;
+          let kind: Awaited<ReturnType<typeof oneMessage>>;
+          try {
+            kind = await oneMessage(
+              client,
+              zoho,
+              id,
+              folderId,
+              folder,
+              name,
+              row,
+              tries >= MAX_TRIES,
+            );
+          } catch (failure: unknown) {
+            next.tries[row.messageId] = tries + 1;
+            throw failure;
+          }
           if (kind === "reply") done.replies += 1;
           if (kind === "inbound") done.inbound += 1;
         }
+        if (row.messageId in next.tries)
+          next.tries = Object.fromEntries(
+            Object.entries(next.tries).filter(([key]) => key !== row.messageId),
+          );
         next.folders[folderId] = Math.max(since, cursorAfter(rows, index));
       }
     } catch (failure: unknown) {
@@ -429,7 +476,11 @@ export async function checkMail(
   return done;
 }
 
-/** One new message: a reply to our email stays on the W4 path; anything else is recorded as inbound mail. */
+/**
+ * One new message: a reply to our email stays on the W4 path; anything else is recorded as inbound mail. A part Zoho
+ * will not give (the text, the header, the attachment list) is left empty and named unread on the row, so the message
+ * still reaches its owner (W8 0h review). `listingOnly` (after MAX_TRIES failed checks) reads nothing more from Zoho.
+ */
 async function oneMessage(
   client: Db,
   zoho: Zoho,
@@ -438,14 +489,28 @@ async function oneMessage(
   folder: z.infer<typeof folderSchema>,
   name: string,
   row: Listed,
+  listingOnly: boolean,
 ): Promise<"reply" | "inbound" | "known"> {
   const base = `/accounts/${account}/folders/${folderId}/messages/${row.messageId}`;
   const from = addressOf(row.fromAddress);
   const automatic = isAutomatic(row.fromAddress, row.subject);
-  let content: string | null = null;
-  const readContent = async () =>
-    (content ??= contentSchema.parse(await zoho.json(`${base}/content`)).content);
-  if (!automatic && folder.folderType !== "Spam") {
+  const unread: UnreadPart[] = listingOnly ? ["the message"] : [];
+  const part = async <T>(what: UnreadPart, missing: T, read: () => Promise<T>): Promise<T> => {
+    if (listingOnly) return missing;
+    try {
+      return await read();
+    } catch {
+      unread.push(what);
+      return missing;
+    }
+  };
+  const content = await part(
+    "the text",
+    "",
+    async () => contentSchema.parse(await zoho.json(`${base}/content`)).content,
+  );
+  // A reply whose text could not be read is recorded as inbound mail, so its owner still sees it.
+  if (!automatic && folder.folderType !== "Spam" && unread.length === 0) {
     const { count } = await client
       .from("email_messages")
       .select("id", { count: "exact", head: true })
@@ -456,7 +521,7 @@ async function oneMessage(
         p_from: from,
         p_name: row.sender,
         p_subject: row.subject,
-        p_body: withoutQuoted(plainText(await readContent())).slice(0, 6000),
+        p_body: withoutQuoted(plainText(content)).slice(0, 6000),
         p_received_at: new Date(row.received).toISOString(),
       });
       if (error !== null) throw new Error("mail: a reply could not be recorded");
@@ -465,8 +530,27 @@ async function oneMessage(
       if ((data as string | null) !== null) return "reply";
     }
   }
-  const header = headerSchema.parse(await zoho.json(`${base}/header?raw=true`)).headerContent;
+  // With no header the message authenticates as no one, so it is a stranger's and is triaged.
+  const header = await part(
+    "the header",
+    "",
+    async () => headerSchema.parse(await zoho.json(`${base}/header?raw=true`)).headerContent,
+  );
   const has = row.hasAttachment !== undefined && !["0", 0, false].includes(row.hasAttachment);
+  const sorted = sortMessage({
+    folderType: folder.folderType ?? "",
+    folderName: name,
+    from,
+    subject: row.subject,
+    header,
+    automatic,
+  });
+  // Report bytes are fetched for every notice that may wake Matter, whatever its folder; nobody else's attachment is
+  // ever opened.
+  const wanted = sorted.source === "service_notice" && sorted.state === "escalated";
+  const attachments = has
+    ? await part("the attachment list", [UNREAD_LIST], () => attachmentsOf(zoho, base, wanted))
+    : [];
   const recorded = inboundRecord({
     providerId: row.messageId,
     folder: { name, type: folder.folderType ?? "" },
@@ -475,24 +559,10 @@ async function oneMessage(
     subject: row.subject,
     receivedAt: row.received,
     header,
-    content: await readContent(),
-    // Report bytes are fetched for every authenticated service's notice, whatever its folder (sortMessage reads the
-    // header first); nobody else's attachment is ever opened.
-    attachments: has
-      ? await attachmentsOf(
-          zoho,
-          base,
-          sortMessage({
-            folderType: folder.folderType ?? "",
-            folderName: name,
-            from,
-            subject: row.subject,
-            header,
-            automatic,
-          }).source === "service_notice",
-        )
-      : [],
+    content,
+    attachments,
     automatic,
+    unread,
   });
   const fresh = await recordInbound(client, recorded);
   if (fresh)

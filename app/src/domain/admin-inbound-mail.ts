@@ -5,7 +5,7 @@ import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 // runner recorded from the admin@ mailbox (`inbound_mail`), on the Sent emails screen. Its words come from outside the
 // company: plain text for a person to read, never HTML and never a prompt.
 
-/** The sources `inbound_mail.source` takes (migration 20261016084324_w8_0h_inbound_mail.sql). */
+/** The sources `inbound_mail.source` takes (migration 20261016143500_w8_0h_inbound_mail.sql). */
 export const inboundSources = ["email_inbound", "service_notice", "our_mail"] as const;
 
 /** The states `inbound_mail.state` takes. */
