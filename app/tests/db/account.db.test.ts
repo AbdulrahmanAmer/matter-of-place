@@ -179,6 +179,44 @@ describe("account_room", () => {
       "1 Own Way",
     ]);
   });
+
+  // Ruling H119 (5): a public request made with someone's address joins their room (added), but the name the room
+  // greets them with stays the one first recorded; what the submitter typed stays on the request.
+  it("keeps the name of an existing contact when a public request uses their email", async () => {
+    const seen = await withRollback(async (db) => {
+      const user = await person(db, "test-account-a@example.test");
+      await contact(db, "test-account-a@example.test");
+      await db.query("select id from public.create_submission($1)", [
+        {
+          address: "7 Outsider Way",
+          city: "Berkeley",
+          state: "California",
+          zip: "94702",
+          property_type: "Residence",
+          submitter_kind: "owner",
+          submitter_name: "Somebody Else",
+          submitter_email: "Test-Account-A@Example.test",
+          story: "x",
+          significance: "x",
+          package: "The Feature",
+          source_path: "/__test",
+          rights_version: "test-v1",
+          rights_confirmed_at: "2026-10-01T00:00:00Z",
+          rights_ip_hash: "test-hash",
+          media: [],
+        },
+      ]);
+      const typed = await db.query<{ submitter_name: string }>(
+        "select submitter_name from public.submissions where address = '7 Outsider Way'",
+      );
+      return { answer: await room(db, user), typed: typed.rows[0]?.submitter_name };
+    });
+    expect({
+      name: isRoom(seen.answer) ? seen.answer.name : null,
+      addresses: isRoom(seen.answer) ? seen.answer.requests.map((entry) => entry.address) : [],
+      typed: seen.typed,
+    }).toEqual({ name: "Test Owner", addresses: ["7 Outsider Way"], typed: "Somebody Else" });
+  });
 });
 
 // Ruling H119 (4): a sign-in link is queued only for an address that is a contact's, never archived, whatever its

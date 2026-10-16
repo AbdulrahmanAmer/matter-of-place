@@ -357,6 +357,38 @@ export async function listUsers(
   };
 }
 
+/**
+ * An address that already has an auth user and holds no enabled role is a former client (W6 item 7: asking for a room
+ * link makes the user): the roles go to that user, with note `invite`, and no mail is sent; they sign in at
+ * `/admin/sign-in` like any teammate. A person who holds a role keeps the refusal. The user is looked up through the link
+ * the Auth API makes for it (never sent), since the admin API has no read by address. The account is never deleted when
+ * a grant fails: it was not made here, and `grant_role` is safe to repeat.
+ */
+async function inviteExisting(
+  actor: AdminActor,
+  db: Db,
+  input: InviteInput,
+): Promise<{ user_id: string }> {
+  const found = await db.auth.admin.generateLink({ type: "magiclink", email: input.email });
+  if (found.error !== null) throw authFailure(found.error);
+  const userId = found.data.user.id;
+  if ((await enabledRoles(db, userId)).length > 0) {
+    throw new AppError("already_exists", undefined, "This address already has an account.");
+  }
+  for (const role of input.roles) {
+    await rpcOrThrow(
+      db.rpc("grant_role", {
+        p_user: userId,
+        p_role: role,
+        p_note: "invite",
+        p_display_name: input.display_name,
+        ...auditContext(actor),
+      }),
+    );
+  }
+  return { user_id: userId };
+}
+
 /** `POST team/users`: Supabase Auth mails the invitation; `grant_role` writes each role, with note `invite`. */
 export async function inviteUser(
   actor: AdminActor,
@@ -367,7 +399,7 @@ export async function inviteUser(
   const { data, error } = await db.auth.admin.inviteUserByEmail(input.email);
   if (error !== null) {
     if (isAuthApiError(error) && error.code === "email_exists") {
-      throw new AppError("already_exists", undefined, "This address already has an account.");
+      return inviteExisting(actor, db, input);
     }
     throw authFailure(error);
   }

@@ -129,19 +129,19 @@
     "id": "w8-0d2-explanation-newer",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/explain.ts",
-    "find": "    .gt(\"created_at\", heldAt)\n",
+    "find": "    .gte(\"created_at\", run.started_at)\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
-    "expect": "× .*finds the owner's explanation between the held line and Matter's run"
+    "expect": "× .*finds the owner's explanation in the owner's own run"
   },
   {
     "id": "w8-0d2-explanation-before-matter",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/explain.ts",
-    "find": "    .lte(\"created_at\", matterRunAt)\n",
+    "find": "    .lte(\"created_at\", run.finished_at)\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
-    "expect": "× .*finds the owner's explanation between the held line and Matter's run"
+    "expect": "× .*finds the owner's explanation in the owner's own run"
   },
   {
     "id": "w8-0d2-explanation-fenced",
@@ -150,7 +150,7 @@
     "find": "    : shownBody({ author_id: line.author_id, body: line.body.slice(0, EXPLANATION_MAX) });",
     "replace": "    : line.body.slice(0, EXPLANATION_MAX);",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
-    "expect": "× .*finds the owner's explanation between the held line and Matter's run"
+    "expect": "× .*finds the owner's explanation in the owner's own run"
   },
   {
     "id": "w8-0d2-explanation-capped",
@@ -159,7 +159,79 @@
     "find": "body: line.body.slice(0, EXPLANATION_MAX) }",
     "replace": "body: line.body }",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
-    "expect": "× .*finds the owner's explanation between the held line and Matter's run"
+    "expect": "× .*finds the owner's explanation in the owner's own run"
+  },
+  {
+    "id": "w8-0d3-explanation-run-done",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "  if (run?.state !== \"done\" || run.started_at === null || run.finished_at === null) return null;",
+    "replace": "  if (run === undefined || run.started_at === null || run.finished_at === null) return null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*finds the owner's explanation in the owner's own run"
+  },
+  {
+    "id": "w8-0d3-explanation-owner-run",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "    .eq(\"agent_id\", ownerId)\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*finds the owner's explanation in the owner's own run"
+  },
+  {
+    "id": "w8-0d3-failed-explanation-none",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "  if (run?.state !== \"done\" || run.started_at === null || run.finished_at === null) return null;",
+    "replace": "  if (run === undefined || run.started_at === null || run.finished_at === null) return null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*says a failed explanation in the thread and still queues Matter's read, once"
+  },
+  {
+    "id": "w8-0d3-owner-paused-direct",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (ownerState === \"off\" || ownerState === \"paused\") {",
+    "replace": "  if (ownerState === \"off\") {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*queues Matter's read directly, and says why, when the owner is paused or off at the hold"
+  },
+  {
+    "id": "w8-0d3-owner-off-direct",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (ownerState === \"off\" || ownerState === \"paused\") {",
+    "replace": "  if (ownerState === \"paused\") {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*queues Matter's read directly, and says why, when the owner is paused or off at the hold"
+  },
+  {
+    "id": "w8-0d3-owner-unavailable-said",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    await say(client, owner, OWNER_UNAVAILABLE);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*queues Matter's read directly, and says why, when the owner is paused or off at the hold"
+  },
+  {
+    "id": "w8-0d3-owner-in-team",
+    "test": "tests/unit/workforce-triage.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (ownerRow === undefined)\n    throw new Error(\"the owner of the held message is not in the team, so it cannot be explained\");",
+    "replace": "  if (ownerRow === undefined) return;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
+    "expect": "× .*holds for Matter in the owner's thread, queues the owner's explanation first"
+  },
+  {
+    "id": "w8-0d3-explain-reason-fresh",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "      : triage.instructions_to_ai\n        ? \"it tries to direct the AI\"",
+    "replace": "      : true\n        ? \"it tries to direct the AI\"",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*tells the owner to explain, in fixed words, and offers it nothing to propose"
   },
   {
     "id": "w8-0d2-matter-read-untriaged",
@@ -273,8 +345,8 @@
     "id": "w8-0d2-how-default",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/posture.ts",
-    "find": "  if (how === undefined) return \"answer\";",
-    "replace": "  if (how === undefined) return null;",
+    "find": "  if (how === undefined) return null;",
+    "replace": "  if (how === undefined) return \"answer\";",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*reads Matter's how as one of four postures"
   },

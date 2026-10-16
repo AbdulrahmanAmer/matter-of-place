@@ -47,7 +47,7 @@ import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } f
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
 import type { SourceName } from "./criteria.ts";
-import { explainsHeld, handToMatter, ownerExplanation } from "./explain.ts";
+import { explainsHeld, handToMatter, OWNER_UNAVAILABLE, ownerExplanation } from "./explain.ts";
 import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
 import {
   allowLine,
@@ -547,6 +547,20 @@ export async function holdForMatter(
       );
     return;
   }
+  // W8 0d review: claim_agent_run claims only runs of an idle or working colleague, so the explanation of an owner
+  // that is paused or off would never start and Matter's read would never be queued. Matter's read is queued directly,
+  // and the thread says why there is no explanation.
+  const { data: stateRows } = await client
+    .from("agents")
+    .select("state")
+    .eq("id", ownerRow.id)
+    .limit(1);
+  const ownerState = stateRows?.[0]?.state;
+  if (ownerState === "off" || ownerState === "paused") {
+    await say(client, owner, OWNER_UNAVAILABLE);
+    await handToMatter(client, agents, held.id, owner, false);
+    return;
+  }
   const { error: queueError } = await client
     .from("agent_runs")
     .insert({ agent_id: ownerRow.id, cause: "message", message_id: held.id });
@@ -727,10 +741,14 @@ export async function runOnce(client: Db): Promise<boolean> {
             business: lessons,
             power,
             held: matterReadsHeld,
-            // W8 0d: the owner's explanation, fenced as data; null when it failed or said nothing
+            // W8 0d: the owner's explanation, fenced as data; null when its run failed or said nothing
             explanation:
               matterReadsHeld && run.message_id !== null
-                ? await ownerExplanation(client, { id: run.message_id, thread }, run.created_at)
+                ? await ownerExplanation(
+                    client,
+                    { id: run.message_id, thread },
+                    (agents ?? []).find((row) => row.slug === thread)?.id ?? "",
+                  )
                 : null,
           }),
           matterEnv(),

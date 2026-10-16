@@ -33,6 +33,7 @@ type KeyRow = Database["public"]["Functions"]["agent_key_by_hash"]["Returns"][nu
 const NEW_USER = "00000000-0000-4000-8000-0000000000e1";
 const AGENT = "00000000-0000-4000-8000-0000000000e2";
 const KEY_ID = "00000000-0000-4000-8000-0000000000e3";
+const FORMER_CLIENT = "00000000-0000-4000-8000-0000000000f1";
 
 const admin: AdminActor = {
   userId: "00000000-0000-4000-8000-0000000000e0",
@@ -63,14 +64,30 @@ function fakeAuthAdmin() {
       Promise.resolve({ data: { user: { id: AGENT, email: attributes.email } }, error: null }),
     ),
     deleteUser: vi.fn((id: string) => Promise.resolve({ data: { user: { id } }, error: null })),
+    // the link the Auth API makes for an existing address; the invite reads the user from it and sends nothing
+    generateLink: vi.fn(
+      (): Promise<{ data: { user: { id: string } | null }; error: Error | null }> =>
+        Promise.resolve({ data: { user: { id: FORMER_CLIENT } }, error: null }),
+    ),
   };
 }
 
-function world(rpc: FakeDbOptions["rpc"] = {}) {
+function world(rpc: FakeDbOptions["rpc"] = {}, tables: FakeDbOptions["tables"] = {}) {
   const authAdmin = fakeAuthAdmin();
-  const db = Object.assign(fakeDb({ rpc }), { auth: { admin: authAdmin } });
+  const db = Object.assign(fakeDb({ rpc, tables }), { auth: { admin: authAdmin } });
   return { db, authAdmin };
 }
+
+const roleRow = (disabled: boolean) => ({
+  actor_kind: "human" as const,
+  created_at: "2026-10-01T00:00:00Z",
+  disabled_at: disabled ? "2026-10-02T00:00:00Z" : null,
+  display_name: "Former Client",
+  id: "00000000-0000-4000-8000-0000000000f2",
+  role: "managing_editor" as const,
+  updated_at: "2026-10-01T00:00:00Z",
+  user_id: FORMER_CLIENT,
+});
 
 const failureOf = (promise: Promise<unknown>): Promise<unknown> =>
   promise.then(
@@ -139,13 +156,17 @@ describe("inviteUser", () => {
     }).toEqual({ code: "team_write_failed", status: 500, deleted: [[NEW_USER]] });
   });
 
-  it("an address that already has an account answers 409 already_exists and writes no role", async () => {
-    const { db, authAdmin } = world();
+  const exists = async (authAdmin: ReturnType<typeof fakeAuthAdmin>) => {
     const { AuthApiError } = await import("@supabase/supabase-js");
     authAdmin.inviteUserByEmail.mockResolvedValueOnce({
       data: { user: null },
       error: new AuthApiError("exists", 422, "email_exists"),
     });
+  };
+
+  it("an address whose account holds an enabled role answers 409 already_exists and writes no role", async () => {
+    const { db, authAdmin } = world({}, { user_roles: [roleRow(false)] });
+    await exists(authAdmin);
     const error = await failureOf(
       inviteUser(admin, db, {
         email: "editor@matterofplace.com",
@@ -154,7 +175,62 @@ describe("inviteUser", () => {
       }),
     );
     expect(error instanceof AppError ? error.code : error).toBe("already_exists");
-    expect(db.calls).toEqual([]);
+    expect(db.calls.map((call) => call.name)).toEqual(["user_roles"]);
+  });
+
+  it("gives the roles to the existing account of a former client, audited as an invite, and deletes nothing", async () => {
+    const granted: z.infer<typeof roleRowSchema>[] = [];
+    const { db, authAdmin } = world(
+      {
+        grant_role: (args) => {
+          granted.push(roleRowSchema.parse(args));
+          return "role-row-2";
+        },
+      },
+      // no enabled role: a former client, or someone whose roles were all switched off
+      { user_roles: [roleRow(true)] },
+    );
+    await exists(authAdmin);
+    const answer = await inviteUser(admin, db, {
+      email: "client@example.test",
+      display_name: "Former Client",
+      roles: ["managing_editor", "visual_editor"],
+    });
+    expect({
+      answer,
+      links: authAdmin.generateLink.mock.calls,
+      granted,
+      deleted: authAdmin.deleteUser.mock.calls.length,
+      created: authAdmin.createUser.mock.calls.length,
+    }).toEqual({
+      answer: { user_id: FORMER_CLIENT },
+      links: [[{ type: "magiclink", email: "client@example.test" }]],
+      granted: ["managing_editor", "visual_editor"].map((role) => ({
+        p_user: FORMER_CLIENT,
+        p_role: role,
+        p_note: "invite",
+        p_display_name: "Former Client",
+      })),
+      deleted: 0,
+      created: 0,
+    });
+  });
+
+  it("keeps the existing account when a grant fails, and answers the failure", async () => {
+    const { db, authAdmin } = world(
+      { grant_role: () => new Error("connection reset") },
+      { user_roles: [] },
+    );
+    await exists(authAdmin);
+    const error = await failureOf(
+      inviteUser(admin, db, {
+        email: "client@example.test",
+        display_name: "Former Client",
+        roles: ["visual_editor"],
+      }),
+    );
+    expect(error).toBeInstanceOf(AppError);
+    expect(authAdmin.deleteUser).not.toHaveBeenCalled();
   });
 });
 

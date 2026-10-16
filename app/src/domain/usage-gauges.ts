@@ -12,11 +12,15 @@ interface UsageGauge {
   qualifier: string | null;
   /** The free-plan limit a line falls back to when its row records none (the Claude week is a percentage). */
   limit: number;
-  /** The limit in words, as the dashboard tile writes it. */
+}
+
+/** A vendor line also carries its limit in words, as the dashboard tile writes it; the Claude week's tile has none. */
+interface VendorGauge extends UsageGauge {
   of: string;
 }
 
-export const usageGauges: Record<UsageKey, UsageGauge> = {
+export const usageGauges: Record<Exclude<UsageKey, "claude_week">, VendorGauge> &
+  Record<"claude_week", UsageGauge> = {
   workers_requests_day: {
     name: "Workers requests",
     qualifier: "last measured day",
@@ -36,7 +40,7 @@ export const usageGauges: Record<UsageKey, UsageGauge> = {
     limit: 2000,
     of: "2,000 a month",
   },
-  claude_week: { name: "Claude week", qualifier: null, limit: 100, of: "100% of the week" },
+  claude_week: { name: "Claude week", qualifier: null, limit: 100 },
 };
 
 /** The lines the laptop's daily push records for the free vendor plans (the Claude week has its own runner). */
@@ -80,7 +84,8 @@ export function gaugeLimit(
 
 /**
  * When the Claude week resets: the runner records it as an ISO timestamp in the note of the `claude_week` row. Null when
- * there is no note or it is not a timestamp. The Office header and Settings both read the note only through this.
+ * there is no note or it is not a timestamp. Settings reads the note only through this; the Office header still gets
+ * the raw note from `server/workforce/service.ts` (`allowance.resets_at`), which moves here with the W6 follow-up.
  */
 export function claudeWeekResetAt(note: string | null): string | null {
   if (note === null || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(note)) return null;

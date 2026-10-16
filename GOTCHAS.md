@@ -8514,3 +8514,31 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: an endpoint that must not say whether an account exists does the same work for every input before it answers and moves the lookup and anything after it past the answer (`waitUntilOf(request)`, or a job); its test holds the lookup unanswered and races the answer against a timer, so an answer that waits for the lookup loses (`tests/unit/account.service.test.ts`).
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w6-7-svc-after-answer` → `WATCHED-FAIL OK` (the answer awaiting the lookup gets `"waited for the lookup"`).
 - added: 2026-10-16
+
+## P-3690 · A window bounded by two other rows (the held line, Matter's run) shows another run's reply; bind a reply to the run that wrote it
+- symptom: 2026-10-16, the review of W8 0d: Matter's prompt took the owner's newest `outside-reply:<owner>` between the held line and Matter's own run, but the owner writes every outside reply into one thread, so a run on another inquiry that finished inside that wait was shown as "the owner's explanation" while the thread said the explanation had failed.
+- cause: the window was named by rows around the explanation, not by the explanation's own run, and a failed run left no mark the reader looked at.
+- rule: a reader that wants "what run R wrote" reads R's `agent_runs` row (agent, message id, `state = done`) and takes only lines between its `started_at` and `finished_at`; no row, an unfinished run or a failed one is "none". The in-memory test database owns the clock for `finished_at` (it is stamped from the same ticking counter as `created_at`), or a real-time `finished_at` is older than the rows it should bound. A paused or switched-off owner is never claimed (`claim_agent_run` takes idle and working colleagues), so a hold checks the owner's state and queues the next reader directly.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0d3-explanation-run-done` → `WATCHED-FAIL OK` (the state check removed turns `finds the owner's explanation in the owner's own run` red).
+- added: 2026-10-16
+
+## P-3691 · A whole-prompt `not.toContain` of a line the thread history also shows fenced goes red for the wrong reason
+- symptom: 2026-10-16, W8 0d follow-up: the new failed-explanation case asserted that an unrelated reply was absent from Matter's whole prompt and failed, because the prompt's thread history lists every `outside-reply` line (fenced) in its own section.
+- cause: the same line legitimately appears in two sections; only one of them is the thing under test.
+- rule: assert on the section's own words (here the absence of the heading `The owner's explanation to the team` and the presence of `The owner's explanation: none.`), never on the absence of a line the history may show.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "says a failed explanation"` → `1 passed`; with the explanation window opened to the whole thread (`w8-0d2-explanation-newer`) it fails on `The owner's explanation to the team`.
+- added: 2026-10-16
+
+## P-3692 · A throwaway Postgres built from 145 migrations takes about 30 minutes on a busy laptop, dies with its background job, and can crash with 0xC0000142 mid-build
+- symptom: 2026-10-16, W6 item 7 follow-up: the build script (initdb, start, apply every migration) was stopped at its 30-minute job limit after 138 files, and the server had also crashed (`client backend was terminated by exception 0xC0000142`) leaving a postmaster that answered nothing and a `postmaster.pid` the next start refused.
+- cause: the machine was loaded by other builders; the server was a child of the job that built the database, so it went when the job did; a crashed postmaster stays in `reinitializing` and holds the lock file.
+- rule: run the server as its own background job (`postgres -D <dir> -p <port>` in the foreground, timeout 2 hours) and apply the migrations from a second script that takes a first file number, so a stop resumes (`FAILED <n> <file>` names it; `create or replace function` files are safe to apply twice). A stuck postmaster of your own cluster (the first line of its `postmaster.pid`) is killed with `taskkill /F /T /PID`, never another builder's. Do not start the build before the migrations are final: a late `db:fn` migration is applied by the resume script, which needs no rebuild.
+- proof: `psql -h 127.0.0.1 -p <port> -U postgres -d <db> -Atc "select count(*) from public.contacts"` → `0` once the last file is applied; the resume log ends `done through 145`.
+- added: 2026-10-16
+
+## P-3693 · A registry `find` that is one line of a shared service matches twice once a sibling function repeats it
+- symptom: 2026-10-16, `inviteExisting` repeated `p_note: "invite",` beside `inviteUser`'s, and `B7:b7-14-svc-invite-note` went STALE (its find occurs 2 times) while its replay would have changed the wrong block.
+- cause: the entry's `find` was a bare line, unique only until a second function used the same call shape.
+- rule: when a new function repeats a call shape of an existing one in the same file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` before any replay and make each entry's `find` include its indentation or a neighbouring line; the leading newline plus the exact indent separates a nested block from a shallower one.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b7-14-svc-invite-note` → `WATCHED-FAIL OK` with the find `"\n          p_note: \"invite\","`.
+- added: 2026-10-16

@@ -29,6 +29,10 @@ export function explainsHeld(
 export const EXPLANATION_FAILED =
   "The owner's explanation of the held message did not finish; Matter decides without it.";
 
+/** Said in the thread when the owner is paused or off at the hold, so there is no explanation; Matter decides all the same. */
+export const OWNER_UNAVAILABLE =
+  "The owner of the held message is paused or off, so it cannot explain it; Matter decides without an explanation.";
+
 /**
  * The end of an explanation, whatever it was (answered, dropped, failed with a recorded reason): Matter's read of the
  * held line is queued, never twice for one line. It throws nothing, so a run that already failed is not failed again;
@@ -73,29 +77,34 @@ export async function handToMatter(
 }
 
 /**
- * The owner's explanation as Matter's prompt shows it: the owner's latest reply in its thread newer than the held line
- * and not newer than Matter's run, fenced as a reply drafted from an outside message (`shownBody`), capped. Null when
- * there is none (the explanation failed, or said nothing).
+ * The owner's explanation as Matter's prompt shows it (W8 0d review): the owner's latest reply in its thread written
+ * during the owner's own run on the held line, between that run's `started_at` and `finished_at`, fenced as a reply
+ * drafted from an outside message (`shownBody`), capped. The owner writes every outside reply into the one thread, so
+ * the run bounds it: another message's reply, finished inside the wait for Matter, is never shown as this explanation.
+ * Null when there is none: no run, a run that did not finish (failed, or still queued or running), or one that said
+ * nothing.
  */
 export async function ownerExplanation(
   client: Db,
   held: { id: string; thread: string },
-  matterRunAt: string,
+  ownerId: string,
 ): Promise<string | null> {
-  const { data: heldRows } = await client
-    .from("agent_messages")
-    .select("created_at")
-    .eq("id", held.id)
+  const { data: runs } = await client
+    .from("agent_runs")
+    .select("state, started_at, finished_at")
+    .eq("agent_id", ownerId)
+    .eq("message_id", held.id)
+    .order("created_at", { ascending: false })
     .limit(1);
-  const heldAt = heldRows?.[0]?.created_at;
-  if (heldAt === undefined) return null;
+  const run = runs?.[0];
+  if (run?.state !== "done" || run.started_at === null || run.finished_at === null) return null;
   const { data } = await client
     .from("agent_messages")
     .select("author_id, body")
     .eq("thread", held.thread)
     .eq("author_id", `${OUTSIDE_REPLY_PREFIX}${held.thread}`)
-    .gt("created_at", heldAt)
-    .lte("created_at", matterRunAt)
+    .gte("created_at", run.started_at)
+    .lte("created_at", run.finished_at)
     .order("created_at", { ascending: false })
     .limit(1);
   const line = data?.[0];
