@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { z } from "zod";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import { UsageLimitError } from "../../scripts/workforce/cli.ts";
 import { allowedFor, sourceOf, sources } from "../../scripts/workforce/criteria.ts";
@@ -8,7 +7,6 @@ import {
   allowForOwner,
   answerPlan,
   approvedOutcome,
-  colleagueLaunch,
   context,
   deskFor,
   HELD_PER_HOUR,
@@ -49,15 +47,7 @@ import {
   triagePrompt,
   triageRun,
 } from "../../scripts/workforce/triage.ts";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Tables } from "../../src/db/index.ts";
@@ -855,11 +845,9 @@ describe("W8 fourth review: held messages have a ceiling", () => {
   });
 });
 
-describe("W8 0e: a terminal only for work a person or Matter started", () => {
+describe("W8 0e and H115: who started a run, and what a started run reads", () => {
   // an operator key's account id, made up and built at run time so no literal in the file looks like a key (gitleaks)
   const KEY = ["5c1f2a3b", "4d5e", "4f60", "8a7b", "9c0d1e2f3a4b"].join("-");
-  const social = { slug: "social", tools: ["read_business", "chat", "draft_post"] };
-  const value = (args: readonly string[], flag: string) => args[args.indexOf(flag) + 1];
 
   it("knows a person's line and a line from an unrevoked operator key, and nothing else", () => {
     expect([

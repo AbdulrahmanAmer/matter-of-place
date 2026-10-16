@@ -9,7 +9,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { outsideToolkit, toolkitFor } from "../../src/domain/toolkits.ts";
 import { agentTools, mentionedSlugs } from "../../src/domain/workforce.ts";
@@ -80,6 +80,7 @@ import { underCeiling } from "./usage-policy.ts";
 import { liveAlive } from "../matter/live-alive.ts";
 import {
   APP_DIR,
+  renderRoots,
   toolkitLine,
   toolkitRules,
   type ToolkitPaths,
@@ -198,12 +199,13 @@ export function colleagueLaunch(
   model: string,
   research: boolean,
   outside: boolean,
-): { args: string[]; cwd: string; line: string } {
+): { args: string[]; cwd: string; line: string; env: Record<string, string> } {
   const cwd = deskFor(home, slug);
   const toolkit = outside ? outsideToolkit : toolkitFor(slug);
   const paths = toolkitPaths(home, cwd);
   const searches = research && !outside;
   const rules = toolkitRules(toolkit, paths, searches);
+  const roots = renderRoots(toolkit, paths);
   const settingsFile = join(home, "settings", `${slug}.json`);
   mkdirSync(dirname(settingsFile), { recursive: true });
   writeFileSync(
@@ -214,17 +216,18 @@ export function colleagueLaunch(
     args: colleagueArgs(model, rules, settingsFile),
     cwd,
     line: toolkitLine(toolkit, paths, searches),
+    env: roots.length === 0 ? {} : { MOP_RENDER_OUT_ROOTS: roots.join(delimiter) },
   };
 }
 
 function askClaude(
   prompt: string,
-  launch: { args: string[]; cwd: string },
+  launch: { args: string[]; cwd: string; env?: Record<string, string> },
 ): Promise<{ text: string; session?: string; usage?: CliUsage }> {
   return runClaude({
     args: launch.args,
     cwd: launch.cwd,
-    env: childEnv(),
+    env: { ...childEnv(), ...launch.env },
     prompt,
     idleMs: CLI_IDLE_MS,
     who: "the colleague",

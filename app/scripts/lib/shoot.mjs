@@ -1,8 +1,18 @@
 // The shared part of the three render scripts (B9): the job's spec, the photographs inlined as data URLs, a browser
 // that screenshots each frame at its exact size, and the JPEG files named by `mediaKey` and written to `--out` or
 // uploaded to the public `media` bucket. The page holds only data URLs: every other request is refused (invariant 2).
+import { realpathSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
+import {
+  basename,
+  delimiter,
+  dirname,
+  extname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+} from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import puppeteer from "puppeteer-core";
@@ -328,6 +338,49 @@ const localSchema = z.object({
 });
 
 /**
+ * Whether `path` lies inside `root`, both made real first (a link or a junction cannot lead out).
+ * @param {string} root
+ * @param {string} path
+ */
+function inside(root, path) {
+  /** @param {string} target */
+  const real = (target) => {
+    let current = resolve(target);
+    const tail = [];
+    for (;;) {
+      try {
+        return resolve(realpathSync(current), ...tail.reverse());
+      } catch {
+        const parent = dirname(current);
+        if (parent === current) return resolve(target);
+        tail.push(basename(current));
+        current = parent;
+      }
+    }
+  };
+  const within = relative(real(root), real(path));
+  return within === "" || (!within.startsWith("..") && !isAbsolute(within));
+}
+
+/**
+ * The places a colleague's render may touch (ruling H115): the spec file inside the folder the run works in, the
+ * output folder inside that folder or a folder the runner named in `MOP_RENDER_OUT_ROOTS` (the toolkit's own write places).
+ * @param {string} spec
+ * @param {string} out
+ * @param {string} cwd
+ * @param {string | undefined} roots
+ */
+export function confineRender(spec, out, cwd, roots) {
+  if (!inside(cwd, spec)) throw new Error("render: the spec must be inside your work folder");
+  const allowed = [cwd, ...(roots ?? "").split(delimiter).filter((root) => root !== "")];
+  if (!allowed.some((root) => inside(root, out))) {
+    throw new Error(
+      "render: the output folder must be inside your work folder or a folder you may write",
+    );
+  }
+}
+
+/**
  * A colleague's spec file as a render spec. Each photograph must sit inside the spec's own folder (no path leaves it),
  * and its size is read from the file when the spec does not give it.
  * @param {"cover" | "carousel" | "story"} kind
@@ -347,11 +400,14 @@ export async function localSpec(kind, file) {
       if (!IMAGE_TYPES.has(extname(full).toLowerCase())) {
         throw new Error(`render-${kind}: ${imagePath} is not a photograph`);
       }
-      const size =
-        image.w !== undefined && image.h !== undefined
-          ? { width: image.w, height: image.h }
-          : await sharp(full).metadata();
-      return { ...image, url: full, w: Number(size.width), h: Number(size.height) };
+      const meta =
+        image.w !== undefined && image.h !== undefined ? null : await sharp(full).metadata();
+      return {
+        ...image,
+        url: full,
+        w: image.w ?? meta?.width ?? 0,
+        h: image.h ?? meta?.height ?? 0,
+      };
     }),
   );
   return {
@@ -379,6 +435,9 @@ export async function runCli(kind, run) {
       throw new Error(
         `render-${kind}: run it as --fixture --out <dir> or --spec <file> --out <dir>`,
       );
+    }
+    if (values.spec !== undefined) {
+      confineRender(values.spec, values.out, process.cwd(), process.env["MOP_RENDER_OUT_ROOTS"]);
     }
     const fixture =
       values.spec === undefined

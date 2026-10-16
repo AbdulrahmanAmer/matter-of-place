@@ -78,6 +78,15 @@ export function toolkitRules(
   return { tools, allow, deny, addDirs };
 }
 
+/** The folders a render may write outside the run's own folder: the toolkit's other write places (`MOP_RENDER_OUT_ROOTS`). */
+export function renderRoots(toolkit: Toolkit, paths: ToolkitPaths): string[] {
+  if (toolkit.render.length === 0) return [];
+  return toolkit.write.flatMap((place) => {
+    const dir = folder(place, paths);
+    return dir === null ? [] : [dir];
+  });
+}
+
 /** What a run is told about its tools, with the exact folders and commands. */
 export function toolkitLine(toolkit: Toolkit, paths: ToolkitPaths, research: boolean): string {
   const name = (place: Place) =>

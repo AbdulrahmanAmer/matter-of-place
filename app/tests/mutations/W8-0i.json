@@ -97,5 +97,41 @@
     "replace": "      if (false) {",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*renders only photographs that sit beside the spec"
+  },
+  {
+    "id": "w8-0i-confine-spec",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/lib/shoot.mjs",
+    "find": "  if (!inside(cwd, spec)) throw new Error(\"render: the spec must be inside your work folder\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*confines a render"
+  },
+  {
+    "id": "w8-0i-confine-out",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/lib/shoot.mjs",
+    "find": "  if (!allowed.some((root) => inside(root, out))) {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*confines a render"
+  },
+  {
+    "id": "w8-0i-confine-real",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/lib/shoot.mjs",
+    "find": "        return resolve(realpathSync(current), ...tail.reverse());",
+    "replace": "        return resolve(current, ...tail.reverse());",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*confines a render"
+  },
+  {
+    "id": "w8-0i-roots-only-renderers",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "  if (toolkit.render.length === 0) return [];\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*launches every run in its work folder"
   }
 ]

@@ -1,15 +1,28 @@
 // Role toolkits (operator, 2026-10-16; ruling H115): each colleague runs with exactly its toolkit's tools, as Claude
 // Code permission rules; a run about outside text reads its own folder only; the render scripts take a local spec whose
 // photographs sit beside it.
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { colleagueLaunch } from "../../scripts/workforce/daemon.ts";
-import { rulePath, toolkitRules, type ToolkitPaths } from "../../scripts/workforce/toolkit-args.ts";
+import {
+  renderRoots,
+  rulePath,
+  toolkitRules,
+  type ToolkitPaths,
+} from "../../scripts/workforce/toolkit-args.ts";
 import { outsideToolkit, toolkitFor, toolkitWords } from "../../src/domain/toolkits.ts";
-import { localSpec } from "../../scripts/lib/shoot.mjs";
+import { confineRender, localSpec } from "../../scripts/lib/shoot.mjs";
 
 const made: string[] = [];
 const temp = (name: string) => {
@@ -120,6 +133,15 @@ describe("H115: role toolkits", () => {
       3,
     );
     expect(social.line).toContain("--spec <spec.json> --out <folder>");
+    // a render may write its own folder and the Drive folder, nothing else; a colleague with no renderer has no roots
+    expect(social.env).toEqual({
+      MOP_RENDER_OUT_ROOTS: [join(home, "studio"), "G:/My Drive/Matter of Place/Social Media"].join(
+        delimiter,
+      ),
+    });
+
+    expect(outside.env).toEqual({});
+    expect(renderRoots(toolkitFor("editor"), paths)).toEqual([]);
     expect(outside.line).toContain("you write nothing");
   });
 
@@ -130,6 +152,32 @@ describe("H115: role toolkits", () => {
       "Runs renders a carousel, renders a single post, renders a story, from a local spec.",
       "No other command, no keys, nothing sent outside the company without a person's approval.",
     ]);
+  });
+
+  it("confines a render: the spec inside the work folder, the output inside it or a folder the runner named", () => {
+    const work = temp("h115-work-");
+    const drive = temp("h115-drive-");
+    const elsewhere = temp("h115-else-");
+    const spec = join(work, "spec.json");
+    expect(() => confineRender(spec, join(work, "renders"), work, undefined)).not.toThrow();
+    expect(() => confineRender(spec, join(drive, "Posts", "x"), work, drive)).not.toThrow();
+    expect(() => confineRender(spec, join(elsewhere, "out"), work, drive)).toThrow(
+      "the output folder must be inside",
+    );
+    expect(() => confineRender(spec, join(work, "..", "up"), work, undefined)).toThrow(
+      "the output folder must be inside",
+    );
+    expect(() =>
+      confineRender(join(elsewhere, "spec.json"), join(work, "renders"), work, drive),
+    ).toThrow("the spec must be inside your work folder");
+    // a junction inside the work folder that leads out is not a way out
+    symlinkSync(elsewhere, join(work, "door"), "junction");
+    expect(() => confineRender(spec, join(work, "door", "out"), work, undefined)).toThrow(
+      "the output folder must be inside",
+    );
+    expect(() =>
+      confineRender(join(work, "door", "spec.json"), join(work, "renders"), work, undefined),
+    ).toThrow("the spec must be inside your work folder");
   });
 
   it("renders only photographs that sit beside the spec, and reads their size from the file", async () => {
