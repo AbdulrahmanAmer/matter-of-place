@@ -2529,6 +2529,6 @@
     "find": "const Heading = level === 2 ? \"h2\" : \"h3\";",
     "replace": "const Heading = \"h3\";",
     "run": "bunx vitest run --project unit tests/unit/no-image.test.tsx",
-    "expect": "FAIL .*MarketCard > names the market in an h3 under a section heading"
+    "expect": "FAIL .*MarketCard > names the market in an h2 straight under the page's h1"
   }
 ]

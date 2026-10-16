@@ -52,17 +52,26 @@ describe("MarketCard", () => {
     expect(screen.getByText(t.comingSoon.cardLine)).toBeTruthy();
   });
 
-  it("names the market in an h3 under a section heading and an h2 straight under the page's h1", async () => {
-    for (const comingSoon of [false, true]) {
-      const under = await renderInRouter(<MarketCard market={{ ...open, comingSoon }} />);
-      expect(under.querySelector("h3")?.textContent).toBe(open.name);
-      expect(under.querySelector("h2")).toBeNull();
-      const top = await renderInRouter(<MarketCard market={{ ...open, comingSoon }} level={2} />);
-      expect(top.querySelectorAll("h2")).toHaveLength(1);
-      expect(top.querySelector("h2")?.textContent).toBe(open.name);
-      expect(top.querySelector("h3")).toBeNull();
-    }
-  });
+  it.each([false, true])(
+    "names the market in an h3 under a section heading (coming soon: %s)",
+    async (comingSoon) => {
+      const container = await renderInRouter(<MarketCard market={{ ...open, comingSoon }} />);
+      expect(container.querySelector("h3")?.textContent).toBe(open.name);
+      expect(container.querySelector("h2")).toBeNull();
+    },
+  );
+
+  it.each([false, true])(
+    "names the market in an h2 straight under the page's h1 (coming soon: %s)",
+    async (comingSoon) => {
+      const container = await renderInRouter(
+        <MarketCard market={{ ...open, comingSoon }} level={2} />,
+      );
+      expect(container.querySelectorAll("h2")).toHaveLength(1);
+      expect(container.querySelector("h2")?.textContent).toBe(open.name);
+      expect(container.querySelector("h3")).toBeNull();
+    },
+  );
 });
 
 describe("StoryCard", () => {
