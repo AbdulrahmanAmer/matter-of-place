@@ -8386,3 +8386,16 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a constraint, policy or function in the database is watched with a `kind: "sql"` entry that undoes it in the test's database (`alter table ... drop constraint ...`), as `tests/mutations/B2.json` does for `properties_slug_format`; a file mutation is for code the test itself loads.
 - proof: `tests/mutations/W8-0-slug.json` entry `w8-0e-slug-check-table` is `kind: "sql"` with `alter table public.agents drop constraint agents_slug_not_account_id`; CI's db job replays it (mop-dev refuses db tests from the laptop, H35).
 - added: 2026-10-16
+
+## P-3580 · A background task that never reports back kept Matter's live supervisor "busy" for seven hours, so no goal step was handed
+- symptom: 2026-10-16: `live.log` showed the last "goal step" at 00:35 UTC although Matter's last run ended at 06:07 local and `task-gate next` answered W8-0d in seconds; `agent_activity` held three Matter tasks still `running` (started 01:10, 02:06 UTC and the day before) whose finish was never reported.
+- cause: `continueGoal` required `isIdle(active, open)`, and `open` (background tasks started, not yet reported back) only emptied on a `task_notification` for the same id; one lost notification made it non-idle for ever, and the skip was silent (every early `return` in `continueGoal`).
+- rule: a goal step is handed whenever a session is up and no line is in hand (open background tasks do not block it, as they do not block a person's line); a task open over 3 hours is forgotten (`withoutStaleTasks`); every skip is logged once per reason and half hour (`live: goal step skipped: <why>`), so a quiet runner can be read from `live.log`. Rotation and moving to new code still wait for real idleness (`isIdle`).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-runner-stale-tasks` → `WATCHED-FAIL OK`; `goalSkipReason` names each reason in `tests/unit/matter-autonomy.test.ts`.
+- added: 2026-10-16
+
+## P-3581 · The allowance tiers downgraded Matter and the colleagues' ceiling against the operator's order, and the override covered only two of the four fields
+- symptom: 2026-10-16: after "just remove the allowance thing", `policy.json` still read `colleagueCeiling: "sonnet"` at 85% although `config.json` forced Matter's model and backlog.
+- rule: an override can set the whole allowance aside with `"allowance": "ignore"` in `~/.mop-workforce/config.json` (full staff at any reading; the week's percentage is still recorded for the Office); `follow` or nothing keeps the tiers.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-runner-allowance-ceiling` → `WATCHED-FAIL OK`.
+- added: 2026-10-16
