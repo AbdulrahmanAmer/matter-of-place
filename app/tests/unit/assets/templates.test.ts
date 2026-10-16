@@ -52,6 +52,16 @@ describe("Cover", () => {
     expect(markup(createElement(Cover, { spec }))).toBe(markup(createElement(Cover, { spec })));
   });
 
+  it("carries the title in the place of the price when the spec shows no price", () => {
+    const rental = { ...spec, property: { ...spec.property, price: 0, title: "2400 Azure Place" } };
+    const html = markup(createElement(Cover, { spec: rental }));
+    expect([
+      html.includes('<p class="social-frame__price">2400 Azure Place</p>'),
+      html.includes("$"),
+      html.includes("Los Altos Hills, California"),
+    ]).toEqual([true, false, true]);
+  });
+
   it("uses the taller frame for the X crop and the cover frame for the LinkedIn crop", () => {
     const frame = (crop?: "x" | "linkedin") =>
       /social-frame--[a-z-]+/.exec(
@@ -152,13 +162,41 @@ describe("CarouselSlide", () => {
     `);
   });
 
-  it("carries the position, the location and one photograph on a photograph slide", () => {
+  it("carries no counter on a single post, which is a lone cover slide", () => {
+    const html = markup(
+      createElement(CarouselSlide, {
+        spec,
+        slide: { kind: "cover", image: 0 },
+        index: 0,
+        total: 1,
+      }),
+    );
+    expect([
+      html.includes("social-frame__marker"),
+      html.includes("social-frame__headline"),
+    ]).toEqual([false, true]);
+  });
+
+  it("carries the position and one photograph on a photograph slide, in a band of the wordmark and the counter only", () => {
     const html = slide(1);
     expect([
       html.includes("02 / 08"),
-      html.includes("Los Altos Hills, California"),
+      html.includes("social-frame--compact"),
+      html.includes("social-frame__location"),
       html.includes("$8,950,000"),
-    ]).toEqual([true, true, false]);
+    ]).toEqual([true, true, false, false]);
+  });
+
+  it("keeps the full band on the square LinkedIn crop of a photograph", () => {
+    const planned = slides[1];
+    if (!planned) throw new Error("no slide 1");
+    const html = markup(
+      createElement(CarouselSlide, { spec, slide: planned, index: 0, total: 3, square: true }),
+    );
+    expect([
+      html.includes("social-frame--compact"),
+      html.includes("Los Altos Hills, California"),
+    ]).toEqual([false, true]);
   });
 
   it("carries the type, the year, the price and the specs on the facts slide", () => {

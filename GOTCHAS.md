@@ -8562,3 +8562,61 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after merging the integration branch, run `node --check scripts/check-layout.mjs` and `bun run layout` from `app/` before any replay; a "wrong reason" whose red run is a SyntaxError in a file the entry did not mutate is the merge's, so fix the file, never the entry.
 - proof: `cd app && node --check scripts/check-layout.mjs && bun run layout` → `layout: OK (3530 files)` on overdrive/w7-9 after the quote was restored; `node scripts/watchfail.mjs --registry tests/mutations --only ay` → `WATCHED-FAIL OK B1b:ay` (2026-10-16).
 - added: 2026-10-16
+
+## P-3582 · A shell redirect to a relative path climbed out of the worktree and left a file in `E:\`
+- symptom: 2026-10-16 (W7 4), `cat > ../../../tmp_edit_office.mjs` from `app/` created an empty file at `E:\tmp_edit_office.mjs`, and the sandbox then refused to delete it (outside the worktree).
+- rule: never redirect to a relative path with `..`; scripts and logs go to `/tmp/<name>` or to a file made with the Write tool inside the worktree, and `git status` after a surprise redirect.
+- proof: `ls /e/tmp_edit_office.mjs` → the stray empty file, for the operator to remove (a human, not this session).
+- added: 2026-10-16
+
+## P-3583 · A list that filters and counts over a capped read shows counts of a slice as if they were totals
+- symptom: 2026-10-16, W7 4 review: `DecisionsPanel` filtered and counted on the client over the newest 200 rows, so `Open (n)` stopped being true after about 40 days and older open decisions vanished without a word.
+- rule: a list with a bound reads its true total beside the rows (`select(cols, { count: "exact" })`) and the screen says "Showing the newest N of M" when it is cut; a list a screen filters by status is filtered and counted on the server, each status capped on its own. A value outside its contract (`status`, `source`) fails the read with 503, never mapped to a real value (`inContract` in `src/server/workforce/service.ts`).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-4-decision-true-totals` → `WATCHED-FAIL OK`, its red run `reads each status on its own, newest 200 of each`.
+- added: 2026-10-16
+
+## P-3584 · In `dontAsk` mode a builder cannot edit `.claude/POSITION.md`, so a merge that conflicts there cannot be finished
+- symptom: 2026-10-16, W7 4 fix run: `git merge origin/overdrive/finish` conflicted only in `.claude/POSITION.md`; `Edit` and `sed -i` on it were refused ("running in don't ask mode"), edits under `app/`, `workspace/` and `GOTCHAS.md` were not. The merge was aborted and the fixes committed unmerged.
+- rule: a headless builder run that must merge or append to the position file needs `Edit(./.claude/POSITION.md)` in its allow list, or Matter merges and writes the block; a builder never works around the refusal through git or the shell.
+- proof: `Edit` on `.claude/POSITION.md` in a `dontAsk` run → "Permission to use Edit has been denied".
+- added: 2026-10-16
+
+## P-3585 · The component replay never started its worker under load: the forks pool timed out, the threads pool ran
+- symptom: 2026-10-16, W7 4: `bunx vitest run --project component src/admin/workforce/team-memory.test.tsx` → `[vitest-pool-runner]: Timeout waiting for worker to respond` twice, no test run, while the laptop held ~46 node processes; `--pool=threads` ran all 18 tests in 18 s.
+- rule: when a component run says `Failed to start forks worker`, rerun it with `--pool=threads` before calling anything red; a registry entry's `run` may carry `--pool=threads` (W7-4.json does). Two replays in a row then went `BAD: wrong reason` once each for entries that were `WATCHED-FAIL OK` alone, so a BAD under load is rerun alone before it is believed.
+- proof: `cd app && bunx vitest run --project component --pool=threads src/admin/workforce/team-memory.test.tsx` → `Tests 18 passed (18)`.
+- added: 2026-10-16
+
+## P-3579 · A reel about a property filed as `brand` shows no photograph of it, and nothing in the route or the review noticed (H110 miss)
+- symptom: 2026-10-16, the Fairfield test: Maya's request was `kind: "brand"` with her three picks named in prose, because the house was not on the site (a campaign reel needs `property_id`). The studio drew abstract models and a flat-roofed box for a 2021 pitched-roof house; the gate and the review passed it (it was well made), and the operator caught it: "a reader would be misled about the home".
+- cause: `shotsFor` returns no photographs for `brand`, the scene prompt said "no photographs", and the review only refused a photograph that is not the subject's, never the absence of one. A request had no way to carry its own pictures.
+- rule: a reel about a property carries that property's photographs: kind `campaign` with `property_id`, or with `photos` (paths under the requester's own work folder, read through `deskPhoto`, confined by realpath); `brand` refuses `photos`; the scene must draw `spec.shots` (else sent back before filming); the review is told how many photographs were supplied and refuses a reel that shows none or draws a house in their place. A reel for a property that is not on the site is kept in the studio, not recorded in Visuals (a visual needs its subject).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-h110-scene-draws-shots` → `WATCHED-FAIL OK`; `reelRequestSchema.safeParse({...brand, photos: [...]})` is `success: false`.
+- added: 2026-10-16
+
+## P-3692 · A script that rewrote `check-layout.mjs` dropped the closing quote of `SERVER_DOMAINS`, and the first CI run died at its first step
+- symptom: 2026-10-16, draft PR 447: `check` failed in 24 s with `SyntaxError: Invalid or unexpected token` at `scripts/check-layout.mjs:37`; typecheck, lint and tests never ran.
+- cause: the merge of W6 7 added `account` to the folder map's domain list; the resolver (`fix-layout-conflict.py`, Matter's) rebuilt the line as `"{...}" + ";"` and lost the closing quote. A Python write is not seen by the Edit/Write parse hook.
+- rule: after any merge or script that touches `app/scripts/check-layout.mjs` (or any `.mjs`/`.json` a script rewrote), run `node --check` on it (one second, a parse, not a CI run); `merge-branch.sh` now does it after every merge.
+- proof: `node --check app/scripts/check-layout.mjs` prints `SyntaxError: Invalid or unexpected token` with the quote missing and nothing with it restored (2026-10-16).
+- added: 2026-10-16
+
+## P-3693 · `exactOptionalPropertyTypes` refuses `prop: undefined` for an optional prop: leave the key out
+- symptom: 2026-10-16, draft PR 447 CI round 3: six TS2375 errors in `src/templates/social/Carousel.tsx`: `marker: string | undefined` and `location={undefined}` against `marker?: string` and `location?: string`.
+- cause: the single-post counter was written as `marker: total > 1 ? "..." : undefined`, and the compact slide as `location={undefined}`; with no local `tsc` (no-local-CI order) nothing saw it before CI.
+- rule: build props so an absent value is left out (`...(cond ? { marker } : {})`), never set to `undefined`; a slide that drops a prop spreads a base object that never had it.
+- proof: CI `check` job, `tsc --noEmit -p tsconfig.json`: six TS2375 on the old shape, none on the new (run 38878332417 and its successor).
+- added: 2026-10-16
+
+## P-3694 · Branches that each pass alone fail together on the tables every page, form and class must be named in
+- symptom: 2026-10-16, draft PR 447 CI round 5: four unit tests red after typecheck and lint were green: the client room's two pages missing from the route map (`routes-covered`), its two forms missing from the table of public forms (`turnstile-coverage`), `wf-mem__status` with no style rule (`admin-classes`), and `.credentials.json` not refused by name (`workforce-drive-copy`).
+- cause: each builder ran its own folder's tests; the tables that name every route, form and admin class live in other folders, and with no local full run nothing joined them before CI.
+- rule: a builder of a new page route, public form or admin class opens `tests/e2e/fixtures/routes.ts`, `workspace/audits/tools/public-forms.mjs` and `tests/unit/admin-classes.test.ts` and adds its rows in the same commit; the brief of every item that adds a page, a form or a class says so. A name-matching secret rule is tested with the dotfile spelling too (`.credentials.json`).
+- proof: CI `check` job, `vitest run --project unit`, round 5: 4 failed | 443 passed files; after the rows are added the four are green (round 6).
+- added: 2026-10-16
+
+## P-3695 · `prettier --write` run from `app/` on a `workspace/` file reformats it to a width eslint's prettier rule then refuses
+- symptom: 2026-10-16, draft PR 447 CI round 6: four lint errors in `workspace/audits/tools/public-forms.mjs` after the file was formatted with `app`'s prettier from the app folder (80 columns for a file outside the app's config).
+- rule: format only files under `app/` with `prettier --write` from `app/`; a `workspace/` file is edited by hand to the width of its neighbours and parsed with `node --check`.
+- proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
+- added: 2026-10-16

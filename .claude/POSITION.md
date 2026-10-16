@@ -1939,6 +1939,19 @@ first day of the new usage week; no step was cut from any plan.
   (subscriber.created holds a sealed token). Proof: unit 5 and component 24 passed, registry W7-5.json 14 entries
   WATCHED-FAIL OK, both tsc, eslint, prettier, knip exit 0. NOT DONE: a browser look at the real page (admin sign-in is a
   magic link; rendered text observed in the component test only). Bank grew: P-3560 to P-3562.
+- 2026-10-16 01:40 +0300: W7 item 4 built on overdrive/w7-4 (no pull request, Matter merges into overdrive/finish): Office has four
+  tabs (The floor, Decisions, Lessons, Instruction history), read only, over four routes
+  `GET /api/admin/workforce/memory/{decisions,lessons,instructions,instructions/:id}` on the existing action `workforce.office`
+  (no matrix change, no migration); schemas in `src/domain/admin-team-memory.ts`, services in `src/server/workforce/service.ts`
+  (newest 200 rows per list; the text of an instruction version is read only when a person opens it, shown as plain text).
+  Proof: unit `tests/unit/workforce-memory.test.ts` 14 and component `src/admin/workforce/team-memory.test.tsx` 10 passed,
+  registry `W7-4.json` 34 entries WATCHED-FAIL OK, admin-authz-sweep and mutation-registry tests passed, both tsc exit 0.
+  NOT DONE: a browser look at the real page (admin sign-in is a magic link; rendered text observed in component tests only);
+  the live rows were not read. Stray empty file `E:\tmp_edit_office.mjs` left by a mistyped redirect (the sandbox refused the
+  delete; a person may remove it). Bank grew: P-3580 to P-3582.
+  Correction to the block above (2026-10-16 01:55 +0300, W7 item 4): its time is 01:28, not 01:40; the registry `W7-4.json` has
+  31 entries (the 34 replayed included three neighbours), all WATCHED-FAIL OK, replayed twice; eslint, prettier, knip, layout
+  and both tsc exit 0 after the final edits.
 
 - 2026-10-16 00:40 +0300 (Matter, live session 031029be): Merged today since the last block: 434 (W8 0a to 0c), 436,
   440 (W8 0d, the decision half). Builders (Sonnet 5.5, high): W7 5 (PR 438, the operator gates it), W7 6 (PR 439, CI
@@ -1976,6 +1989,14 @@ first day of the new usage week; no step was cut from any plan.
   rewritten after it stayed green: its addresses no longer formed one family); both tsc, eslint, prettier, layout exit 0;
   knip clean apart from a temp file since removed. UNPROVEN: the runner on the live request 4a3c2563, the real Haiku
   triage reading its fields, a colleague opening the photographs. Bank grew: P-3577, P-3578.
+- 2026-10-16 12:20 +0300: H110 fix (branch overdrive/reel-photos, review fixes): a reel request may carry `photos` only as a
+  campaign with no `property_id` (market, story, brand and campaign-with-property refuse it, 3 new schema cases), a desk picture's
+  file name never reaches the designer (alt text "photograph N"), ruling H124 records the kept-in-the-studio outcome (no Visuals
+  asset: a visual needs a subject). Proof: reel tests 21 passed; w8-h110-brand-no-photos and w8-h110-own-route WATCHED-FAIL OK (read).
+  The Fairfield re-render from the five pictures was made and passed the gate and the review on 2026-10-16 05:46 (studio folder
+  2026-10-16-fairfield-test-reel-2, `reel.mp4` 1080x1920, 21.2 s, replaced in Drive Reels, review sheet read by Matter); it was
+  rendered from this worktree, not from the live runner. UNPROVEN: the live runner on this code (it follows main); the picture
+  orientation is assumed landscape; the scene check is textual (the reviewer is the guard). Bank: P-3579.
 - 2026-10-16 05:10 +0300: W6 item 7 back on `overdrive/w6-7` after a fresh Opus review (two high, four medium, three
   low). Merged `origin/overdrive/finish` first: W8 0e had taken H113, so the client room's ruling is now H119 (P-3674).
   Fixed: client links no longer go through Supabase's one magic-link template (it opens `/admin/auth/confirm`) nor its
