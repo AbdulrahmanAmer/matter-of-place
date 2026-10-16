@@ -1,8 +1,10 @@
 import type { UsageLine } from "../../domain/admin-usage";
 import { formatInZone, OFFICE_ZONE } from "../../domain/market-time";
+import { claudeWeekResetAt, gaugeLevel, usageGauges } from "../../domain/usage-gauges";
 import { formatNumber } from "../../lib/format";
 import { AdminApiError } from "../ui/admin-fetch";
 import { AdminPending } from "../ui/AdminPending";
+import { StatusPill } from "../ui/StatusPill";
 import { useUsage } from "./usage-queries";
 
 // Settings, Service usage (W7 item 7): one plain gauge per `vendor_usage` line, read only. The laptop records the
@@ -15,7 +17,6 @@ const bytes = (value: number) =>
   value >= GB ? `${(value / GB).toFixed(1)} GB` : `${formatNumber(Math.round(value / MB))} MB`;
 
 interface Gauge {
-  name: string;
   /** How a figure of this line reads. */
   amount: (value: number) => string;
   /** What the share is a share of; null when the line already says it. */
@@ -25,41 +26,53 @@ interface Gauge {
 const count = (value: number) => formatNumber(Math.round(value));
 
 const GAUGES: Record<UsageLine["line"], Gauge> = {
-  workers_requests_day: { name: "Workers requests today", amount: count, of: "the free plan" },
-  storage_egress: { name: "Storage egress this month", amount: bytes, of: "the free plan" },
-  sentry_errors: { name: "Sentry errors this month", amount: count, of: "the free plan" },
-  actions_minutes: { name: "Actions minutes this month", amount: count, of: "the free plan" },
-  claude_week: {
-    name: "Claude week",
-    amount: (value) => `${count(value)}% of the week used`,
-    of: null,
-  },
+  workers_requests_day: { amount: count, of: "the free plan" },
+  storage_egress: { amount: bytes, of: "the free plan" },
+  sentry_errors: { amount: count, of: "the free plan" },
+  actions_minutes: { amount: count, of: "the free plan" },
+  claude_week: { amount: (value) => `${count(value)}% of the week used`, of: null },
 };
+
+/** The name every screen gives a line (`domain/usage-gauges.ts`), with what its figure is of when the name does not say. */
+function gaugeName(line: UsageLine["line"]): string {
+  const { name, qualifier } = usageGauges[line];
+  return qualifier === null ? name : `${name}, ${qualifier}`;
+}
+
+/** What a line's note says: the Claude week's note is a reset time, read as the Office header reads it. */
+function noteOf(line: UsageLine): string | null {
+  if (line.line !== "claude_week") return line.note;
+  const resetAt = claudeWeekResetAt(line.note);
+  return resetAt === null ? null : `Resets ${formatInZone(resetAt, OFFICE_ZONE, "dayTime")}`;
+}
 
 function UsageRow({ line }: { line: UsageLine }) {
   const gauge = GAUGES[line.line];
+  const name = gaugeName(line.line);
+  const note = noteOf(line);
   if (line.used === null || line.measured_at === null) {
     return (
-      <li aria-label={gauge.name}>
-        <span className="admin-usage__name">{gauge.name}</span>
+      <li aria-label={name}>
+        <span className="admin-usage__name">{name}</span>
         <span>Not measured yet.</span>
       </li>
     );
   }
   const used = gauge.amount(line.used);
   return (
-    <li aria-label={gauge.name}>
-      <span className="admin-usage__name">{gauge.name}</span>
+    <li aria-label={name}>
+      <span className="admin-usage__name">{name}</span>
       <span>
         {line.limit === null || gauge.of === null ? used : `${used} of ${gauge.amount(line.limit)}`}
       </span>
-      {line.percent === null ? null : (
+      {line.limit === null || line.percent === null ? null : (
         <>
+          <StatusPill {...gaugeLevel(line.used / line.limit)} />
           <progress
             className="admin-usage__bar"
             value={Math.min(line.percent, 100)}
             max={100}
-            aria-label={`${gauge.name}, share used`}
+            aria-label={`${name}, share used`}
           />
           {gauge.of === null ? null : (
             <span className="admin-usage__share">
@@ -68,7 +81,7 @@ function UsageRow({ line }: { line: UsageLine }) {
           )}
         </>
       )}
-      {line.note === null ? null : <span className="admin-usage__note">{line.note}</span>}
+      {note === null ? null : <span className="admin-usage__note">{note}</span>}
       <span className="admin-usage__when">
         Measured {formatInZone(line.measured_at, OFFICE_ZONE, "dayTime")}
       </span>

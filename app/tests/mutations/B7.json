@@ -3930,9 +3930,9 @@
   {
     "id": "b7-g9-ui-warning-80",
     "test": "src/admin/dashboard/dashboard.test.tsx",
-    "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "const WARNING_AT = 0.7;",
-    "replace": "const WARNING_AT = 0.8;",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_WARNING_AT = 0.7;",
+    "replace": "const GAUGE_WARNING_AT = 0.8;",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*805306368 bytes of Storage is 75 percent of 1 GB"
   },
@@ -3948,9 +3948,9 @@
   {
     "id": "b7-g9-ui-alert",
     "test": "src/admin/dashboard/dashboard.test.tsx",
-    "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "const ALERT_AT = 0.9;",
-    "replace": "const ALERT_AT = 0.95;",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_ALERT_AT = 0.9;",
+    "replace": "const GAUGE_ALERT_AT = 0.95;",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*a share of 92 percent is in the alert state"
   },

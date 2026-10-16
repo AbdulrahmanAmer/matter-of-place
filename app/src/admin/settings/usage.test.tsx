@@ -6,7 +6,8 @@ import { AdminProviders } from "../ui/test-providers";
 import { UsageSection } from "./UsageSection";
 
 // Settings, Service usage (W7 item 7): one gauge per vendor line with what was used, its free-plan limit, the share,
-// its note and when it was measured; a line never measured says so. Read only.
+// its note and when it was measured; a line never measured says so. Read only. Names, limits and levels are the
+// dashboard tile's (`domain/usage-gauges.ts`); the Claude week's note is the ISO time the runner records.
 
 const USAGE = "/api/admin/settings/usage";
 
@@ -38,7 +39,7 @@ const answer: UsageAnswer = {
       used: 42,
       limit: 100,
       percent: 42,
-      note: "Resets Sat, Oct 17",
+      note: "2026-10-21T16:00:00.000Z",
       measured_at: AT,
     },
   ],
@@ -61,25 +62,28 @@ afterEach(() => {
 describe("settings, service usage", () => {
   it("shows each line with what was used, its limit, the share, its note and when it was measured", async () => {
     const requested = mount({ [`GET ${USAGE}`]: answer });
-    const workers = await screen.findByRole("listitem", { name: "Workers requests today" });
+    const workers = await screen.findByRole("listitem", {
+      name: "Workers requests, last measured day",
+    });
     expect(workers.textContent).toBe(
-      "Workers requests today25,000 of 100,00025% of the free planYesterdayMeasured Thu, Oct 15, 07:00 Cairo time",
+      "Workers requests, last measured day25,000 of 100,000Within limit25% of the free planYesterdayMeasured Thu, Oct 15, 07:00 Cairo time",
     );
-    const egress = screen.getByRole("listitem", { name: "Storage egress this month" });
+    const egress = screen.getByRole("listitem", { name: "Storage egress" });
     expect(egress.textContent).toContain("2.5 GB of 5.0 GB");
     expect(within(egress).getByRole("progressbar").getAttribute("value")).toBe("50");
     const claude = screen.getByRole("listitem", { name: "Claude week" });
-    expect(claude.textContent).toContain("42% of the week used");
-    expect(claude.textContent).toContain("Resets Sat, Oct 17");
+    expect(claude.textContent).toBe(
+      "Claude week42% of the week usedWithin limitResets Wed, Oct 21, 19:00 Cairo timeMeasured Thu, Oct 15, 07:00 Cairo time",
+    );
     expect(requested).toEqual([`GET ${USAGE}`]);
   });
 
   it("says a line was never measured, and shows a measured line without a limit as its figure alone", async () => {
     mount({ [`GET ${USAGE}`]: answer });
-    const minutes = await screen.findByRole("listitem", { name: "Actions minutes this month" });
-    expect(minutes.textContent).toBe("Actions minutes this monthNot measured yet.");
-    const sentry = screen.getByRole("listitem", { name: "Sentry errors this month" });
-    expect(sentry.textContent).toContain("Sentry errors this month12");
+    const minutes = await screen.findByRole("listitem", { name: "GitHub Actions minutes" });
+    expect(minutes.textContent).toBe("GitHub Actions minutesNot measured yet.");
+    const sentry = screen.getByRole("listitem", { name: "Sentry errors" });
+    expect(sentry.textContent).toContain("Sentry errors12");
     expect(within(sentry).queryByRole("progressbar")).toBeNull();
   });
 
@@ -98,15 +102,53 @@ describe("settings, service usage", () => {
         ],
       },
     });
-    const gauge = await screen.findByRole("listitem", { name: "Actions minutes this month" });
+    const gauge = await screen.findByRole("listitem", { name: "GitHub Actions minutes" });
     expect({
       bar: within(gauge).getByRole("progressbar").getAttribute("value"),
       words: gauge.textContent,
     }).toEqual({
       bar: "100",
       words:
-        "Actions minutes this month2,500 of 2,000125% of the free planMeasured Thu, Oct 15, 07:00 Cairo time",
+        "GitHub Actions minutes2,500 of 2,000Alert125% of the free planMeasured Thu, Oct 15, 07:00 Cairo time",
     });
+  });
+
+  it("shows the same level as the dashboard tile: warning from 70 percent, alert from 90", async () => {
+    const at = (
+      line: "workers_requests_day" | "sentry_errors" | "actions_minutes",
+      used: number,
+    ) => ({
+      line,
+      used,
+      limit: 100,
+      percent: used,
+      note: null,
+      measured_at: AT,
+    });
+    mount({
+      [`GET ${USAGE}`]: {
+        lines: [at("workers_requests_day", 69), at("sentry_errors", 70), at("actions_minutes", 90)],
+      },
+    });
+    await screen.findByRole("listitem", { name: "Sentry errors" });
+    const pills = screen
+      .getAllByRole("listitem")
+      .map((item) => within(item).getByText(/limit|Warning|Alert/).textContent);
+    expect(pills).toEqual(["Within limit", "Warning", "Alert"]);
+  });
+
+  it("shows no reset for a Claude week whose note is not a time, never the raw note", async () => {
+    mount({
+      [`GET ${USAGE}`]: {
+        lines: [
+          { line: "claude_week", used: 42, limit: 100, percent: 42, note: "soon", measured_at: AT },
+        ],
+      },
+    });
+    const claude = await screen.findByRole("listitem", { name: "Claude week" });
+    expect(claude.textContent).toBe(
+      "Claude week42% of the week usedWithin limitMeasured Thu, Oct 15, 07:00 Cairo time",
+    );
   });
 
   it("shows the refusal of the read, and no gauge", async () => {

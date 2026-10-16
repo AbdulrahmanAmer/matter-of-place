@@ -8386,3 +8386,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a constraint, policy or function in the database is watched with a `kind: "sql"` entry that undoes it in the test's database (`alter table ... drop constraint ...`), as `tests/mutations/B2.json` does for `properties_slug_format`; a file mutation is for code the test itself loads.
 - proof: `tests/mutations/W8-0-slug.json` entry `w8-0e-slug-check-table` is `kind: "sql"` with `alter table public.agents drop constraint agents_slug_not_account_id`; CI's db job replays it (mop-dev refuses db tests from the laptop, H35).
 - added: 2026-10-16
+
+## P-3690 · A test fixture for a row a script writes must copy the writer's real shape, or a screen can print the raw value and stay green
+- symptom: 2026-10-16, W7 7 review: Settings, Service usage printed `2026-10-21T16:00:00.000Z` as the Claude allowance's note. Both tests used `Resets Sat, Oct 17`, which the runner never writes (`daemon.ts` writes `resetsAt.toISOString()` into `vendor_usage.note`), so the tick "with its reset note" was observed only on invented data. The same row was also read by two code paths (the Office and Settings) that could drift.
+- cause: the fixture was written from the screen's idea of the row, not from the writer.
+- rule: a fixture for a row a script or job writes takes its value from the writer's code (read the `p_note` or insert line, build the value the same way), and a row read by two screens is read through one function in `src/domain/` (`claudeWeekResetAt` in `usage-gauges.ts`); the screen test asserts the whole text of the row, not `toContain`.
+- proof: `grep -n "toISOString" app/scripts/workforce/daemon.ts` shows the writer; `cd app && bunx vitest run --project component src/admin/settings/usage.test.tsx -t "Claude"` passes with `2026-10-21T16:00:00.000Z` in the fixture and `node scripts/watchfail.mjs --registry tests/mutations --only w7-7-c-claude-reset` is `WATCHED-FAIL OK` (the raw note makes the whole-text assertion red).
+- added: 2026-10-16
+
+## P-3691 · Moving a constant out of a component leaves other plans' registry entries pointing at the old place
+- symptom: 2026-10-16, W7 7 follow-up: the thresholds and limits of the dashboard's Free tier tile moved to `src/domain/usage-gauges.ts`; `edit-impact` printed STALE for four entries in `tests/mutations/B7.json` and `feat-usage-gauges.json` (their `find` text was in `GaugesTile.tsx`), which a replay would have reported as stale and CI's registry check as failing.
+- cause: a registry entry names the file and text it breaks; a move changes both, and the entry belongs to another slice.
+- rule: when a constant or helper moves, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` and repoint every STALE entry (file, find, replace) in the same commit, then replay each one and read its red output. Two vitest runs at once on this laptop make every component file fail with `Timeout waiting for worker to respond` (G-031 again): run component, unit and registry replays one after another.
+- proof: `node scripts/watchfail.mjs --registry tests/mutations --only b7-g9-ui-warning-80` prints `WATCHED-FAIL OK` with the entry's `file` at `src/domain/usage-gauges.ts`.
+- added: 2026-10-16

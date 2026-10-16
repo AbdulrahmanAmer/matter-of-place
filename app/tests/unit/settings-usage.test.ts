@@ -96,7 +96,7 @@ describe("GET /api/admin/settings/usage", () => {
     const db = fakeDb({
       tables: {
         vendor_usage: [
-          row("claude_week", { used: 42, limit_value: 100, note: "Resets Sat, Oct 17" }),
+          row("claude_week", { used: 42, limit_value: 100, note: "2026-10-21T16:00:00.000Z" }),
           row("sentry_errors", { used: 12 }),
         ],
       },
@@ -110,8 +110,8 @@ describe("GET /api/admin/settings/usage", () => {
         {
           line: "sentry_errors",
           used: 12,
-          limit: null,
-          percent: null,
+          limit: 5000,
+          percent: 0,
           note: null,
           measured_at: AT,
         },
@@ -121,7 +121,7 @@ describe("GET /api/admin/settings/usage", () => {
           used: 42,
           limit: 100,
           percent: 42,
-          note: "Resets Sat, Oct 17",
+          note: "2026-10-21T16:00:00.000Z",
           measured_at: AT,
         },
       ],
@@ -145,6 +145,31 @@ describe("GET /api/admin/settings/usage", () => {
       null,
       125,
       null,
+    ]);
+  });
+
+  it("measures a row that records no limit against the free-plan limit, and a noted line stays unlimited", async () => {
+    const db = fakeDb({
+      tables: {
+        vendor_usage: [
+          row("sentry_errors", { used: 3500 }),
+          row("claude_week", { used: 80, note: "2026-10-21T16:00:00.000Z" }),
+          row("actions_minutes", { used: 40, note: "public repository, not limited" }),
+        ],
+      },
+    });
+    const answer = await get(admin, db);
+    const lines = field(answer.body, "lines");
+    expect(
+      Array.isArray(lines)
+        ? lines.map((line) => [field(line, "line"), field(line, "limit"), field(line, "percent")])
+        : lines,
+    ).toEqual([
+      ["workers_requests_day", null, null],
+      ["storage_egress", null, null],
+      ["sentry_errors", 5000, 70],
+      ["actions_minutes", null, null],
+      ["claude_week", 100, 80],
     ]);
   });
 

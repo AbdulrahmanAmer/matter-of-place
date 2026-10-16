@@ -39,8 +39,8 @@
     "id": "w7-7-limit",
     "test": "tests/unit/settings-usage.test.ts",
     "file": "src/server/settings/usage/service.ts",
-    "find": "      limit: row.limit_value,",
-    "replace": "      limit: null,",
+    "find": "gaugeLimit(line, row.limit_value, row.note)",
+    "replace": "row.limit_value",
     "run": "bunx vitest run --project unit tests/unit/settings-usage.test.ts",
     "expect": "× .*answers the five lines in a fixed order"
   },
@@ -48,17 +48,17 @@
     "id": "w7-7-no-limit-no-share",
     "test": "tests/unit/settings-usage.test.ts",
     "file": "src/server/settings/usage/service.ts",
-    "find": "percent: row.limit_value === null ? null :",
-    "replace": "percent: row.limit_value === null ? 0 :",
+    "find": "percent: limit === null ? null :",
+    "replace": "percent: limit === null ? 0 :",
     "run": "bunx vitest run --project unit tests/unit/settings-usage.test.ts",
-    "expect": "× .*answers the five lines in a fixed order"
+    "expect": "× .*measures a row that records no limit against the free-plan limit"
   },
   {
     "id": "w7-7-share-rounded",
     "test": "tests/unit/settings-usage.test.ts",
     "file": "src/server/settings/usage/service.ts",
-    "find": "Math.round((row.used / row.limit_value) * 100)",
-    "replace": "Math.floor((row.used / row.limit_value) * 100)",
+    "find": "Math.round((row.used / limit) * 100)",
+    "replace": "Math.floor((row.used / limit) * 100)",
     "run": "bunx vitest run --project unit tests/unit/settings-usage.test.ts",
     "expect": "× .*gives the share of the recorded limit"
   },
@@ -93,7 +93,7 @@
     "id": "w7-7-c-note",
     "test": "src/admin/settings/usage.test.tsx",
     "file": "src/admin/settings/UsageSection.tsx",
-    "find": "      {line.note === null ? null : <span className=\"admin-usage__note\">{line.note}</span>}",
+    "find": "      {note === null ? null : <span className=\"admin-usage__note\">{note}</span>}",
     "replace": "",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
     "expect": "× .*shows each line with what was used"
@@ -138,7 +138,7 @@
     "id": "w7-7-c-no-bar-without-limit",
     "test": "src/admin/settings/usage.test.tsx",
     "file": "src/admin/settings/UsageSection.tsx",
-    "find": "{line.percent === null ? null : (",
+    "find": "{line.limit === null || line.percent === null ? null : (",
     "replace": "{false ? null : (",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
     "expect": "× .*says a line was never measured"
@@ -151,5 +151,149 @@
     "replace": "",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
     "expect": "× .*shows the refusal of the read"
+  },
+  {
+    "id": "w7-7-c-claude-reset",
+    "test": "src/admin/settings/usage.test.tsx",
+    "file": "src/admin/settings/UsageSection.tsx",
+    "find": "  if (line.line !== \"claude_week\") return line.note;",
+    "replace": "  return line.note;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
+    "expect": "× .*shows each line with what was used"
+  },
+  {
+    "id": "w7-7-c-claude-no-raw-note",
+    "test": "src/admin/settings/usage.test.tsx",
+    "file": "src/admin/settings/UsageSection.tsx",
+    "find": "resetAt === null ? null :",
+    "replace": "resetAt === null ? line.note :",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
+    "expect": "× .*shows no reset for a Claude week whose note is not a time"
+  },
+  {
+    "id": "w7-7-c-claude-of-null",
+    "test": "src/admin/settings/usage.test.tsx",
+    "file": "src/admin/settings/UsageSection.tsx",
+    "find": "line.limit === null || gauge.of === null ? used :",
+    "replace": "line.limit === null ? used :",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
+    "expect": "× .*shows each line with what was used"
+  },
+  {
+    "id": "w7-7-c-name-qualifier",
+    "test": "src/admin/settings/usage.test.tsx",
+    "file": "src/admin/settings/UsageSection.tsx",
+    "find": "  return qualifier === null ? name : `${name}, ${qualifier}`;",
+    "replace": "  return name;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
+    "expect": "× .*shows each line with what was used"
+  },
+  {
+    "id": "w7-7-c-level-pill",
+    "test": "src/admin/settings/usage.test.tsx",
+    "file": "src/admin/settings/UsageSection.tsx",
+    "find": "          <StatusPill {...gaugeLevel(line.used / line.limit)} />\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
+    "expect": "× .*shows the same level as the dashboard tile"
+  },
+  {
+    "id": "w7-7-c-level-warning-at",
+    "test": "src/admin/settings/usage.test.tsx",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_WARNING_AT = 0.7;",
+    "replace": "const GAUGE_WARNING_AT = 0.8;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
+    "expect": "× .*shows the same level as the dashboard tile"
+  },
+  {
+    "id": "w7-7-c-level-alert-at",
+    "test": "src/admin/settings/usage.test.tsx",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_ALERT_AT = 0.9;",
+    "replace": "const GAUGE_ALERT_AT = 0.95;",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
+    "expect": "× .*shows the same level as the dashboard tile"
+  },
+  {
+    "id": "w7-7-g-p009-mirror",
+    "test": "tests/unit/usage-gauges.test.ts",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "    limit: 100_000,",
+    "replace": "    limit: 200_000,",
+    "run": "bunx vitest run --project unit tests/unit/usage-gauges.test.ts",
+    "expect": "× .*are the P-009 limits the health job reads"
+  },
+  {
+    "id": "w7-7-g-level-warning-at",
+    "test": "tests/unit/usage-gauges.test.ts",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_WARNING_AT = 0.7;",
+    "replace": "const GAUGE_WARNING_AT = 0.8;",
+    "run": "bunx vitest run --project unit tests/unit/usage-gauges.test.ts",
+    "expect": "× .*is within the limit under 70 percent"
+  },
+  {
+    "id": "w7-7-g-level-alert-at",
+    "test": "tests/unit/usage-gauges.test.ts",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_ALERT_AT = 0.9;",
+    "replace": "const GAUGE_ALERT_AT = 0.95;",
+    "run": "bunx vitest run --project unit tests/unit/usage-gauges.test.ts",
+    "expect": "× .*is within the limit under 70 percent"
+  },
+  {
+    "id": "w7-7-g-limit-fallback",
+    "test": "tests/unit/usage-gauges.test.ts",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "  return usageGauges[line].limit;",
+    "replace": "  return null;",
+    "run": "bunx vitest run --project unit tests/unit/usage-gauges.test.ts",
+    "expect": "× .*keeps the limit a row records, falls back to the free plan"
+  },
+  {
+    "id": "w7-7-g-limit-recorded-first",
+    "test": "tests/unit/usage-gauges.test.ts",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "  if (recorded !== null) return recorded;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/usage-gauges.test.ts",
+    "expect": "× .*keeps the limit a row records, falls back to the free plan"
+  },
+  {
+    "id": "w7-7-g-noted-unlimited",
+    "test": "tests/unit/usage-gauges.test.ts",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "  if (line !== \"claude_week\" && note !== null) return null;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/usage-gauges.test.ts",
+    "expect": "× .*leaves a vendor line with a note and no limit unlimited"
+  },
+  {
+    "id": "w7-7-g-claude-always-limited",
+    "test": "tests/unit/usage-gauges.test.ts",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "if (line !== \"claude_week\" && note !== null) return null;",
+    "replace": "if (note !== null) return null;",
+    "run": "bunx vitest run --project unit tests/unit/usage-gauges.test.ts",
+    "expect": "× .*leaves a vendor line with a note and no limit unlimited"
+  },
+  {
+    "id": "w7-7-g-reset-is-a-time",
+    "test": "tests/unit/usage-gauges.test.ts",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "  if (note === null || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}/.test(note)) return null;",
+    "replace": "  if (note === null) return null;",
+    "run": "bunx vitest run --project unit tests/unit/usage-gauges.test.ts",
+    "expect": "× .*returns the ISO time the runner records"
+  },
+  {
+    "id": "w7-7-g-reset-valid",
+    "test": "tests/unit/usage-gauges.test.ts",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "  return Number.isNaN(Date.parse(note)) ? null : note;",
+    "replace": "  return note;",
+    "run": "bunx vitest run --project unit tests/unit/usage-gauges.test.ts",
+    "expect": "× .*returns the ISO time the runner records"
   }
 ]
