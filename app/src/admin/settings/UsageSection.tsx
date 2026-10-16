@@ -1,0 +1,113 @@
+import type { UsageLine } from "../../domain/admin-usage";
+import { formatInZone, OFFICE_ZONE } from "../../domain/market-time";
+import { claudeWeekResetAt, gaugeLevel, usageGauges } from "../../domain/usage-gauges";
+import { formatNumber } from "../../lib/format";
+import { AdminApiError } from "../ui/admin-fetch";
+import { AdminPending } from "../ui/AdminPending";
+import { StatusPill } from "../ui/StatusPill";
+import { useUsage } from "./usage-queries";
+
+// Settings, Service usage (W7 item 7): one plain gauge per `vendor_usage` line, read only. The laptop records the
+// figures (the weekly audit's collectors and the Claude runner); this shows what it last recorded, and when.
+
+const GB = 1024 ** 3;
+const MB = 1024 ** 2;
+
+const bytes = (value: number) =>
+  value >= GB ? `${(value / GB).toFixed(1)} GB` : `${formatNumber(Math.round(value / MB))} MB`;
+
+interface Gauge {
+  /** How a figure of this line reads. */
+  amount: (value: number) => string;
+  /** What the share is a share of; null when the line already says it. */
+  of: string | null;
+}
+
+const count = (value: number) => formatNumber(Math.round(value));
+
+const GAUGES: Record<UsageLine["line"], Gauge> = {
+  workers_requests_day: { amount: count, of: "the free plan" },
+  storage_egress: { amount: bytes, of: "the free plan" },
+  sentry_errors: { amount: count, of: "the free plan" },
+  actions_minutes: { amount: count, of: "the free plan" },
+  claude_week: { amount: (value) => `${count(value)}% of the week used`, of: null },
+};
+
+/** The name every screen gives a line (`domain/usage-gauges.ts`), with what its figure is of when the name does not say. */
+function gaugeName(line: UsageLine["line"]): string {
+  const { name, qualifier } = usageGauges[line];
+  return qualifier === null ? name : `${name}, ${qualifier}`;
+}
+
+/** What a line's note says: the Claude week's note is a reset time, read as the Office header reads it. */
+function noteOf(line: UsageLine): string | null {
+  if (line.line !== "claude_week") return line.note;
+  const resetAt = claudeWeekResetAt(line.note);
+  return resetAt === null ? null : `Resets ${formatInZone(resetAt, OFFICE_ZONE, "dayTime")}`;
+}
+
+function UsageRow({ line }: { line: UsageLine }) {
+  const gauge = GAUGES[line.line];
+  const name = gaugeName(line.line);
+  const note = noteOf(line);
+  if (line.used === null || line.measured_at === null) {
+    return (
+      <li aria-label={name}>
+        <span className="admin-usage__name">{name}</span>
+        <span>Not measured yet.</span>
+      </li>
+    );
+  }
+  const used = gauge.amount(line.used);
+  return (
+    <li aria-label={name}>
+      <span className="admin-usage__name">{name}</span>
+      <span>
+        {line.limit === null || gauge.of === null ? used : `${used} of ${gauge.amount(line.limit)}`}
+      </span>
+      {line.limit === null || line.percent === null ? null : (
+        <>
+          <StatusPill {...gaugeLevel(line.used / line.limit)} />
+          <progress
+            className="admin-usage__bar"
+            value={Math.min(line.percent, 100)}
+            max={100}
+            aria-label={`${name}, share used`}
+          />
+          {gauge.of === null ? null : (
+            <span className="admin-usage__share">
+              {formatNumber(line.percent)}% of {gauge.of}
+            </span>
+          )}
+        </>
+      )}
+      {note === null ? null : <span className="admin-usage__note">{note}</span>}
+      <span className="admin-usage__when">
+        Measured {formatInZone(line.measured_at, OFFICE_ZONE, "dayTime")}
+      </span>
+    </li>
+  );
+}
+
+/** The gauges of the free plans and the Claude week, each with what was used, its limit and when it was measured. */
+export function UsageSection() {
+  const usage = useUsage();
+  if (usage.error !== null) {
+    return (
+      <p role="alert">
+        {usage.error.message}
+        {usage.error instanceof AdminApiError && usage.error.requestId !== undefined
+          ? ` Request ${usage.error.requestId}.`
+          : null}
+      </p>
+    );
+  }
+  if (usage.data === undefined) return <AdminPending />;
+  return (
+    <ul className="admin-usage">
+      {usage.data.lines.map((line) => (
+        <UsageRow key={line.line} line={line} />
+      ))}
+    </ul>
+  );
+}

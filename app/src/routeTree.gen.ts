@@ -49,6 +49,8 @@ import { Route as MediaSplatRouteImport } from './routes/media.$'
 import { Route as SiteMarketIndexRouteImport } from './routes/_site.$market.index'
 import { Route as SiteMarketRegionRouteImport } from './routes/_site.$market.$region'
 import { Route as SiteMarketGuideRouteImport } from './routes/_site.$market.guide'
+import { Route as SiteAccountIndexRouteImport } from './routes/_site.account.index'
+import { Route as SiteAccountConfirmRouteImport } from './routes/_site.account.confirm'
 import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
 import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
 import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
@@ -166,6 +168,7 @@ import { Route as ApiAdminSettingsNotificationsRouteImport } from './routes/api/
 import { Route as ApiAdminSettingsProductsRouteImport } from './routes/api/admin/settings.products'
 import { Route as ApiAdminSettingsRedirectsRouteImport } from './routes/api/admin/settings.redirects'
 import { Route as ApiAdminSettingsSiteRouteImport } from './routes/api/admin/settings.site'
+import { Route as ApiAdminSettingsUsageRouteImport } from './routes/api/admin/settings.usage'
 import { Route as ApiAdminStoriesIndexRouteImport } from './routes/api/admin/stories.index'
 import { Route as ApiAdminStoriesIdRouteImport } from './routes/api/admin/stories.$id'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
@@ -198,6 +201,8 @@ import { Route as ApiAdminAutomationScheduleSettingsKeyRouteImport } from './rou
 import { Route as ApiAdminAutomationTemplatesKeyRouteImport } from './routes/api/admin/automation.templates.$key'
 import { Route as ApiAdminAutomationTemplatesPreviewRouteImport } from './routes/api/admin/automation.templates.preview'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
+import { Route as ApiAdminEmailsRepliesIndexRouteImport } from './routes/api/admin/emails.replies.index'
+import { Route as ApiAdminEmailsRepliesIdRouteImport } from './routes/api/admin/emails.replies.$id'
 import { Route as ApiAdminInquiriesIdAssignRouteImport } from './routes/api/admin/inquiries.$id.assign'
 import { Route as ApiAdminInquiriesIdCloseRouteImport } from './routes/api/admin/inquiries.$id.close'
 import { Route as ApiAdminInquiriesIdForwardRouteImport } from './routes/api/admin/inquiries.$id.forward'
@@ -242,6 +247,9 @@ import { Route as ApiAdminSubmissionsIdWithdrawRouteImport } from './routes/api/
 import { Route as ApiAdminTeamAgentsRevokeAllRouteImport } from './routes/api/admin/team.agents.revoke-all'
 import { Route as ApiAdminWorkforceAgentsSlugRouteImport } from './routes/api/admin/workforce.agents.$slug'
 import { Route as ApiAdminWorkforceApprovalsIdRouteImport } from './routes/api/admin/workforce.approvals.$id'
+import { Route as ApiAdminWorkforceMemoryDecisionsRouteImport } from './routes/api/admin/workforce.memory.decisions'
+import { Route as ApiAdminWorkforceMemoryInstructionsRouteImport } from './routes/api/admin/workforce.memory.instructions'
+import { Route as ApiAdminWorkforceMemoryLessonsRouteImport } from './routes/api/admin/workforce.memory.lessons'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
 import { Route as ApiAdminAuditSubjectRequestsIdDeleteRouteImport } from './routes/api/admin/audit.subject-requests.$id.delete'
 import { Route as ApiAdminAuditSubjectRequestsIdExportRouteImport } from './routes/api/admin/audit.subject-requests.$id.export'
@@ -260,6 +268,7 @@ import { Route as ApiAdminNewsletterIssuesIdUnapproveRouteImport } from './route
 import { Route as ApiAdminTeamAgentsIdKeysRouteImport } from './routes/api/admin/team.agents.$id.keys'
 import { Route as ApiAdminTeamUsersIdDisableRouteImport } from './routes/api/admin/team.users.$id.disable'
 import { Route as ApiAdminTeamUsersIdRolesRouteImport } from './routes/api/admin/team.users.$id.roles'
+import { Route as ApiAdminWorkforceMemoryInstructionsIdRouteImport } from './routes/api/admin/workforce.memory.instructions.$id'
 import { Route as ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport } from './routes/api/admin/submissions.$id.media.$mediaId.original'
 import { Route as ApiAdminTeamAgentsIdKeysKeyIdRouteImport } from './routes/api/admin/team.agents.$id.keys.$keyId'
 import { Route as ApiAdminTeamUsersIdRolesRoleRouteImport } from './routes/api/admin/team.users.$id.roles.$role'
@@ -465,6 +474,16 @@ const SiteMarketGuideRoute = SiteMarketGuideRouteImport.update({
   id: '/guide',
   path: '/guide',
   getParentRoute: () => SiteMarketRoute,
+} as any)
+const SiteAccountIndexRoute = SiteAccountIndexRouteImport.update({
+  id: '/account/',
+  path: '/account/',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountConfirmRoute = SiteAccountConfirmRouteImport.update({
+  id: '/account/confirm',
+  path: '/account/confirm',
+  getParentRoute: () => SiteRoute,
 } as any)
 const SiteMarketsIndexRoute = SiteMarketsIndexRouteImport.update({
   id: '/',
@@ -1098,6 +1117,11 @@ const ApiAdminSettingsSiteRoute = ApiAdminSettingsSiteRouteImport.update({
   path: '/api/admin/settings/site',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminSettingsUsageRoute = ApiAdminSettingsUsageRouteImport.update({
+  id: '/api/admin/settings/usage',
+  path: '/api/admin/settings/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminStoriesIndexRoute = ApiAdminStoriesIndexRouteImport.update({
   id: '/api/admin/stories/',
   path: '/api/admin/stories/',
@@ -1271,6 +1295,17 @@ const ApiAdminAutomationTemplatesPreviewRoute =
 const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
   id: '/api/admin/channels/ids/$key',
   path: '/api/admin/channels/ids/$key',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminEmailsRepliesIndexRoute =
+  ApiAdminEmailsRepliesIndexRouteImport.update({
+    id: '/api/admin/emails/replies/',
+    path: '/api/admin/emails/replies/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminEmailsRepliesIdRoute = ApiAdminEmailsRepliesIdRouteImport.update({
+  id: '/api/admin/emails/replies/$id',
+  path: '/api/admin/emails/replies/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminInquiriesIdAssignRoute =
@@ -1528,6 +1563,24 @@ const ApiAdminWorkforceApprovalsIdRoute =
     path: '/$id',
     getParentRoute: () => ApiAdminWorkforceApprovalsRoute,
   } as any)
+const ApiAdminWorkforceMemoryDecisionsRoute =
+  ApiAdminWorkforceMemoryDecisionsRouteImport.update({
+    id: '/api/admin/workforce/memory/decisions',
+    path: '/api/admin/workforce/memory/decisions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminWorkforceMemoryInstructionsRoute =
+  ApiAdminWorkforceMemoryInstructionsRouteImport.update({
+    id: '/api/admin/workforce/memory/instructions',
+    path: '/api/admin/workforce/memory/instructions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminWorkforceMemoryLessonsRoute =
+  ApiAdminWorkforceMemoryLessonsRouteImport.update({
+    id: '/api/admin/workforce/memory/lessons',
+    path: '/api/admin/workforce/memory/lessons',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicSubmissionsIdUploadsRoute =
   ApiPublicSubmissionsIdUploadsRouteImport.update({
     id: '/$id/uploads',
@@ -1636,6 +1689,12 @@ const ApiAdminTeamUsersIdRolesRoute =
     path: '/$id/roles',
     getParentRoute: () => ApiAdminTeamUsersRoute,
   } as any)
+const ApiAdminWorkforceMemoryInstructionsIdRoute =
+  ApiAdminWorkforceMemoryInstructionsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => ApiAdminWorkforceMemoryInstructionsRoute,
+  } as any)
 const ApiAdminSubmissionsIdMediaMediaIdOriginalRoute =
   ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport.update({
     id: '/media/$mediaId/original',
@@ -1694,6 +1753,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
+  '/account/confirm': typeof SiteAccountConfirmRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
@@ -1730,6 +1790,7 @@ export interface FileRoutesByFullPath {
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market/': typeof SiteMarketIndexRoute
+  '/account/': typeof SiteAccountIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
@@ -1801,6 +1862,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
+  '/api/admin/settings/usage': typeof ApiAdminSettingsUsageRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -1844,6 +1906,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/emails/replies/$id': typeof ApiAdminEmailsRepliesIdRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
   '/api/admin/inquiries/$id/close': typeof ApiAdminInquiriesIdCloseRoute
   '/api/admin/inquiries/$id/forward': typeof ApiAdminInquiriesIdForwardRoute
@@ -1888,7 +1951,11 @@ export interface FileRoutesByFullPath {
   '/api/admin/team/agents/revoke-all': typeof ApiAdminTeamAgentsRevokeAllRoute
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
+  '/api/admin/workforce/memory/decisions': typeof ApiAdminWorkforceMemoryDecisionsRoute
+  '/api/admin/workforce/memory/instructions': typeof ApiAdminWorkforceMemoryInstructionsRouteWithChildren
+  '/api/admin/workforce/memory/lessons': typeof ApiAdminWorkforceMemoryLessonsRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/replies/': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
@@ -1906,6 +1973,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/team/agents/$id/keys': typeof ApiAdminTeamAgentsIdKeysRouteWithChildren
   '/api/admin/team/users/$id/disable': typeof ApiAdminTeamUsersIdDisableRoute
   '/api/admin/team/users/$id/roles': typeof ApiAdminTeamUsersIdRolesRouteWithChildren
+  '/api/admin/workforce/memory/instructions/$id': typeof ApiAdminWorkforceMemoryInstructionsIdRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
   '/api/admin/team/agents/$id/keys/$keyId': typeof ApiAdminTeamAgentsIdKeysKeyIdRoute
   '/api/admin/team/users/$id/roles/$role': typeof ApiAdminTeamUsersIdRolesRoleRoute
@@ -1945,6 +2013,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
+  '/account/confirm': typeof SiteAccountConfirmRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
@@ -1981,6 +2050,7 @@ export interface FileRoutesByTo {
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market': typeof SiteMarketIndexRoute
+  '/account': typeof SiteAccountIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
   '/admin/assets': typeof AdminAssetsIndexRoute
@@ -2052,6 +2122,7 @@ export interface FileRoutesByTo {
   '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
+  '/api/admin/settings/usage': typeof ApiAdminSettingsUsageRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -2095,6 +2166,7 @@ export interface FileRoutesByTo {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/emails/replies/$id': typeof ApiAdminEmailsRepliesIdRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
   '/api/admin/inquiries/$id/close': typeof ApiAdminInquiriesIdCloseRoute
   '/api/admin/inquiries/$id/forward': typeof ApiAdminInquiriesIdForwardRoute
@@ -2139,7 +2211,11 @@ export interface FileRoutesByTo {
   '/api/admin/team/agents/revoke-all': typeof ApiAdminTeamAgentsRevokeAllRoute
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
+  '/api/admin/workforce/memory/decisions': typeof ApiAdminWorkforceMemoryDecisionsRoute
+  '/api/admin/workforce/memory/instructions': typeof ApiAdminWorkforceMemoryInstructionsRouteWithChildren
+  '/api/admin/workforce/memory/lessons': typeof ApiAdminWorkforceMemoryLessonsRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/replies': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
@@ -2157,6 +2233,7 @@ export interface FileRoutesByTo {
   '/api/admin/team/agents/$id/keys': typeof ApiAdminTeamAgentsIdKeysRouteWithChildren
   '/api/admin/team/users/$id/disable': typeof ApiAdminTeamUsersIdDisableRoute
   '/api/admin/team/users/$id/roles': typeof ApiAdminTeamUsersIdRolesRouteWithChildren
+  '/api/admin/workforce/memory/instructions/$id': typeof ApiAdminWorkforceMemoryInstructionsIdRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
   '/api/admin/team/agents/$id/keys/$keyId': typeof ApiAdminTeamAgentsIdKeysKeyIdRoute
   '/api/admin/team/users/$id/roles/$role': typeof ApiAdminTeamUsersIdRolesRoleRoute
@@ -2202,6 +2279,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/_site/$market/$region': typeof SiteMarketRegionRoute
   '/_site/$market/guide': typeof SiteMarketGuideRoute
+  '/_site/account/confirm': typeof SiteAccountConfirmRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
@@ -2238,6 +2316,7 @@ export interface FileRoutesById {
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/_site/$market/': typeof SiteMarketIndexRoute
+  '/_site/account/': typeof SiteAccountIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
@@ -2309,6 +2388,7 @@ export interface FileRoutesById {
   '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
+  '/api/admin/settings/usage': typeof ApiAdminSettingsUsageRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -2352,6 +2432,7 @@ export interface FileRoutesById {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/emails/replies/$id': typeof ApiAdminEmailsRepliesIdRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
   '/api/admin/inquiries/$id/close': typeof ApiAdminInquiriesIdCloseRoute
   '/api/admin/inquiries/$id/forward': typeof ApiAdminInquiriesIdForwardRoute
@@ -2396,7 +2477,11 @@ export interface FileRoutesById {
   '/api/admin/team/agents/revoke-all': typeof ApiAdminTeamAgentsRevokeAllRoute
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
+  '/api/admin/workforce/memory/decisions': typeof ApiAdminWorkforceMemoryDecisionsRoute
+  '/api/admin/workforce/memory/instructions': typeof ApiAdminWorkforceMemoryInstructionsRouteWithChildren
+  '/api/admin/workforce/memory/lessons': typeof ApiAdminWorkforceMemoryLessonsRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/replies/': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
@@ -2414,6 +2499,7 @@ export interface FileRoutesById {
   '/api/admin/team/agents/$id/keys': typeof ApiAdminTeamAgentsIdKeysRouteWithChildren
   '/api/admin/team/users/$id/disable': typeof ApiAdminTeamUsersIdDisableRoute
   '/api/admin/team/users/$id/roles': typeof ApiAdminTeamUsersIdRolesRouteWithChildren
+  '/api/admin/workforce/memory/instructions/$id': typeof ApiAdminWorkforceMemoryInstructionsIdRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
   '/api/admin/team/agents/$id/keys/$keyId': typeof ApiAdminTeamAgentsIdKeysKeyIdRoute
   '/api/admin/team/users/$id/roles/$role': typeof ApiAdminTeamUsersIdRolesRoleRoute
@@ -2459,6 +2545,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/$market/$region'
     | '/$market/guide'
+    | '/account/confirm'
     | '/markets/$'
     | '/property/$slug'
     | '/stories/$slug'
@@ -2495,6 +2582,7 @@ export interface FileRouteTypes {
     | '/api/public/submissions'
     | '/api/public/subscribers'
     | '/$market/'
+    | '/account/'
     | '/markets/'
     | '/stories/'
     | '/admin/assets/'
@@ -2566,6 +2654,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
+    | '/api/admin/settings/usage'
     | '/api/admin/stories/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
@@ -2609,6 +2698,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/emails/replies/$id'
     | '/api/admin/inquiries/$id/assign'
     | '/api/admin/inquiries/$id/close'
     | '/api/admin/inquiries/$id/forward'
@@ -2653,7 +2743,11 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/revoke-all'
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
+    | '/api/admin/workforce/memory/decisions'
+    | '/api/admin/workforce/memory/instructions'
+    | '/api/admin/workforce/memory/lessons'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/replies/'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
     | '/api/admin/audit/subject-requests/$id/opt-out'
@@ -2671,6 +2765,7 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/$id/keys'
     | '/api/admin/team/users/$id/disable'
     | '/api/admin/team/users/$id/roles'
+    | '/api/admin/workforce/memory/instructions/$id'
     | '/api/admin/submissions/$id/media/$mediaId/original'
     | '/api/admin/team/agents/$id/keys/$keyId'
     | '/api/admin/team/users/$id/roles/$role'
@@ -2710,6 +2805,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/$market/$region'
     | '/$market/guide'
+    | '/account/confirm'
     | '/markets/$'
     | '/property/$slug'
     | '/stories/$slug'
@@ -2746,6 +2842,7 @@ export interface FileRouteTypes {
     | '/api/public/submissions'
     | '/api/public/subscribers'
     | '/$market'
+    | '/account'
     | '/markets'
     | '/stories'
     | '/admin/assets'
@@ -2817,6 +2914,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
+    | '/api/admin/settings/usage'
     | '/api/admin/stories/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
@@ -2860,6 +2958,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/emails/replies/$id'
     | '/api/admin/inquiries/$id/assign'
     | '/api/admin/inquiries/$id/close'
     | '/api/admin/inquiries/$id/forward'
@@ -2904,7 +3003,11 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/revoke-all'
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
+    | '/api/admin/workforce/memory/decisions'
+    | '/api/admin/workforce/memory/instructions'
+    | '/api/admin/workforce/memory/lessons'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/replies'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
     | '/api/admin/audit/subject-requests/$id/opt-out'
@@ -2922,6 +3025,7 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/$id/keys'
     | '/api/admin/team/users/$id/disable'
     | '/api/admin/team/users/$id/roles'
+    | '/api/admin/workforce/memory/instructions/$id'
     | '/api/admin/submissions/$id/media/$mediaId/original'
     | '/api/admin/team/agents/$id/keys/$keyId'
     | '/api/admin/team/users/$id/roles/$role'
@@ -2966,6 +3070,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/_site/$market/$region'
     | '/_site/$market/guide'
+    | '/_site/account/confirm'
     | '/_site/markets/$'
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
@@ -3002,6 +3107,7 @@ export interface FileRouteTypes {
     | '/api/public/submissions'
     | '/api/public/subscribers'
     | '/_site/$market/'
+    | '/_site/account/'
     | '/_site/markets/'
     | '/_site/stories/'
     | '/admin/assets/'
@@ -3073,6 +3179,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
+    | '/api/admin/settings/usage'
     | '/api/admin/stories/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
@@ -3116,6 +3223,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/emails/replies/$id'
     | '/api/admin/inquiries/$id/assign'
     | '/api/admin/inquiries/$id/close'
     | '/api/admin/inquiries/$id/forward'
@@ -3160,7 +3268,11 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/revoke-all'
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
+    | '/api/admin/workforce/memory/decisions'
+    | '/api/admin/workforce/memory/instructions'
+    | '/api/admin/workforce/memory/lessons'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/replies/'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
     | '/api/admin/audit/subject-requests/$id/opt-out'
@@ -3178,6 +3290,7 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/$id/keys'
     | '/api/admin/team/users/$id/disable'
     | '/api/admin/team/users/$id/roles'
+    | '/api/admin/workforce/memory/instructions/$id'
     | '/api/admin/submissions/$id/media/$mediaId/original'
     | '/api/admin/team/agents/$id/keys/$keyId'
     | '/api/admin/team/users/$id/roles/$role'
@@ -3263,6 +3376,7 @@ export interface RootRouteChildren {
   ApiAdminSettingsProductsRoute: typeof ApiAdminSettingsProductsRouteWithChildren
   ApiAdminSettingsRedirectsRoute: typeof ApiAdminSettingsRedirectsRoute
   ApiAdminSettingsSiteRoute: typeof ApiAdminSettingsSiteRoute
+  ApiAdminSettingsUsageRoute: typeof ApiAdminSettingsUsageRoute
   ApiAdminStoriesIdRoute: typeof ApiAdminStoriesIdRouteWithChildren
   ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
   ApiAdminSubmissionsDeclineReasonsRoute: typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -3291,6 +3405,11 @@ export interface RootRouteChildren {
   ApiAdminStoriesIndexRoute: typeof ApiAdminStoriesIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
   ApiAdminChannelsIdsKeyRoute: typeof ApiAdminChannelsIdsKeyRoute
+  ApiAdminEmailsRepliesIdRoute: typeof ApiAdminEmailsRepliesIdRoute
+  ApiAdminWorkforceMemoryDecisionsRoute: typeof ApiAdminWorkforceMemoryDecisionsRoute
+  ApiAdminWorkforceMemoryInstructionsRoute: typeof ApiAdminWorkforceMemoryInstructionsRouteWithChildren
+  ApiAdminWorkforceMemoryLessonsRoute: typeof ApiAdminWorkforceMemoryLessonsRoute
+  ApiAdminEmailsRepliesIndexRoute: typeof ApiAdminEmailsRepliesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -3574,6 +3693,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/$market/guide'
       preLoaderRoute: typeof SiteMarketGuideRouteImport
       parentRoute: typeof SiteMarketRoute
+    }
+    '/_site/account/': {
+      id: '/_site/account/'
+      path: '/account'
+      fullPath: '/account/'
+      preLoaderRoute: typeof SiteAccountIndexRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/confirm': {
+      id: '/_site/account/confirm'
+      path: '/account/confirm'
+      fullPath: '/account/confirm'
+      preLoaderRoute: typeof SiteAccountConfirmRouteImport
+      parentRoute: typeof SiteRoute
     }
     '/_site/markets/': {
       id: '/_site/markets/'
@@ -4394,6 +4527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSettingsSiteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/settings/usage': {
+      id: '/api/admin/settings/usage'
+      path: '/api/admin/settings/usage'
+      fullPath: '/api/admin/settings/usage'
+      preLoaderRoute: typeof ApiAdminSettingsUsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/stories/': {
       id: '/api/admin/stories/'
       path: '/api/admin/stories'
@@ -4616,6 +4756,20 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/channels/ids/$key'
       fullPath: '/api/admin/channels/ids/$key'
       preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/emails/replies/': {
+      id: '/api/admin/emails/replies/'
+      path: '/api/admin/emails/replies'
+      fullPath: '/api/admin/emails/replies/'
+      preLoaderRoute: typeof ApiAdminEmailsRepliesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/emails/replies/$id': {
+      id: '/api/admin/emails/replies/$id'
+      path: '/api/admin/emails/replies/$id'
+      fullPath: '/api/admin/emails/replies/$id'
+      preLoaderRoute: typeof ApiAdminEmailsRepliesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/inquiries/$id/assign': {
@@ -4926,6 +5080,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminWorkforceApprovalsIdRouteImport
       parentRoute: typeof ApiAdminWorkforceApprovalsRoute
     }
+    '/api/admin/workforce/memory/decisions': {
+      id: '/api/admin/workforce/memory/decisions'
+      path: '/api/admin/workforce/memory/decisions'
+      fullPath: '/api/admin/workforce/memory/decisions'
+      preLoaderRoute: typeof ApiAdminWorkforceMemoryDecisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/workforce/memory/instructions': {
+      id: '/api/admin/workforce/memory/instructions'
+      path: '/api/admin/workforce/memory/instructions'
+      fullPath: '/api/admin/workforce/memory/instructions'
+      preLoaderRoute: typeof ApiAdminWorkforceMemoryInstructionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/workforce/memory/lessons': {
+      id: '/api/admin/workforce/memory/lessons'
+      path: '/api/admin/workforce/memory/lessons'
+      fullPath: '/api/admin/workforce/memory/lessons'
+      preLoaderRoute: typeof ApiAdminWorkforceMemoryLessonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/submissions/$id/uploads': {
       id: '/api/public/submissions/$id/uploads'
       path: '/$id/uploads'
@@ -5052,6 +5227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminTeamUsersIdRolesRouteImport
       parentRoute: typeof ApiAdminTeamUsersRoute
     }
+    '/api/admin/workforce/memory/instructions/$id': {
+      id: '/api/admin/workforce/memory/instructions/$id'
+      path: '/$id'
+      fullPath: '/api/admin/workforce/memory/instructions/$id'
+      preLoaderRoute: typeof ApiAdminWorkforceMemoryInstructionsIdRouteImport
+      parentRoute: typeof ApiAdminWorkforceMemoryInstructionsRoute
+    }
     '/api/admin/submissions/$id/media/$mediaId/original': {
       id: '/api/admin/submissions/$id/media/$mediaId/original'
       path: '/media/$mediaId/original'
@@ -5141,7 +5323,9 @@ interface SiteRouteChildren {
   SiteSubmitRoute: typeof SiteSubmitRoute
   SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
+  SiteAccountConfirmRoute: typeof SiteAccountConfirmRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
+  SiteAccountIndexRoute: typeof SiteAccountIndexRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
 }
 
@@ -5166,7 +5350,9 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteSubmitRoute: SiteSubmitRoute,
   SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
+  SiteAccountConfirmRoute: SiteAccountConfirmRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
+  SiteAccountIndexRoute: SiteAccountIndexRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
 }
 
@@ -5828,6 +6014,21 @@ const ApiAdminWorkforceApprovalsRouteWithChildren =
     ApiAdminWorkforceApprovalsRouteChildren,
   )
 
+interface ApiAdminWorkforceMemoryInstructionsRouteChildren {
+  ApiAdminWorkforceMemoryInstructionsIdRoute: typeof ApiAdminWorkforceMemoryInstructionsIdRoute
+}
+
+const ApiAdminWorkforceMemoryInstructionsRouteChildren: ApiAdminWorkforceMemoryInstructionsRouteChildren =
+  {
+    ApiAdminWorkforceMemoryInstructionsIdRoute:
+      ApiAdminWorkforceMemoryInstructionsIdRoute,
+  }
+
+const ApiAdminWorkforceMemoryInstructionsRouteWithChildren =
+  ApiAdminWorkforceMemoryInstructionsRoute._addFileChildren(
+    ApiAdminWorkforceMemoryInstructionsRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
@@ -5915,6 +6116,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminSettingsProductsRoute: ApiAdminSettingsProductsRouteWithChildren,
   ApiAdminSettingsRedirectsRoute: ApiAdminSettingsRedirectsRoute,
   ApiAdminSettingsSiteRoute: ApiAdminSettingsSiteRoute,
+  ApiAdminSettingsUsageRoute: ApiAdminSettingsUsageRoute,
   ApiAdminStoriesIdRoute: ApiAdminStoriesIdRouteWithChildren,
   ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
   ApiAdminSubmissionsDeclineReasonsRoute:
@@ -5944,6 +6146,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminStoriesIndexRoute: ApiAdminStoriesIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
   ApiAdminChannelsIdsKeyRoute: ApiAdminChannelsIdsKeyRoute,
+  ApiAdminEmailsRepliesIdRoute: ApiAdminEmailsRepliesIdRoute,
+  ApiAdminWorkforceMemoryDecisionsRoute: ApiAdminWorkforceMemoryDecisionsRoute,
+  ApiAdminWorkforceMemoryInstructionsRoute:
+    ApiAdminWorkforceMemoryInstructionsRouteWithChildren,
+  ApiAdminWorkforceMemoryLessonsRoute: ApiAdminWorkforceMemoryLessonsRoute,
+  ApiAdminEmailsRepliesIndexRoute: ApiAdminEmailsRepliesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

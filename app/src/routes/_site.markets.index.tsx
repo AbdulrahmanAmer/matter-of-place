@@ -39,7 +39,7 @@ function MarketsPage() {
         text="Three markets. One editorial point of view."
       />
       <section className="section-wrap collection">
-        <MarketGrid markets={markets} />
+        <MarketGrid markets={markets} level={2} />
       </section>
     </main>
   );

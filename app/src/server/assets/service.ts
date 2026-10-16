@@ -229,7 +229,10 @@ export async function approveAsset(
   return { asset_id: input.id, event_id: data };
 }
 
-/** `POST /api/admin/assets/:id/reject` through `reject_asset`, which needs the note. */
+/**
+ * `POST /api/admin/assets/:id/reject` through `reject_asset`, which needs the note. W8 item 9: Matter's key may reject a
+ * pending asset (the matrix's `agentRoles`, `reject_asset` for an agent); the audit row names its account as `agent`.
+ */
 export async function rejectAsset(
   actor: AdminActor,
   db: Db,

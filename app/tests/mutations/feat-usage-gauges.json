@@ -3,8 +3,8 @@
     "id": "ug-a-share-of-limit",
     "test": "src/admin/dashboard/dashboard.test.tsx",
     "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "          const share = reading.used / (reading.limit ?? line.limit);",
-    "replace": "          const share = reading.used / line.limit / 2;",
+    "find": "          const share = reading.used / limit;",
+    "replace": "          const share = reading.used / limit / 2;",
     "run": "bunx vitest run --project component src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*shows the laptop's readings as a share of each limit"
   },
@@ -21,8 +21,8 @@
     "id": "ug-c-public-unlimited",
     "test": "src/admin/dashboard/dashboard.test.tsx",
     "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "          if (reading.limit === null && reading.note !== null) {",
-    "replace": "          if (reading.limit === null && reading.note === \"never\") {",
+    "find": "          if (limit === null) {",
+    "replace": "          if (limit === -1) {",
     "run": "bunx vitest run --project component src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*shows the laptop's readings as a share of each limit"
   }

@@ -279,6 +279,26 @@ describe("Ga4Loader", () => {
     expect(document.querySelectorAll(GTAG)).toHaveLength(1);
   });
 
+  it.each(["/account/confirm#token_hash=secret", "/Account/Confirm#token_hash=secret", "/account"])(
+    "loads nothing on the client room (%s), whose sign-in link carries a token",
+    (address) => {
+      vi.useFakeTimers();
+      grant();
+      window.history.replaceState(null, "", address);
+      try {
+        render(createElement(Ga4Loader));
+        writeConsent(true);
+        vi.runAllTimers();
+        expect([document.querySelector(GTAG), Reflect.get(window, "dataLayer")]).toEqual([
+          null,
+          undefined,
+        ]);
+      } finally {
+        window.history.replaceState(null, "", "/");
+      }
+    },
+  );
+
   it("does nothing without a measurement id", () => {
     vi.stubEnv("VITE_GA4_MEASUREMENT_ID", "");
     vi.useFakeTimers();
