@@ -30,6 +30,7 @@ async function quiet(db: Db): Promise<void> {
   await db.query(
     "select public.beat(name, '{}') from unnest(array['runner', 'keepwarm', 'backup']) as name",
   );
+  await db.query(`select public.beat('drive_copy', '{"ok": true}')`);
 }
 
 /** `ops_health` at the transaction's `now()` plus `minutes`. */
@@ -149,7 +150,25 @@ describe("ops_health", () => {
       keepwarm24: { ok: false, failing: ["runner"] },
       keepwarm26: { ok: false, failing: ["runner", "keepwarm"] },
       backup25h: { ok: false, failing: ["runner", "keepwarm"] },
-      backup27h: { ok: false, failing: ["runner", "keepwarm", "backup"] },
+      backup27h: { ok: false, failing: ["runner", "keepwarm", "backup", "drive_copy"] },
+    });
+  });
+
+  it("names drive_copy while backup is on and the Drive folder was missing or no copy ran for a day (W8 0g)", async () => {
+    const result = await withRollback(async (db) => {
+      await quiet(db);
+      await schedules(db, false, true);
+      const fresh = await health(db);
+      await db.query(`select public.beat('drive_copy', '{"ok": false, "missing": true}')`);
+      const missing = await health(db);
+      await schedules(db, false, false);
+      const backupOff = await health(db);
+      return { fresh, missing, backupOff };
+    });
+    expect(result).toEqual({
+      fresh: { ok: true, failing: [] },
+      missing: { ok: false, failing: ["drive_copy"] },
+      backupOff: { ok: true, failing: [] },
     });
   });
 });

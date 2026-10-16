@@ -38,6 +38,7 @@ export function run(job, options) {
           slide: { kind: "photo", image },
           index,
           total: set.length,
+          square: true,
         }),
       })),
     ];

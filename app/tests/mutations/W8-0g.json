@@ -1,0 +1,135 @@
+[
+  {
+    "id": "w8-0g-refuse-env",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "  /(^|\\/)\\.env($|[./])/i,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*refuses every path shaped like a secret"
+  },
+  {
+    "id": "w8-0g-refuse-in-walk",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "    if (refused(rel)) {\n",
+    "replace": "    if (false) {\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*copies what the allow-list names"
+  },
+  {
+    "id": "w8-0g-skip-scratch",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "skipDirs: [\"shots\", \"reference\", ",
+    "replace": "skipDirs: [",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*copies what the allow-list names"
+  },
+  {
+    "id": "w8-0g-named-files",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "      files: [\"notes.md\", \"live-state.md\", \"goal.json\"],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*copies what the allow-list names"
+  },
+  {
+    "id": "w8-0g-newest-seven",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "keep: 7 }",
+    "replace": "keep: 9 }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*keeps only the newest seven"
+  },
+  {
+    "id": "w8-0g-drive-missing",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "  if (!existsSync(root))\n    return { ok: false, missing: true, files: 0, bytes: 0, refused: 0, failed: 0 };\n",
+    "replace": "\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*copies nothing and says the Drive folder is missing"
+  },
+  {
+    "id": "w8-0g-health-names-drive-copy",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"names drive_copy\"",
+    "expect": "× .*names drive_copy while backup is on"
+  },
+  {
+    "id": "w8-0g-secret-names",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "  /(^|\\/)\\.(claude|git-credentials|npmrc|pgpass|netrc|envrc|bash_history)(\\.json)?$/i,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*refuses the login and key files"
+  },
+  {
+    "id": "w8-0g-types",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "    if (rule.types !== undefined && !rule.types.includes(type)) return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*copies only the file types"
+  },
+  {
+    "id": "w8-0g-content-scan",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "holdsSecret(readFileSync(from, \"utf8\"))",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*refuses a file whose text looks like a key"
+  },
+  {
+    "id": "w8-0g-root-link",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "lstatSync(rule.from).isSymbolicLink()",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*does not follow a link or a junction"
+  },
+  {
+    "id": "w8-0g-file-link",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "    if (kind.isSymbolicLink() || !kind.isFile()) {\n",
+    "replace": "    if (false) {\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*does not follow a link or a junction"
+  },
+  {
+    "id": "w8-0g-dump-pattern",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "/^mop-dev-\\d{4}-\\d{2}-\\d{2}\\.dump\\.p7m$/",
+    "replace": "/dump/",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*keeps only the newest seven"
+  },
+  {
+    "id": "w8-0g-failed-file",
+    "test": "tests/unit/workforce-drive-copy.test.ts",
+    "file": "scripts/workforce/drive-copy.ts",
+    "find": "        failed += 1;\n",
+    "replace": "        failed += 0;\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-drive-copy.test.ts",
+    "expect": "× .*goes on past a file it cannot copy"
+  },
+  {
+    "id": "w8-0g-health-ok-filter",
+    "kind": "sql",
+    "test": "tests/db/ops-health.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- W8 0g: the nightly copy to Google Drive beats `drive_copy` after the backup; a missing Drive folder beats ok false.\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats\n    where name = 'drive_copy' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'drive_copy');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;",
+    "run": "bunx vitest run --project db tests/db/ops-health.db.test.ts -t \"names drive_copy\"",
+    "expect": "× .*names drive_copy while backup is on"
+  }
+]

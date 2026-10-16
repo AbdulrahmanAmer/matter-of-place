@@ -8311,10 +8311,34 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: the same check with the scratchpad path printed both template comparisons.
 - added: 2026-10-15
 
+## P-3530 · A child process started through a shell drops empty arguments, so the next flag becomes the value
+- symptom: 2026-10-15, the W8 0b proof that the triage starts with no tools: `spawnSync("claude", [..., "--allowedTools", "", "--verbose"], { shell: true })` answered `Error: When using --print, --output-format=stream-json requires --verbose`; the shell had dropped `""` and `--verbose` became the value of `--allowedTools`. The runner itself (`scripts/workforce/cli.ts`) spawns without a shell, so the first proof measured the harness, not the triage.
+- rule: a proof of a CLI's arguments starts the program the way the runner does: by its path, `shell` off (`C:/Users/DELL/.local/bin/claude.exe` here), never through `shell: true` or a string command.
+- proof: the same arguments without a shell → `exit 0`, init event `tools [] mcp_servers []` (scratchpad triage-tools-proof.ts, 2026-10-15).
+- added: 2026-10-15
+
 ## P-3531 · The live session's goal run kept the runner from following main for the whole session
 - symptom: 2026-10-15, PRs 431 and 432 merged and deployed, yet the runner checkout (`E:/mop-build/live`) stayed on 6becc9de and `daemon.log` logged no `runner moved` for hours. Every pass counted `agent_runs` in state `running` before `followMain`; the only one was the live session's goal run (`scripts/matter/live.ts`, worker `matter-live@<host>`, a six-hour lease), which runs in its own process, not from the runner's checkout.
 - rule: the runner waits only for runs its own checkout executes (`runnerBusy` in `scripts/workforce/follow.ts` skips workers starting `LIVE_WORKER_PREFIX`). After a merge the live session needs on the runner, check `git -C E:/mop-build/live log --oneline -1` against `origin/main` before waiting on the runner.
 - proof: `cd app && bunx vitest run --project unit tests/unit/follow.test.ts` → `waits for a run this checkout executes, never for the live session's own goal run` passes; the replaced count makes it fail (registry `runner-follow-live.json`).
+- added: 2026-10-15
+
+## P-3532 · A test that passes on the laptop because `~/.mop-workforce` exists failed in CI with ENOENT
+- symptom: 2026-10-15, PR 434: `isolatedArgs` (`app/scripts/workforce/cli.ts`) wrote `no-mcp.json` into `~/.mop-workforce`; every local run passed (the runner made that folder long ago) and CI's check failed three tests with `ENOENT: no such file or directory, open '/home/runner/.mop-workforce/no-mcp.json'`.
+- rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
+- proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
+- added: 2026-10-15
+
+## P-3570 · A Claude Code permission rule with no leading `./`, `~/` or `//` is relative to the run's folder
+- symptom: 2026-10-15, W8 0e review 2: the terminal's settings denied `Read(**/.env*)` and `Read(**/creds/**)` to keep secrets out; those patterns match only inside the working folder, so the workspace `.env` and every login under the home folder stayed readable as far as the deny list went.
+- rule: confine a headless run by what it is allowed, not by what it is denied: `--permission-mode dontAsk` with `allow: ["Read(./**)", "Edit(./**)"]` refuses every read, Grep, Glob and write outside the run's folder. Deny rules are a second layer and name `~/` or `./` paths only; the terminal test refuses a deny path rule without one.
+- proof: `bun E:/mop-build/.tmp/probe-0e/probe.ts E:/mop-build/w8-0e/app` on Haiku: a decoy outside the folder and one in `~/.mop-workforce` refused (Read, Grep and Glob), a `.env.local` inside refused, `draft.svg` written, `.claude/settings.json`, `CLAUDE.md` and a file outside the folder refused (results in `E:/mop-build/.tmp/probe-0e/results.txt`).
+- added: 2026-10-15
+
+## P-3571 · A hook planted in a run's folder runs under plain `claude -p`; `--restricted` and `--setting-sources ""` each stop it
+- symptom: 2026-10-15, W8 0e review 2: a terminal could leave `.claude/settings.json` with a hook in a colleague's desk, and the next run in that desk would load it.
+- rule: every colleague run passes `--setting-sources ""` (the outside and terminal runs already did), the runner sweeps `.claude`, `CLAUDE.md`, `CLAUDE.local.md` and `.mcp.json` out of the desk before each run (`deskFor`), and a terminal works in `desks/<slug>/work`. A probe of a hook needs a control that fires, or it measures nothing: the first probe's control kept `--restricted` and never fired.
+- proof: `bun E:/mop-build/.tmp/probe-0e/hook-control.ts E:/mop-build/w8-0e/app` → `plain: HOOK RAN`, `restricted: hook did not run`, `sources_project: HOOK RAN`, `sources_empty: hook did not run` (measured 2026-10-15). And a planted memory file: `bun E:/mop-build/.tmp/probe-0e/claudemd.ts E:/mop-build/w8-0e/app` → a plain run reads `CLAUDE.md` and `claude.md` (Windows ignores case, so the sweep compares names in lower case), a run with the runner's arguments reads neither (measured 2026-10-16).
 - added: 2026-10-15
 
 ## P-3560 · `findByRole("table")` is satisfied by the loading skeleton: a component test reads five empty rows
@@ -8335,28 +8359,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx eslint --max-warnings 0 src/server/jobs/events.ts` exits 0 given time.
 - added: 2026-10-15
 
-## P-3530 · A child process started through a shell drops empty arguments, so the next flag becomes the value
-- symptom: 2026-10-15, the W8 0b proof that the triage starts with no tools: `spawnSync("claude", [..., "--allowedTools", "", "--verbose"], { shell: true })` answered `Error: When using --print, --output-format=stream-json requires --verbose`; the shell had dropped `""` and `--verbose` became the value of `--allowedTools`. The runner itself (`scripts/workforce/cli.ts`) spawns without a shell, so the first proof measured the harness, not the triage.
-- rule: a proof of a CLI's arguments starts the program the way the runner does: by its path, `shell` off (`C:/Users/DELL/.local/bin/claude.exe` here), never through `shell: true` or a string command.
-- proof: the same arguments without a shell → `exit 0`, init event `tools [] mcp_servers []` (scratchpad triage-tools-proof.ts, 2026-10-15).
-- added: 2026-10-15
-
-## P-3532 · A test that passes on the laptop because `~/.mop-workforce` exists failed in CI with ENOENT
-- symptom: 2026-10-15, PR 434: `isolatedArgs` (`app/scripts/workforce/cli.ts`) wrote `no-mcp.json` into `~/.mop-workforce`; every local run passed (the runner made that folder long ago) and CI's check failed three tests with `ENOENT: no such file or directory, open '/home/runner/.mop-workforce/no-mcp.json'`.
-- rule: code that writes under the runner's home makes the folder first (`mkdirSync(home, { recursive: true })`); a local pass of code that touches `~/.mop-workforce` proves nothing about CI until the folder is absent, e.g. `HOME=$(mktemp -d) bunx vitest run ...`.
-- proof: `cd app && HOME=$(mktemp -d) USERPROFILE=$(mktemp -d) bunx vitest run --project unit tests/unit/workforce-triage.test.ts` passes with the `mkdirSync`, and fails with ENOENT without it.
-- added: 2026-10-15
-
-## P-3580 · A new feature folder passed every local check and was missing from the folder map: CI's layout check fails with "outside the folder map"
-- symptom: 2026-10-16, PR 442 (W7 3): `bun run layout` printed `app/src/admin/campaigns/CampaignsPage.tsx: outside the folder map` for 8 files (`src/admin/campaigns`, `src/server/campaigns`, `tests/unit/campaigns`). The first build ran tsc, eslint, prettier and the tests but not `layout`, so the branch would have failed CI's check.
-- rule: a new folder under `src/admin`, `src/server` or `tests/unit` is added to `ADMIN_FEATURES`, `SERVER_DOMAINS` or `UNIT_AREAS` in `app/scripts/check-layout.mjs` in the same change, and `bun run layout` runs before the first push.
-- proof: `cd app && bun run layout` → `layout: OK`; with `campaigns` removed from `ADMIN_FEATURES` it lists the `src/admin/campaigns` files as outside the folder map.
-- added: 2026-10-16
-
-## P-3581 · A date taken with `new Date().toISOString().slice(0, 10)` is the UTC day, so a market's state flips hours early or late
-- symptom: 2026-10-16, PR 442 review: the Campaigns list showed a California campaign ending Nov 5 as `Ended` at 5 PM Pacific on Nov 5 (UTC is already Nov 6), and a New York campaign starting Oct 5 as `Running` from 9 PM Eastern on Oct 4.
-- rule: the day of a market is `dayInZone(now, marketTimezone(slug))` from `src/domain/market-time.ts`; never slice an ISO string for a business date (R29: business dates use an explicit IANA zone).
-- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-3-screen-market-day` → `WATCHED-FAIL OK` (the zone replaced by UTC turns `keeps a California campaign running through the evening of its last day` red); `--only w7-3-market-day-zone` likewise for `dayInZone`.
+## P-3576 · A new file anywhere under `app/` fails CI's first step until the folder map names it
+- symptom: 2026-10-16: three PRs in one evening went red in 23 to 30 seconds on `layout: <file>: outside the folder map` (PR 442's `src/admin/campaigns/*`, PR 439's `src/server/redirect-links/service.ts`, PR 443's `scripts/workforce/settings-terminal.json`), each after a full local round of tests, typecheck, lint and watched-fails that never ran the layout check.
+- rule: run `bun run layout` from `app/` before every push that adds a file; a file in an existing folder is added to that folder's row in `scripts/check-layout.mjs`, a new folder needs its STANDARDS row too (or the file goes under an existing folder, as PR 439's did). The builders' How block says so.
+- proof: `cd app && bun run layout` → `layout: OK (3451 files)` on PR 443 with `settings-terminal.json` in the `scripts/workforce` row, and `outside the folder map` without it (2026-10-16).
 - added: 2026-10-16
 
 ## P-3572 · Code split out of an admin service must stay a `service.ts`, and must not be reached by the job runner
@@ -8383,35 +8389,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `tests/mutations/W8-0-slug.json` entry `w8-0e-slug-check-table` is `kind: "sql"` with `alter table public.agents drop constraint agents_slug_not_account_id`; CI's db job replays it (mop-dev refuses db tests from the laptop, H35).
 - added: 2026-10-16
 
-## P-3570 · A Claude Code permission rule with no leading `./`, `~/` or `//` is relative to the run's folder
-- symptom: 2026-10-15, W8 0e review 2: the terminal's settings denied `Read(**/.env*)` and `Read(**/creds/**)` to keep secrets out; those patterns match only inside the working folder, so the workspace `.env` and every login under the home folder stayed readable as far as the deny list went.
-- rule: confine a headless run by what it is allowed, not by what it is denied: `--permission-mode dontAsk` with `allow: ["Read(./**)", "Edit(./**)"]` refuses every read, Grep, Glob and write outside the run's folder. Deny rules are a second layer and name `~/` or `./` paths only; the terminal test refuses a deny path rule without one.
-- proof: `bun E:/mop-build/.tmp/probe-0e/probe.ts E:/mop-build/w8-0e/app` on Haiku: a decoy outside the folder and one in `~/.mop-workforce` refused (Read, Grep and Glob), a `.env.local` inside refused, `draft.svg` written, `.claude/settings.json`, `CLAUDE.md` and a file outside the folder refused (results in `E:/mop-build/.tmp/probe-0e/results.txt`).
-- added: 2026-10-15
-
-## P-3571 · A hook planted in a run's folder runs under plain `claude -p`; `--restricted` and `--setting-sources ""` each stop it
-- symptom: 2026-10-15, W8 0e review 2: a terminal could leave `.claude/settings.json` with a hook in a colleague's desk, and the next run in that desk would load it.
-- rule: every colleague run passes `--setting-sources ""` (the outside and terminal runs already did), the runner sweeps `.claude`, `CLAUDE.md`, `CLAUDE.local.md` and `.mcp.json` out of the desk before each run (`deskFor`), and a terminal works in `desks/<slug>/work`. A probe of a hook needs a control that fires, or it measures nothing: the first probe's control kept `--restricted` and never fired.
-- proof: `bun E:/mop-build/.tmp/probe-0e/hook-control.ts E:/mop-build/w8-0e/app` → `plain: HOOK RAN`, `restricted: hook did not run`, `sources_project: HOOK RAN`, `sources_empty: hook did not run` (measured 2026-10-15). And a planted memory file: `bun E:/mop-build/.tmp/probe-0e/claudemd.ts E:/mop-build/w8-0e/app` → a plain run reads `CLAUDE.md` and `claude.md` (Windows ignores case, so the sweep compares names in lower case), a run with the runner's arguments reads neither (measured 2026-10-16).
-- added: 2026-10-15
-
-## P-3576 · A new file anywhere under `app/` fails CI's first step until the folder map names it
-- symptom: 2026-10-16: three PRs in one evening went red in 23 to 30 seconds on `layout: <file>: outside the folder map` (PR 442's `src/admin/campaigns/*`, PR 439's `src/server/redirect-links/service.ts`, PR 443's `scripts/workforce/settings-terminal.json`), each after a full local round of tests, typecheck, lint and watched-fails that never ran the layout check.
-- rule: run `bun run layout` from `app/` before every push that adds a file; a file in an existing folder is added to that folder's row in `scripts/check-layout.mjs`, a new folder needs its STANDARDS row too (or the file goes under an existing folder, as PR 439's did). The builders' How block says so.
-- proof: `cd app && bun run layout` → `layout: OK (3451 files)` on PR 443 with `settings-terminal.json` in the `scripts/workforce` row, and `outside the folder map` without it (2026-10-16).
-- added: 2026-10-16
-
 ## P-3577 · Claude Code permission rules on Windows, what dontAsk really lets through, and why a colleague never starts bun in its own folder
 - symptom: 2026-10-16, W8 0i: a colleague needed to write `G:\My Drive\...` and run render scripts and nothing else; `Edit(//G:/...)` did nothing. The first entry here then claimed that one Bash rule "refuses every other command, a redirect included", which the builder's own probe contradicted (`echo NEW-FILE > desk2/made.txt` ran), and the first build let a colleague run `bun <script>` from its own folder, where bun reads `bunfig.toml` (`preload`) and `.env`: a planted preload runs any code (review of 2026-10-16, critical).
 - rule: name an absolute path as `//<lower-case drive>/<path>` and give the run `--add-dir <folder>` for every folder outside its working directory. Under `--permission-mode dontAsk` the CLI ALSO runs read-only commands (`echo`, `pwd`, `ls`, `cat`, `grep`, `find`, `sed -n`) inside the run's folders, the read-only `--add-dir` ones included, and a redirect into a folder it may write; `grep -r` there read a `.env` that `Read` and `cat` were refused. So: no secret ever lives in a toolkit's places (the runner sweeps `.env*` and every config name from each write place before each run), deny rules are written in any case (`anyCase`: `**/[bB][uU][nN]...`), and a colleague never starts bun or node from a folder it can write: its one command is `node <app>/scripts/workforce/render-run.mjs <renderer> --spec <file> --out <folder>`, which starts bun from the app folder with `--config=<app>/bunfig.toml --no-env-file --no-install` and a clean environment. An empty-string argument (`--setting-sources ""`) is dropped by a shell: spawn the CLI without `shell: true` (P-3530).
 - proof: `cd app && bun E:/mop-build/.tmp/probe-toolkit2/probe.ts` (the exact arguments `colleagueLaunch` writes, a throwaway tree, Sonnet; logs `log-1.txt` and `log-2.txt` there), 2026-10-16. Control: bun started in a folder with the planted `bunfig.toml` ran its preload (`CONTROL-PRELOAD-RAN: PRESENT`). Through the wrapper, with the same decoy, a `.env` naming a false `CHROME_PATH` and `BUN_OPTIONS` in the work folder: a carousel (6 slides, 2 squares) rendered into the Drive folder and a story into the work folder, `PRELOAD-RAN: absent`, `NODE-OPTIONS-RAN: absent`. Refused: `bun <script>` directly, `node -e`, `ls`/`cat`/`grep` outside the folders, `cat ./.env`, `MOP_RENDER_OUT_ROOTS=C:/ node ...`, `NODE_OPTIONS=... node ...`, `export ...; node ...`, `cd <outside> && node ...`, `node ...; cat <outside>`, `node ... > <outside>/x`, `echo X > ./bunfig.toml`, `> ./CLAUDE.md`, `> ./.ENV`, `> <outside>/x`, `cp`, `mv`, `mkdir .claude`, `touch ./BUNFIG.toml`, `tee ./package.json`, `rm`, `ls <app>`, `cat <app>/package.json`; the wrapper itself refused a spec outside the work folder and an output outside the write places. Ran: `echo`, `pwd`, `ls`, `find`, `sed -n`, `grep -r` in the work folder (it printed the planted `.env`), `grep` and `cat` in the read-only knowledge folder, `echo X > <studio>/x` and `> ./notes.txt`. Write tool: `.claude/`, `.Claude/`, `bunfig.toml`, `BunFig.TOML`, `.env`, `package.json`, `tsconfig.probe.json`, `.npmrc`, the Drive's `.claude/`, the knowledge folder and a folder outside refused; the Drive and the studio written. Read: `.env`, `.ENV` and a file outside refused. The Editor has no Bash; a run about outside text and a run no person started have no Write and no Bash.
-- added: 2026-10-16
-
-## P-3692 · A branch merged into overdrive/finish carried a check-layout.mjs that does not parse
-- symptom: 2026-10-16, W8 0i second round: after `git merge origin/overdrive/finish` the post-write check refused `app/scripts/check-layout.mjs` (`SyntaxError: Invalid or unexpected token` at line 37): `SERVER_DOMAINS` ended `...,team,workforce};` without its closing quote. The file came that way from origin/overdrive/finish, so every `bun run layout` there fails before it checks anything.
-- cause: an edit of the folder map (adding `account` to the list) dropped the closing quote, and nothing ran the script before the push.
-- rule: after any edit of `app/scripts/check-layout.mjs` (a merge included) run `bun run layout` from `app/` before the commit; a merge that brings the file in runs `node --check app/scripts/check-layout.mjs` first.
-- proof: `git show 4e27cb3d:app/scripts/check-layout.mjs | sed -n 37p` (origin/overdrive/finish on 2026-10-16) ends `workforce};`; on overdrive/toolkits after the fix `cd app && bun run layout` → `layout: OK (3542 files)`.
 - added: 2026-10-16
 
 ## P-3690 · A test fixture for a row a script writes must copy the writer's real shape, or a screen can print the raw value and stay green
@@ -8440,6 +8421,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the verdict reads the test title, which a syntax error and the assertion it names both turn red. A mutation that is cut by line is not a mutation of the statement.
 - rule: a `sql` entry removes or replaces a whole statement (`perform 1;` for a whole `perform ...;`), generated from the real function file by a script that asserts its target occurs once, never typed by hand; after the verdict, read the red output once (apply the entry's sql to the stub cluster, run the test) and see the assertion's own diff (`expected [] to deeply equal [ Array(1) ]`), not a `syntax error`. When the real function changes, every `sql` entry that embeds a copy of it is regenerated in the same commit (a stale copy turns the new assertion red for the wrong reason).
 - proof: `psql -h 127.0.0.1 -p <stub port> -U postgres -d mop -f <the entry's sql>` prints no error, then `DEV_DB_URL=postgresql://postgres@127.0.0.1:<stub port>/mop node node_modules/vitest/vitest.mjs run --project db tests/db/email-reply-mark.db.test.ts -t "marks a reply answered"` → `AssertionError: expected [] to deeply equal [ Array(1) ]` for `w7-2-sql-audit` (measured 2026-10-16).
+- added: 2026-10-16
+
+## P-3580 · A new feature folder passed every local check and was missing from the folder map: CI's layout check fails with "outside the folder map"
+- symptom: 2026-10-16, PR 442 (W7 3): `bun run layout` printed `app/src/admin/campaigns/CampaignsPage.tsx: outside the folder map` for 8 files (`src/admin/campaigns`, `src/server/campaigns`, `tests/unit/campaigns`). The first build ran tsc, eslint, prettier and the tests but not `layout`, so the branch would have failed CI's check.
+- rule: a new folder under `src/admin`, `src/server` or `tests/unit` is added to `ADMIN_FEATURES`, `SERVER_DOMAINS` or `UNIT_AREAS` in `app/scripts/check-layout.mjs` in the same change, and `bun run layout` runs before the first push.
+- proof: `cd app && bun run layout` → `layout: OK`; with `campaigns` removed from `ADMIN_FEATURES` it lists the `src/admin/campaigns` files as outside the folder map.
+- added: 2026-10-16
+
+## P-3581 · A date taken with `new Date().toISOString().slice(0, 10)` is the UTC day, so a market's state flips hours early or late
+- symptom: 2026-10-16, PR 442 review: the Campaigns list showed a California campaign ending Nov 5 as `Ended` at 5 PM Pacific on Nov 5 (UTC is already Nov 6), and a New York campaign starting Oct 5 as `Running` from 9 PM Eastern on Oct 4.
+- rule: the day of a market is `dayInZone(now, marketTimezone(slug))` from `src/domain/market-time.ts`; never slice an ISO string for a business date (R29: business dates use an explicit IANA zone).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-3-screen-market-day` → `WATCHED-FAIL OK` (the zone replaced by UTC turns `keeps a California campaign running through the evening of its last day` red); `--only w7-3-market-day-zone` likewise for `dayInZone`.
 - added: 2026-10-16
 
 ## P-3590 · `workspace/05-plans/ASSUMED.md` and `GOTCHAS.md` are past the Read tool's 256 KB limit, so Edit cannot touch them
@@ -8557,4 +8550,44 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-16, W7 4: `bunx vitest run --project component src/admin/workforce/team-memory.test.tsx` → `[vitest-pool-runner]: Timeout waiting for worker to respond` twice, no test run, while the laptop held ~46 node processes; `--pool=threads` ran all 18 tests in 18 s.
 - rule: when a component run says `Failed to start forks worker`, rerun it with `--pool=threads` before calling anything red; a registry entry's `run` may carry `--pool=threads` (W7-4.json does). Two replays in a row then went `BAD: wrong reason` once each for entries that were `WATCHED-FAIL OK` alone, so a BAD under load is rerun alone before it is believed.
 - proof: `cd app && bunx vitest run --project component --pool=threads src/admin/workforce/team-memory.test.tsx` → `Tests 18 passed (18)`.
+- added: 2026-10-16
+
+## P-3579 · A reel about a property filed as `brand` shows no photograph of it, and nothing in the route or the review noticed (H110 miss)
+- symptom: 2026-10-16, the Fairfield test: Maya's request was `kind: "brand"` with her three picks named in prose, because the house was not on the site (a campaign reel needs `property_id`). The studio drew abstract models and a flat-roofed box for a 2021 pitched-roof house; the gate and the review passed it (it was well made), and the operator caught it: "a reader would be misled about the home".
+- cause: `shotsFor` returns no photographs for `brand`, the scene prompt said "no photographs", and the review only refused a photograph that is not the subject's, never the absence of one. A request had no way to carry its own pictures.
+- rule: a reel about a property carries that property's photographs: kind `campaign` with `property_id`, or with `photos` (paths under the requester's own work folder, read through `deskPhoto`, confined by realpath); `brand` refuses `photos`; the scene must draw `spec.shots` (else sent back before filming); the review is told how many photographs were supplied and refuses a reel that shows none or draws a house in their place. A reel for a property that is not on the site is kept in the studio, not recorded in Visuals (a visual needs its subject).
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-h110-scene-draws-shots` → `WATCHED-FAIL OK`; `reelRequestSchema.safeParse({...brand, photos: [...]})` is `success: false`.
+- added: 2026-10-16
+
+## P-3578 · A studio refusal that names the engine's own drawing cannot be fixed by the designer, so its revisions are spent for nothing
+- symptom: 2026-10-16: the Fairfield test reel was refused in review three times (REVISIONS 2) for "a soft, blurred oval of light on the doorway floor" and a reflection that "fades smoothly"; the designer, confined to the studio folder, can only edit `scene/`, and the pool and the mirrored floor are drawn by `launch/engine/moves/door.mjs` (`ctx.filter = "blur(9px)"`).
+- rule: when a review refusal names a drawing that belongs to the engine (the door move's pool, reflection, beam), the redraw brief says so: draw that shot in `scene.mjs` with flat polygons, or cut the shot; and the engine fix is a PR of its own, not a revision loop.
+- proof: `grep -n 'blur(9px)' launch/engine/moves/door.mjs` → line 483; the refused brief's `reason` in `~/.mop-workforce/studio/2026-10-16-fairfield-test-reel/brief.json` (before the requeue) names the doorway floor.
+- added: 2026-10-16
+
+## P-3692 · A script that rewrote `check-layout.mjs` dropped the closing quote of `SERVER_DOMAINS`, and the first CI run died at its first step
+- symptom: 2026-10-16, draft PR 447: `check` failed in 24 s with `SyntaxError: Invalid or unexpected token` at `scripts/check-layout.mjs:37`; typecheck, lint and tests never ran.
+- cause: the merge of W6 7 added `account` to the folder map's domain list; the resolver (`fix-layout-conflict.py`, Matter's) rebuilt the line as `"{...}" + ";"` and lost the closing quote. A Python write is not seen by the Edit/Write parse hook.
+- rule: after any merge or script that touches `app/scripts/check-layout.mjs` (or any `.mjs`/`.json` a script rewrote), run `node --check` on it (one second, a parse, not a CI run); `merge-branch.sh` now does it after every merge.
+- proof: `node --check app/scripts/check-layout.mjs` prints `SyntaxError: Invalid or unexpected token` with the quote missing and nothing with it restored (2026-10-16).
+- added: 2026-10-16
+
+## P-3693 · `exactOptionalPropertyTypes` refuses `prop: undefined` for an optional prop: leave the key out
+- symptom: 2026-10-16, draft PR 447 CI round 3: six TS2375 errors in `src/templates/social/Carousel.tsx`: `marker: string | undefined` and `location={undefined}` against `marker?: string` and `location?: string`.
+- cause: the single-post counter was written as `marker: total > 1 ? "..." : undefined`, and the compact slide as `location={undefined}`; with no local `tsc` (no-local-CI order) nothing saw it before CI.
+- rule: build props so an absent value is left out (`...(cond ? { marker } : {})`), never set to `undefined`; a slide that drops a prop spreads a base object that never had it.
+- proof: CI `check` job, `tsc --noEmit -p tsconfig.json`: six TS2375 on the old shape, none on the new (run 38878332417 and its successor).
+- added: 2026-10-16
+
+## P-3694 · Branches that each pass alone fail together on the tables every page, form and class must be named in
+- symptom: 2026-10-16, draft PR 447 CI round 5: four unit tests red after typecheck and lint were green: the client room's two pages missing from the route map (`routes-covered`), its two forms missing from the table of public forms (`turnstile-coverage`), `wf-mem__status` with no style rule (`admin-classes`), and `.credentials.json` not refused by name (`workforce-drive-copy`).
+- cause: each builder ran its own folder's tests; the tables that name every route, form and admin class live in other folders, and with no local full run nothing joined them before CI.
+- rule: a builder of a new page route, public form or admin class opens `tests/e2e/fixtures/routes.ts`, `workspace/audits/tools/public-forms.mjs` and `tests/unit/admin-classes.test.ts` and adds its rows in the same commit; the brief of every item that adds a page, a form or a class says so. A name-matching secret rule is tested with the dotfile spelling too (`.credentials.json`).
+- proof: CI `check` job, `vitest run --project unit`, round 5: 4 failed | 443 passed files; after the rows are added the four are green (round 6).
+- added: 2026-10-16
+
+## P-3695 · `prettier --write` run from `app/` on a `workspace/` file reformats it to a width eslint's prettier rule then refuses
+- symptom: 2026-10-16, draft PR 447 CI round 6: four lint errors in `workspace/audits/tools/public-forms.mjs` after the file was formatted with `app`'s prettier from the app folder (80 columns for a file outside the app's config).
+- rule: before every push, format exactly the files the commit changed, wherever they live, through the app's config: from `app/`, `prettier --config .prettierrc --write <files>` (what `bun run format` does; a file under `workspace/` or `scripts/` has no config of its own, so prettier without `--config` formats it at 80 columns and eslint's prettier rule refuses it). Mechanical: `bash E:/mop-build/.tmp/format-changed.sh <worktree> [base]` lists `git diff --name-only --diff-filter=ACM <base> HEAD -- '*.ts' '*.tsx' '*.mjs' '*.js' '*.json' '*.css'` and does exactly that; the merge script runs it after every merge. A prettier run from the repo root gives 80 columns too (there is no root config): the same refusal.
+- proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
 - added: 2026-10-16

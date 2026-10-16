@@ -193,7 +193,7 @@ describe("the table of public forms", () => {
   });
 
   it("sends every writing form to a POST row of the route table that checks Turnstile", () => {
-    const apis = writing.map((form) => form.api);
+    const apis = writing.filter((form) => form.verifiedIn === undefined).map((form) => form.api);
     expect(apis.every((api) => api !== null)).toBe(true);
     const unchecked = apis.filter(
       (api) => !posts.some((route) => route.path === api && route.turnstile),
@@ -201,9 +201,25 @@ describe("the table of public forms", () => {
     expect(unchecked).toEqual([]);
   });
 
+  it("makes a form that writes through a server function ask for the token and verify it in its service", () => {
+    const viaFunction = writing.filter((form) => form.verifiedIn !== undefined);
+    expect(viaFunction.length).toBeGreaterThan(0);
+    const bad = viaFunction.filter((form) => {
+      const asks = form.components.every((file) =>
+        readFileSync(new URL(file, src), "utf8").includes("getTurnstileToken("),
+      );
+      const verifies = readFileSync(new URL(form.verifiedIn ?? "", src), "utf8").includes(
+        "verifyTurnstile(",
+      );
+      return !(asks && verifies && form.api === null);
+    });
+    expect(bad.map((form) => form.id)).toEqual([]);
+  });
+
   it("lists as a writing form every POST row the route table marks as a form write", () => {
     const marked = posts.filter((route) => route.form === true).map((route) => route.path);
-    expect([...new Set(writing.map((form) => form.api))].sort()).toEqual([...marked].sort());
+    const apis = writing.map((form) => form.api).filter((api) => api !== null);
+    expect([...new Set(apis)].sort()).toEqual([...marked].sort());
   });
 
   it("names every component under src/components and src/routes that holds a form", () => {

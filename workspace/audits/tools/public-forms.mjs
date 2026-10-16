@@ -14,10 +14,12 @@
  *   turnstile: boolean,
  *   components: string[],
  *   reason?: string,
+ *   verifiedIn?: string,
  * }} PublicForm
  * `routes` are the pages that show the form (a `:name` segment is a dynamic route, which the audit cannot fetch),
  * `api` the POST row of `src/server/public/routes.ts` the form sends to, `components` the files under `app/src` that
- * hold the form.
+ * hold the form. A form that writes through a server function instead of a POST row has `api: null` and names the
+ * service file that verifies the Turnstile token in `verifiedIn`; its component asks for the token.
  */
 
 /** @type {readonly PublicForm[]} */
@@ -77,14 +79,39 @@ export const PUBLIC_FORMS = [
     components: ["components/forms/privacy-request-form.tsx"],
   },
   {
+    id: "account-sign-in",
+    label: "client room sign-in link",
+    routes: ["/account"],
+    api: null,
+    writes: true,
+    turnstile: true,
+    components: ["components/account/account-sign-in.tsx"],
+    verifiedIn: "server/account/service.ts",
+  },
+  {
+    id: "account-confirm",
+    label: "client room link confirmation",
+    routes: [],
+    api: null,
+    writes: false,
+    turnstile: false,
+    components: ["components/account/account-confirm.tsx"],
+    reason:
+      "exchanges the one-time token of a link already sent for a session; it sends no email and writes no row, and the token is the credential",
+  },
+  {
     id: "search",
     label: "search",
     routes: ["/properties"],
     api: "/api/public/search",
     writes: false,
     turnstile: false,
-    components: ["components/search/home-finder.tsx", "components/layout/search-overlay.tsx"],
-    reason: "reads the catalog and writes nothing; the route has its own rate limit",
+    components: [
+      "components/search/home-finder.tsx",
+      "components/layout/search-overlay.tsx",
+    ],
+    reason:
+      "reads the catalog and writes nothing; the route has its own rate limit",
   },
   {
     id: "not-found-search",
@@ -94,7 +121,8 @@ export const PUBLIC_FORMS = [
     writes: false,
     turnstile: false,
     components: ["components/layout/not-found.tsx"],
-    reason: "a GET form that navigates to /properties and sends nothing to the API",
+    reason:
+      "a GET form that navigates to /properties and sends nothing to the API",
   },
 ];
 
@@ -104,7 +132,13 @@ export const PUBLIC_FORMS = [
  * @returns {string[]}
  */
 export function formPages(forms = PUBLIC_FORMS) {
-  return [...new Set(forms.flatMap((form) => form.routes).filter((route) => !route.includes(":")))];
+  return [
+    ...new Set(
+      forms
+        .flatMap((form) => form.routes)
+        .filter((route) => !route.includes(":")),
+    ),
+  ];
 }
 
 /**

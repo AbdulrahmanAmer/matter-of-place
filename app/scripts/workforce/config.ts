@@ -24,6 +24,8 @@ const configSchema = z.object({
   matterModel: z.string().min(1).optional(),
   // W5's switch was a boolean; it still reads as "all" or "off".
   backlog: z.union([z.boolean(), z.enum(["all", "person", "off"])]).optional(),
+  // The operator's order of 2026-10-16 ("just remove the allowance thing"): "ignore" sets the week's percentage aside.
+  allowance: z.enum(["ignore", "follow"]).optional(),
   until: z.string().optional(),
 });
 
@@ -41,8 +43,9 @@ export function workforceOverride(file: string = CONFIG_FILE, now: Date = new Da
   if (!parsed.success) return {};
   const until = parsed.data.until === undefined ? null : new Date(parsed.data.until);
   if (until !== null && !(until.getTime() > now.getTime())) return {};
-  const { matterModel, backlog } = parsed.data;
+  const { matterModel, backlog, allowance } = parsed.data;
   return {
+    ...(allowance === "ignore" ? { allowance } : {}),
     ...(matterModel === undefined ? {} : { matterModel }),
     ...(backlog === undefined
       ? {}
