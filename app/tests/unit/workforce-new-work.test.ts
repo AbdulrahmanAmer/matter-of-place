@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { beginPass } from "../../scripts/workforce/daemon.ts";
 import {
   forgetNewWork,
   newWorkBlock,
@@ -7,6 +8,7 @@ import {
 } from "../../scripts/workforce/new-work.ts";
 import { ownsSource } from "../../scripts/workforce/triage.ts";
 import type { Tables } from "../../src/db/index.ts";
+import type { Db } from "../../src/server/lib/db.ts";
 import { fakeDb } from "../fixtures/fake-db.ts";
 
 // W7 item 9 (the item's own text): the newest submissions and inquiries in short form (market, type, price band, state)
@@ -127,6 +129,37 @@ describe("new work in the briefing (W7 item 9)", () => {
     forgetNewWork();
     await newWorkLines(db, owns);
     expect(reads()).toBe(2);
+  });
+
+  it("is read afresh when the runner begins its next pass", async () => {
+    const base = world();
+    const touched: string[] = [];
+    // the fake database has no update: Matter's touch at the start of a pass is recorded here
+    const from = (table: string) =>
+      table === "agents"
+        ? {
+            update: () => ({
+              eq: () => ({
+                neq: () => {
+                  touched.push(table);
+                  return Promise.resolve({ error: null });
+                },
+              }),
+            }),
+          }
+        : base.from(table);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake database plus Matter's touch
+    const db = { ...base, from } as unknown as Db;
+    const owns = (source: "submission" | "inquiry" | "email_reply" | "privacy_request") =>
+      ownsSource(source, "editor");
+    const reads = () => base.calls.filter((call) => call.name === "inquiries").length;
+    await beginPass(db);
+    await newWorkLines(db, owns);
+    await newWorkLines(db, owns);
+    expect(reads()).toBe(1);
+    await beginPass(db);
+    await newWorkLines(db, owns);
+    expect([reads(), touched]).toEqual([2, ["agents", "agents"]]);
   });
 
   it("says the newest work could not be read instead of failing the run", async () => {
