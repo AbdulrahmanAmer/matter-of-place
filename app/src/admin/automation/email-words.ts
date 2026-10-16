@@ -60,6 +60,11 @@ export const emailWords: Record<EmailTemplateKey, EmailWords> = {
     to: "the client whose property is running",
     topic: "Clients and money",
   },
+  account_link: {
+    name: "Account sign-in link",
+    to: "a client who asked to sign in",
+    topic: "Clients and money",
+  },
   admin_notify: { name: "Note to the team", to: "the team's inbox", topic: "The team and care" },
   standalone: {
     name: "One-off message",

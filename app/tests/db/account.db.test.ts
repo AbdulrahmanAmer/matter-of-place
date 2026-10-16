@@ -72,6 +72,7 @@ describe("account_room", () => {
     });
     expect(answer).toEqual({
       name: "Test Owner",
+      email: "test-account-a@example.test",
       requests: [
         {
           id: newer,
@@ -177,5 +178,60 @@ describe("account_room", () => {
     expect(isRoom(answer) ? answer.requests.map((entry) => entry.address) : []).toEqual([
       "1 Own Way",
     ]);
+  });
+});
+
+// Ruling H114 (4): a sign-in link is queued only for an address that is a contact's, never archived, whatever its
+// letter case; only the service role asks, since the answer says who has sent us a property.
+describe("account_can_sign_in", () => {
+  async function canSignIn(db: Db, email: string): Promise<unknown> {
+    const { rows } = await db.query<{ ok: unknown }>(
+      "select public.account_can_sign_in($1) as ok",
+      [email],
+    );
+    return rows[0]?.ok;
+  }
+
+  it("is true for a contact's address, ignoring letter case", async () => {
+    const answers = await withRollback(async (db) => {
+      await contact(db, "test-account-a@example.test");
+      return [
+        await canSignIn(db, "test-account-a@example.test"),
+        await canSignIn(db, "Test-Account-A@Example.TEST"),
+      ];
+    });
+    expect(answers).toEqual([true, true]);
+  });
+
+  it("is false for an archived contact and for an address that is no contact's", async () => {
+    const answers = await withRollback(async (db) => {
+      await contact(db, "test-account-a@example.test", true);
+      return [
+        await canSignIn(db, "test-account-a@example.test"),
+        await canSignIn(db, "test-account-nobody@example.test"),
+      ];
+    });
+    expect(answers).toEqual([false, false]);
+  });
+
+  it("refuses anon and a signed-in person", async () => {
+    const codes = await withRollback(async (db) => {
+      const a = await person(db, "test-account-a@example.test");
+      await contact(db, "test-account-a@example.test");
+      const attempt = async (role: "anon" | "authenticated"): Promise<string> => {
+        await db.query("savepoint attempt");
+        try {
+          await asRole(db, role, role === "anon" ? undefined : a);
+          await db.query("select public.account_can_sign_in($1)", ["test-account-a@example.test"]);
+          return "ran";
+        } catch (error) {
+          return error instanceof Error && "code" in error ? String(error.code) : "error";
+        } finally {
+          await db.query("rollback to savepoint attempt");
+        }
+      };
+      return { anon: await attempt("anon"), authenticated: await attempt("authenticated") };
+    });
+    expect(codes).toEqual({ anon: "42501", authenticated: "42501" });
   });
 });

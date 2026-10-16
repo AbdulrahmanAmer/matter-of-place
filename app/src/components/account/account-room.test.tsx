@@ -28,17 +28,31 @@ const requests: AccountRequest[] = [
 describe("AccountRoom", () => {
   it("lists the client's requests by address and state, in the order given", () => {
     render(
-      <AccountRoom name="Test Owner" requests={requests} onSignOut={vi.fn()} signingOut={false} />,
+      <AccountRoom
+        name="Test Owner"
+        email="owner@example.test"
+        requests={requests}
+        onSignOut={vi.fn()}
+        signingOut={false}
+      />,
     );
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
       "2 Newer Way, MalibuUnder Review. Received Oct 2, 2026 PT.",
       "1 Older Way, BerkeleySubmitted. Received Oct 1, 2026 PT.",
     ]);
-    expect(screen.getByText("Signed in as Test Owner.")).toBeTruthy();
+    expect(screen.getByText("Signed in as Test Owner, owner@example.test.")).toBeTruthy();
   });
 
   it("says plainly that there is nothing yet when the client has no request", () => {
-    render(<AccountRoom name="Test Owner" requests={[]} onSignOut={vi.fn()} signingOut={false} />);
+    render(
+      <AccountRoom
+        name="Test Owner"
+        email="owner@example.test"
+        requests={[]}
+        onSignOut={vi.fn()}
+        signingOut={false}
+      />,
+    );
     expect(screen.queryAllByRole("listitem")).toEqual([]);
     expect(
       screen.getByText(
@@ -50,7 +64,13 @@ describe("AccountRoom", () => {
   it("signs out from the room", () => {
     const onSignOut = vi.fn();
     render(
-      <AccountRoom name="Test Owner" requests={[]} onSignOut={onSignOut} signingOut={false} />,
+      <AccountRoom
+        name="Test Owner"
+        email="owner@example.test"
+        requests={[]}
+        onSignOut={onSignOut}
+        signingOut={false}
+      />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(onSignOut).toHaveBeenCalledTimes(1);

@@ -6,18 +6,20 @@ import {
   signOutAccount,
   verifyAccountLink,
 } from "../../src/server/account/service";
+import { enabledRoles } from "../../src/server/lib/actor";
 import { env } from "../../src/server/lib/env";
 import { AppError } from "../../src/server/lib/errors";
-import { checkDb } from "../../src/server/lib/ratelimit";
-import { getSessionUser } from "../../src/server/lib/session";
+import { hashKey } from "../../src/server/lib/ids";
+import { checkDb, checkMemory } from "../../src/server/lib/ratelimit";
+import { getSessionUser, takeIssuedCookies } from "../../src/server/lib/session";
 import { verifyTurnstile } from "../../src/server/lib/turnstile";
 import { fakeDb, type FakeDbOptions } from "../fixtures/fake-db";
 
 // W6 item 7, ruling H114: the client room's service. The room reads `account_room` with the verified session's user
-// only; a link goes only to a contact's address and the answer is always `sent`; the link is spent by a same-origin post.
+// only; every address takes the same path before the answer, which is always `sent`, and a contact's address gets a
+// `send_email` job after it; the link is spent by a same-origin post, never by a person on the team.
 
 const auth = {
-  signInWithOtp: vi.fn(),
   verifyOtp: vi.fn(),
   signOut: vi.fn(),
 };
@@ -25,33 +27,47 @@ const auth = {
 vi.mock("../../src/server/lib/session", () => ({
   authClient: () => auth,
   getSessionUser: vi.fn(),
+  takeIssuedCookies: vi.fn(),
 }));
+vi.mock("../../src/server/lib/actor", () => ({ enabledRoles: vi.fn() }));
 vi.mock("../../src/server/lib/turnstile", () => ({ verifyTurnstile: vi.fn() }));
-vi.mock("../../src/server/lib/ratelimit", () => ({
-  checkMemory: () => ({ ok: true }),
-  checkDb: vi.fn(),
-}));
+vi.mock("../../src/server/lib/ratelimit", () => ({ checkMemory: vi.fn(), checkDb: vi.fn() }));
 
 const USER = "00000000-0000-4000-8000-0000000000a1";
 const REQUEST_ID = "00000000-0000-4000-8000-0000000000b1";
 const SITE = "https://matterofplace.com";
-const post = (headers: Record<string, string> = { origin: SITE }) =>
-  new Request(`${SITE}/_serverfn/account`, { method: "POST", headers });
-const input = { email: "owner@example.test", turnstile: "token" };
+const IP = "203.0.113.9";
+const EMAIL = "owner@example.test";
+const SALT = "unit-test-salt";
+const input = { email: EMAIL, turnstile: "token" };
 
-function world(rpc: FakeDbOptions["rpc"] = {}) {
-  const createUser = vi.fn((attributes: { email: string; email_confirm: boolean }) =>
-    Promise.resolve({ data: { user: { id: USER, email: attributes.email } }, error: null }),
+/** A same-origin post from `IP`; `waitUntil` collects what runs after the answer, as the Worker's does. */
+function post(headers: Record<string, string> = { origin: SITE }) {
+  const later: Promise<unknown>[] = [];
+  const request = Object.assign(
+    new Request(`${SITE}/_serverfn/account`, {
+      method: "POST",
+      headers: { "cf-connecting-ip": IP, ...headers },
+    }),
+    {
+      waitUntil: (promise: Promise<unknown>) => {
+        later.push(promise);
+      },
+    },
   );
-  const db = Object.assign(fakeDb({ rpc }), { auth: { admin: { createUser } } });
-  return { db, createUser };
+  return { request, afterAnswer: () => Promise.all(later) };
 }
+
+const enqueued = (db: ReturnType<typeof fakeDb>) =>
+  db.calls.filter((call) => call.name === "enqueue_job").map((call) => call.args[0]);
 
 beforeEach(() => {
   vi.mocked(getSessionUser).mockReset();
+  vi.mocked(takeIssuedCookies).mockReset().mockReturnValue([]);
+  vi.mocked(enabledRoles).mockReset().mockResolvedValue([]);
   vi.mocked(verifyTurnstile).mockResolvedValue("pass");
-  vi.mocked(checkDb).mockResolvedValue({ ok: true });
-  auth.signInWithOtp.mockReset().mockResolvedValue({ data: {}, error: null });
+  vi.mocked(checkMemory).mockReset().mockReturnValue({ ok: true });
+  vi.mocked(checkDb).mockReset().mockResolvedValue({ ok: true });
   auth.verifyOtp.mockReset();
   auth.signOut.mockReset().mockResolvedValue({ error: null });
 });
@@ -59,8 +75,8 @@ beforeEach(() => {
 describe("readAccount", () => {
   it("shows the sign-in form without a session, and reads nothing", async () => {
     vi.mocked(getSessionUser).mockResolvedValue(null);
-    const { db } = world();
-    expect(await readAccount(db, post())).toEqual({ state: "signed-out" });
+    const db = fakeDb();
+    expect(await readAccount(db, post().request)).toEqual({ state: "signed-out" });
     expect(db.calls).toEqual([]);
   });
 
@@ -74,10 +90,13 @@ describe("readAccount", () => {
       workflow_state: "Under Review",
       received_at: "2026-10-01T10:00:00+00:00",
     };
-    const { db } = world({ account_room: () => ({ name: "Test Owner", requests: [request] }) });
-    expect(await readAccount(db, post())).toEqual({
+    const db = fakeDb({
+      rpc: { account_room: () => ({ name: "Test Owner", email: EMAIL, requests: [request] }) },
+    });
+    expect(await readAccount(db, post().request)).toEqual({
       state: "room",
       name: "Test Owner",
+      email: EMAIL,
       requests: [request],
     });
     expect(db.calls).toEqual([{ kind: "rpc", name: "account_room", args: [{ p_user: USER }] }]);
@@ -85,47 +104,128 @@ describe("readAccount", () => {
 
   it("says the account was not found when no contact is the session's", async () => {
     vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
-    const { db } = world({ account_room: () => null });
-    expect(await readAccount(db, post())).toEqual({ state: "unknown" });
+    const db = fakeDb({ rpc: { account_room: () => null } });
+    expect(await readAccount(db, post().request)).toEqual({ state: "unknown" });
   });
 });
 
 describe("sendAccountLink", () => {
-  it("mails a link to a contact's address, to the confirm page", async () => {
-    const { db, createUser } = world({ account_can_sign_in: () => true });
-    expect(await sendAccountLink(db, post(), env, input)).toEqual({ status: "sent" });
-    expect(createUser).toHaveBeenCalledWith({ email: "owner@example.test", email_confirm: true });
-    expect(auth.signInWithOtp).toHaveBeenCalledWith({
-      email: "owner@example.test",
-      options: { shouldCreateUser: false, emailRedirectTo: `${SITE}/account/confirm` },
-    });
+  const world = (rpc: FakeDbOptions["rpc"] = {}) =>
+    fakeDb({ rpc: { enqueue_job: () => "00000000-0000-4000-8000-0000000000d1", ...rpc } });
+
+  it("answers a known and an unknown address the same way, without waiting for the lookup", async () => {
+    const seen = await Promise.all(
+      [true, false].map(async (known) => {
+        let release: (value: boolean) => void = () => undefined;
+        const lookup = new Promise<boolean>((resolve) => {
+          release = resolve;
+        });
+        const db = world({ account_can_sign_in: () => lookup });
+        const { request, afterAnswer } = post();
+        // The lookup never answers before the send does: an answer that waited for it would lose this race.
+        const answer = await Promise.race([
+          sendAccountLink(db, request, env, input),
+          new Promise((resolve) => setTimeout(() => resolve("waited for the lookup"), 500)),
+        ]);
+        const before = db.calls.map((call) => call.name);
+        release(known);
+        await afterAnswer();
+        return { answer, before, after: enqueued(db).length };
+      }),
+    );
+    expect(seen).toEqual([
+      { answer: { status: "sent" }, before: ["account_can_sign_in"], after: 1 },
+      { answer: { status: "sent" }, before: ["account_can_sign_in"], after: 0 },
+    ]);
   });
 
-  it("answers sent and mails nothing to an address that is not a contact", async () => {
-    const { db, createUser } = world({ account_can_sign_in: () => false });
-    expect(await sendAccountLink(db, post(), env, input)).toEqual({ status: "sent" });
-    expect([createUser.mock.calls.length, auth.signInWithOtp.mock.calls.length]).toEqual([0, 0]);
+  it("queues the sign-in email for a contact's address after the answer", async () => {
+    const db = world({ account_can_sign_in: () => true });
+    const { request, afterAnswer } = post();
+    expect(await sendAccountLink(db, request, env, input)).toEqual({ status: "sent" });
+    await afterAnswer();
+    expect(enqueued(db)).toEqual([
+      {
+        p_type: "send_email",
+        p_payload: { params: { template: "account_link" }, data: { email: EMAIL } },
+        p_idempotency_key: expect.stringMatching(/^account_link:[0-9a-f-]{36}$/) as unknown,
+        p_heavy: false,
+      },
+    ]);
+  });
+
+  it("checks the hourly limits per address of origin and per email before the answer", async () => {
+    const db = world({ account_can_sign_in: () => false });
+    const { request, afterAnswer } = post();
+    await sendAccountLink(db, request, env, input);
+    await afterAnswer();
+    expect(vi.mocked(checkMemory).mock.calls).toEqual([["account-send-link:ip", IP, 5, 3_600_000]]);
+    expect(vi.mocked(checkDb).mock.calls.map((call) => call[1])).toEqual([
+      [
+        {
+          bucket: "account-send-link:ip",
+          keyHash: await hashKey(SALT, IP),
+          limit: 5,
+          windowSeconds: 3600,
+        },
+        {
+          bucket: "account-send-link:email",
+          keyHash: await hashKey(SALT, EMAIL),
+          limit: 3,
+          windowSeconds: 3600,
+        },
+      ],
+    ]);
+  });
+
+  it("caps the links of every address together, an hour and a day, and queues none past the cap", async () => {
+    vi.mocked(checkDb)
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, retryAfter: 600 });
+    const db = world({ account_can_sign_in: () => true });
+    const { request, afterAnswer } = post();
+    await sendAccountLink(db, request, env, input);
+    await afterAnswer();
+    const all = await hashKey(SALT, "all");
+    expect(vi.mocked(checkDb).mock.calls[1]?.[1]).toEqual([
+      { bucket: "account-send-link:all", keyHash: all, limit: 10, windowSeconds: 3600 },
+      { bucket: "account-send-link:all", keyHash: all, limit: 40, windowSeconds: 86_400 },
+    ]);
+    expect(enqueued(db)).toEqual([]);
   });
 
   it("answers sent and looks nothing up when the bot check fails", async () => {
     vi.mocked(verifyTurnstile).mockResolvedValue("fail");
-    const { db } = world();
-    expect(await sendAccountLink(db, post(), env, input)).toEqual({ status: "sent" });
+    const db = world();
+    const { request, afterAnswer } = post();
+    expect(await sendAccountLink(db, request, env, input)).toEqual({ status: "sent" });
+    await afterAnswer();
     expect(db.calls).toEqual([]);
+  });
+
+  it("answers sent and looks nothing up past the in-memory limit", async () => {
+    vi.mocked(checkMemory).mockReturnValue({ ok: false, retryAfter: 3600 });
+    const db = world();
+    const { request, afterAnswer } = post();
+    expect(await sendAccountLink(db, request, env, input)).toEqual({ status: "sent" });
+    await afterAnswer();
+    expect([db.calls, vi.mocked(checkDb).mock.calls.length]).toEqual([[], 0]);
   });
 
   it("answers sent and looks nothing up past the hourly limit", async () => {
     vi.mocked(checkDb).mockResolvedValue({ ok: false, retryAfter: 3600 });
-    const { db } = world();
-    expect(await sendAccountLink(db, post(), env, input)).toEqual({ status: "sent" });
+    const db = world();
+    const { request, afterAnswer } = post();
+    expect(await sendAccountLink(db, request, env, input)).toEqual({ status: "sent" });
+    await afterAnswer();
     expect(db.calls).toEqual([]);
   });
 
   it("refuses a post from another site", async () => {
-    const { db } = world();
+    const db = world();
     const refused = await sendAccountLink(
       db,
-      post({ origin: "https://elsewhere.example" }),
+      post({ origin: "https://elsewhere.example" }).request,
       env,
       input,
     ).catch((error: unknown) => error);
@@ -134,31 +234,58 @@ describe("sendAccountLink", () => {
 });
 
 describe("verifyAccountLink and signOutAccount", () => {
+  const session = { access_token: "t", user: { id: USER } };
+
   it("signs in with a token that holds", async () => {
-    auth.verifyOtp.mockResolvedValue({ data: { session: { access_token: "t" } }, error: null });
-    expect(await verifyAccountLink(post(), { token_hash: "hash" })).toEqual({
+    auth.verifyOtp.mockResolvedValue({ data: { session }, error: null });
+    expect(await verifyAccountLink(fakeDb(), post().request, { token_hash: "hash" })).toEqual({
       status: "signed-in",
     });
     expect(auth.verifyOtp).toHaveBeenCalledWith({ type: "email", token_hash: "hash" });
+    expect(vi.mocked(enabledRoles).mock.calls[0]?.[1]).toBe(USER);
   });
 
   it("answers expired for a spent or old token", async () => {
     auth.verifyOtp.mockResolvedValue({ data: { session: null }, error: new Error("expired") });
-    expect(await verifyAccountLink(post(), { token_hash: "hash" })).toEqual({ status: "expired" });
+    expect(await verifyAccountLink(fakeDb(), post().request, { token_hash: "hash" })).toEqual({
+      status: "expired",
+    });
+  });
+
+  it("does not sign in a person on the team: the session ends here and no cookie leaves", async () => {
+    auth.verifyOtp.mockResolvedValue({ data: { session }, error: null });
+    vi.mocked(enabledRoles).mockResolvedValue(["chief_editor"]);
+    const { request } = post();
+    expect(await verifyAccountLink(fakeDb(), request, { token_hash: "hash" })).toEqual({
+      status: "staff",
+    });
+    expect(auth.signOut.mock.calls).toEqual([[{ scope: "local" }]]);
+    expect(vi.mocked(takeIssuedCookies).mock.calls).toEqual([[request]]);
   });
 
   it("refuses to spend a token posted from another site", async () => {
-    const refused = await verifyAccountLink(post({ origin: "https://elsewhere.example" }), {
-      token_hash: "hash",
-    }).catch((error: unknown) => error);
+    const refused = await verifyAccountLink(
+      fakeDb(),
+      post({ origin: "https://elsewhere.example" }).request,
+      { token_hash: "hash" },
+    ).catch((error: unknown) => error);
     expect([
       refused instanceof AppError ? refused.code : refused,
       auth.verifyOtp.mock.calls.length,
     ]).toEqual(["csrf", 0]);
   });
 
-  it("signs out", async () => {
-    expect(await signOutAccount(post())).toEqual({ status: "signed-out" });
-    expect(auth.signOut).toHaveBeenCalledTimes(1);
+  it("signs out this session only", async () => {
+    expect(await signOutAccount(post().request)).toEqual({ status: "signed-out" });
+    expect(auth.signOut.mock.calls).toEqual([[{ scope: "local" }]]);
+  });
+
+  it("refuses a sign-out posted from another site", async () => {
+    const refused = await signOutAccount(
+      post({ origin: "https://elsewhere.example" }).request,
+    ).catch((error: unknown) => error);
+    expect([refused instanceof AppError ? refused.code : refused, auth.signOut.mock.calls]).toEqual(
+      ["csrf", []],
+    );
   });
 });

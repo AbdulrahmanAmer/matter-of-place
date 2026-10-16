@@ -15,18 +15,23 @@ const received = (request: AccountRequest): string =>
  */
 export function AccountRoom({
   name,
+  email,
   requests,
   onSignOut,
   signingOut,
 }: {
   name: string;
+  email: string;
   requests: readonly AccountRequest[];
   onSignOut: () => void;
   signingOut: boolean;
 }) {
+  // The name and the address together, so a person signed in by someone else's link sees whose room this is.
   return (
     <div className="copy-page">
-      <p>Signed in as {name}.</p>
+      <p>
+        Signed in as {name}, {email}.
+      </p>
       <h2>Your requests</h2>
       {requests.length === 0 ? (
         <p>Nothing here yet. A property you submit to us appears here, with where it stands.</p>

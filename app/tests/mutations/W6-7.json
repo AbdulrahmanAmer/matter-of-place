@@ -3,15 +3,23 @@
     "id": "w6-7-room-order",
     "kind": "sql",
     "test": "tests/db/account.db.test.ts",
-    "sql": "create or replace function public.account_room(p_user uuid) returns jsonb language plpgsql stable security definer set search_path = '' as $$ declare v_contact public.contacts; begin select * into v_contact from public.contacts c where c.id = app.contact_of(p_user); if not found then return null; end if; return jsonb_build_object('name', v_contact.name, 'requests', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'address', s.address, 'city', s.city, 'state', s.state, 'workflow_state', s.workflow_state, 'received_at', s.received_at) order by s.received_at asc, s.id) from public.submissions s where s.contact_id = v_contact.id), '[]'::jsonb)); end; $$;",
+    "sql": "create or replace function public.account_room(p_user uuid) returns jsonb language plpgsql stable security definer set search_path = '' as $$ declare v_contact public.contacts; begin select * into v_contact from public.contacts c where c.id = app.contact_of(p_user); if not found then return null; end if; return jsonb_build_object('name', v_contact.name, 'email', v_contact.email, 'requests', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'address', s.address, 'city', s.city, 'state', s.state, 'workflow_state', s.workflow_state, 'received_at', s.received_at) order by s.received_at asc, s.id) from public.submissions s where s.contact_id = v_contact.id), '[]'::jsonb)); end; $$;",
     "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"lists the client's own requests\"",
-    "expect": "FAIL .*account\\.db\\.test\\.ts > account_room > lists the client's own requests by address and state, newest first"
+    "expect": "FAIL .*account\\.db\\.test\\.ts > account_room > lists the client's own requests by address and state, newest first, and no staff field"
   },
   {
     "id": "w6-7-room-staff-field",
     "kind": "sql",
     "test": "tests/db/account.db.test.ts",
-    "sql": "create or replace function public.account_room(p_user uuid) returns jsonb language plpgsql stable security definer set search_path = '' as $$ declare v_contact public.contacts; begin select * into v_contact from public.contacts c where c.id = app.contact_of(p_user); if not found then return null; end if; return jsonb_build_object('name', v_contact.name, 'requests', coalesce((select jsonb_agg(to_jsonb(s) order by s.received_at desc, s.id) from public.submissions s where s.contact_id = v_contact.id), '[]'::jsonb)); end; $$;",
+    "sql": "create or replace function public.account_room(p_user uuid) returns jsonb language plpgsql stable security definer set search_path = '' as $$ declare v_contact public.contacts; begin select * into v_contact from public.contacts c where c.id = app.contact_of(p_user); if not found then return null; end if; return jsonb_build_object('name', v_contact.name, 'email', v_contact.email, 'requests', coalesce((select jsonb_agg(to_jsonb(s) order by s.received_at desc, s.id) from public.submissions s where s.contact_id = v_contact.id), '[]'::jsonb)); end; $$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"lists the client's own requests\"",
+    "expect": "FAIL .*account\\.db\\.test\\.ts > account_room > lists the client's own requests by address and state, newest first, and no staff field"
+  },
+  {
+    "id": "w6-7-room-email",
+    "kind": "sql",
+    "test": "tests/db/account.db.test.ts",
+    "sql": "create or replace function public.account_room(p_user uuid) returns jsonb language plpgsql stable security definer set search_path = '' as $$ declare v_contact public.contacts; begin select * into v_contact from public.contacts c where c.id = app.contact_of(p_user); if not found then return null; end if; return jsonb_build_object('name', v_contact.name, 'requests', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'address', s.address, 'city', s.city, 'state', s.state, 'workflow_state', s.workflow_state, 'received_at', s.received_at) order by s.received_at desc, s.id) from public.submissions s where s.contact_id = v_contact.id), '[]'::jsonb)); end; $$;",
     "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"lists the client's own requests\"",
     "expect": "FAIL .*account\\.db\\.test\\.ts > account_room > lists the client's own requests by address and state, newest first, and no staff field"
   },
@@ -19,9 +27,9 @@
     "id": "w6-7-room-other-client",
     "kind": "sql",
     "test": "tests/db/account.db.test.ts",
-    "sql": "create or replace function public.account_room(p_user uuid) returns jsonb language plpgsql stable security definer set search_path = '' as $$ declare v_contact public.contacts; begin select * into v_contact from public.contacts c where c.id = app.contact_of(p_user); if not found then return null; end if; return jsonb_build_object('name', v_contact.name, 'requests', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'address', s.address, 'city', s.city, 'state', s.state, 'workflow_state', s.workflow_state, 'received_at', s.received_at) order by s.received_at desc, s.id) from public.submissions s where s.contact_id is not null), '[]'::jsonb)); end; $$;",
+    "sql": "create or replace function public.account_room(p_user uuid) returns jsonb language plpgsql stable security definer set search_path = '' as $$ declare v_contact public.contacts; begin select * into v_contact from public.contacts c where c.id = app.contact_of(p_user); if not found then return null; end if; return jsonb_build_object('name', v_contact.name, 'email', v_contact.email, 'requests', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'address', s.address, 'city', s.city, 'state', s.state, 'workflow_state', s.workflow_state, 'received_at', s.received_at) order by s.received_at desc, s.id) from public.submissions s where s.contact_id is not null), '[]'::jsonb)); end; $$;",
     "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"cannot read another client's request\"",
-    "expect": "FAIL .*account\\.db\\.test\\.ts > account_room > a client cannot read another client's request"
+    "expect": "FAIL .*account\\.db\\.test\\.ts > account_room > a client cannot read another client's request, through the room or the table"
   },
   {
     "id": "w6-7-table-policy",
@@ -70,6 +78,46 @@
     "sql": "create or replace function app.contact_of(p_user uuid) returns uuid language sql stable security definer set search_path = '' as $$ select c.id from auth.users u join public.contacts c on c.email = u.email where u.id = p_user and u.email_confirmed_at is not null and c.archived_at is null; $$;",
     "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"matches ignoring case\"",
     "expect": "FAIL .*account\\.db\\.test\\.ts > account_room > the email matches ignoring case"
+  },
+  {
+    "id": "w6-7-can-sign-in-case",
+    "kind": "sql",
+    "test": "tests/db/account.db.test.ts",
+    "sql": "create or replace function public.account_can_sign_in(p_email text) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.contacts c where c.email = p_email and c.archived_at is null); $$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"ignoring letter case\"",
+    "expect": "FAIL .*account\\.db\\.test\\.ts > account_can_sign_in > is true for a contact's address, ignoring letter case"
+  },
+  {
+    "id": "w6-7-can-sign-in-archived",
+    "kind": "sql",
+    "test": "tests/db/account.db.test.ts",
+    "sql": "create or replace function public.account_can_sign_in(p_email text) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.contacts c where lower(c.email) = lower(p_email)); $$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"is false for an archived contact\"",
+    "expect": "FAIL .*account\\.db\\.test\\.ts > account_can_sign_in > is false for an archived contact and for an address that is no contact's"
+  },
+  {
+    "id": "w6-7-can-sign-in-unknown",
+    "kind": "sql",
+    "test": "tests/db/account.db.test.ts",
+    "sql": "create or replace function public.account_can_sign_in(p_email text) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.contacts c where c.archived_at is null); $$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"is false for an archived contact\"",
+    "expect": "FAIL .*account\\.db\\.test\\.ts > account_can_sign_in > is false for an archived contact and for an address that is no contact's"
+  },
+  {
+    "id": "w6-7-can-sign-in-anon",
+    "kind": "sql",
+    "test": "tests/db/account.db.test.ts",
+    "sql": "grant execute on function public.account_can_sign_in(text) to anon;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"refuses anon and a signed-in person\"",
+    "expect": "FAIL .*account\\.db\\.test\\.ts > account_can_sign_in > refuses anon and a signed-in person"
+  },
+  {
+    "id": "w6-7-can-sign-in-authenticated",
+    "kind": "sql",
+    "test": "tests/db/account.db.test.ts",
+    "sql": "grant execute on function public.account_can_sign_in(text) to authenticated;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"refuses anon and a signed-in person\"",
+    "expect": "FAIL .*account\\.db\\.test\\.ts > account_can_sign_in > refuses anon and a signed-in person"
   },
   {
     "id": "w6-7-rls-own-rows",
@@ -124,22 +172,76 @@
     "expect": "× .*says the account was not found when no contact is the session's"
   },
   {
-    "id": "w6-7-svc-confirm-page",
+    "id": "w6-7-svc-after-answer",
     "test": "tests/unit/account.service.test.ts",
     "file": "src/server/account/service.ts",
-    "find": "}/account/confirm`,",
-    "replace": "}/admin/auth/confirm`,",
+    "find": "  waitUntilOf(request)(\n    queueLink(db, environment, input.email)",
+    "replace": "  await (\n    queueLink(db, environment, input.email)",
     "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
-    "expect": "× .*mails a link to a contact's address, to the confirm page"
+    "expect": "× .*answers a known and an unknown address the same way, without waiting for the lookup"
   },
   {
-    "id": "w6-7-svc-not-contact",
+    "id": "w6-7-svc-queue-known",
     "test": "tests/unit/account.service.test.ts",
     "file": "src/server/account/service.ts",
-    "find": "  if (!known.data) return SENT;",
+    "find": "  if (!known.data) return;\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
-    "expect": "× .*answers sent and mails nothing to an address that is not a contact"
+    "expect": "× .*answers a known and an unknown address the same way, without waiting for the lookup"
+  },
+  {
+    "id": "w6-7-svc-enqueue-template",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "params: { template: \"account_link\" }",
+    "replace": "params: { template: \"received\" }",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*queues the sign-in email for a contact's address after the answer"
+  },
+  {
+    "id": "w6-7-svc-ip-bucket",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "    { bucket: `${ROUTE}:ip`, keyHash: ipHash, limit: PER_IP, windowSeconds: 3600 },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*checks the hourly limits per address of origin and per email before the answer"
+  },
+  {
+    "id": "w6-7-svc-email-bucket",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "{ bucket: `${ROUTE}:email`, keyHash: emailHash,",
+    "replace": "{ bucket: `${ROUTE}:email`, keyHash: ipHash,",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*checks the hourly limits per address of origin and per email before the answer"
+  },
+  {
+    "id": "w6-7-svc-memory",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "  if (!checkMemory(`${ROUTE}:ip`, ip, PER_IP, HOUR_MS).ok) return \"memory\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*answers sent and looks nothing up past the in-memory limit"
+  },
+  {
+    "id": "w6-7-svc-global-cap",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "  if (!checked.ok) {\n    logLine(\"warn\", \"send_link_limited\", { reason: \"all\", route: ROUTE });",
+    "replace": "  if (checked.ok === false && false) {\n    logLine(\"warn\", \"send_link_limited\", { reason: \"all\", route: ROUTE });",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*caps the links of every address together, an hour and a day, and queues none past the cap"
+  },
+  {
+    "id": "w6-7-svc-global-day",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "    { bucket: `${ROUTE}:all`, keyHash: all, limit: ALL_PER_DAY, windowSeconds: 86_400 },\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*caps the links of every address together, an hour and a day, and queues none past the cap"
   },
   {
     "id": "w6-7-svc-turnstile",
@@ -172,8 +274,8 @@
     "id": "w6-7-svc-verify-type",
     "test": "tests/unit/account.service.test.ts",
     "file": "src/server/account/service.ts",
-    "find": "    type: \"email\",\n    token_hash: input.token_hash,",
-    "replace": "    type: \"magiclink\",\n    token_hash: input.token_hash,",
+    "find": "client.verifyOtp({ type: \"email\", token_hash: input.token_hash })",
+    "replace": "client.verifyOtp({ type: \"magiclink\", token_hash: input.token_hash })",
     "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
     "expect": "× .*signs in with a token that holds"
   },
@@ -181,17 +283,44 @@
     "id": "w6-7-svc-expired",
     "test": "tests/unit/account.service.test.ts",
     "file": "src/server/account/service.ts",
-    "find": "data.session === null ? \"expired\" : \"signed-in\"",
-    "replace": "\"signed-in\"",
+    "find": "  if (data.session === null) return { status: \"expired\" };",
+    "replace": "  if (data.session === null) return { status: \"signed-in\" };",
     "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
     "expect": "× .*answers expired for a spent or old token"
+  },
+  {
+    "id": "w6-7-svc-staff",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "  if ((await enabledRoles(db, data.session.user.id)).length > 0) {",
+    "replace": "  if ((await enabledRoles(db, data.session.user.id)).length > 99) {",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*does not sign in a person on the team: the session ends here and no cookie leaves"
+  },
+  {
+    "id": "w6-7-svc-staff-cookies",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "    takeIssuedCookies(request);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*does not sign in a person on the team: the session ends here and no cookie leaves"
+  },
+  {
+    "id": "w6-7-svc-staff-local",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "    await client.signOut({ scope: \"local\" });",
+    "replace": "    await client.signOut();",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*does not sign in a person on the team: the session ends here and no cookie leaves"
   },
   {
     "id": "w6-7-svc-verify-origin",
     "test": "tests/unit/account.service.test.ts",
     "file": "src/server/account/service.ts",
-    "find": "  if (!sameOrigin(request)) throw foreignOrigin();\n  const { data, error } = await authClient(request).verifyOtp({",
-    "replace": "  const { data, error } = await authClient(request).verifyOtp({",
+    "find": "  if (!sameOrigin(request)) throw foreignOrigin();\n  const client = authClient(request);",
+    "replace": "  const client = authClient(request);",
     "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
     "expect": "× .*refuses to spend a token posted from another site"
   },
@@ -199,10 +328,190 @@
     "id": "w6-7-svc-sign-out",
     "test": "tests/unit/account.service.test.ts",
     "file": "src/server/account/service.ts",
-    "find": "  const { error } = await authClient(request).signOut();",
-    "replace": "  const { error } = { error: null };",
+    "find": "await authClient(request).signOut({ scope: \"local\" });",
+    "replace": "await authClient(request).signOut();",
     "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
-    "expect": "× .*signs out"
+    "expect": "× .*signs out this session only"
+  },
+  {
+    "id": "w6-7-svc-sign-out-origin",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "  if (!sameOrigin(request)) throw foreignOrigin();\n  const { error } = await authClient(request).signOut(",
+    "replace": "  const { error } = await authClient(request).signOut(",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*refuses a sign-out posted from another site"
+  },
+  {
+    "id": "w6-7-link-fragment",
+    "test": "tests/unit/email/account-link.test.ts",
+    "file": "src/server/account/link.ts",
+    "find": "return `${siteUrl}/account/confirm#token_hash=${token}`;",
+    "replace": "return `${siteUrl}/account/confirm?token_hash=${token}`;",
+    "run": "bunx vitest run --project unit tests/unit/email/account-link.test.ts",
+    "expect": "× .*makes the link of a contact's address now, with the token in the fragment"
+  },
+  {
+    "id": "w6-7-link-encode",
+    "test": "tests/unit/email/account-link.test.ts",
+    "file": "src/server/account/link.ts",
+    "find": "const token = encodeURIComponent(link.data.properties.hashed_token);",
+    "replace": "const token = link.data.properties.hashed_token;",
+    "run": "bunx vitest run --project unit tests/unit/email/account-link.test.ts",
+    "expect": "× .*makes the link of a contact's address now, with the token in the fragment"
+  },
+  {
+    "id": "w6-7-link-unconfirmed",
+    "test": "tests/unit/email/account-link.test.ts",
+    "file": "src/server/account/link.ts",
+    "find": "email_confirm: false",
+    "replace": "email_confirm: true",
+    "run": "bunx vitest run --project unit tests/unit/email/account-link.test.ts",
+    "expect": "× .*makes the auth user unconfirmed, so only the first use of a link confirms the address"
+  },
+  {
+    "id": "w6-7-link-exists",
+    "test": "tests/unit/email/account-link.test.ts",
+    "file": "src/server/account/link.ts",
+    "find": "created.error.code !== \"email_exists\"",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/email/account-link.test.ts",
+    "expect": "× .*uses the auth user that already exists"
+  },
+  {
+    "id": "w6-7-link-create-fails",
+    "test": "tests/unit/email/account-link.test.ts",
+    "file": "src/server/account/link.ts",
+    "find": "    throw new Error(`auth_create_failed:${String(created.error.status ?? 0)}`);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/account-link.test.ts",
+    "expect": "× .*fails the job, to be tried again, when Auth refuses to make the user"
+  },
+  {
+    "id": "w6-7-link-not-client",
+    "test": "tests/unit/email/account-link.test.ts",
+    "file": "src/server/account/link.ts",
+    "find": "  if (!known.data) throw new NotAClient();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/account-link.test.ts",
+    "expect": "× .*skips an address that is no longer a contact's, making no user and no link"
+  },
+  {
+    "id": "w6-7-link-recipient",
+    "test": "tests/unit/email/account-link.test.ts",
+    "file": "src/server/email/variables.ts",
+    "find": "  if (key === \"account_link\") return { to: [need(data, \"email\")], entity: null, entityId: null };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/email/account-link.test.ts",
+    "expect": "× .*goes to the address the link signs in, whatever a recipe names"
+  },
+  {
+    "id": "w6-7-link-template-button",
+    "test": "tests/unit/email/account-link.test.ts",
+    "file": "src/templates/email/account-link.tsx",
+    "find": "{ type: \"button\", label: \"Sign in\", url: \"{{sign_in_url}}\" }",
+    "replace": "{ type: \"button\", label: \"Sign in\", url: \"https://matterofplace.com/account\" }",
+    "run": "bunx vitest run --project unit tests/unit/email/account-link.test.ts",
+    "expect": "× .*draws the button to the link and speaks to a client, not to the team"
+  },
+  {
+    "id": "w6-7-link-template-seed",
+    "test": "tests/unit/email/account-link.test.ts",
+    "file": "src/templates/email/account-link.tsx",
+    "find": "  preheader: \"It works once and for one hour.\",",
+    "replace": "  preheader: \"\",",
+    "run": "bunx vitest run --project unit tests/unit/email/account-link.test.ts",
+    "expect": "× .*equals the row its migration seeds"
+  },
+  {
+    "id": "w6-7-confirm-strip",
+    "test": "src/components/account/account-confirm.test.tsx",
+    "file": "src/components/account/account-confirm.tsx",
+    "find": "  history.replaceState(history.state, \"\", location.pathname);\n",
+    "replace": "",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-confirm.test.tsx",
+    "expect": "× .*takes the token from the fragment and out of the address, then spends it on a press"
+  },
+  {
+    "id": "w6-7-confirm-query",
+    "test": "src/components/account/account-confirm.test.tsx",
+    "file": "src/components/account/account-confirm.tsx",
+    "find": " ??\n    new URLSearchParams(location.search).get(\"token_hash\");",
+    "replace": ";",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-confirm.test.tsx",
+    "expect": "× .*reads the token of a link that carries it in the query, and takes it out too"
+  },
+  {
+    "id": "w6-7-confirm-disabled",
+    "test": "src/components/account/account-confirm.test.tsx",
+    "file": "src/components/account/account-confirm.tsx",
+    "find": "disabled={pending || token === \"\"}",
+    "replace": "disabled={pending}",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-confirm.test.tsx",
+    "expect": "× .*keeps the button off when the address holds no token"
+  },
+  {
+    "id": "w6-7-confirm-expired",
+    "test": "src/components/account/account-confirm.test.tsx",
+    "file": "src/components/account/account-confirm.tsx",
+    "find": "      if (result !== undefined && result.status !== \"staff\") onDone(result.status);",
+    "replace": "      if (result !== undefined && result.status !== \"staff\") onDone(\"signed-in\");",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-confirm.test.tsx",
+    "expect": "× .*says an expired link is expired"
+  },
+  {
+    "id": "w6-7-confirm-staff",
+    "test": "src/components/account/account-confirm.test.tsx",
+    "file": "src/components/account/account-confirm.tsx",
+    "find": "  if (state.status === \"success\" && state.result.status === \"staff\") {",
+    "replace": "  if (state.status === \"success\" && state.result.status === \"expired\") {",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-confirm.test.tsx",
+    "expect": "× .*sends a person on the team to the admin sign-in, and never into the room"
+  },
+  {
+    "id": "w6-7-confirm-staff-room",
+    "test": "src/components/account/account-confirm.test.tsx",
+    "file": "src/components/account/account-confirm.tsx",
+    "find": "      if (result !== undefined && result.status !== \"staff\") onDone(result.status);",
+    "replace": "      if (result !== undefined) onDone(result.status);",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-confirm.test.tsx",
+    "expect": "× .*sends a person on the team to the admin sign-in, and never into the room"
+  },
+  {
+    "id": "w6-7-ga4-account",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/components/site/ga4-loader.tsx",
+    "find": "    if (isAccountPath(matchedPath(window.location.pathname))) return;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*loads nothing on the client room \\(/account/confirm#token_hash=secret\\), whose sign-in link carries a token"
+  },
+  {
+    "id": "w6-7-ga4-case",
+    "test": "tests/unit/consent.test.ts",
+    "file": "src/components/site/ga4-loader.tsx",
+    "find": "    return decodeURI(pathname).toLowerCase();",
+    "replace": "    return decodeURI(pathname);",
+    "run": "bunx vitest run --project unit tests/unit/consent.test.ts",
+    "expect": "× .*loads nothing on the client room \\(/Account/Confirm#token_hash=secret\\), whose sign-in link carries a token"
+  },
+  {
+    "id": "w6-7-pipe-account",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    isAccountPath(path) ||\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*forces no-store on GET /account \\(the client room\\)"
+  },
+  {
+    "id": "w6-7-pipe-account-pages",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/domain/account.ts",
+    "find": "  path === \"/account\" || path.startsWith(\"/account/\");",
+    "replace": "  path === \"/account\";",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "× .*forces no-store on GET /account/confirm \\(the client room's confirm page\\)"
   },
   {
     "id": "w6-7-room-state",
@@ -210,6 +519,15 @@
     "file": "src/components/account/account-room.tsx",
     "find": "                {request.workflow_state}. Received",
     "replace": "                {request.state}. Received",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-room.test.tsx",
+    "expect": "× .*lists the client's requests by address and state, in the order given"
+  },
+  {
+    "id": "w6-7-room-signed-in-as",
+    "test": "src/components/account/account-room.test.tsx",
+    "file": "src/components/account/account-room.tsx",
+    "find": "        Signed in as {name}, {email}.",
+    "replace": "        Signed in as {name}.",
     "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-room.test.tsx",
     "expect": "× .*lists the client's requests by address and state, in the order given"
   },

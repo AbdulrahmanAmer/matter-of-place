@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isAccountPath } from "../../domain/account";
 import { track } from "../../lib/analytics";
 import { CONSENT_VERSION, consentGranted, onConsentChange, readConsent } from "../../lib/consent";
 import { loadGa4 } from "../../lib/ga4";
@@ -22,14 +23,26 @@ function trackGpcOverride(): void {
   track("consent_set", { analytics: false, via: "gpc" });
 }
 
+/** The page's path as the router matches it: decoded where it can be, lower case (`routePath` in the pipeline). */
+function matchedPath(pathname: string): string {
+  try {
+    return decodeURI(pathname).toLowerCase();
+  } catch {
+    return pathname.toLowerCase();
+  }
+}
+
 /**
  * Loads Google Analytics on a public page once the visitor has allowed it (GP-02). Mounted only in the public layout
- * `_site.tsx`, so no admin page loads it (FE-02). Renders nothing; with no measurement id it does nothing.
+ * `_site.tsx`, so no admin page loads it (FE-02). Renders nothing; with no measurement id it does nothing. A visit that
+ * opens on the client room never loads it (ruling H114): its sign-in link carries a token, which a page view would
+ * send to Google.
  */
 export function Ga4Loader() {
   useEffect(() => {
     const measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID ?? "";
     if (measurementId === "") return;
+    if (isAccountPath(matchedPath(window.location.pathname))) return;
     trackGpcOverride();
     loadGa4(measurementId);
     return onConsentChange(() => {

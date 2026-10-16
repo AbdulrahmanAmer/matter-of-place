@@ -14,8 +14,11 @@ begin
   if not found then
     return null;
   end if;
+  -- The room names the person and the address it is signed in as, so a person signed in by someone else's link sees
+  -- whose room it is (login CSRF, review of 2026-10-16).
   return jsonb_build_object(
     'name', v_contact.name,
+    'email', v_contact.email,
     'requests', coalesce((
       select jsonb_agg(
         jsonb_build_object(

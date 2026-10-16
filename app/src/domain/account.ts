@@ -15,8 +15,16 @@ const accountRequestSchema = z.object({
 
 export const accountRoomSchema = z.object({
   name: z.string(),
+  email: z.string(),
   requests: z.array(accountRequestSchema),
 });
+
+/**
+ * The client room's pages: never stored by the edge and never given a third-party script, since the address of the
+ * confirm page carries a sign-in token (ruling H114). `path` is decoded and lower case, as the router matches it.
+ */
+export const isAccountPath = (path: string): boolean =>
+  path === "/account" || path.startsWith("/account/");
 
 export type AccountRequest = z.infer<typeof accountRequestSchema>;
 
@@ -36,3 +44,6 @@ export const accountLinkInput = z.object({
 export const accountConfirmInput = z.object({
   token_hash: z.string().min(1).max(512),
 });
+
+/** What the confirm page's post found: a session, a spent or old token, or a person who signs in at `/admin`. */
+export type AccountConfirmStatus = "signed-in" | "expired" | "staff";

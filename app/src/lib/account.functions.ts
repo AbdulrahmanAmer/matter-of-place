@@ -38,7 +38,7 @@ export const readAccountFn = createServerFn({ method: "POST" }).handler(() =>
   withAccount(({ account, db, request }) => account.readAccount(db, request)),
 );
 
-/** Mails a sign-in link to a client's address; always answers `sent`. */
+/** Queues a sign-in link for a client's address; always answers `sent`, before any lookup. */
 export const sendAccountLinkFn = createServerFn({ method: "POST" })
   .validator(accountLinkInput)
   .handler(({ data }) =>
@@ -51,7 +51,7 @@ export const sendAccountLinkFn = createServerFn({ method: "POST" })
 export const confirmAccountLinkFn = createServerFn({ method: "POST" })
   .validator(accountConfirmInput)
   .handler(({ data }) =>
-    withAccount(({ account, request }) => account.verifyAccountLink(request, data)),
+    withAccount(({ account, db, request }) => account.verifyAccountLink(db, request, data)),
   );
 
 /** Signs the person out. */

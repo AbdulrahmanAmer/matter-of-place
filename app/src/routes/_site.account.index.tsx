@@ -62,6 +62,7 @@ function AccountPage() {
       ) : (
         <AccountRoom
           name={view.name}
+          email={view.email}
           requests={view.requests}
           onSignOut={signOut}
           signingOut={signingOut}
