@@ -22,12 +22,13 @@ const site: SiteContext = {
 
 type House = "threshold" | "afternoon" | "light";
 
-/** Every email and its house, as the operator grouped them: all twenty, each in exactly one. */
+/** Every email and its house, as the operator grouped them: all twenty-one, each in exactly one. */
 const HOUSE_OF: Record<string, House> = {
   received: "threshold",
   accepted: "threshold",
   awaiting_assets: "threshold",
   newsletter_welcome: "threshold",
+  account_link: "threshold",
   newsletter_confirm: "threshold",
   interest_confirm: "threshold",
   market_open: "threshold",
@@ -125,7 +126,7 @@ describe("the three houses", () => {
   it("holds every email the operator grouped, each in exactly one house", () => {
     const keyed = definitions.map((entry) => entry.definition.key);
     const all = [...keyed, "place_notes", "ceo_weekly", "auth_magic_link", "auth_invite"];
-    expect(new Set(all).size).toBe(20);
+    expect(new Set(all).size).toBe(21);
     expect(Object.keys(HOUSE_OF).sort()).toEqual([...all].sort());
   });
 
