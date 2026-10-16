@@ -18,15 +18,6 @@
     "expect": "× .*is told he merges, decides approvals and builds the smallest change"
   },
   {
-    "id": "ma-c-goal-pace",
-    "test": "tests/unit/matter-autonomy.test.ts",
-    "file": "scripts/matter/live.ts",
-    "find": "    input.idle &&\n    input.now - input.lastResultAt >= AFTER_RESULT_MS",
-    "replace": "    input.now - input.lastResultAt >= AFTER_RESULT_MS",
-    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
-    "expect": "× .*is handed the next step only when idle"
-  },
-  {
     "id": "ma-d-read-admin-only",
     "test": "tests/unit/matter-autonomy.test.ts",
     "file": "scripts/matter/read.ts",
@@ -34,5 +25,50 @@
     "replace": "  if (arg === undefined) return null;",
     "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
     "expect": "× .*reads only admin API paths"
+  },
+  {
+    "id": "ma-c-goal-pace",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  if (input.active > 0) return",
+    "replace": "  if (false) return",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*is handed the next step only with a session up"
+  },
+  {
+    "id": "ma-c-goal-session",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  if (!input.hasSession) return \"no live session is up\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*is handed the next step only with a session up"
+  },
+  {
+    "id": "ma-c-goal-answer-gap",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "if (input.now - input.lastResultAt < AFTER_RESULT_MS)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*is handed the next step only with a session up"
+  },
+  {
+    "id": "ma-c-goal-ten-minutes",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "if (input.now - input.goalAt < GOAL_GAP_MS)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*is handed the next step only with a session up"
+  },
+  {
+    "id": "ma-c-goal-backlog-off",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  if (input.backlog === \"off\") return",
+    "replace": "  if (false) return",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*is handed the next step only with a session up"
   }
 ]

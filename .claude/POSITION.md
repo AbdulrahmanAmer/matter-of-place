@@ -1939,6 +1939,19 @@ first day of the new usage week; no step was cut from any plan.
   (subscriber.created holds a sealed token). Proof: unit 5 and component 24 passed, registry W7-5.json 14 entries
   WATCHED-FAIL OK, both tsc, eslint, prettier, knip exit 0. NOT DONE: a browser look at the real page (admin sign-in is a
   magic link; rendered text observed in the component test only). Bank grew: P-3560 to P-3562.
+- 2026-10-16 01:40 +0300: W7 item 4 built on overdrive/w7-4 (no pull request, Matter merges into overdrive/finish): Office has four
+  tabs (The floor, Decisions, Lessons, Instruction history), read only, over four routes
+  `GET /api/admin/workforce/memory/{decisions,lessons,instructions,instructions/:id}` on the existing action `workforce.office`
+  (no matrix change, no migration); schemas in `src/domain/admin-team-memory.ts`, services in `src/server/workforce/service.ts`
+  (newest 200 rows per list; the text of an instruction version is read only when a person opens it, shown as plain text).
+  Proof: unit `tests/unit/workforce-memory.test.ts` 14 and component `src/admin/workforce/team-memory.test.tsx` 10 passed,
+  registry `W7-4.json` 34 entries WATCHED-FAIL OK, admin-authz-sweep and mutation-registry tests passed, both tsc exit 0.
+  NOT DONE: a browser look at the real page (admin sign-in is a magic link; rendered text observed in component tests only);
+  the live rows were not read. Stray empty file `E:\tmp_edit_office.mjs` left by a mistyped redirect (the sandbox refused the
+  delete; a person may remove it). Bank grew: P-3580 to P-3582.
+  Correction to the block above (2026-10-16 01:55 +0300, W7 item 4): its time is 01:28, not 01:40; the registry `W7-4.json` has
+  31 entries (the 34 replayed included three neighbours), all WATCHED-FAIL OK, replayed twice; eslint, prettier, knip, layout
+  and both tsc exit 0 after the final edits.
 
 - 2026-10-16 00:40 +0300 (Matter, live session 031029be): Merged today since the last block: 434 (W8 0a to 0c), 436,
   440 (W8 0d, the decision half). Builders (Sonnet 5.5, high): W7 5 (PR 438, the operator gates it), W7 6 (PR 439, CI
@@ -1959,6 +1972,29 @@ first day of the new usage week; no step was cut from any plan.
   tools): the runner runs main, so this proof comes after merge; 0e stays unticked until then. NOT DONE: a table CHECK
   refusing uuid-shaped slugs (its own migration PR); 0f; 0g waits on the operator's Google Drive.
   Bank grew: P-3570, P-3571, P-3572.
+
+- 2026-10-16 12:20 +0300: H110 fix (branch overdrive/reel-photos, review fixes): a reel request may carry `photos` only as a
+  campaign with no `property_id` (market, story, brand and campaign-with-property refuse it, 3 new schema cases), a desk picture's
+  file name never reaches the designer (alt text "photograph N"), ruling H124 records the kept-in-the-studio outcome (no Visuals
+  asset: a visual needs a subject). Proof: reel tests 21 passed; w8-h110-brand-no-photos and w8-h110-own-route WATCHED-FAIL OK (read).
+  The Fairfield re-render from the five pictures was made and passed the gate and the review on 2026-10-16 05:46 (studio folder
+  2026-10-16-fairfield-test-reel-2, `reel.mp4` 1080x1920, 21.2 s, replaced in Drive Reels, review sheet read by Matter); it was
+  rendered from this worktree, not from the live runner. UNPROVEN: the live runner on this code (it follows main); the picture
+  orientation is assumed landscape; the scene check is textual (the reviewer is the guard). Bank: P-3579.
+- 2026-10-16 05:10 +0300: W6 item 7 back on `overdrive/w6-7` after a fresh Opus review (two high, four medium, three
+  low). Merged `origin/overdrive/finish` first: W8 0e had taken H113, so the client room's ruling is now H119 (P-3674).
+  Fixed: client links no longer go through Supabase's one magic-link template (it opens `/admin/auth/confirm`) nor its
+  10-an-hour mail limit: the form answers "sent" before any lookup, and a contact's address gets a `send_email` job of
+  the new template `account_link` whose step makes the auth user (unconfirmed) and the link (`generateLink`) when it
+  runs, mailed through Resend under a cap of its own (10 an hour, 40 a day); the token rides in the `#fragment` and
+  the confirm page strips it; nothing under `/account` loads GA4 or is cached (`neverCached`); a staff member is not
+  signed in at `/account/confirm`; sign-out is local; the room says "Signed in as <name>, <email>". The branch's five
+  migrations took timestamps after main's newest (check-migrations). Proof: registry W6-7.json 67 of 67 WATCHED-FAIL OK
+  and each red run read; db 62, unit 340 of 342 (two load timeouts passed alone), component 12; both tsc, eslint, prettier, knip,
+  deno check, bundle-check, gitleaks, layout, check-plans and check-migrations OK. W6.md item 7 is unticked with a Built line. UNPROVEN: a real `account_link` email
+  sent, opened and spent (after merge, the runner deploys from main); the CI db job; a browser look. NOT DONE: a line to
+  `/account` in the other client emails ("Starts"), uploads and contact preferences (item 8), `track()` for sign-in.
+  Bank grew: P-3674, P-3675, P-3676; P-3673 hit again.
 - 2026-10-16 01:00 +0300: W7 item 3 review fixes (PR 442, builder, Sonnet 5.5): the state of a campaign is read on its market's
   own day (`dayInZone` in `domain/market-time`, Pacific for California, Eastern otherwise) instead of the UTC day; `campaigns`
   is in `adminKeys` (STUB dropped); `package` is `z.enum(exposurePackages)` in the contract and the service; `marketName`
@@ -2023,6 +2059,21 @@ first day of the new usage week; no step was cut from any plan.
   fixed, waits re-review; w8-0d built, waits review; w7-4 fix and W8 0h (inbound mail) not started, told to fill the
   two free builder slots now and merge each item into overdrive/finish as its review passes. Matter's live-state.md was
   2 h stale while he worked; he now rewrites it at every step boundary. OPERATOR'S: Cloudflare MFA for admin@.
+
+- 2026-10-16 W8 0d second half (overdrive/w8-0d, pushed, no PR; Matter merges into overdrive/finish): a held message is
+  explained before it is decided. `holdForMatter` now queues the OWNER's run on the held line (cap unchanged); that run
+  is an explanation (`explainsHeld` reads the line's thread, kind and id from the database; `outsideOf` gives the
+  record `explain`, `outsideGate` says "explain", `runShape` rules it "explain", `ruleOutside` keeps nothing, the drop
+  is said in fixed words, the reply is `outside-reply:<owner>`). Any end of it calls `handToMatter` (explain.ts), which
+  queues Matter's read once per line and says a failure; a usage-limit stop requeues. Matter's held prompt carries the
+  owner's explanation (`ownerExplanation`: newest `outside-reply:<owner>` after the held line and not after Matter's
+  run, fenced, 3,000 chars) or "none", and names four postures (posture.ts); `how` reaches the owner only as the
+  runner's words in `allowLine`, none means answer, off the list allows nothing (`HOW_REFUSED`). Ruling H117. Tests:
+  tests/unit/workforce-escalation.test.ts walks the runner's own `runOnce` (exported) on an in-memory database;
+  tests/mutations/W8-0d.json holds 35 entries, all WATCHED-FAIL OK (one first stayed green and one went red on a
+  TypeError; both fixed, the red assertions read); 10 W8-0 entries replayed OK, 4 updated for moved lines. W8 item 0d
+  stays [ ] with a "Built 2026-10-16" line. UNPROVEN: a real test message held, explained and decided in the Office
+  (needs the runner on the merged code). Bank grew: P-3590; P-3478 and P-1303 hit again.
 - 2026-10-16 16:30 +0300: orchestrator. Overdrive state. PR 447 (overdrive/finish, ready, NOT merged) is fully green: check,
   build, db (805 mutations), e2e, preview. It holds w7-7, w8-0d (H117), w6-7 (H119), w8-9, w7-4, reel-photos (H110), photo-slide,
   runner faults, w8-0g. Eight CI rounds on GitHub, each one real defect: folder-map quote (P-3692), migration order, TS2375

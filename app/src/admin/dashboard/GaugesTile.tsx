@@ -1,14 +1,11 @@
 import type { Dashboard } from "../../domain/admin-dashboard";
+import { gaugeLevel, gaugeLimit, usageGauges, vendorUsageKeys } from "../../domain/usage-gauges";
 import { formatNumber } from "../../lib/format";
-import { StatusPill, type Tone } from "../ui/StatusPill";
+import { StatusPill } from "../ui/StatusPill";
 
 /** B14's weekly reports, `workspace/audits/YYYY-MM-DD.md`, newest date last (G11). */
 export const AUDIT_REPORTS_URL =
   "https://github.com/AbdulrahmanAmer/matter-of-place/tree/main/workspace/audits";
-
-/** The thresholds of B14's `limits.json` (ruling H33 (8)): warning from 70 percent, alert from 90. */
-const WARNING_AT = 0.7;
-const ALERT_AT = 0.9;
 
 const MB = 1024 ** 2;
 
@@ -24,14 +21,10 @@ function measured(data: Dashboard) {
 
 /**
  * The vendor lines: their tokens are not Worker secrets, so the operator's laptop measures them daily
- * (`scripts/usage-push.ts`) and the dashboard shows what it recorded, with when.
+ * (`scripts/usage-push.ts`) and the dashboard shows what it recorded, with when. Names, limits and levels are the
+ * ones Settings, Service usage shows (`domain/usage-gauges.ts`).
  */
-const vendorLines = [
-  { line: "workers_requests_day", name: "Workers requests", limit: 100_000, of: "100,000 a day" },
-  { line: "storage_egress", name: "Storage egress", limit: 5 * 1024 * MB, of: "5 GB a month" },
-  { line: "sentry_errors", name: "Sentry errors", limit: 5000, of: "5,000 a month" },
-  { line: "actions_minutes", name: "GitHub Actions minutes", limit: 2000, of: "2,000 a month" },
-];
+const vendorLines = vendorUsageKeys.map((line) => ({ line, ...usageGauges[line] }));
 
 const DAY_MS = 86_400_000;
 
@@ -43,12 +36,6 @@ function measuredAgo(at: string, now: number): string {
   return `measured ${formatNumber(days)} days ago`;
 }
 
-function level(share: number): { label: string; tone: Tone } {
-  if (share >= ALERT_AT) return { label: "Alert", tone: "danger" };
-  if (share >= WARNING_AT) return { label: "Warning", tone: "warning" };
-  return { label: "Within limit", tone: "ok" };
-}
-
 /** The free-tier gauges of screen 2: our own numbers and the laptop's vendor readings, each as a share of its limit. */
 export function GaugesTile({ data, now = Date.now() }: { data: Dashboard; now?: number }) {
   return (
@@ -57,7 +44,7 @@ export function GaugesTile({ data, now = Date.now() }: { data: Dashboard; now?: 
       <ul>
         {measured(data).map((gauge) => {
           const share = gauge.used / gauge.limit;
-          const state = level(share);
+          const state = gaugeLevel(share);
           return (
             <li key={gauge.name} aria-label={gauge.name} data-level={state.tone}>
               <span className="admin-gauges__name">{gauge.name}</span>
@@ -78,7 +65,8 @@ export function GaugesTile({ data, now = Date.now() }: { data: Dashboard; now?: 
               </li>
             );
           }
-          if (reading.limit === null && reading.note !== null) {
+          const limit = gaugeLimit(line.line, reading.limit, reading.note);
+          if (limit === null) {
             return (
               <li key={line.name} aria-label={line.name}>
                 <span className="admin-gauges__name">{line.name}</span>
@@ -89,8 +77,8 @@ export function GaugesTile({ data, now = Date.now() }: { data: Dashboard; now?: 
               </li>
             );
           }
-          const share = reading.used / (reading.limit ?? line.limit);
-          const state = level(share);
+          const share = reading.used / limit;
+          const state = gaugeLevel(share);
           return (
             <li key={line.name} aria-label={line.name} data-level={state.tone}>
               <span className="admin-gauges__name">{line.name}</span>

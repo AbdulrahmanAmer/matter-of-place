@@ -284,6 +284,7 @@ describe("the shared table of public forms (H79 (6))", () => {
       "/contact",
       "/submit",
       "/privacy-request",
+      "/account",
     ]);
   });
 });

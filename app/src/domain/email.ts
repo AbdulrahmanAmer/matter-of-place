@@ -26,6 +26,7 @@ export const emailTemplateKeys = [
   "market_open",
   "campaign_report",
   "newsletter_welcome",
+  "account_link",
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -168,6 +169,7 @@ export const variablesByKey = {
     "latest_url",
     "latest_image",
   ],
+  account_link: ["sign_in_url"],
 } as const satisfies Record<EmailTemplateKey, readonly string[]>;
 
 type VariableName = (typeof variablesByKey)[EmailTemplateKey][number];
@@ -247,6 +249,7 @@ const sampleValues = (siteUrl: string): Record<VariableName, string | SampleBloc
   clicks: "42",
   video_views: "1,200",
   ctr: "1.2%",
+  sign_in_url: `${siteUrl}/account/confirm#token_hash=sample-token`,
   subject: "Alder Court, Pasadena",
   preheader: "A new property in California",
   what_you_receive:

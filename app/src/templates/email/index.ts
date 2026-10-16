@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import * as acceptedFile from "./accepted.tsx";
+import * as accountLinkFile from "./account-link.tsx";
 import * as adminNotifyFile from "./admin-notify.tsx";
 import * as awaitingAssetsFile from "./awaiting-assets.tsx";
 import * as campaignReportFile from "./campaign-report.tsx";
@@ -45,6 +46,7 @@ export const definitions: readonly EmailTemplateFile[] = [
   marketOpenFile,
   campaignReportFile,
   newsletterWelcomeFile,
+  accountLinkFile,
 ];
 
 /** A definition as the row it seeds: the shape `renderTemplate` takes. */
