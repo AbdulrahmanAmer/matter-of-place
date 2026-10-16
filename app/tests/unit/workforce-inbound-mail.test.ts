@@ -242,6 +242,21 @@ describe("W8 0h: the replayed real messages go where the item says", () => {
     expect(recorded.args.p_line).toBe("");
   });
 
+  it("never trusts a Zoho verdict that stands below the message's own headers", () => {
+    // Zoho wrote none (its line taken out); the sender's passing one sits among the message's own headers.
+    const lines = SEARCH_CONSOLE.header.split("\r\n");
+    const below = lines
+      .filter((line) => !line.startsWith("Authentication-Results: mx.zohomail.com"))
+      .map((line) =>
+        line.startsWith("Subject: ")
+          ? `Authentication-Results: mx.zohomail.com; dkim=pass; spf=pass; dmarc=pass(p=reject dis=none) header.from=google.com\r\n${line}`
+          : line,
+      )
+      .join("\r\n");
+    expect(below.split("mx.zohomail.com;")).toHaveLength(2);
+    expect(authenticatedDomain(below, "sc-noreply@google.com")).toBeNull();
+  });
+
   it("sends a person's email to hello@ to its owner as new mail, with the alias it was sent to", () => {
     const recorded = inboundRecord(PERSON("Is the Malibu house still available?"));
     expect(recorded.args.p_source).toBe("email_inbound");

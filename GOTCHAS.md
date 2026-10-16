@@ -8468,6 +8468,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: W8 0h: `--changed 544a7db5` (the merge-base with overdrive/finish) also selected every entry of the files main brought in through the branch's own merge commit, so it replayed authz entries for minutes; stopping it left `checkLayout();` inserted in `app/scripts/check-layout.mjs`.
 - rule: replay from the commit before your own first commit (`git log --oneline` → the parent of your first commit), and after stopping any replay run `git status --short` and `git restore` every file it left changed before the next step.
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed 89d5bdc4 --kinds unit` selects only W8 0h's files and the entries anchored on them.
+- hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
 
 ## P-3690 · A test fixture for a row a script writes must copy the writer's real shape, or a screen can print the raw value and stay green

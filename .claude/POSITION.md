@@ -2082,3 +2082,30 @@ first day of the new usage week; no step was cut from any plan.
   TypeError; both fixed, the red assertions read); 10 W8-0 entries replayed OK, 4 updated for moved lines. W8 item 0d
   stays [ ] with a "Built 2026-10-16" line. UNPROVEN: a real test message held, explained and decided in the Office
   (needs the runner on the merged code). Bank grew: P-3590; P-3478 and P-1303 hit again.
+
+- 2026-10-16 W8 0h review round (overdrive/w8-0h, pushed, no PR; Matter merges into overdrive/finish): a fresh Opus
+  review failed round one on two highs; every finding fixed. Merged origin/overdrive/finish first (kept both sides of
+  the position block and rulings; the daemon checks the held line's explanation, then notes the triage; finish's own
+  `check-layout.mjs` had an unterminated SERVER_DOMAINS string, closed). (1) Retention reads the policies of its own
+  steps, so `email_replies` and `inbound_mail` are purged; the unit fake's `.in()` filters by the keys asked.
+  (2) A DMARC record fails when DMARC itself fails (neither DKIM nor SPF passed in policy_evaluated), whatever the
+  disposition; a p=none report wakes Matter. (3) More than one `mx.zohomail.com` verdict in a message is
+  unauthenticated; the three real fixtures keep every header line in order (values redacted) and the test asserts the
+  names; a forged verdict inside the trace block and one below the message headers are tests. (4) The mail pass reads
+  oldest new mail first, 100 a folder a check, and moves the cursor only over what it read (never past a shared
+  millisecond); past 40 pages it finds the backlog's oldest page by doubling and halving, so a folder always moves.
+  (5) A fixed Search Console parser gives Matter labels from closed lists; reports are read whatever Zoho's folder;
+  the Newsletter rule needs List-Unsubscribe, no report and no parser match. (6) A service's and our own mail keep no
+  body (table check `inbound_mail_body_person_only`). (7) With Matter off a notice tells the team. (8) A property
+  offered to any address is handed to the Editor after triage (`handToEditor`). (9) Stripe kept, with a line in H121.
+  Also: round one never added `inbound_mail` to the db companions (schema manifest, RLS matrix, RLS fixture): added.
+  Migrations renamed to 20261016084324 and 20261016084349 (after finish's newest). Ruling H121 (1), (2), (4), (5),
+  (10) to (13). Registry `tests/mutations/W8-0h.json` 54 entries; replayed: 10 sql on the stub cluster and 213 unit
+  entries the branch touches, 206 OK, w3-e-flow-sentence and w8-0h-spoof-first-stamp (repointed) OK by id after; 5
+  db-project entries of other plans (B2 d, g5-not-pii, b, g11-rls-own-row; W6-7 rls-matrix-client-grant) cannot run
+  without a database here ("No test files found"): CI's db job counts. Unit 32/32, retention 7/7, db 10/10 on the stub.
+  UNPROVEN: a live run of the merged code against the mailbox (the replay is of three real messages read 2026-10-16);
+  a real person's email; a forged verdict sent from an outside server; the function on the real database; a real
+  Matter answer to a notice; the Editor hand-off live. W8 0g's `drive_copy` check is not on finish yet: whichever of
+  the two ops_health migrations lands later must hold both checks. Bank grew: P-4506 to P-4508; P-4502, P-4503,
+  P-4505 and P-2404 hit again.

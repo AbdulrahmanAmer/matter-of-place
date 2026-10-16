@@ -30,10 +30,10 @@
     "id": "w8-0h-spoof-first-stamp",
     "test": "tests/unit/workforce-inbound-mail.test.ts",
     "file": "scripts/workforce/service-notice.ts",
-    "find": "const first = (lines[at] ?? \"\")",
-    "replace": "const first = (lines.findLast((line) => stamp.test(line)) ?? \"\")",
-    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"treats a spoof of sc-noreply@google.com that does not authenticate as a stranger, whatever it forges\"",
-    "expect": "× .*treats a spoof of sc-noreply@google\\.com that does not authenticate as"
+    "find": "  const block = end < 0 ? lines : lines.slice(0, end);",
+    "replace": "  const block = lines;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"never trusts a Zoho verdict that stands below the message's own headers\"",
+    "expect": "× .*never trusts a Zoho verdict that stands below the message's "
   },
   {
     "id": "w8-0h-person-new",
