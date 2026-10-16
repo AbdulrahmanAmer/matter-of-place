@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { adminRoutes, checkCall } from "../../scripts/matter/actions";
 import { colleagueCalls } from "../../scripts/workforce/colleague-calls";
 
 // W5 item 12 (H102 (5)): a colleague proposes admin changes on its own routes only; never money, never publishing.
@@ -31,6 +32,21 @@ describe("a colleague's admin calls", () => {
       call("POST", "/api/admin/submissions/start-review"),
     ]);
     expect(allowed).toHaveLength(1);
+  });
+
+  it("never lets a colleague reject or re-render a visual, by route or by Matter's named action (W8 item 9)", () => {
+    const named = { action: "assets.reject", id: ID, note: "Too dark." };
+    const disguised = { ...call("POST", `/api/admin/submissions/${ID}/note`), ...named };
+    const { allowed, refused } = colleagueCalls("editor", [
+      call("POST", `/api/admin/assets/${ID}/reject`),
+      call("POST", `/api/admin/assets/${ID}/rerender`),
+      named,
+      disguised,
+    ]);
+    // The disguised one stays the note it names by method and path; the runner reads the action only without one.
+    expect({ allowed, refused: refused.length }).toEqual({ allowed: [disguised], refused: 3 });
+    const check = checkCall(disguised, adminRoutes(), ["submissions.note", "assets.reject"]);
+    expect(check.ok ? check.route.action : check.reason).toBe("submissions.note");
   });
 
   it("refuses a colleague's own path under another method", () => {

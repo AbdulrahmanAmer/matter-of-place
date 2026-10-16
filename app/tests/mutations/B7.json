@@ -57,7 +57,7 @@
     "id": "b7-g1-role-check",
     "test": "tests/unit/authz.matrix.test.ts",
     "file": "src/server/lib/authz.ts",
-    "find": "return entry.roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
+    "find": "return roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
     "replace": "return null;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
     "expect": "× .*refuses a roleless actor everywhere"
@@ -66,7 +66,7 @@
     "id": "b7-g1-sweep-probe",
     "test": "tests/unit/admin-authz-sweep.test.ts",
     "file": "src/server/lib/authz.ts",
-    "find": "return entry.roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
+    "find": "return roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
     "replace": "return null;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-authz-sweep.test.ts",
     "expect": "× .*the probe tells a guarded service"

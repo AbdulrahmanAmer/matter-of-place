@@ -85,6 +85,22 @@ describe("Matter's run", () => {
     }).toEqual({ full: [true, true, false], read: [true, true] });
   });
 
+  it("offers Matter the two visual decisions at both powers, and never an approval (W8 item 9)", () => {
+    const base = { charterText: "C", atlasText: "A", notes: "", thread: "t", business: "" };
+    const offered = (["full", "read"] as const).map((power) => {
+      const prompt = matterPrompt({ ...base, power });
+      return [
+        prompt.includes('{"action": "assets.reject", "id": "the asset id", "note"'),
+        prompt.includes('{"action": "assets.re_render", "id": "the same id"}'),
+        prompt.includes('"action": "assets.approve"'),
+      ];
+    });
+    expect(offered).toEqual([
+      [true, true, false],
+      [true, true, false],
+    ]);
+  });
+
   it("maps every admin screen, every permission and the admin API in its atlas", () => {
     const text = atlas(new Date("2026-10-12T00:00:00Z"));
     expect([

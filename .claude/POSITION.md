@@ -1976,6 +1976,20 @@ first day of the new usage week; no step was cut from any plan.
   rewritten after it stayed green: its addresses no longer formed one family); both tsc, eslint, prettier, layout exit 0;
   knip clean apart from a temp file since removed. UNPROVEN: the runner on the live request 4a3c2563, the real Haiku
   triage reading its fields, a colleague opening the photographs. Bank grew: P-3577, P-3578.
+- 2026-10-16 05:10 +0300: W6 item 7 back on `overdrive/w6-7` after a fresh Opus review (two high, four medium, three
+  low). Merged `origin/overdrive/finish` first: W8 0e had taken H113, so the client room's ruling is now H119 (P-3674).
+  Fixed: client links no longer go through Supabase's one magic-link template (it opens `/admin/auth/confirm`) nor its
+  10-an-hour mail limit: the form answers "sent" before any lookup, and a contact's address gets a `send_email` job of
+  the new template `account_link` whose step makes the auth user (unconfirmed) and the link (`generateLink`) when it
+  runs, mailed through Resend under a cap of its own (10 an hour, 40 a day); the token rides in the `#fragment` and
+  the confirm page strips it; nothing under `/account` loads GA4 or is cached (`neverCached`); a staff member is not
+  signed in at `/account/confirm`; sign-out is local; the room says "Signed in as <name>, <email>". The branch's five
+  migrations took timestamps after main's newest (check-migrations). Proof: registry W6-7.json 67 of 67 WATCHED-FAIL OK
+  and each red run read; db 62, unit 340 of 342 (two load timeouts passed alone), component 12; both tsc, eslint, prettier, knip,
+  deno check, bundle-check, gitleaks, layout, check-plans and check-migrations OK. W6.md item 7 is unticked with a Built line. UNPROVEN: a real `account_link` email
+  sent, opened and spent (after merge, the runner deploys from main); the CI db job; a browser look. NOT DONE: a line to
+  `/account` in the other client emails ("Starts"), uploads and contact preferences (item 8), `track()` for sign-in.
+  Bank grew: P-3674, P-3675, P-3676; P-3673 hit again.
 - 2026-10-16 01:00 +0300: W7 item 3 review fixes (PR 442, builder, Sonnet 5.5): the state of a campaign is read on its market's
   own day (`dayInZone` in `domain/market-time`, Pacific for California, Eastern otherwise) instead of the UTC day; `campaigns`
   is in `adminKeys` (STUB dropped); `package` is `z.enum(exposurePackages)` in the contract and the service; `marketName`
