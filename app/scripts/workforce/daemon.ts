@@ -332,7 +332,7 @@ export function answerPlan(input: {
     summary: fixed?.run ?? (result.task || result.reply).slice(0, 300),
     // W8 0d: only Matter's read of a held message can let its owner answer it.
     allow: shape.rule === "held" && input.answer.allow,
-    // and how, as one of the closed postures (null: a "how" off the list, so no allowance is made, H114)
+    // and how, as one of the closed postures (null: a "how" off the list, so no allowance is made, H117)
     how: shape.rule === "held" && input.answer.allow ? postureOf(input.answer.how) : null,
   };
 }

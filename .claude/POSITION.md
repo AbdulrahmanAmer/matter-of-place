@@ -2000,7 +2000,7 @@ first day of the new usage week; no step was cut from any plan.
   queues Matter's read once per line and says a failure; a usage-limit stop requeues. Matter's held prompt carries the
   owner's explanation (`ownerExplanation`: newest `outside-reply:<owner>` after the held line and not after Matter's
   run, fenced, 3,000 chars) or "none", and names four postures (posture.ts); `how` reaches the owner only as the
-  runner's words in `allowLine`, none means answer, off the list allows nothing (`HOW_REFUSED`). Ruling H114. Tests:
+  runner's words in `allowLine`, none means answer, off the list allows nothing (`HOW_REFUSED`). Ruling H117. Tests:
   tests/unit/workforce-escalation.test.ts walks the runner's own `runOnce` (exported) on an in-memory database;
   tests/mutations/W8-0d.json holds 35 entries, all WATCHED-FAIL OK (one first stayed green and one went red on a
   TypeError; both fixed, the red assertions read); 10 W8-0 entries replayed OK, 4 updated for moved lines. W8 item 0d

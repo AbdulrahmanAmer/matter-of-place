@@ -7,7 +7,7 @@ export const POSTURES = ["answer", "decline_kindly", "ask_one_question", "point_
 
 export type Posture = (typeof POSTURES)[number];
 
-/** What a `how` outside the four reads as: the schema keeps it, and it is never an allowance (H114). */
+/** What a `how` outside the four reads as: the schema keeps it, and it is never an allowance (H117). */
 export const HOW_OFF_LIST = "off_list";
 
 /** The runner's own words for each posture, the only form in which Matter's "how" reaches the owner. */
