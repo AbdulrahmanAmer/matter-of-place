@@ -34,6 +34,14 @@ begin
   ) then
     v_failing := array_append(v_failing, 'backup');
   end if;
+  -- W8 0h: the laptop's mailbox check beats `mail_folders` every five minutes; a folder it could not read (or a
+  -- mailbox it could not reach) beats ok false, named here until a check reads them all again.
+  if exists (
+    select 1 from public.ops_heartbeats
+    where name = 'mail_folders' and at >= p_now - interval '30 minutes' and detail ->> 'ok' = 'false'
+  ) then
+    v_failing := array_append(v_failing, 'mail_folders');
+  end if;
   -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.
   if exists (
     select 1 from public.jobs

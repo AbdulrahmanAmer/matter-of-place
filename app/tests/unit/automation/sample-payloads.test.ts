@@ -35,13 +35,13 @@ const sample = (trigger: string, options: FakeDbOptions = tables()) =>
   samplePayloadFor(fakeDb(options), trigger, ID, NOW);
 
 describe("samplePayloadFor", () => {
-  it("builds a payload for each of the 19 triggers that its event schema accepts", async () => {
+  it("builds a payload for each of the 20 triggers that its event schema accepts", async () => {
     const refused: string[] = [];
     for (const type of eventTypes) {
       const payload = await sample(type);
       if (!eventPayloadSchemas[type].safeParse(payload).success) refused.push(type);
     }
-    expect(eventTypes).toHaveLength(19);
+    expect(eventTypes).toHaveLength(20);
     expect(refused).toEqual([]);
   });
 

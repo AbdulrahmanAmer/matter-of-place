@@ -115,7 +115,7 @@ export function replyIdOf(body: string): string | null {
  */
 export function recordOf(body: string): { source: SourceName; id: string } | null {
   const match =
-    /\nRecord: (inquiry|email_reply|submission|privacy_request) ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.$/.exec(
+    /\nRecord: (inquiry|email_reply|email_inbound|submission|privacy_request) ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.$/.exec(
       body,
     );
   const source = match?.[1] ?? "";
@@ -235,11 +235,16 @@ export async function outsideText(db: Db, source: SourceName, id: string): Promi
           ["Note", row.note],
         ]);
   }
-  const { data } = await db
-    .from("email_replies")
-    .select("from_name, subject, body")
-    .eq("id", id)
-    .limit(1);
+  // W8 0h: a person's email to one of our addresses; only a row the mailbox recorded as a person's is read.
+  const { data } =
+    source === "email_inbound"
+      ? await db
+          .from("inbound_mail")
+          .select("from_name, subject, body")
+          .eq("id", id)
+          .eq("source", "email_inbound")
+          .limit(1)
+      : await db.from("email_replies").select("from_name, subject, body").eq("id", id).limit(1);
   const row = data?.[0];
   return row === undefined
     ? ""
@@ -362,7 +367,9 @@ export function ownsOutside(triage: Triage, agentSlug: string): boolean {
 /** The same rule by source alone, so a run that does not own the message is never sent to the triage (it costs one). */
 export function ownsSource(source: SourceName, agentSlug: string): boolean {
   if (agentSlug === "matter") return false;
-  if (source === "email_reply") return ["editor", "concierge", "chief"].includes(agentSlug);
+  // W8 0h: a person's email goes, like a reply, to the colleague `inbound_mail_record` chose by its alias.
+  if (source === "email_reply" || source === "email_inbound")
+    return ["editor", "concierge", "chief"].includes(agentSlug);
   return sources[source].owner === agentSlug;
 }
 

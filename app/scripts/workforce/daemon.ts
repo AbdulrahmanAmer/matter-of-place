@@ -73,6 +73,7 @@ import { groundingLines, requestSequence } from "./grounding.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
+import { noteTriage } from "./inbound-mail.ts";
 import { bounceFacts, wakes } from "./bounce.ts";
 import { checkNewAddresses, refusedAddress } from "./email-check.ts";
 import { refreshPolicy, staffPolicy } from "./config.ts";
@@ -646,6 +647,8 @@ async function runOnce(client: Db): Promise<boolean> {
     );
     // W8 0a/0d: an outside message is answered by its owner only; anyone else it woke does nothing with it.
     const gate = outsideGate(triage, agent.slug);
+    // W8 0h: a person's email shows in the admin whether its triage let the owner answer it or held it.
+    await noteTriage(client, triage, gate);
     if (gate === "not_owner") {
       await client
         .from("agent_runs")
@@ -1154,12 +1157,16 @@ async function pass(client: Db): Promise<void> {
     console.log(`${new Date().toISOString()} reel pass started`);
   }
   await makeApprovedCalls(client);
-  // W4: replies to our email reach their colleague; a mailbox that fails never stops the runs.
-  const replies = await checkMail(client, HOME).catch((failure: unknown) => {
+  // W4: replies to our email reach their colleague; W8 0h: every other message of every folder is recorded once and
+  // reaches its owner or Matter. A mailbox that fails never stops the runs; a folder it could not read is named.
+  const mail = await checkMail(client, HOME).catch((failure: unknown) => {
     console.log(failure instanceof Error ? failure.message : String(failure));
-    return 0;
+    return null;
   });
-  if (replies > 0) console.log(`${new Date().toISOString()} replies ${String(replies)}`);
+  if (mail !== null && mail.replies + mail.inbound + mail.unread.length > 0)
+    console.log(
+      `${new Date().toISOString()} mail: replies ${String(mail.replies)}, inbound ${String(mail.inbound)}${mail.unread.length === 0 ? "" : `, not read: ${mail.unread.join(", ")}`}`,
+    );
   // W9 item 1: where port 25 opens, each new address is probed once and a refused one is never mailed.
   const refused = await checkNewAddresses(client, HOME).catch((failure: unknown) => {
     console.log(`email check: ${failure instanceof Error ? failure.message : String(failure)}`);

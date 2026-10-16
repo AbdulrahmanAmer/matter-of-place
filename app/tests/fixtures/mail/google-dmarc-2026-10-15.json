@@ -1,0 +1,26 @@
+{
+  "note": "Replayed from the admin@ mailbox (W8 0h, read 2026-10-16): headers allow-listed, links cut to their host.",
+  "folder": {
+    "folderId": "8580671000000008008",
+    "folderName": "Inbox",
+    "folderType": "Inbox"
+  },
+  "message": {
+    "messageId": "1792058910363153400",
+    "folderId": "8580671000000008008",
+    "receivedTime": "1792058910359",
+    "fromAddress": "noreply-dmarc-support@google.com",
+    "sender": "noreply-dmarc-support@google.com",
+    "subject": "Report domain: matterofplace.com Submitter: google.com Report-ID: 12595826647017882662"
+  },
+  "header": "Delivered-To: admin@matterofplace.com\r\nReceived-SPF: pass (zohomail.com: domain of google.com designates 209.85.222.202 as permitted sender) client-ip=209.85.222.202; envelope-from=noreply-dmarc-support@google.com; helo=mail-qk1-f202.google.com;\r\nAuthentication-Results: mx.zohomail.com; dkim=pass; spf=pass (zohomail.com: domain of google.com designates 209.85.222.202 as permitted sender)  smtp.mailfrom=noreply-dmarc-support@google.com; dmarc=pass(p=reject dis=none)  header.from=google.com\r\nReceived: from mail-qk1-f202.google.com (mail-qk1-f202.google.com [209.85.222.202]) by mx.zohomail.com with SMTPS id 1792058909237411.03456884907064; Thu, 15 Oct 2026 03:08:29 -0700 (PDT)\r\nReceived: by mail-qk1-f202.google.com with SMTP id af79cd13be357-93caf6c528aso889302785a.0 for <admin@matterofplace.com>; Thu, 15 Oct 2026 03:08:28 -0700 (PDT)\r\nSubject: Report domain: matterofplace.com Submitter: google.com Report-ID: 12595826647017882662\r\nFrom: noreply-dmarc-support@google.com\r\nTo: admin@matterofplace.com\r\nContent-Type: application/zip;  name=\"google.com!matterofplace.com!1791936000!1792022399.zip\"\r\nX-ZohoMail-DKIM: pass (identity @google.com)\r\n",
+  "content": "<div></div>",
+  "attachments": [
+    {
+      "attachmentId": "140113517104710220",
+      "attachmentName": "google.com!matterofplace.com!1791936000!1792022399.zip",
+      "attachmentSize": 780,
+      "base64": "UEsDBAoAAAAIAFVKT10FkQPNPgIAALoIAAA2AAAAZ29vZ2xlLmNvbSFtYXR0ZXJvZnBsYWNlLmNvbSExNzkxOTM2MDAwITE3OTIwMjIzOTkueG1s7VZNb9wgEL33V1h7jzGOd9dbEdJTf0F7tiZ4vItiAwKc3c2vrwj4o2miqmpvzcnw5s3w5sFIZveXoc+e0Dqp1d2G5sUmQyV0K9XxbvP929ebepPd80+sQ2wfQDzyT1nGEp/TvGBk2oSARaOtbwb00IKHgGUZ0/bYKBiQH7U+9pgLPTAyg5GDA8ieK23R9NebdgArbtxoQrkv67TISzkXb6ERWnkQvpGq0/zkvXGfCUmp+ZJKgIByZ7SkrHa7bV0w8kZ+LJzakC2n5fawrcvdrtoXdF+HVcnIEo/8Fjw2FtQxdZNl7AGPUnG6P9DD7a4oCkYiMsVRtSFaFmV5ezgwEvaxGPm52nza2lRmdC/FtTHjQy/dCWchegCp+ADeo9Wd6UEk31Ik0qB9lAO3jMRFAp3pXrDwjZDhSitkxKS9mwA3IUZ4TkN3YREhNZHUC4mRt7Qyi0LbSbbV59kYp0crsJGGb6u8rIqc0pzSipElMFGFHpXnlJG4mOB0Hj5BP4KfvIn+SGe0kz681yhyjax4wRYDzjGyOJQs6FJgtmnV46szGZk7Y7JF5WUn0bo57YTQom06qweutJfdNX/j6tasVPaXYgxGf2osurH3S/1X2tMbeP+k9SNJgxAKpobTZuUF9ii8ttyiQ9UyMgOzL2sF78iBAZ61cuj+TkNZVrK6XmDbPu1FeXm+PevhvDM4gvOolf6tutV9LuJCX/m/MWz1Yhh5fV2BPA3EH8xGVee0rj9m42M23P8wG4wsvyE/AFBLAQIKAAoAAAAIAFVKT10FkQPNPgIAALoIAAA2AAAAAAAAAAAAAAAAAAAAAABnb29nbGUuY29tIW1hdHRlcm9mcGxhY2UuY29tITE3OTE5MzYwMDAhMTc5MjAyMjM5OS54bWxQSwUGAAAAAAEAAQBkAAAAkgIAAAAA"
+    }
+  ]
+}

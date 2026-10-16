@@ -1,17 +1,28 @@
 // W4 (operator, 2026-10-13): replies to the email we send, read from the Zoho mailbox (hello@ is an alias of admin@)
-// every five minutes by the laptop daemon. Only a reply from someone we wrote to is kept; `email_reply_record` matches
-// it to the send it answers and hands it to the colleague who owns that thread as a fenced system line (never a
-// person's, so it never gives full power, ruling H101). The Zoho names are read from the workspace `.env` into this
-// module only, never into process.env, so no Claude child can see them. Values are never printed.
+// every five minutes by the laptop daemon. A reply from someone we wrote to is matched by `email_reply_record` to the
+// send it answers and handed to the colleague who owns that thread as a fenced system line (never a person's, so it
+// never gives full power, ruling H101). W8 0h (operator, 2026-10-16: "the company and Matter should be able to see all
+// emails"): every other message of every folder but Drafts, Templates, Sent, Trash and Outbox is recorded once in
+// `inbound_mail` (inbound-mail.ts): a person's goes to its owner as a triage, a service's to Matter as a notice, spam
+// and bulk are kept for a person. A folder that cannot be read is named in the log and in `ops_health`
+// (`mail_folders`). The Zoho names are read from the workspace `.env` into this module only, never into process.env,
+// so no Claude child can see them. Values, senders, subjects and bodies are never printed.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import type { Db } from "../../src/server/lib/db.ts";
+import { inboundRecord, recordInbound } from "./inbound-mail.ts";
+import { isReportName, MAX_COMPRESSED } from "./mail-reports.ts";
+import { sortMessage, type Attachment } from "./service-notice.ts";
 
 const EVERY_MS = 5 * 60_000;
 const FIRST_LOOK_MS = 3 * 86_400_000;
 const PAGE = 50;
+/** At most this many pages of one folder a check; a folder with more new mail is named, never silently cut. */
+const MAX_PAGES = 6;
 const OWN_DOMAIN = "matterofplace.com";
+/** The folders that are not mail sent to us (W8 0h); Sent is our own mail, already in `email_messages`. */
+export const SKIPPED_FOLDERS = ["Drafts", "Templates", "Sent", "Trash", "Outbox"] as const;
 
 // ---------- what a message says (pure, tested in tests/unit/workforce-mail.test.ts) ----------
 
@@ -102,19 +113,42 @@ const accountSchema = z.object({
 });
 const folderSchema = z.object({
   folderId: z.union([z.string(), z.number()]),
+  folderName: z.string().default(""),
   folderType: z.string().optional(),
 });
+// Zoho's message ids pass 2^53: the list gives them as strings (a number would come back rounded and name another
+// message, measured 2026-10-16: the content call answers `messageId` as a number ending 153300 for ...153400), so a
+// numeric id fails the parse and the folder is named unread rather than misread.
 const messageSchema = z.object({
-  messageId: z.union([z.string(), z.number()]),
-  folderId: z.union([z.string(), z.number()]).optional(),
+  messageId: z.string().regex(/^\d{1,30}$/),
   receivedTime: z.union([z.string(), z.number()]),
   fromAddress: z.string().default(""),
   sender: z.string().default(""),
   subject: z.string().default(""),
+  hasAttachment: z.union([z.string(), z.number(), z.boolean()]).optional(),
 });
 const contentSchema = z.object({ content: z.string().default("") });
+// Measured on the real mailbox, 2026-10-16: `.../messages/<m>/header?raw=true` answers `{ headerContent }`, the raw
+// header block with Zoho's own `Authentication-Results` above the message's headers; `.../attachmentinfo` answers
+// `{ attachments: [{ attachmentId, attachmentName, attachmentSize }] }`; `.../attachments/<a>` answers the bytes.
+const headerSchema = z.object({ headerContent: z.string().default("") });
+const attachmentInfoSchema = z.object({
+  attachments: z
+    .array(
+      z.object({
+        attachmentId: z.union([z.string(), z.number()]),
+        attachmentName: z.string().max(300),
+        attachmentSize: z.union([z.string(), z.number()]).optional(),
+      }),
+    )
+    .default([]),
+});
 
-async function accessToken(names: Names): Promise<string> {
+/** The network, as the pass reaches it (the tests give their own). */
+export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
+
+async function accessToken(names: Names, fetch: Fetch): Promise<string> {
+  // Zoho refuses more than a few refreshes in ten minutes ("Access Denied", P-4501): one token serves a whole check.
   const answer = await fetch("https://accounts.zoho.com/oauth/v2/token", {
     method: "POST",
     body: new URLSearchParams({
@@ -129,95 +163,284 @@ async function accessToken(names: Names): Promise<string> {
   return parsed.data.access_token;
 }
 
-async function zoho(access: string, path: string): Promise<unknown> {
-  const answer = await fetch(`https://mail.zoho.com/api${path}`, {
-    headers: { Authorization: `Zoho-oauthtoken ${access}` },
-  });
-  const parsed = statusSchema.safeParse(await answer.json());
-  if (!parsed.success || parsed.data.status.code !== 200)
-    throw new Error(`mail: Zoho answered ${String(answer.status)} for ${path.split("?")[0] ?? ""}`);
-  return parsed.data.data;
+/** One call to the Mail API: its `data`, or an error naming the path without its query. */
+function zohoClient(access: string, fetch: Fetch) {
+  const call = (path: string) =>
+    fetch(`https://mail.zoho.com/api${path}`, {
+      headers: { Authorization: `Zoho-oauthtoken ${access}` },
+    });
+  return {
+    async json(path: string): Promise<unknown> {
+      const answer = await call(path);
+      const parsed = statusSchema.safeParse(await answer.json());
+      if (!parsed.success || parsed.data.status.code !== 200)
+        throw new Error(
+          `mail: Zoho answered ${String(answer.status)} for ${path.split("?")[0] ?? ""}`,
+        );
+      return parsed.data.data;
+    },
+    /** An attachment's bytes, refused past MAX_COMPRESSED before or after reading. */
+    async file(path: string): Promise<Buffer> {
+      const answer = await call(path);
+      const length = Number(answer.headers.get("content-length") ?? "0");
+      if (!answer.ok || length > MAX_COMPRESSED)
+        throw new Error("mail: an attachment was refused");
+      const bytes = Buffer.from(await answer.arrayBuffer());
+      if (bytes.length > MAX_COMPRESSED) throw new Error("mail: an attachment was refused");
+      return bytes;
+    },
+  };
 }
+
+type Zoho = ReturnType<typeof zohoClient>;
 
 // ---------- the pass ----------
 
-interface Cursor {
-  at: number;
-  checked: number;
-}
+/** When the mailbox was last checked, and per folder the newest message read (ms). */
+type Cursor = { checked: number; at: number; folders: Record<string, number> };
 
 function readCursor(file: string, now: number): Cursor {
   try {
     const value = z
-      .object({ at: z.number(), checked: z.number() })
+      .object({
+        at: z.number(),
+        checked: z.number(),
+        folders: z.record(z.string(), z.number()).default({}),
+      })
       .parse(JSON.parse(readFileSync(file, "utf8")));
     return value;
   } catch {
-    // first run: look back three days, so a reply from today is not missed; a reply is recorded once (provider_id).
-    return { at: now - FIRST_LOOK_MS, checked: 0 };
+    // first run: look back three days, so a message from today is not missed; each is recorded once (provider_id).
+    return { at: now - FIRST_LOOK_MS, checked: 0, folders: {} };
   }
 }
 
-/** One look at the inbox, at most every five minutes. Returns how many replies were recorded. */
-export async function checkMail(client: Db, home: string, now = Date.now()): Promise<number> {
+/** The folders a check reads: every folder of the mailbox but those that hold no mail sent to us (W8 0h). */
+export function foldersToRead<F extends { folderType?: string | undefined }>(
+  folders: readonly F[],
+): F[] {
+  return folders.filter(
+    (folder) => !(SKIPPED_FOLDERS as readonly string[]).includes(folder.folderType ?? ""),
+  );
+}
+
+/** The ids of these messages either table already holds, so a message is never fetched or recorded twice. */
+async function knownIds(client: Db, ids: readonly string[]): Promise<Set<string>> {
+  const known = new Set<string>();
+  for (let start = 0; start < ids.length; start += 100) {
+    const chunk = ids.slice(start, start + 100);
+    const [inbound, replies] = await Promise.all([
+      client.from("inbound_mail").select("provider_id").in("provider_id", chunk),
+      client.from("email_replies").select("provider_id").in("provider_id", chunk),
+    ]);
+    if (inbound.error !== null || replies.error !== null)
+      throw new Error("mail: the recorded messages could not be read");
+    for (const row of [...inbound.data, ...replies.data]) known.add(row.provider_id);
+  }
+  return known;
+}
+
+type Listed = z.infer<typeof messageSchema> & { received: number };
+
+/** A folder's messages newer than its cursor, oldest first; `more` when MAX_PAGES did not reach the cursor. */
+async function newMessages(
+  zoho: Zoho,
+  account: string,
+  folder: string,
+  since: number,
+): Promise<{ rows: Listed[]; more: boolean }> {
+  const rows: Listed[] = [];
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const list = z
+      .array(messageSchema)
+      .parse(
+        await zoho.json(
+          `/accounts/${account}/messages/view?folderId=${folder}&start=${String(page * PAGE + 1)}&limit=${String(PAGE)}&sortorder=false`,
+        ),
+      )
+      .map((row) => ({ ...row, received: Number(row.receivedTime) }));
+    rows.push(...list.filter((row) => row.received > since));
+    if (list.length < PAGE || list.some((row) => row.received <= since))
+      return { rows: rows.sort((a, b) => a.received - b.received), more: false };
+  }
+  return { rows: rows.sort((a, b) => a.received - b.received), more: true };
+}
+
+/** A message's attachments: names always, bytes only for a report a service notice may carry. */
+async function attachmentsOf(
+  zoho: Zoho,
+  base: string,
+  wanted: boolean,
+): Promise<Attachment[]> {
+  const info = attachmentInfoSchema.parse(await zoho.json(`${base}/attachmentinfo`));
+  const out: Attachment[] = [];
+  for (const attachment of info.attachments.slice(0, 50)) {
+    const name = attachment.attachmentName;
+    if (!wanted || !isReportName(name)) {
+      out.push({ name, file: null, refused: "not read" });
+      continue;
+    }
+    if (Number(attachment.attachmentSize ?? 0) > MAX_COMPRESSED) {
+      out.push({ name, file: null, refused: "the file is larger than the limit" });
+      continue;
+    }
+    const file = await zoho
+      .file(`${base}/attachments/${String(attachment.attachmentId)}`)
+      .catch(() => null);
+    out.push(file === null ? { name, file: null } : { name, file });
+  }
+  return out;
+}
+
+/** What a check did, for the runner's log: counts and folder names only. */
+export type MailCheck = { replies: number; inbound: number; unread: string[] };
+
+/**
+ * One look at every folder, at most every five minutes. A reply to our email goes to `email_reply_record` as before;
+ * every other message is recorded once through `inbound_mail_record`. A folder that cannot be listed or a message that
+ * cannot be recorded stops that folder where it is (its cursor stays before it), and the folder is named in the log
+ * and in the `mail_folders` beat that `ops_health` reads.
+ */
+export async function checkMail(
+  client: Db,
+  home: string,
+  now = Date.now(),
+  deps: { names: () => Names | null; fetch: Fetch } = { names: zohoNames, fetch },
+): Promise<MailCheck> {
   const file = join(home, "mail.json");
   const cursor = readCursor(file, now);
-  if (now - cursor.checked < EVERY_MS) return 0;
-  const names = zohoNames();
-  if (names === null) return 0;
+  const done: MailCheck = { replies: 0, inbound: 0, unread: [] };
+  if (now - cursor.checked < EVERY_MS) return done;
+  const names = deps.names();
+  if (names === null) return done;
   writeFileSync(file, JSON.stringify({ ...cursor, checked: now }));
-  const access = await accessToken(names);
-  const accounts = z.array(accountSchema).parse(await zoho(access, "/accounts"));
-  const account =
-    accounts.find((row) => row.primaryEmailAddress === `admin@${OWN_DOMAIN}`) ?? accounts[0];
-  if (account === undefined) return 0;
-  const id = String(account.accountId);
-  const folders = z.array(folderSchema).parse(await zoho(access, `/accounts/${id}/folders`));
-  const inbox = folders.find((folder) => folder.folderType === "Inbox");
-  if (inbox === undefined) return 0;
-  const folder = String(inbox.folderId);
-  const list = z
-    .array(messageSchema)
-    .parse(
-      await zoho(
-        access,
-        `/accounts/${id}/messages/view?folderId=${folder}&limit=${String(PAGE)}&sortorder=false`,
-      ),
-    );
-  const fresh = list
-    .map((row) => ({ ...row, received: Number(row.receivedTime) }))
-    .filter((row) => row.received > cursor.at)
-    .sort((a, b) => a.received - b.received);
-  let recorded = 0;
-  let newest = cursor.at;
-  for (const row of fresh) {
-    newest = Math.max(newest, row.received);
-    const from = addressOf(row.fromAddress);
-    if (isAutomatic(row.fromAddress, row.subject)) continue;
-    // Only someone we wrote to: the content of anyone else's mail is never fetched.
+  const beat = async (unread: string[]) => {
+    const { error } = await client.rpc("beat", {
+      p_name: "mail_folders",
+      p_detail: { ok: unread.length === 0, unread },
+    });
+    if (error !== null) console.log("mail: the mailbox heartbeat was not recorded");
+  };
+  let zoho: Zoho;
+  let id: string;
+  let folders: z.infer<typeof folderSchema>[];
+  try {
+    zoho = zohoClient(await accessToken(names, deps.fetch), deps.fetch);
+    const accounts = z.array(accountSchema).parse(await zoho.json("/accounts"));
+    const account =
+      accounts.find((row) => row.primaryEmailAddress === `admin@${OWN_DOMAIN}`) ?? accounts[0];
+    if (account === undefined) throw new Error("mail: the mailbox has no account");
+    id = String(account.accountId);
+    folders = z.array(folderSchema).parse(await zoho.json(`/accounts/${id}/folders`));
+  } catch (failure: unknown) {
+    await beat(["the mailbox"]);
+    throw failure;
+  }
+  const next: Cursor = { checked: now, at: cursor.at, folders: { ...cursor.folders } };
+  for (const folder of foldersToRead(folders)) {
+    const folderId = String(folder.folderId);
+    const name = folder.folderName === "" ? (folder.folderType ?? folderId) : folder.folderName;
+    // An old cursor knew only the Inbox: it keeps its place; any other folder looks back three days once.
+    const since =
+      cursor.folders[folderId] ??
+      (folder.folderType === "Inbox" && name === "Inbox" ? cursor.at : now - FIRST_LOOK_MS);
+    try {
+      const { rows, more } = await newMessages(zoho, id, folderId, since);
+      if (more) done.unread.push(`${name} (more new mail than one check reads)`);
+      const known = await knownIds(
+        client,
+        rows.map((row) => row.messageId),
+      );
+      let newest = since;
+      for (const row of rows) {
+        if (!known.has(row.messageId)) {
+          const kind = await oneMessage(client, zoho, id, folderId, folder, name, row);
+          if (kind === "reply") done.replies += 1;
+          if (kind === "inbound") done.inbound += 1;
+        }
+        newest = Math.max(newest, row.received);
+        next.folders[folderId] = newest;
+      }
+    } catch (failure: unknown) {
+      console.log(
+        `${new Date().toISOString()} mail: the folder ${name} could not be read (${failure instanceof Error ? failure.message : "unknown"})`,
+      );
+      done.unread.push(name);
+    }
+    writeFileSync(file, JSON.stringify(next));
+  }
+  await beat(done.unread);
+  return done;
+}
+
+/** One new message: a reply to our email stays on the W4 path; anything else is recorded as inbound mail. */
+async function oneMessage(
+  client: Db,
+  zoho: Zoho,
+  account: string,
+  folderId: string,
+  folder: z.infer<typeof folderSchema>,
+  name: string,
+  row: Listed,
+): Promise<"reply" | "inbound" | "known"> {
+  const base = `/accounts/${account}/folders/${folderId}/messages/${row.messageId}`;
+  const from = addressOf(row.fromAddress);
+  const automatic = isAutomatic(row.fromAddress, row.subject);
+  let content: string | null = null;
+  const readContent = async () =>
+    (content ??= contentSchema.parse(await zoho.json(`${base}/content`)).content);
+  if (!automatic && folder.folderType !== "Spam") {
     const { count } = await client
       .from("email_messages")
       .select("id", { count: "exact", head: true })
       .eq("to_email", from);
-    if ((count ?? 0) === 0) continue;
-    const content = contentSchema.parse(
-      await zoho(
-        access,
-        `/accounts/${id}/folders/${String(row.folderId ?? folder)}/messages/${String(row.messageId)}/content`,
-      ),
-    );
-    const { data, error } = await client.rpc("email_reply_record", {
-      p_provider_id: String(row.messageId),
-      p_from: from,
-      p_name: row.sender,
-      p_subject: row.subject,
-      p_body: withoutQuoted(plainText(content.content)).slice(0, 6000),
-      p_received_at: new Date(row.received).toISOString(),
-    });
-    if (error !== null) throw new Error("mail: a reply could not be recorded");
-    // The function returns null for a reply already recorded; the generated type cannot say so.
-    if ((data as string | null) !== null) recorded += 1;
+    if ((count ?? 0) > 0) {
+      const { data, error } = await client.rpc("email_reply_record", {
+        p_provider_id: row.messageId,
+        p_from: from,
+        p_name: row.sender,
+        p_subject: row.subject,
+        p_body: withoutQuoted(plainText(await readContent())).slice(0, 6000),
+        p_received_at: new Date(row.received).toISOString(),
+      });
+      if (error !== null) throw new Error("mail: a reply could not be recorded");
+      // The function returns null for a reply already recorded or one with no send to answer; the generated type
+      // cannot say so. With no send it is not a reply, and it is recorded below as inbound mail.
+      if ((data as string | null) !== null) return "reply";
+    }
   }
-  writeFileSync(file, JSON.stringify({ at: newest, checked: now }));
-  return recorded;
+  const header = headerSchema.parse(await zoho.json(`${base}/header?raw=true`)).headerContent;
+  const has = row.hasAttachment !== undefined && !["0", 0, false].includes(row.hasAttachment);
+  const recorded = inboundRecord({
+    providerId: row.messageId,
+    folder: { name, type: folder.folderType ?? "" },
+    from,
+    fromName: row.sender,
+    subject: row.subject,
+    receivedAt: row.received,
+    header,
+    content: await readContent(),
+    // Report bytes are fetched only for an authenticated service's notice (sortMessage reads the header first).
+    attachments: has
+      ? await attachmentsOf(
+          zoho,
+          base,
+          sortMessage({
+            folderType: folder.folderType ?? "",
+            folderName: name,
+            from,
+            subject: row.subject,
+            header,
+            automatic,
+          }).state === "escalated",
+        )
+      : [],
+    automatic,
+  });
+  const fresh = await recordInbound(client, recorded);
+  if (fresh)
+    console.log(
+      `${new Date().toISOString()} mail: ${recorded.args.p_source} ${recorded.state} in ${name}`,
+    );
+  return fresh ? "inbound" : "known";
 }
