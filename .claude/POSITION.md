@@ -2122,3 +2122,36 @@ first day of the new usage week; no step was cut from any plan.
   Third merge of overdrive/finish (5b772b6d; the layout map keeps drive-copy.ts, new-work.ts and request-desk.ts):
   both tsc, eslint, prettier, knip exit 0, layout OK (3563 files), unit 141 passed, gitleaks no leaks; B1b:aj stayed
   green once right after the unit run and replayed WATCHED-FAIL OK alone (the merge changed only a glob in that file).
+- 2026-10-16 W8 0d and W6 7, second follow-up (overdrive/followups-a, pushed, no PR; Matter merges into overdrive/finish).
+  Fixes for the Opus review (1 high, 2 medium, 3 low): (1) the owner's explanation is the line its finished run recorded
+  as its reply, `agent_runs.reply_message_id` (new migration `20261016090000_agent_runs_reply_message.sql`; `src/db/types.ts`
+  edited by hand for the column), never a window of times, so laptop-versus-database clock skew and a requeued run's old
+  `started_at` cannot hide or swap it (`ownerExplanation`, explain.ts; `daemon.ts` writes `reply_message_id: replyId`). The
+  test's database keeps the runner's own `finished_at` and can run an hour ahead of the laptop (`memoryDb(..., clockAhead)`).
+  (2) An owner paused or off after the hold: `handUnavailableOwners` (explain.ts), called at the top of `runOnce`, closes
+  its queued explanation run in fixed words, says `OWNER_UNAVAILABLE` and queues Matter's read once; the unreachable branch
+  in `holdForMatter` is gone; tested through `runOnce` for paused and off. (3) Matter's none-line reads "There is no
+  explanation from the owner". (4) Team invite: `inviteExisting` grants only when the user has no `user_roles` row at all
+  (409 otherwise, a switched-off teammate included), looks the user up with the new `public.user_id_by_email` (migration
+  `20261016103021_fn_user_id_by_email.sql`, service role only, db test in `account.db.test.ts`) instead of `generateLink`,
+  and the answer carries `mailed` (`userCreatedSchema`), so the Team screen says roles were given and no email was sent.
+  Registry: `W8-0d.json` 47 entries (the window, paused and failed-explanation ones replaced), `W6-7.json` 82 (6 new, 2
+  moved); CI replays them, not run here (no local CI). Ran here: the four affected unit files (84 passed), the Team
+  component file (6 passed). UNPROVEN: both migrations on the cloud project (the runner on the merged code fails a run
+  without the column, so `mop-dev` must have it before the runner follows main); the db test for `user_id_by_email` (CI db
+  job); tsc, lint, knip (not run, by rule); a real held message explained and decided; a real former-client invite in the
+  browser. Bank grew: P-3700, P-3701.
+- 2026-10-16 16:30 +0300: orchestrator. Overdrive state. PR 447 (overdrive/finish, ready, NOT merged) is fully green: check,
+  build, db (805 mutations), e2e, preview. It holds w7-7, w8-0d (H117), w6-7 (H119), w8-9, w7-4, reel-photos (H110), photo-slide,
+  runner faults, w8-0g. Eight CI rounds on GitHub, each one real defect: folder-map quote (P-3692), migration order, TS2375
+  (P-3693), prettier twice (P-3695, format through app/.prettierrc), four cross-branch gaps (P-3694), /account in the audit list,
+  two mutation entries. BLOCKED, OPERATOR: (1) merge PR 447 now, against the one-PR order, or wait; (2) W7 9: may submitter-typed
+  fields reach a colleague's prompt inside the fence (H123 point 1). Failed fresh review at 15:40, fixes briefed, NOT launched
+  (allowance 97%): w8-10 (agentRoles on reject/rerender/create), w8-0h (one failing message stops its folder), toolkits (no route
+  for photographs into the work folder), followups. Second round after the weekly reset (Wed 19:00), operator's word only:
+  queue.txt and W7 8, 10, 11, 12, 14, W8 2 (STOP file holds the slot filler). Orders recorded today: scope freeze; no local CI
+  (CI runs only on PRs to main, so a draft PR is the integration check; db and e2e need a non-draft PR); the allowance override
+  (~/.mop-workforce/config.json matterModel opus, backlog all). UNPROVEN: the goal hand-off fix (live.log has no goal step since
+  00:35 UTC; it lands with PR 447). Fairfield lane test closed: FAIL (Julian and Matter), set in Drive, three abstract reels
+  rejected by hand with notes. Laptop: 16 GB of runaway task logs deleted on the operator's word; held at Idle for an OmniSuite
+  film export, then restored. Bank grew: P-3606, P-3607.

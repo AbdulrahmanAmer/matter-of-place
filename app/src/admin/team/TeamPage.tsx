@@ -126,8 +126,12 @@ export function TeamPage() {
           pending={invite.isPending}
           onInvite={(input) =>
             invite.mutateAsync(input).then(
-              () => {
-                toast({ message: "Invitation sent." });
+              (invited) => {
+                toast({
+                  message: invited.mailed
+                    ? "Invitation sent."
+                    : "Roles given. This person already had an account, so no email was sent; they sign in at /admin/sign-in.",
+                });
               },
               (error: unknown) => {
                 fail(error);
