@@ -606,7 +606,7 @@
     "id": "w6-7f-invite-role-holder-refused",
     "test": "tests/unit/team.service.test.ts",
     "file": "src/server/team/service.ts",
-    "find": "  if ((await enabledRoles(db, userId)).length > 0) {",
+    "find": "  if (held.data.length > 0) {",
     "replace": "  if (userId === \"\") {",
     "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
     "expect": "× .*an address whose account holds an enabled role answers 409 already_exists and writes no role"
@@ -615,8 +615,8 @@
     "id": "w6-7f-invite-keeps-account",
     "test": "tests/unit/team.service.test.ts",
     "file": "src/server/team/service.ts",
-    "find": "  const userId = found.data.user.id;\n",
-    "replace": "  const userId = found.data.user.id;\n  await db.auth.admin.deleteUser(userId);\n",
+    "find": "  if (userId === null) throw teamWriteFailed();\n",
+    "replace": "  if (userId === null) throw teamWriteFailed();\n  await db.auth.admin.deleteUser(userId);\n",
     "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
     "expect": "× .*(gives the roles to the existing account of a former client|keeps the existing account when a grant fails)"
   },
@@ -668,5 +668,58 @@
     "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/account.spec.ts --grep \"clean address\"",
     "expect": "toEqual|account/confirm",
     "procedure": "Same reason as w6-7f-e2e-same-answer: the expired notice needs Supabase Auth to refuse the token. By hand: delete the line as above, run the command (red: the address still holds #token_hash), put it back (green). UNPROVEN until it runs on the stack."
+  },
+  {
+    "id": "w6-7g-roles-all-off-refused",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  if (held.data.length > 0) {",
+    "replace": "  if (held.data.some((row) => row.disabled_at === null)) {",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*an address whose roles are all switched off answers 409 already_exists too"
+  },
+  {
+    "id": "w6-7g-existing-not-mailed",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  return { user_id: userId, mailed: false };",
+    "replace": "  return { user_id: userId, mailed: true };",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*gives the roles to the existing account of a former client, audited as an invite, and deletes nothing"
+  },
+  {
+    "id": "w6-7g-new-account-mailed",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  return { user_id: userId, mailed: true };\n}\n\n/** `POST team/users/:id/roles`. */",
+    "replace": "  return { user_id: userId, mailed: false };\n}\n\n/** `POST team/users/:id/roles`. */",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*calls inviteUserByEmail once and writes the user_roles row through grant_role with note invite"
+  },
+  {
+    "id": "w6-7g-lookup-by-address",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "\"user_id_by_email\", { p_email: input.email }",
+    "replace": "\"user_id_by_email\", { p_email: \"\" }",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*gives the roles to the existing account of a former client, audited as an invite, and deletes nothing"
+  },
+  {
+    "id": "w6-7g-toast-says-no-email",
+    "test": "src/admin/team/team.test.tsx",
+    "file": "src/admin/team/TeamPage.tsx",
+    "find": "                  message: invited.mailed\n",
+    "replace": "                  message: true\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/team/team.test.tsx",
+    "expect": "× .*says roles were given and no email was sent when the address already had an account"
+  },
+  {
+    "id": "w6-7g-user-id-by-email-case",
+    "kind": "sql",
+    "test": "tests/db/account.db.test.ts",
+    "sql": "create or replace function public.user_id_by_email(p_email text) returns uuid language sql stable security definer set search_path = '' as $$ select u.id from auth.users u where u.email = p_email limit 1; $$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"finds the user of an address ignoring case\"",
+    "expect": "FAIL .*account\\.db\\.test\\.ts > user_id_by_email > finds the user of an address ignoring case, and answers null for an address nobody holds"
   }
 ]

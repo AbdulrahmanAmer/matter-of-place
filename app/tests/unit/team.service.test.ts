@@ -64,17 +64,19 @@ function fakeAuthAdmin() {
       Promise.resolve({ data: { user: { id: AGENT, email: attributes.email } }, error: null }),
     ),
     deleteUser: vi.fn((id: string) => Promise.resolve({ data: { user: { id } }, error: null })),
-    // the link the Auth API makes for an existing address; the invite reads the user from it and sends nothing
-    generateLink: vi.fn(
-      (): Promise<{ data: { user: { id: string } | null }; error: Error | null }> =>
-        Promise.resolve({ data: { user: { id: FORMER_CLIENT } }, error: null }),
-    ),
+    // never called: a generated link mints a live sign-in token, so the existing user is read by address in SQL
+    generateLink: vi.fn(),
   };
 }
 
 function world(rpc: FakeDbOptions["rpc"] = {}, tables: FakeDbOptions["tables"] = {}) {
   const authAdmin = fakeAuthAdmin();
-  const db = Object.assign(fakeDb({ rpc, tables }), { auth: { admin: authAdmin } });
+  const db = Object.assign(
+    fakeDb({ rpc: { user_id_by_email: () => FORMER_CLIENT, ...rpc }, tables }),
+    {
+      auth: { admin: authAdmin },
+    },
+  );
   return { db, authAdmin };
 }
 
@@ -125,7 +127,7 @@ describe("inviteUser", () => {
       granted,
       deleted: authAdmin.deleteUser.mock.calls.length,
     }).toEqual({
-      answer: { user_id: NEW_USER },
+      answer: { user_id: NEW_USER, mailed: true },
       invites: [["editor@matterofplace.com"]],
       granted: [
         {
@@ -175,7 +177,33 @@ describe("inviteUser", () => {
       }),
     );
     expect(error instanceof AppError ? error.code : error).toBe("already_exists");
-    expect(db.calls.map((call) => call.name)).toEqual(["user_roles"]);
+    expect(db.calls.map((call) => call.name)).toEqual(["user_id_by_email", "user_roles"]);
+  });
+
+  it("an address whose roles are all switched off answers 409 already_exists too: grant_role would add them disabled", async () => {
+    const granted: unknown[] = [];
+    const { db, authAdmin } = world(
+      {
+        grant_role: (args) => {
+          granted.push(args);
+          return "role-row-3";
+        },
+      },
+      { user_roles: [roleRow(true)] },
+    );
+    await exists(authAdmin);
+    const error = await failureOf(
+      inviteUser(admin, db, {
+        email: "teammate@example.test",
+        display_name: "Teammate",
+        roles: ["managing_editor"],
+      }),
+    );
+    expect(error instanceof AppError ? [error.code, error.status] : error).toEqual([
+      "already_exists",
+      409,
+    ]);
+    expect(granted).toEqual([]);
   });
 
   it("gives the roles to the existing account of a former client, audited as an invite, and deletes nothing", async () => {
@@ -187,8 +215,8 @@ describe("inviteUser", () => {
           return "role-row-2";
         },
       },
-      // no enabled role: a former client, or someone whose roles were all switched off
-      { user_roles: [roleRow(true)] },
+      // no role row at all: a former client
+      { user_roles: [] },
     );
     await exists(authAdmin);
     const answer = await inviteUser(admin, db, {
@@ -198,13 +226,17 @@ describe("inviteUser", () => {
     });
     expect({
       answer,
+      lookups: db.calls.filter((call) => call.kind === "rpc" && call.name === "user_id_by_email"),
       links: authAdmin.generateLink.mock.calls,
       granted,
       deleted: authAdmin.deleteUser.mock.calls.length,
       created: authAdmin.createUser.mock.calls.length,
     }).toEqual({
-      answer: { user_id: FORMER_CLIENT },
-      links: [[{ type: "magiclink", email: "client@example.test" }]],
+      answer: { user_id: FORMER_CLIENT, mailed: false },
+      lookups: [
+        { kind: "rpc", name: "user_id_by_email", args: [{ p_email: "client@example.test" }] },
+      ],
+      links: [],
       granted: ["managing_editor", "visual_editor"].map((role) => ({
         p_user: FORMER_CLIENT,
         p_role: role,

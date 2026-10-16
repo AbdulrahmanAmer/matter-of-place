@@ -47,7 +47,7 @@ import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } f
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
 import type { SourceName } from "./criteria.ts";
-import { explainsHeld, handToMatter, OWNER_UNAVAILABLE, ownerExplanation } from "./explain.ts";
+import { explainsHeld, handToMatter, handUnavailableOwners, ownerExplanation } from "./explain.ts";
 import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
 import {
   allowLine,
@@ -547,20 +547,8 @@ export async function holdForMatter(
       );
     return;
   }
-  // W8 0d review: claim_agent_run claims only runs of an idle or working colleague, so the explanation of an owner
-  // that is paused or off would never start and Matter's read would never be queued. Matter's read is queued directly,
-  // and the thread says why there is no explanation.
-  const { data: stateRows } = await client
-    .from("agents")
-    .select("state")
-    .eq("id", ownerRow.id)
-    .limit(1);
-  const ownerState = stateRows?.[0]?.state;
-  if (ownerState === "off" || ownerState === "paused") {
-    await say(client, owner, OWNER_UNAVAILABLE);
-    await handToMatter(client, agents, held.id, owner, false);
-    return;
-  }
+  // An owner that is paused or off at any time after this never claims the run: `handUnavailableOwners` (explain.ts),
+  // swept at the start of every runner loop, hands such a line to Matter.
   const { error: queueError } = await client
     .from("agent_runs")
     .insert({ agent_id: ownerRow.id, cause: "message", message_id: held.id });
@@ -619,6 +607,9 @@ function promptFor(
 
 /** One claimed run, start to end. Exported for the W8 0d test that walks a held message through the runner. */
 export async function runOnce(client: Db): Promise<boolean> {
+  // W8 0d second review: an explanation queued for an owner that is paused or off is handed to Matter, whatever the
+  // loop does next (explain.ts).
+  await handUnavailableOwners(client);
   const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
   const { count } = await client
     .from("agent_runs")
@@ -741,7 +732,7 @@ export async function runOnce(client: Db): Promise<boolean> {
             business: lessons,
             power,
             held: matterReadsHeld,
-            // W8 0d: the owner's explanation, fenced as data; null when its run failed or said nothing
+            // W8 0d: the owner's explanation, fenced as data; null when there is none (its run failed, said nothing, or never ran)
             explanation:
               matterReadsHeld && run.message_id !== null
                 ? await ownerExplanation(
@@ -802,6 +793,7 @@ export async function runOnce(client: Db): Promise<boolean> {
       );
     const media = plan.media;
     let reel: { request_id: string; name: string } | null = null;
+    let replyId: string | null = null;
 
     if (plan.reply !== null) {
       // W8 0e (second review): the woken colleagues read this reply, never whatever line is newest by then.
@@ -816,6 +808,7 @@ export async function runOnce(client: Db): Promise<boolean> {
         })
         .select("id")
         .single();
+      replyId = written?.id ?? null;
       // A colleague handing work to another wakes them, once.
       const handed = mentionedSlugs(result.reply).filter((slug) => slug !== agent.slug);
       const targets = (agents ?? []).filter(
@@ -889,6 +882,8 @@ export async function runOnce(client: Db): Promise<boolean> {
         // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
         // its own words could carry the outside text into the meeting and the live session's digest.
         summary: plan.summary,
+        // W8 0d second review: the line this run wrote as its reply, which Matter's read shows as the explanation.
+        reply_message_id: replyId,
         session_id:
           "session" in answer && typeof answer.session === "string" ? answer.session : null,
         turns: 1,

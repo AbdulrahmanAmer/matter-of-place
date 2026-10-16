@@ -275,3 +275,43 @@ describe("account_can_sign_in", () => {
     expect(codes).toEqual({ anon: "42501", authenticated: "42501" });
   });
 });
+
+// W6 item 7, second review: the Team invite finds the auth user of an address that already has an account. Only the
+// service role reads it; the Auth API's `generateLink` is never used, since it mints a live sign-in token.
+describe("user_id_by_email", () => {
+  it("finds the user of an address ignoring case, and answers null for an address nobody holds", async () => {
+    const seen = await withRollback(async (db) => {
+      const id = await person(db, "test-invite-a@example.test", false);
+      const answer = async (email: string) =>
+        (await db.query<{ id: string | null }>("select public.user_id_by_email($1) as id", [email]))
+          .rows[0]?.id;
+      return {
+        id,
+        exact: await answer("test-invite-a@example.test"),
+        shouted: await answer("TEST-Invite-A@Example.Test"),
+        nobody: await answer("test-invite-nobody@example.test"),
+      };
+    });
+    expect(seen).toEqual({ id: seen.id, exact: seen.id, shouted: seen.id, nobody: null });
+  });
+
+  it("refuses anon and a signed-in person", async () => {
+    const codes = await withRollback(async (db) => {
+      const a = await person(db, "test-invite-a@example.test");
+      const attempt = async (role: "anon" | "authenticated"): Promise<string> => {
+        await db.query("savepoint attempt");
+        try {
+          await asRole(db, role, role === "anon" ? undefined : a);
+          await db.query("select public.user_id_by_email($1)", ["test-invite-a@example.test"]);
+          return "ran";
+        } catch (error) {
+          return error instanceof Error && "code" in error ? String(error.code) : "error";
+        } finally {
+          await db.query("rollback to savepoint attempt");
+        }
+      };
+      return { anon: await attempt("anon"), authenticated: await attempt("authenticated") };
+    });
+    expect(codes).toEqual({ anon: "42501", authenticated: "42501" });
+  });
+});

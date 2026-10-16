@@ -8613,3 +8613,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before every push, format exactly the files the commit changed, wherever they live, through the app's config: from `app/`, `prettier --config .prettierrc --write <files>` (what `bun run format` does; a file under `workspace/` or `scripts/` has no config of its own, so prettier without `--config` formats it at 80 columns and eslint's prettier rule refuses it). Mechanical: `bash E:/mop-build/.tmp/format-changed.sh <worktree> [base]` lists `git diff --name-only --diff-filter=ACM <base> HEAD -- '*.ts' '*.tsx' '*.mjs' '*.js' '*.json' '*.css'` and does exactly that; the merge script runs it after every merge. A prettier run from the repo root gives 80 columns too (there is no root config): the same refusal.
 - proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
 - added: 2026-10-16
+
+## P-3700 · A merge can leave `GOTCHAS.md` unmerged with no conflict markers, and take the same P-numbers twice
+- symptom: 2026-10-16, `git merge origin/overdrive/finish` into overdrive/followups-a: `git status` showed `UU GOTCHAS.md` and `ls-files -u` three stages, yet `grep '^<<<<<<<'` printed nothing; the other side's new P-3694 and P-3695 had the numbers this branch had already used for different entries.
+- cause: both sides appended entries at the end of one file under a rerun number counter; the file on disk was already a union of text, so the markers are not the signal, the staged stages are.
+- rule: after a merge that touches the bank, diff the sorted lines of stage 2 and stage 3 against the file (`git show :3:GOTCHAS.md | sort -u` against `sort -u GOTCHAS.md`, `comm -23`) to see what is missing, append the missing entries under the next free numbers, then `git add`; never trust the absence of markers.
+- proof: `git ls-files -u GOTCHAS.md` lists stages 1 to 3 while `grep -c '^<<<<<<<' GOTCHAS.md` prints 0; `comm -23` of their side against the file printed 9 lines before the append and none after.
+- added: 2026-10-16
+
+## P-3701 · An in-memory test database that stamps a column the real runner stamps itself hides clock skew
+- symptom: 2026-10-16, second Opus review of W8 0d: `ownerExplanation` bounded the owner's reply by the run's `started_at` (database `now()`) and `finished_at` (the runner's laptop clock), so a laptop clock behind Supabase's hid the explanation; the unit test passed because its mock database overwrote `finished_at` with its own counter, and said so in a comment that was false for `agent_runs.finished_at`.
+- cause: the mock "owned the clock" for a column production leaves to the caller, and nothing in the test could make the two clocks differ.
+- rule: a mock database stamps only the columns the real one stamps (`created_at`, `started_at` by `claim_agent_run`); a column the runner sends keeps what it sent; give the mock a clock offset and run one walk-through with the database an hour ahead. Bind a reply to the run that wrote it by id (`agent_runs.reply_message_id`), never by a window of times across two clocks.
+- proof: `bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "database clock is an hour ahead"` is green with the id and red with the old `gte`/`lte` window (registry `w8-0d4-explanation-by-reply-id`, `w8-0d4-reply-id-recorded`).
+- added: 2026-10-16
