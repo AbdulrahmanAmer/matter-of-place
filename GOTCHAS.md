@@ -8585,3 +8585,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before every push, format exactly the files the commit changed, wherever they live, through the app's config: from `app/`, `prettier --config .prettierrc --write <files>` (what `bun run format` does; a file under `workspace/` or `scripts/` has no config of its own, so prettier without `--config` formats it at 80 columns and eslint's prettier rule refuses it). Mechanical: `bash E:/mop-build/.tmp/format-changed.sh <worktree> [base]` lists `git diff --name-only --diff-filter=ACM <base> HEAD -- '*.ts' '*.tsx' '*.mjs' '*.js' '*.json' '*.css'` and does exactly that; the merge script runs it after every merge. A prettier run from the repo root gives 80 columns too (there is no root config): the same refusal.
 - proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
 - added: 2026-10-16
+
+## P-3606 · The usage policy downgrades Matter and stops his goal without anyone deciding it
+- symptom: 2026-10-16, at a weekly reading of 85% `~/.mop-workforce/policy.json` read `matterModel: claude-sonnet-5-5, backlog: person` ("Sonnet for everyone"), though the operator had ordered "Just remove the allowance thing. We don't need that." Matter ran on Sonnet for hours without a line saying so.
+- rule: an operator order about the allowance is written into `~/.mop-workforce/config.json` (the override the policy honours: `matterModel`, `backlog`) the moment it is given, and the policy file is read back after the next pass; the code-level fix rides overdrive/runner (`allowance: ignore`).
+- proof: `cat ~/.mop-workforce/policy.json` showed `"matterModel": "claude-opus-5-5", "backlog": "all"` after the override (2026-10-16 07:30).
+- added: 2026-10-16
+
+## P-3607 · CI runs only on pull requests to main; a branch with no PR is never checked
+- symptom: 2026-10-16, after the no-local-CI order, builder branches and overdrive/finish were pushed with no pull request, and `.github/workflows/ci.yml` (`on: pull_request: branches: [main]`, `push: branches: [main]`) ran nothing on them; db and e2e also skip a draft (`github.event.pull_request.draft == false`).
+- rule: work without its own PR gets a DRAFT pull request to main so check and build run on every push; mark it ready (`gh pr ready`) to run db and e2e too. Ready is not merged: the gate still merges.
+- proof: PR 447 as a draft ran check and build only; after `gh pr ready 447` the next push ran db (18m29s) and e2e (10m42s), all green (2026-10-16).
+- added: 2026-10-16
