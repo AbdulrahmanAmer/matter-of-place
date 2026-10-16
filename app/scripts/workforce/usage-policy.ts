@@ -29,6 +29,8 @@ export interface Reading {
 export interface Override {
   matterModel?: string;
   backlog?: Backlog;
+  /** "ignore": the week's percentage sets nothing (the operator's order of 2026-10-16: no allowance stop while overdrive runs). */
+  allowance?: "ignore";
 }
 
 const usageWindow = z.object({
@@ -105,9 +107,15 @@ export function policyFor(
   last: StaffPolicy | null,
 ): StaffPolicy {
   const base: StaffPolicy =
-    reading === null
-      ? (last ?? UNMEASURED)
-      : { ...tier(reading.weekPercent), week: reading.weekPercent };
+    override.allowance === "ignore"
+      ? {
+          ...tier(0),
+          week: reading?.weekPercent ?? last?.week ?? null,
+          reason: `Weekly allowance${reading === null ? "" : ` at ${String(reading.weekPercent)}%`} set aside by the operator's order: full staff, Opus for Matter, backlog on.`,
+        }
+      : reading === null
+        ? (last ?? UNMEASURED)
+        : { ...tier(reading.weekPercent), week: reading.weekPercent };
   return {
     ...base,
     ...(override.matterModel === undefined ? {} : { matterModel: override.matterModel }),

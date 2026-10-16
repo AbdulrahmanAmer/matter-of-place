@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { goalLine, nextGoalStep, shouldContinue } from "../../scripts/matter/live";
+import { goalLine, goalSkipReason, nextGoalStep } from "../../scripts/matter/live";
 import { readablePath } from "../../scripts/matter/read";
 import { matterPrompt } from "../../scripts/matter/run";
 import { decision } from "../../scripts/workforce/daemon";
@@ -59,14 +59,33 @@ describe("Matter decides", () => {
 });
 
 describe("Matter keeps going on his goal", () => {
-  it("is handed the next step only when idle, a minute after his answer, and at most every ten minutes", () => {
+  it("is handed the next step only with a session up and no line in hand, a minute after his answer, at most every ten minutes, and while the policy allows, and is told why not", () => {
     const at = 1_000_000_000;
+    const ready = {
+      hasSession: true,
+      active: 0,
+      now: at,
+      lastResultAt: at - 60_000,
+      goalAt: at - 600_000,
+      backlog: "all" as const,
+    };
     expect([
-      shouldContinue({ idle: true, now: at, lastResultAt: at - 60_000, goalAt: at - 600_000 }),
-      shouldContinue({ idle: false, now: at, lastResultAt: at - 60_000, goalAt: at - 600_000 }),
-      shouldContinue({ idle: true, now: at, lastResultAt: at - 59_999, goalAt: at - 600_000 }),
-      shouldContinue({ idle: true, now: at, lastResultAt: at - 60_000, goalAt: at - 599_999 }),
-    ]).toEqual([true, false, false, false]);
+      goalSkipReason(ready),
+      goalSkipReason({ ...ready, hasSession: false }),
+      goalSkipReason({ ...ready, active: 1 }),
+      goalSkipReason({ ...ready, lastResultAt: at - 59_999 }),
+      goalSkipReason({ ...ready, goalAt: at - 599_999 }),
+      goalSkipReason({ ...ready, backlog: "off" }),
+      goalSkipReason({ ...ready, backlog: "person" }),
+    ]).toEqual([
+      null,
+      "no live session is up",
+      "1 line(s) in hand",
+      "under a minute since his last answer",
+      "under ten minutes since the last goal line",
+      "the staff policy has self-started work off",
+      null,
+    ]);
   });
 
   it("names the first open step of his list, none when every step passes, none without a list", () => {

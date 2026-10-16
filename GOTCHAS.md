@@ -8586,3 +8586,30 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a review refusal names a drawing that belongs to the engine (the door move's pool, reflection, beam), the redraw brief says so: draw that shot in `scene.mjs` with flat polygons, or cut the shot; and the engine fix is a PR of its own, not a revision loop.
 - proof: `grep -n 'blur(9px)' launch/engine/moves/door.mjs` → line 483; the refused brief's `reason` in `~/.mop-workforce/studio/2026-10-16-fairfield-test-reel/brief.json` (before the requeue) names the doorway floor.
 - added: 2026-10-16
+
+## P-3692 · A script that rewrote `check-layout.mjs` dropped the closing quote of `SERVER_DOMAINS`, and the first CI run died at its first step
+- symptom: 2026-10-16, draft PR 447: `check` failed in 24 s with `SyntaxError: Invalid or unexpected token` at `scripts/check-layout.mjs:37`; typecheck, lint and tests never ran.
+- cause: the merge of W6 7 added `account` to the folder map's domain list; the resolver (`fix-layout-conflict.py`, Matter's) rebuilt the line as `"{...}" + ";"` and lost the closing quote. A Python write is not seen by the Edit/Write parse hook.
+- rule: after any merge or script that touches `app/scripts/check-layout.mjs` (or any `.mjs`/`.json` a script rewrote), run `node --check` on it (one second, a parse, not a CI run); `merge-branch.sh` now does it after every merge.
+- proof: `node --check app/scripts/check-layout.mjs` prints `SyntaxError: Invalid or unexpected token` with the quote missing and nothing with it restored (2026-10-16).
+- added: 2026-10-16
+
+## P-3693 · `exactOptionalPropertyTypes` refuses `prop: undefined` for an optional prop: leave the key out
+- symptom: 2026-10-16, draft PR 447 CI round 3: six TS2375 errors in `src/templates/social/Carousel.tsx`: `marker: string | undefined` and `location={undefined}` against `marker?: string` and `location?: string`.
+- cause: the single-post counter was written as `marker: total > 1 ? "..." : undefined`, and the compact slide as `location={undefined}`; with no local `tsc` (no-local-CI order) nothing saw it before CI.
+- rule: build props so an absent value is left out (`...(cond ? { marker } : {})`), never set to `undefined`; a slide that drops a prop spreads a base object that never had it.
+- proof: CI `check` job, `tsc --noEmit -p tsconfig.json`: six TS2375 on the old shape, none on the new (run 38878332417 and its successor).
+- added: 2026-10-16
+
+## P-3698 · Branches that each pass alone fail together on the tables every page, form and class must be named in
+- symptom: 2026-10-16, draft PR 447 CI round 5: four unit tests red after typecheck and lint were green: the client room's two pages missing from the route map (`routes-covered`), its two forms missing from the table of public forms (`turnstile-coverage`), `wf-mem__status` with no style rule (`admin-classes`), and `.credentials.json` not refused by name (`workforce-drive-copy`).
+- cause: each builder ran its own folder's tests; the tables that name every route, form and admin class live in other folders, and with no local full run nothing joined them before CI.
+- rule: a builder of a new page route, public form or admin class opens `tests/e2e/fixtures/routes.ts`, `workspace/audits/tools/public-forms.mjs` and `tests/unit/admin-classes.test.ts` and adds its rows in the same commit; the brief of every item that adds a page, a form or a class says so. A name-matching secret rule is tested with the dotfile spelling too (`.credentials.json`).
+- proof: CI `check` job, `vitest run --project unit`, round 5: 4 failed | 443 passed files; after the rows are added the four are green (round 6).
+- added: 2026-10-16
+
+## P-3699 · `prettier --write` run from `app/` on a `workspace/` file reformats it to a width eslint's prettier rule then refuses
+- symptom: 2026-10-16, draft PR 447 CI round 6: four lint errors in `workspace/audits/tools/public-forms.mjs` after the file was formatted with `app`'s prettier from the app folder (80 columns for a file outside the app's config).
+- rule: before every push, format exactly the files the commit changed, wherever they live, through the app's config: from `app/`, `prettier --config .prettierrc --write <files>` (what `bun run format` does; a file under `workspace/` or `scripts/` has no config of its own, so prettier without `--config` formats it at 80 columns and eslint's prettier rule refuses it). Mechanical: `bash E:/mop-build/.tmp/format-changed.sh <worktree> [base]` lists `git diff --name-only --diff-filter=ACM <base> HEAD -- '*.ts' '*.tsx' '*.mjs' '*.js' '*.json' '*.css'` and does exactly that; the merge script runs it after every merge. A prettier run from the repo root gives 80 columns too (there is no root config): the same refusal.
+- proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
+- added: 2026-10-16

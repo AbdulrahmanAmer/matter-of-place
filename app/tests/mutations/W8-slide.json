@@ -12,8 +12,8 @@
     "id": "w8-slide-square-full-band",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/templates/social/Carousel.tsx",
-    "find": "      return square ? (",
-    "replace": "      return false ? (",
+    "find": "return square ?",
+    "replace": "return false ?",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "× .*keeps the full band on the square LinkedIn crop"
   },
@@ -21,8 +21,8 @@
     "id": "w8-slide-no-location",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/templates/social/Carousel.tsx",
-    "find": "location={undefined} compact",
-    "replace": "compact",
+    "find": "{...bare} compact",
+    "replace": "{...frame} compact",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "× .*in a band of the wordmark and the counter only"
   },
@@ -48,8 +48,8 @@
     "id": "w8-single-post-no-counter",
     "test": "tests/unit/assets/templates.test.ts",
     "file": "src/templates/social/Carousel.tsx",
-    "find": "total > 1 ? `${padIndex(index + 1)} / ${padIndex(total)}` : undefined",
-    "replace": "`${padIndex(index + 1)} / ${padIndex(total)}`",
+    "find": "total > 1 ? { marker: `${padIndex(index + 1)} / ${padIndex(total)}` } : {}",
+    "replace": "{ marker: `${padIndex(index + 1)} / ${padIndex(total)}` }",
     "run": "bunx vitest run --project unit tests/unit/assets/templates.test.ts",
     "expect": "× .*carries no counter on a single post"
   }

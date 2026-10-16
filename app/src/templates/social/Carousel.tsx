@@ -17,13 +17,14 @@ interface CarouselSlideProps {
 export function CarouselSlide({ spec, slide, index, total, square = false }: CarouselSlideProps) {
   const { property, images } = spec;
   const photo = images[slide.image];
-  const frame = {
+  // absent values are left out, not set to undefined (exactOptionalPropertyTypes)
+  const bare = {
     format: "carousel",
     image: photo ? <img src={photo.url} alt={photo.alt} /> : null,
     // a single post is not counted
-    marker: total > 1 ? `${padIndex(index + 1)} / ${padIndex(total)}` : undefined,
-    location: locationLine(property),
+    ...(total > 1 ? { marker: `${padIndex(index + 1)} / ${padIndex(total)}` } : {}),
   } as const;
+  const frame = { ...bare, location: locationLine(property) } as const;
 
   switch (slide.kind) {
     case "cover":
@@ -49,10 +50,6 @@ export function CarouselSlide({ spec, slide, index, total, square = false }: Car
     case "close":
       return <SocialFrame {...frame} headline={property.title} />;
     case "photo":
-      return square ? (
-        <SocialFrame {...frame} />
-      ) : (
-        <SocialFrame {...frame} location={undefined} compact />
-      );
+      return square ? <SocialFrame {...frame} /> : <SocialFrame {...bare} compact />;
   }
 }

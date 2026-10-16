@@ -692,6 +692,11 @@
   overflow-wrap: anywhere;
 }
 
+.wf-mem__status {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .wf-mem__status--open {
   color: var(--status-info);
 }

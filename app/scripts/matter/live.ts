@@ -31,6 +31,7 @@ const SESSION_FILE = join(MATTER_HOME, "live-session.json");
 const GOAL_FILE = join(MATTER_HOME, "goal.json");
 const GOAL_GAP_MS = 10 * 60_000;
 const AFTER_RESULT_MS = 60_000;
+const SKIP_LOG_MS = 30 * 60_000;
 // Jay, 2026-10-13: a long session costs more each turn and compaction drops facts, so the session rotates and a
 // state file Matter keeps current seeds the next one.
 const STATE_FILE = join(MATTER_HOME, "live-state.md");
@@ -193,16 +194,35 @@ export function nextSession(
 }
 
 /** Jay's rotation: a session that has run six turns or a day starts over, seeded from the state file. */
-/** The open background tasks after one task event: a start adds its key, a finish removes it. */
+/** The open background tasks after one task event, each with the time it started: a start adds it, a finish removes it. */
 export function openTasks(
-  open: ReadonlySet<string>,
+  open: ReadonlyMap<string, number>,
   event: { id: string; label: string; state: "started" | "done" },
-): Set<string> {
-  const next = new Set(open);
+  now: number = Date.now(),
+): Map<string, number> {
+  const next = new Map(open);
   const key = event.id === "" ? event.label : event.id;
-  if (event.state === "started") next.add(key);
+  if (event.state === "started") next.set(key, now);
   else next.delete(key);
   return next;
+}
+
+/** A background task still open after this long never reported back (P-3580); it stops counting as open. */
+export const OPEN_TASK_MAX_MS = 3 * 60 * 60_000;
+
+/** The open tasks without those started more than `maxMs` ago, and the keys dropped. */
+export function withoutStaleTasks(
+  open: ReadonlyMap<string, number>,
+  now: number,
+  maxMs: number = OPEN_TASK_MAX_MS,
+): { open: Map<string, number>; dropped: string[] } {
+  const kept = new Map<string, number>();
+  const dropped: string[] = [];
+  for (const [key, startedAt] of open) {
+    if (now - startedAt > maxMs) dropped.push(key);
+    else kept.set(key, startedAt);
+  }
+  return { open: kept, dropped };
 }
 
 /** Idle means no line in hand and no background task still running; only then may the session rotate or move. */
@@ -229,18 +249,27 @@ export function shouldTouch(touchedAt: number, now: number): boolean {
   return now - touchedAt >= 60_000;
 }
 
-/** Whether to hand Matter his next goal step: idle, a minute after his last answer, and not more than every 10 min. */
-export function shouldContinue(input: {
-  idle: boolean;
+/**
+ * Why Matter is not handed his next goal step now, or null when he is: a session is up, no line is in hand, a minute has
+ * passed since his last answer, not more than every 10 min, and the staff policy lets self-started work run. Open
+ * background tasks do not block it (a task that never reported back kept the supervisor busy for seven hours,
+ * 2026-10-16, P-3580): he works on while they run, as he does for a person's line.
+ */
+export function goalSkipReason(input: {
+  hasSession: boolean;
+  active: number;
   now: number;
   lastResultAt: number;
   goalAt: number;
-}): boolean {
-  return (
-    input.idle &&
-    input.now - input.lastResultAt >= AFTER_RESULT_MS &&
-    input.now - input.goalAt >= GOAL_GAP_MS
-  );
+  backlog: "all" | "person" | "off";
+}): string | null {
+  if (!input.hasSession) return "no live session is up";
+  if (input.active > 0) return `${String(input.active)} line(s) in hand`;
+  if (input.now - input.lastResultAt < AFTER_RESULT_MS)
+    return "under a minute since his last answer";
+  if (input.now - input.goalAt < GOAL_GAP_MS) return "under ten minutes since the last goal line";
+  if (input.backlog === "off") return "the staff policy has self-started work off";
+  return null;
 }
 
 /** The line that hands Matter his next open step. */
@@ -327,8 +356,9 @@ class Supervisor {
   private child: ChildProcessWithoutNullStreams | null = null;
   private buffer = "";
   private active: { runId: string; thread: string }[] = [];
-  /** Background tasks started and not yet reported back; they die with the session. */
-  private open = new Set<string>();
+  /** Background tasks started and not yet reported back, with their start times; they die with the session. */
+  private open = new Map<string, number>();
+  private lastSkip = { reason: "", at: 0 };
   private lastOutput = Date.now();
   private crashes: number[] = [];
   private readonly head = runnerHead();
@@ -493,7 +523,7 @@ class Supervisor {
     this.child = null;
     const runs = this.active;
     this.active = [];
-    this.open = new Set();
+    this.open = new Map();
     await this.stopRunningTasks();
     if (this.rotating) {
       this.rotating = false;
@@ -584,17 +614,50 @@ class Supervisor {
     }
   }
 
+  /** Says why a goal step was skipped, once per reason and half hour (the loop asks every three seconds). */
+  private noteSkip(reason: string, now: number): void {
+    if (reason === this.lastSkip.reason && now - this.lastSkip.at < SKIP_LOG_MS) return;
+    this.lastSkip = { reason, at: now };
+    console.log(`${new Date(now).toISOString()} live: goal step skipped: ${reason}`);
+  }
+
+  /** Forgets background tasks that never reported back, so they cannot hold the session busy for ever. */
+  private async forgetStaleTasks(now: number): Promise<void> {
+    const { open, dropped } = withoutStaleTasks(this.open, now);
+    if (dropped.length === 0) return;
+    this.open = open;
+    console.log(
+      `${new Date(now).toISOString()} live: forgot ${String(dropped.length)} background task(s) open over 3 hours: ${dropped.join(", ")}`,
+    );
+    await this.client
+      .from("agent_activity")
+      .update({ state: "stopped", finished_at: new Date(now).toISOString() })
+      .eq("agent_id", this.matterId)
+      .in("task_key", dropped);
+  }
+
   /** Between turns, with a goal step open, Matter is handed it as a run of his own (thread "matter"). */
   private async continueGoal(): Promise<void> {
     const now = Date.now();
-    const idle = isIdle(this.active.length, this.open.size);
-    if (!shouldContinue({ idle, now, lastResultAt: this.lastResultAt, goalAt: this.goalAt }))
+    // W6 item 1: his goal is work a person set; it pauses only when the staff policy turns self-started work off.
+    const reason = goalSkipReason({
+      hasSession: this.child !== null,
+      active: this.active.length,
+      now,
+      lastResultAt: this.lastResultAt,
+      goalAt: this.goalAt,
+      backlog: staffPolicy().backlog,
+    });
+    if (reason !== null) {
+      this.noteSkip(reason, now);
       return;
-    // W6 item 1: his goal is work a person set; it pauses only when the allowance is over 90%.
-    if (staffPolicy().backlog === "off") return;
+    }
     this.goalAt = now;
     const step = nextGoalStep(GOAL_FILE);
-    if (step === null) return;
+    if (step === null) {
+      this.noteSkip("the goal file has no open step", now);
+      return;
+    }
     const { data: run } = await this.client
       .from("agent_runs")
       .insert({
@@ -607,7 +670,10 @@ class Supervisor {
       })
       .select("id")
       .single();
-    if (run === null) return;
+    if (run === null) {
+      this.noteSkip("the run row for the goal step could not be written", now);
+      return;
+    }
     console.log(`${new Date(now).toISOString()} live: goal step ${step}`);
     this.active.push({ runId: run.id, thread: "matter" });
     await this.setTask("Working on his goal");
@@ -633,6 +699,7 @@ class Supervisor {
           .update({ last_seen_at: new Date().toISOString() })
           .eq("slug", "matter");
       }
+      await this.forgetStaleTasks(Date.now());
       const until = breakerUntil(BREAKER_FILE);
       if (until !== null) {
         await new Promise((settle) => setTimeout(settle, POLL_MS * 10));
@@ -699,7 +766,7 @@ class Supervisor {
         const digest = await this.digest();
         this.say(`${digest}The operator (${line.author_name}) writes:\n${line.body}`);
       }
-      if ((claimed ?? []).length === 0 && this.child !== null) await this.continueGoal();
+      if ((claimed ?? []).length === 0) await this.continueGoal();
       await new Promise((settle) => setTimeout(settle, POLL_MS));
     }
   }
