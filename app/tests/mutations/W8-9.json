@@ -1,0 +1,116 @@
+[
+  {
+    "id": "w8-9-matrix-agent-roles",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/authz.ts",
+    "find": "    roles = entry.agentRoles ?? roles;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts -t \"lets Matter's key reject and re-render a visual\"",
+    "expect": "× .*lets Matter's key reject and re-render a visual[\\s\\S]*- +\"allowed\",\\s*\\n\\s*- +\"allowed\","
+  },
+  {
+    "id": "w8-9-matrix-colleague-refused",
+    "test": "tests/unit/authz.matrix.test.ts",
+    "file": "src/server/lib/permissions/assets.ts",
+    "find": "const owner = [\"admin\"] as const;",
+    "replace": "const owner = [\"admin\", \"media_ops\"] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts -t \"refuses a colleague's key on reject and re-render whatever its role\"",
+    "expect": "× .*refuses a colleague's key on reject and re-render whatever its role[\\s\\S]*\\+ +\"allowed\","
+  },
+  {
+    "id": "w8-9-service-matter-rejects",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/lib/audit.ts",
+    "find": "p_actor_kind: actor.kind,",
+    "replace": "p_actor_kind: \"human\",",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"lets Matter's key reject with a note through reject_asset\"",
+    "expect": "× .*lets Matter's key reject with a note through reject_asset[\\s\\S]*- +\"p_actor_kind\": \"agent\",\\s*\\n\\s*\\+ +\"p_actor_kind\": \"human\","
+  },
+  {
+    "id": "w8-9-service-colleague-refused",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/lib/permissions/assets.ts",
+    "find": "const owner = [\"admin\"] as const;",
+    "replace": "const owner = [\"admin\", \"media_ops\"] as const;",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"refuses a colleague's key on reject and re-render with 403 forbidden\"",
+    "expect": "× .*refuses a colleague's key on reject and re-render with 403 forbidden[\\s\\S]*- +403,"
+  },
+  {
+    "id": "w8-9-service-matter-approve-refused",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/lib/permissions/assets.ts",
+    "find": "{ action: \"assets.approve\", group: \"assets\", roles: deciders },",
+    "replace": "{ action: \"assets.approve\", group: \"assets\", roles: deciders, agentRoles: owner },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"refuses Matter's key on approve at the route and in the service\"",
+    "expect": "× .*refuses Matter's key on approve at the route and in the service[\\s\\S]*\\+ +\"manual_approval\","
+  },
+  {
+    "id": "w8-9-service-matter-rerender",
+    "test": "tests/unit/assets/service.test.ts",
+    "file": "src/server/lib/permissions/assets.ts",
+    "find": "{ action: \"assets.re_render\", group: \"assets\", roles: deciders, agentRoles: owner },",
+    "replace": "{ action: \"assets.re_render\", group: \"assets\", roles: deciders },",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/assets/service.test.ts -t \"asks rerender_asset for a new render with Matter's key\"",
+    "expect": "× .*asks rerender_asset for a new render with Matter's key[\\s\\S]*ForbiddenError: Your account does not allow this action"
+  },
+  {
+    "id": "w8-9-runner-named-calls",
+    "test": "tests/unit/matter-actions.test.ts",
+    "file": "scripts/matter/actions.ts",
+    "find": "adminCallSchema.safeParse(named === null ? raw : named.call)",
+    "replace": "adminCallSchema.safeParse(raw)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/matter-actions.test.ts -t \"turns Matter's assets.reject and assets.re_render into the asset's own routes\"",
+    "expect": "× .*turns Matter's assets.reject and assets.re_render into the asset's own routes[\\s\\S]*Error: not a call the runner can read"
+  },
+  {
+    "id": "w8-9-runner-refusals",
+    "test": "tests/unit/matter-actions.test.ts",
+    "file": "scripts/matter/actions.ts",
+    "find": "  if (action === \"assets.approve\")\n    return { ok: false, reason: \"assets.approve stays a person's (manual_approval)\" };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/matter-actions.test.ts -t \"refuses an approve, an unknown action, a bad id, an empty note\"",
+    "expect": "× .*refuses an approve, an unknown action, a bad id, an empty note[\\s\\S]*- +\"assets.approve stays a person's \\(manual_approval\\)\",\\s*\\n\\s*\\+ +\"assets.approve is not an action the runner knows\","
+  },
+  {
+    "id": "w8-9-colleague-never-named",
+    "test": "tests/unit/colleague-calls.test.ts",
+    "file": "scripts/matter/actions.ts",
+    "find": "z.object({ action: z.string(), method: z.undefined() })",
+    "replace": "z.object({ action: z.string() })",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/colleague-calls.test.ts -t \"never lets a colleague reject or re-render a visual\"",
+    "expect": "× .*never lets a colleague reject or re-render a visual[\\s\\S]*Expected: \"submissions.note\"[\\s\\S]*Received: \"assets.reject\""
+  },
+  {
+    "id": "w8-9-prompt-offers-decisions",
+    "test": "tests/unit/matter.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "{\"action\": \"assets.re_render\", \"id\": \"the same id\"}",
+    "replace": "{\"action\": \"assets.rerender\", \"id\": \"the same id\"}",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/matter.test.ts -t \"offers Matter the two visual decisions at both powers\"",
+    "expect": "× .*offers Matter the two visual decisions at both powers[\\s\\S]*- +true,\\s*\\n\\s*\\+ +false,"
+  },
+  {
+    "id": "w8-9-db-reject-audit-agent",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.reject_asset(\n  p_asset uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status not in ('pending', 'approved') then\n    raise exception 'asset_not_rejectable' using errcode = '55000';\n  end if;\n  -- W8 item 9: an agent key (Matter's) rejects only an asset still waiting for a decision; an approved one stays a\n  -- person's to take back.\n  if p_actor_kind = 'agent' and v_asset.status <> 'pending' then\n    raise exception 'asset_not_rejectable' using errcode = '55000';\n  end if;\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The trigger assets_reject_note runs here and refuses a reject without a note. A reject never changes\n  -- properties.og_image_key: the old key is immutable and stays served until the next approved cover replaces it.\n  update public.assets set status = 'rejected', rejection_note = p_note where id = p_asset;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (\n    p_actor, 'human', 'assets.reject', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'rejected'), p_request_id, p_note\n  );\n  -- W7 item 19 (H107): a reel about a market, a story or the brand has no property; its subject and own market go out.\n  return public.emit_event(\n    'asset.rejected', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'subject', v_asset.subject, 'property_id', v_asset.property_id, 'kind', v_asset.kind,\n      'tier', v_tier, 'market', coalesce(v_market, v_asset.market_slug), 'note', p_note\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.reject_asset(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.reject_asset(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/assets.db.test.ts -t \"lets Matter's agent key reject a pending asset\"",
+    "expect": "× .*lets Matter's agent key reject a pending asset[\\s\\S]*- +\"actor_kind\": \"agent\",\\s*\\n\\s*\\+ +\"actor_kind\": \"human\","
+  },
+  {
+    "id": "w8-9-db-reject-pending-only",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.reject_asset(\n  p_asset uuid,\n  p_note text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_tier public.campaign_tier;\n  v_market text;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_asset.status not in ('pending', 'approved') then\n    raise exception 'asset_not_rejectable' using errcode = '55000';\n  end if;\n  -- W8 item 9: an agent key (Matter's) rejects only an asset still waiting for a decision; an approved one stays a\n  -- person's to take back.\n  select p.campaign_tier, p.market_slug into v_tier, v_market\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  -- The trigger assets_reject_note runs here and refuses a reject without a note. A reject never changes\n  -- properties.og_image_key: the old key is immutable and stays served until the next approved cover replaces it.\n  update public.assets set status = 'rejected', rejection_note = p_note where id = p_asset;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)\n  values (\n    p_actor, p_actor_kind, 'assets.reject', 'assets', p_asset,\n    jsonb_build_object('status', v_asset.status), jsonb_build_object('status', 'rejected'), p_request_id, p_note\n  );\n  -- W7 item 19 (H107): a reel about a market, a story or the brand has no property; its subject and own market go out.\n  return public.emit_event(\n    'asset.rejected', 'asset', p_asset,\n    jsonb_build_object(\n      'asset_id', p_asset, 'subject', v_asset.subject, 'property_id', v_asset.property_id, 'kind', v_asset.kind,\n      'tier', v_tier, 'market', coalesce(v_market, v_asset.market_slug), 'note', p_note\n    ),\n    p_actor\n  );\nend;\n$$;\n\nrevoke execute on function public.reject_asset(uuid, text, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.reject_asset(uuid, text, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/assets.db.test.ts -t \"refuses an agent key on an approved asset\"",
+    "expect": "× .*refuses an agent key on an approved asset[\\s\\S]*- +\"refused\": \"asset_not_rejectable\",[\\s\\S]*\\+ +\"refused\": null,"
+  },
+  {
+    "id": "w8-9-db-rerender-keeps-approval",
+    "kind": "sql",
+    "test": "tests/db/assets.db.test.ts",
+    "sql": "create or replace function public.rerender_asset(\n  p_asset uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text default null\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_asset public.assets;\n  v_latest public.assets;\n  v_new public.assets;\n  v_property record;\n  v_type text;\n  v_key text;\n  v_data jsonb;\n  v_job uuid;\nbegin\n  select * into v_asset from public.assets a where a.id = p_asset;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- W7 item 19 (H107): a reel about a market, a story or the brand is never re-rendered; a new request is the path.\n  if v_asset.subject <> 'property' then\n    raise exception 'requested_asset' using errcode = '22023';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:' || v_asset.property_id::text || ':' || v_asset.kind::text));\n  select * into v_latest\n  from public.assets a\n  where a.property_id = v_asset.property_id and a.kind = v_asset.kind\n  order by a.revision desc\n  limit 1;\n\n  -- A second call while the new revision is still pending answers with that revision and its job.\n  if v_latest.revision > v_asset.revision and v_latest.status = 'pending' then\n    return jsonb_build_object('asset_id', v_latest.id, 'job_id', v_latest.job_id);\n  end if;\n  -- W8 item 9: an agent key's re-render supersedes only a revision still waiting or already rejected, never an\n  -- approved or published one (that would take it back); a person rejects that first.\n\n  -- B9 invariant 3: the kind names the job type; the render kinds are heavy, the newsletter kinds are light (G4).\n  v_type := case v_asset.kind\n    when 'cover' then 'render_cover'\n    when 'carousel' then 'render_carousel'\n    when 'story' then 'render_story'\n    when 'reel' then 'render_reel'\n    when 'newsletter_block' then 'build_newsletter_block'\n    when 'standalone_email' then 'build_newsletter_block'\n  end;\n  if v_type is null then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  select p.slug, p.campaign_tier, p.market_slug into v_property\n  from public.properties p\n  where p.id = v_asset.property_id;\n\n  v_new := public.upsert_asset_stub(v_asset.property_id, v_asset.kind, v_latest.revision + 1, null);\n  update public.assets\n  set caption = v_latest.caption,\n    alt_text = v_latest.alt_text,\n    meta = jsonb_strip_nulls(jsonb_build_object(\n      'captions', v_latest.meta -> 'captions',\n      'slide_alts', v_latest.meta -> 'slide_alts',\n      'max_slides', v_latest.meta -> 'max_slides',\n      'caption_lint', v_latest.meta -> 'caption_lint'\n    ))\n  where id = v_new.id;\n  update public.assets\n  set status = 'rejected', rejection_note = 'superseded'\n  where id = v_latest.id and status <> 'rejected';\n\n  v_data := jsonb_build_object(\n    'property_id', v_asset.property_id, 'slug', v_property.slug, 'tier', v_property.campaign_tier,\n    'market', v_property.market_slug, 'revision', v_new.revision\n  );\n  if v_asset.kind in ('newsletter_block', 'standalone_email') then\n    v_data := v_data || jsonb_build_object('kind', v_asset.kind);\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_asset.kind::text || ':' || v_new.revision::text;\n  else\n    v_key := v_type || ':' || v_asset.property_id::text || ':' || v_new.revision::text;\n  end if;\n  v_job := public.enqueue_job(\n    v_type, jsonb_build_object('params', '{}'::jsonb, 'data', v_data), v_key,\n    p_heavy => v_type <> 'build_newsletter_block'\n  );\n  if v_job is null then\n    select j.id into v_job from public.jobs j where j.idempotency_key = v_key;\n  end if;\n  update public.assets set job_id = v_job where id = v_new.id;\n\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id)\n  values (\n    p_actor, p_actor_kind, 'assets.re_render', 'assets', v_new.id,\n    jsonb_build_object('asset_id', v_latest.id, 'revision', v_latest.revision),\n    jsonb_build_object('asset_id', v_new.id, 'revision', v_new.revision, 'job_id', v_job),\n    p_request_id\n  );\n  return jsonb_build_object('asset_id', v_new.id, 'job_id', v_job);\nend;\n$$;\n\nrevoke execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.rerender_asset(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db --testTimeout=60000 --hookTimeout=60000 tests/db/assets.db.test.ts -t \"lets an agent key ask for a new render of a rejected asset\"",
+    "expect": "× .*lets an agent key ask for a new render of a rejected asset[\\s\\S]*- +\"refused\": \"asset_not_rejectable\",[\\s\\S]*\\+ +\"refused\": null,"
+  }
+]

@@ -1,8 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import type { Agent, AgentMessage, AgentRun, Score } from "../../domain/workforce";
+import { Tabs } from "../ui/Tabs";
 import { Avatar } from "./Avatar";
+import { DecisionsPanel } from "./DecisionsPanel";
 import { HireDialog } from "./HireDialog";
+import { InstructionHistoryPanel } from "./InstructionHistoryPanel";
+import { LessonsPanel } from "./LessonsPanel";
 import { useAgentState, useMessages, useOffice, usePostMessage } from "./workforce-queries";
 
 // W1: the office. The floor shows every colleague live; hovering one opens a quick ask; the conversation panel holds
@@ -301,8 +305,17 @@ function Week({ week }: { week: readonly Score[] }) {
   );
 }
 
+// W7 item 4: the team's memory sits in tabs beside the floor.
+const TABS = [
+  { id: "office", label: "The floor" },
+  { id: "decisions", label: "Decisions" },
+  { id: "lessons", label: "Lessons" },
+  { id: "instructions", label: "Instruction history" },
+] as const;
+
 export function OfficePage() {
   const office = useOffice();
+  const [tab, setTab] = useState("office");
   const [thread, setThread] = useState("team");
   const [hiring, setHiring] = useState(false);
   const agents = office.data?.agents ?? [];
@@ -329,19 +342,29 @@ export function OfficePage() {
         </button>
       </header>
 
-      <div className="wf-layout">
-        <div className="wf-floor-wrap">
-          <section className="wf-floor" aria-label="Colleagues">
-            {agents.map((agent) => (
-              <AgentCard key={agent.slug} agent={agent} onOpen={() => setThread(agent.slug)} />
-            ))}
-            {office.isLoading ? <p className="wf-empty">Opening the office.</p> : null}
-          </section>
-          <Week week={office.data?.week ?? []} />
-          <RecentWork runs={office.data?.runs ?? []} agents={agents} />
-        </div>
-        <Conversation thread={thread} agents={agents} onThread={setThread} />
-      </div>
+      <Tabs label="Office" tabs={TABS} active={tab} onChange={setTab}>
+        {tab === "decisions" ? (
+          <DecisionsPanel />
+        ) : tab === "lessons" ? (
+          <LessonsPanel />
+        ) : tab === "instructions" ? (
+          <InstructionHistoryPanel />
+        ) : (
+          <div className="wf-layout">
+            <div className="wf-floor-wrap">
+              <section className="wf-floor" aria-label="Colleagues">
+                {agents.map((agent) => (
+                  <AgentCard key={agent.slug} agent={agent} onOpen={() => setThread(agent.slug)} />
+                ))}
+                {office.isLoading ? <p className="wf-empty">Opening the office.</p> : null}
+              </section>
+              <Week week={office.data?.week ?? []} />
+              <RecentWork runs={office.data?.runs ?? []} agents={agents} />
+            </div>
+            <Conversation thread={thread} agents={agents} onThread={setThread} />
+          </div>
+        )}
+      </Tabs>
 
       <HireDialog open={hiring} onClose={() => setHiring(false)} />
     </div>

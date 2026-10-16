@@ -1,8 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { DecisionStatus } from "../../domain/admin-team-memory";
 import type { HireInput } from "../../domain/workforce";
 import { adminKeys } from "../query";
 import {
   fetchApprovals,
+  fetchDecisions,
+  fetchInstructionText,
+  fetchInstructionVersions,
+  fetchLessons,
   fetchMessages,
   fetchOffice,
   postAgentState,
@@ -83,5 +88,44 @@ export function useDecide() {
         ...(editedBody === undefined ? {} : { editedBody }),
       }),
     onSuccess: () => client.invalidateQueries({ queryKey: adminKeys.workforce.all() }),
+  });
+}
+
+// W7 item 4: the team's memory changes once a day at most; a minute is fresh enough.
+const MEMORY_REFRESH = 60_000;
+
+/** The decisions of one status, or of every status (each read and capped on its own by the server). */
+export function useDecisions(status?: DecisionStatus) {
+  return useQuery({
+    queryKey: adminKeys.workforce.list(`memory-decisions-${status ?? "all"}`),
+    queryFn: () => fetchDecisions(status),
+    placeholderData: keepPreviousData,
+    refetchInterval: MEMORY_REFRESH,
+  });
+}
+
+export function useLessons() {
+  return useQuery({
+    queryKey: adminKeys.workforce.list("memory-lessons"),
+    queryFn: fetchLessons,
+    refetchInterval: MEMORY_REFRESH,
+  });
+}
+
+export function useInstructionVersions() {
+  return useQuery({
+    queryKey: adminKeys.workforce.list("memory-instructions"),
+    queryFn: fetchInstructionVersions,
+    refetchInterval: MEMORY_REFRESH,
+  });
+}
+
+/** The text of one version, fetched only once a person opens it; a saved version never changes. */
+export function useInstructionText(id: string | null) {
+  return useQuery({
+    queryKey: adminKeys.workforce.detail(id ?? ""),
+    queryFn: () => fetchInstructionText(id ?? ""),
+    enabled: id !== null,
+    staleTime: Infinity,
   });
 }
