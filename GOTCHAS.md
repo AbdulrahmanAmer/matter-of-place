@@ -8558,3 +8558,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a review refusal names a drawing that belongs to the engine (the door move's pool, reflection, beam), the redraw brief says so: draw that shot in `scene.mjs` with flat polygons, or cut the shot; and the engine fix is a PR of its own, not a revision loop.
 - proof: `grep -n 'blur(9px)' launch/engine/moves/door.mjs` → line 483; the refused brief's `reason` in `~/.mop-workforce/studio/2026-10-16-fairfield-test-reel/brief.json` (before the requeue) names the doorway floor.
 - added: 2026-10-16
+
+## P-3692 · A script that rewrote `check-layout.mjs` dropped the closing quote of `SERVER_DOMAINS`, and the first CI run died at its first step
+- symptom: 2026-10-16, draft PR 447: `check` failed in 24 s with `SyntaxError: Invalid or unexpected token` at `scripts/check-layout.mjs:37`; typecheck, lint and tests never ran.
+- cause: the merge of W6 7 added `account` to the folder map's domain list; the resolver (`fix-layout-conflict.py`, Matter's) rebuilt the line as `"{...}" + ";"` and lost the closing quote. A Python write is not seen by the Edit/Write parse hook.
+- rule: after any merge or script that touches `app/scripts/check-layout.mjs` (or any `.mjs`/`.json` a script rewrote), run `node --check` on it (one second, a parse, not a CI run); `merge-branch.sh` now does it after every merge.
+- proof: `node --check app/scripts/check-layout.mjs` prints `SyntaxError: Invalid or unexpected token` with the quote missing and nothing with it restored (2026-10-16).
+- added: 2026-10-16
