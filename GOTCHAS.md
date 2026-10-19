@@ -8798,3 +8798,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a guarded delete re-checks every clause of its lister, the period included, reading `retention_policies.keep_for` itself (as `retention_delete_rows` does) and deleting nothing when the policy is disabled; its db case names a row that fails each clause, the age among them.
 - proof: `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/mop node node_modules/vitest/vitest.mjs run --project db tests/db/brand-posts.db.test.ts -t "lists a rejected one"` on a P-3610 cluster → passed; the registry entry `w8-1-db-delete-age` takes the age clause out and turns it red (`expected 2 to be 1`).
 - added: 2026-10-19
+
+## P-3709 · A one-line `sed` fix of code leaves the registry entry that names that line stale, and CI's replay finds it 25 minutes later
+- symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
+- rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
+- proof: `node ~/.claude/hooks/edit-impact.mjs --changed E:/mop-build/finish3` printed the STALE note before the entry was updated and nothing after (2026-10-19).
+- added: 2026-10-19

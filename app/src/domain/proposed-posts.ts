@@ -110,7 +110,7 @@ export function channelProblems(post: ChannelShape): string[] {
   const problems: string[] = [];
   const limit = captionLimits[channel];
   // Counted in code points, as `char_length` counts them in `proposed_post_put_channels`: an emoji is one character.
-  const length = [...post.caption].length;
+  const length = Array.from(post.caption).length;
   if (length > limit) {
     problems.push(
       `${label} captions are at most ${String(limit)} characters; this one has ${String(length)}.`,
