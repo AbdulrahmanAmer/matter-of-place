@@ -169,7 +169,11 @@ describe("rotation and the heartbeat", () => {
     utimesSync(heartbeat, sixteen, sixteen);
     const over = stalledSupervisorPid(lock, heartbeat, now);
     writeFileSync(lock, "not a pid");
-    expect([underLimit, over, stalledSupervisorPid(lock, heartbeat, now)]).toEqual([null, 4242, null]);
+    expect([underLimit, over, stalledSupervisorPid(lock, heartbeat, now)]).toEqual([
+      null,
+      4242,
+      null,
+    ]);
   });
 
   it("ends only a process whose command line is Matter's supervisor, never a reused process id (P-3703)", () => {
@@ -187,7 +191,7 @@ describe("rotation and the heartbeat", () => {
     const address = server.address();
     const port = typeof address === "object" && address !== null ? address.port : 0;
     try {
-      const outcome = await deadlineFetch(200)(`http://127.0.0.1:${port}/`).then(
+      const outcome = await deadlineFetch(200)(`http://127.0.0.1:${String(port)}/`).then(
         () => "answered",
         (error: unknown) => (error instanceof Error ? error.name : "other"),
       );

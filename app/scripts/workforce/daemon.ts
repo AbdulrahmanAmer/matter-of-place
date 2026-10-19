@@ -1237,11 +1237,17 @@ function endStalledSupervisor(now: number = Date.now()): boolean {
   if (pid === null) return false;
   const found = spawnSync(
     "powershell",
-    ["-NoProfile", "-Command", `(Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}').CommandLine`],
+    [
+      "-NoProfile",
+      "-Command",
+      `(Get-CimInstance Win32_Process -Filter 'ProcessId=${String(pid)}').CommandLine`,
+    ],
     { encoding: "utf8", windowsHide: true, timeout: 30_000 },
   );
-  if (!isSupervisorCommand(found.stdout ?? "")) return false;
-  console.log(`${new Date(now).toISOString()} matter: live supervisor ${pid} silent 15 minutes, ended from outside`);
+  if (!isSupervisorCommand(found.stdout)) return false;
+  console.log(
+    `${new Date(now).toISOString()} matter: live supervisor ${String(pid)} silent 15 minutes, ended from outside`,
+  );
   spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true, timeout: 30_000 });
   return true;
 }

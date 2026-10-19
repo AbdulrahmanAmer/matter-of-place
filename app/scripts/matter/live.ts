@@ -348,13 +348,11 @@ function ownCodeChanged(from: string, to: string): boolean {
 
 function runnerHead(): string {
   // A deadline on every git call: a blocked call here would also block the watchdog's timer (P-3703).
-  return (
-    spawnSync("git", ["-C", resolve(here, "../.."), "rev-parse", "HEAD"], {
-      encoding: "utf8",
-      windowsHide: true,
-      timeout: 30_000,
-    }).stdout ?? ""
-  ).trim();
+  return spawnSync("git", ["-C", resolve(here, "../.."), "rev-parse", "HEAD"], {
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 30_000,
+  }).stdout.trim();
 }
 
 /** Waits `ms` while touching the heartbeat every half minute, so a planned rest never reads as a stuck loop. */
