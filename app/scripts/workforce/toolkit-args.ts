@@ -8,7 +8,7 @@ import {
   type SpawnSyncOptionsWithStringEncoding,
   type SpawnSyncReturns,
 } from "node:child_process";
-import { delimiter, dirname, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   renderers,
@@ -21,6 +21,14 @@ import { renderPlan } from "./render-run.mjs";
 
 /** The checkout this runner runs from (`app/`): where the render scripts live. Node and Bun both know `import.meta.url`. */
 export const APP_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+
+/**
+ * The folder of one run about outside text (`outsideToolkit`), its working directory and the one place it reads: made
+ * empty for the run, filled only by the runner (a request's folder, `requestDesk`), removed when the run ends.
+ */
+export function outsideFolder(home: string, slug: string, runId: string): string {
+  return join(home, "desks", slug, "outside", runId);
+}
 
 export interface ToolkitPaths {
   /** The run's own folder (`desks/<slug>/work`), its working directory. */
@@ -200,6 +208,8 @@ const RENDER_TIMEOUT_MS = 10 * 60_000;
  * names on this run, each through the wrapper's checks (`renderPlan`: the spec in its folder, the output in its folder
  * or another write place, bun from the app folder with only what a render needs in its environment). Answers one line
  * per render for the thread; a run that may not render is told so once, without its words.
+ * It blocks the pass for up to three renders of ten minutes each (ruling H136): runs are taken one after another, a
+ * render belongs to the run that asked for it, and the run's result in the thread waits for it.
  */
 export function runRenders(
   asks: readonly RenderAsk[],

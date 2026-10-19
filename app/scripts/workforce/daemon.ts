@@ -87,6 +87,7 @@ import { driveSocialFolder, refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
 import { isSupervisorCommand, liveAlive, stalledSupervisorPid } from "../matter/live-alive.ts";
 import {
+  outsideFolder,
   renderRoots,
   runRenders,
   toolkitLine,
@@ -239,24 +240,25 @@ export interface ColleagueLaunch {
 
 /**
  * H115: a colleague run's command line, folder and the line that tells it its tools, from its toolkit. A run about an
- * outside message gets `outsideToolkit` in a folder of its own, `desks/<slug>/outside/<run id>`, made empty for it and
- * removed after it (review of 2026-10-16: never the work folder, where other runs leave drafts); the runner fills it
- * with nothing yet (the facts and photographs of W8 0a, NOT DONE). A run a person or an operator key started (`inside`,
- * `startedInsideFor`) gets its whole toolkit, and the photographs of the pieces its line names placed in its folder
- * from its toolkit's piece sources (`placePieces`; never the studio itself, review of 2026-10-19); any other run (an event, a schedule, a mention) its reads only, since its history may hold a line
- * that carried outside words. Every place it may write is swept of run config first (the Drive folder is the
- * operator's: what is found there refuses the run and is named, never deleted), and the settings file, named by the
- * run id, is written last.
+ * outside message gets `outsideToolkit` in a folder of its own, `outsideFolder` (review of 2026-10-16: never the work
+ * folder, where other runs leave drafts), which `runOnce` empties before the run's context is read and removes after
+ * it; only the runner fills it (a request's folder for its owner, `requestDesk`, review of 2026-10-19). A run a person
+ * or an operator key started (`inside`, `startedInsideFor`) gets its whole toolkit, and the photographs of the pieces
+ * its line names placed in its folder from its toolkit's piece sources (`placePieces`, without their metadata; never
+ * the studio itself, review of 2026-10-19); any other run (an event, a schedule, a mention) its reads only, since its
+ * history may hold a line that carried outside words. Every place it may write is swept of run config first (the
+ * Drive folder is the operator's: what is found there refuses the run and is named, never deleted), and the settings
+ * file, named by the run id, is written last.
  */
-export function colleagueLaunch(
+export async function colleagueLaunch(
   home: string,
   slug: string,
   model: string,
   research: boolean,
   run: { id: string; outside: boolean; inside: boolean; line?: string },
-): ColleagueLaunch {
+): Promise<ColleagueLaunch> {
   const work = deskFor(home, slug);
-  const cwd = run.outside ? join(home, "desks", slug, "outside", run.id) : work;
+  const cwd = run.outside ? outsideFolder(home, slug, run.id) : work;
   const toolkit = run.outside
     ? outsideToolkit
     : run.inside
@@ -278,7 +280,7 @@ export function colleagueLaunch(
   }
   const placed =
     run.inside && !run.outside && toolkit.pieces.length > 0
-      ? placePieces(
+      ? await placePieces(
           run.line ?? "",
           {
             studio: toolkit.pieces.includes("studio") ? paths.studio : null,
@@ -299,11 +301,8 @@ export function colleagueLaunch(
     settingsFile,
     cleanup: [settingsFile, ...(run.outside ? [cwd] : [])],
   };
-  if (run.outside) {
-    // only the runner fills it: whatever an earlier attempt of this run left is gone
-    rmSync(cwd, { recursive: true, force: true });
-    mkdirSync(cwd, { recursive: true });
-  }
+  // emptied by `runOnce` before the context wrote what this run is shown into it
+  if (run.outside) mkdirSync(cwd, { recursive: true });
   mkdirSync(dirname(settingsFile), { recursive: true });
   writeFileSync(
     settingsFile,
@@ -590,7 +589,13 @@ export async function allowForOwner(
  */
 export async function context(
   client: Db,
-  run: { agent_id: string; cause: string; event_id: string | null; message_id: string | null },
+  run: {
+    id: string;
+    agent_id: string;
+    cause: string;
+    event_id: string | null;
+    message_id: string | null;
+  },
   thread: string,
   ask: (prompt: string) => Promise<string> = askTriage,
   matterReadsHeld = false,
@@ -656,10 +661,10 @@ export async function context(
   parts.push(...groundingLines(wokeShown, pending));
   // W7 item 9a: a run of the request's owner about a request receives the request itself (request-desk.ts), named by
   // its event or its line, after the triage read and classified what its submitter typed; no one else is shown a
-  // request (H132).
+  // request (H132). Its folder is written into the run's own outside folder, where the run is launched.
   const line = woke === null ? null : shownBody(woke);
   const desk = owns("submission")
-    ? await requestDesk(client, run.agent_id, event, line, { triage, ask })
+    ? await requestDesk(client, run.agent_id, event, line, { id: run.id, triage, ask })
     : { lines: [], received: false };
   parts.push(...desk.lines);
   // W8 fourth review: a run about an outside message sees the triage, its own pending list and the site's facts, and
@@ -884,6 +889,9 @@ export async function runOnce(client: Db): Promise<boolean> {
     // W8 0e: a key's line counts only if its account is an unrevoked agent key.
     const woke = { author_kind: authorKind, author_id: wokeBy };
     const startedInside = await startedInsideFor(client, run.cause, woke);
+    // H115: an outside run's folder holds only what the runner writes for this run (a request's folder, in `context`);
+    // whatever an earlier attempt of it left is gone first
+    rmSync(outsideFolder(HOME, agent.slug, run.id), { recursive: true, force: true });
     const {
       situation,
       triage,
@@ -979,7 +987,7 @@ export async function runOnce(client: Db): Promise<boolean> {
         )
       : await (async () => {
           // H115: the run's toolkit decides its command line, its folder and what it is told it may use.
-          const launch = colleagueLaunch(
+          const launch = await colleagueLaunch(
             HOME,
             agent.slug,
             models[underCeiling(agent.model, policy.colleagueCeiling)] ??
@@ -1199,6 +1207,8 @@ export async function runOnce(client: Db): Promise<boolean> {
     if (explains && run.message_id !== null)
       await handToMatter(client, agents ?? [], run.message_id, thread, true);
   } finally {
+    // the request's folder a context wrote is removed whatever ended the run, a failure before its launch included
+    rmSync(outsideFolder(HOME, agent.slug, run.id), { recursive: true, force: true });
     await client
       .from("agents")
       .update({

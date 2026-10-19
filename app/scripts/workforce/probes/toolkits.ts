@@ -160,7 +160,7 @@ function calls(stdout: string): Call[] {
   return [...found.values()];
 }
 
-function run(
+async function run(
   label: string,
   slug: string,
   shape: { outside: boolean; inside: boolean; line?: string },
@@ -168,8 +168,11 @@ function run(
   before: (cwd: string) => void = () => undefined,
   extraDeny: string[] = [],
   answer = "After the last step answer only DONE.",
-): void {
-  const launch = colleagueLaunch(HOME, slug, MODEL, false, { id: `probe-${label}`, ...shape });
+): Promise<void> {
+  const launch = await colleagueLaunch(HOME, slug, MODEL, false, {
+    id: `probe-${label}`,
+    ...shape,
+  });
   before(launch.cwd);
   if (extraDeny.length > 0) {
     // the rules under test, added to the settings file the runner wrote
@@ -248,7 +251,7 @@ if (want("control")) {
 }
 
 if (want("social-bash"))
-  run(
+  await run(
     "social-bash",
     "social",
     { outside: false, inside: true },
@@ -274,7 +277,7 @@ if (want("social-bash"))
   );
 
 if (want("social-bash2"))
-  run(
+  await run(
     "social-bash2",
     "social",
     { outside: false, inside: true },
@@ -293,7 +296,7 @@ if (want("social-bash2"))
   );
 
 if (want("social-files"))
-  run(
+  await run(
     "social-files",
     "social",
     { outside: false, inside: true },
@@ -313,7 +316,7 @@ if (want("social-files"))
   );
 
 if (want("editor"))
-  run("editor", "editor", { outside: false, inside: true }, [
+  await run("editor", "editor", { outside: false, inside: true }, [
     "Bash: echo hello",
     "Write the file ./draft.md containing x",
     `Write the file ${studio}/editor.md containing x`,
@@ -325,7 +328,7 @@ if (want("outside")) {
   const work = join(HOME, "desks", "concierge", "work");
   mkdirSync(work, { recursive: true });
   writeFileSync(join(work, "draft.md"), "BUYER-DETAILS-MARK\n");
-  run(
+  await run(
     "outside",
     "concierge",
     { outside: true, inside: false },
@@ -343,7 +346,7 @@ if (want("outside")) {
 }
 
 if (want("social-event"))
-  run(
+  await run(
     "social-event",
     "social",
     { outside: false, inside: false },
@@ -357,7 +360,7 @@ if (want("social-event"))
 
 if (want("place"))
   // review of 2026-10-16: the runner places a named piece's photographs, so a render needs nothing done by hand
-  run(
+  await run(
     "place",
     "social",
     { outside: false, inside: true, line: `@social render the carousel for ${PIECE}` },
@@ -378,7 +381,7 @@ if (want("place"))
 
 if (want("redirect"))
   // review of 2026-10-16: a read joined with a redirect, the one route a run had to copy a photograph itself
-  run(
+  await run(
     "redirect",
     "social",
     { outside: false, inside: true },
@@ -397,7 +400,7 @@ if (want("redirect"))
 if (want("deny"))
   // review of 2026-10-19: do explicit Bash deny rules stop the read-only commands and redirects dontAsk lets through?
   // The first steps are named by a rule, the rest are read-only commands no rule names.
-  run(
+  await run(
     "deny",
     "social",
     { outside: false, inside: true },
@@ -428,7 +431,7 @@ if (want("deny"))
 
 if (want("studio"))
   // review of 2026-10-19: no run has a shell or reaches the studio, where the reel engine runs and loads files
-  run("studio", "social", { outside: false, inside: true }, [
+  await run("studio", "social", { outside: false, inside: true }, [
     "Bash: ls",
     "Bash: echo X > ./echo.txt",
     `Read the file ${studio}/brief.md`,
@@ -441,7 +444,7 @@ if (want("studio"))
 
 if (want("render"))
   // review of 2026-10-19: Social writes the spec beside the placed photographs and the runner renders it after the run
-  run(
+  await run(
     "render",
     "social",
     { outside: false, inside: true, line: `@social render the carousel for ${PIECE}` },

@@ -926,12 +926,12 @@ describe("W8 0e and H115: who started a run, and what a started run reads", () =
     ]).toEqual([true, true, false, false, false, false]);
   });
 
-  it("launches a run shown a request, even one a person started, with no tool that writes or runs anything (W7 item 9a)", () => {
+  it("launches a run shown a request, even one a person started, with no tool that writes or runs anything (W7 item 9a)", async () => {
     const home = mkdtempSync(join(tmpdir(), "w7-9a-launch-"));
     const editor = { slug: "editor", tools: ["read_business", "chat", "research"] };
     const decided = runFrom(editor, "editor", { triage: null, request: true }, false);
     // H115: the outside toolkit, in a folder of its own, whoever started the run
-    const launch = colleagueLaunch(home, "editor", "sonnet", decided.shape.research, {
+    const launch = await colleagueLaunch(home, "editor", "sonnet", decided.shape.research, {
       id: "run-9a",
       outside: decided.outside,
       inside: true,

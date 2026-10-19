@@ -3,6 +3,7 @@
 // failed, and a proposal Matter said it had filed was dropped. The reader now tries each "{" until one parses.
 import { z } from "zod";
 import { jsonValue } from "../../src/domain/json-value.ts";
+import { RENDERER_NAMES } from "../../src/domain/toolkits.ts";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import { mediaRequestSchema } from "./media.ts";
 import { HOW_OFF_LIST, POSTURES } from "./posture.ts";
@@ -42,7 +43,8 @@ export const outcome = z.object({
   renders: z
     .array(
       z.object({
-        renderer: z.enum(["carousel", "post", "story"]),
+        // the toolkit's own list: a renderer added there is never dropped here (review of 2026-10-19)
+        renderer: z.enum(RENDERER_NAMES),
         spec: z.string().min(1).max(500),
         out: z.string().min(1).max(500),
       }),

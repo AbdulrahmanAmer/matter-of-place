@@ -27,21 +27,23 @@ type WritePlace = Extract<Place, "own_folder" | "drive_social">;
  */
 const pieceSources = {
   studio: "the studio",
-  drive_social: "Google Drive, Social Media",
+  drive_social: "the Social Media folder in Google Drive",
 } as const;
 type PieceSource = keyof typeof pieceSources;
 
 /**
  * The render scripts a toolkit can name: each runs one local spec into a folder, with no network and no upload. A
  * colleague never runs them: it names one in its answer and the runner renders it after the run, through the wrapper's
- * checks (`renderPlan` in `scripts/workforce/render-run.mjs`).
+ * checks (`renderPlan` in `scripts/workforce/render-run.mjs`). The names are one list, which the answer's schema reads
+ * too (`answer.ts`), so a renderer added here is never dropped from an answer.
  */
-export const renderers = {
+export const RENDERER_NAMES = ["carousel", "post", "story"] as const;
+export type Renderer = (typeof RENDERER_NAMES)[number];
+export const renderers: Readonly<Record<Renderer, { script: string; label: string }>> = {
   carousel: { script: "scripts/render-carousel.mjs", label: "a carousel" },
   post: { script: "scripts/render-cover.mjs", label: "a single post" },
   story: { script: "scripts/render-story.mjs", label: "a story" },
-} as const;
-export type Renderer = keyof typeof renderers;
+};
 
 export interface Toolkit {
   read: readonly Place[];
@@ -96,7 +98,8 @@ export function toolkitFor(slug: string): Toolkit {
 /**
  * A run about an outside message (an inquiry, a request, an email) keeps the triage of W8 0a: it reads only a folder of
  * its own, made empty for that run (`desks/<slug>/outside/<run id>`), never the work folder where other runs leave
- * drafts, and writes and runs nothing. The runner puts nothing there yet: placing the facts and photographs is NOT DONE.
+ * drafts, and writes and runs nothing. The runner writes a request's folder there for its owner (`requestDesk`, review
+ * of 2026-10-19); an inquiry's or an email's facts reach the prompt only.
  */
 export const outsideToolkit: Toolkit = { read: ["own_folder"], write: [], render: [], pieces: [] };
 
@@ -124,7 +127,7 @@ export function toolkitWords(toolkit: Toolkit, tools: readonly string[]): string
     ...(toolkit.pieces.length === 0
       ? []
       : [
-          `Gets the photographs of a piece a person names, from ${series(toolkit.pieces.map((source) => pieceSources[source]))}, in its own folder.`,
+          `When a person names a piece, the runner copies its photographs into its folder from ${toolkit.pieces.map((source) => pieceSources[source]).join(" or ")}.`,
         ]),
     toolkit.write.length === 0 ? "Writes nothing." : `Writes ${list(toolkit.write)}.`,
     ...(toolkit.render.length === 0
