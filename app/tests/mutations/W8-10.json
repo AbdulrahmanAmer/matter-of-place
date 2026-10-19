@@ -355,7 +355,7 @@
     "id": "w8-10-caption-codepoints",
     "test": "tests/unit/proposed-posts.test.ts",
     "file": "src/domain/proposed-posts.ts",
-    "find": "  const length = [...post.caption].length;",
+    "find": "  const length = Array.from(post.caption).length;",
     "replace": "  const length = post.caption.length;",
     "run": "bunx vitest run --project unit tests/unit/proposed-posts.test.ts",
     "expect": "× .*counts code points as char_length does"
