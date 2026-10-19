@@ -3,8 +3,8 @@
     "id": "ga4-leads-consent",
     "test": "tests/unit/ga4-leads.test.ts",
     "file": "src/lib/ga4.ts",
-    "find": "  if (!(ga4LeadEvents as readonly string[]).includes(event) || !consentGranted() || !loaded()) return false;",
-    "replace": "  if (!(ga4LeadEvents as readonly string[]).includes(event) || !loaded()) return false;",
+    "find": "|| !consentGranted() || !loaded())\n    return false;",
+    "replace": "|| !loaded())\n    return false;",
     "run": "bunx vitest run --project unit tests/unit/ga4-leads.test.ts",
     "expect": "× .*sends nothing without consent"
   },
