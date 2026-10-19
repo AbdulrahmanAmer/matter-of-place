@@ -8651,3 +8651,21 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the supervisor runs a one-minute watchdog timer beside its loop (`exitIfStalled`): a heartbeat older than `LOOP_STALE_MS` (10 min) ends Matter's session and the process, and the task starts a fresh one; check `ls -la ~/.mop-workforce/matter/live.heartbeat` when Matter seems quiet.
 - proof: `tests/unit/matter-live.test.ts` "lets the watchdog end a supervisor whose heartbeat is over ten minutes old", registry `W8-runner.json` w8-runner-watchdog-stale (2026-10-19).
 - added: 2026-10-19
+
+## P-3704 · A foreground "until done; sleep" loop holds the conversation for minutes; the operator had to background it himself
+- symptom: 2026-10-19, the orchestrator waited in the foreground on a merge gate (`until grep -q DONE ...; sleep 5`, 10-minute timeout), on Matter's log and on a PR's checks; the operator pushed the gate wait to the background by hand: "You don't wait on anything that's going to take more than 3 seconds."
+- rule: anything that may take more than a few seconds (gate-loop, CI, a probe, a test) starts with `run_in_background` and the turn moves on; its completion notification is the trigger to read the result. No polling loop and no leading `sleep` in a foreground call, ever, and no `&` inside a backgrounded call (its log is read before it is written).
+- proof: the background-learner hook now backgrounds the pattern (`.claude/hooks/background-learned.json`); `grep -c "until " <session transcript>` drops to 0 after 2026-10-19 16:40.
+- added: 2026-10-19
+
+## P-3705 · A unit test that opens a socket fails in CI: the hermetic setup refuses every network call
+- symptom: 2026-10-19, PR 461's deadline test started a local node:http server and fetched it; locally green, CI red with "hermetic: network call to http://127.0.0.1:46431/ in a unit test" (`tests/setup/hermetic.ts`).
+- rule: a unit test stubs the network (`vi.stubGlobal("fetch", ...)`, a fake that answers or never answers until aborted) and restores it in `finally` with `vi.unstubAllGlobals()`; real sockets belong to the e2e or api projects.
+- proof: `tests/unit/matter-live.test.ts` "gives up on a database call that never answers" passes in CI on PR 461 (merged 14688ee2), watched red with the deadline removed.
+- added: 2026-10-19
+
+## P-3703 · A database call from the laptop has no deadline by default, and one made as the laptop sleeps never answers
+- symptom: Matter's supervisor wrote its last heartbeat at 2026-10-17 14:25 (local); the laptop went to sleep at 14:30:39 and woke at 14:30:42 (System log, Kernel-Power 42 and 107); the process then sat on one awaited Supabase call until 10-19. supabase-js uses plain fetch, which never times out; a git spawnSync without a timeout can block the same way and would also stop the in-process watchdog's timer.
+- rule: every runner client is built by `serviceDb()` (scripts/workforce/env.ts), whose fetch gives up after 60 s (`deadlineFetch`); every spawnSync in a long-lived loop gets a `timeout`; the minute runner (daemon.ts `endStalledSupervisor`) ends a supervisor whose heartbeat is silent 15 minutes, after checking the process's command line is matter/live.ts. Long planned waits use `rest()` so they keep the heartbeat fresh.
+- proof: `tests/unit/matter-live.test.ts` "gives up on a database call that never answers", "names the supervisor for the outside watchdog...", "ends only a process whose command line is Matter's supervisor"; registry W8-runner.json w8-runner-db-deadline, w8-runner-outside-watchdog, w8-runner-outside-watchdog-command (2026-10-19).
+- added: 2026-10-19
