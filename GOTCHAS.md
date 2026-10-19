@@ -8603,3 +8603,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after merging any change to `scripts/matter/live.ts`, check `git -C E:/mop-build/live merge-base --is-ancestor <merge> HEAD` and the live process start time; if the process predates the merge, restart it while Matter has no run in progress (`taskkill /T` on the wscript root, then `Start-ScheduledTask "MOP Matter Live"`), and read live.log for the first goal step or skip reason.
 - proof: after the restart at 17:01, live.log: `14:01:25Z live: goal step W8-0d ...` and `14:01:32Z live: goal step skipped: 1 line(s) in hand` (2026-10-16).
 - added: 2026-10-16
+
+## P-3699 · An unseen Turnstile challenge leaves every public form, sign-in included, waiting for good
+- symptom: 2026-10-19, the operator could not sign in nor receive the link: "Send a sign-in link" loaded Cloudflare's interactive challenge (`.../turnstile/.../normal`) into the bottom-right `turnstile-host`, nobody saw a box to tick, and `getTurnstileToken` never settled, so no `/api/admin/auth/send-link` request left the page; auth logs and `rate_limits` held nothing.
+- rule: the client token wait has a ceiling (`TOKEN_WAIT_MS`, 3 min) and the widget's `before-interactive-callback` puts a plain line above the box ("One more step: tick the box below ..."); a form that waits on a third party always says what it waits for and gives up in bounded time.
+- proof: `tests/unit/turnstile-client.test.tsx` "says above the box what to do while Cloudflare asks" and "goes on without a token when Cloudflare never answers", registry `fix-turnstile.json` tc-d-ask-line and tc-e-no-endless-wait (2026-10-19).
+- added: 2026-10-19
