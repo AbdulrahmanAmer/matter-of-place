@@ -2110,3 +2110,14 @@ first day of the new usage week; no step was cut from any plan.
   code, moving to it", 12:34:07Z "live: started (resuming 031029be...)", heartbeat 12:34:07Z. UNPROVEN: the stale-heartbeat
   exit in a real hang (unit test only). Cloudflare: only "Users without MFA" left in Security Insights (operator's click).
   Open for the operator: MFA on admin@, PRs 451-454 (Saturday audit), PR 449 and the queue (parked).
+- 2026-10-19 16:50 +0300: orchestrator. Matter's freeze root cause (P-3703): the laptop slept 10-17 14:30 while a Supabase
+  call (plain fetch, no deadline) was in flight; PR 461 (14688ee2) gives runner calls a 60 s deadline, git calls a timeout,
+  and the minute runner ends a supervisor silent 15 minutes. Runner moved to it 13:28Z by itself. UNPROVEN: the outside
+  watchdog in a real hang. UNPARKED on the operator's word: config backlog "all" (parked copy config.parked-2026-10-16.json),
+  builders/STOP renamed STOP.lifted-2026-10-19; Matter's line: PR 449, then queue.txt, then goal steps, plus SEO.
+  Public form PROVEN: interest signup row + "Confirm your interest in California" (Resend 13:08Z). Cloudflare AI bot
+  policies all Allow; Bot fight mode on. SEO: Search Console 9 impressions/28 days, position 8.3, 12 pages indexed; the
+  2016 documentary "A Matter of Place" holds the name; homepage recrawl requested; PR 462 (b20c3138) logo in the
+  Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
+  Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
+  AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
