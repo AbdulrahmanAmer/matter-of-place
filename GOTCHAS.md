@@ -8616,6 +8616,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `tests/unit/sign-in-token.test.ts` (no token, no request) and registry `fix-turnstile.json` tc-f-no-token-no-request (2026-10-19).
 - added: 2026-10-19
 
+## P-3702 · A supervisor stuck on a call that never answers stays "running" for days, and the task cannot start another
+- symptom: 2026-10-19, Matter's live supervisor (bun scripts/matter/live.ts, started 10-17 03:34) wrote its last heartbeat at 10-17 14:25 and its last log line at 11:04Z; the process stayed alive, so "MOP Matter Live" answered 0x80070420 (already running) every minute and nothing woke Matter for two days.
+- rule: the supervisor runs a one-minute watchdog timer beside its loop (`exitIfStalled`): a heartbeat older than `LOOP_STALE_MS` (10 min) ends Matter's session and the process, and the task starts a fresh one; check `ls -la ~/.mop-workforce/matter/live.heartbeat` when Matter seems quiet.
+- proof: `tests/unit/matter-live.test.ts` "lets the watchdog end a supervisor whose heartbeat is over ten minutes old", registry `W8-runner.json` w8-runner-watchdog-stale (2026-10-19).
+- added: 2026-10-19
+
 ## P-3701 · Turnstile in Managed mode can lock everyone out when Cloudflare rates the traffic as bots
 - symptom: 2026-10-19, the Turnstile widget's analytics read "Likely human 0%, Likely bot 100%" (6 challenges issued for `auth-send-link`, 0 solved); in Managed mode each of those wanted an interactive box that never rendered on our pages, so sign-in and every public form failed for three days, while the page said "sent".
 - rule: the widget runs Non-interactive (ruling H133); after any change to the widget or a new form, read the widget's analytics (Cloudflare › Turnstile › the widget: challenges issued vs solved) and send one real form from a browser, then confirm the result arrived (Resend for an email, the table for a record).
