@@ -1092,7 +1092,7 @@ export async function runOnce(client: Db): Promise<boolean> {
       await proposeCalls(client, agent, run.id, thread, allowed);
     }
     for (const proposal of plan.proposals) {
-      // W8 item 10 (H134): a post with its channels and files goes to Proposed posts, not to Approvals.
+      // W8 item 10 (H135): a post with its channels and files goes to Proposed posts, not to Approvals.
       if (isStructuredPost(proposal)) {
         const filed = await fileProposedPost(postDeps(client), {
           agent: agent.slug,

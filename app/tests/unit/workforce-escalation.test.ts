@@ -315,7 +315,7 @@ function memoryDb(
   };
 
   // a test's side effect just before a table is read: another runner acting between two of the runner's own reads
-  const hooks: { beforeRead?: (table: string) => void } = {};
+  const hooks: { beforeRead?: ((table: string) => void) | undefined } = {};
   const client = {
     from: (table: string) => ({
       select: (_columns?: string, options?: { head?: boolean }) => {

@@ -1,4 +1,4 @@
-// W8 item 10 (rulings H116, H134): proposed posts. create_proposed_post refuses a disabled channel, a file not in
+// W8 item 10 (rulings H116, H135): proposed posts. create_proposed_post refuses a disabled channel, a file not in
 // storage, a caption over the channel's limit and a LinkedIn reel without its poster; approve_proposed_post is a
 // person's only, once, for the revision they saw, and turns each channel into an approved asset and the social_posts
 // row the posting path reads; reject and re-render keep the revision's snapshot and tell the proposer; a scheduled post

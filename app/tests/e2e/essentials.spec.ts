@@ -453,6 +453,22 @@ test.describe("not-found", () => {
   });
 });
 
+// Where a confirm link lands (operator, 2026-10-19): one note per status, server-rendered and kept out of search.
+test.describe("place-notes-thanks", () => {
+  test("place-notes-thanks: confirmed and expired answer 200 with their own heading, noindex; another word answers 404", async ({
+    page,
+  }) => {
+    for (const status of ["confirmed", "expired"] as const) {
+      expect((await page.goto(`/place-notes/${status}`))?.status()).toBe(200);
+      await expect(
+        page.getByRole("heading", { level: 1, name: t.newsletter.thanks[status].title }),
+      ).toBeVisible();
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    }
+    expect((await page.goto("/place-notes/nope"))?.status()).toBe(404);
+  });
+});
+
 // Invariant 19: a failed read on a client navigation names its request id; the offline worker keeps the shell only.
 test.describe("error-id", () => {
   test("error-id: a failed API read on a client navigation shows the request id as its reference", async ({

@@ -825,6 +825,7 @@ describe("the triage reads every field a submitter typed before any is shown (W7
   };
 
   it("shows nothing of a request the triage holds as outside what a request may ask", async () => {
+    expect.hasAssertions();
     await held(
       () =>
         Promise.resolve(
@@ -835,10 +836,12 @@ describe("the triage reads every field a submitter typed before any is shown (W7
   });
 
   it("shows nothing of a request whose triage answer cannot be read", async () => {
+    expect.hasAssertions();
     await held(() => Promise.resolve("not json"), "tries to direct the AI");
   });
 
   it("shows nothing of a request whose triage call failed", async () => {
+    expect.hasAssertions();
     await held(() => Promise.reject(new Error("down")), "tries to direct the AI");
   });
 

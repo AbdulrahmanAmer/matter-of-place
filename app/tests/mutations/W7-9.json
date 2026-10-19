@@ -876,8 +876,8 @@
     "id": "w7-9-property-lookup-error",
     "test": "tests/unit/workforce-new-work.test.ts",
     "file": "scripts/workforce/new-work.ts",
-    "find": "      if (properties.error !== null) throw new Error(\"not read\");",
-    "replace": "",
+    "find": "      if (properties.error !== null) throw new Error(\"not read\");\n      for (const row of properties.data) markets.set(row.slug, row.market_slug);",
+    "replace": "      for (const row of properties.data ?? []) markets.set(row.slug, row.market_slug);",
     "run": "bunx vitest run --project unit tests/unit/workforce-new-work.test.ts",
     "expect": "× .*says the work could not be read when the property lookup fails"
   },

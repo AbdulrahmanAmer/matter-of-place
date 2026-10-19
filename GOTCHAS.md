@@ -8803,3 +8803,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a test of a clean child environment asserts that the decoy keys are absent and that nothing outside the kept list and those six names arrived; it never asserts an exact list on Windows.
 - proof: `cd app && bunx vitest run --project unit tests/unit/reel/render-reel-script.test.ts` → passes; with the six names dropped from its `windows` list it fails listing them (measured 2026-10-19).
 - added: 2026-10-19
+
+## P-3709 · A one-line `sed` fix of code leaves the registry entry that names that line stale, and CI's replay finds it 25 minutes later
+- symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
+- rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
+- proof: `node ~/.claude/hooks/edit-impact.mjs --changed E:/mop-build/finish3` printed the STALE note before the entry was updated and nothing after (2026-10-19).
+- added: 2026-10-19
