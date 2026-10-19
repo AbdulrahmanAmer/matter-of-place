@@ -92,6 +92,28 @@ describe("the inbound mail on the Sent emails screen", () => {
     expect(notice?.textContent).toContain("Sent to Matter");
   });
 
+  it("says a message with no owner waits for a person, never that it was sent", async () => {
+    open({
+      [`GET ${INBOUND}`]: {
+        items: [
+          mail({ triage: null, owner_slug: null, state: "new" }),
+          { ...NOTICE_ROW, owner_slug: null },
+        ],
+        next_cursor: null,
+      },
+    });
+    const table = await screen.findByRole("table", { name: "Inbound mail (2)" });
+    const rows = within(table).getAllByRole("row").slice(1);
+    for (const row of rows) {
+      expect(row.textContent).toContain("No one");
+      expect(within(row).getByText("Waiting for a person").getAttribute("data-tone")).toBe(
+        "warning",
+      );
+      expect(row.textContent).not.toContain("With its owner");
+      expect(row.textContent).not.toContain("Sent to Matter");
+    }
+  });
+
   it("asks for one source and one state when they are chosen", async () => {
     const requested = open({
       [`GET ${INBOUND}`]: { items: [mail()], next_cursor: null },

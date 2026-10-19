@@ -339,7 +339,7 @@
     "id": "w8-0h-sql-health",
     "kind": "sql",
     "test": "tests/db/inbound-mail.db.test.ts",
-    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- W8 0h: the laptop's mailbox check beats `mail_folders` every five minutes; a folder it could not read (or a\n  -- mailbox it could not reach) beats ok false, named here until a check reads them all again.\n  if exists (\n    select 1 from public.ops_heartbeats\n    where name = 'mail_folders' and at >= p_now - interval '30 minutes' and detail ->> 'ok' = 'never'\n  ) then\n    v_failing := array_append(v_failing, 'mail_folders');\n  end if;\n  -- W8 0g: the nightly copy to Google Drive beats `drive_copy` after the backup; a missing Drive folder beats ok false.\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats\n    where name = 'drive_copy' and at >= p_now - interval '26 hours' and detail ->> 'ok' = 'true'\n  ) then\n    v_failing := array_append(v_failing, 'drive_copy');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;\n",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- W8 0h: the laptop's mailbox check beats `mail_folders` every five minutes; a folder it could not read (or a\n  -- mailbox it could not reach, or no Zoho names) beats ok false, named here until a check reads them all again. While\n  -- the laptop runner passes (it touches Matter's last_seen_at every pass; the `runner` row is the Worker's) a check\n  -- that has not beaten for 30 minutes is named too, so a mailbox never read is never green (fourth review, H121 (17)).\n  if exists (\n    select 1 from public.ops_heartbeats\n    where name = 'mail_folders' and at >= p_now - interval '30 minutes' and detail ->> 'ok' = 'never'\n  ) or (\n    exists (\n      select 1 from public.agents\n      where slug = 'matter' and last_seen_at >= p_now - interval '10 minutes'\n    )\n    and not exists (\n      select 1 from public.ops_heartbeats\n      where name = 'mail_folders' and at >= p_now - interval '30 minutes'\n    )\n  ) then\n    v_failing := array_append(v_failing, 'mail_folders');\n  end if;\n  -- W8 0g: the nightly copy to Google Drive beats `drive_copy` after the backup; a missing Drive folder beats ok false.\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats\n    where name = 'drive_copy' and at >= p_now - interval '26 hours' and detail ->> 'ok' = 'true'\n  ) then\n    v_failing := array_append(v_failing, 'drive_copy');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"names mail_folders in ops_health while the mailbox check says a folder was not read\"",
     "expect": "× .*names mail_folders in ops_health while the mailbox check say"
   },
@@ -409,8 +409,8 @@
     "id": "w8-0h-body-person-only",
     "test": "tests/unit/workforce-inbound-mail.test.ts",
     "file": "scripts/workforce/inbound-mail.ts",
-    "find": "sorted.source === \"email_inbound\" ? plainText(message.content).slice(0, BODY_CAP) : \"\"",
-    "replace": "plainText(message.content).slice(0, BODY_CAP)",
+    "find": "sorted.source === \"email_inbound\"",
+    "replace": "true",
     "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps no body of a service's or our own mail, and a person's email in full\"",
     "expect": "× .*keeps no body of a service's or our own mail, and a person's"
   },
@@ -543,5 +543,129 @@
     "sql": "drop policy inbound_mail_select_privacy on public.inbound_mail;\ncreate policy inbound_mail_select_privacy on public.inbound_mail for select to authenticated\nusing (app.is_staff());\n",
     "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"every table and operation matches the matrix\"",
     "expect": "× .*every table and operation matches the matrix"
+  },
+  {
+    "id": "w8-0h-sql-queue-once",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.queue_event_runs(p_agents uuid[], p_events uuid[])\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_queued integer;\nbegin\n  -- W8 0h fourth review: the one way the laptop runner queues a run on an event (the daemon's wake, the hand-off of a\n  -- property to the Editor). The index that keeps one run per (agent, event) is partial, so the conflict names its\n  -- predicate: without it Postgres refuses the insert (42P10) and nothing is queued. Pairs by position; returns how\n  -- many runs are new, so a pair already queued counts 0 and is not an error.\n  if p_agents is null or p_events is null or cardinality(p_agents) <> cardinality(p_events)\n    or cardinality(p_agents) > 1000\n  then\n    raise exception 'bad_request';\n  end if;\n  insert into public.agent_runs (agent_id, cause, event_id)\n  select pair.agent_id, 'event', pair.event_id\n  from unnest(p_agents, p_events) as pair (agent_id, event_id)\n  where pair.agent_id is not null and pair.event_id is not null;\n  get diagnostics v_queued = row_count;\n  return v_queued;\nend;\n$$;\n\nrevoke execute on function public.queue_event_runs(uuid[], uuid[]) from public, anon, authenticated;\ngrant execute on function public.queue_event_runs(uuid[], uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"queues one Editor run when the same event is handed to it twice\"",
+    "expect": "× .*queues one Editor run when the same event is handed to it tw"
+  },
+  {
+    "id": "w8-0h-sql-health-stale",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- W8 0h: the laptop's mailbox check beats `mail_folders` every five minutes; a folder it could not read (or a\n  -- mailbox it could not reach, or no Zoho names) beats ok false, named here until a check reads them all again. While\n  -- the laptop runner passes (it touches Matter's last_seen_at every pass; the `runner` row is the Worker's) a check\n  -- that has not beaten for 30 minutes is named too, so a mailbox never read is never green (fourth review, H121 (17)).\n  if exists (\n    select 1 from public.ops_heartbeats\n    where name = 'mail_folders' and at >= p_now - interval '30 minutes' and detail ->> 'ok' = 'false'\n  ) or (\n    exists (\n      select 1 from public.agents\n      where slug = 'matter' and last_seen_at >= p_now + interval '10 minutes'\n    )\n    and not exists (\n      select 1 from public.ops_heartbeats\n      where name = 'mail_folders' and at >= p_now - interval '30 minutes'\n    )\n  ) then\n    v_failing := array_append(v_failing, 'mail_folders');\n  end if;\n  -- W8 0g: the nightly copy to Google Drive beats `drive_copy` after the backup; a missing Drive folder beats ok false.\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats\n    where name = 'drive_copy' and at >= p_now - interval '26 hours' and detail ->> 'ok' = 'true'\n  ) then\n    v_failing := array_append(v_failing, 'drive_copy');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"names mail_folders in ops_health while the laptop runner passes and the mailbox check has not beaten\"",
+    "expect": "× .*names mail_folders in ops_health while the laptop runner pas"
+  },
+  {
+    "id": "w8-0h-hand-editor-refused",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": "if (error !== null) return false;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps the run when the Editor cannot be queued, and names no new owner\"",
+    "expect": "× .*keeps the run when the Editor cannot be queued, and names no"
+  },
+  {
+    "id": "w8-0h-wake-refused",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "if (refused !== null) throw new Error(\"workforce: the runs on new events could not be queued\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps the cursor before an event whose runs could not be queued, so the next pass wakes it again\"",
+    "expect": "× .*keeps the cursor before an event whose runs could not be que"
+  },
+  {
+    "id": "w8-0h-wake-queued",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    queued = data;",
+    "replace": "    queued = rows.length + 1;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"queues the waking agents' runs in one call and moves the cursor past the event\"",
+    "expect": "× .*queues the waking agents' runs in one call and moves the cur"
+  },
+  {
+    "id": "w8-0h-storable-nul",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": ".replaceAll(\"\\u0000\", \"\")",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records a message whose listed subject and name carry U\"",
+    "expect": "× .*records a message whose listed subject and name carry U"
+  },
+  {
+    "id": "w8-0h-storable-surrogate",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": ".replaceAll(/[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])|(?<![\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]/g, \"\");",
+    "replace": ".replaceAll(/(?!)/g, \"\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records a message whose listed subject and name carry U\"",
+    "expect": "× .*records a message whose listed subject and name carry U"
+  },
+  {
+    "id": "w8-0h-reply-storable",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "p_subject: storable(row.subject),",
+    "replace": "p_subject: row.subject,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"and an unpaired surrogate from a reply's listed subject and name\"",
+    "expect": "× .*and an unpaired surrogate from a reply's listed subject and "
+  },
+  {
+    "id": "w8-0h-listed-fixed-words",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "if (!listingOnly) throw failure;",
+    "replace": "throw failure;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records with fixed words a message whose listed subject the database still refuses after three checks\"",
+    "expect": "× .*records with fixed words a message whose listed subject the "
+  },
+  {
+    "id": "w8-0h-names-missing",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "done.unread.push(\"the mailbox\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"beats the heartbeat not ok, naming the mailbox, when the Zoho names are missing\"",
+    "expect": "× .*beats the heartbeat not ok, naming the mailbox, when the Zoh"
+  },
+  {
+    "id": "w8-0h-subject-fence-close",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "unfenced = unfenced.replaceAll(\"<<<\", \"\").replaceAll(\">>>\", \"\");",
+    "replace": "unfenced = unfenced.replaceAll(\"<<<\", \"\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"shows Matter a hostile Search Console subject on one line inside one fence\"",
+    "expect": "× .*shows Matter a hostile Search Console subject on one line in"
+  },
+  {
+    "id": "w8-0h-subject-fence-again",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "for (let before = \"\"; before !== unfenced;) {",
+    "replace": "for (let before = \"\"; before === \"\";) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"shows Matter a hostile Search Console subject on one line inside one fence\"",
+    "expect": "× .*shows Matter a hostile Search Console subject on one line in"
+  },
+  {
+    "id": "w8-0h-subject-one-line",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "    .replace(/\\d{4,}/g, \"[number]\")\n    .replace(/\\s+/g, \" \")",
+    "replace": "    .replace(/\\d{4,}/g, \"[number]\")\n    .replace(/ +/g, \" \")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"shows Matter a hostile Search Console subject on one line inside one fence\"",
+    "expect": "× .*shows Matter a hostile Search Console subject on one line in"
+  },
+  {
+    "id": "w8-0h-ui-waiting",
+    "test": "src/admin/audit/inbound-mail.test.tsx",
+    "file": "src/admin/audit/InboundMailPart.tsx",
+    "find": "const waiting = mail.state === \"capped\" || (owned && mail.owner_slug === null);",
+    "replace": "const waiting = mail.state === \"capped\";",
+    "run": "bunx vitest run --project component src/admin/audit/inbound-mail.test.tsx -t \"says a message with no owner waits for a person, never that it was sent\"",
+    "expect": "× .*says a message with no owner waits for a person, never that "
   }
 ]

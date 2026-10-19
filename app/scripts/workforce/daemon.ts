@@ -233,9 +233,9 @@ function askClaude(
 
 // ---------- waking on events ----------
 
-function readCursor(): string {
+function readCursor(file: string): string {
   try {
-    const value: unknown = JSON.parse(readFileSync(CURSOR_FILE, "utf8"));
+    const value: unknown = JSON.parse(readFileSync(file, "utf8"));
     if (
       typeof value === "object" &&
       value !== null &&
@@ -249,8 +249,14 @@ function readCursor(): string {
   return new Date().toISOString();
 }
 
-async function wakeOnEvents(client: Db): Promise<number> {
-  const cursor = readCursor();
+/**
+ * The runs new events wake (exported for its test, with its own cursor file); the number of runs queued anew. W8 0h
+ * fourth review: they are queued through `queue_event_runs`, whose conflict names the partial index's predicate (the
+ * upsert this replaced was refused by Postgres on every pass); a failure keeps the cursor where it is, so the next pass
+ * wakes the same events again.
+ */
+export async function wakeOnEvents(client: Db, file = CURSOR_FILE): Promise<number> {
+  const cursor = readCursor(file);
   const { data: events, error } = await client
     .from("events")
     .select("id, type, at, entity")
@@ -259,7 +265,7 @@ async function wakeOnEvents(client: Db): Promise<number> {
     .limit(50);
   if (error !== null) throw new Error("workforce: the events could not be read");
   if (events.length === 0) {
-    writeFileSync(CURSOR_FILE, JSON.stringify({ at: cursor }));
+    writeFileSync(file, JSON.stringify({ at: cursor }));
     return 0;
   }
   const { data: agents } = await client.from("agents").select("id, wake_on, state");
@@ -267,15 +273,19 @@ async function wakeOnEvents(client: Db): Promise<number> {
     (agents ?? [])
       // W9 item 3: a bounce wakes only the owner of the request or inquiry it is about.
       .filter((agent) => wakes(agent, event))
-      .map((agent) => ({ agent_id: agent.id, cause: "event", event_id: event.id })),
+      .map((agent) => ({ agent_id: agent.id, event_id: event.id })),
   );
+  let queued = 0;
   if (rows.length > 0) {
-    await client
-      .from("agent_runs")
-      .upsert(rows, { onConflict: "agent_id,event_id", ignoreDuplicates: true });
+    const { data, error: refused } = await client.rpc("queue_event_runs", {
+      p_agents: rows.map((row) => row.agent_id),
+      p_events: rows.map((row) => row.event_id),
+    });
+    if (refused !== null) throw new Error("workforce: the runs on new events could not be queued");
+    queued = data;
   }
-  writeFileSync(CURSOR_FILE, JSON.stringify({ at: events.at(-1)?.at ?? cursor }));
-  return rows.length;
+  writeFileSync(file, JSON.stringify({ at: events.at(-1)?.at ?? cursor }));
+  return queued;
 }
 
 // ---------- one run ----------

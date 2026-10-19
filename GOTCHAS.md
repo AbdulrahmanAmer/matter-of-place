@@ -8253,6 +8253,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: in `app/src/templates/email/blocks/stage.tsx` move the dash cells out of their nested table into the counter's row and run `cd app && bun run scripts/email-gallery.ts received`: `workspace/08-email-redesign/v2/received-desktop.png` shows blocks where the dashes were.
 - added: 2026-10-15
 
+## G-1480 · `upsert(..., { onConflict })` on a partial unique index is refused by Postgres (42P10), and nothing is written
+- paths: app/scripts/**, app/src/server/**
+- severity: warn
+- symptom: W8 0h fourth review, 2026-10-19: the Editor hand-off and the daemon's `wakeOnEvents` both upserted `agent_runs` with `onConflict: "agent_id,event_id"`. The only matching index, `agent_runs_agent_event`, is `where event_id is not null`. On the stub cluster the statement PostgREST sends answers `there is no unique or exclusion constraint matching the ON CONFLICT specification`; `wakeOnEvents` never read the error, so no run on an event was ever queued by it, and every unit test passed on fakes that accept any `onConflict`.
+- cause: Postgres infers a partial unique index for `ON CONFLICT (cols)` only when the statement names the index's predicate (`ON CONFLICT (cols) WHERE ...`), and supabase-js has no way to send one.
+- rule: a write that must skip duplicates of a partial unique index goes through a service-role SQL function whose `on conflict` names the predicate (`queue_event_runs`); never `upsert` with `onConflict` on such columns, and always read the error of a write. A fake that accepts any `onConflict` proves nothing about it: give the write a db test.
+- proof: on a P-718 stub cluster with the branch's migrations, `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:55492/mopw env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/inbound-mail.db.test.ts -t "queues one Editor run"` → `1 passed`: the case asserts the plain `on conflict (agent_id, event_id)` insert fails with `no unique or exclusion constraint`, beside the function's 1 then 0 (2026-10-19, 13 of 13 for the file).
+- added: 2026-10-19
+
 ## P-3510 · A full-page screenshot leaves a lazy picture far down the page empty
 - symptom: 2026-10-15, the v2 email gallery: `newsletter_welcome-desktop.png` showed the three market bands and the colophon's wordmark as empty colour, while the pictures near the top had loaded.
 - cause: every email picture carries `loading="lazy"` (G-500), Chromium loads a lazy image only near the viewport, and `page.screenshot({ fullPage: true })` does not scroll.
@@ -8550,6 +8559,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a component run says `Failed to start forks worker`, rerun it with `--pool=threads` before calling anything red; a registry entry's `run` may carry `--pool=threads` (W7-4.json does). Two replays in a row then went `BAD: wrong reason` once each for entries that were `WATCHED-FAIL OK` alone, so a BAD under load is rerun alone before it is believed.
 - proof: `cd app && bunx vitest run --project component --pool=threads src/admin/workforce/team-memory.test.tsx` → `Tests 18 passed (18)`.
 - added: 2026-10-16
+- hit again: 2026-10-19, W8 0h fourth review: `src/admin/audit/inbound-mail.test.tsx` failed twice with `Failed to start forks worker ... Timeout waiting for worker to respond` and `Tests no tests` before this entry was found; with `--pool=threads` → `Tests 4 passed (4)`. Search the bank for the error's words before the second run, not after.
 
 ## P-3579 · A reel about a property filed as `brand` shows no photograph of it, and nothing in the route or the review noticed (H110 miss)
 - symptom: 2026-10-16, the Fairfield test: Maya's request was `kind: "brand"` with her three picks named in prose, because the house was not on the site (a campaign reel needs `property_id`). The studio drew abstract models and a flat-roofed box for a 2021 pitched-roof house; the gate and the review passed it (it was well made), and the operator caught it: "a reader would be misled about the home".

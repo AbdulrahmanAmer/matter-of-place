@@ -2272,3 +2272,25 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 18:20 +0300 W8 0h third and fourth review rounds (overdrive/w8-0h, pushed, no PR; Matter merges through
+  the gate). Third round (caec66c7, 2026-10-16, no block then): one message never stops a folder (a 200-character cut
+  of attachment names, unread parts named in fixed words, three failed checks then the listing alone), the privacy-scoped
+  read, `export_subject` and `delete_subject` cover `inbound_mail`, only listed senders wake Matter (H121 (14), (15)).
+  Fourth round (Opus 5.5, merged origin/overdrive/finish-3 first, a fast-forward): (1) the Editor hand-off and the
+  daemon's `wakeOnEvents` queue runs through the new `queue_event_runs`, whose conflict names the partial index's
+  predicate; the old upsert was refused by Postgres (42P10, measured on the stub), so `wakeOnEvents` had never queued a
+  run on an event (it never read the error); a failure now keeps its cursor. (2) `storable` strips U+0000 and unpaired
+  surrogates from every recording argument (report JSON included) and the `email_reply_record` path; from its listing
+  alone a refused subject is recorded as fixed words with no name. (3) `cleanSubject` strips fence marks until none is
+  left, then collapses white space; a hostile-subject test. (4) W8.md's proof words restored; the deviation is H121 (16).
+  (5) Missing Zoho names beat `mail_folders` not ok ("the mailbox"); `ops_health` also names it after 30 silent minutes
+  while Matter's `last_seen_at` is under 10 minutes old (H121 (17): the `runner` row is the Worker's). (6) The tick names
+  the branch and the report day (14 October UTC, delivered the 15th). (7) No owner reads "Waiting for a person".
+  Migration 20261019144155_w8_0h_event_runs_mail_health.sql (queue_event_runs, ops_health); types by hand (G-1303 form).
+  Proof, run here: unit file 44/44, component file 4/4 (threads pool, P-3585), db file 13/13 on the stub cluster 55492
+  (`/e/mop-build/od-w8-0h-tools/db-round4.sh`; the stub gained `agents.last_seen_at`). Registry W8-0h.json 76 (14 new,
+  w8-0h-body-person-only and w8-0h-sql-health repointed). NOT DONE: `email_replies` in `export_subject` and
+  `delete_subject` (low finding, a follow-up item). UNPROVEN: the 14 new registry entries replayed (no local CI; CI's
+  watchfail counts); tsc, lint and knip (CI); `queue_event_runs` and the new `ops_health` branch on the real database;
+  the type drift of the hand-added `queue_event_runs` type (CI's db job); that runs on events start arriving live once
+  merged; a live mailbox run; the `storable` pass over a report's JSON (no test builds such a report). Bank grew: G-1480 (upsert on a partial unique index), P-3585 hit again.

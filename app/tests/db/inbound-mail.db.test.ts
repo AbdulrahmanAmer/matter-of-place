@@ -249,6 +249,71 @@ describe("inbound mail", () => {
     expect(seen.after).not.toContain("mail_folders");
   });
 
+  it("names mail_folders in ops_health while the laptop runner passes and the mailbox check has not beaten for 30 minutes", async () => {
+    const seen = await withRollback(async (db) => {
+      const health = async () =>
+        (await db.query<{ v: { failing: string[] } }>("select public.ops_health(now()) as v"))
+          .rows[0]?.v.failing ?? [];
+      await db.query("delete from public.ops_heartbeats where name = 'mail_folders'");
+      await db.query("update public.agents set last_seen_at = now() - interval '1 hour'");
+      const laptopOff = await health();
+      await db.query("update public.agents set last_seen_at = now() where slug = 'matter'");
+      const never = await health();
+      await db.query(
+        `insert into public.ops_heartbeats (name, at, detail)
+         values ('mail_folders', now() - interval '31 minutes', '{"ok": true, "unread": []}')`,
+      );
+      const stale = await health();
+      await db.query(`select public.beat('mail_folders', '{"ok": true, "unread": []}')`);
+      return { laptopOff, never, stale, fresh: await health() };
+    });
+    expect(seen.laptopOff).not.toContain("mail_folders");
+    expect(seen.never).toContain("mail_folders");
+    expect(seen.stale).toContain("mail_folders");
+    expect(seen.fresh).not.toContain("mail_folders");
+  });
+
+  it("queues one Editor run when the same event is handed to it twice", async () => {
+    const seen = await withRollback(async (db) => {
+      const id = await record(db);
+      const event = await db.query<{ id: string }>(
+        "select id from public.events where entity_id = $1",
+        [id],
+      );
+      const editor = await db.query<{ id: string }>(
+        "select id from public.agents where slug = 'editor'",
+      );
+      const agents = [editor.rows[0]?.id];
+      const events = [event.rows[0]?.id];
+      const queue = async () =>
+        (
+          await db.query<{ n: number }>(
+            "select public.queue_event_runs($1::uuid[], $2::uuid[]) as n",
+            [agents, events],
+          )
+        ).rows[0]?.n;
+      const first = await queue();
+      const again = await queue();
+      // Why the function exists: the one-run-per-event index is partial, so a conflict without its predicate is refused.
+      await db.query("savepoint plain");
+      const plain = await db
+        .query(
+          `insert into public.agent_runs (agent_id, cause, event_id) values ($1, 'event', $2)
+           on conflict (agent_id, event_id) do nothing`,
+          [agents[0], events[0]],
+        )
+        .then(
+          () => "inserted",
+          (failure: unknown) => (failure instanceof Error ? failure.message : "failed"),
+        );
+      await db.query("rollback to savepoint plain");
+      return { first, again, plain, runs: await runsOf(db, "editor") };
+    });
+    expect([seen.first, seen.again]).toEqual([1, 0]);
+    expect(seen.runs.filter((run) => run.cause === "event")).toHaveLength(1);
+    expect(seen.plain).toContain("no unique or exclusion constraint");
+  });
+
   it("deletes inbound mail past its year through the retention allow-list", async () => {
     const seen = await withRollback(async (db) => {
       await db.query(
