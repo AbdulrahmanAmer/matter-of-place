@@ -183,10 +183,10 @@ describe("POST /api/public/subscribers", () => {
     ]);
     expect(answers.map((answer) => answer.status)).toEqual([303, 303, 303, 303]);
     expect(answers.map(landing)).toEqual([
-      "/place-notes?confirmed=1",
-      "/place-notes?confirmed=0",
-      "/place-notes?confirmed=0",
-      "/place-notes?confirmed=0",
+      "/place-notes/confirmed",
+      "/place-notes/expired",
+      "/place-notes/expired",
+      "/place-notes/expired",
     ]);
     expect(answers[0]?.headers.get("cache-control")).toBe("no-store");
     expect(row.confirmed_at).not.toBeNull();
@@ -281,7 +281,7 @@ describe("POST /api/public/subscribers", () => {
       };
     });
     expect(status).toBe(303);
-    expect(location).toBe("/place-notes?confirmed=1");
+    expect(location).toBe("/place-notes/confirmed");
     expect(Date.parse(after.confirmed_at ?? "")).toBeGreaterThan(
       Date.parse(before.confirmed_at ?? ""),
     );
@@ -313,7 +313,7 @@ describe("POST /api/public/subscribers", () => {
       };
     });
     expect(lapsed).toBe(1);
-    expect(location).toBe("/place-notes?confirmed=0");
+    expect(location).toBe("/place-notes/expired");
     expect(after.confirmed_at).not.toBeNull();
     expect(after.archived_at).not.toBeNull();
   });

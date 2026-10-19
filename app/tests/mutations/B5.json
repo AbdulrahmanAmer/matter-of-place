@@ -2141,36 +2141,6 @@
     "expect": "× .*returns the count lapse_subscribers returned"
   },
   {
-    "id": "b5-pn-track",
-    "kind": "file",
-    "test": "tests/unit/place-notes.test.tsx",
-    "file": "src/routes/_site.place-notes.tsx",
-    "find": "      track(\"newsletter_confirmed\");\n",
-    "replace": "",
-    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
-    "expect": "× .*confirmed=1 shows the confirmed notice"
-  },
-  {
-    "id": "b5-pn-failed",
-    "kind": "file",
-    "test": "tests/unit/place-notes.test.tsx",
-    "file": "src/routes/_site.place-notes.tsx",
-    "find": "      setNotice(t.newsletter.confirmFailed);",
-    "replace": "      setNotice(t.newsletter.confirmed);",
-    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
-    "expect": "× .*confirmed=0 shows the failure notice"
-  },
-  {
-    "id": "b5-pn-block",
-    "kind": "file",
-    "test": "tests/unit/place-notes.test.tsx",
-    "file": "src/routes/_site.place-notes.tsx",
-    "find": "        <NewsletterForm source=\"place-notes\" />\n",
-    "replace": "",
-    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
-    "expect": "× .*no query shows neither notice"
-  },
-  {
     "id": "b5-if-confirm",
     "kind": "file",
     "test": "tests/unit/interest-form.test.tsx",
@@ -2205,8 +2175,8 @@
     "kind": "file",
     "test": "tests/api/subscribers.api.test.ts",
     "file": "src/server/subscribers/service.ts",
-    "find": "/place-notes?confirmed=",
-    "replace": "/stories?confirmed=",
+    "find": "/place-notes/${confirmed ? ",
+    "replace": "/place-notes-wrong/${confirmed ? ",
     "run": "bunx vitest run --project db tests/api/subscribers.api.test.ts -t \"confirms on a valid token\"",
     "expect": "× .*confirms on a valid token"
   },
@@ -2259,5 +2229,32 @@
     "replace": "style={{ maxWidth: \"700px\" }}",
     "run": "bun run email:shots",
     "expect": "received: container-width the outer container does not declare max-width: 600px"
+  },
+  {
+    "id": "b5-pn-track",
+    "test": "tests/unit/place-notes.test.tsx",
+    "file": "src/components/site/place-notes-thanks.tsx",
+    "find": "    if (status === \"confirmed\") track(\"newsletter_confirmed\");",
+    "replace": "    track(\"newsletter_confirmed\");",
+    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
+    "expect": "× .*expired: says so, sends the visitor back to subscribe, and tracks nothing"
+  },
+  {
+    "id": "b5-pn-links",
+    "test": "tests/unit/place-notes.test.tsx",
+    "file": "src/components/site/place-notes-thanks.tsx",
+    "find": "<Link to={status === \"confirmed\" ? \"/stories\" : \"/place-notes\"} className=\"text-link\">",
+    "replace": "<Link to=\"/stories\" className=\"text-link\">",
+    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
+    "expect": "× .*expired: says so, sends the visitor back to subscribe"
+  },
+  {
+    "id": "b5-pn-block",
+    "test": "tests/unit/place-notes.test.tsx",
+    "file": "src/routes/_site.place-notes.tsx",
+    "find": "        <NewsletterForm source=\"place-notes\" />\n",
+    "replace": "",
+    "run": "bunx vitest run --project component tests/unit/place-notes.test.tsx",
+    "expect": "× .*renders the newsletter block and no notice"
   }
 ]
