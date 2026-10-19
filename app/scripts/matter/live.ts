@@ -340,16 +340,29 @@ function ownCodeChanged(from: string, to: string): boolean {
     ["-C", resolve(here, "../../.."), "diff", "--quiet", from, to, "--", ...OWN_CODE],
     {
       windowsHide: true,
+      timeout: 30_000,
     },
   );
   return result.status !== 0;
 }
 
 function runnerHead(): string {
-  return spawnSync("git", ["-C", resolve(here, "../.."), "rev-parse", "HEAD"], {
-    encoding: "utf8",
-    windowsHide: true,
-  }).stdout.trim();
+  // A deadline on every git call: a blocked call here would also block the watchdog's timer (P-3703).
+  return (
+    spawnSync("git", ["-C", resolve(here, "../.."), "rev-parse", "HEAD"], {
+      encoding: "utf8",
+      windowsHide: true,
+      timeout: 30_000,
+    }).stdout ?? ""
+  ).trim();
+}
+
+/** Waits `ms` while touching the heartbeat every half minute, so a planned rest never reads as a stuck loop. */
+async function rest(ms: number): Promise<void> {
+  for (let left = ms; left > 0; left -= 30_000) {
+    writeFileSync(HEARTBEAT_FILE, new Date().toISOString());
+    await new Promise((settle) => setTimeout(settle, Math.min(left, 30_000)));
+  }
 }
 
 class Supervisor {
@@ -724,7 +737,7 @@ class Supervisor {
           `${new Date().toISOString()} live: three exits in ten minutes, resting ten minutes`,
         );
         this.crashes = [];
-        await new Promise((settle) => setTimeout(settle, CRASH_WINDOW_MS));
+        await rest(CRASH_WINDOW_MS);
         continue;
       }
       if (

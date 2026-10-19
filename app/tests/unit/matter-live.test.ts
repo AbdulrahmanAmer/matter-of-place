@@ -1,9 +1,18 @@
 import { mkdtempSync, utimesSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { workforceOverride } from "../../scripts/workforce/config";
-import { heartbeatStale, LOOP_STALE_MS, liveAlive } from "../../scripts/matter/live-alive";
+import {
+  heartbeatStale,
+  isSupervisorCommand,
+  LOOP_STALE_MS,
+  liveAlive,
+  OUTSIDE_STALE_MS,
+  stalledSupervisorPid,
+} from "../../scripts/matter/live-alive";
+import { deadlineFetch } from "../../scripts/workforce/env";
 import {
   isIdle,
   liveArgs,
@@ -144,6 +153,49 @@ describe("rotation and the heartbeat", () => {
       heartbeatStale(file, now),
       heartbeatStale(join(tmpdir(), "no-such-heartbeat"), now),
     ]).toEqual([false, false, true, false]);
+  });
+
+  it("names the supervisor for the outside watchdog only when its heartbeat is silent fifteen minutes (P-3703)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mop-live-"));
+    const heartbeat = join(dir, "live.heartbeat");
+    const lock = join(dir, "live.lock");
+    writeFileSync(heartbeat, "x");
+    writeFileSync(lock, "4242");
+    const now = Date.now();
+    const fourteen = new Date(now - OUTSIDE_STALE_MS + 60_000);
+    utimesSync(heartbeat, fourteen, fourteen);
+    const underLimit = stalledSupervisorPid(lock, heartbeat, now);
+    const sixteen = new Date(now - OUTSIDE_STALE_MS - 60_000);
+    utimesSync(heartbeat, sixteen, sixteen);
+    const over = stalledSupervisorPid(lock, heartbeat, now);
+    writeFileSync(lock, "not a pid");
+    expect([underLimit, over, stalledSupervisorPid(lock, heartbeat, now)]).toEqual([null, 4242, null]);
+  });
+
+  it("ends only a process whose command line is Matter's supervisor, never a reused process id (P-3703)", () => {
+    expect([
+      isSupervisorCommand(String.raw`"C:\bun.exe" scripts\matter\live.ts`),
+      isSupervisorCommand("bun scripts/matter/live.ts"),
+      isSupervisorCommand("bun scripts/workforce/daemon.ts"),
+      isSupervisorCommand(""),
+    ]).toEqual([true, true, false, false]);
+  });
+
+  it("gives up on a database call that never answers instead of waiting forever (P-3703)", async () => {
+    const server = createServer(() => undefined);
+    await new Promise<void>((ready) => server.listen(0, "127.0.0.1", ready));
+    const address = server.address();
+    const port = typeof address === "object" && address !== null ? address.port : 0;
+    try {
+      const outcome = await deadlineFetch(200)(`http://127.0.0.1:${port}/`).then(
+        () => "answered",
+        (error: unknown) => (error instanceof Error ? error.name : "other"),
+      );
+      expect(outcome).toBe("TimeoutError");
+    } finally {
+      server.closeAllConnections();
+      server.close();
+    }
   });
 });
 

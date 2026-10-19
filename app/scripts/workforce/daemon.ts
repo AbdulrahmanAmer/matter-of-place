@@ -79,7 +79,7 @@ import { bounceFacts, wakes } from "./bounce.ts";
 import { checkNewAddresses, refusedAddress } from "./email-check.ts";
 import { refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
-import { liveAlive } from "../matter/live-alive.ts";
+import { isSupervisorCommand, liveAlive, stalledSupervisorPid } from "../matter/live-alive.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -1228,7 +1228,26 @@ async function pass(client: Db): Promise<void> {
   if (ran === 0 && policy.backlog === "all") await wakeBacklog(client);
 }
 
+/**
+ * The outside watchdog: a supervisor whose heartbeat is silent for 15 minutes is ended from here, because a process
+ * blocked on one call cannot run its own timer and "MOP Matter Live" will not start a second copy (P-3703).
+ */
+function endStalledSupervisor(now: number = Date.now()): boolean {
+  const pid = stalledSupervisorPid(undefined, undefined, now);
+  if (pid === null) return false;
+  const found = spawnSync(
+    "powershell",
+    ["-NoProfile", "-Command", `(Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}').CommandLine`],
+    { encoding: "utf8", windowsHide: true, timeout: 30_000 },
+  );
+  if (!isSupervisorCommand(found.stdout ?? "")) return false;
+  console.log(`${new Date(now).toISOString()} matter: live supervisor ${pid} silent 15 minutes, ended from outside`);
+  spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true, timeout: 30_000 });
+  return true;
+}
+
 async function main(): Promise<void> {
+  endStalledSupervisor();
   const client = db();
   if (process.argv.includes("--loop")) {
     for (;;) {
