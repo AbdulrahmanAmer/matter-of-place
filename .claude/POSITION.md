@@ -2280,3 +2280,14 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Ruling H135 (a clean merge writes no row). PROVEN: `tests/unit/matter-lessons.test.ts` 17 passed. UNPROVEN: the db test
   `build-lessons.db.test.ts`, both tsc, eslint, knip, the 23 `W6-4.json` replays (no local CI; CI judges), a real merge writing
   a row, a real run quoting one. Bank: P-4511, P-4512.
+- 2026-10-19 20:10 +0300: orchestrator. Merged: PR 461 (freeze root cause, P-3703), 462 (logo in the Organization node),
+  465 (c6994630: lead events reach GA4 by name only, under consent: contact_inquiry, submit_property, interest_signup,
+  newsletter_signup, package_interest), 466 (d028e399: a confirm link lands on /place-notes/confirmed or /expired, a
+  centred note on the not-found band with the emblem assembling; the band's grid now centres its column). Google: Search
+  Console linked to GA4 (operator), GA4 event retention 14 months (read back by the Admin API, now enabled), Cloud has no
+  billing, one PSI key, one audit service account. NOT DONE: mark the five lead events as key events in GA4 (the new UI
+  stars only events seen in the last 28 days; do it after the first lead arrives). Read-before-click is a global hook
+  (~/.claude/hooks/read-before-click.mjs, tests watched red, proven live). Ruling H134: Fairfield is the test property;
+  social output is a test, judged by Matter, until the channels are connected. Matter: PR 449 merged 14:24Z, PR 464 (third
+  batch) in CI, builders and Opus reviews running. Six Approvals (four Fairfield test posts, the welcome note to the
+  admin@ test signup, a lesson for Maya) sent to Matter to clear; still pending at 20:05.
