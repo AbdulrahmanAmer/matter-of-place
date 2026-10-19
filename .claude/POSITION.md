@@ -2105,3 +2105,8 @@ first day of the new usage week; no step was cut from any plan.
   10-17 14:25 (alive, no heartbeat); restarted 12:40, heartbeat live, still parked (backlog off). Health check fails one item
   daily: retention_stalled on email_replies (fix belongs to the parked w8-0h round). Open: PR 449 (second round, parked),
   PRs 451-454 (Saturday audit). Supabase's auth.audit_log_entries table is empty by design; read auth logs via the logs API.
+- 2026-10-19 15:35 +0300: orchestrator. PR 459 merged (e1b0727b): the live supervisor ends itself when its heartbeat is
+  over 10 minutes old and the scheduled task starts a fresh one (P-3702). Proven on the real runner: 12:32:00Z "new runner
+  code, moving to it", 12:34:07Z "live: started (resuming 031029be...)", heartbeat 12:34:07Z. UNPROVEN: the stale-heartbeat
+  exit in a real hang (unit test only). Cloudflare: only "Users without MFA" left in Security Insights (operator's click).
+  Open for the operator: MFA on admin@, PRs 451-454 (Saturday audit), PR 449 and the queue (parked).
