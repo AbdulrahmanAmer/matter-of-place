@@ -2098,3 +2098,10 @@ first day of the new usage week; no step was cut from any plan.
   finish their current item and stop, the STOP file holds the queue. Wakes only on people's lines, events and scheduled jobs.
   NOT LIVE: inbound mail (W8 0h). Task gate list moved to .claude/tasks/parked-2026-10-16-matter-autonomy.json. Stray scratch
   postgres (od-w6-7, 18,035 CPU-s since 01:22) and an idle node stopped. Build again: backlog "all" on his word.
+- 2026-10-19 15:20 +0300: orchestrator, operator back. Sign-in was broken since 10-16: Turnstile (Managed) rated all traffic
+  as bots and its box never rendered, so no form write passed and the page still said "sent". Fixed: PR 455 (prompt line +
+  3-minute ceiling), PR 456 (admin sheet takes its own turnstile.css; no token means the page says it did not go through),
+  widget switched to Non-interactive (H133). Proven: form email delivered 12:12:53Z. Matter's live supervisor had hung since
+  10-17 14:25 (alive, no heartbeat); restarted 12:40, heartbeat live, still parked (backlog off). Health check fails one item
+  daily: retention_stalled on email_replies (fix belongs to the parked w8-0h round). Open: PR 449 (second round, parked),
+  PRs 451-454 (Saturday audit). Supabase's auth.audit_log_entries table is empty by design; read auth logs via the logs API.
