@@ -9,7 +9,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
-import { delimiter, dirname, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { outsideToolkit, readOnly, toolkitFor } from "../../src/domain/toolkits.ts";
 import { agentTools, mentionedSlugs } from "../../src/domain/workforce.ts";
@@ -87,11 +87,12 @@ import { driveSocialFolder, refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
 import { isSupervisorCommand, liveAlive, stalledSupervisorPid } from "../matter/live-alive.ts";
 import {
-  APP_DIR,
   renderRoots,
+  runRenders,
   toolkitLine,
   toolkitRules,
   writePlaces,
+  type RenderScope,
   type ToolkitPaths,
   type ToolkitRules,
 } from "./toolkit-args.ts";
@@ -156,7 +157,6 @@ function toolkitPaths(home: string, own: string): ToolkitPaths {
     studio: join(home, "studio"),
     knowledge: join(home, "matter", "knowledge"),
     driveSocial: driveSocialFolder(join(home, "config.json")),
-    app: APP_DIR,
   };
 }
 
@@ -230,7 +230,8 @@ export interface ColleagueLaunch {
   args: string[];
   cwd: string;
   line: string;
-  env: Record<string, string>;
+  /** What the runner may render for this run once it ends (`runRenders`): a colleague runs no command itself. */
+  render: RenderScope;
   settingsFile: string;
   /** What the runner removes when the run ends: the settings file, and an outside run's own folder. */
   cleanup: string[];
@@ -242,7 +243,7 @@ export interface ColleagueLaunch {
  * removed after it (review of 2026-10-16: never the work folder, where other runs leave drafts); the runner fills it
  * with nothing yet (the facts and photographs of W8 0a, NOT DONE). A run a person or an operator key started (`inside`,
  * `startedInsideFor`) gets its whole toolkit, and the photographs of the pieces its line names placed in its folder
- * (`placePieces`); any other run (an event, a schedule, a mention) its reads only, since its history may hold a line
+ * from its toolkit's piece sources (`placePieces`; never the studio itself, review of 2026-10-19); any other run (an event, a schedule, a mention) its reads only, since its history may hold a line
  * that carried outside words. Every place it may write is swept of run config first (the Drive folder is the
  * operator's: what is found there refuses the run and is named, never deleted), and the settings file, named by the
  * run id, is written last.
@@ -265,7 +266,6 @@ export function colleagueLaunch(
   const searches = research && !run.outside;
   const rules = toolkitRules(toolkit, paths, searches);
   for (const dir of writePlaces(toolkit, paths)) {
-    if (dir === paths.studio) mkdirSync(dir, { recursive: true });
     if (!existsSync(dir)) throw new Error(`${dir} is not on this laptop`);
     if (dir !== paths.driveSocial) sweep(dir);
     else {
@@ -277,20 +277,16 @@ export function colleagueLaunch(
     }
   }
   const placed =
-    run.inside && !run.outside && toolkit.render.length > 0
+    run.inside && !run.outside && toolkit.pieces.length > 0
       ? placePieces(
           run.line ?? "",
           {
-            studio: toolkit.read.includes("studio") ? paths.studio : null,
-            driveSocial:
-              toolkit.read.includes("drive_social") || toolkit.write.includes("drive_social")
-                ? paths.driveSocial
-                : null,
+            studio: toolkit.pieces.includes("studio") ? paths.studio : null,
+            driveSocial: toolkit.pieces.includes("drive_social") ? paths.driveSocial : null,
           },
           work,
         )
       : [];
-  const roots = renderRoots(toolkit, paths);
   const settingsFile = join(home, "settings", `${run.id}.json`);
   const launch: ColleagueLaunch = {
     args: colleagueArgs(model, rules, settingsFile),
@@ -298,16 +294,8 @@ export function colleagueLaunch(
     line: [toolkitLine(toolkit, paths, searches), placedLine(placed)]
       .filter((text) => text !== "")
       .join(" "),
-    // what the render wrapper confines a render to
-    env:
-      toolkit.render.length === 0
-        ? {}
-        : {
-            MOP_RENDER_WORK: cwd,
-            MOP_RENDER_OUT_ROOTS: roots.join(delimiter),
-            // a carousel takes over the CLI's two-minute default (probe of 2026-10-16), which sends it to the background
-            BASH_DEFAULT_TIMEOUT_MS: String(10 * 60_000),
-          },
+    // what the wrapper's checks confine a render to
+    render: { allowed: toolkit.render, work: cwd, roots: renderRoots(toolkit, paths) },
     settingsFile,
     cleanup: [settingsFile, ...(run.outside ? [cwd] : [])],
   };
@@ -333,7 +321,7 @@ async function askClaude(
     return await runClaude({
       args: launch.args,
       cwd: launch.cwd,
-      env: { ...childEnv(), ...launch.env },
+      env: childEnv(),
       prompt: prompt(launch.line),
       idleMs: CLI_IDLE_MS,
       who: "the colleague",
@@ -1006,7 +994,7 @@ export async function runOnce(client: Db): Promise<boolean> {
               ...(startedInside && !decided.outside && wokeBody !== null ? { line: wokeBody } : {}),
             },
           );
-          return askClaude(launch, (toolkit) =>
+          const asked = await askClaude(launch, (toolkit) =>
             promptFor(
               // W8 0c: a run about an outside message is not offered admin calls or hires at all.
               shape.agent,
@@ -1018,6 +1006,7 @@ export async function runOnce(client: Db): Promise<boolean> {
               toolkit,
             ),
           );
+          return { ...asked, render: launch.render };
         })();
     // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
@@ -1066,6 +1055,10 @@ export async function runOnce(client: Db): Promise<boolean> {
             targets.map((row) => ({ agent_id: row.id, cause: "message", message_id: written.id })),
           );
     }
+    // H115 (review of 2026-10-19): a colleague has no shell, so the runner renders what its answer asks for, here
+    if ("render" in answer)
+      for (const line of runRenders(result.renders ?? [], answer.render, childEnv()))
+        await say(client, place.thread, line);
     for (const request of media) {
       if (request.skill === "reel") {
         // W7 item 19: a reel takes many minutes, so it waits in the studio for the reel pass, never inside a run.

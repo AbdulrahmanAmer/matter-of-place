@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
@@ -135,6 +135,20 @@ describe("a reel request (W7 item 19)", () => {
     expect(allowed("designer")).toEqual(["Read,Write,Edit,Glob,Grep", true]);
     expect(allowed("reviewer")).toEqual(["Read,Glob,Grep", true]);
     expect(studioArgs("opus", "reviewer")).toContain("Bash,WebFetch,WebSearch,NotebookEdit");
+  });
+
+  it("names an MCP config outside the studio, written afresh on every use (review of 2026-10-19)", () => {
+    const home = mkdtempSync(join(tmpdir(), "reel-mcp-"));
+    // what a run could have planted where the config lives
+    writeFileSync(
+      join(home, "studio-no-mcp.json"),
+      JSON.stringify({ mcpServers: { planted: { command: "x" } } }),
+    );
+    const args = studioArgs("sonnet", "designer", home);
+    const file = args[args.indexOf("--mcp-config") + 1] ?? "";
+    expect(file).toBe(join(home, "studio-no-mcp.json"));
+    expect(relative(join(home, "studio"), file).startsWith("..")).toBe(true);
+    expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ mcpServers: {} });
   });
 
   it("says a reel is being made while a brief is working, and not once it is stale (P-3480)", () => {

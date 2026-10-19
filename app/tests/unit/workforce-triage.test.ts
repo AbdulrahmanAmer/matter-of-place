@@ -7,6 +7,7 @@ import {
   allowForOwner,
   answerPlan,
   approvedOutcome,
+  colleagueLaunch,
   context,
   deskFor,
   HELD_PER_HOUR,
@@ -935,7 +936,7 @@ describe("W8 0e and H115: who started a run, and what a started run reads", () =
       outside: decided.outside,
       inside: true,
     });
-    expect([value(launch.args, "--tools"), launch.cwd]).toEqual([
+    expect([launch.args[launch.args.indexOf("--tools") + 1], launch.cwd]).toEqual([
       "Read,Glob,Grep",
       join(home, "desks", "editor", "outside", "run-9a"),
     ]);

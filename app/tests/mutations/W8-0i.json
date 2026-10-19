@@ -15,7 +15,7 @@
     "find": "    deny.push(...RUN_CONFIG.map((name) => `Edit(${root}/${anyCase(name)})`));\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
-    "expect": "× .*gives Social the render wrapper"
+    "expect": "× .*gives Social no shell, its reads and its writes"
   },
   {
     "id": "w8-0i-no-env-read",
@@ -24,7 +24,7 @@
     "find": "      `Read(${root}/${anyCase(\"**/.env*\")})`,\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
-    "expect": "× .*gives Social the render wrapper"
+    "expect": "× .*gives Social no shell, its reads and its writes"
   },
   {
     "id": "w8-0i-deny-any-case",
@@ -33,32 +33,23 @@
     "find": "  return pattern.replace(\n    /[A-Za-z]/g,\n    (letter) => `[${letter.toLowerCase()}${letter.toUpperCase()}]`,\n  );",
     "replace": "  return pattern;",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
-    "expect": "× .*gives Social the render wrapper"
-  },
-  {
-    "id": "w8-0i-render-wrapper",
-    "test": "tests/unit/workforce-toolkits.test.ts",
-    "file": "scripts/workforce/toolkit-args.ts",
-    "find": "  return `node ${join(app, \"scripts\", \"workforce\", \"render-run.mjs\").replaceAll(\"\\\\\", \"/\")} ${name}`;",
-    "replace": "  return `bun ${join(app, \"scripts\", `render-${name}.mjs`).replaceAll(\"\\\\\", \"/\")} --spec`;",
-    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
-    "expect": "× .*gives Social the render wrapper"
+    "expect": "× .*gives Social no shell, its reads and its writes"
   },
   {
     "id": "w8-0i-editor-no-shell",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "src/domain/toolkits.ts",
-    "find": "  read: [\"own_folder\", \"studio\", \"knowledge\"],\n  write: [\"own_folder\"],\n  render: [],\n};",
-    "replace": "  read: [\"own_folder\", \"studio\", \"knowledge\"],\n  write: [\"own_folder\"],\n  render: [\"carousel\"],\n};",
+    "find": "  read: [\"own_folder\", \"knowledge\"],\n  write: [\"own_folder\"],\n  render: [],\n  pieces: [\"studio\"],\n};",
+    "replace": "  read: [\"own_folder\", \"knowledge\"],\n  write: [\"own_folder\"],\n  render: [\"carousel\"],\n  pieces: [\"studio\"],\n};",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
-    "expect": "× .*gives the Editor no shell"
+    "expect": "× .*says in words what each colleague may do"
   },
   {
     "id": "w8-0i-outside-own-folder",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "src/domain/toolkits.ts",
-    "find": "export const outsideToolkit: Toolkit = { read: [\"own_folder\"], write: [], render: [] };",
-    "replace": "export const outsideToolkit: Toolkit = { read: [\"own_folder\", \"studio\"], write: [], render: [] };",
+    "find": "export const outsideToolkit: Toolkit = { read: [\"own_folder\"], write: [], render: [], pieces: [] };",
+    "replace": "export const outsideToolkit: Toolkit = { read: [\"own_folder\", \"knowledge\"], write: [], render: [], pieces: [] };",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*gives the Editor no shell, a run about outside text its folder only"
   },
@@ -318,8 +309,8 @@
     "id": "w8-0i-words-no-command",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "src/domain/toolkits.ts",
-    "find": "      ? \"No command, no keys, nothing sent outside the company without a person's approval.\"",
-    "replace": "      ? \"No other command, no keys, nothing sent outside the company without a person's approval.\"",
+    "find": "    \"No command, no keys, nothing sent outside the company without a person's approval.\",",
+    "replace": "    \"No other command, no keys, nothing sent outside the company without a person's approval.\",",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*says in words what each colleague may do"
   },
@@ -327,8 +318,8 @@
     "id": "w8-0i-table-concierge-reads",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "src/domain/toolkits.ts",
-    "find": "  concierge: { read: [\"own_folder\", \"knowledge\"], write: [\"own_folder\"], render: [] },",
-    "replace": "  concierge: { read: [\"own_folder\", \"studio\", \"knowledge\"], write: [\"own_folder\"], render: [] },",
+    "find": "  concierge: { read: [\"own_folder\", \"knowledge\"], write: [\"own_folder\"], render: [], pieces: [] },",
+    "replace": "  concierge: { read: [\"own_folder\"], write: [\"own_folder\"], render: [], pieces: [] },",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*holds every colleague's rules"
   },
@@ -408,17 +399,8 @@
     "id": "w8-0i-place-only-person",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    run.inside && !run.outside && toolkit.render.length > 0",
-    "replace": "    !run.outside && toolkit.render.length > 0",
-    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
-    "expect": "× .*places the photographs of the pieces a person's line names"
-  },
-  {
-    "id": "w8-0i-place-only-renderers",
-    "test": "tests/unit/workforce-toolkits.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "    run.inside && !run.outside && toolkit.render.length > 0",
-    "replace": "    run.inside && !run.outside",
+    "find": "    run.inside && !run.outside && toolkit.pieces.length > 0",
+    "replace": "    !run.outside && toolkit.pieces.length > 0",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*places the photographs of the pieces a person's line names"
   },
@@ -450,15 +432,6 @@
     "expect": "× .*places the photographs of the pieces a person's line names"
   },
   {
-    "id": "w8-0i-render-bash-timeout",
-    "test": "tests/unit/workforce-toolkits.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "            BASH_DEFAULT_TIMEOUT_MS: String(10 * 60_000),\n",
-    "replace": "",
-    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
-    "expect": "× .*launches a run a person started with the whole toolkit"
-  },
-  {
     "id": "w8-0i-place-fresh-file",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "scripts/workforce/placement.ts",
@@ -475,5 +448,167 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*gives Social only its reads when a colleague's mention woke it, and its whole toolkit on a person's line"
+  },
+  {
+    "id": "w8-0i-social-no-studio-write",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "src/domain/toolkits.ts",
+    "find": "    write: [\"own_folder\", \"drive_social\"],\n    render: [\"carousel\", \"post\", \"story\"],",
+    "replace": "    write: [\"own_folder\", \"drive_social\", \"studio\"],\n    render: [\"carousel\", \"post\", \"story\"],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*lets no run of any colleague read or write the studio, write the knowledge notes or hold a shell"
+  },
+  {
+    "id": "w8-0i-social-no-knowledge-write",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "src/domain/toolkits.ts",
+    "find": "    write: [\"own_folder\", \"drive_social\"],\n    render: [\"carousel\", \"post\", \"story\"],",
+    "replace": "    write: [\"own_folder\", \"drive_social\", \"knowledge\"],\n    render: [\"carousel\", \"post\", \"story\"],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*lets no run of any colleague read or write the studio, write the knowledge notes or hold a shell"
+  },
+  {
+    "id": "w8-0i-unknown-place-refused",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "      throw new Error(`the toolkit names a place the runner does not know: ${String(place)}`);",
+    "replace": "      return null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*lets no run of any colleague read or write the studio, write the knowledge notes or hold a shell"
+  },
+  {
+    "id": "w8-0i-cues-clean-env",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "  node([cues, specFile, out], cueEnv());",
+    "replace": "  node([cues, specFile, out]);",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel-script.test.ts",
+    "expect": "× .*runs a requested reel's cue script with no key in its environment"
+  },
+  {
+    "id": "w8-0i-cues-env-filter",
+    "test": "tests/unit/reel/render-reel-script.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "CUE_ENV.has(name.toUpperCase())",
+    "replace": "name !== ''",
+    "run": "bunx vitest run --project unit tests/unit/reel/render-reel-script.test.ts",
+    "expect": "× .*keeps only the path and the system's folders"
+  },
+  {
+    "id": "w8-0i-studio-mcp-outside",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  const noMcp = join(home, \"studio-no-mcp.json\");",
+    "replace": "  const noMcp = join(home, \"studio\", \"no-mcp.json\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*names an MCP config outside the studio"
+  },
+  {
+    "id": "w8-0i-studio-mcp-fresh",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));",
+    "replace": "  if (!existsSync(noMcp)) writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*names an MCP config outside the studio, written afresh on every use"
+  },
+  {
+    "id": "w8-0i-studio-deny",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "  deny.push(`Read(${studio}/**)`, `Edit(${studio}/**)`);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*lets no run of any colleague read or write the studio, write the knowledge notes or hold a shell"
+  },
+  {
+    "id": "w8-0i-readers-no-studio-read",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "src/domain/toolkits.ts",
+    "find": "  read: [\"own_folder\", \"knowledge\"],\n  write: [\"own_folder\"],\n  render: [],\n  pieces: [\"studio\"],\n};",
+    "replace": "  read: [\"own_folder\", \"studio\", \"knowledge\"],\n  write: [\"own_folder\"],\n  render: [],\n  pieces: [\"studio\"],\n};",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*holds every colleague's rules"
+  },
+  {
+    "id": "w8-0i-place-studio-source",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "            studio: toolkit.pieces.includes(\"studio\") ? paths.studio : null,",
+    "replace": "            studio: paths.studio,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*places the photographs of the pieces a person's line names"
+  },
+  {
+    "id": "w8-0i-place-drive-source",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "            driveSocial: toolkit.pieces.includes(\"drive_social\") ? paths.driveSocial : null,",
+    "replace": "            driveSocial: paths.driveSocial,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*places the photographs of the pieces a person's line names"
+  },
+  {
+    "id": "w8-0i-no-shell-tool",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "    ...(toolkit.write.length > 0 ? [\"Write\", \"Edit\"] : []),\n    ...(research",
+    "replace": "    ...(toolkit.write.length > 0 ? [\"Write\", \"Edit\"] : []),\n    ...(toolkit.render.length > 0 ? [\"Bash\"] : []),\n    ...(research",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*lets no run of any colleague read or write the studio, write the knowledge notes or hold a shell"
+  },
+  {
+    "id": "w8-0i-launch-render-scope",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    render: { allowed: toolkit.render, work: cwd, roots: renderRoots(toolkit, paths) },",
+    "replace": "    render: { allowed: toolkitFor(slug).render, work: cwd, roots: renderRoots(toolkit, paths) },",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*launches a run no person started with the toolkit's reads only"
+  },
+  {
+    "id": "w8-0i-runonce-renders",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        await say(client, place.thread, line);\n",
+    "replace": "        void line;\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*renders for a person's run only, through the wrapper's checks"
+  },
+  {
+    "id": "w8-0i-render-only-allowed",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "    if (!scope.allowed.includes(ask.renderer))",
+    "replace": "    if (scope.allowed.length < 0)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*refuses what the run may not render"
+  },
+  {
+    "id": "w8-0i-render-none-allowed",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "  if (scope.allowed.length === 0) return [\"Not rendered: this run may not render.\"];\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*refuses what the run may not render"
+  },
+  {
+    "id": "w8-0i-render-clean-env",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "      env: plan.env,\n",
+    "replace": "      env: { ...env, ...plan.env },\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*runs a named renderer through the wrapper's plan"
+  },
+  {
+    "id": "w8-0i-answer-renders-kept",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    .optional()\n    .catch(undefined),",
+    "replace": "    .optional(),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*keeps the answer when the list is malformed"
   }
 ]

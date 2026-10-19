@@ -1,6 +1,7 @@
-// The one command a colleague with renderers may run (ruling H115; review of 2026-10-16, critical): it never starts
-// bun or node itself from a folder it can write, since bun reads `bunfig.toml` (its `preload`) and `.env` from the
-// folder it starts in. A run's permission rule names this file, started by node with its absolute path:
+// How a colleague's render is run (ruling H115; reviews of 2026-10-16 and 2026-10-19): never bun or node started from
+// a folder a run can write, since bun reads `bunfig.toml` (its `preload`) and `.env` from the folder it starts in. A
+// colleague runs no command: the runner takes the renders its answer asks for and plans each here (`renderPlan`, called
+// by `runRenders` in toolkit-args.ts); by hand it is
 //   node <app>/scripts/workforce/render-run.mjs <carousel|post|story> --spec <file> --out <folder>
 // It checks the spec and the output folder against the run's work folder and write places (MOP_RENDER_WORK and
 // MOP_RENDER_OUT_ROOTS, set by the runner), then starts bun on the named render script from the app folder, with the

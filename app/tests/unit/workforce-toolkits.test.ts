@@ -1,7 +1,8 @@
 // Role toolkits (operator, 2026-10-16; ruling H115): each colleague runs with exactly its toolkit's tools, as Claude
-// Code permission rules; a run about outside text reads its own folder only, a run no person started reads only; a
-// colleague's one command is the render wrapper, which starts bun from the app folder with a clean environment; the
-// render scripts take a local spec whose photographs sit beside it.
+// Code permission rules; a run about outside text reads its own folder only, a run no person started reads only; no
+// colleague has a shell or reaches the studio (review of 2026-10-19): the runner places a named piece's photographs in
+// its folder and renders what its answer asks for, through the wrapper's checks, with bun started from the app folder
+// in a clean environment; the render scripts take a local spec whose photographs sit beside it.
 import {
   copyFileSync,
   existsSync,
@@ -19,12 +20,15 @@ import { tmpdir } from "node:os";
 import { delimiter, join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import { colleagueLaunch, deskFor } from "../../scripts/workforce/daemon.ts";
 import {
   anyCase,
   renderRoots,
   rulePath,
+  runRenders,
   toolkitRules,
+  writePlaces,
   type ToolkitPaths,
 } from "../../scripts/workforce/toolkit-args.ts";
 import { renderPlan } from "../../scripts/workforce/render-run.mjs";
@@ -47,7 +51,6 @@ const paths: ToolkitPaths = {
   studio: "C:/home/.mop-workforce/studio",
   knowledge: "C:/home/.mop-workforce/matter/knowledge",
   driveSocial: "G:/My Drive/Matter of Place/Social Media",
-  app: "E:/mop-build/live/app",
 };
 const value = (args: readonly string[], flag: string) => args[args.indexOf(flag) + 1];
 const settingsOf = (file: string) =>
@@ -77,21 +80,15 @@ describe("H115: role toolkits", () => {
     ]);
   });
 
-  it("gives Social the render wrapper, its reads and its writes, and nothing that configures a run in any case", () => {
+  it("gives Social no shell, its reads and its writes, and nothing that configures a run in any case", () => {
     const rules = toolkitRules(toolkitFor("social"), paths, false);
-    expect(rules.tools).toEqual(["Read", "Glob", "Grep", "Write", "Edit", "Bash"]);
-    // never bun or node on their own: one wrapper by its absolute path, one rule per renderer
-    expect(rules.allow.filter((rule) => rule.startsWith("Bash("))).toEqual([
-      "Bash(node E:/mop-build/live/app/scripts/workforce/render-run.mjs carousel:*)",
-      "Bash(node E:/mop-build/live/app/scripts/workforce/render-run.mjs post:*)",
-      "Bash(node E:/mop-build/live/app/scripts/workforce/render-run.mjs story:*)",
-    ]);
+    expect(rules.tools).toEqual(["Read", "Glob", "Grep", "Write", "Edit"]);
+    expect(rules.allow.some((rule) => rule.startsWith("Bash("))).toBe(false);
     expect(rules.allow).toEqual(
       expect.arrayContaining([
         "Read(./**)",
         "Edit(./**)",
         "Edit(//g/My Drive/Matter of Place/Social Media/**)",
-        "Read(//c/home/.mop-workforce/studio/**)",
       ]),
     );
     expect(anyCase("**/.env*")).toBe("**/.[eE][nN][vV]*");
@@ -99,7 +96,6 @@ describe("H115: role toolkits", () => {
       expect.arrayContaining([
         `Edit(./${anyCase("**/.claude/**")})`,
         `Edit(./${anyCase("**/bunfig.toml")})`,
-        `Edit(//c/home/.mop-workforce/studio/${anyCase("**/.env*")})`,
         `Edit(//g/My Drive/Matter of Place/Social Media/${anyCase("**/package.json")})`,
         `Edit(//g/My Drive/Matter of Place/Social Media/${anyCase("**/tsconfig*.json")})`,
         `Edit(./${anyCase("**/.npmrc")})`,
@@ -108,8 +104,8 @@ describe("H115: role toolkits", () => {
       ]),
     );
     // every write place carries the whole list
-    expect(rules.deny.filter((rule) => rule.includes(anyCase("bunfig.toml")))).toHaveLength(6);
-    expect(rules.addDirs).toEqual([paths.studio, paths.knowledge, paths.driveSocial]);
+    expect(rules.deny.filter((rule) => rule.includes(anyCase("bunfig.toml")))).toHaveLength(4);
+    expect(rules.addDirs).toEqual([paths.knowledge, paths.driveSocial]);
   });
 
   it("holds every colleague's rules: tools, allow, deny and extra folders, and the base toolkit for anyone else", () => {
@@ -130,18 +126,11 @@ describe("H115: role toolkits", () => {
       "**/tsconfig*.json",
       "**/.npmrc",
     ];
-    const wrapper = "Bash(node E:/mop-build/live/app/scripts/workforce/render-run.mjs";
-    const row = (
-      reads: string[],
-      writes: string[],
-      addDirs: (string | null)[],
-      bash: string[] = [],
-    ) => ({
-      tools: ["Read", "Glob", "Grep", "Write", "Edit", ...(bash.length > 0 ? ["Bash"] : [])],
+    const row = (reads: string[], writes: string[], addDirs: (string | null)[]) => ({
+      tools: ["Read", "Glob", "Grep", "Write", "Edit"],
       allow: [
         ...reads.map((root) => `Read(${root}/**)`),
         ...writes.map((root) => `Edit(${root}/**)`),
-        ...bash.map((name) => `${wrapper} ${name}:*)`),
       ],
       deny: [
         ...reads.flatMap((root) => [
@@ -149,10 +138,14 @@ describe("H115: role toolkits", () => {
           `Read(${root}/${anyCase("**/*credentials*")})`,
         ]),
         ...writes.flatMap((root) => config.map((name) => `Edit(${root}/${anyCase(name)})`)),
+        // no run reads or writes the studio (review of 2026-10-19)
+        `Read(${studio}/**)`,
+        `Edit(${studio}/**)`,
       ],
       addDirs,
     });
-    const reader = row([own, studio, knowledge], [own], [paths.studio, paths.knowledge]);
+    // the readers see a studio piece only as the photographs the runner places in their folder
+    const reader = row([own, knowledge], [own], [paths.knowledge]);
     const table: Record<string, ReturnType<typeof row>> = {
       editor: reader,
       newsletter: reader,
@@ -161,12 +154,7 @@ describe("H115: role toolkits", () => {
       // the Concierge and the Analyst never read the studio
       concierge: row([own, knowledge], [own], [paths.knowledge]),
       analyst: row([own, knowledge], [own], [paths.knowledge]),
-      social: row(
-        [own, studio, knowledge],
-        [own, studio, drive],
-        [paths.studio, paths.knowledge, paths.driveSocial],
-        ["carousel", "post", "story"],
-      ),
+      social: row([own, knowledge], [own, drive], [paths.knowledge, paths.driveSocial]),
       "someone-new": row([own], [own], []),
     };
     for (const [slug, expected] of Object.entries(table)) {
@@ -197,21 +185,58 @@ describe("H115: role toolkits", () => {
     ]);
     // a colleague hired later gets the base toolkit, never another's, whatever its handle
     for (const slug of ["someone-new", "constructor", "__proto__", "toString", "hasOwnProperty"]) {
-      expect(toolkitFor(slug)).toEqual({ read: ["own_folder"], write: ["own_folder"], render: [] });
+      expect(toolkitFor(slug)).toEqual({
+        read: ["own_folder"],
+        write: ["own_folder"],
+        render: [],
+        pieces: [],
+      });
     }
-    // the read-only form keeps the reads and drops every write and render
+    // the read-only form keeps the reads and drops every write, render and placement
     expect(readOnly(toolkitFor("social"))).toEqual({
-      read: ["own_folder", "studio", "knowledge"],
+      read: ["own_folder", "knowledge"],
       write: [],
       render: [],
+      pieces: [],
     });
   });
 
-  it("gives render roots only to a toolkit that renders, even one that writes the studio and the Drive", () => {
+  it("lets no run of any colleague read or write the studio, write the knowledge notes or hold a shell", () => {
+    const slugs = ["editor", "concierge", "social", "newsletter", "campaigns", "analyst", "chief"];
+    const kits = [
+      outsideToolkit,
+      ...[...slugs, "someone-new"].flatMap((slug) => [
+        toolkitFor(slug),
+        readOnly(toolkitFor(slug)),
+      ]),
+    ];
+    const studio = rulePath(paths.studio);
+    for (const kit of kits) {
+      for (const research of [false, true]) {
+        const rules = toolkitRules(kit, paths, research);
+        expect(rules.tools).not.toContain("Bash");
+        expect(
+          rules.allow.filter((rule) => rule.includes(studio) || rule.startsWith("Bash(")),
+        ).toEqual([]);
+        expect(rules.addDirs).not.toContain(paths.studio);
+        expect(rules.deny).toEqual(
+          expect.arrayContaining([`Read(${studio}/**)`, `Edit(${studio}/**)`]),
+        );
+      }
+      // what the runner later reads as a prompt, runs or loads is never a place a run writes or renders into
+      for (const dir of [...writePlaces(kit, paths), ...renderRoots(kit, paths)])
+        expect([paths.studio, paths.knowledge]).not.toContain(dir);
+    }
+  });
+
+  it("gives render roots only to a toolkit that renders, even one that writes the Drive", () => {
     expect(
-      renderRoots({ read: [], write: ["own_folder", "studio", "drive_social"], render: [] }, paths),
+      renderRoots(
+        { read: [], write: ["own_folder", "drive_social"], render: [], pieces: [] },
+        paths,
+      ),
     ).toEqual([]);
-    expect(renderRoots(toolkitFor("social"), paths)).toEqual([paths.studio, paths.driveSocial]);
+    expect(renderRoots(toolkitFor("social"), paths)).toEqual([paths.driveSocial]);
   });
 
   it("launches a run a person started with the whole toolkit, its settings file named by the run id", () => {
@@ -229,18 +254,21 @@ describe("H115: role toolkits", () => {
       value(social.args, "--setting-sources"),
       value(social.args, "--permission-mode"),
       value(social.args, "--tools"),
-    ]).toEqual(["", "dontAsk", "Read,Glob,Grep,Write,Edit,Bash"]);
+    ]).toEqual(["", "dontAsk", "Read,Glob,Grep,Write,Edit"]);
     expect(social.args).not.toContain("--restricted");
-    expect(
-      settingsOf(social.settingsFile).allow.filter((rule) => rule.startsWith("Bash(")),
-    ).toHaveLength(3);
-    expect(social.line).toContain("render-run.mjs carousel --spec <spec.json> --out <folder>");
-    // the wrapper confines a render to the work folder and the write places the runner names
-    expect(social.env).toEqual({
-      MOP_RENDER_WORK: work,
-      MOP_RENDER_OUT_ROOTS: [join(home, "studio"), drive].join(delimiter),
-      // a render runs in the foreground of the run, not past the CLI's two-minute default
-      BASH_DEFAULT_TIMEOUT_MS: "600000",
+    expect(social.args).not.toContain(join(home, "studio"));
+    expect(settingsOf(social.settingsFile).allow.some((rule) => rule.startsWith("Bash("))).toBe(
+      false,
+    );
+    // it asks the runner for a render in its answer, and is told where an output may go
+    expect(social.line).toContain('add to your JSON a "renders" list');
+    expect(social.line).toContain(`"out": "a folder in your folder or ${drive}"`);
+    expect(social.line).toContain("You run no command");
+    // what the runner renders for it after the run: its renderers, its folder, the Drive
+    expect(social.render).toEqual({
+      allowed: ["carousel", "post", "story"],
+      work,
+      roots: [drive],
     });
   });
 
@@ -255,8 +283,9 @@ describe("H115: role toolkits", () => {
     expect(settingsOf(event.settingsFile).allow.some((rule) => /^(Bash|Edit)\(/.test(rule))).toBe(
       false,
     );
-    expect(event.env).toEqual({});
+    expect(event.render.allowed).toEqual([]);
     expect(event.line).toContain("you write nothing");
+    expect(event.line).not.toContain("renders");
     // a draft another run left in the work folder, and what an earlier attempt of the outside run left in its own
     const work = deskFor(home, "concierge");
     writeFileSync(join(work, "draft.md"), "a reply with a buyer's details");
@@ -276,7 +305,7 @@ describe("H115: role toolkits", () => {
     expect(value(outside.args, "--tools")).toBe("Read,Glob,Grep");
     expect(outside.args).not.toContain("--add-dir");
     expect(settingsOf(outside.settingsFile).allow).toEqual(["Read(./**)"]);
-    expect(outside.env).toEqual({});
+    expect(outside.render.allowed).toEqual([]);
     expect(event.cleanup).toEqual([event.settingsFile]);
   });
 
@@ -294,7 +323,6 @@ describe("H115: role toolkits", () => {
 
   it("sweeps what configures bun, node or a run out of every place the run may write, in any case", () => {
     const { home, drive } = homeWithDrive();
-    const studio = join(home, "studio");
     const work = deskFor(home, "social");
     const planted = [
       join(work, "bunfig.toml"),
@@ -303,8 +331,6 @@ describe("H115: role toolkits", () => {
       join(work, "Package.json"),
       join(work, "tsconfig.build.json"),
       join(work, ".npmrc"),
-      join(studio, "piece", ".env"),
-      join(studio, ".bunfig.toml"),
     ];
     for (const file of planted) {
       mkdirSync(resolve(file, ".."), { recursive: true });
@@ -319,7 +345,7 @@ describe("H115: role toolkits", () => {
     // each removal is said in the runner's log, by its path
     const said = log.mock.calls.map((call) => String(call[0])).join("\n");
     log.mockRestore();
-    for (const file of [join(studio, "piece", ".env"), join(work, ".npmrc")])
+    for (const file of [join(work, "nested", "BunFig.TOML"), join(work, ".npmrc")])
       expect(said).toContain(`removed ${file} before a run`);
   });
 
@@ -347,6 +373,7 @@ describe("H115: role toolkits", () => {
     ).toBe(join(home, "desks", "social", "work"));
   });
 
+  // 19.4 s measured on the laptop while it rendered (a 25 MB sparse file, six launches): its own limit (G-031, P-3450)
   it("places the photographs of the pieces a person's line names beside where a spec goes, and nothing else", () => {
     const { home, drive } = homeWithDrive();
     const studio = join(home, "studio");
@@ -355,6 +382,8 @@ describe("H115: role toolkits", () => {
     mkdirSync(join(piece, "photos"), { recursive: true });
     copyFileSync("src/assets/los-altos.jpg", join(piece, "photos", "a.jpg"));
     writeFileSync(join(piece, "brief.md"), "not a photograph");
+    // the links a submitter typed (pull-images.ts): never placed, never read by a run
+    writeFileSync(join(piece, "sources.json"), '[{"url": "https://example.com/typed"}]');
     writeFileSync(join(piece, "big.jpg"), "");
     truncateSync(join(piece, "big.jpg"), 25 * 1024 * 1024 + 1);
     writeFileSync(join(elsewhere, "secret.jpg"), "x");
@@ -411,30 +440,41 @@ describe("H115: role toolkits", () => {
     expect(readFileSync(join(placed, "photos", "a.jpg"))).toEqual(
       readFileSync(join(piece, "photos", "a.jpg")),
     );
-    // a toolkit that does not render is placed nothing, even on a person's line
+    // a reader is placed the studio's photographs only, never the Drive's
     colleagueLaunch(home, "editor", "sonnet", false, {
       id: "x",
       outside: false,
       inside: true,
       line,
     });
-    expect(existsSync(join(home, "desks", "editor", "work", "other-piece"))).toBe(false);
-    expect(readdirSync(join(home, "desks", "editor", "work"))).toEqual([]);
-  });
+    expect(readdirSync(join(home, "desks", "editor", "work"))).toEqual([
+      "4a3c2563-c07a-481d-839b-ad0523827f69",
+    ]);
+    // a toolkit with no piece source is placed nothing, even on a person's line
+    colleagueLaunch(home, "concierge", "sonnet", false, {
+      id: "y",
+      outside: false,
+      inside: true,
+      line,
+    });
+    expect(readdirSync(join(home, "desks", "concierge", "work"))).toEqual([]);
+  }, 60_000);
 
   it("says in words what each colleague may do, for the Office", () => {
     expect(toolkitWords(toolkitFor("social"), ["read_business", "chat"])).toEqual([
-      "Reads its own folder (the material it was woken for, and its drafts); the studio (every piece of work, its brief and drafts); the team's knowledge notes.",
-      "Writes its own folder (the material it was woken for, and its drafts); the studio (every piece of work, its brief and drafts); Google Drive, Social Media (Carousels, Posts, Reels).",
-      "Renders a carousel, a single post and a story, from a local spec.",
+      "Reads its own folder (the material it was woken for, and its drafts); the team's knowledge notes.",
+      "Gets the photographs of a piece a person names, from the studio and Google Drive, Social Media, in its own folder.",
+      "Writes its own folder (the material it was woken for, and its drafts); Google Drive, Social Media (Carousels, Posts, Reels).",
+      "Has the runner render a carousel, a single post and a story, from a spec in its folder.",
       "Writes and renders only on work a person started; otherwise it only reads.",
-      "Other commands only as simple reads and writes inside its places (such as ls, cat, grep); no keys, nothing sent outside the company without a person's approval.",
+      "No command, no keys, nothing sent outside the company without a person's approval.",
     ]);
     expect(toolkitWords(toolkitFor("analyst"), ["research"])).toContain("Searches the web.");
-    // a colleague with no shell runs no command at all
-    expect(toolkitWords(toolkitFor("editor"), []).at(-1)).toBe(
-      "No command, no keys, nothing sent outside the company without a person's approval.",
+    expect(toolkitWords(toolkitFor("editor"), [])).toContain(
+      "Gets the photographs of a piece a person names, from the studio, in its own folder.",
     );
+    expect(toolkitWords(toolkitFor("concierge"), []).join(" ")).not.toContain("photographs");
+    expect(toolkitWords(toolkitFor("editor"), []).join(" ")).not.toContain("Has the runner render");
   });
 
   it("confines a render: the spec inside the work folder, the output inside it or a folder the runner named", () => {
@@ -599,5 +639,111 @@ describe("H115, review of 2026-10-16: the render wrapper", () => {
     expect(renderPlan(["story", ...spec], work, env, app).args[3]).toBe(
       join(app, "scripts", "render-story.mjs"),
     );
+  });
+});
+
+describe("H115, review of 2026-10-19: the runner renders what a colleague's answer asks for", () => {
+  const scope = () => {
+    const work = temp("h115-renders-work-");
+    const drive = temp("h115-renders-drive-");
+    const bin = temp("h115-renders-bin-");
+    writeFileSync(join(bin, "bun.exe"), "");
+    writeFileSync(join(bin, "bun"), "");
+    mkdirSync(join(work, "spec"));
+    const env = { PATH: bin, SYSTEMROOT: "C:/Windows", SUPABASE_SERVICE_ROLE_KEY: "decoy" };
+    return { work, drive, bin, env };
+  };
+  /** A spawn that records each call and answers as a render would. */
+  const ok = (stdout: string, status = 0, stderr = "") => {
+    const calls: { command: string; args: string[]; env: NodeJS.ProcessEnv | undefined }[] = [];
+    const spawn = (command: string, args: string[], options: { env?: NodeJS.ProcessEnv }) => {
+      calls.push({ command, args, env: options.env });
+      return { pid: 1, output: [], stdout, stderr, status, signal: null };
+    };
+    return Object.assign(spawn, { calls });
+  };
+
+  it("runs a named renderer through the wrapper's plan: bun from the app folder, a clean environment, no key", () => {
+    const { work, drive, bin, env } = scope();
+    const spawn = ok("slide-0 1080x1350 ok\nslide-1 1080x1350 ok\n");
+    const lines = runRenders(
+      [{ renderer: "carousel", spec: "./spec/spec.json", out: join(drive, "Carousels", "x") }],
+      { allowed: ["carousel", "post", "story"], work, roots: [drive] },
+      env,
+      spawn,
+    );
+    expect(lines).toEqual([
+      `Rendered a carousel from ./spec/spec.json into ${join(drive, "Carousels", "x")}: 2 files.`,
+    ]);
+    expect(spawn.calls).toHaveLength(1);
+    const [first] = spawn.calls;
+    const args = first?.args ?? [];
+    expect([join(bin, "bun.exe"), join(bin, "bun")]).toContain(first?.command);
+    expect(args).toContain("--no-env-file");
+    expect(args.slice(-4)).toEqual([
+      "--spec",
+      join(work, "spec", "spec.json"),
+      "--out",
+      join(drive, "Carousels", "x"),
+    ]);
+    expect(first?.env).toEqual({
+      PATH: bin,
+      SYSTEMROOT: "C:/Windows",
+      MOP_RENDER_WORK: work,
+      MOP_RENDER_OUT_ROOTS: drive,
+    });
+  });
+
+  it("refuses what the run may not render, a spec outside its folder and an output outside its places, and says a failure", () => {
+    const { work, drive, env } = scope();
+    const outside = temp("h115-renders-else-");
+    const spawn = ok("");
+    // a run with no renderer is told once, without its words
+    expect(
+      runRenders(
+        [{ renderer: "carousel", spec: "./s.json", out: "./o" }],
+        { allowed: [], work, roots: [] },
+        env,
+        spawn,
+      ),
+    ).toEqual(["Not rendered: this run may not render."]);
+    expect(runRenders([], { allowed: [], work, roots: [] }, env, spawn)).toEqual([]);
+    const lines = runRenders(
+      [
+        { renderer: "story", spec: "./spec/spec.json", out: "./r" },
+        { renderer: "carousel", spec: join(outside, "spec.json"), out: "./r" },
+        { renderer: "carousel", spec: "./spec/spec.json", out: outside },
+      ],
+      { allowed: ["carousel"], work, roots: [drive] },
+      env,
+      spawn,
+    );
+    expect(lines[0]).toBe("Not rendered: a story is not in this run's toolkit.");
+    expect(lines[1]).toContain("the spec must be inside your work folder");
+    expect(lines[2]).toContain("the output folder must be inside");
+    expect(spawn.calls).toEqual([]);
+    const failed = runRenders(
+      [{ renderer: "carousel", spec: "./spec/spec.json", out: "./r" }],
+      { allowed: ["carousel"], work, roots: [drive] },
+      env,
+      ok("", 1, "slide-0: no photograph\n"),
+    );
+    expect(failed).toEqual([
+      "The render of a carousel from ./spec/spec.json failed (exit 1: slide-0: no photograph).",
+    ]);
+  });
+
+  it("reads a colleague's renders from its answer, and keeps the answer when the list is malformed", () => {
+    const asked = readJsonAnswer(
+      JSON.stringify({
+        reply: "Done.",
+        renders: [{ renderer: "post", spec: "./a/spec.json", out: "./out" }],
+      }),
+    );
+    expect(asked.renders).toEqual([{ renderer: "post", spec: "./a/spec.json", out: "./out" }]);
+    const malformed = readJsonAnswer(
+      JSON.stringify({ reply: "Done.", renders: [{ renderer: "bun", spec: "x", out: "y" }] }),
+    );
+    expect([malformed.reply, malformed.renders]).toEqual(["Done.", undefined]);
   });
 });

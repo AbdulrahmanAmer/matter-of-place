@@ -2294,3 +2294,15 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 18:45 +0300: toolkits builder (W8 0i, fourth round, overdrive/toolkits; finish-3 merged in). Review of
+  2026-10-19 fixed: (critical) the studio is no toolkit place: Social writes its own folder and the Drive folder, every run
+  denies the studio, the reel engine's MCP config is ~/.mop-workforce/studio-no-mcp.json written on every use, cues.mjs runs
+  with no key (cueEnv); (high) readers read own folder + knowledge, the runner places a named piece's photographs only
+  (toolkit `pieces`), never sources.json; (medium) MEASURED on CLI 2.1.296: deny rules could not stop
+  `head -1 <note> > ./x`, so Bash left every toolkit and the runner renders what the answer's `renders` asks for
+  (runRenders via renderPlan); after the change the probe saw no Bash, the studio refused, and a runner render of 8 files
+  into Drive; plan item 0i's words restored from 544a7db5 (narrowing only in Built line and H115); lows: placement test
+  60 s limit, renderCommand gone (no shell, args array). Registry W8-0i: 68 entries (18 new). 0i stays unticked. UNPROVEN:
+  the Fairfield lane on the runner, the Office card in a browser, CI. Bank: P-4511 (deny rules measured), P-4512 retired,
+  P-4513 (same bank number on two branches), G-4514 (libuv profile names in a clean child env); P-3577/P-3702 of this
+  branch renumbered P-4511/P-4512.

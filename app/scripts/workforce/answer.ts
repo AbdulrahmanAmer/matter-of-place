@@ -37,6 +37,19 @@ export const outcome = z.object({
   media: z.array(z.union([mediaRequestSchema, reelRequestSchema])).default([]),
   // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
   actions: z.array(z.unknown()).default([]),
+  // H115 (review of 2026-10-19): the renders a colleague asks for, run by the runner after its run (`runRenders`); a
+  // malformed list renders nothing and keeps the rest of the answer.
+  renders: z
+    .array(
+      z.object({
+        renderer: z.enum(["carousel", "post", "story"]),
+        spec: z.string().min(1).max(500),
+        out: z.string().min(1).max(500),
+      }),
+    )
+    .max(3)
+    .optional()
+    .catch(undefined),
 });
 
 export type Outcome = z.infer<typeof outcome>;

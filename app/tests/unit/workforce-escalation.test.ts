@@ -1042,9 +1042,11 @@ describe("W8 0d: the explanation and the decision, piece by piece", () => {
 describe("H115, review of 2026-10-16: only a run a person started holds its toolkit's writes and renders", () => {
   const SOCIAL_ID = "a0000000-0000-4000-8000-000000000003";
   const LINE_ID = "f0000000-0000-4000-8000-000000000001";
+  /** The last office `wokenBy` made: its tables, as the runner left them. */
+  let seeded: Record<string, Row[]> = {};
   /** Social woken by one line in the team chat. */
   const wokenBy = (author: { author_kind: string; author_id: string; author_name: string }) => {
-    const memory = memoryDb({
+    seeded = {
       agents: [
         agentRow(MATTER_ID, "matter", "Matter", []),
         agentRow(SOCIAL_ID, "social", "Social", ["read_business", "chat", "draft_post"]),
@@ -1061,7 +1063,8 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
       agent_lessons: [],
       agent_decisions: [],
       agent_runs: [],
-    });
+    };
+    const memory = memoryDb(seeded);
     void memory.insert("agent_runs", {
       agent_id: SOCIAL_ID,
       cause: "message",
@@ -1098,7 +1101,8 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
     expect(
       await runOnce(wokenBy({ author_kind: "human", author_id: "u1", author_name: "Dave" })),
     ).toBe(true);
-    expect(tools()).toBe("Read,Glob,Grep,Write,Edit,Bash");
+    // no shell on any run (review of 2026-10-19): the runner renders what the answer asks for
+    expect(tools()).toBe("Read,Glob,Grep,Write,Edit");
     // the person's line names the piece: its photographs are in Social's folder, and the run is told where
     expect(existsSync(placed)).toBe(true);
     expect(lastPrompt("the colleague")).toContain(
@@ -1107,6 +1111,30 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
     // the run's settings file is gone once it ends
     expect(existsSync(join(home, "settings"))).toBe(true);
     expect(readdirSync(join(home, "settings"))).toEqual([]);
+  });
+
+  it("renders for a person's run only, through the wrapper's checks, and says each result in the thread", async () => {
+    mkdirSync(join(home, "drive-social"), { recursive: true });
+    writeFileSync(
+      join(home, "config.json"),
+      JSON.stringify({ driveSocial: join(home, "drive-social") }),
+    );
+    const said = () => (seeded["agent_messages"] ?? []).map((line) => String(line["body"]));
+    cli.answer = () =>
+      JSON.stringify({
+        reply: "Rendering.",
+        task: "Rendered",
+        proposals: [],
+        renders: [{ renderer: "carousel", spec: "../elsewhere/spec.json", out: "./renders" }],
+      });
+    // a colleague's mention: reads only, so nothing renders and its words are not repeated
+    await runOnce(wokenBy({ author_kind: "agent", author_id: "chief", author_name: "Chief" }));
+    expect(said()).toContain("Not rendered: this run may not render.");
+    // a person's line: the runner takes the ask, and the wrapper's checks refuse a spec outside the work folder
+    await runOnce(wokenBy({ author_kind: "human", author_id: "u1", author_name: "Dave" }));
+    expect(said().find((line) => line.startsWith("Not rendered: a carousel"))).toMatch(
+      /^Not rendered: a carousel from \.\.\/elsewhere\/spec\.json \(.*the spec must be inside your work folder/,
+    );
   });
 
   it("runs the owner's run on an outside message with the outside toolkit in a folder of its own, removed after it", async () => {

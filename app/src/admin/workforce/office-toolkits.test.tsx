@@ -73,7 +73,15 @@ describe("Office: each colleague's tools on this laptop", () => {
     const social = within(await card("Maya Okafor"));
     expect(social.getByText("Tools on this laptop")).toBeTruthy();
     expect(
-      social.getByText("Renders a carousel, a single post and a story, from a local spec."),
+      social.getByText(
+        "Has the runner render a carousel, a single post and a story, from a spec in its folder.",
+      ),
+    ).toBeTruthy();
+    // no colleague holds a shell (review of 2026-10-19)
+    expect(
+      social.getByText(
+        "No command, no keys, nothing sent outside the company without a person's approval.",
+      ),
     ).toBeTruthy();
     expect(social.getByText(/^Writes .*Google Drive, Social Media/)).toBeTruthy();
     expect(
@@ -82,7 +90,7 @@ describe("Office: each colleague's tools on this laptop", () => {
       ),
     ).toBeTruthy();
     const editor = within(await card("Julian Reyes"));
-    expect(editor.queryByText(/^Renders /)).toBeNull();
+    expect(editor.queryByText(/^Has the runner render/)).toBeNull();
     expect(editor.getByText(/^Writes its own folder/)).toBeTruthy();
     expect(within(await card("Matter")).queryByText("Tools on this laptop")).toBeNull();
   });
