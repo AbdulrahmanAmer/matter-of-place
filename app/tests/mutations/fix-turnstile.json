@@ -45,11 +45,11 @@
   },
   {
     "id": "tc-f-no-token-no-request",
-    "test": "tests/unit/sign-in-token.test.ts",
+    "test": "tests/unit/sign-in-token.test.tsx",
     "file": "src/admin/team/team-api.ts",
     "find": "    throw new Error(\"turnstile: no token\");",
     "replace": "    return;",
-    "run": "bunx vitest run --project unit tests/unit/sign-in-token.test.ts",
+    "run": "bunx vitest run --project component tests/unit/sign-in-token.test.tsx",
     "expect": "× .*refuses to send the link request without a token"
   }
 ]

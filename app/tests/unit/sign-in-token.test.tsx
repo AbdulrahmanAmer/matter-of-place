@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // P-3700: with no Turnstile token the Worker refuses a sign-in write yet answers "sent", so the form must not send it.
@@ -39,6 +40,17 @@ describe("the admin sign-in requests and Turnstile", () => {
       }),
     ).rejects.toThrow("turnstile");
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("gives the admin sheet the same Turnstile rules as the public one", () => {
+    const body = (path: string) =>
+      readFileSync(new URL(path, import.meta.url), "utf8")
+        .split("\n")
+        .slice(1)
+        .join("\n");
+    expect(body("../../src/styles/admin/turnstile.css")).toBe(
+      body("../../src/styles/components/turnstile.css"),
+    );
   });
 
   it("sends the link request with the token in its header when Cloudflare answered", async () => {

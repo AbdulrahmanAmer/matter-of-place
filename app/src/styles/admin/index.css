@@ -5,8 +5,6 @@
  */
 @import "../fonts.css";
 @import "../tokens.css";
-/* The sign-in forms run Turnstile too: without its container rule the challenge box sat below the page (P-3700). */
-@import "../components/turnstile.css";
 @import "./admin.css";
 @import "./assets.css";
 @import "./automation.css";
@@ -21,5 +19,7 @@
 @import "./reports.css";
 @import "./requests.css";
 @import "./settings.css";
+/* The sign-in forms run Turnstile: without its container rule the challenge box sat below the page (P-3700). */
+@import "./turnstile.css";
 @import "./ui.css";
 @import "./workforce.css";
