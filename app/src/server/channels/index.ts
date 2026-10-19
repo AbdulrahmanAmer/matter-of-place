@@ -86,7 +86,7 @@ const proposedMetaSchema = z.object({
 });
 
 /**
- * W8 item 10 (H117): an asset made by a proposed post's approval goes to its own channel only, whatever its kind
+ * W8 item 10 (H134): an asset made by a proposed post's approval goes to its own channel only, whatever its kind
  * targets, and a test post's asset never goes out. The step's answer when it must not post here, else null.
  */
 export function proposedSkip(

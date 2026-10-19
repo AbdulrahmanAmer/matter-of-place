@@ -18,7 +18,7 @@ as $$
 declare
   v_id uuid;
 begin
-  -- W8 item 10 (H116, H117): a post proposed by a colleague (through the laptop runner, no actor) or through the admin
+  -- W8 item 10 (H116, H134): a post proposed by a colleague (through the laptop runner, no actor) or through the admin
   -- route by a person or Matter's key (the actor, audited against action_roles by write_audit).
   if btrim(coalesce(p_title, '')) = '' or char_length(p_title) > 200 then
     raise exception 'validation' using errcode = '22023', detail = 'A proposed post needs a title of up to 200 characters.';

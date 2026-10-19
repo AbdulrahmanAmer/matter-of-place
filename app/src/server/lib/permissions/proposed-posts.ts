@@ -1,7 +1,7 @@
 import { appRoles } from "../../../domain/contracts.ts";
 import type { PermissionEntry } from "../authz.ts";
 
-// W8 item 10 (H116, H117): proposed posts, under the `channels` scope that Matter's key already holds. A person who runs
+// W8 item 10 (H116, H134): proposed posts, under the `channels` scope that Matter's key already holds. A person who runs
 // posting proposes and revises; approving, rejecting and asking for a re-render are the roles that approve a visual
 // (`assets.approve`), because approving a post approves its visuals. Among keys only Matter's acts here, as in
 // `assets.ts` (item 9): the one agent account granted `admin` (scripts/matter/key.ts), so the audit's `agent:matter` is

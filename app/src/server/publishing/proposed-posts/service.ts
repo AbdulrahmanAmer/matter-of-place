@@ -22,7 +22,7 @@ import { AppError } from "../../lib/errors.ts";
 import { logLine } from "../../lib/log.ts";
 import { mediaUrl } from "../../lib/media-store.ts";
 
-// W8 item 10 (rulings H116, H117): proposed posts. Each function is reached through a `defineAdminRoute` handler,
+// W8 item 10 (rulings H116, H134): proposed posts. Each function is reached through a `defineAdminRoute` handler,
 // authorizes again (SEC-04) and makes each write through exactly one SQL function. Who decides is the matrix's
 // (`permissions/proposed-posts.ts`): among keys only Matter's (`agentRoles: admin`), and approval a person's only.
 

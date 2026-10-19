@@ -23,7 +23,7 @@ declare
   v_files jsonb;
   v_seen text[] := '{}';
 begin
-  -- W8 item 10 (H116, H117): the channel rules of src/domain/proposed-posts.ts, enforced again here because the
+  -- W8 item 10 (H116, H134): the channel rules of src/domain/proposed-posts.ts, enforced again here because the
   -- laptop runner files a colleague's post through create_proposed_post without the admin service. Each refusal names
   -- its reason in the detail, which fromRpcError hands to the person.
   if jsonb_typeof(p_channels) is distinct from 'array' or jsonb_array_length(p_channels) = 0 then
@@ -165,7 +165,7 @@ as $$
 declare
   v_id uuid;
 begin
-  -- W8 item 10 (H116, H117): a post proposed by a colleague (through the laptop runner, no actor) or through the admin
+  -- W8 item 10 (H116, H134): a post proposed by a colleague (through the laptop runner, no actor) or through the admin
   -- route by a person or Matter's key (the actor, audited against action_roles by write_audit).
   if btrim(coalesce(p_title, '')) = '' or char_length(p_title) > 200 then
     raise exception 'validation' using errcode = '22023', detail = 'A proposed post needs a title of up to 200 characters.';
@@ -383,7 +383,7 @@ declare
   v_events uuid[] := '{}';
   v_socials uuid[] := '{}';
 begin
-  -- W8 item 10 (H116, H117): a person's yes, for the exact revision they saw. Each channel becomes an approved asset
+  -- W8 item 10 (H116, H134): a person's yes, for the exact revision they saw. Each channel becomes an approved asset
   -- of the post's subject (approve_asset audits it and emits asset.approved, whose recipe runs the post steps) and the
   -- social_posts row the channel posting reads (schedule_social_post). Nothing posts without a person for the first
   -- 60 days: an agent or the system is refused here as approve_asset would refuse it without evidence.
@@ -463,7 +463,7 @@ begin
     returning id into v_asset;
     v_event := public.approve_asset(v_asset, p_actor, p_actor_kind, p_request_id, null);
     v_social := public.schedule_social_post(v_asset, v_channel.channel, now());
-    -- A test post never goes out (H117): its rows are closed as cancelled here, never left for the reconcile's overdue.
+    -- A test post never goes out (H134): its rows are closed as cancelled here, never left for the reconcile's overdue.
     if v_post.test then
       perform public.fail_social_post(v_social.id, 'cancelled');
     end if;
@@ -500,7 +500,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  -- W8 item 10 (H116, H117): a scheduled proposed post settles once no channel row of its approved revision is left to
+  -- W8 item 10 (H116, H134): a scheduled proposed post settles once no channel row of its approved revision is left to
   -- go out, each one posted or closed as cancelled (a format or channel the post steps skip): `posted` when at least
   -- one row posted, else back to `approved`, a yes with nothing posted. A row that failed otherwise keeps the post
   -- `scheduled`, since a person may retry it. The posting path writes social_posts only; this keeps the post in step.

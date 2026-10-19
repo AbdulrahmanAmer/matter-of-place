@@ -14,7 +14,7 @@ import {
 import { fakeDb } from "../fixtures/fake-db";
 import { withTables } from "../fixtures/table-stub";
 
-// W8 item 10 (H116, H117): who decides a proposed post. A person who approves visuals approves; Matter's key (the one
+// W8 item 10 (H116, H134): who decides a proposed post. A person who approves visuals approves; Matter's key (the one
 // agent with `admin`) may propose, revise, reject and ask for a re-render but never approve; any other key does none. The database half, and the rows an
 // approval makes, are tests/db/proposed-posts.db.test.ts.
 

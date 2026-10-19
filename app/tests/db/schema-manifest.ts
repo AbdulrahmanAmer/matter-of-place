@@ -710,7 +710,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
   social_posts: {
     id: "uuid",
     asset_id: "uuid",
-    // W8 item 10 (H117): a brand post's row names no property.
+    // W8 item 10 (H134): a brand post's row names no property.
     property_id: "uuid?",
     channel: "text",
     status: "social_post_status",
@@ -725,7 +725,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     created_at: "timestamptz",
     updated_at: "timestamptz",
   },
-  // W8 item 10 (H116, H117): proposed posts, one row per channel of each revision, and each revision sent back.
+  // W8 item 10 (H116, H134): proposed posts, one row per channel of each revision, and each revision sent back.
   proposed_posts: {
     id: "uuid",
     title: "text",
