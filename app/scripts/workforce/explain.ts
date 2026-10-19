@@ -164,7 +164,7 @@ export async function handUnavailableOwners(client: Db): Promise<number> {
       author_name: "Matter of Place",
       body: OWNER_UNAVAILABLE,
     });
-    await handToMatter(client, agents, run.message_id, line.thread, false);
+    await handToMatter(client, agents ?? [], run.message_id, line.thread, false);
     handed += 1;
   }
   return handed;
