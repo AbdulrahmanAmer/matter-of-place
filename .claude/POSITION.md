@@ -2272,3 +2272,12 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 18:55 +0300: builder W6 item 5 (overdrive/w6-5, Sonnet 5.5). The desk branch feat/w4-email-replies was already inside
+  overdrive/finish-3 (reader, email_reply_record, replies list and mark on Sent emails, triage). Missing: the event and its wake rule.
+  Built: `email.reply_received`, the 21st catalog event (migration 20261019153500: events and recipe checks, recipe row with no step;
+  domain/events.ts id-only payload, lib/events.ts, wake label, flow words, dry-run builder); email_reply_record emits it and queues the
+  owner's run with it, not with the thread line (migration 20261019153658); criteria.ts sourceOfEvent maps it to the email_reply source, so
+  the reply is triaged and the owner's draft is one reply_inquiry proposal in Approvals. Tests: tests/unit/workforce-reply-event.test.ts (5),
+  registry tests/mutations/W6-5.json (11); the 7 unit entries red for the right reason by hand; the function proved on a throwaway native
+  PostgreSQL with stub tables. UNPROVEN: db tests on the real schema and the 4 w6-5-db entries (CI db job); a live reply read from the
+  mailbox, the Concierge's run and its draft in Approvals; sending an approved reply draft (NOT DONE, W4 next step 2). Bank: P-4520, P-4521.

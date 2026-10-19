@@ -8788,3 +8788,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed 89d5bdc4 --kinds unit` selects only W8 0h's files and the entries anchored on them.
 - hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
+
+## P-4520 · A builder worktree cannot run the `db` project, and a function change is still provable on a throwaway native cluster in minutes
+- symptom: W6 item 5 (2026-10-19): `node node_modules/vitest/vitest.mjs run --project db tests/db/email-replies.db.test.ts` from the worktree printed `ENOENT: no such file or directory, open '...\od-w6-5\.env'` and then `Error: refusing: DEV_DB_URL is not set (load the dev profile)`; the db tests also refuse any URL that is not local, and `mop-dev` is production after the launch switch (H35). The P-312 prelude route is closed for the same reason.
+- cause: a worktree holds no `.env`, and `tests/db/global-setup.ts` accepts only a local database.
+- rule: do not spend time on the P-312 route. Prove a changed SQL function on a throwaway cluster outside the repo: `initdb -U postgres --auth=trust` in a temp folder, start it on a spare port as a background job, create the roles `anon`, `authenticated`, `service_role`, make stub tables with only the columns the function touches (plus the check the migration widens), `\i` the function file, and run the scenarios the db test asserts; load each `sql` variant of the registry the same way and print the count the test measures. Say in the plan's Built line that the real-schema db tests are UNPROVEN until the CI `db` job runs.
+- proof: `psql -h 127.0.0.1 -p <port> -U postgres -d <db> -f scenario.sql` after the stub and `fn.sql` printed one `email.reply_received` event with ids only, one event-caused run per owner, `events_with_words 0` and `owner concierge` with the Editor off (measured 2026-10-19, W6 item 5).
+- added: 2026-10-19
+
+## P-4521 · `bun run db:fn` names its migration with the current time, so the hand-written migration it depends on must be named earlier, and both after every branch's newest
+- symptom: W6 item 5: the widening of the `events` and recipe checks (written by hand) was first named `20261019160000`, later than the `20261019153658` that `db:fn` generated for the function that emits the new event; applied in file order the function would exist before its event type was allowed.
+- cause: `db:fn` stamps the migration with the clock; a hand-named one has whatever number the author typed. `check-migrations.mjs` checks only the order against main, not between two migrations of one branch.
+- rule: name the dependency first (a number just after the newest on any `origin/overdrive/*` branch, `git ls-tree --name-only <ref> supabase/migrations/`), run `db:fn` after, and read the two names in `ls supabase/migrations | tail`.
+- proof: `cd app && ls supabase/migrations | tail -4 && node scripts/check-migrations.mjs` → the widening before the function, `migration-order: OK`.
+- added: 2026-10-19
