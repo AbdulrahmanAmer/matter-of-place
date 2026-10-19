@@ -1,12 +1,8 @@
-import { Outlet } from "@tanstack/react-router";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { serveAdmin as serve } from "../../../tests/fixtures/admin-serve";
 import type { SentEmail } from "../../domain/admin-emails";
 import { standInForDialogs } from "../ui/test-dialog";
-import { AdminProviders } from "../ui/test-providers";
-import { mountRoutes, pageRoute } from "../ui/test-router";
-import { SentEmailsPage } from "./SentEmailsPage";
+import { openSentEmails } from "./test-sent-emails";
 
 // W7 item 1: the Emails we sent part of the Sent emails screen: every email, to whom, its template and what became of
 // it (delivered, opened, bounced), the do-not-send list, and keyset pages.
@@ -48,24 +44,6 @@ const SUPPRESSIONS = [
   { email: ADDRESS, reason: "bounce" as const, at: "2026-10-15T04:10:07.215Z" },
 ];
 
-function open(answers: Record<string, unknown>) {
-  const requested = serve({
-    "GET /api/admin/emails/replies": { items: [], next_cursor: null },
-    "GET /api/admin/emails/inbound": { items: [], next_cursor: null },
-    ...answers,
-  });
-  mountRoutes(
-    () => (
-      <AdminProviders actions={["audit.list"]}>
-        <Outlet />
-      </AdminProviders>
-    ),
-    "/admin/emails/",
-    (root) => [pageRoute(root, "/admin/emails/", () => <SentEmailsPage />)],
-  );
-  return requested;
-}
-
 beforeAll(standInForDialogs);
 
 afterEach(() => {
@@ -74,7 +52,7 @@ afterEach(() => {
 
 describe("the emails we sent on the Sent emails screen", () => {
   it("shows each email with its address, template and what became of it, and the do-not-send list", async () => {
-    open({
+    openSentEmails({
       [`GET ${EMAILS}`]: {
         items: [email(), OPENED_ROW],
         next_cursor: null,
@@ -96,7 +74,7 @@ describe("the emails we sent on the Sent emails screen", () => {
   });
 
   it("asks for one state and one address when they are chosen", async () => {
-    const requested = open({
+    const requested = openSentEmails({
       [`GET ${EMAILS}`]: { items: [email()], next_cursor: null, suppressions: [] },
       [`GET ${EMAILS}?status=delivered`]: {
         items: [OPENED_ROW],
@@ -116,7 +94,7 @@ describe("the emails we sent on the Sent emails screen", () => {
     const cursor = `2026-10-15T04:10:03.019Z~${BOUNCED}`;
     // The page builds its query with URLSearchParams, which also encodes "~".
     const after = `GET ${EMAILS}?${new URLSearchParams({ cursor }).toString()}`;
-    const requested = open({
+    const requested = openSentEmails({
       [`GET ${EMAILS}`]: { items: [email()], next_cursor: cursor, suppressions: [] },
       [after]: { items: [OPENED_ROW], next_cursor: null, suppressions: [] },
     });
