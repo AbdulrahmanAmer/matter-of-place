@@ -27,7 +27,7 @@
     "id": "w7-e1-post-skip",
     "test": "tests/unit/channels/post-to-channel.test.ts",
     "file": "src/server/channels/post-to-channel.ts",
-    "find": "  if (subject === null) return done(\"skipped_not_a_property_asset\");\n",
+    "find": "  if (subject === null) return skip(ctx, stored, channel, \"skipped_not_a_property_asset\");\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts -t \"a requested reel about a market\"",
     "expect": "× .*a requested reel about a market posts nothing"

@@ -46,6 +46,7 @@ import { breakerUntil, type CliUsage, isolatedArgs, runClaude, UsageLimitError }
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
+import { fileProposedPost, isStructuredPost, POST_TOOL_LINE, postDeps } from "./proposed-post.ts";
 import type { SourceName } from "./criteria.ts";
 import { explainsHeld, handToMatter, handUnavailableOwners, ownerExplanation } from "./explain.ts";
 import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
@@ -599,6 +600,7 @@ function promptFor(
         ]
       : []),
     ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
+    ...(agent.tools.includes("draft_post") ? [POST_TOOL_LINE] : []),
     ...(terminal ? [TERMINAL_LINE] : []),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
@@ -854,6 +856,23 @@ export async function runOnce(client: Db): Promise<boolean> {
       await proposeCalls(client, agent, run.id, thread, allowed);
     }
     for (const proposal of plan.proposals) {
+      // W8 item 10 (H117): a post with its channels and files goes to Proposed posts, not to Approvals.
+      if (isStructuredPost(proposal)) {
+        const filed = await fileProposedPost(postDeps(client), {
+          agent: agent.slug,
+          run: run.id,
+          summary: proposal.summary,
+          post: proposal.content.post,
+        });
+        await say(
+          client,
+          thread,
+          "id" in filed
+            ? `The post "${proposal.summary}" waits in Proposed posts for a person's approval.`
+            : `The post "${proposal.summary}" was not proposed: ${filed.refused}.`,
+        );
+        continue;
+      }
       // W7 item 20: a post or a plan of this run carries the reel it asked for; the hash covers what is stored.
       const content = withReel(proposal.action, proposal.content, reel);
       await client.from("agent_approvals").insert({

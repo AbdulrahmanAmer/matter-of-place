@@ -127,6 +127,13 @@ begin
   select id, 'test-rls-' || v_user, 'test-rls task' from public.agents where slug = 'chief';
   insert into public.vendor_usage (line, used, measured_at) values ('sentry_errors', 1, now())
   on conflict (line) do nothing;
+  -- W8 item 10: a proposed post, one channel and one revision sent back (written only by its functions in production).
+  insert into public.proposed_posts (title, proposer_kind, proposer_agent, status, rejection_note)
+  values ('test-rls', 'agent', 'chief', 'rejected', 'test-rls');
+  insert into public.proposed_post_channels (post_id, revision, channel, format, caption, media)
+  select id, 1, 'x', 'single', 'test-rls', '{}'::jsonb from public.proposed_posts where title = 'test-rls';
+  insert into public.proposed_post_revisions (post_id, revision, reason, note, asked_by_kind, snapshot)
+  select id, 1, 'rejected', 'test-rls', 'human', '{}'::jsonb from public.proposed_posts where title = 'test-rls';
 end
 $$`;
 

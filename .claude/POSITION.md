@@ -2108,6 +2108,17 @@ first day of the new usage week; no step was cut from any plan.
   00:35 UTC; it lands with PR 447). Fairfield lane test closed: FAIL (Julian and Matter), set in Drive, three abstract reels
   rejected by hand with notes. Laptop: 16 GB of runaway task logs deleted on the operator's word; held at Idle for an OmniSuite
   film export, then restored. Bank grew: P-3606, P-3607.
+
+## 2026-10-16 18:13 +0300 · W8 item 10 review fixes (branch overdrive/w8-10, merged origin/overdrive/finish-2)
+Fresh Opus review FAILED; every finding fixed under Matter's rulings. Matrix: `agentRoles: admin` on proposed create, revise,
+reject, re-render (only Matter's key); `channels.proposed_approve` humanOnly with approvers media_ops and chief_editor
+(admin widening dropped); `reject_proposed_post` refuses any agent without the agent admin grant and audits Matter as
+`reject_asset` does (P-3613). Test posts' social_posts rows cancelled at approval (post stays approved); a post step that
+skips a proposed post's own channel cancels its row; the post settles posted or back to approved. Both LinkedIn cases named
+in H117 and the plan line. Captions count code points; runner key pattern and re-parse; 409 comment names stale and
+version_conflict (the finding misread: admin-errors renames it). Migrations renamed after finish's newest; fn and
+action_roles regenerated. Local: only the written test files (service 8, step 28, domain 4, runner 7). UNPROVEN: db cases,
+registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3613, P-3614.
 - 2026-10-16 17:45 +0300: orchestrator. PR 447 MERGED (41f6a809, decided under S63 after two hours unanswered: reviewed green
   work does not wait). The live supervisor could not move to it by itself (the stuck-idle fault it fixes also blocked its own
   move), so it was restarted at 17:01 with Matter idle; live.log at 14:01:25Z: "goal step W8-0d ..." then "goal step skipped:

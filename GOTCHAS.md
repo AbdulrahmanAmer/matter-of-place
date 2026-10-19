@@ -4506,6 +4506,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run tests/unit/action-roles.sync.test.ts` → `2 passed` after the generator; `ls supabase/migrations | grep action_roles | tail -3` lists the lane's two files after main's.
 - added: 2026-10-07
 - hit again: 2026-10-07, B6 g3: the merge of main (B10 channels, reports) left the lane's newest `action_roles` file without those actions; `bun run scripts/gen-action-roles.mjs` wrote `20261008040840_action_roles.sql` and `action-roles.sync.test.ts` went green.
+- hit again: 2026-10-16, W8 item 10: the branch's `action_roles` file, written before merging `overdrive/finish` (item 9's matrix change), was newer than the base's and would have upserted the old roles over it; it was removed and regenerated after the merge (`20261016100732_action_roles.sql`, 154 actions).
 - hit again: 2026-10-13, feat/matter-actions (orchestrator, not a worker): `dashboard.search` was added to the matrix without the generator or the hand-typed row in `tests/unit/authz.matrix.test.ts`; three full checks died earlier (lint, knip, jscpd), so the two failures showed only at the fourth. A new matrix action takes three edits in one commit: the matrix, `bun run scripts/gen-action-roles.mjs`, and the fixture row.
 
 ## P-2315 · `scripts/gen-action-roles.mjs` has no dry run and ignores every flag: `--check` wrote a new migration into a read-only review
@@ -8669,3 +8670,37 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: every runner client is built by `serviceDb()` (scripts/workforce/env.ts), whose fetch gives up after 60 s (`deadlineFetch`); every spawnSync in a long-lived loop gets a `timeout`; the minute runner (daemon.ts `endStalledSupervisor`) ends a supervisor whose heartbeat is silent 15 minutes, after checking the process's command line is matter/live.ts. Long planned waits use `rest()` so they keep the heartbeat fresh.
 - proof: `tests/unit/matter-live.test.ts` "gives up on a database call that never answers", "names the supervisor for the outside watchdog...", "ends only a process whose command line is Matter's supervisor"; registry W8-runner.json w8-runner-db-deadline, w8-runner-outside-watchdog, w8-runner-outside-watchdog-command (2026-10-19).
 - added: 2026-10-19
+
+## P-3610 · A builder's worktree has no `.env`, so its db tests run on a native cluster, and `pg-shims.sql` is three objects short of the migrations
+- symptom: 2026-10-16, W8 item 10: `node scripts/load-env.mjs --profile dev` in `E:/mop-build/od-w8-10` printed `ENOENT: no such file or directory, open 'E:\mop-build\od-w8-10\.env'`, so the P-312 prelude route had no `DEV_DB_URL` (and the builder brief forbids reading or copying a `.env`). A cluster built the way `scripts/harden/migration-rollback-drill.sh` builds one stopped at `20261010154545_audit_reads.sql` (`function pgmq.metrics_all() does not exist`), then at `20261012221926_staging_orphans.sql` (`column o.created_at does not exist`).
+- cause: a worktree is made from git, which never holds `.env`; `pg-shims.sql` was written before those two migrations, so the rollback drill stops on them too.
+- rule: in a worktree, prove migrations on a native PostgreSQL 18 cluster: `initdb`, `pg-shims.sql`, then `pgmq.metrics_all()` (an empty table function), `pgmq.drop_queue(text)` and `storage.objects` `owner`, `created_at`, `updated_at`, then every migration without its `create extension` lines, and run the db project with `DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/mop` through `node node_modules/vitest/vitest.mjs`. A `kind: "sql"` replay works there unchanged, because the cluster already holds the branch's migrations. The three shims belong in `pg-shims.sql` (not folded in here: outside the item).
+- proof: from `app/`, the W8 item 10 cluster (the shims above, 2026-10-16) applied every migration, and `DEV_DB_URL=postgresql://postgres@127.0.0.1:55491/mop node node_modules/vitest/vitest.mjs run --project db tests/db/proposed-posts.db.test.ts` ran the item's db test; without the extra shims the build stops with the two errors above.
+- added: 2026-10-16
+
+## P-3611 · A service that checks the actor's roles breaks STANDARDS R12: who may act is the matrix's, and a service checks only the actor's kind
+- symptom: 2026-10-16, W8 item 10: the first service let only an agent key holding `admin` (Matter's) reject a proposed post, with `actor.roles.includes("admin")` in `service.ts`; R12 says services never check roles, so the rule was invisible to `action_roles`, `write_audit` and the matrix test.
+- rule: put the distinction in the matrix entry's roles (here: deciders `chief_editor` and `admin`, as `workforce.decide`, which Matter's key holds and a colleague's key does not), regenerate `action_roles`, and keep in the service only a check of `actor.kind` (`manual_approval` for an agent, as `approveAsset`).
+- proof: `cd app && grep -n "roles.includes" src/server/publishing/proposed-posts/service.ts` → nothing; `node scripts/watchfail.mjs --registry tests/mutations --only w8-10-deciders` (media_ops added to the deciders) → `WATCHED-FAIL OK`.
+- added: 2026-10-16
+
+## P-3612 · A builder worktree's `node_modules` is a junction to another worktree's, so the watched-fail lock is shared by every builder
+- symptom: 2026-10-16, W8 item 10: of the first thirteen replays of `tests/mutations/W8-10.json` one ran; the other twelve exited 3 at once with `watchfail: another replay (pid 19704) is mutating files in this folder; wait for it (P-3444)`, and a summary that read only the exit codes looked like twelve silent entries.
+- cause: `E:/mop-build/od-w8-10/app/node_modules` is a junction to `E:/mop-build/od-slide/app/node_modules`, and the P-3444 lock is `node_modules/.cache/watchfail.lock`, so a replay in any builder's worktree holds it for all of them.
+- rule: a builder's replay loop treats exit 3 as "wait", not as a result: retry the same id every 20 seconds until the exit is not 3, and judge each entry by its `WATCHED-FAIL OK` line and its red run's text. Never delete the lock while its pid is alive.
+- proof: `ls -la E:/mop-build/od-w8-10/app/node_modules` → `node_modules -> /e/mop-build/od-slide/app/node_modules`; `cat E:/mop-build/od-w8-10/app/node_modules/.cache/watchfail.lock` printed another worktree's live pid during the W8 item 10 replay (2026-10-16).
+- added: 2026-10-16
+
+## P-3613 · `agentRoles` reaches only `authorize`: `write_audit` checks an agent against the person roles of `action_roles`
+- symptom: 2026-10-16, W8 item 10 review fix: aligning `channels.proposed_reject` with `assets.reject` (roles media_ops and chief_editor, `agentRoles: admin`) would have left Matter's key passing the route and then refused `forbidden` inside `reject_proposed_post`, whose audit went through `write_audit`.
+- cause: `scripts/gen-action-roles.mjs` writes `roles` and `human_only` only; `write_audit` refuses an actor whose enabled roles miss `action_roles.roles`, whatever the matrix's `agentRoles` say.
+- rule: a SQL function behind an action whose `agentRoles` are outside its `roles` writes the agent's audit row itself and checks the agent's grant in SQL, as `reject_asset` (item 9) and `reject_proposed_post` do; a person still goes through `write_audit`.
+- proof: `grep -n "roles, human_only" app/scripts/gen-action-roles.mjs` shows no agent column; `grep -n "v_rule.roles && v_roles" app/supabase/sql/functions/write_audit.sql` is the refusal; the case "refuses a key that is not Matter's" in `tests/db/proposed-posts.db.test.ts` and "lets Matter send a post back" run both branches (CI db job).
+- added: 2026-10-16
+
+## P-3614 · `check-migrations.mjs` reads the committed range, so a migration renamed or removed in the worktree crashes it with ENOENT until the commit
+- symptom: 2026-10-16, W8 item 10: after `git mv` of `20261016050108_proposed_posts.sql` and `git rm` of two generated files, `node scripts/check-migrations.mjs` threw `ENOENT ... 20261016050108_proposed_posts.sql`.
+- cause: it lists files with `git diff origin/main...HEAD` and reads each from the disk.
+- rule: rename and regenerate migrations, commit, then run `node scripts/check-migrations.mjs`; its answer before the commit is about the old tree.
+- proof: `cd app && node scripts/check-migrations.mjs` after the commit prints no failure (2026-10-16).
+- added: 2026-10-16

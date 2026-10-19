@@ -160,6 +160,8 @@ import { Route as ApiAdminPropertiesIndexRouteImport } from './routes/api/admin/
 import { Route as ApiAdminPropertiesIdRouteImport } from './routes/api/admin/properties.$id'
 import { Route as ApiAdminPropertiesFromSubmissionRouteImport } from './routes/api/admin/properties.from-submission'
 import { Route as ApiAdminPropertiesRepresentativesRouteImport } from './routes/api/admin/properties.representatives'
+import { Route as ApiAdminProposedPostsIndexRouteImport } from './routes/api/admin/proposed-posts.index'
+import { Route as ApiAdminProposedPostsIdRouteImport } from './routes/api/admin/proposed-posts.$id'
 import { Route as ApiAdminReportsIdRouteImport } from './routes/api/admin/reports.$id'
 import { Route as ApiAdminSettingsIndexRouteImport } from './routes/api/admin/settings.index'
 import { Route as ApiAdminSettingsComingSoonRouteImport } from './routes/api/admin/settings.coming-soon'
@@ -228,6 +230,10 @@ import { Route as ApiAdminPropertiesIdRelatedRouteImport } from './routes/api/ad
 import { Route as ApiAdminPropertiesIdRevokePreviewsRouteImport } from './routes/api/admin/properties.$id.revoke-previews'
 import { Route as ApiAdminPropertiesIdTimelineRouteImport } from './routes/api/admin/properties.$id.timeline'
 import { Route as ApiAdminPropertiesIdUnpublishRouteImport } from './routes/api/admin/properties.$id.unpublish'
+import { Route as ApiAdminProposedPostsIdApproveRouteImport } from './routes/api/admin/proposed-posts.$id.approve'
+import { Route as ApiAdminProposedPostsIdRejectRouteImport } from './routes/api/admin/proposed-posts.$id.reject'
+import { Route as ApiAdminProposedPostsIdRerenderRouteImport } from './routes/api/admin/proposed-posts.$id.rerender'
+import { Route as ApiAdminProposedPostsIdReviseRouteImport } from './routes/api/admin/proposed-posts.$id.revise'
 import { Route as ApiAdminReportsIdEmailRouteImport } from './routes/api/admin/reports.$id.email'
 import { Route as ApiAdminSettingsProductsPreviewRouteImport } from './routes/api/admin/settings.products.preview'
 import { Route as ApiAdminStoriesIdPublishRouteImport } from './routes/api/admin/stories.$id.publish'
@@ -1073,6 +1079,17 @@ const ApiAdminPropertiesRepresentativesRoute =
     path: '/api/admin/properties/representatives',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminProposedPostsIndexRoute =
+  ApiAdminProposedPostsIndexRouteImport.update({
+    id: '/api/admin/proposed-posts/',
+    path: '/api/admin/proposed-posts/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminProposedPostsIdRoute = ApiAdminProposedPostsIdRouteImport.update({
+  id: '/api/admin/proposed-posts/$id',
+  path: '/api/admin/proposed-posts/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminReportsIdRoute = ApiAdminReportsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -1449,6 +1466,30 @@ const ApiAdminPropertiesIdUnpublishRoute =
     id: '/unpublish',
     path: '/unpublish',
     getParentRoute: () => ApiAdminPropertiesIdRoute,
+  } as any)
+const ApiAdminProposedPostsIdApproveRoute =
+  ApiAdminProposedPostsIdApproveRouteImport.update({
+    id: '/approve',
+    path: '/approve',
+    getParentRoute: () => ApiAdminProposedPostsIdRoute,
+  } as any)
+const ApiAdminProposedPostsIdRejectRoute =
+  ApiAdminProposedPostsIdRejectRouteImport.update({
+    id: '/reject',
+    path: '/reject',
+    getParentRoute: () => ApiAdminProposedPostsIdRoute,
+  } as any)
+const ApiAdminProposedPostsIdRerenderRoute =
+  ApiAdminProposedPostsIdRerenderRouteImport.update({
+    id: '/rerender',
+    path: '/rerender',
+    getParentRoute: () => ApiAdminProposedPostsIdRoute,
+  } as any)
+const ApiAdminProposedPostsIdReviseRoute =
+  ApiAdminProposedPostsIdReviseRouteImport.update({
+    id: '/revise',
+    path: '/revise',
+    getParentRoute: () => ApiAdminProposedPostsIdRoute,
   } as any)
 const ApiAdminReportsIdEmailRoute = ApiAdminReportsIdEmailRouteImport.update({
   id: '/email',
@@ -1855,6 +1896,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
   '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
   '/api/admin/properties/representatives': typeof ApiAdminPropertiesRepresentativesRoute
+  '/api/admin/proposed-posts/$id': typeof ApiAdminProposedPostsIdRouteWithChildren
   '/api/admin/reports/$id': typeof ApiAdminReportsIdRouteWithChildren
   '/api/admin/settings/coming-soon': typeof ApiAdminSettingsComingSoonRoute
   '/api/admin/settings/invoice': typeof ApiAdminSettingsInvoiceRoute
@@ -1891,6 +1933,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
+  '/api/admin/proposed-posts/': typeof ApiAdminProposedPostsIndexRoute
   '/api/admin/settings/': typeof ApiAdminSettingsIndexRoute
   '/api/admin/stories/': typeof ApiAdminStoriesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
@@ -1932,6 +1975,10 @@ export interface FileRoutesByFullPath {
   '/api/admin/properties/$id/revoke-previews': typeof ApiAdminPropertiesIdRevokePreviewsRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
+  '/api/admin/proposed-posts/$id/approve': typeof ApiAdminProposedPostsIdApproveRoute
+  '/api/admin/proposed-posts/$id/reject': typeof ApiAdminProposedPostsIdRejectRoute
+  '/api/admin/proposed-posts/$id/rerender': typeof ApiAdminProposedPostsIdRerenderRoute
+  '/api/admin/proposed-posts/$id/revise': typeof ApiAdminProposedPostsIdReviseRoute
   '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
   '/api/admin/settings/products/preview': typeof ApiAdminSettingsProductsPreviewRoute
   '/api/admin/stories/$id/publish': typeof ApiAdminStoriesIdPublishRoute
@@ -2115,6 +2162,7 @@ export interface FileRoutesByTo {
   '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
   '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
   '/api/admin/properties/representatives': typeof ApiAdminPropertiesRepresentativesRoute
+  '/api/admin/proposed-posts/$id': typeof ApiAdminProposedPostsIdRouteWithChildren
   '/api/admin/reports/$id': typeof ApiAdminReportsIdRouteWithChildren
   '/api/admin/settings/coming-soon': typeof ApiAdminSettingsComingSoonRoute
   '/api/admin/settings/invoice': typeof ApiAdminSettingsInvoiceRoute
@@ -2151,6 +2199,7 @@ export interface FileRoutesByTo {
   '/api/admin/payments': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties': typeof ApiAdminPropertiesIndexRoute
+  '/api/admin/proposed-posts': typeof ApiAdminProposedPostsIndexRoute
   '/api/admin/settings': typeof ApiAdminSettingsIndexRoute
   '/api/admin/stories': typeof ApiAdminStoriesIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
@@ -2192,6 +2241,10 @@ export interface FileRoutesByTo {
   '/api/admin/properties/$id/revoke-previews': typeof ApiAdminPropertiesIdRevokePreviewsRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
+  '/api/admin/proposed-posts/$id/approve': typeof ApiAdminProposedPostsIdApproveRoute
+  '/api/admin/proposed-posts/$id/reject': typeof ApiAdminProposedPostsIdRejectRoute
+  '/api/admin/proposed-posts/$id/rerender': typeof ApiAdminProposedPostsIdRerenderRoute
+  '/api/admin/proposed-posts/$id/revise': typeof ApiAdminProposedPostsIdReviseRoute
   '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
   '/api/admin/settings/products/preview': typeof ApiAdminSettingsProductsPreviewRoute
   '/api/admin/stories/$id/publish': typeof ApiAdminStoriesIdPublishRoute
@@ -2381,6 +2434,7 @@ export interface FileRoutesById {
   '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
   '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
   '/api/admin/properties/representatives': typeof ApiAdminPropertiesRepresentativesRoute
+  '/api/admin/proposed-posts/$id': typeof ApiAdminProposedPostsIdRouteWithChildren
   '/api/admin/reports/$id': typeof ApiAdminReportsIdRouteWithChildren
   '/api/admin/settings/coming-soon': typeof ApiAdminSettingsComingSoonRoute
   '/api/admin/settings/invoice': typeof ApiAdminSettingsInvoiceRoute
@@ -2417,6 +2471,7 @@ export interface FileRoutesById {
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
+  '/api/admin/proposed-posts/': typeof ApiAdminProposedPostsIndexRoute
   '/api/admin/settings/': typeof ApiAdminSettingsIndexRoute
   '/api/admin/stories/': typeof ApiAdminStoriesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
@@ -2458,6 +2513,10 @@ export interface FileRoutesById {
   '/api/admin/properties/$id/revoke-previews': typeof ApiAdminPropertiesIdRevokePreviewsRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
+  '/api/admin/proposed-posts/$id/approve': typeof ApiAdminProposedPostsIdApproveRoute
+  '/api/admin/proposed-posts/$id/reject': typeof ApiAdminProposedPostsIdRejectRoute
+  '/api/admin/proposed-posts/$id/rerender': typeof ApiAdminProposedPostsIdRerenderRoute
+  '/api/admin/proposed-posts/$id/revise': typeof ApiAdminProposedPostsIdReviseRoute
   '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
   '/api/admin/settings/products/preview': typeof ApiAdminSettingsProductsPreviewRoute
   '/api/admin/stories/$id/publish': typeof ApiAdminStoriesIdPublishRoute
@@ -2647,6 +2706,7 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id'
     | '/api/admin/properties/from-submission'
     | '/api/admin/properties/representatives'
+    | '/api/admin/proposed-posts/$id'
     | '/api/admin/reports/$id'
     | '/api/admin/settings/coming-soon'
     | '/api/admin/settings/invoice'
@@ -2683,6 +2743,7 @@ export interface FileRouteTypes {
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
+    | '/api/admin/proposed-posts/'
     | '/api/admin/settings/'
     | '/api/admin/stories/'
     | '/api/admin/submissions/'
@@ -2724,6 +2785,10 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/revoke-previews'
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/properties/$id/unpublish'
+    | '/api/admin/proposed-posts/$id/approve'
+    | '/api/admin/proposed-posts/$id/reject'
+    | '/api/admin/proposed-posts/$id/rerender'
+    | '/api/admin/proposed-posts/$id/revise'
     | '/api/admin/reports/$id/email'
     | '/api/admin/settings/products/preview'
     | '/api/admin/stories/$id/publish'
@@ -2907,6 +2972,7 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id'
     | '/api/admin/properties/from-submission'
     | '/api/admin/properties/representatives'
+    | '/api/admin/proposed-posts/$id'
     | '/api/admin/reports/$id'
     | '/api/admin/settings/coming-soon'
     | '/api/admin/settings/invoice'
@@ -2943,6 +3009,7 @@ export interface FileRouteTypes {
     | '/api/admin/payments'
     | '/api/admin/people'
     | '/api/admin/properties'
+    | '/api/admin/proposed-posts'
     | '/api/admin/settings'
     | '/api/admin/stories'
     | '/api/admin/submissions'
@@ -2984,6 +3051,10 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/revoke-previews'
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/properties/$id/unpublish'
+    | '/api/admin/proposed-posts/$id/approve'
+    | '/api/admin/proposed-posts/$id/reject'
+    | '/api/admin/proposed-posts/$id/rerender'
+    | '/api/admin/proposed-posts/$id/revise'
     | '/api/admin/reports/$id/email'
     | '/api/admin/settings/products/preview'
     | '/api/admin/stories/$id/publish'
@@ -3172,6 +3243,7 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id'
     | '/api/admin/properties/from-submission'
     | '/api/admin/properties/representatives'
+    | '/api/admin/proposed-posts/$id'
     | '/api/admin/reports/$id'
     | '/api/admin/settings/coming-soon'
     | '/api/admin/settings/invoice'
@@ -3208,6 +3280,7 @@ export interface FileRouteTypes {
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
+    | '/api/admin/proposed-posts/'
     | '/api/admin/settings/'
     | '/api/admin/stories/'
     | '/api/admin/submissions/'
@@ -3249,6 +3322,10 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/revoke-previews'
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/properties/$id/unpublish'
+    | '/api/admin/proposed-posts/$id/approve'
+    | '/api/admin/proposed-posts/$id/reject'
+    | '/api/admin/proposed-posts/$id/rerender'
+    | '/api/admin/proposed-posts/$id/revise'
     | '/api/admin/reports/$id/email'
     | '/api/admin/settings/products/preview'
     | '/api/admin/stories/$id/publish'
@@ -3370,6 +3447,7 @@ export interface RootRouteChildren {
   ApiAdminPropertiesIdRoute: typeof ApiAdminPropertiesIdRouteWithChildren
   ApiAdminPropertiesFromSubmissionRoute: typeof ApiAdminPropertiesFromSubmissionRoute
   ApiAdminPropertiesRepresentativesRoute: typeof ApiAdminPropertiesRepresentativesRoute
+  ApiAdminProposedPostsIdRoute: typeof ApiAdminProposedPostsIdRouteWithChildren
   ApiAdminSettingsComingSoonRoute: typeof ApiAdminSettingsComingSoonRoute
   ApiAdminSettingsInvoiceRoute: typeof ApiAdminSettingsInvoiceRoute
   ApiAdminSettingsNotificationsRoute: typeof ApiAdminSettingsNotificationsRoute
@@ -3401,6 +3479,7 @@ export interface RootRouteChildren {
   ApiAdminPaymentsIndexRoute: typeof ApiAdminPaymentsIndexRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminPropertiesIndexRoute: typeof ApiAdminPropertiesIndexRoute
+  ApiAdminProposedPostsIndexRoute: typeof ApiAdminProposedPostsIndexRoute
   ApiAdminSettingsIndexRoute: typeof ApiAdminSettingsIndexRoute
   ApiAdminStoriesIndexRoute: typeof ApiAdminStoriesIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
@@ -4471,6 +4550,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPropertiesRepresentativesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/proposed-posts/': {
+      id: '/api/admin/proposed-posts/'
+      path: '/api/admin/proposed-posts'
+      fullPath: '/api/admin/proposed-posts/'
+      preLoaderRoute: typeof ApiAdminProposedPostsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/proposed-posts/$id': {
+      id: '/api/admin/proposed-posts/$id'
+      path: '/api/admin/proposed-posts/$id'
+      fullPath: '/api/admin/proposed-posts/$id'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/reports/$id': {
       id: '/api/admin/reports/$id'
       path: '/$id'
@@ -4946,6 +5039,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/admin/properties/$id/unpublish'
       preLoaderRoute: typeof ApiAdminPropertiesIdUnpublishRouteImport
       parentRoute: typeof ApiAdminPropertiesIdRoute
+    }
+    '/api/admin/proposed-posts/$id/approve': {
+      id: '/api/admin/proposed-posts/$id/approve'
+      path: '/approve'
+      fullPath: '/api/admin/proposed-posts/$id/approve'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdApproveRouteImport
+      parentRoute: typeof ApiAdminProposedPostsIdRoute
+    }
+    '/api/admin/proposed-posts/$id/reject': {
+      id: '/api/admin/proposed-posts/$id/reject'
+      path: '/reject'
+      fullPath: '/api/admin/proposed-posts/$id/reject'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdRejectRouteImport
+      parentRoute: typeof ApiAdminProposedPostsIdRoute
+    }
+    '/api/admin/proposed-posts/$id/rerender': {
+      id: '/api/admin/proposed-posts/$id/rerender'
+      path: '/rerender'
+      fullPath: '/api/admin/proposed-posts/$id/rerender'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdRerenderRouteImport
+      parentRoute: typeof ApiAdminProposedPostsIdRoute
+    }
+    '/api/admin/proposed-posts/$id/revise': {
+      id: '/api/admin/proposed-posts/$id/revise'
+      path: '/revise'
+      fullPath: '/api/admin/proposed-posts/$id/revise'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdReviseRouteImport
+      parentRoute: typeof ApiAdminProposedPostsIdRoute
     }
     '/api/admin/reports/$id/email': {
       id: '/api/admin/reports/$id/email'
@@ -5864,6 +5985,26 @@ const ApiAdminPropertiesIdRouteChildren: ApiAdminPropertiesIdRouteChildren = {
 const ApiAdminPropertiesIdRouteWithChildren =
   ApiAdminPropertiesIdRoute._addFileChildren(ApiAdminPropertiesIdRouteChildren)
 
+interface ApiAdminProposedPostsIdRouteChildren {
+  ApiAdminProposedPostsIdApproveRoute: typeof ApiAdminProposedPostsIdApproveRoute
+  ApiAdminProposedPostsIdRejectRoute: typeof ApiAdminProposedPostsIdRejectRoute
+  ApiAdminProposedPostsIdRerenderRoute: typeof ApiAdminProposedPostsIdRerenderRoute
+  ApiAdminProposedPostsIdReviseRoute: typeof ApiAdminProposedPostsIdReviseRoute
+}
+
+const ApiAdminProposedPostsIdRouteChildren: ApiAdminProposedPostsIdRouteChildren =
+  {
+    ApiAdminProposedPostsIdApproveRoute: ApiAdminProposedPostsIdApproveRoute,
+    ApiAdminProposedPostsIdRejectRoute: ApiAdminProposedPostsIdRejectRoute,
+    ApiAdminProposedPostsIdRerenderRoute: ApiAdminProposedPostsIdRerenderRoute,
+    ApiAdminProposedPostsIdReviseRoute: ApiAdminProposedPostsIdReviseRoute,
+  }
+
+const ApiAdminProposedPostsIdRouteWithChildren =
+  ApiAdminProposedPostsIdRoute._addFileChildren(
+    ApiAdminProposedPostsIdRouteChildren,
+  )
+
 interface ApiAdminSettingsProductsRouteChildren {
   ApiAdminSettingsProductsPreviewRoute: typeof ApiAdminSettingsProductsPreviewRoute
 }
@@ -6110,6 +6251,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminPropertiesFromSubmissionRoute: ApiAdminPropertiesFromSubmissionRoute,
   ApiAdminPropertiesRepresentativesRoute:
     ApiAdminPropertiesRepresentativesRoute,
+  ApiAdminProposedPostsIdRoute: ApiAdminProposedPostsIdRouteWithChildren,
   ApiAdminSettingsComingSoonRoute: ApiAdminSettingsComingSoonRoute,
   ApiAdminSettingsInvoiceRoute: ApiAdminSettingsInvoiceRoute,
   ApiAdminSettingsNotificationsRoute: ApiAdminSettingsNotificationsRoute,
@@ -6142,6 +6284,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminPaymentsIndexRoute: ApiAdminPaymentsIndexRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminPropertiesIndexRoute: ApiAdminPropertiesIndexRoute,
+  ApiAdminProposedPostsIndexRoute: ApiAdminProposedPostsIndexRoute,
   ApiAdminSettingsIndexRoute: ApiAdminSettingsIndexRoute,
   ApiAdminStoriesIndexRoute: ApiAdminStoriesIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
