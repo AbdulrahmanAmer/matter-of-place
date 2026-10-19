@@ -8609,3 +8609,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: the client token wait has a ceiling (`TOKEN_WAIT_MS`, 3 min) and the widget's `before-interactive-callback` puts a plain line above the box ("One more step: tick the box below ..."); a form that waits on a third party always says what it waits for and gives up in bounded time.
 - proof: `tests/unit/turnstile-client.test.tsx` "says above the box what to do while Cloudflare asks" and "goes on without a token when Cloudflare never answers", registry `fix-turnstile.json` tc-d-ask-line and tc-e-no-endless-wait (2026-10-19).
 - added: 2026-10-19
+
+## P-3700 · The admin pages never loaded the Turnstile styles, and a missing token still answered "sent"
+- symptom: 2026-10-19, on /admin/sign-in `#turnstile-host` was an unstyled full-width strip at y=732 in a 732-pixel window (below the page): `src/styles/admin/index.css` never imported `components/turnstile.css`; and with no token `requestSignInLink` still posted, the Worker refused (`verifyTurnstile` null -> fail) and answered "sent", so no email ever came (Resend: no sign-in email between 10-16 and 10-19).
+- rule: any stylesheet entry whose pages run a public-form write imports `components/turnstile.css`; a client sign-in or form request with no token while a site key is set throws, so the page shows its error, never a false "sent".
+- proof: `tests/unit/sign-in-token.test.ts` (no token, no request) and registry `fix-turnstile.json` tc-f-no-token-no-request (2026-10-19).
+- added: 2026-10-19

@@ -42,5 +42,14 @@
     "replace": "    const timer = window.setTimeout(() => {}, TOKEN_WAIT_MS);",
     "run": "bunx vitest run --project component tests/unit/turnstile-client.test.tsx",
     "expect": "× .*goes on without a token when Cloudflare never answers"
+  },
+  {
+    "id": "tc-f-no-token-no-request",
+    "test": "tests/unit/sign-in-token.test.ts",
+    "file": "src/admin/team/team-api.ts",
+    "find": "    throw new Error(\"turnstile: no token\");",
+    "replace": "    return;",
+    "run": "bunx vitest run --project unit tests/unit/sign-in-token.test.ts",
+    "expect": "× .*refuses to send the link request without a token"
   }
 ]

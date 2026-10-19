@@ -40,9 +40,20 @@ export async function signOut(): Promise<void> {
   });
 }
 
+/**
+ * No token while a site key is set means the Worker would refuse the write and still answer "sent": say it did not go
+ * through on the page instead, so a person can try again rather than wait for an email that never comes (P-3700).
+ */
+function needToken(token: string | null): void {
+  if (token === null && (import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "") !== "") {
+    throw new Error("turnstile: no token");
+  }
+}
+
 /** Asks for a sign-in link; the answer is the same whether or not the address belongs to the team. */
 export async function requestSignInLink(email: string): Promise<void> {
   const token = await getTurnstileToken("auth-send-link");
+  needToken(token);
   await adminFetch("/api/admin/auth/send-link", z.unknown(), {
     method: "POST",
     headers: {
@@ -60,6 +71,7 @@ export async function signInWithPasswordRequest(input: {
   next: string | undefined;
 }): Promise<string> {
   const token = await getTurnstileToken("auth-password");
+  needToken(token);
   const answer = await adminFetch("/api/admin/auth/password", passwordSignedInSchema, {
     method: "POST",
     headers: {
