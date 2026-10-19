@@ -131,7 +131,7 @@ export const WINDOW = {
 export type PostRow = {
   id: string;
   asset_id: string;
-  // W8 10 (H134): a brand post's row names no property
+  // W8 10 (H135): a brand post's row names no property
   property_id: string | null;
   channel: string;
   status: "scheduled" | "posted" | "failed";

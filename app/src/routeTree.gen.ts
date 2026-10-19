@@ -57,6 +57,7 @@ import { Route as SiteAccountPropertiesRouteImport } from './routes/_site.accoun
 import { Route as SiteAccountReportsRouteImport } from './routes/_site.account.reports'
 import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
 import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
+import { Route as SitePlaceNotesStatusRouteImport } from './routes/_site.place-notes_.$status'
 import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
@@ -525,6 +526,11 @@ const SiteMarketsSplatRoute = SiteMarketsSplatRouteImport.update({
   id: '/$',
   path: '/$',
   getParentRoute: () => SiteMarketsRoute,
+} as any)
+const SitePlaceNotesStatusRoute = SitePlaceNotesStatusRouteImport.update({
+  id: '/place-notes_/$status',
+  path: '/place-notes/$status',
+  getParentRoute: () => SiteRoute,
 } as any)
 const SitePropertySlugRoute = SitePropertySlugRouteImport.update({
   id: '/property/$slug',
@@ -1831,6 +1837,7 @@ export interface FileRoutesByFullPath {
   '/account/properties': typeof SiteAccountPropertiesRoute
   '/account/reports': typeof SiteAccountReportsRoute
   '/markets/$': typeof SiteMarketsSplatRoute
+  '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
@@ -2102,6 +2109,7 @@ export interface FileRoutesByTo {
   '/account/properties': typeof SiteAccountPropertiesRoute
   '/account/reports': typeof SiteAccountReportsRoute
   '/markets/$': typeof SiteMarketsSplatRoute
+  '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
@@ -2379,6 +2387,7 @@ export interface FileRoutesById {
   '/_site/account/properties': typeof SiteAccountPropertiesRoute
   '/_site/account/reports': typeof SiteAccountReportsRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
+  '/_site/place-notes_/$status': typeof SitePlaceNotesStatusRoute
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
@@ -2656,6 +2665,7 @@ export interface FileRouteTypes {
     | '/account/properties'
     | '/account/reports'
     | '/markets/$'
+    | '/place-notes/$status'
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
@@ -2927,6 +2937,7 @@ export interface FileRouteTypes {
     | '/account/properties'
     | '/account/reports'
     | '/markets/$'
+    | '/place-notes/$status'
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
@@ -3203,6 +3214,7 @@ export interface FileRouteTypes {
     | '/_site/account/properties'
     | '/_site/account/reports'
     | '/_site/markets/$'
+    | '/_site/place-notes_/$status'
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
@@ -3890,6 +3902,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/markets/$'
       preLoaderRoute: typeof SiteMarketsSplatRouteImport
       parentRoute: typeof SiteMarketsRoute
+    }
+    '/_site/place-notes_/$status': {
+      id: '/_site/place-notes_/$status'
+      path: '/place-notes/$status'
+      fullPath: '/place-notes/$status'
+      preLoaderRoute: typeof SitePlaceNotesStatusRouteImport
+      parentRoute: typeof SiteRoute
     }
     '/_site/property/$slug': {
       id: '/_site/property/$slug'
@@ -5546,6 +5565,7 @@ interface SiteRouteChildren {
   SiteAccountInvoicesRoute: typeof SiteAccountInvoicesRoute
   SiteAccountPropertiesRoute: typeof SiteAccountPropertiesRoute
   SiteAccountReportsRoute: typeof SiteAccountReportsRoute
+  SitePlaceNotesStatusRoute: typeof SitePlaceNotesStatusRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
   SiteAccountIndexRoute: typeof SiteAccountIndexRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
@@ -5577,6 +5597,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteAccountInvoicesRoute: SiteAccountInvoicesRoute,
   SiteAccountPropertiesRoute: SiteAccountPropertiesRoute,
   SiteAccountReportsRoute: SiteAccountReportsRoute,
+  SitePlaceNotesStatusRoute: SitePlaceNotesStatusRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
   SiteAccountIndexRoute: SiteAccountIndexRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
