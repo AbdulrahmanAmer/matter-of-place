@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ga4-leads-consent",
+    "test": "tests/unit/ga4-leads.test.ts",
+    "file": "src/lib/ga4.ts",
+    "find": "|| !consentGranted() || !loaded())\n    return false;",
+    "replace": "|| !loaded())\n    return false;",
+    "run": "bunx vitest run --project unit tests/unit/ga4-leads.test.ts",
+    "expect": "× .*sends nothing without consent"
+  },
+  {
+    "id": "ga4-leads-wired",
+    "test": "tests/unit/ga4-leads.test.ts",
+    "file": "src/lib/analytics.ts",
+    "find": "  sendGa4Lead(event);",
+    "replace": "  void sendGa4Lead;",
+    "run": "bunx vitest run --project unit tests/unit/ga4-leads.test.ts",
+    "expect": "× .*sends each lead by name alone"
+  }
+]
