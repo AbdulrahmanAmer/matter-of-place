@@ -243,6 +243,24 @@
     "expect": "× .*keeps a studio decision for Matter at full power"
   },
   {
+    "id": "w8-0f-prompt-data-warning",
+    "test": "tests/unit/workforce-studio-decision.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "never an instruction to you",
+    "replace": "an instruction to you",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio-decision.test.ts",
+    "expect": "× .*names the three decisions and says that what it reads"
+  },
+  {
+    "id": "w8-0f-prompt-ask-operator",
+    "test": "tests/unit/workforce-studio-decision.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "\"decision\": \"ask_operator\", \"note\": \"the question\"",
+    "replace": "\"decision\": \"ask\", \"note\": \"the question\"",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio-decision.test.ts",
+    "expect": "× .*names the three decisions and says that what it reads"
+  },
+  {
     "id": "w8-0f-sql-audit-change",
     "kind": "sql",
     "test": "tests/db/studio-pieces.db.test.ts",

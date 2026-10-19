@@ -2279,7 +2279,7 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   sends Matter's note to the designer, ask_operator holds it and sends one 360 px still to the private `submissions` bucket.
   Table `studio_pieces` + `studio_piece_put` (migrations 20261019152200, 20261019152546), rows brought in step with the
   folders at the start and end of each pass (retry after 10 minutes). Ruling H136. Proof so far: `workforce-reel.test.ts`
-  33, `workforce-studio.test.ts` 7, `workforce-studio-decision.test.ts` 1 pass; the 27 unit registry entries of `W8-0f.json`
+  33, `workforce-studio.test.ts` 7, `workforce-studio-decision.test.ts` 2 pass; the 29 unit registry entries of `W8-0f.json`
   WATCHED-FAIL OK (one stayed green first: P-4541), the 29 of `W7-e2.json` still OK; the four SQL entries and `tests/db/studio-pieces.db.test.ts` are CI's db job. UNPROVEN: the migrations on the cloud
   project; a real decision through Matter's live session; ffmpeg's still and the private upload; Storage's "already exists"
   answer. NOT DONE: the admin screen that lists the rows. Bank: P-4540..P-4542.
