@@ -1247,6 +1247,26 @@ isOneToOne: false
       referencedColumns: ["slug"]
     }
                   ]
+                },"studio_pieces": {
+                  Row: {
+                    "asset_id": string | null,"created_at": string,"folder": string,"id": string,"note": string,"owner_slug": string,"preview_key": string | null,"state": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "asset_id"?: string | null,"created_at"?: string,"folder": string,"id": string,"note"?: string,"owner_slug": string,"preview_key"?: string | null,"state": string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "asset_id"?: string | null,"created_at"?: string,"folder"?: string,"id"?: string,"note"?: string,"owner_slug"?: string,"preview_key"?: string | null,"state"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "studio_pieces_asset_id_fkey"
+      columns: ["asset_id"]
+isOneToOne: false
+      referencedRelation: "assets"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"subject_requests": {
                   Row: {
                     "created_at": string,"due_at": string | null,"email": string,"fulfilled_at": string | null,"handled_by": string | null,"id": string,"ip_hash": string | null,"kind": string,"note": string | null,"received_at": string,"status": string,"turnstile_ok": boolean,"updated_at": string,"verified_at": string | null
@@ -2395,6 +2415,9 @@ isOneToOne: false
                            },
 "store_channel_token":
 { Args: { "p_channel": string,"p_token_set": Json,"p_used_refresh_sha256": string }; Returns: string
+                           },
+"studio_piece_put":
+{ Args: { "p_asset_id"?: string,"p_folder": string,"p_id": string,"p_note": string,"p_owner": string,"p_preview_key"?: string,"p_state": string,"p_title": string }; Returns: undefined
                            },
 "submission_event_payload":
 { Args: { "p_submission": Omit<Database["public"]['Tables']["submissions"]['Row'], Database["public"]['Tables']["submissions"]['ComputedFields']> }; Returns: Json

@@ -8788,3 +8788,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed 89d5bdc4 --kinds unit` selects only W8 0h's files and the entries anchored on them.
 - hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
+
+## P-4540 · A path stored in a brief is written with `path.join`: on Windows it comes back with backslashes
+- symptom: W8 0f, 2026-10-19: the studio test expected `film: "drafts/01/reel.mp4"` and read `drafts\\01\\reel.mp4` from `brief.json`; the piece read fine on this laptop and would not have anywhere else.
+- cause: `join("drafts", "01", "reel.mp4")` uses the machine's separator, and `brief.json` is a record other tools (Drive copy, a Linux CI, a person) read.
+- rule: a relative path written into a record (`brief.json`, a table, a spec) is built with `posix.join`; `join(folder, stored)` still reads it on every system.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts` → 31 passed; with `posix.join` put back to `join` in `keepDraft`, the two draft cases print `"film": "drafts\\01\\reel.mp4"` in the diff (2026-10-19).
+- added: 2026-10-19
+
+## P-4541 · A "this is work" assertion that is also true for another reason stays green when its own branch is cut
+- symptom: W8 0f: `expect(reelWork(root)).toBe(true)` after an approval looked like proof that an approved piece is work; the registry entry removing the `approved` branch of `reelWork` printed `WATCHED-FAIL BAD: stayed green`.
+- cause: the approval had also changed the piece's state, so its row was out of step and `reelWork` was true through the sync branch.
+- rule: when a predicate is an OR of causes, bring the other causes to false first (sync the row, then assert), so the assertion can only pass through the branch it names; the watched-fail is what shows it.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0f-approved-is-work` → `WATCHED-FAIL OK` after the test syncs before asserting; before, `WATCHED-FAIL BAD: stayed green` (2026-10-19).
+- added: 2026-10-19
+
+## P-4542 · `edit-impact` prints STALE for registry entries while a watchfail replay is running: it is the mutation in place
+- symptom: W8 0f: during a loop of `watchfail --only` replays, `edit-impact` after an unrelated command named a different entry as `STALE ... its find occurs 0 times` each time, and the entry was fine afterwards.
+- cause: the hook reads the source file while watchfail has the mutation written into it; the next idle moment the file is restored.
+- rule: do not touch the files a replay covers, and do not trust a STALE note raised while one runs; read it again after the replay's `done` line and `git status --short` shows only your own edits.
+- proof: `git status --short` after the loop listed only the files edited; `grep -n 'status.md' app/scripts/workforce/reel.ts` found the line the STALE note said was gone (2026-10-19).
+- added: 2026-10-19

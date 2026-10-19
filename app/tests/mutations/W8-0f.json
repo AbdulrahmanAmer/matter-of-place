@@ -1,0 +1,277 @@
+[
+  {
+    "id": "w8-0f-status-written",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  writeFileSync(join(folder, \"status.md\"), statusText(viewOf(folder, brief)));\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*keeps status.md beside the brief"
+  },
+  {
+    "id": "w8-0f-next-line",
+    "test": "tests/unit/workforce-studio.test.ts",
+    "file": "scripts/workforce/studio.ts",
+    "find": "    `- Next: ${view.next}`,",
+    "replace": "    `- Next: ${view.state}`,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio.test.ts",
+    "expect": "× .*says who, the state and what is next"
+  },
+  {
+    "id": "w8-0f-revise-next",
+    "test": "tests/unit/workforce-studio.test.ts",
+    "file": "scripts/workforce/studio.ts",
+    "find": "return input.revise === undefined",
+    "replace": "return input.revise === input.revise",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio.test.ts",
+    "expect": "× .*names a next step for every state"
+  },
+  {
+    "id": "w8-0f-preview-limit",
+    "test": "tests/unit/workforce-studio.test.ts",
+    "file": "scripts/workforce/studio.ts",
+    "find": "bytes.length > PREVIEW_MAX_BYTES",
+    "replace": "bytes.length > PREVIEW_MAX_BYTES * 100",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio.test.ts",
+    "expect": "× .*refuses an empty still and one past the small limit"
+  },
+  {
+    "id": "w8-0f-preview-key-piece",
+    "test": "tests/unit/workforce-studio.test.ts",
+    "file": "scripts/workforce/studio.ts",
+    "find": "`studio/${id}/preview.",
+    "replace": "`studio/preview.",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio.test.ts",
+    "expect": "× .*keys a still by its piece and its hash"
+  },
+  {
+    "id": "w8-0f-row-reason",
+    "test": "tests/unit/workforce-studio.test.ts",
+    "file": "scripts/workforce/studio.ts",
+    "find": "throw new Error(`studio_row_failed: ${error.message}`)",
+    "replace": "throw new Error(\"studio_row_failed\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio.test.ts",
+    "expect": "× .*throws the database's reason"
+  },
+  {
+    "id": "w8-0f-row-preview",
+    "test": "tests/unit/workforce-studio.test.ts",
+    "file": "scripts/workforce/studio.ts",
+    "find": "    ...(view.preview === null ? {} : { p_preview_key: view.preview }),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio.test.ts",
+    "expect": "× .*is one upsert holding the title"
+  },
+  {
+    "id": "w8-0f-decision-note",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/studio.ts",
+    "find": "decision.decision !== \"approve\" && decision.note === undefined",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*reads a decision only whole"
+  },
+  {
+    "id": "w8-0f-decision-name",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/studio.ts",
+    "find": "      .regex(/^[a-z0-9][a-z0-9-]*$/),\n",
+    "replace": "      .regex(/^.*$/),\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*reads a decision only whole"
+  },
+  {
+    "id": "w8-0f-only-matter",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "item.skill === \"reel\"",
+    "replace": "item.skill !== \"qwen-voiceover\"",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*keeps the decision on a draft to Matter"
+  },
+  {
+    "id": "w8-0f-answer-decision",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "z.union([mediaRequestSchema, reelRequestSchema, studioDecisionSchema])",
+    "replace": "z.union([mediaRequestSchema, reelRequestSchema, mediaRequestSchema])",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*reads a decision only whole"
+  },
+  {
+    "id": "w8-0f-draft-held",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "state: \"draft\", drafts,",
+    "replace": "state: \"approved\", drafts,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*designs, films, has it reviewed, keeps a draft"
+  },
+  {
+    "id": "w8-0f-keep-scene",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  cpSync(join(folder, \"scene\"), join(dir, \"scene\"), { recursive: true });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*keeps every render as a draft"
+  },
+  {
+    "id": "w8-0f-revise-to-designer",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "matterRevisePrompt(brief.revise)",
+    "replace": "scenePrompt(brief, placed)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*drafts a reel, revises it on Matter's word"
+  },
+  {
+    "id": "w8-0f-upload-once",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "{ ...brief, state: \"done\", asset_id: assetId },",
+    "replace": "{ ...brief, state: \"approved\", asset_id: assetId },",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*drafts a reel, revises it on Matter's word"
+  },
+  {
+    "id": "w8-0f-approved-is-work",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "brief.state === \"approved\" ||",
+    "replace": "false ||",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*drafts a reel, revises it on Matter's word"
+  },
+  {
+    "id": "w8-0f-preview-not-media",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "await deps.uploadPreview(key, bytes);",
+    "replace": "await deps.upload(key, bytes, \"image/jpeg\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*holds a draft for the operator"
+  },
+  {
+    "id": "w8-0f-preview-error",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "{ ...current, preview_error: reason }",
+    "replace": "{ ...current }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*sends no preview that is not small"
+  },
+  {
+    "id": "w8-0f-decide-inside",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "dirname(folder) === resolve(studio)",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*refuses a decision on no piece"
+  },
+  {
+    "id": "w8-0f-needs-film",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "decision.decision === \"approve\" && brief.film === undefined",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*refuses a decision on no piece"
+  },
+  {
+    "id": "w8-0f-ask-draft-only",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  ask_operator: [\"draft\"],",
+    "replace": "  ask_operator: [\"draft\", \"failed\"],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*refuses a decision on no piece"
+  },
+  {
+    "id": "w8-0f-sync-backoff",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "const SYNC_RETRY_MS = 10 * 60_000;",
+    "replace": "const SYNC_RETRY_MS = 0;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*writes a row only when the folder changed"
+  },
+  {
+    "id": "w8-0f-sync-only-change",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  if (brief.synced === syncKey(folder, brief)) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*writes a row only when the folder changed"
+  },
+  {
+    "id": "w8-0f-sync-keeps-decision",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "amend(folder, (current) => ({ ...current, synced: key, sync_failed_at: undefined }));",
+    "replace": "writeBrief(folder, { ...brief, synced: key, sync_failed_at: undefined });",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*keeps a decision made while the row was being written"
+  },
+  {
+    "id": "w8-0f-preview-keeps-decision",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "? record({ ...current, preview: key }, \"a small preview was uploaded for the admin screen\")\n        : current,",
+    "replace": "? record({ ...current, preview: key }, \"a small preview was uploaded for the admin screen\")\n        : record({ ...current, preview: key }, \"x\"),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*does not put a preview into a piece that was decided"
+  },
+  {
+    "id": "w8-0f-matter-read-no-decision",
+    "test": "tests/unit/workforce-studio-decision.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "media: isMatter && !full ? [] : mediaFor(result.media, isMatter, agent.tools),",
+    "replace": "media: mediaFor(result.media, isMatter, agent.tools),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio-decision.test.ts",
+    "expect": "× .*keeps a studio decision for Matter at full power"
+  },
+  {
+    "id": "w8-0f-request-run-no-media",
+    "test": "tests/unit/workforce-studio-decision.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "kept: { ...answer, actions: [], hire: [], media: [] },\n    wakeMentioned: false,",
+    "replace": "kept: { ...answer, actions: [], hire: [] },\n    wakeMentioned: false,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-studio-decision.test.ts",
+    "expect": "× .*keeps a studio decision for Matter at full power"
+  },
+  {
+    "id": "w8-0f-sql-audit-change",
+    "kind": "sql",
+    "test": "tests/db/studio-pieces.db.test.ts",
+    "sql": "create or replace function public.studio_piece_put(\n  p_id uuid,\n  p_title text,\n  p_owner text,\n  p_state text,\n  p_folder text,\n  p_note text,\n  p_preview_key text default null,\n  p_asset_id uuid default null\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before text;\nbegin\n  -- W8 0f: the laptop runner keeps one row per studio piece in step with the piece's folder (scripts/workforce/reel.ts).\n  -- It is an upsert by the brief's id, so it can run again for a piece whose last write failed; a change of state is\n  -- audited once. Nothing here reads the piece's files or words: the row holds a title, a handle, a state, a folder name.\n  if p_id is null\n    or coalesce(btrim(p_title), '') = ''\n    or coalesce(btrim(p_owner), '') = ''\n    or coalesce(btrim(p_folder), '') = ''\n    or p_state is null\n    or p_state not in ('queued', 'working', 'draft', 'waiting_operator', 'approved', 'done', 'failed')\n  then\n    raise exception 'bad_request';\n  end if;\n  select s.state into v_before from public.studio_pieces s where s.id = p_id for update;\n  insert into public.studio_pieces (id, title, owner_slug, state, folder, preview_key, asset_id, note)\n  values (p_id, p_title, p_owner, p_state, p_folder, p_preview_key, p_asset_id, coalesce(p_note, ''))\n  on conflict (id) do update\n  set title = excluded.title,\n      owner_slug = excluded.owner_slug,\n      state = excluded.state,\n      folder = excluded.folder,\n      preview_key = excluded.preview_key,\n      asset_id = excluded.asset_id,\n      note = excluded.note,\n      updated_at = now();\n  if true then\n    insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, note)\n    values (\n      null, null, 'studio.state', 'studio_pieces', p_id,\n      case when v_before is null then null else jsonb_build_object('state', v_before) end,\n      jsonb_build_object('state', p_state), null\n    );\n  end if;\nend;\n$$;\n\nrevoke execute on function public.studio_piece_put(uuid, text, text, text, text, text, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.studio_piece_put(uuid, text, text, text, text, text, text, uuid)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/studio-pieces.db.test.ts -t \"is an upsert: the same piece again changes its row, and only a change of state is audited\"",
+    "expect": "× .*is an upsert: the same piece again changes its row, and only"
+  },
+  {
+    "id": "w8-0f-sql-state-list",
+    "kind": "sql",
+    "test": "tests/db/studio-pieces.db.test.ts",
+    "sql": "create or replace function public.studio_piece_put(\n  p_id uuid,\n  p_title text,\n  p_owner text,\n  p_state text,\n  p_folder text,\n  p_note text,\n  p_preview_key text default null,\n  p_asset_id uuid default null\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before text;\nbegin\n  -- W8 0f: the laptop runner keeps one row per studio piece in step with the piece's folder (scripts/workforce/reel.ts).\n  -- It is an upsert by the brief's id, so it can run again for a piece whose last write failed; a change of state is\n  -- audited once. Nothing here reads the piece's files or words: the row holds a title, a handle, a state, a folder name.\n  if p_id is null\n    or coalesce(btrim(p_title), '') = ''\n    or coalesce(btrim(p_owner), '') = ''\n    or coalesce(btrim(p_folder), '') = ''\n    or p_state is null\n    or false\n  then\n    raise exception 'bad_request';\n  end if;\n  select s.state into v_before from public.studio_pieces s where s.id = p_id for update;\n  insert into public.studio_pieces (id, title, owner_slug, state, folder, preview_key, asset_id, note)\n  values (p_id, p_title, p_owner, p_state, p_folder, p_preview_key, p_asset_id, coalesce(p_note, ''))\n  on conflict (id) do update\n  set title = excluded.title,\n      owner_slug = excluded.owner_slug,\n      state = excluded.state,\n      folder = excluded.folder,\n      preview_key = excluded.preview_key,\n      asset_id = excluded.asset_id,\n      note = excluded.note,\n      updated_at = now();\n  if v_before is distinct from p_state then\n    insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, note)\n    values (\n      null, null, 'studio.state', 'studio_pieces', p_id,\n      case when v_before is null then null else jsonb_build_object('state', v_before) end,\n      jsonb_build_object('state', p_state), null\n    );\n  end if;\nend;\n$$;\n\nrevoke execute on function public.studio_piece_put(uuid, text, text, text, text, text, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.studio_piece_put(uuid, text, text, text, text, text, text, uuid)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/studio-pieces.db.test.ts -t \"refuses a state outside the list, a blank title and a folder that is a path\"",
+    "expect": "× .*refuses a state outside the list, a blank title and a folder"
+  },
+  {
+    "id": "w8-0f-sql-upsert-title",
+    "kind": "sql",
+    "test": "tests/db/studio-pieces.db.test.ts",
+    "sql": "create or replace function public.studio_piece_put(\n  p_id uuid,\n  p_title text,\n  p_owner text,\n  p_state text,\n  p_folder text,\n  p_note text,\n  p_preview_key text default null,\n  p_asset_id uuid default null\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before text;\nbegin\n  -- W8 0f: the laptop runner keeps one row per studio piece in step with the piece's folder (scripts/workforce/reel.ts).\n  -- It is an upsert by the brief's id, so it can run again for a piece whose last write failed; a change of state is\n  -- audited once. Nothing here reads the piece's files or words: the row holds a title, a handle, a state, a folder name.\n  if p_id is null\n    or coalesce(btrim(p_title), '') = ''\n    or coalesce(btrim(p_owner), '') = ''\n    or coalesce(btrim(p_folder), '') = ''\n    or p_state is null\n    or p_state not in ('queued', 'working', 'draft', 'waiting_operator', 'approved', 'done', 'failed')\n  then\n    raise exception 'bad_request';\n  end if;\n  select s.state into v_before from public.studio_pieces s where s.id = p_id for update;\n  insert into public.studio_pieces (id, title, owner_slug, state, folder, preview_key, asset_id, note)\n  values (p_id, p_title, p_owner, p_state, p_folder, p_preview_key, p_asset_id, coalesce(p_note, ''))\n  on conflict (id) do update\n  set owner_slug = excluded.owner_slug,\n      state = excluded.state,\n      folder = excluded.folder,\n      preview_key = excluded.preview_key,\n      asset_id = excluded.asset_id,\n      note = excluded.note,\n      updated_at = now();\n  if v_before is distinct from p_state then\n    insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, note)\n    values (\n      null, null, 'studio.state', 'studio_pieces', p_id,\n      case when v_before is null then null else jsonb_build_object('state', v_before) end,\n      jsonb_build_object('state', p_state), null\n    );\n  end if;\nend;\n$$;\n\nrevoke execute on function public.studio_piece_put(uuid, text, text, text, text, text, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.studio_piece_put(uuid, text, text, text, text, text, text, uuid)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/studio-pieces.db.test.ts -t \"is an upsert: the same piece again changes its row, and only a change of state is audited\"",
+    "expect": "× .*is an upsert: the same piece again changes its row, and only"
+  },
+  {
+    "id": "w8-0f-sql-first-audit",
+    "kind": "sql",
+    "test": "tests/db/studio-pieces.db.test.ts",
+    "sql": "create or replace function public.studio_piece_put(\n  p_id uuid,\n  p_title text,\n  p_owner text,\n  p_state text,\n  p_folder text,\n  p_note text,\n  p_preview_key text default null,\n  p_asset_id uuid default null\n)\nreturns void\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_before text;\nbegin\n  -- W8 0f: the laptop runner keeps one row per studio piece in step with the piece's folder (scripts/workforce/reel.ts).\n  -- It is an upsert by the brief's id, so it can run again for a piece whose last write failed; a change of state is\n  -- audited once. Nothing here reads the piece's files or words: the row holds a title, a handle, a state, a folder name.\n  if p_id is null\n    or coalesce(btrim(p_title), '') = ''\n    or coalesce(btrim(p_owner), '') = ''\n    or coalesce(btrim(p_folder), '') = ''\n    or p_state is null\n    or p_state not in ('queued', 'working', 'draft', 'waiting_operator', 'approved', 'done', 'failed')\n  then\n    raise exception 'bad_request';\n  end if;\n  select s.state into v_before from public.studio_pieces s where s.id = p_id for update;\n  insert into public.studio_pieces (id, title, owner_slug, state, folder, preview_key, asset_id, note)\n  values (p_id, p_title, p_owner, p_state, p_folder, p_preview_key, p_asset_id, coalesce(p_note, ''))\n  on conflict (id) do update\n  set title = excluded.title,\n      owner_slug = excluded.owner_slug,\n      state = excluded.state,\n      folder = excluded.folder,\n      preview_key = excluded.preview_key,\n      asset_id = excluded.asset_id,\n      note = excluded.note,\n      updated_at = now();\n  if v_before is distinct from p_state then\n    insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, note)\n    values (\n      null, null, 'studio.state', 'studio_pieces', p_id,\n      jsonb_build_object('state', v_before),\n      jsonb_build_object('state', p_state), null\n    );\n  end if;\nend;\n$$;\n\nrevoke execute on function public.studio_piece_put(uuid, text, text, text, text, text, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.studio_piece_put(uuid, text, text, text, text, text, text, uuid)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/studio-pieces.db.test.ts -t \"writes the piece's row and audits its first state\"",
+    "expect": "× .*writes the piece's row and audits its first state"
+  }
+]
