@@ -5,7 +5,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  -- W8 item 10 (H116, H134): a scheduled proposed post settles once no channel row of its approved revision is left to
+  -- W8 item 10 (H116, H135): a scheduled proposed post settles once no channel row of its approved revision is left to
   -- go out, each one posted or closed as cancelled (a format or channel the post steps skip): `posted` when at least
   -- one row posted, else back to `approved`, a yes with nothing posted. A row that failed otherwise keeps the post
   -- `scheduled`, since a person may retry it. The posting path writes social_posts only; this keeps the post in step.

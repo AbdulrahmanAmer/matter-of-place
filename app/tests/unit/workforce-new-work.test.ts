@@ -10,6 +10,7 @@ import { ownsSource } from "../../scripts/workforce/triage.ts";
 import type { Tables } from "../../src/db/index.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { fakeDb } from "../fixtures/fake-db.ts";
+import type { SourceName } from "../../scripts/workforce/criteria";
 
 // W7 item 9 (the item's own text): the newest submissions and inquiries in short form (market, type, price band, state)
 // for the Editor and the Concierge, from structured columns only, read once a pass.
@@ -84,8 +85,7 @@ function recorded(tables: Record<string, unknown[]>, failing: readonly string[] 
   return { db: { from } as unknown as Db, chains };
 }
 
-const owner = (source: "submission" | "inquiry" | "email_reply" | "privacy_request") =>
-  ownsSource(source, "editor");
+const owner = (source: SourceName) => ownsSource(source, "editor");
 
 beforeEach(() => {
   forgetNewWork();
@@ -151,8 +151,7 @@ describe("new work in the briefing (W7 item 9)", () => {
 
   it("reads the newest work once a pass, and afresh on the next pass", async () => {
     const db = world();
-    const owns = (source: "submission" | "inquiry" | "email_reply" | "privacy_request") =>
-      ownsSource(source, "editor");
+    const owns = (source: SourceName) => ownsSource(source, "editor");
     await newWorkLines(db, owns);
     await newWorkLines(db, owns);
     const reads = () => db.calls.filter((call) => call.name === "inquiries").length;
@@ -181,8 +180,7 @@ describe("new work in the briefing (W7 item 9)", () => {
         : base.from(table);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake database plus Matter's touch
     const db = { from } as unknown as Db;
-    const owns = (source: "submission" | "inquiry" | "email_reply" | "privacy_request") =>
-      ownsSource(source, "editor");
+    const owns = (source: SourceName) => ownsSource(source, "editor");
     const reads = () => base.calls.filter((call) => call.name === "inquiries").length;
     await beginPass(db);
     await newWorkLines(db, owns);

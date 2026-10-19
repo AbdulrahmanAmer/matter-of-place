@@ -8801,3 +8801,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a one-off script that edits repository files goes in the worktree (`app/scripts/<name>.tmp.mjs`), runs, and is deleted in the same command; for a single change use the Edit tool.
 - proof: `cd app && node scripts/patch-lessons.tmp.mjs && rm scripts/patch-lessons.tmp.mjs` ran (2026-10-19).
 - added: 2026-10-19
+
+## P-3709 · A one-line `sed` fix of code leaves the registry entry that names that line stale, and CI's replay finds it 25 minutes later
+- symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
+- rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
+- proof: `node ~/.claude/hooks/edit-impact.mjs --changed E:/mop-build/finish3` printed the STALE note before the entry was updated and nothing after (2026-10-19).
+- added: 2026-10-19
