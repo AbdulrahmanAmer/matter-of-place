@@ -6,13 +6,11 @@ import { writeConsent } from "../../src/lib/consent";
 import { ga4LeadEvents, sendGa4Lead } from "../../src/lib/ga4";
 
 /** The gtag commands in the dataLayer: `arguments` objects, as gtag.js reads them. */
+const isArguments = (entry: unknown): entry is ArrayLike<unknown> =>
+  !Array.isArray(entry) && typeof entry === "object" && entry !== null && "length" in entry;
+
 const gtagCalls = () =>
-  (window.dataLayer ?? [])
-    .filter(
-      (entry) =>
-        !Array.isArray(entry) && typeof entry === "object" && entry !== null && "length" in entry,
-    )
-    .map((entry) => Array.from(entry as ArrayLike<unknown>));
+  (window.dataLayer ?? []).filter(isArguments).map((entry) => Array.from(entry));
 
 function addGtagScript() {
   const script = document.createElement("script");
