@@ -141,7 +141,7 @@
     "find": "{line.limit === null || line.percent === null ? null : (",
     "replace": "{false ? null : (",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
-    "expect": "× .*says a line was never measured"
+    "expect": "× .*shows a measured line the plan does not limit as its figure and its note alone"
   },
   {
     "id": "w7-7-c-refusal",
