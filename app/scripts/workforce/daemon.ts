@@ -46,6 +46,7 @@ import { breakerUntil, type CliUsage, isolatedArgs, runClaude, UsageLimitError }
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
+import { fileProposedPost, isStructuredPost, POST_TOOL_LINE, postDeps } from "./proposed-post.ts";
 import type { SourceName } from "./criteria.ts";
 import { explainsHeld, handToMatter, handUnavailableOwners, ownerExplanation } from "./explain.ts";
 import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
@@ -54,6 +55,8 @@ import {
   HELD_AUTHOR,
   heldLine,
   MATTER_ALLOWS_AUTHOR,
+  OUTSIDE_REPLY_PREFIX,
+  OUTSIDE_SUMMARY_MARK,
   outsideGate,
   outsideWords,
   insideLine,
@@ -72,9 +75,12 @@ import {
   type Triage,
 } from "./triage.ts";
 import { groundingLines, requestSequence } from "./grounding.ts";
+import { requestDesk } from "./request-desk.ts";
+import { forgetNewWork, newWorkLines } from "./new-work.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
+import { handToEditor, noteTriage } from "./inbound-mail.ts";
 import { bounceFacts, wakes } from "./bounce.ts";
 import { checkNewAddresses, refusedAddress } from "./email-check.ts";
 import { refreshPolicy, staffPolicy } from "./config.ts";
@@ -110,8 +116,9 @@ function emptyMcpConfig(): string {
 }
 
 /**
- * A colleague's command line. A run about an outside message (W8 fifth review) is shut off like the triage: no tool,
- * no setting source (so none of the operator's settings, hooks or skills load into it), no MCP server.
+ * A colleague's command line. A run about an outside message (W8 fifth review), and a run shown a request (W7 item 9a,
+ * `runFrom`), is shut off like the triage: no tool, no setting source (so none of the operator's settings, hooks or
+ * skills load into it), no MCP server.
  */
 export function colleagueArgs(
   model: string,
@@ -294,21 +301,33 @@ export function answerPlan(input: {
   triage: Triage | null;
   power: "full" | "read";
   cause: string;
+  /** W7 item 9: the run was shown what a submitter typed or sent (`context`'s `request`). */
+  request?: boolean;
 }) {
   const { agent, shape, triage, power } = input;
   const isMatter = agent.slug === "matter";
   const ruled = ruleOutside(input.answer, shape.rule);
-  const result = ruled.kept;
-  const fixed = outsideWords(shape.rule);
+  const fromRequest = ruleRequest(ruled.kept, input.request === true);
+  const result = fromRequest.kept;
+  const fixed = outsideWords(shape.rule) ?? (input.request === true ? REQUEST_WORDS : null);
   const full = isMatter && power === "full";
+  const dropped = [
+    ...(ruled.dropped.length === 0
+      ? []
+      : [
+          shape.rule === "explain"
+            ? `Not proposed: ${ruled.dropped.join(", ")}; an explanation of a held message proposes nothing (W8 0d).`
+            : `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage === null ? "a held outside message" : triage.source} (W8 0c).`,
+        ]),
+    ...(fromRequest.dropped.length === 0
+      ? []
+      : [
+          `Not done: ${fromRequest.dropped.join(", ")}; a run shown a request's typed fields or photographs may not (W7 item 9).`,
+        ]),
+  ];
   return {
     result,
-    dropped:
-      ruled.dropped.length === 0
-        ? null
-        : shape.rule === "explain"
-          ? `Not proposed: ${ruled.dropped.join(", ")}; an explanation of a held message proposes nothing (W8 0d).`
-          : `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage === null ? "a held outside message" : triage.source} (W8 0c).`,
+    dropped: dropped.length === 0 ? null : dropped.join(" "),
     keepNote: full,
     // W2 step 5 and W7 item 20: Matter at full power, or a colleague with `request_reel` (one reel); a Matter read
     // run asks for no media (W8 review), and a triaged run has none left after the ruling.
@@ -321,7 +340,7 @@ export function answerPlan(input: {
             author_id: shape.place.author_id,
             body: result.reply.slice(0, 20000),
           },
-    wake: input.cause !== "message" && ruled.wakeMentioned,
+    wake: input.cause !== "message" && ruled.wakeMentioned && fromRequest.wakeMentioned,
     proposals: result.proposals
       .filter((proposal) => agent.tools.includes(allowedProposal[proposal.action] ?? ""))
       .map((proposal) => ({
@@ -335,6 +354,95 @@ export function answerPlan(input: {
     // and how, as one of the closed postures (null: a "how" off the list, so no allowance is made, H117)
     how: shape.rule === "held" && input.answer.allow ? postureOf(input.answer.how) : null,
   };
+}
+
+/**
+ * W7 item 9a (reviews of 2026-10-16, ruling H132): a run shown a request's typed fields or photographs
+ * (request-desk.ts) holds words a submitter chose, so its answer reaches no other colleague's run: no colleague woken by
+ * a mention, no admin call (its reason becomes a thread line and a team line), no hire, no media request (the one-hop
+ * paths `ruleOutside` closes for outside messages). Its proposals stay, each waiting for a person, under fixed words
+ * (`REQUEST_WORDS`). Exported for its test.
+ */
+export function ruleRequest<
+  A extends { actions: readonly unknown[]; hire: readonly unknown[]; media: readonly unknown[] },
+>(answer: A, received: boolean): { kept: A; wakeMentioned: boolean; dropped: string[] } {
+  if (!received) return { kept: answer, wakeMentioned: true, dropped: [] };
+  return {
+    kept: { ...answer, actions: [], hire: [], media: [] },
+    wakeMentioned: false,
+    dropped: [
+      ...(answer.actions.length > 0 ? ["admin calls"] : []),
+      ...(answer.hire.length > 0 ? ["hires"] : []),
+      ...(answer.media.length > 0 ? ["media"] : []),
+    ],
+  };
+}
+
+/**
+ * The words a run shown a request leaves behind (W7 item 9a, third review): its proposals' summaries (a team line when
+ * approved, a lesson when declined, a line of later pending lists) and its run summary (the daily meeting), as for a
+ * run about an outside message (`outsideWords`). The proposal's content is untouched: a person reads it in Approvals.
+ */
+export const REQUEST_WORDS = {
+  proposal: (action: string) => `A ${action} proposal about a request ${OUTSIDE_SUMMARY_MARK}`,
+  run: "Worked on a request it was shown",
+};
+
+/**
+ * W7 item 9a (third review, ruling H132): how a run goes, from what its context showed it, decided in one tested place
+ * the runner only carries out (`runOnce`). A run shown a request is shaped like a run about an outside message: no
+ * terminal and no web search, no admin call or hire offered, launched shut off (`outside`: no tool at all on this
+ * runner; the outside toolkit of ruling H115 reads its own folder and writes and runs nothing), and its reply written in
+ * its own thread under an `OUTSIDE_REPLY_PREFIX` author, so every later reader sees it fenced (`shownBody`). Its plan
+ * is ruled with the request (`ruleRequest`, `REQUEST_WORDS`).
+ */
+export function runFrom<T extends { slug: string; tools: readonly string[] }>(
+  agent: T,
+  thread: string,
+  seen: { triage: Triage | null; request: boolean },
+  matterReadsHeld: boolean,
+  startedInside: boolean,
+) {
+  const base = runShape(agent, thread, seen.triage, matterReadsHeld, startedInside);
+  const shape = seen.request
+    ? {
+        ...base,
+        terminal: false,
+        research: false,
+        agent: {
+          ...base.agent,
+          tools: base.agent.tools.filter((tool) => tool !== "admin_call" && tool !== "hire"),
+        },
+        place: { thread: agent.slug, author_id: `${OUTSIDE_REPLY_PREFIX}${agent.slug}` },
+      }
+    : base;
+  return {
+    shape,
+    outside: seen.triage !== null || seen.request,
+    plan: (answer: Outcome, power: "full" | "read", cause: string) =>
+      answerPlan({
+        agent,
+        answer,
+        shape,
+        triage: seen.triage,
+        power,
+        cause,
+        request: seen.request,
+      }),
+  };
+}
+
+/**
+ * The start of every pass (exported for its test): Matter's side chat says "online" while this runner passes (one touch
+ * of Matter's row), and the newest work is read afresh for the pass's runs (W7 item 9, `newWorkLines`).
+ */
+export async function beginPass(client: Db): Promise<void> {
+  await client
+    .from("agents")
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq("slug", "matter")
+    .neq("state", "working");
+  forgetNewWork();
 }
 
 /**
@@ -392,7 +500,7 @@ export async function context(
   startedInside = false,
 ) {
   const parts: string[] = [];
-  let event: { type: string; entity_id: string | null } | null = null;
+  let event: { type: string; entity: string | null; entity_id: string | null } | null = null;
   if (run.event_id !== null) {
     const { data: rows } = await client
       .from("events")
@@ -448,9 +556,18 @@ export async function context(
         ? woke
         : { ...woke, body: shownBody(woke) };
   parts.push(...groundingLines(wokeShown, pending));
+  // W7 item 9a: a run of the request's owner about a request receives the request itself (request-desk.ts), named by
+  // its event or its line, after the triage read and classified what its submitter typed; no one else is shown a
+  // request (H132).
+  const line = woke === null ? null : shownBody(woke);
+  const desk = owns("submission")
+    ? await requestDesk(client, run.agent_id, event, line, { triage, ask })
+    : { lines: [], received: false };
+  parts.push(...desk.lines);
   // W8 fourth review: a run about an outside message sees the triage, its own pending list and the site's facts, and
-  // nothing of the company's inside (no thread history, decisions or counts), so no reply can carry them.
-  if (triage === null) {
+  // nothing of the company's inside (no thread history, decisions or counts), so no reply can carry them. A run shown a
+  // request's typed fields is such a run whatever woke it (H132: the path of W8 0a to 0c, no second one).
+  if (triage === null && !desk.received) {
     const { data: messages } = await client
       .from("agent_messages")
       .select("author_kind, author_id, author_name, body, created_at")
@@ -496,13 +613,15 @@ export async function context(
     parts.push(
       `The business right now: ${String(requests.count ?? 0)} new requests, ${String(inquiries.count ?? 0)} inquiries in total, ${String(properties.count ?? 0)} published properties.`,
     );
+    // W7 item 9: the newest requests and inquiries themselves, for their owners (new-work.ts).
+    parts.push(...(await newWorkLines(client, owns)));
   }
   // W5 item 13: our own products, prices and markets, so no reply brackets a price it could have read.
   parts.push(await readSiteFacts());
   // W8 0d: the record a held line names, for Matter's read of it (the runner wrote it, last in the line).
   const heldRecord =
     matterReadsHeld && woke?.author_id === HELD_AUTHOR ? recordOf(woke.body) : null;
-  return { situation: parts.join("\n\n"), triage, heldRecord };
+  return { situation: parts.join("\n\n"), triage, heldRecord, request: desk.received };
 }
 
 /**
@@ -599,6 +718,7 @@ function promptFor(
         ]
       : []),
     ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
+    ...(agent.tools.includes("draft_post") ? [POST_TOOL_LINE] : []),
     ...(terminal ? [TERMINAL_LINE] : []),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
@@ -664,7 +784,12 @@ export async function runOnce(client: Db): Promise<boolean> {
     // W8 0e: a key's line counts only if its account is an unrevoked agent key.
     const woke = { author_kind: authorKind, author_id: wokeBy };
     const startedInside = await startedInsideFor(client, run.cause, woke);
-    const { situation, triage, heldRecord } = await context(
+    const {
+      situation,
+      triage,
+      heldRecord,
+      request: shownRequest,
+    } = await context(
       client,
       run,
       thread,
@@ -677,13 +802,17 @@ export async function runOnce(client: Db): Promise<boolean> {
     const gate = outsideGate(triage, agent.slug);
     if (explains && gate !== "explain")
       throw new Error("the held line names no record its owner can explain");
-    if (gate === "not_owner") {
+    // W8 0h: a person's email shows in the admin whether its triage let the owner answer it or held it.
+    await noteTriage(client, triage, gate);
+    // W8 0h review: a property offered to any of our addresses goes to the Editor once its triage says so.
+    const handed = await handToEditor(client, triage, gate, agent.slug, run.event_id);
+    if (gate === "not_owner" || handed) {
       await client
         .from("agent_runs")
         .update({
           state: "done",
           finished_at: new Date().toISOString(),
-          summary: "Not its owner (W8 0a)",
+          summary: handed ? "Handed to the Editor (W8 0h)" : "Not its owner (W8 0a)",
         })
         .eq("id", run.id);
       return true;
@@ -721,7 +850,15 @@ export async function runOnce(client: Db): Promise<boolean> {
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
     const isMatter = agent.slug === "matter";
-    const shape = runShape(agent, thread, triage, matterReadsHeld, startedInside);
+    // W7 item 9a: what the context showed decides the shape, the launch and the plan, in one tested place.
+    const decided = runFrom(
+      agent,
+      thread,
+      { triage, request: shownRequest },
+      matterReadsHeld,
+      startedInside,
+    );
+    const { shape } = decided;
     // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
     const power = isMatter ? matterPower(run.cause, authorKind) : "read";
     const answer = isMatter
@@ -764,21 +901,14 @@ export async function runOnce(client: Db): Promise<boolean> {
               models["sonnet"] ??
               "claude-sonnet-5-5",
             shape,
-            triage !== null,
+            decided.outside,
           ),
         );
     // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
     // nothing that acts (W8 review): it read the outside text itself.
     // The plan is decided in one tested function (W8 fourth review); the runner only carries it out.
-    const plan = answerPlan({
-      agent,
-      answer: readJsonAnswer(answer.text),
-      shape,
-      triage,
-      power,
-      cause: run.cause,
-    });
+    const plan = decided.plan(readJsonAnswer(answer.text), power, run.cause);
     const result = plan.result;
     const { place } = shape;
     if (plan.dropped !== null) await say(client, place.thread, plan.dropped);
@@ -854,6 +984,23 @@ export async function runOnce(client: Db): Promise<boolean> {
       await proposeCalls(client, agent, run.id, thread, allowed);
     }
     for (const proposal of plan.proposals) {
+      // W8 item 10 (H135): a post with its channels and files goes to Proposed posts, not to Approvals.
+      if (isStructuredPost(proposal)) {
+        const filed = await fileProposedPost(postDeps(client), {
+          agent: agent.slug,
+          run: run.id,
+          summary: proposal.summary,
+          post: proposal.content.post,
+        });
+        await say(
+          client,
+          thread,
+          "id" in filed
+            ? `The post "${proposal.summary}" waits in Proposed posts for a person's approval.`
+            : `The post "${proposal.summary}" was not proposed: ${filed.refused}.`,
+        );
+        continue;
+      }
       // W7 item 20: a post or a plan of this run carries the reel it asked for; the hash covers what is stored.
       const content = withReel(proposal.action, proposal.content, reel);
       await client.from("agent_approvals").insert({
@@ -1142,12 +1289,7 @@ async function makeApprovedCalls(client: Db): Promise<void> {
 }
 
 async function pass(client: Db): Promise<void> {
-  // W2: Matter's side chat says "online" while this runner passes; one touch of Matter's row per pass.
-  await client
-    .from("agents")
-    .update({ last_seen_at: new Date().toISOString() })
-    .eq("slug", "matter")
-    .neq("state", "working");
+  await beginPass(client);
   mkdirSync(HOME, { recursive: true });
   // W6 item 1: the staff policy follows the weekly allowance; a change is said once in the team thread.
   const { policy, changed, reading } = refreshPolicy();
@@ -1205,12 +1347,16 @@ async function pass(client: Db): Promise<void> {
     console.log(`${new Date().toISOString()} reel pass started`);
   }
   await makeApprovedCalls(client);
-  // W4: replies to our email reach their colleague; a mailbox that fails never stops the runs.
-  const replies = await checkMail(client, HOME).catch((failure: unknown) => {
+  // W4: replies to our email reach their colleague; W8 0h: every other message of every folder is recorded once and
+  // reaches its owner or Matter. A mailbox that fails never stops the runs; a folder it could not read is named.
+  const mail = await checkMail(client, HOME).catch((failure: unknown) => {
     console.log(failure instanceof Error ? failure.message : String(failure));
-    return 0;
+    return null;
   });
-  if (replies > 0) console.log(`${new Date().toISOString()} replies ${String(replies)}`);
+  if (mail !== null && mail.replies + mail.inbound + mail.unread.length > 0)
+    console.log(
+      `${new Date().toISOString()} mail: replies ${String(mail.replies)}, inbound ${String(mail.inbound)}${mail.unread.length === 0 ? "" : `, not read: ${mail.unread.join(", ")}`}`,
+    );
   // W9 item 1: where port 25 opens, each new address is probed once and a refused one is never mailed.
   const refused = await checkNewAddresses(client, HOME).catch((failure: unknown) => {
     console.log(`email check: ${failure instanceof Error ? failure.message : String(failure)}`);

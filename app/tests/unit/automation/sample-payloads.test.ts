@@ -26,6 +26,29 @@ function tables(overrides: NonNullable<FakeDbOptions["tables"]> = {}): FakeDbOpt
       inquiries: [inquiryRow()],
       subscribers: [subscriberRow()],
       subject_requests: [subjectRequestRow()],
+      // W8 0h: a person's email as the mailbox recorded it.
+      inbound_mail: [
+        {
+          id: ID,
+          provider_id: "1792080000000000001",
+          folder: "Inbox",
+          from_email: "dana@example.net",
+          from_name: "Dana",
+          alias: "hello",
+          subject: "A house",
+          body: "Is it available?",
+          attachments: [],
+          received_at: "2026-10-13T13:00:00.000Z",
+          source: "email_inbound",
+          service: null,
+          summary: "a person writing to us",
+          report: null,
+          triage: null,
+          owner_slug: "concierge",
+          state: "new",
+          created_at: "2026-10-13T13:00:01.000Z",
+        },
+      ],
       ...overrides,
     },
   };
@@ -35,13 +58,13 @@ const sample = (trigger: string, options: FakeDbOptions = tables()) =>
   samplePayloadFor(fakeDb(options), trigger, ID, NOW);
 
 describe("samplePayloadFor", () => {
-  it("builds a payload for each of the 19 triggers that its event schema accepts", async () => {
+  it("builds a payload for each of the 20 triggers that its event schema accepts", async () => {
     const refused: string[] = [];
     for (const type of eventTypes) {
       const payload = await sample(type);
       if (!eventPayloadSchemas[type].safeParse(payload).success) refused.push(type);
     }
-    expect(eventTypes).toHaveLength(19);
+    expect(eventTypes).toHaveLength(20);
     expect(refused).toEqual([]);
   });
 

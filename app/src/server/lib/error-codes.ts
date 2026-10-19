@@ -105,6 +105,12 @@ export const errorCodes = {
   not_verified: 409,
   wrong_kind: 409,
   note_required: 422,
+  // W8 item 10 (H116): a proposed post refused at creation, each with its reason in the message.
+  channel_disabled: 422,
+  invalid_format: 422,
+  caption_too_long: 422,
+  media_not_found: 422,
+  reel_poster_required: 422,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;
