@@ -227,6 +227,9 @@
   min-height: calc(86svh / var(--site-zoom, 1));
   display: grid;
   place-items: center;
+  /* The band's flex rule above sets justify-content: flex-end, which in a grid pushes the one column to the right
+     edge; a narrow note (the thank-you) showed it, 2026-10-19. */
+  justify-content: center;
   text-align: center;
   padding: calc(var(--header-h) + 72px) var(--container-pad) 96px;
 }
