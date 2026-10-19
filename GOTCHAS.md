@@ -8616,6 +8616,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `tests/unit/sign-in-token.test.ts` (no token, no request) and registry `fix-turnstile.json` tc-f-no-token-no-request (2026-10-19).
 - added: 2026-10-19
 
+## P-3703 · A database call from the laptop has no deadline by default, and one made as the laptop sleeps never answers
+- symptom: Matter's supervisor wrote its last heartbeat at 2026-10-17 14:25 (local); the laptop went to sleep at 14:30:39 and woke at 14:30:42 (System log, Kernel-Power 42 and 107); the process then sat on one awaited Supabase call until 10-19. supabase-js uses plain fetch, which never times out; a git spawnSync without a timeout can block the same way and would also stop the in-process watchdog's timer.
+- rule: every runner client is built by `serviceDb()` (scripts/workforce/env.ts), whose fetch gives up after 60 s (`deadlineFetch`); every spawnSync in a long-lived loop gets a `timeout`; the minute runner (daemon.ts `endStalledSupervisor`) ends a supervisor whose heartbeat is silent 15 minutes, after checking the process's command line is matter/live.ts. Long planned waits use `rest()` so they keep the heartbeat fresh.
+- proof: `tests/unit/matter-live.test.ts` "gives up on a database call that never answers", "names the supervisor for the outside watchdog...", "ends only a process whose command line is Matter's supervisor"; registry W8-runner.json w8-runner-db-deadline, w8-runner-outside-watchdog, w8-runner-outside-watchdog-command (2026-10-19).
+- added: 2026-10-19
+
 ## P-3702 · A supervisor stuck on a call that never answers stays "running" for days, and the task cannot start another
 - symptom: 2026-10-19, Matter's live supervisor (bun scripts/matter/live.ts, started 10-17 03:34) wrote its last heartbeat at 10-17 14:25 and its last log line at 11:04Z; the process stayed alive, so "MOP Matter Live" answered 0x80070420 (already running) every minute and nothing woke Matter for two days.
 - rule: the supervisor runs a one-minute watchdog timer beside its loop (`exitIfStalled`): a heartbeat older than `LOOP_STALE_MS` (10 min) ends Matter's session and the process, and the task starts a fresh one; check `ls -la ~/.mop-workforce/matter/live.heartbeat` when Matter seems quiet.
