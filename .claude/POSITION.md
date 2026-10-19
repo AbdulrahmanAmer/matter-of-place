@@ -2272,3 +2272,11 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 18:30 +0300: builder of W6 item 4 (overdrive/w6-4, Sonnet 5.5). Matter's build lessons: new `app/scripts/matter/lessons.ts`
+  (merge-gate command to pull request number, `gh` reads, lesson from failed checks and the commits after the first failure,
+  `record_build_lesson` once per pull request), hooks in `live.ts` (tool call, closing JSON, a new session recalls his lessons)
+  and `daemon.ts` (`merged` in a full-power one-shot's closing JSON), `lessonsBlock` shows build lessons on their own line.
+  Migrations 20261019143000_build_lessons (source check gains 'build', unique index) and 20261019144334_build_lesson_fn.
+  Ruling H135 (a clean merge writes no row). PROVEN: `tests/unit/matter-lessons.test.ts` 17 passed. UNPROVEN: the db test
+  `build-lessons.db.test.ts`, both tsc, eslint, knip, the 23 `W6-4.json` replays (no local CI; CI judges), a real merge writing
+  a row, a real run quoting one. Bank: P-4511, P-4512.

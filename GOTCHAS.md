@@ -8788,3 +8788,16 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed 89d5bdc4 --kinds unit` selects only W8 0h's files and the entries anchored on them.
 - hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
+
+## P-4511 · A plan item that names a column value can name one the table's check refuses
+- symptom: W6 item 4 said "`agent_lessons` with `source = 'build'`", but `agent_lessons_source_check` allowed only decline, edit, outcome and matter; written as the item reads, every insert fails and the item needed a migration its brief did not mention.
+- cause: the item was written from the idea ("a build lesson") and never checked against the table's check constraint.
+- rule: before a builder takes an item that names an enum-like value, read the table's check (`grep -rn "<table>_<column>_check" app/supabase/migrations`); widen it in a migration of its own (drop and add the check, as `20261015100000_email_bounced_event.sql` does) and say so in the ruling.
+- proof: `grep -n "source in" app/supabase/migrations/20261012104700_agent_growth.sql app/supabase/migrations/20261019143000_build_lessons.sql` → the first lists four sources, the second five (2026-10-19).
+- added: 2026-10-19
+
+## P-4512 · A helper script written to `/tmp` from Git Bash is not found by `node`
+- symptom: `node /tmp/edit-types.mjs` → `Cannot find module 'C:\Users\DELL\AppData\Local\Temp\edit-types.mjs'`: the Write/heredoc put the file where Git Bash's `/tmp` is, and Windows `node` looked elsewhere.
+- rule: a one-off script that edits repository files goes in the worktree (`app/scripts/<name>.tmp.mjs`), runs, and is deleted in the same command; for a single change use the Edit tool.
+- proof: `cd app && node scripts/patch-lessons.tmp.mjs && rm scripts/patch-lessons.tmp.mjs` ran (2026-10-19).
+- added: 2026-10-19

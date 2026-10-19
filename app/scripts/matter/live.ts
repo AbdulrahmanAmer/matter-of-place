@@ -20,6 +20,13 @@ import { childEnv, serviceDb } from "../workforce/env.ts";
 import { LIVE_WORKER_PREFIX } from "../workforce/follow.ts";
 import { applyHires } from "../workforce/hiring.ts";
 import { HEARTBEAT_FILE, heartbeatStale } from "./live-alive.ts";
+import {
+  markUsed,
+  mergeGatePr,
+  recallForMatter,
+  recordBuildLesson,
+  stillPending,
+} from "./lessons.ts";
 import { DESK, keepNote, matterArgs, matterInputs, matterPrompt } from "./run.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -45,6 +52,8 @@ const POLL_MS = 3_000;
 const STALL_MS = 20 * 60_000;
 // How often an idle supervisor asks git for the runner's commit (W5 item 5).
 const HEAD_CHECK_MS = 60_000;
+// How often a merge Matter started is asked about (W6 item 4).
+const MERGE_CHECK_MS = 60_000;
 
 const CRASH_WINDOW_MS = 10 * 60_000;
 
@@ -93,7 +102,7 @@ const streamEvent = z
 
 export type LiveEvent =
   | { kind: "text"; text: string }
-  | { kind: "tool"; name: string; label: string }
+  | { kind: "tool"; name: string; label: string; merged?: number }
   | { kind: "task"; state: "started" | "done"; id: string; label: string }
   | { kind: "result"; text: string; session: string | null; isError: boolean }
   | { kind: "other" };
@@ -148,12 +157,17 @@ export function readStreamLine(line: string): LiveEvent[] {
       if (text.success && text.data.text.trim() !== "")
         out.push({ kind: "text", text: text.data.text.trim() });
       const tool = toolPart.safeParse(part);
-      if (tool.success)
+      if (tool.success) {
+        // W6 item 4: a merge through the gate, read from the command itself so a long label cannot hide it.
+        const command = tool.data.input["command"];
+        const merged = typeof command === "string" ? mergeGatePr(command) : null;
         out.push({
           kind: "tool",
           name: tool.data.name,
           label: toolLabel(tool.data.name, tool.data.input),
+          ...(merged === null ? {} : { merged }),
         });
+      }
     }
     return out.length === 0 ? [{ kind: "other" }] : out;
   }
@@ -376,6 +390,12 @@ class Supervisor {
   private headCheckedAt = 0;
   private touchedAt = 0;
   private matterId = "";
+  /** W6 item 4: pull requests this session started merging, with when each was first seen, until GitHub says merged. */
+  private merges = new Map<number, number>();
+  private mergesCheckedAt = 0;
+  private settlingMerges = false;
+  /** The lessons recalled for the session about to start (growth.ts), carried in its first prompt. */
+  private lessons = "";
   // The running session already carries the briefing (a resumed one, or a new one after its first line).
   private seeded = false;
   private lastResultAt = 0;
@@ -457,6 +477,7 @@ class Supervisor {
         const shown = postableText(event.text);
         if (shown !== "") await this.post(thread, shown);
       } else if (event.kind === "tool") {
+        if (event.merged !== undefined) this.noteMerge(event.merged);
         await this.setTask(event.label);
       } else if (event.kind === "task") {
         await this.setTask(
@@ -495,6 +516,7 @@ class Supervisor {
       return;
     }
     const answer = readJsonAnswer(event.text);
+    for (const merged of answer.merged ?? []) this.noteMerge(merged);
     const runs = this.active;
     this.active = [];
     for (const run of runs) {
@@ -528,6 +550,52 @@ class Supervisor {
         );
     }
     await this.setTask(null);
+  }
+
+  private noteMerge(pr: number): void {
+    if (!this.merges.has(pr)) this.merges.set(pr, Date.now());
+  }
+
+  /**
+   * W6 item 4: the lesson of each pull request Matter merged. The gate runs in the background, so a number is asked
+   * about once a minute until GitHub says merged (then the lesson is written once) or half an hour has passed. It runs
+   * beside the loop, never in it: a slow GitHub must not stop the heartbeat.
+   */
+  private async settleMerges(now: number): Promise<void> {
+    if (
+      this.merges.size === 0 ||
+      this.settlingMerges ||
+      now - this.mergesCheckedAt < MERGE_CHECK_MS
+    )
+      return;
+    this.settlingMerges = true;
+    this.mergesCheckedAt = now;
+    try {
+      for (const [pr, seenAt] of this.merges) {
+        const answer = await recordBuildLesson(this.client, this.matterId, pr);
+        if (stillPending(answer, seenAt, Date.now())) continue;
+        this.merges.delete(pr);
+        console.log(
+          `${new Date().toISOString()} live: build lesson for pull request ${String(pr)}: ${answer}`,
+        );
+      }
+    } finally {
+      this.settlingMerges = false;
+    }
+  }
+
+  /** The lessons the new session is shown: the operator's, and what Matter's own earlier builds taught him. */
+  private async recallLessons(): Promise<void> {
+    try {
+      const { shown, block } = await recallForMatter(this.client, this.matterId, stateText());
+      this.lessons = block;
+      await markUsed(this.client, shown);
+    } catch (failure) {
+      this.lessons = "";
+      console.log(
+        `${new Date().toISOString()} live: lessons not recalled: ${failure instanceof Error ? failure.message : String(failure)}`,
+      );
+    }
   }
 
   private async onExit(code: number | null): Promise<void> {
@@ -616,7 +684,7 @@ class Supervisor {
       const prompt = matterPrompt({
         ...matterInputs(resolve(here, "../../../workspace/05-plans/W2.md")),
         thread: "",
-        business: "",
+        business: this.lessons,
         power: "full",
       });
       this.send(`${prompt}\n\n${LIVE_RULES}\n\n${stateText()}\n\n${said}`);
@@ -769,7 +837,16 @@ class Supervisor {
           process.exit(0);
         }
       }
-      if (this.child === null) this.start();
+      if (this.child === null) {
+        // A new session (no kept one to resume) is briefed with the lessons recalled now.
+        if (readSession() === null) await this.recallLessons();
+        this.start();
+      }
+      void this.settleMerges(Date.now()).catch((failure: unknown) => {
+        console.log(
+          `${new Date().toISOString()} live: build lessons: ${failure instanceof Error ? failure.message : String(failure)}`,
+        );
+      });
       if (this.active.length > 0 && Date.now() - this.lastOutput > STALL_MS) {
         console.log(`${new Date().toISOString()} live: no output for 20 minutes, restarting`);
         killTree(this.child?.pid);

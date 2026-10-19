@@ -11,6 +11,8 @@ export interface Lesson {
   uses: number;
   last_used_at: string | null;
   created_at: string;
+  /** 'build' is Matter's own (W6 item 4); any other is the operator's decision. */
+  source?: string;
 }
 
 const ALL_UNDER = 30;
@@ -50,10 +52,23 @@ export function recallLessons(lessons: readonly Lesson[], situation: string): Le
 
 /** The block of the prompt that carries the lessons; empty when there are none. */
 export function lessonsBlock(lessons: readonly Lesson[]): string {
-  if (lessons.length === 0) return "";
+  const built = lessons.filter((lesson) => lesson.source === "build");
+  const taught = lessons.filter((lesson) => lesson.source !== "build");
+  const lines = (list: readonly Lesson[]) =>
+    list.map((lesson) => `- ${lesson.trigger}: ${lesson.action}`);
   return [
-    "What the operator has taught you (from his decisions on your earlier drafts; follow these):",
-    ...lessons.map((lesson) => `- ${lesson.trigger}: ${lesson.action}`),
+    ...(taught.length === 0
+      ? []
+      : [
+          "What the operator has taught you (from his decisions on your earlier drafts; follow these):",
+          ...lines(taught),
+        ]),
+    ...(built.length === 0
+      ? []
+      : [
+          "What your own earlier builds taught you (what broke in CI and what fixed it; do not make the same mistake twice):",
+          ...lines(built),
+        ]),
   ].join("\n");
 }
 

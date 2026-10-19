@@ -33,6 +33,8 @@ export const outcome = z.object({
   allow: z.boolean().default(false),
   // W8 0d: and how, as one of the closed postures; a missing value, or any other, allows nothing.
   how: z.enum(POSTURES).or(z.literal(HOW_OFF_LIST)).optional().catch(HOW_OFF_LIST),
+  // Matter only (W6 item 4): the pull requests this full-power run merged through the gate; each writes a build lesson.
+  merged: z.array(z.number().int().positive()).max(10).optional(),
   // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio.
   media: z.array(z.union([mediaRequestSchema, reelRequestSchema])).default([]),
   // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
