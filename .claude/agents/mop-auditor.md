@@ -40,7 +40,12 @@ impact, propose the smallest change that moves the number, and never touch the b
 
 ## Search method (learned from the Francine & Eli SEO study, 2026-10-19)
 - A rank is the Search Console Performance average position for the query, never a search from this laptop: Google
-  personalises a signed-in browser to the PC's location (Egypt on 2026-10-19). Track "matter of place" weekly there.
+  personalises a signed-in browser to the PC's location (Egypt on 2026-10-19). Two queries are tracked every run by
+  `workspace/audits/tools/gsc.mjs`, a fixed list: "matter of place" and "matter of place real estate". The sidecar's
+  `brand_queries` holds each one's position, impressions and clicks over 28 days with last run's under `previous`;
+  the report's Scorecard has a row for each. A query with no impression is "no impressions", never position 0 (a
+  query Search Console did not return counts as none; it hides very rare queries). Never replace these numbers with
+  a search.
 - Reading a Google page: `document.body.innerText` after clicking "Show more AI Overview"; page-text tools drop the
   AI Overview. Record the footer location on every capture.
 - Pace: at most one search a minute in one fixed tab; stop at the first robot check and never work around it.

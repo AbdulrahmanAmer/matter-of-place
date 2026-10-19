@@ -41,6 +41,8 @@ function flatten(value, path, found = new Map()) {
   } else if (typeof value === "object" && value !== null) {
     for (const [key, inner] of Object.entries(value)) {
       if (path === "" && SKIPPED_KEYS.includes(key)) continue;
+      // `previous` holds last run's numbers: they are compared by their own sidecar, never again by this one.
+      if (key === "previous") continue;
       flatten(inner, path === "" ? key : `${path}.${key}`, found);
     }
   }

@@ -17,8 +17,8 @@ const BANNED =
 const OTHER_PLACES = /\b(global|worldwide|international|europe|london|paris|dubai|texas|nevada)\b/i;
 
 describe("the coming-soon and consent copy", () => {
-  it("holds 32 strings", () => {
-    expect(copy).toHaveLength(32);
+  it("holds 31 strings", () => {
+    expect(copy).toHaveLength(31);
   });
 
   it("has no em dash, en dash or exclamation mark", () => {
@@ -48,5 +48,26 @@ describe("the coming-soon and consent copy", () => {
         expect([path, /\{\w+\}/.test(filled)]).toEqual([path, false]);
       }
     }
+  });
+});
+
+describe("the homepage paragraph (W8 item 12a)", () => {
+  const intro = t.home.intro;
+
+  it("is two or three whole sentences of at most 300 characters", () => {
+    const sentences = intro.split(/(?<=\.)\s+/).length;
+    expect(sentences).toBeGreaterThanOrEqual(2);
+    expect(sentences).toBeLessThanOrEqual(3);
+    expect(intro.length).toBeLessThanOrEqual(300);
+  });
+
+  it("has no em dash, en dash or exclamation mark, no hyperbole and no promise of leads, buyers or sales", () => {
+    expect(intro).not.toMatch(/[–—!]/);
+    expect(intro).not.toMatch(BANNED);
+  });
+
+  it("names the three markets and no other place", () => {
+    for (const market of markets) expect(intro).toContain(market);
+    expect(intro).not.toMatch(OTHER_PLACES);
   });
 });

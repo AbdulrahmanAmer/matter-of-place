@@ -133,9 +133,12 @@ const en = {
     confirmed: "Thank you. Your address is confirmed.",
     confirmFailed: "This link has expired or was already used. Subscribe again below.",
   },
+  home: {
+    intro:
+      "Matter of Place is an editorial publication for exceptional existing residential property in California, New York and Florida. We choose each home for what it is, present it with an editor's care and give it a permanent page. Price never decides what we publish.",
+  },
   comingSoon: {
     eyebrow: "OPENING SOON",
-    what: "Matter of Place is an editorial publication for exceptional existing residential property in California, New York and Florida.",
     home: {
       title: "The first properties are being considered.",
       text: "We publish only what we have reviewed and accepted. Nothing is listed yet. Leave your email and we will write when the first property is published.",

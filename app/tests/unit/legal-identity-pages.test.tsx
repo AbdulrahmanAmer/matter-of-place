@@ -24,6 +24,7 @@ import { Route as homeRoute } from "../../src/routes/_site.index";
 import { Route as legalRoute } from "../../src/routes/_site.legal";
 import { Route as privacyRoute } from "../../src/routes/_site.privacy";
 import { Route as termsRoute } from "../../src/routes/_site.terms";
+import { t } from "../../src/lib/strings";
 
 vi.mock("../../src/lib/analytics", () => ({ track: vi.fn() }));
 
@@ -176,6 +177,15 @@ describe("the home headline (finding 9)", () => {
     expect(said().map((heading) => heading.tagName)).toEqual(["H1"]);
     expect(screen.getAllByText("MATTER OF PLACE")).toHaveLength(1);
     expect(screen.getByText(/is an editorial publication for exceptional existing/)).toBeTruthy();
+  });
+
+  it("says what Matter of Place is once, in plain words, in either state (W8 item 12a)", async () => {
+    await home([]);
+    expect(screen.getAllByText(t.home.intro)).toHaveLength(1);
+    cleanup();
+    await home([{ ...card, heroRank: 1 }]);
+    expect(screen.getAllByText(t.home.intro)).toHaveLength(1);
+    expect(t.home.intro).toMatch(/California, New York and Florida/);
   });
 
   it("with a hero, the editorial statement keeps its headline and eyebrow", async () => {

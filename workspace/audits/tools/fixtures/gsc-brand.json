@@ -1,0 +1,26 @@
+{
+  "rows": [
+    {
+      "keys": ["matter of place"],
+      "clicks": 0,
+      "impressions": 9,
+      "ctr": 0,
+      "position": 8.3333
+    },
+    {
+      "keys": ["matter of place real estate"],
+      "clicks": 0,
+      "impressions": 0,
+      "ctr": 0,
+      "position": 0
+    },
+    {
+      "keys": ["a matter of place documentary"],
+      "clicks": 2,
+      "impressions": 40,
+      "ctr": 0.05,
+      "position": 3.1
+    }
+  ],
+  "responseAggregationType": "byProperty"
+}

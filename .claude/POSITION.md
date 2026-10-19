@@ -2121,3 +2121,13 @@ first day of the new usage week; no step was cut from any plan.
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 17:30 +0300: builder, overdrive/search-rank (W8 item 12, the operator's search order). Plan first: W8.md section E.
+  Built: 12a `t.home.intro` (three sentences) replaces `t.comingSoon.what`, shown once under the headline while coming
+  soon and in the editorial statement once a property is published; 12b `scripts/gen-page-dates.ts` (git day of each
+  document page's files, `bun run build` runs it first, a shallow clone keeps the committed `page-dates.gen.ts`) and the
+  sitemap dates those pages, `/`, `/properties` and `/stories` by the newest published item, `/markets` and anything
+  undated by nothing; 12c `brand_queries` in the audit sidecar (position, impressions, clicks of "matter of place" and
+  "matter of place real estate", `previous` beside them, "no impressions" never position 0), scorecard rows in
+  REPORT-TEMPLATE, auditor agent names the two queries; 12d sameAs untouched. 34 registry entries (`W8-search.json`),
+  each watched red by hand one test file at a time. Bank P-3706, P-3707. UNPROVEN: tsc, eslint, knip and the full suite
+  (no local CI; CI judges), the deployed sitemap dates (the build must run with full history), and the ranking itself.
