@@ -116,6 +116,7 @@ Entry template
 - cause: those docs were written for an MVP; the CEO-approved spec (2026-09-30) is `workspace/02-tech-stack/tech-stack.md`.
 - rule: read `docs/` for intent only (the sketch folders `architecture/`, `brief/`, `database/`, `decisions/`, `deploy/`). Schema comes from `supabase/migrations`, jobs from pgmq and GitHub Actions, image variants are made once when a photograph is attached (ASSUMED G66). Runbooks are the one part of `docs/` that is ours: `docs/runbooks/<name>.md`. Update or delete a sketch page when the built thing diverges, as the plans say; never build from it.
 - proof: `grep -rn "Cloudflare Queues\|cdn-cgi/image" src supabase` → no hits in built code.
+- hit again: 2026-10-19, W6 item 4 review: the migration added `build` to the `agent_lessons` source check but `lessonSources` in `src/domain/admin-team-memory.ts` stayed four values, so the first build lesson would have made `listLessons` throw and blanked the whole Lessons panel; no test failed because nothing tied the two lists. `lessonSources` is not in `enums.check.ts`, so `tests/db/build-lessons.db.test.ts` now reads the check from `pg_get_constraintdef` and compares it with `lessonSources`.
 - added: 2026-09-30
 
 ## G-011 · No paid platform feature without a settled decision
@@ -8806,4 +8807,25 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
 - rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
 - proof: `node ~/.claude/hooks/edit-impact.mjs --changed E:/mop-build/finish3` printed the STALE note before the entry was updated and nothing after (2026-10-19).
+- added: 2026-10-19
+
+## P-4513 · A class whose logic hides behind private methods and an endless loop cannot be tested, and the review says so twice
+- symptom: W6 item 4 review: the live supervisor's merge bookkeeping (`noteMerge` from the tool event and from the closing JSON, `settleMerges`, the recall for a new session, `business: this.lessons`) had no test and no registry entry; deleting any line left every test green.
+- cause: the logic lived in private methods of `Supervisor` (not exported) that read the real session file and call `gh`, so the first round tested only the pure helpers beside it.
+- rule: give such a class its outside seams through the constructor (`gh`, the kept session, the queue file), export it (the file guards its start with `import.meta.main`), make the methods a test must drive public, and test through them with a recording fake database; a call that only the endless loop makes stays UNPROVEN and is said so.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-lessons.test.ts -t "live supervisor"` → 5 passed (2026-10-19).
+- added: 2026-10-19
+
+## P-4514 · A pull request's own text is outside text once the repository is public: check who made it before it becomes a lesson
+- symptom: W6 item 4 review: `recordBuildLesson` only checked `state == MERGED`, so any merged pull request, an outsider's included, would have put its title, commit subjects and CI messages into Matter's full-power prompt as a directive lesson.
+- cause: "each merged PR of his" was read as "each merged PR the gate reports"; nothing asked whose it was.
+- rule: anything a tool reads from GitHub that reaches an AI prompt first passes the author and head check (`isHis`: not a fork, owner and author are the repository owner); a pull request that is not his gets the final answer "not his" and no row (H101, H138).
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-lessons.test.ts -t "whose pull request"` → 4 passed (2026-10-19).
+- added: 2026-10-19
+
+## P-4515 · Two builders took the same ruling number, and a merge of a third branch made it three
+- symptom: W6 item 4 numbered its ruling H135; after the merges W8 10 held H134 and then H135 as well, and the Fairfield ruling arrived on main as H134.
+- cause: each builder picked "the next free number" from the tree it had; no tree sees the others'.
+- rule: before writing a ruling number list every one used on origin/main and on every origin/overdrive/* branch (`git show <branch>:workspace/05-plans/ASSUMED.md | grep -o '^| H1[0-9][0-9] |'`) and take one above them all; after a merge of main, count the rows again.
+- proof: `for b in $(git branch -r | grep origin/overdrive/); do git show $b:workspace/05-plans/ASSUMED.md | grep -o '^| H1[3-9][0-9] |'; done | sort | uniq -c` printed H135 twice, H136 twice and H137 once on 2026-10-19, so this ruling is H138.
 - added: 2026-10-19

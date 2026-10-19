@@ -2,6 +2,7 @@
 // source 'build', evidence 'pr:<number>', for the agent named; written once however often the merge is read; callable
 // by the laptop runner's service role only.
 import { describe, expect, it } from "vitest";
+import { lessonSources } from "../../src/domain/admin-team-memory";
 import { asRole, withRollback, type Db } from "../fixtures/db";
 
 const TRIGGER = 'A build like "Carousel render" failed CI at knip';
@@ -138,5 +139,21 @@ describe("record_build_lesson", () => {
       }
     });
     expect(outcome).toContain("agent_lessons_source_check");
+  });
+});
+
+describe("agent_lessons_source_check", () => {
+  it("holds exactly the sources the admin contract lists, so a new source cannot break the Lessons panel", async () => {
+    const definition = await withRollback(
+      async (db) =>
+        (
+          await db.query<{ definition: string }>(
+            `select pg_get_constraintdef(oid) as definition from pg_constraint
+             where conrelid = 'public.agent_lessons'::regclass and conname = 'agent_lessons_source_check'`,
+          )
+        ).rows[0]?.definition ?? "",
+    );
+    const inDatabase = [...definition.matchAll(/'([^']+)'/g)].map((found) => found[1]).sort();
+    expect(inDatabase).toEqual([...lessonSources].sort());
   });
 });

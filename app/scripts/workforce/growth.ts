@@ -2,7 +2,8 @@
 // - Recall: every active lesson while a colleague holds 30 or fewer; past that, the 10 most relevant to this run
 //   (a word overlap with what woke it, never below a floor of one shared word), then the most recent.
 // - Cost: from the CLI's own token counts and our price table, never from the CLI's reported cost.
-// - The fence: lessons are the operator's decisions, shown to the colleague as rules to follow.
+// - The fence: a lesson is either the operator's decision or, for Matter, one he learned from his own build (source
+//   'build', W6 item 4); both are shown as rules to follow, the second under its own line.
 
 export interface Lesson {
   id: string;

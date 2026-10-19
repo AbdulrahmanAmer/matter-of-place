@@ -78,7 +78,7 @@ import { groundingLines, requestSequence } from "./grounding.ts";
 import { requestDesk } from "./request-desk.ts";
 import { forgetNewWork, newWorkLines } from "./new-work.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
-import { mergedByRun, recordBuildLessons } from "../matter/lessons.ts";
+import { mergedByRun, queueMerges } from "../matter/lessons.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
 import { handToEditor, noteTriage } from "./inbound-mail.ts";
@@ -1022,13 +1022,12 @@ export async function runOnce(client: Db): Promise<boolean> {
         power === "full",
       );
     }
-    // W6 item 4: what a full-power run merged through the gate becomes build lessons; GitHub confirms each merge.
-    for (const line of await recordBuildLessons(
-      client,
-      agent.id,
-      mergedByRun(isMatter, power, result.merged),
-    ))
-      console.log(`${new Date().toISOString()} ${line}`);
+    // W6 item 4: what a full-power run merged through the gate becomes build lessons; the live supervisor asks GitHub.
+    const queued = queueMerges(mergedByRun(isMatter, power, result.merged));
+    if (queued.length > 0)
+      console.log(
+        `${new Date().toISOString()} build lessons queued for pull requests ${queued.join(", ")}`,
+      );
     const finished = {
       state: "done" as const,
       finished_at: new Date().toISOString(),

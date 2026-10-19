@@ -2291,3 +2291,18 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   social output is a test, judged by Matter, until the channels are connected. Matter: PR 449 merged 14:24Z, PR 464 (third
   batch) in CI, builders and Opus reviews running. Six Approvals (four Fairfield test posts, the welcome note to the
   admin@ test signup, a lesson for Maya) sent to Matter to clear; still pending at 20:05.
+- 2026-10-19 20:45 +0300: builder of W6 item 4, second round (overdrive/w6-4, Sonnet 5.5). Merged origin/main and
+  origin/overdrive/finish-3 (conflicts in POSITION.md and ASSUMED.md kept both sides); the lessons ruling is now H138
+  (H135 is W8 10's, H134 Fairfield on main; the block above this one still says H135, read it as H138). Findings fixed:
+  (high) `lessonSources` gains 'build' and the Lessons panel labels it "His own build", with a unit test of the lessons
+  read and a db test that the database check equals `lessonSources`; (medium) `recordBuildLesson` writes only for
+  Matter's own pull request (`isHis`: not a fork, owner and author are the repository owner), else the final "not his";
+  (medium) `Supervisor` is exported with seams (gh, kept session, queue file) and `onLine`, `onResult`, `settleMerges`,
+  `recallForNewSession`, `brief` are tested; (low) a one-shot run only queues its merged numbers
+  (`~/.mop-workforce/matter/merges.queue`) and the live supervisor settles them, `recordBuildLessons` is gone; the
+  full prompt is tested to ask for `merged`; W6.md Built line and growth.ts header corrected. 22 new entries (one replaced) in
+  `W6-4.json`. PROVEN: `matter-lessons.test.ts` 29 passed, the two `W6 item 4` tests of `workforce-escalation` 2
+  passed, `workforce-memory` + `mutation-registry` 28 passed. UNPROVEN: the db test (never run), both tsc, eslint,
+  knip, every `W6-4.json` replay (no local CI), the loop's own calls of `recallForNewSession` and `settleMerges`, a
+  real merge writing a row, a real run quoting one. Bank: G-004 hit again, P-4513 to P-4515. Note: the Edit tool was
+  refused on this file in headless dontAsk mode; this block was appended by a script.

@@ -9,6 +9,7 @@ const sourceLabel: Record<TeamLesson["source"], string> = {
   edit: "An edited proposal",
   outcome: "An outcome",
   matter: "Matter",
+  build: "His own build",
 };
 
 const statusLabel: Record<TeamLesson["status"], string> = {

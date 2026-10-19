@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { Db } from "../../src/server/lib/db";
 import {
@@ -5,13 +8,14 @@ import {
   markUsed,
   mergedByRun,
   mergeGatePr,
+  queueMerges,
   recallForMatter,
   recordBuildLesson,
-  recordBuildLessons,
   stillPending,
+  takeQueuedMerges,
   type Gh,
 } from "../../scripts/matter/lessons";
-import { readStreamLine } from "../../scripts/matter/live";
+import { readStreamLine, Supervisor } from "../../scripts/matter/live";
 import { matterPrompt } from "../../scripts/matter/run";
 import { readJsonAnswer } from "../../scripts/workforce/answer";
 import { lessonsBlock, type Lesson } from "../../scripts/workforce/growth";
@@ -20,16 +24,20 @@ import { lessonsBlock, type Lesson } from "../../scripts/workforce/growth";
 // fixed it); the next build prompt quotes it through the same recall as the operator's decisions.
 
 const TITLE = "Carousel render in the build worker";
-const VIEW = JSON.stringify({
+const PR = {
   number: 464,
   title: TITLE,
   state: "MERGED",
+  author: { login: "AbdulrahmanAmer" },
+  isCrossRepository: false,
+  headRepositoryOwner: { login: "AbdulrahmanAmer" },
   commits: [
     { oid: "aaa", messageHeadline: "Render carousels in the worker" },
     { oid: "bbb", messageHeadline: "Fix the unused export knip found" },
     { oid: "ccc", messageHeadline: "Format with the app's config" },
   ],
-});
+};
+const VIEW = JSON.stringify(PR);
 
 /** GitHub as it answered for pull request 464: the first commit failed lint and knip, the others passed. */
 function github(overrides: Partial<Record<"view" | "runs" | "notes", string | null>> = {}): Gh {
@@ -172,7 +180,7 @@ describe("recording it", () => {
 
   it("asks GitHub whether the pull request is merged and trusts nothing else", async () => {
     const { db, rpc } = fakeDb();
-    const open = JSON.stringify({ ...JSON.parse(VIEW), state: "OPEN" });
+    const open = JSON.stringify({ ...PR, state: "OPEN" });
     expect(await recordBuildLesson(db, "matter-id", 464, github({ view: open }))).toBe(
       "not merged",
     );
@@ -198,19 +206,6 @@ describe("recording it", () => {
     expect(await recordBuildLesson(db, "matter-id", 464, github())).toBe("not written");
   });
 
-  it("reads each number once and at most ten a run", async () => {
-    const { db, rpc } = fakeDb();
-    const lines = await recordBuildLessons(
-      db,
-      "matter-id",
-      [464, 464, ...Array.from({ length: 12 }, (_, n) => 500 + n)],
-      github(),
-    );
-    expect(lines).toHaveLength(10);
-    expect(lines[0]).toBe("build lesson for pull request 464: recorded");
-    expect(rpc).toHaveBeenCalledTimes(10);
-  });
-
   it("asks again about a merge the gate has not finished, for half an hour", () => {
     const seen = Date.parse("2026-10-19T10:00:00Z");
     const at = (minutes: number) => seen + minutes * 60_000;
@@ -221,6 +216,79 @@ describe("recording it", () => {
       stillPending("recorded", seen, at(1)),
       stillPending("no CI failure", seen, at(1)),
     ]).toEqual([true, true, false, false, false]);
+  });
+});
+
+describe("whose pull request it is", () => {
+  const mine: Record<string, unknown> = PR;
+  const answerFor = async (changes: Record<string, unknown>) => {
+    const { db, rpc } = fakeDb();
+    const answer = await recordBuildLesson(
+      db,
+      "matter-id",
+      464,
+      github({ view: JSON.stringify({ ...mine, ...changes }) }),
+    );
+    return { answer, written: rpc.mock.calls.length };
+  };
+
+  it("writes a lesson only from a branch of this repository by his account", async () => {
+    expect(await answerFor({})).toEqual({ answer: "recorded", written: 1 });
+    expect(await answerFor({ author: { login: "outsider" } })).toEqual({
+      answer: "not his",
+      written: 0,
+    });
+    expect(await answerFor({ headRepositoryOwner: { login: "outsider" } })).toEqual({
+      answer: "not his",
+      written: 0,
+    });
+    expect(await answerFor({ headRepositoryOwner: null })).toEqual({
+      answer: "not his",
+      written: 0,
+    });
+  });
+
+  it("refuses a fork's branch even when the fork is his own", async () => {
+    expect(await answerFor({ isCrossRepository: true })).toEqual({
+      answer: "not his",
+      written: 0,
+    });
+  });
+
+  it("is final: a pull request that is not his is not asked about again", () => {
+    expect(stillPending("not his", Date.now(), Date.now())).toBe(false);
+  });
+
+  it("asks GitHub for the author and the head, not only the state", async () => {
+    const gh = github();
+    await recordBuildLesson(fakeDb().db, "matter-id", 464, gh);
+    const asked = String(vi.mocked(gh).mock.calls[0]?.[0].at(-1));
+    for (const field of ["author", "isCrossRepository", "headRepositoryOwner"])
+      expect(asked).toContain(field);
+  });
+});
+
+describe("a one-shot run's merges", () => {
+  const queueFile = () => join(mkdtempSync(join(tmpdir(), "mop-merges-")), "merges.queue");
+
+  it("wait for the live supervisor, each once and ten at most", () => {
+    const file = queueFile();
+    const queued = queueMerges([464, 464, ...Array.from({ length: 12 }, (_, n) => 500 + n)], file);
+    expect(queued).toHaveLength(10);
+    expect(takeQueuedMerges(file)).toEqual(queued);
+    expect(takeQueuedMerges(file)).toEqual([]);
+  });
+
+  it("keep only whole pull request numbers when the file is read", () => {
+    const file = queueFile();
+    writeFileSync(file, "464\nnot a number\n0\n-3\n465\n464\n");
+    expect(takeQueuedMerges(file)).toEqual([464, 465]);
+  });
+
+  it("never stop a run: a queue that cannot be written drops the lesson", () => {
+    const plain = queueFile();
+    writeFileSync(plain, "");
+    expect(queueMerges([464], join(plain, "inside", "merges.queue"))).toEqual([]);
   });
 });
 
@@ -298,5 +366,118 @@ describe("recalling it in the next build", () => {
         power: "full",
       }),
     ).not.toContain("earlier builds taught you");
+  });
+});
+
+describe("the live supervisor's merge bookkeeping", () => {
+  const GATE = JSON.stringify({
+    type: "assistant",
+    message: {
+      content: [
+        {
+          type: "tool_use",
+          name: "Bash",
+          input: { command: "node workspace/05-plans/merge-gate.mjs 464" },
+        },
+      ],
+    },
+  });
+
+  /** A database that takes every write the supervisor makes and answers its reads with `rows`. */
+  function liveDb(rows: unknown[] = []) {
+    const rpc = vi.fn(async (_name: string, _args: Record<string, unknown>) => ({
+      data: true,
+      error: null,
+    }));
+    const from = (_table: string) => ({
+      insert: async () => ({}),
+      update: () => ({ eq: async () => ({}) }),
+      select: () => ({ eq: () => ({ or: async () => ({ data: rows, error: null }) }) }),
+    });
+    return { db: { from, rpc } as unknown as Db, rpc };
+  }
+  const queue = () => join(mkdtempSync(join(tmpdir(), "mop-live-")), "merges.queue");
+  const written = (rpc: ReturnType<typeof liveDb>["rpc"]) =>
+    rpc.mock.calls.map((call) => call[1]["p_pr"]);
+
+  it("learns of a merge from the tool call in the stream", async () => {
+    const { db, rpc } = liveDb();
+    const live = new Supervisor(db, { gh: github(), kept: () => null, queue: queue() });
+    await live.onLine(GATE);
+    await live.settleMerges(Date.now());
+    expect(written(rpc)).toEqual([464]);
+  });
+
+  it("learns of a merge from the closing JSON of a turn", async () => {
+    const { db, rpc } = liveDb();
+    const live = new Supervisor(db, { gh: github(), kept: () => null, queue: queue() });
+    await live.onResult({
+      kind: "result",
+      text: 'Merged.\n{"reply": "Merged 464.", "merged": [464]}',
+      session: null,
+      isError: false,
+    });
+    await live.settleMerges(Date.now());
+    expect(written(rpc)).toEqual([464]);
+  });
+
+  it("asks again a minute later for a merge the gate has not finished, and writes it once", async () => {
+    const { db, rpc } = liveDb();
+    let state = "OPEN";
+    const gh: Gh = async (args) =>
+      args[0] === "pr" ? JSON.stringify({ ...PR, state }) : await github()(args);
+    const live = new Supervisor(db, { gh, kept: () => null, queue: queue() });
+    const start = Date.now();
+    await live.onLine(GATE);
+    await live.settleMerges(start);
+    expect(written(rpc)).toEqual([]);
+    state = "MERGED";
+    await live.settleMerges(start + 30_000);
+    expect(written(rpc)).toEqual([]);
+    await live.settleMerges(start + 61_000);
+    expect(written(rpc)).toEqual([464]);
+    await live.settleMerges(start + 130_000);
+    expect(written(rpc)).toEqual([464]);
+  });
+
+  it("takes in the numbers a one-shot run queued", async () => {
+    const { db, rpc } = liveDb();
+    const file = queue();
+    queueMerges([466], file);
+    const live = new Supervisor(db, { gh: github(), kept: () => null, queue: file });
+    await live.settleMerges(Date.now());
+    expect(written(rpc)).toEqual([466]);
+  });
+
+  it("briefs a new session with the lessons recalled, and a kept one with none", async () => {
+    const fresh = new Supervisor(liveDb([BUILD_ROW]).db, { kept: () => null, queue: queue() });
+    await fresh.recallForNewSession();
+    const first = fresh.brief("hello");
+    expect(first).toContain("What your own earlier builds taught you");
+    expect(first).toContain("What broke: Unused export. What fixed it: removed the export.");
+    expect(first.endsWith("hello")).toBe(true);
+    expect(fresh.brief("again")).toBe("again");
+
+    const resumed = new Supervisor(liveDb([BUILD_ROW]).db, {
+      kept: () => ({ id: "s-1", startedAt: new Date().toISOString(), turns: 3 }),
+      queue: queue(),
+    });
+    await resumed.recallForNewSession();
+    expect(resumed.brief("hello")).not.toContain("earlier builds taught you");
+  });
+});
+
+describe("the one-shot prompt", () => {
+  it("asks a full-power run to list the pull requests it merged", () => {
+    const prompt = matterPrompt({
+      charterText: "",
+      atlasText: "",
+      notes: "",
+      thread: "Merge 464.",
+      business: "",
+      power: "full",
+    });
+    expect(prompt).toContain('"merged": []');
+    expect(prompt).toContain("lists the numbers of the pull requests you merged through the gate");
   });
 });

@@ -93,10 +93,10 @@
     "id": "w6-4-ten-a-run",
     "test": "tests/unit/matter-lessons.test.ts",
     "file": "scripts/matter/lessons.ts",
-    "find": "[...new Set(prs)].slice(0, MAX_PRS)",
-    "replace": "[...new Set(prs)].slice(0, 100)",
+    "find": "const queued = [...new Set(prs)].slice(0, MAX_PRS);",
+    "replace": "const queued = [...new Set(prs)].slice(0, 100);",
     "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
-    "expect": "× .*reads each number once and at most ten a run"
+    "expect": "× .*wait for the live supervisor, each once"
   },
   {
     "id": "w6-4-pending-half-hour",
@@ -200,5 +200,202 @@
     "replace": "return [...(merged ?? [])];",
     "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
     "expect": "× .*is Matter at full power only"
+  },
+  {
+    "id": "w6-4-author-checked",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "if (!isHis(view)) return \"not his\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*writes a lesson only from a branch of this repository"
+  },
+  {
+    "id": "w6-4-author-account",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": " && same(view.author.login)",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*writes a lesson only from a branch of this repository"
+  },
+  {
+    "id": "w6-4-head-owner",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "same(view.headRepositoryOwner?.login) && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*writes a lesson only from a branch of this repository"
+  },
+  {
+    "id": "w6-4-fork-refused",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "!view.isCrossRepository && ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*refuses a fork"
+  },
+  {
+    "id": "w6-4-not-his-final",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "(answer === \"not merged\" || answer === \"unreadable\")",
+    "replace": "(answer === \"not merged\" || answer === \"unreadable\" || answer === \"not his\")",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*is final: a pull request that is not his"
+  },
+  {
+    "id": "w6-4-asks-author-fields",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "\"number,title,state,author,isCrossRepository,headRepositoryOwner,commits\",",
+    "replace": "\"number,title,state,commits\",",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*asks GitHub for the author and the head"
+  },
+  {
+    "id": "w6-4-queue-whole-numbers",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": ".filter((pr) => Number.isInteger(pr) && pr > 0);",
+    "replace": ".filter(() => true);",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*keep only whole pull request numbers"
+  },
+  {
+    "id": "w6-4-queue-never-stops-a-run",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "    return queued;\n  } catch {\n    return [];\n  }",
+    "replace": "    return queued;\n  } catch (failure) {\n    throw failure;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*never stop a run: a queue that cannot be written"
+  },
+  {
+    "id": "w6-4-live-tool-merge",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "if (event.merged !== undefined) this.noteMerge(event.merged);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*learns of a merge from the tool call in the stream"
+  },
+  {
+    "id": "w6-4-live-result-merge",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "for (const merged of answer.merged ?? []) this.noteMerge(merged);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*learns of a merge from the closing JSON of a turn"
+  },
+  {
+    "id": "w6-4-live-keeps-pending",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "if (stillPending(answer, seenAt, Date.now())) continue;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*asks again a minute later for a merge the gate has not finished"
+  },
+  {
+    "id": "w6-4-live-settles-once",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "this.merges.delete(pr);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*asks again a minute later for a merge the gate has not finished"
+  },
+  {
+    "id": "w6-4-live-merge-throttle",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "now - this.mergesCheckedAt < MERGE_CHECK_MS",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*asks again a minute later for a merge the gate has not finished"
+  },
+  {
+    "id": "w6-4-live-takes-queue",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "for (const pr of takeQueuedMerges(this.seams.queue)) this.noteMerge(pr);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*takes in the numbers a one-shot run queued"
+  },
+  {
+    "id": "w6-4-live-recalls-new-session",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "if ((this.seams.kept ?? readSession)() === null) await this.recallLessons();",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*briefs a new session with the lessons recalled"
+  },
+  {
+    "id": "w6-4-live-recall-skips-kept",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "if ((this.seams.kept ?? readSession)() === null) await this.recallLessons();",
+    "replace": "await this.recallLessons();",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*briefs a new session with the lessons recalled"
+  },
+  {
+    "id": "w6-4-live-business-lessons",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "business: this.lessons,",
+    "replace": "business: \"\",",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*briefs a new session with the lessons recalled"
+  },
+  {
+    "id": "w6-4-live-brief-once",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "if (this.seeded) return said;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*briefs a new session with the lessons recalled"
+  },
+  {
+    "id": "w6-4-run-prompt-asks-merged",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "\"merged\" lists the numbers of the pull requests you merged through the gate",
+    "replace": "\"merged\" lists nothing",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*asks a full-power run to list the pull requests it merged"
+  },
+  {
+    "id": "w6-4-daemon-queues-merges",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "const queued = queueMerges(mergedByRun(isMatter, power, result.merged));",
+    "replace": "const queued: number[] = [];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*is left for the live supervisor to settle"
+  },
+  {
+    "id": "w6-4-lesson-source-build",
+    "test": "tests/unit/workforce-memory.test.ts",
+    "file": "src/domain/admin-team-memory.ts",
+    "find": "\"matter\", \"build\"] as const",
+    "replace": "\"matter\"] as const",
+    "run": "bunx vitest run --project unit tests/unit/workforce-memory.test.ts",
+    "expect": "× .*shows a lesson Matter learned from his own build"
+  },
+  {
+    "id": "w6-4-db-source-equals-contract",
+    "kind": "sql",
+    "test": "tests/db/build-lessons.db.test.ts",
+    "sql": "alter table public.agent_lessons drop constraint agent_lessons_source_check;\nalter table public.agent_lessons add constraint agent_lessons_source_check check (source in ('decline', 'edit', 'outcome', 'matter', 'build', 'rumour'));\n",
+    "run": "bunx vitest run --project db tests/db/build-lessons.db.test.ts -t \"holds exactly the sources\"",
+    "expect": "× .*holds exactly the sources the admin contract lists"
   }
 ]

@@ -7,14 +7,21 @@
 // - Writes: `record_build_lesson`, one row per pull request. A pull request CI never failed has nothing to learn from
 //   and writes no row. Failure: a lesson that cannot be read or written is logged and dropped; it never stops a run.
 import { execFile } from "node:child_process";
+import { appendFileSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { z } from "zod";
 import type { Db } from "../../src/server/lib/db.ts";
 import { lessonsBlock, recallLessons, type Lesson } from "../workforce/growth.ts";
 
 const REPO = "AbdulrahmanAmer/matter-of-place";
+/** The account Matter's `gh` is signed in as, and the owner of the repository: the only author of his own pull requests. */
+const HIS_ACCOUNT = REPO.split("/")[0] ?? "";
 const MAX_COMMITS = 20;
 const MAX_PRS = 10;
+/** Where a one-shot run leaves the numbers it merged for the live supervisor to settle (one number a line). */
+const MERGES_FILE = join(homedir(), ".mop-workforce", "matter", "merges.queue");
 
 /** `gh` with its arguments: the output, or null when the call failed. Injected so the rules run without GitHub. */
 export type Gh = (args: string[]) => Promise<string | null>;
@@ -94,8 +101,27 @@ const prSchema = z.object({
   number: z.number().int(),
   title: z.string(),
   state: z.string(),
+  author: z.object({ login: z.string() }),
+  /** True for a branch of a fork; null owner when the fork is gone. */
+  isCrossRepository: z.boolean(),
+  headRepositoryOwner: z.object({ login: z.string() }).nullable(),
   commits: z.array(z.object({ oid: z.string(), messageHeadline: z.string() })),
 });
+
+/**
+ * Whether a pull request is Matter's own: a branch of this repository, by his account. Its title, commit subjects and CI
+ * messages become a directive in his full-power prompt, so text from anyone else's pull request never gets there (H101).
+ */
+function isHis(view: {
+  author: { login: string };
+  isCrossRepository: boolean;
+  headRepositoryOwner: { login: string } | null;
+}): boolean {
+  const same = (login: string | undefined) => login?.toLowerCase() === HIS_ACCOUNT.toLowerCase();
+  return (
+    !view.isCrossRepository && same(view.headRepositoryOwner?.login) && same(view.author.login)
+  );
+}
 const failedRuns = z.array(z.object({ id: z.number().int(), name: z.string() }));
 const messages = z.array(z.string());
 
@@ -138,7 +164,13 @@ async function failuresOf(gh: Gh, oids: readonly string[], offset: number): Prom
 }
 
 type Recorded =
-  "recorded" | "recorded before" | "no CI failure" | "not merged" | "unreadable" | "not written";
+  | "recorded"
+  | "recorded before"
+  | "no CI failure"
+  | "not merged"
+  | "not his"
+  | "unreadable"
+  | "not written";
 
 /**
  * Writes the lesson of one pull request. "not merged" and "unreadable" can change (the gate may still be merging, GitHub
@@ -157,11 +189,12 @@ export async function recordBuildLesson(
     "--repo",
     REPO,
     "--json",
-    "number,title,state,commits",
+    "number,title,state,author,isCrossRepository,headRepositoryOwner,commits",
   ]);
   const view = read(raw, prSchema);
   if (view === null) return "unreadable";
   if (view.state !== "MERGED") return "not merged";
+  if (!isHis(view)) return "not his";
   const recent = view.commits.slice(-MAX_COMMITS);
   const failures = await failuresOf(
     gh,
@@ -195,20 +228,42 @@ export function mergedByRun(
   return isMatter && power === "full" ? [...(merged ?? [])] : [];
 }
 
-/** Writes the lessons of the pull requests a run says it merged; one line per pull request for the runner's log. */
-export async function recordBuildLessons(
-  db: Db,
-  matterId: string,
-  prs: readonly number[],
-  gh: Gh = ghCli,
-): Promise<string[]> {
-  const lines: string[] = [];
-  for (const pr of [...new Set(prs)].slice(0, MAX_PRS)) {
-    lines.push(
-      `build lesson for pull request ${String(pr)}: ${await recordBuildLesson(db, matterId, pr, gh)}`,
-    );
+/**
+ * A one-shot run names the pull requests it merged; it does not ask GitHub itself, because the gate may still be merging
+ * and a slow GitHub must not hold the run. The numbers wait in a file for the live supervisor, which asks again for half
+ * an hour. At most ten a run, each once; a file that cannot be written drops the lesson, never the run.
+ */
+export function queueMerges(prs: readonly number[], file = MERGES_FILE): number[] {
+  const queued = [...new Set(prs)].slice(0, MAX_PRS);
+  if (queued.length === 0) return [];
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    appendFileSync(file, queued.map((pr) => `${String(pr)}\n`).join(""));
+    return queued;
+  } catch {
+    return [];
   }
-  return lines;
+}
+
+/** The numbers a one-shot run queued, taken out of the file (renamed first, so a run writing now starts a new file). */
+export function takeQueuedMerges(file = MERGES_FILE): number[] {
+  const taken = `${file}.${String(process.pid)}`;
+  try {
+    renameSync(file, taken);
+  } catch {
+    return [];
+  }
+  try {
+    const numbers = readFileSync(taken, "utf8")
+      .split("\n")
+      .map((line) => Number(line.trim()))
+      .filter((pr) => Number.isInteger(pr) && pr > 0);
+    return [...new Set(numbers)];
+  } catch {
+    return [];
+  } finally {
+    rmSync(taken, { force: true });
+  }
 }
 
 /**

@@ -26,6 +26,8 @@ import {
   recallForMatter,
   recordBuildLesson,
   stillPending,
+  takeQueuedMerges,
+  type Gh,
 } from "./lessons.ts";
 import { DESK, keepNote, matterArgs, matterInputs, matterPrompt } from "./run.ts";
 
@@ -377,7 +379,7 @@ async function rest(ms: number): Promise<void> {
   }
 }
 
-class Supervisor {
+export class Supervisor {
   private child: ChildProcessWithoutNullStreams | null = null;
   private buffer = "";
   private active: { runId: string; thread: string }[] = [];
@@ -405,7 +407,11 @@ class Supervisor {
   // Jay's first condition: what Matter's one-shot runs did since the last line this session read.
   private lastFedAt = new Date().toISOString();
 
-  constructor(private readonly client: Db) {}
+  /** `seams` replace what touches the outside (GitHub, the kept session, the queue file) so a test can drive the rest. */
+  constructor(
+    private readonly client: Db,
+    private readonly seams: { gh?: Gh; kept?: () => SessionRecord | null; queue?: string } = {},
+  ) {}
 
   private async post(thread: string, body: string): Promise<void> {
     await this.client.from("agent_messages").insert({
@@ -470,7 +476,7 @@ class Supervisor {
     this.lastOutput = Date.now();
   }
 
-  private async onLine(line: string): Promise<void> {
+  async onLine(line: string): Promise<void> {
     const thread = this.active.at(-1)?.thread ?? "matter";
     for (const event of readStreamLine(line)) {
       if (event.kind === "text") {
@@ -491,7 +497,7 @@ class Supervisor {
     }
   }
 
-  private async onResult(event: Extract<LiveEvent, { kind: "result" }>): Promise<void> {
+  async onResult(event: Extract<LiveEvent, { kind: "result" }>): Promise<void> {
     this.lastResultAt = Date.now();
     if (event.session !== null)
       writeFileSync(
@@ -559,9 +565,10 @@ class Supervisor {
   /**
    * W6 item 4: the lesson of each pull request Matter merged. The gate runs in the background, so a number is asked
    * about once a minute until GitHub says merged (then the lesson is written once) or half an hour has passed. It runs
-   * beside the loop, never in it: a slow GitHub must not stop the heartbeat.
+   * beside the loop, never in it: a slow GitHub must not stop the heartbeat. The numbers a one-shot run queued join them.
    */
-  private async settleMerges(now: number): Promise<void> {
+  async settleMerges(now: number): Promise<void> {
+    for (const pr of takeQueuedMerges(this.seams.queue)) this.noteMerge(pr);
     if (
       this.merges.size === 0 ||
       this.settlingMerges ||
@@ -572,7 +579,7 @@ class Supervisor {
     this.mergesCheckedAt = now;
     try {
       for (const [pr, seenAt] of this.merges) {
-        const answer = await recordBuildLesson(this.client, this.matterId, pr);
+        const answer = await recordBuildLesson(this.client, this.matterId, pr, this.seams.gh);
         if (stillPending(answer, seenAt, Date.now())) continue;
         this.merges.delete(pr);
         console.log(
@@ -582,6 +589,11 @@ class Supervisor {
     } finally {
       this.settlingMerges = false;
     }
+  }
+
+  /** A session with no kept one to resume is new, and is briefed with the lessons recalled now. */
+  async recallForNewSession(): Promise<void> {
+    if ((this.seams.kept ?? readSession)() === null) await this.recallLessons();
   }
 
   /** The lessons the new session is shown: the operator's, and what Matter's own earlier builds taught him. */
@@ -677,20 +689,22 @@ class Supervisor {
       : `Since your last line, your read-only runs did this (they are you, woken by outside text):\n${lines.join("\n")}\n\n`;
   }
 
-  /** Hands Matter a line; the first line of a session carries his prompt, the live rules and his state. */
+  /** What Matter is sent for a line: the first line of a session carries his prompt, the live rules and his state. */
+  brief(said: string): string {
+    if (this.seeded) return said;
+    this.seeded = true;
+    const prompt = matterPrompt({
+      ...matterInputs(resolve(here, "../../../workspace/05-plans/W2.md")),
+      thread: "",
+      business: this.lessons,
+      power: "full",
+    });
+    return `${prompt}\n\n${LIVE_RULES}\n\n${stateText()}\n\n${said}`;
+  }
+
+  /** Hands Matter a line. */
   private say(said: string): void {
-    if (!this.seeded) {
-      this.seeded = true;
-      const prompt = matterPrompt({
-        ...matterInputs(resolve(here, "../../../workspace/05-plans/W2.md")),
-        thread: "",
-        business: this.lessons,
-        power: "full",
-      });
-      this.send(`${prompt}\n\n${LIVE_RULES}\n\n${stateText()}\n\n${said}`);
-    } else {
-      this.send(said);
-    }
+    this.send(this.brief(said));
   }
 
   /** Says why a goal step was skipped, once per reason and half hour (the loop asks every three seconds). */
@@ -838,8 +852,7 @@ class Supervisor {
         }
       }
       if (this.child === null) {
-        // A new session (no kept one to resume) is briefed with the lessons recalled now.
-        if (readSession() === null) await this.recallLessons();
+        await this.recallForNewSession();
         this.start();
       }
       void this.settleMerges(Date.now()).catch((failure: unknown) => {
