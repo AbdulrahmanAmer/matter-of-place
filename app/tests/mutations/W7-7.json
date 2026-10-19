@@ -141,7 +141,7 @@
     "find": "{line.limit === null || line.percent === null ? null : (",
     "replace": "{false ? null : (",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
-    "expect": "× .*says a line was never measured"
+    "expect": "× .*shows a measured line the plan does not limit as its figure and its note alone"
   },
   {
     "id": "w7-7-c-refusal",
@@ -174,8 +174,8 @@
     "id": "w7-7-c-claude-of-null",
     "test": "src/admin/settings/usage.test.tsx",
     "file": "src/admin/settings/UsageSection.tsx",
-    "find": "line.limit === null || gauge.of === null ? used :",
-    "replace": "line.limit === null ? used :",
+    "find": "line.limit === null || gauge.shareOf === null\n          ? used\n",
+    "replace": "line.limit === null\n          ? used\n",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/settings/usage.test.tsx",
     "expect": "× .*shows each line with what was used"
   },

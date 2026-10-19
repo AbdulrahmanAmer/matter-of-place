@@ -21,7 +21,8 @@ const answer: UsageAnswer = {
       used: 25_000,
       limit: 100_000,
       percent: 25,
-      note: "Yesterday",
+      // the daily push writes no note for this line (`scripts/usage-push.ts`)
+      note: null,
       measured_at: AT,
     },
     {
@@ -32,7 +33,8 @@ const answer: UsageAnswer = {
       note: null,
       measured_at: AT,
     },
-    { line: "sentry_errors", used: 12, limit: null, percent: null, note: null, measured_at: AT },
+    // a line that records no limit reads against the free-plan one (`getUsage`: 5,000 a month)
+    { line: "sentry_errors", used: 12, limit: 5000, percent: 0, note: null, measured_at: AT },
     { line: "actions_minutes", ...empty },
     {
       line: "claude_week",
@@ -66,7 +68,7 @@ describe("settings, service usage", () => {
       name: "Workers requests, last measured day",
     });
     expect(workers.textContent).toBe(
-      "Workers requests, last measured day25,000 of 100,000Within limit25% of the free planYesterdayMeasured Thu, Oct 15, 07:00 Cairo time",
+      "Workers requests, last measured day25,000 of 100,000Within limit25% of the free planMeasured Thu, Oct 15, 07:00 Cairo time",
     );
     const egress = screen.getByRole("listitem", { name: "Storage egress" });
     expect(egress.textContent).toContain("2.5 GB of 5.0 GB");
@@ -78,13 +80,33 @@ describe("settings, service usage", () => {
     expect(requested).toEqual([`GET ${USAGE}`]);
   });
 
-  it("says a line was never measured, and shows a measured line without a limit as its figure alone", async () => {
+  it("says a line was never measured", async () => {
     mount({ [`GET ${USAGE}`]: answer });
     const minutes = await screen.findByRole("listitem", { name: "GitHub Actions minutes" });
     expect(minutes.textContent).toBe("GitHub Actions minutesNot measured yet.");
-    const sentry = screen.getByRole("listitem", { name: "Sentry errors" });
-    expect(sentry.textContent).toContain("Sentry errors12");
-    expect(within(sentry).queryByRole("progressbar")).toBeNull();
+  });
+
+  it("shows a measured line the plan does not limit as its figure and its note alone", async () => {
+    // the push of a public repository's Actions minutes: no limit, the note says why (`scripts/usage-push.ts`)
+    mount({
+      [`GET ${USAGE}`]: {
+        lines: [
+          {
+            line: "actions_minutes",
+            used: 140,
+            limit: null,
+            percent: null,
+            note: "public repository, not limited",
+            measured_at: AT,
+          },
+        ],
+      },
+    });
+    const minutes = await screen.findByRole("listitem", { name: "GitHub Actions minutes" });
+    expect(minutes.textContent).toBe(
+      "GitHub Actions minutes140public repository, not limitedMeasured Thu, Oct 15, 07:00 Cairo time",
+    );
+    expect(within(minutes).queryByRole("progressbar")).toBeNull();
   });
 
   it("fills the bar to the end, never past it, when a limit is passed", async () => {

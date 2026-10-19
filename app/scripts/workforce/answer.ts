@@ -27,7 +27,7 @@ export const outcome = z.object({
   note: z.string().default(""),
   // W8 0d: Matter's read of a held message decides whether its owner may answer it within its criteria.
   allow: z.boolean().default(false),
-  // W8 0d: and how, as one of the closed postures; any other value reads as off the list and allows nothing.
+  // W8 0d: and how, as one of the closed postures; a missing value, or any other, allows nothing.
   how: z.enum(POSTURES).or(z.literal(HOW_OFF_LIST)).optional().catch(HOW_OFF_LIST),
   // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio.
   media: z.array(z.union([mediaRequestSchema, reelRequestSchema])).default([]),

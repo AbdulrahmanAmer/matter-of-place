@@ -29,6 +29,10 @@ export function explainsHeld(
 export const EXPLANATION_FAILED =
   "The owner's explanation of the held message did not finish; Matter decides without it.";
 
+/** Said in the thread when the owner is paused or off at the hold, so there is no explanation; Matter decides all the same. */
+export const OWNER_UNAVAILABLE =
+  "The owner of the held message is paused or off, so it cannot explain it; Matter decides without an explanation.";
+
 /**
  * The end of an explanation, whatever it was (answered, dropped, failed with a recorded reason): Matter's read of the
  * held line is queued, never twice for one line. It throws nothing, so a run that already failed is not failed again;
@@ -73,33 +77,95 @@ export async function handToMatter(
 }
 
 /**
- * The owner's explanation as Matter's prompt shows it: the owner's latest reply in its thread newer than the held line
- * and not newer than Matter's run, fenced as a reply drafted from an outside message (`shownBody`), capped. Null when
- * there is none (the explanation failed, or said nothing).
+ * The owner's explanation as Matter's prompt shows it (W8 0d second review): the line the owner's own finished run on
+ * the held line recorded as its reply (`agent_runs.reply_message_id`), fenced as a reply drafted from an outside
+ * message (`shownBody`), capped. The owner writes every outside reply into the one thread, so the run names its line:
+ * no window of times (the runner's laptop and the database keep different clocks), and another message's reply is
+ * never shown as this explanation, whatever it was written meanwhile. Null when there is none: no run, a run that did
+ * not finish (failed, or still queued or running), or one that said nothing.
  */
 export async function ownerExplanation(
   client: Db,
   held: { id: string; thread: string },
-  matterRunAt: string,
+  ownerId: string,
 ): Promise<string | null> {
-  const { data: heldRows } = await client
-    .from("agent_messages")
-    .select("created_at")
-    .eq("id", held.id)
+  const { data: runs } = await client
+    .from("agent_runs")
+    .select("state, reply_message_id")
+    .eq("agent_id", ownerId)
+    .eq("message_id", held.id)
+    .order("created_at", { ascending: false })
     .limit(1);
-  const heldAt = heldRows?.[0]?.created_at;
-  if (heldAt === undefined) return null;
+  const run = runs?.[0];
+  if (run?.state !== "done" || run.reply_message_id === null) return null;
   const { data } = await client
     .from("agent_messages")
     .select("author_id, body")
+    .eq("id", run.reply_message_id)
     .eq("thread", held.thread)
     .eq("author_id", `${OUTSIDE_REPLY_PREFIX}${held.thread}`)
-    .gt("created_at", heldAt)
-    .lte("created_at", matterRunAt)
-    .order("created_at", { ascending: false })
     .limit(1);
   const line = data?.[0];
   return line === undefined
     ? null
     : shownBody({ author_id: line.author_id, body: line.body.slice(0, EXPLANATION_MAX) });
+}
+
+/** The fixed summary of an explanation run that never started because its owner was paused or off. */
+export const OWNER_UNAVAILABLE_SUMMARY = "Owner paused or off (W8 0d)";
+
+/**
+ * Each loop of the runner: an explanation run still queued for an owner that is paused or off will not be claimed
+ * (`claim_agent_run` takes only an idle or working colleague), so Matter's read of that held line would never be
+ * queued. The run is closed with fixed words, the thread says why there is no explanation (`OWNER_UNAVAILABLE`), and
+ * the line goes to Matter (`handToMatter`, once per line). Returns how many lines it handed on; it throws nothing a
+ * reader of the loop could not already see in the thread.
+ */
+export async function handUnavailableOwners(client: Db): Promise<number> {
+  const { data: agents } = await client.from("agents").select("id, slug, state");
+  const away = (agents ?? []).filter((row) => row.state === "paused" || row.state === "off");
+  if (away.length === 0) return 0;
+  const { data: runs } = await client
+    .from("agent_runs")
+    .select("id, agent_id, message_id")
+    .eq("state", "queued")
+    .in(
+      "agent_id",
+      away.map((row) => row.id),
+    );
+  if (runs === null || runs.length === 0) return 0;
+  const { data: lines } = await client
+    .from("agent_messages")
+    .select("id, thread, author_kind, author_id")
+    .in(
+      "id",
+      runs.map((run) => run.message_id).filter((id): id is string => id !== null),
+    );
+  let handed = 0;
+  for (const run of runs) {
+    const owner = away.find((row) => row.id === run.agent_id);
+    const line = lines?.find((row) => row.id === run.message_id);
+    if (owner === undefined || line === undefined || run.message_id === null) continue;
+    if (!explainsHeld(owner.slug, line)) continue;
+    const { error } = await client
+      .from("agent_runs")
+      .update({
+        state: "done",
+        finished_at: new Date().toISOString(),
+        summary: OWNER_UNAVAILABLE_SUMMARY,
+      })
+      .eq("id", run.id)
+      .eq("state", "queued");
+    if (error !== null) continue;
+    await client.from("agent_messages").insert({
+      thread: line.thread,
+      author_kind: "system",
+      author_id: "system",
+      author_name: "Matter of Place",
+      body: OWNER_UNAVAILABLE,
+    });
+    await handToMatter(client, agents ?? [], run.message_id, line.thread, false);
+    handed += 1;
+  }
+  return handed;
 }

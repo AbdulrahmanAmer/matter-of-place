@@ -8573,17 +8573,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: CI `check` job, `tsc --noEmit -p tsconfig.json`: six TS2375 on the old shape, none on the new (run 38878332417 and its successor).
 - added: 2026-10-16
 
-## P-3694 · Branches that each pass alone fail together on the tables every page, form and class must be named in
-- symptom: 2026-10-16, draft PR 447 CI round 5: four unit tests red after typecheck and lint were green: the client room's two pages missing from the route map (`routes-covered`), its two forms missing from the table of public forms (`turnstile-coverage`), `wf-mem__status` with no style rule (`admin-classes`), and `.credentials.json` not refused by name (`workforce-drive-copy`).
-- cause: each builder ran its own folder's tests; the tables that name every route, form and admin class live in other folders, and with no local full run nothing joined them before CI.
-- rule: a builder of a new page route, public form or admin class opens `tests/e2e/fixtures/routes.ts`, `workspace/audits/tools/public-forms.mjs` and `tests/unit/admin-classes.test.ts` and adds its rows in the same commit; the brief of every item that adds a page, a form or a class says so. A name-matching secret rule is tested with the dotfile spelling too (`.credentials.json`).
-- proof: CI `check` job, `vitest run --project unit`, round 5: 4 failed | 443 passed files; after the rows are added the four are green (round 6).
+## P-3694 · A window bounded by two other rows (the held line, Matter's run) shows another run's reply; bind a reply to the run that wrote it
+- symptom: 2026-10-16, the review of W8 0d: Matter's prompt took the owner's newest `outside-reply:<owner>` between the held line and Matter's own run, but the owner writes every outside reply into one thread, so a run on another inquiry that finished inside that wait was shown as "the owner's explanation" while the thread said the explanation had failed.
+- cause: the window was named by rows around the explanation, not by the explanation's own run, and a failed run left no mark the reader looked at.
+- rule: a reader that wants "what run R wrote" reads R's `agent_runs` row (agent, message id, `state = done`) and takes only lines between its `started_at` and `finished_at`; no row, an unfinished run or a failed one is "none". The in-memory test database owns the clock for `finished_at` (it is stamped from the same ticking counter as `created_at`), or a real-time `finished_at` is older than the rows it should bound. A paused or switched-off owner is never claimed (`claim_agent_run` takes idle and working colleagues), so a hold checks the owner's state and queues the next reader directly.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0d3-explanation-run-done` → `WATCHED-FAIL OK` (the state check removed turns `finds the owner's explanation in the owner's own run` red).
 - added: 2026-10-16
 
-## P-3695 · `prettier --write` run from `app/` on a `workspace/` file reformats it to a width eslint's prettier rule then refuses
-- symptom: 2026-10-16, draft PR 447 CI round 6: four lint errors in `workspace/audits/tools/public-forms.mjs` after the file was formatted with `app`'s prettier from the app folder (80 columns for a file outside the app's config).
-- rule: before every push, format exactly the files the commit changed, wherever they live, through the app's config: from `app/`, `prettier --config .prettierrc --write <files>` (what `bun run format` does; a file under `workspace/` or `scripts/` has no config of its own, so prettier without `--config` formats it at 80 columns and eslint's prettier rule refuses it). Mechanical: `bash E:/mop-build/.tmp/format-changed.sh <worktree> [base]` lists `git diff --name-only --diff-filter=ACM <base> HEAD -- '*.ts' '*.tsx' '*.mjs' '*.js' '*.json' '*.css'` and does exactly that; the merge script runs it after every merge. A prettier run from the repo root gives 80 columns too (there is no root config): the same refusal.
-- proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
+## P-3695 · A whole-prompt `not.toContain` of a line the thread history also shows fenced goes red for the wrong reason
+- symptom: 2026-10-16, W8 0d follow-up: the new failed-explanation case asserted that an unrelated reply was absent from Matter's whole prompt and failed, because the prompt's thread history lists every `outside-reply` line (fenced) in its own section.
+- cause: the same line legitimately appears in two sections; only one of them is the thing under test.
+- rule: assert on the section's own words (here the absence of the heading `The owner's explanation to the team` and the presence of `The owner's explanation: none.`), never on the absence of a line the history may show.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "says a failed explanation"` → `1 passed`; with the explanation window opened to the whole thread (`w8-0d2-explanation-newer`) it fails on `The owner's explanation to the team`.
 - added: 2026-10-16
 
 ## P-3606 · The usage policy downgrades Matter and stops his goal without anyone deciding it
@@ -8598,22 +8599,57 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: PR 447 as a draft ran check and build only; after `gh pr ready 447` the next push ran db (18m29s) and e2e (10m42s), all green (2026-10-16).
 - added: 2026-10-16
 
+## P-3696 · A throwaway Postgres built from 145 migrations takes about 30 minutes on a busy laptop, dies with its background job, and can crash with 0xC0000142 mid-build
+- symptom: 2026-10-16, W6 item 7 follow-up: the build script (initdb, start, apply every migration) was stopped at its 30-minute job limit after 138 files, and the server had also crashed (`client backend was terminated by exception 0xC0000142`) leaving a postmaster that answered nothing and a `postmaster.pid` the next start refused.
+- cause: the machine was loaded by other builders; the server was a child of the job that built the database, so it went when the job did; a crashed postmaster stays in `reinitializing` and holds the lock file.
+- rule: run the server as its own background job (`postgres -D <dir> -p <port>` in the foreground, timeout 2 hours) and apply the migrations from a second script that takes a first file number, so a stop resumes (`FAILED <n> <file>` names it; `create or replace function` files are safe to apply twice). A stuck postmaster of your own cluster (the first line of its `postmaster.pid`) is killed with `taskkill /F /T /PID`, never another builder's. Do not start the build before the migrations are final: a late `db:fn` migration is applied by the resume script, which needs no rebuild.
+- proof: `psql -h 127.0.0.1 -p <port> -U postgres -d <db> -Atc "select count(*) from public.contacts"` → `0` once the last file is applied; the resume log ends `done through 145`.
+- added: 2026-10-16
+
+## P-3697 · A registry `find` that is one line of a shared service matches twice once a sibling function repeats it
+- symptom: 2026-10-16, `inviteExisting` repeated `p_note: "invite",` beside `inviteUser`'s, and `B7:b7-14-svc-invite-note` went STALE (its find occurs 2 times) while its replay would have changed the wrong block.
+- cause: the entry's `find` was a bare line, unique only until a second function used the same call shape.
+- rule: when a new function repeats a call shape of an existing one in the same file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` before any replay and make each entry's `find` include its indentation or a neighbouring line; the leading newline plus the exact indent separates a nested block from a shallower one.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b7-14-svc-invite-note` → `WATCHED-FAIL OK` with the find `"\n          p_note: \"invite\","`.
+- added: 2026-10-16
+
+## P-3698 · Branches that each pass alone fail together on the tables every page, form and class must be named in
+- symptom: 2026-10-16, draft PR 447 CI round 5: four unit tests red after typecheck and lint were green: the client room's two pages missing from the route map (`routes-covered`), its two forms missing from the table of public forms (`turnstile-coverage`), `wf-mem__status` with no style rule (`admin-classes`), and `.credentials.json` not refused by name (`workforce-drive-copy`).
+- cause: each builder ran its own folder's tests; the tables that name every route, form and admin class live in other folders, and with no local full run nothing joined them before CI.
+- rule: a builder of a new page route, public form or admin class opens `tests/e2e/fixtures/routes.ts`, `workspace/audits/tools/public-forms.mjs` and `tests/unit/admin-classes.test.ts` and adds its rows in the same commit; the brief of every item that adds a page, a form or a class says so. A name-matching secret rule is tested with the dotfile spelling too (`.credentials.json`).
+- proof: CI `check` job, `vitest run --project unit`, round 5: 4 failed | 443 passed files; after the rows are added the four are green (round 6).
+- added: 2026-10-16
+
+## P-3699 · `prettier --write` run from `app/` on a `workspace/` file reformats it to a width eslint's prettier rule then refuses
+- symptom: 2026-10-16, draft PR 447 CI round 6: four lint errors in `workspace/audits/tools/public-forms.mjs` after the file was formatted with `app`'s prettier from the app folder (80 columns for a file outside the app's config).
+- rule: before every push, format exactly the files the commit changed, wherever they live, through the app's config: from `app/`, `prettier --config .prettierrc --write <files>` (what `bun run format` does; a file under `workspace/` or `scripts/` has no config of its own, so prettier without `--config` formats it at 80 columns and eslint's prettier rule refuses it). Mechanical: `bash E:/mop-build/.tmp/format-changed.sh <worktree> [base]` lists `git diff --name-only --diff-filter=ACM <base> HEAD -- '*.ts' '*.tsx' '*.mjs' '*.js' '*.json' '*.css'` and does exactly that; the merge script runs it after every merge. A prettier run from the repo root gives 80 columns too (there is no root config): the same refusal.
+- proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
+- added: 2026-10-16
+
+## P-3700 · A merge can leave `GOTCHAS.md` unmerged with no conflict markers, and take the same P-numbers twice
+- symptom: 2026-10-16, `git merge origin/overdrive/finish` into overdrive/followups-a: `git status` showed `UU GOTCHAS.md` and `ls-files -u` three stages, yet `grep '^<<<<<<<'` printed nothing; the other side's new P-3694 and P-3695 had the numbers this branch had already used for different entries.
+- cause: both sides appended entries at the end of one file under a rerun number counter; the file on disk was already a union of text, so the markers are not the signal, the staged stages are.
+- rule: after a merge that touches the bank, diff the sorted lines of stage 2 and stage 3 against the file (`git show :3:GOTCHAS.md | sort -u` against `sort -u GOTCHAS.md`, `comm -23`) to see what is missing, append the missing entries under the next free numbers, then `git add`; never trust the absence of markers.
+- proof: `git ls-files -u GOTCHAS.md` lists stages 1 to 3 while `grep -c '^<<<<<<<' GOTCHAS.md` prints 0; `comm -23` of their side against the file printed 9 lines before the append and none after.
+- added: 2026-10-16
+
+## P-3701 · An in-memory test database that stamps a column the real runner stamps itself hides clock skew
+- symptom: 2026-10-16, second Opus review of W8 0d: `ownerExplanation` bounded the owner's reply by the run's `started_at` (database `now()`) and `finished_at` (the runner's laptop clock), so a laptop clock behind Supabase's hid the explanation; the unit test passed because its mock database overwrote `finished_at` with its own counter, and said so in a comment that was false for `agent_runs.finished_at`.
+- cause: the mock "owned the clock" for a column production leaves to the caller, and nothing in the test could make the two clocks differ.
+- rule: a mock database stamps only the columns the real one stamps (`created_at`, `started_at` by `claim_agent_run`); a column the runner sends keeps what it sent; give the mock a clock offset and run one walk-through with the database an hour ahead. Bind a reply to the run that wrote it by id (`agent_runs.reply_message_id`), never by a window of times across two clocks.
+- proof: `bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "database clock is an hour ahead"` is green with the id and red with the old `gte`/`lte` window (registry `w8-0d4-explanation-by-reply-id`, `w8-0d4-reply-id-recorded`).
+- added: 2026-10-16
+
 ## P-3608 · A fix to the live supervisor's idle check cannot install itself; restart it
 - symptom: 2026-10-16, PR 447 merged the goal hand-off fix and the runner folder held it, but the running supervisor (started 02:24) never moved: it moves to new code only when idle, and the fault it carried kept it from ever reading as idle.
 - rule: after merging any change to `scripts/matter/live.ts`, check `git -C E:/mop-build/live merge-base --is-ancestor <merge> HEAD` and the live process start time; if the process predates the merge, restart it while Matter has no run in progress (`taskkill /T` on the wscript root, then `Start-ScheduledTask "MOP Matter Live"`), and read live.log for the first goal step or skip reason.
 - proof: after the restart at 17:01, live.log: `14:01:25Z live: goal step W8-0d ...` and `14:01:32Z live: goal step skipped: 1 line(s) in hand` (2026-10-16).
 - added: 2026-10-16
 
-## P-3699 · An unseen Turnstile challenge leaves every public form, sign-in included, waiting for good
-- symptom: 2026-10-19, the operator could not sign in nor receive the link: "Send a sign-in link" loaded Cloudflare's interactive challenge (`.../turnstile/.../normal`) into the bottom-right `turnstile-host`, nobody saw a box to tick, and `getTurnstileToken` never settled, so no `/api/admin/auth/send-link` request left the page; auth logs and `rate_limits` held nothing.
-- rule: the client token wait has a ceiling (`TOKEN_WAIT_MS`, 3 min) and the widget's `before-interactive-callback` puts a plain line above the box ("One more step: tick the box below ..."); a form that waits on a third party always says what it waits for and gives up in bounded time.
-- proof: `tests/unit/turnstile-client.test.tsx` "says above the box what to do while Cloudflare asks" and "goes on without a token when Cloudflare never answers", registry `fix-turnstile.json` tc-d-ask-line and tc-e-no-endless-wait (2026-10-19).
-- added: 2026-10-19
-
-## P-3700 · The admin pages never loaded the Turnstile styles, and a missing token still answered "sent"
-- symptom: 2026-10-19, on /admin/sign-in `#turnstile-host` was an unstyled full-width strip at y=732 in a 732-pixel window (below the page): `src/styles/admin/index.css` never imported `components/turnstile.css`; and with no token `requestSignInLink` still posted, the Worker refused (`verifyTurnstile` null -> fail) and answered "sent", so no email ever came (Resend: no sign-in email between 10-16 and 10-19).
-- rule: any stylesheet entry whose pages run a public-form write imports `components/turnstile.css`; a client sign-in or form request with no token while a site key is set throws, so the page shows its error, never a false "sent".
-- proof: `tests/unit/sign-in-token.test.ts` (no token, no request) and registry `fix-turnstile.json` tc-f-no-token-no-request (2026-10-19).
+## P-3702 · A supervisor stuck on a call that never answers stays "running" for days, and the task cannot start another
+- symptom: 2026-10-19, Matter's live supervisor (bun scripts/matter/live.ts, started 10-17 03:34) wrote its last heartbeat at 10-17 14:25 and its last log line at 11:04Z; the process stayed alive, so "MOP Matter Live" answered 0x80070420 (already running) every minute and nothing woke Matter for two days.
+- rule: the supervisor runs a one-minute watchdog timer beside its loop (`exitIfStalled`): a heartbeat older than `LOOP_STALE_MS` (10 min) ends Matter's session and the process, and the task starts a fresh one; check `ls -la ~/.mop-workforce/matter/live.heartbeat` when Matter seems quiet.
+- proof: `tests/unit/matter-live.test.ts` "lets the watchdog end a supervisor whose heartbeat is over ten minutes old", registry `W8-runner.json` w8-runner-watchdog-stale (2026-10-19).
 - added: 2026-10-19
 
 ## P-3704 · A foreground "until done; sleep" loop holds the conversation for minutes; the operator had to background it himself
@@ -8632,16 +8668,4 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: Matter's supervisor wrote its last heartbeat at 2026-10-17 14:25 (local); the laptop went to sleep at 14:30:39 and woke at 14:30:42 (System log, Kernel-Power 42 and 107); the process then sat on one awaited Supabase call until 10-19. supabase-js uses plain fetch, which never times out; a git spawnSync without a timeout can block the same way and would also stop the in-process watchdog's timer.
 - rule: every runner client is built by `serviceDb()` (scripts/workforce/env.ts), whose fetch gives up after 60 s (`deadlineFetch`); every spawnSync in a long-lived loop gets a `timeout`; the minute runner (daemon.ts `endStalledSupervisor`) ends a supervisor whose heartbeat is silent 15 minutes, after checking the process's command line is matter/live.ts. Long planned waits use `rest()` so they keep the heartbeat fresh.
 - proof: `tests/unit/matter-live.test.ts` "gives up on a database call that never answers", "names the supervisor for the outside watchdog...", "ends only a process whose command line is Matter's supervisor"; registry W8-runner.json w8-runner-db-deadline, w8-runner-outside-watchdog, w8-runner-outside-watchdog-command (2026-10-19).
-- added: 2026-10-19
-
-## P-3702 · A supervisor stuck on a call that never answers stays "running" for days, and the task cannot start another
-- symptom: 2026-10-19, Matter's live supervisor (bun scripts/matter/live.ts, started 10-17 03:34) wrote its last heartbeat at 10-17 14:25 and its last log line at 11:04Z; the process stayed alive, so "MOP Matter Live" answered 0x80070420 (already running) every minute and nothing woke Matter for two days.
-- rule: the supervisor runs a one-minute watchdog timer beside its loop (`exitIfStalled`): a heartbeat older than `LOOP_STALE_MS` (10 min) ends Matter's session and the process, and the task starts a fresh one; check `ls -la ~/.mop-workforce/matter/live.heartbeat` when Matter seems quiet.
-- proof: `tests/unit/matter-live.test.ts` "lets the watchdog end a supervisor whose heartbeat is over ten minutes old", registry `W8-runner.json` w8-runner-watchdog-stale (2026-10-19).
-- added: 2026-10-19
-
-## P-3701 · Turnstile in Managed mode can lock everyone out when Cloudflare rates the traffic as bots
-- symptom: 2026-10-19, the Turnstile widget's analytics read "Likely human 0%, Likely bot 100%" (6 challenges issued for `auth-send-link`, 0 solved); in Managed mode each of those wanted an interactive box that never rendered on our pages, so sign-in and every public form failed for three days, while the page said "sent".
-- rule: the widget runs Non-interactive (ruling H133); after any change to the widget or a new form, read the widget's analytics (Cloudflare › Turnstile › the widget: challenges issued vs solved) and send one real form from a browser, then confirm the result arrived (Resend for an email, the table for a record).
-- proof: Cloudflare › Turnstile › "matterofplace.com forms" shows Widget Mode "Non-interactive"; the sign-in form's email was delivered at 12:12:53Z on 2026-10-19.
 - added: 2026-10-19
