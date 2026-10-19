@@ -1,8 +1,7 @@
 import { mkdtempSync, utimesSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { workforceOverride } from "../../scripts/workforce/config";
 import {
   heartbeatStale,
@@ -186,19 +185,28 @@ describe("rotation and the heartbeat", () => {
   });
 
   it("gives up on a database call that never answers instead of waiting forever (P-3703)", async () => {
-    const server = createServer(() => undefined);
-    await new Promise<void>((ready) => server.listen(0, "127.0.0.1", ready));
-    const address = server.address();
-    const port = typeof address === "object" && address !== null ? address.port : 0;
+    vi.stubGlobal(
+      "fetch",
+      (_input: unknown, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(
+              init.signal?.reason instanceof Error ? init.signal.reason : new Error("aborted"),
+            );
+          });
+        }),
+    );
     try {
-      const outcome = await deadlineFetch(200)(`http://127.0.0.1:${String(port)}/`).then(
+      const call = deadlineFetch(200)("https://example.invalid/rest/v1/agents").then(
         () => "answered",
         (error: unknown) => (error instanceof Error ? error.name : "other"),
       );
-      expect(outcome).toBe("TimeoutError");
+      const waited = new Promise<string>((settle) =>
+        setTimeout(() => settle("still waiting"), 2_000),
+      );
+      expect(await Promise.race([call, waited])).toBe("TimeoutError");
     } finally {
-      server.closeAllConnections();
-      server.close();
+      vi.unstubAllGlobals();
     }
   });
 });
