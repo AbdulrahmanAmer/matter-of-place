@@ -69,7 +69,7 @@ describe("AccountRoom", () => {
       expect(shown[index]).toContain(`${sentence} Received Oct 2, 2026 PT.`);
       // a staff label ("Distribution Active.", "Invoice Issued.") is not what a client reads
       expect(shown[index]).not.toContain(`${workflow_state}.`);
-      expect(sentence).not.toMatch(/[–—]/);
+      expect(sentence).not.toMatch(/[\u2013\u2014]/);
     });
   });
 

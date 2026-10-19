@@ -748,6 +748,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     output_tokens: "integer",
     cost_microusd: "bigint",
     lessons_used: "uuid[]",
+    reply_message_id: "uuid?",
   },
   agent_approvals: {
     id: "uuid",
@@ -952,4 +953,6 @@ export const notPii = [
   // W1: an AI employee's own name, never a person's; and the id of the chat line that woke a run.
   "agents.name",
   "agent_runs.message_id",
+  // W8 0d: the id of the line a run wrote as its reply.
+  "agent_runs.reply_message_id",
 ];
