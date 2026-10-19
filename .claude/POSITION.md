@@ -2272,3 +2272,9 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 18:40 +0300: builder W8 item 3 (overdrive/w8-3, Sonnet 5.5). The scheduled task, the runner and a health check already
+  existed (db291cd0). Done: `captions_waiting` fails past one hour and names minutes (health.ts, B8.json bi/captions-23/captions-61);
+  `install-captions-task.ps1` removed (one installer, `workforce/install.ps1`), plan lines and trace entries updated, ruling H136;
+  `tests/unit/workforce-install.test.ts` + `tests/mutations/W8-3.json`. Local: install 2 of 2, health 21 of 21. UNPROVEN: the task
+  registered and run on the laptop, a real published property captioned unattended, watchfail replay (CI), full suites (CI).
+  Bank: P-4513.

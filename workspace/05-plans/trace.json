@@ -15293,20 +15293,20 @@
  {
   "dimension": "content-pipelines",
   "kind": "script",
-  "id": "Windows scheduled task MatterOfPlace Captions every 15 minutes (ruling H34 (4))",
+  "id": "Windows scheduled task MOP Captions every 10 minutes (ruling H34 (4), W8 item 3)",
   "plan": "B9",
   "files": [
-   "scripts/install-captions-task.ps1"
+   "scripts/workforce/install.ps1"
   ],
   "hasProof": true
  },
  {
   "dimension": "content-pipelines",
   "kind": "script",
-  "id": "caption runner in the launch switch: the orchestrator registers the scheduled task with the operator's word (ruling H34 (4))",
+  "id": "caption runner in the launch switch: the MOP Captions task is registered by the workforce installer (ruling H34 (4), W8 item 3)",
   "plan": "L1",
   "files": [
-   "scripts/install-captions-task.ps1"
+   "scripts/workforce/install.ps1"
   ],
   "hasProof": true
  },

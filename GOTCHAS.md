@@ -8788,3 +8788,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed 89d5bdc4 --kinds unit` selects only W8 0h's files and the entries anchored on them.
 - hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
+
+## P-4513 · An item may already be half built: search the tree and the log for its words before planning
+- symptom: W8 item 3 read "Waiting: second round" and "written only by hand", yet the task "MOP Captions", a health check and an installer test-less script were all in the tree (commit db291cd0), and a second installer for the same runner, `install-captions-task.ps1` (15 minutes, Priority 7), was still beside it; a plan from the item text alone would have built a third.
+- rule: before building an item, run `git log --oneline -S"<its quoted names>"` and grep the tree for each name in it; list what exists, what differs from the item text (here the threshold: two hours against "more than an hour") and what is missing (a test that the installer registers every task at Priority 5), and build only the difference. When a second way to do one thing is found, remove it and its plan lines in the same change. Do not run `python3 -` with a heredoc to look at a file: it hangs (P-094), and killing it by image name stopped two `python.exe` processes that may not have been mine.
+- proof: `git log --oneline -S"MOP Captions" -- app/scripts/workforce/install.ps1` prints db291cd0; `grep -rn "install-captions-task" app/scripts app/tests` prints nothing after this change.
+- added: 2026-10-19
