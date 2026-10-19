@@ -2108,3 +2108,25 @@ first day of the new usage week; no step was cut from any plan.
   00:35 UTC; it lands with PR 447). Fairfield lane test closed: FAIL (Julian and Matter), set in Drive, three abstract reels
   rejected by hand with notes. Laptop: 16 GB of runaway task logs deleted on the operator's word; held at Idle for an OmniSuite
   film export, then restored. Bank grew: P-3606, P-3607.
+- 2026-10-16 17:45 +0300: orchestrator. PR 447 MERGED (41f6a809, decided under S63 after two hours unanswered: reviewed green
+  work does not wait). The live supervisor could not move to it by itself (the stuck-idle fault it fixes also blocked its own
+  move), so it was restarted at 17:01 with Matter idle; live.log at 14:01:25Z: "goal step W8-0d ..." then "goal step skipped:
+  1 line(s) in hand", the first automatic hand-off since 00:35 UTC (P-3608). Operator answered W7 9: outside text reaches a
+  colleague through the W8 0a-0c path (labelled, fenced, triaged first); sent to Matter. Second round opened on
+  overdrive/finish-2 (fixes for w8-10, w8-0h, toolkits, followups, w7-9). PARKED on the operator's word ("now we can relax on
+  build and wait for something to happen"): ~/.mop-workforce/config.json backlog "off" (policy.json read back "off"), builders
+  finish their current item and stop, the STOP file holds the queue. Wakes only on people's lines, events and scheduled jobs.
+  NOT LIVE: inbound mail (W8 0h). Task gate list moved to .claude/tasks/parked-2026-10-16-matter-autonomy.json. Stray scratch
+  postgres (od-w6-7, 18,035 CPU-s since 01:22) and an idle node stopped. Build again: backlog "all" on his word.
+- 2026-10-19 15:20 +0300: orchestrator, operator back. Sign-in was broken since 10-16: Turnstile (Managed) rated all traffic
+  as bots and its box never rendered, so no form write passed and the page still said "sent". Fixed: PR 455 (prompt line +
+  3-minute ceiling), PR 456 (admin sheet takes its own turnstile.css; no token means the page says it did not go through),
+  widget switched to Non-interactive (H133). Proven: form email delivered 12:12:53Z. Matter's live supervisor had hung since
+  10-17 14:25 (alive, no heartbeat); restarted 12:40, heartbeat live, still parked (backlog off). Health check fails one item
+  daily: retention_stalled on email_replies (fix belongs to the parked w8-0h round). Open: PR 449 (second round, parked),
+  PRs 451-454 (Saturday audit). Supabase's auth.audit_log_entries table is empty by design; read auth logs via the logs API.
+- 2026-10-19 15:35 +0300: orchestrator. PR 459 merged (e1b0727b): the live supervisor ends itself when its heartbeat is
+  over 10 minutes old and the scheduled task starts a fresh one (P-3702). Proven on the real runner: 12:32:00Z "new runner
+  code, moving to it", 12:34:07Z "live: started (resuming 031029be...)", heartbeat 12:34:07Z. UNPROVEN: the stale-heartbeat
+  exit in a real hang (unit test only). Cloudflare: only "Users without MFA" left in Security Insights (operator's click).
+  Open for the operator: MFA on admin@, PRs 451-454 (Saturday audit), PR 449 and the queue (parked).

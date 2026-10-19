@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { workforceOverride } from "../../scripts/workforce/config";
-import { liveAlive } from "../../scripts/matter/live-alive";
+import { heartbeatStale, LOOP_STALE_MS, liveAlive } from "../../scripts/matter/live-alive";
 import {
   isIdle,
   liveArgs,
@@ -126,6 +126,24 @@ describe("rotation and the heartbeat", () => {
       false,
       false,
     ]);
+  });
+
+  it("lets the watchdog end a supervisor whose heartbeat is over ten minutes old, and only then (P-3702)", () => {
+    const file = join(mkdtempSync(join(tmpdir(), "mop-live-")), "live.heartbeat");
+    writeFileSync(file, "x");
+    const now = Date.now();
+    const fresh = heartbeatStale(file, now);
+    const nine = new Date(now - LOOP_STALE_MS + 60_000);
+    utimesSync(file, nine, nine);
+    const underLimit = heartbeatStale(file, now);
+    const eleven = new Date(now - LOOP_STALE_MS - 60_000);
+    utimesSync(file, eleven, eleven);
+    expect([
+      fresh,
+      underLimit,
+      heartbeatStale(file, now),
+      heartbeatStale(join(tmpdir(), "no-such-heartbeat"), now),
+    ]).toEqual([false, false, true, false]);
   });
 });
 

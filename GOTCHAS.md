@@ -8639,3 +8639,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a mock database stamps only the columns the real one stamps (`created_at`, `started_at` by `claim_agent_run`); a column the runner sends keeps what it sent; give the mock a clock offset and run one walk-through with the database an hour ahead. Bind a reply to the run that wrote it by id (`agent_runs.reply_message_id`), never by a window of times across two clocks.
 - proof: `bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "database clock is an hour ahead"` is green with the id and red with the old `gte`/`lte` window (registry `w8-0d4-explanation-by-reply-id`, `w8-0d4-reply-id-recorded`).
 - added: 2026-10-16
+
+## P-3608 · A fix to the live supervisor's idle check cannot install itself; restart it
+- symptom: 2026-10-16, PR 447 merged the goal hand-off fix and the runner folder held it, but the running supervisor (started 02:24) never moved: it moves to new code only when idle, and the fault it carried kept it from ever reading as idle.
+- rule: after merging any change to `scripts/matter/live.ts`, check `git -C E:/mop-build/live merge-base --is-ancestor <merge> HEAD` and the live process start time; if the process predates the merge, restart it while Matter has no run in progress (`taskkill /T` on the wscript root, then `Start-ScheduledTask "MOP Matter Live"`), and read live.log for the first goal step or skip reason.
+- proof: after the restart at 17:01, live.log: `14:01:25Z live: goal step W8-0d ...` and `14:01:32Z live: goal step skipped: 1 line(s) in hand` (2026-10-16).
+- added: 2026-10-16
+
+## P-3702 · A supervisor stuck on a call that never answers stays "running" for days, and the task cannot start another
+- symptom: 2026-10-19, Matter's live supervisor (bun scripts/matter/live.ts, started 10-17 03:34) wrote its last heartbeat at 10-17 14:25 and its last log line at 11:04Z; the process stayed alive, so "MOP Matter Live" answered 0x80070420 (already running) every minute and nothing woke Matter for two days.
+- rule: the supervisor runs a one-minute watchdog timer beside its loop (`exitIfStalled`): a heartbeat older than `LOOP_STALE_MS` (10 min) ends Matter's session and the process, and the task starts a fresh one; check `ls -la ~/.mop-workforce/matter/live.heartbeat` when Matter seems quiet.
+- proof: `tests/unit/matter-live.test.ts` "lets the watchdog end a supervisor whose heartbeat is over ten minutes old", registry `W8-runner.json` w8-runner-watchdog-stale (2026-10-19).
+- added: 2026-10-19
