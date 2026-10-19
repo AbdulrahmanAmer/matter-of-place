@@ -8615,3 +8615,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: any stylesheet entry whose pages run a public-form write imports `components/turnstile.css`; a client sign-in or form request with no token while a site key is set throws, so the page shows its error, never a false "sent".
 - proof: `tests/unit/sign-in-token.test.ts` (no token, no request) and registry `fix-turnstile.json` tc-f-no-token-no-request (2026-10-19).
 - added: 2026-10-19
+
+## P-3701 · Turnstile in Managed mode can lock everyone out when Cloudflare rates the traffic as bots
+- symptom: 2026-10-19, the Turnstile widget's analytics read "Likely human 0%, Likely bot 100%" (6 challenges issued for `auth-send-link`, 0 solved); in Managed mode each of those wanted an interactive box that never rendered on our pages, so sign-in and every public form failed for three days, while the page said "sent".
+- rule: the widget runs Non-interactive (ruling H133); after any change to the widget or a new form, read the widget's analytics (Cloudflare › Turnstile › the widget: challenges issued vs solved) and send one real form from a browser, then confirm the result arrived (Resend for an email, the table for a record).
+- proof: Cloudflare › Turnstile › "matterofplace.com forms" shows Widget Mode "Non-interactive"; the sign-in form's email was delivered at 12:12:53Z on 2026-10-19.
+- added: 2026-10-19
