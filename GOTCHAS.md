@@ -8615,3 +8615,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: any stylesheet entry whose pages run a public-form write imports `components/turnstile.css`; a client sign-in or form request with no token while a site key is set throws, so the page shows its error, never a false "sent".
 - proof: `tests/unit/sign-in-token.test.ts` (no token, no request) and registry `fix-turnstile.json` tc-f-no-token-no-request (2026-10-19).
 - added: 2026-10-19
+
+## P-3702 · A supervisor stuck on a call that never answers stays "running" for days, and the task cannot start another
+- symptom: 2026-10-19, Matter's live supervisor (bun scripts/matter/live.ts, started 10-17 03:34) wrote its last heartbeat at 10-17 14:25 and its last log line at 11:04Z; the process stayed alive, so "MOP Matter Live" answered 0x80070420 (already running) every minute and nothing woke Matter for two days.
+- rule: the supervisor runs a one-minute watchdog timer beside its loop (`exitIfStalled`): a heartbeat older than `LOOP_STALE_MS` (10 min) ends Matter's session and the process, and the task starts a fresh one; check `ls -la ~/.mop-workforce/matter/live.heartbeat` when Matter seems quiet.
+- proof: `tests/unit/matter-live.test.ts` "lets the watchdog end a supervisor whose heartbeat is over ten minutes old", registry `W8-runner.json` w8-runner-watchdog-stale (2026-10-19).
+- added: 2026-10-19
