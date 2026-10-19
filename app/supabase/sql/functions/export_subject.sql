@@ -53,6 +53,11 @@ begin
       select jsonb_agg(to_jsonb(s) order by s.received_at)
       from public.submissions s
       where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts)
+    ), '[]'),
+    -- W8 0h review: every email the person sent us that the mailbox check recorded.
+    'inbound_mail', coalesce((
+      select jsonb_agg(to_jsonb(m) order by m.received_at)
+      from public.inbound_mail m where lower(m.from_email) = v_email
     ), '[]')
   ) into v_bundle;
 
@@ -69,7 +74,8 @@ begin
         'subscribers', jsonb_array_length(v_bundle -> 'subscribers'),
         'inquiries', jsonb_array_length(v_bundle -> 'inquiries'),
         'contacts', jsonb_array_length(v_bundle -> 'contacts'),
-        'submissions', jsonb_array_length(v_bundle -> 'submissions')
+        'submissions', jsonb_array_length(v_bundle -> 'submissions'),
+        'inbound_mail', jsonb_array_length(v_bundle -> 'inbound_mail')
       )
     ),
     p_request_id

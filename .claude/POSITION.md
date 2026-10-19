@@ -2058,6 +2058,23 @@ first day of the new usage week; no step was cut from any plan.
   (7) Lead copy reworded. `tests/mutations/W7-2.json` holds 28 entries (24 file, 4 sql), all WATCHED-FAIL OK.
   UNPROVEN: the function on the real database (stub native cluster only; the CI db job counts), the route and service
   end to end, a real reply read through the screen. Bank grew: P-3551.
+
+- 2026-10-16 W8 0h, every email that reaches us is seen (overdrive/w8-0h, not merged; Matter merges into overdrive/finish).
+  `inbound_mail` + `inbound_mail_record` (migrations 20261016023717 and 20261016045034): every message of every admin@
+  folder but Drafts, Templates, Sent, Trash and Outbox is recorded once (never an id `email_replies` holds); replies to our
+  mail stay on the W4 path. A person's email emits `email.received` (the 20th catalog event) and queues its owner by alias
+  (listings@ Editor, else Concierge, never Matter); the owner sees only the tool-less triage (`email_inbound` in
+  criteria.ts, `outsideText` reads the row). An authenticated known service (first Authentication-Results inside Zoho's
+  trace block, dmarc=pass for the From domain) becomes the runner's line in Matter's thread at read power; its subject is
+  fenced, or withheld for senders whose subjects relay outside words. DMARC and TLS reports are parsed with limits; only a
+  failure, an unparsed report or a non-report notice wakes Matter. Caps 20 people/6 notices an hour; spam, bulk and our own
+  mail kept for a person; an unread folder beats `mail_folders` (ops_health). The retention job now purges
+  `email_replies` (it never did) and `inbound_mail`. Inbound mail part on Sent emails (`GET /api/admin/emails/inbound`,
+  audit.list). Replayed the real Google DMARC (2 records, all pass: recorded), TLS (1 ok: recorded) and Search Console
+  notice (escalated) as fixtures; a spoofed sc-noreply is a stranger's. Registry `tests/mutations/W8-0h.json` (40).
+  Ruling H121. UNPROVEN: a live run on the merged code; a real person's email (none in the mailbox; crafted fixture);
+  the function on the real database (stub cluster only; the CI db job counts); a real Matter answer to a notice.
+  Bank grew: P-4501 to P-4505, P-722 hit again.
 - 2026-10-16 05:10 +0300: orchestrator. PR 445 merged (CI green incl. e2e) and proven live: robots.txt serves
   `Content-Signal: search=yes, ai-input=yes, ai-train=no`; /markets headings 1,2,2,2,2,2,2,2 and /california/guide
   1,2,2,2,2 (no skips); PageSpeed mobile accessibility 100 on both (was 98). Fairfield lane test (4a3c2563, 2400 Azure
@@ -2091,6 +2108,32 @@ first day of the new usage week; no step was cut from any plan.
   stays [ ] with a "Built 2026-10-16" line. UNPROVEN: a real test message held, explained and decided in the Office
   (needs the runner on the merged code). Bank grew: P-3590; P-3478 and P-1303 hit again.
 
+- 2026-10-16 W8 0h review round (overdrive/w8-0h, pushed, no PR; Matter merges into overdrive/finish): a fresh Opus
+  review failed round one on two highs; every finding fixed. Merged origin/overdrive/finish first (kept both sides of
+  the position block and rulings; the daemon checks the held line's explanation, then notes the triage; finish's own
+  `check-layout.mjs` had an unterminated SERVER_DOMAINS string, closed). (1) Retention reads the policies of its own
+  steps, so `email_replies` and `inbound_mail` are purged; the unit fake's `.in()` filters by the keys asked.
+  (2) A DMARC record fails when DMARC itself fails (neither DKIM nor SPF passed in policy_evaluated), whatever the
+  disposition; a p=none report wakes Matter. (3) More than one `mx.zohomail.com` verdict in a message is
+  unauthenticated; the three real fixtures keep every header line in order (values redacted) and the test asserts the
+  names; a forged verdict inside the trace block and one below the message headers are tests. (4) The mail pass reads
+  oldest new mail first, 100 a folder a check, and moves the cursor only over what it read (never past a shared
+  millisecond); past 40 pages it finds the backlog's oldest page by doubling and halving, so a folder always moves.
+  (5) A fixed Search Console parser gives Matter labels from closed lists; reports are read whatever Zoho's folder;
+  the Newsletter rule needs List-Unsubscribe, no report and no parser match. (6) A service's and our own mail keep no
+  body (table check `inbound_mail_body_person_only`). (7) With Matter off a notice tells the team. (8) A property
+  offered to any address is handed to the Editor after triage (`handToEditor`). (9) Stripe kept, with a line in H121.
+  Also: round one never added `inbound_mail` to the db companions (schema manifest, RLS matrix, RLS fixture): added.
+  Migrations renamed to 20261016084324 and 20261016084349 (after finish's newest). Ruling H121 (1), (2), (4), (5),
+  (10) to (13). Registry `tests/mutations/W8-0h.json` 54 entries; replayed: 10 sql on the stub cluster and 213 unit
+  entries the branch touches, 206 OK, w3-e-flow-sentence and w8-0h-spoof-first-stamp (repointed) OK by id after; 5
+  db-project entries of other plans (B2 d, g5-not-pii, b, g11-rls-own-row; W6-7 rls-matrix-client-grant) cannot run
+  without a database here ("No test files found"): CI's db job counts. Unit 32/32, retention 7/7, db 10/10 on the stub.
+  UNPROVEN: a live run of the merged code against the mailbox (the replay is of three real messages read 2026-10-16);
+  a real person's email; a forged verdict sent from an outside server; the function on the real database; a real
+  Matter answer to a notice; the Editor hand-off live. W8 0g's `drive_copy` check is not on finish yet: whichever of
+  the two ops_health migrations lands later must hold both checks. Bank grew: P-4506 to P-4508; P-4502, P-4503,
+  P-4505 and P-2404 hit again.
 - 2026-10-16 11:40 +0300 (W7 9 builder, third round, overdrive/w7-9, Opus 5.5 high): the second fresh Opus review
   (FAILED on one high finding) closed under Matter's ruling H123 (the operator's own order of 2026-10-16 recorded with
   his words: the request desk and the photographs stay, under seven conditions). (1) The triage reads every field the

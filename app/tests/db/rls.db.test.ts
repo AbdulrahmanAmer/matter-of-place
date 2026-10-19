@@ -101,6 +101,9 @@ begin
   -- W4: a reply read from the mailbox (written only by email_reply_record in production).
   insert into public.email_replies (provider_id, from_email, received_at)
   values ('test-rls-' || v_user, 'test-rls-' || v_user || '@example.test', now());
+  -- W8 0h: a message read from the mailbox (written only by inbound_mail_record in production).
+  insert into public.inbound_mail (provider_id, folder, received_at, source)
+  values ('test-rls-' || v_user, 'Inbox', now(), 'email_inbound');
   insert into public.email_suppressions (email, reason) values ('test-rls-' || v_user || '@example.test', 'manual');
   insert into public.email_events (provider_event_id, type, at) values ('test-rls-' || v_user, 'email.sent', now());
   insert into public.newsletter_issues (number, status)

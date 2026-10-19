@@ -136,6 +136,7 @@ describe("screen 25, data requests", () => {
       inquiries: [],
       contacts: [],
       submissions: [],
+      inbound_mail: [],
     };
     const requested = serve({
       [`GET ${LIST}`]: { items: [verified], next_cursor: null },

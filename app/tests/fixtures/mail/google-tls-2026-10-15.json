@@ -1,0 +1,26 @@
+{
+  "note": "Replayed from the admin@ mailbox (W8 0h, read 2026-10-16): every header line kept in order, the values the runner never reads redacted, links cut to their host.",
+  "folder": {
+    "folderId": "8580671000000008008",
+    "folderName": "Inbox",
+    "folderType": "Inbox"
+  },
+  "message": {
+    "messageId": "1792072783788153400",
+    "folderId": "8580671000000008008",
+    "receivedTime": "1792072783783",
+    "fromAddress": "noreply-smtp-tls-reporting@google.com",
+    "sender": "noreply-smtp-tls-reporting@google.com",
+    "subject": "Report Domain: matterofplace.com Submitter: google.com Report-ID: &lt;2026.10.14T00.00.00Z+matterofplace.com@google.com&gt;"
+  },
+  "header": "Delivered-To: admin@matterofplace.com\r\nReceived-SPF: pass (zohomail.com: domain of _spf.google.com designates 209.85.210.69 as permitted sender) client-ip=209.85.210.69; envelope-from=3TdzQahoKAKYTUXKVRe-YSZV-ZRY-XKVUXZOTMMUUMRK.IUS@smtp-tls-reporting.bounces.google.com; helo=mail-ot1-f69.google.com;\r\nAuthentication-Results: mx.zohomail.com; dkim=pass; spf=pass (zohomail.com: domain of _spf.google.com designates 209.85.210.69 as permitted sender)  smtp.mailfrom=3TdzQahoKAKYTUXKVRe-YSZV-ZRY-XKVUXZOTMMUUMRK.IUS@smtp-tls-reporting.bounces.google.com; dmarc=pass(p=reject dis=none)  header.from=google.com\r\nARC-Seal: [redacted]\r\nARC-Message-Signature: [redacted]\r\nARC-Authentication-Results: [redacted]\r\nReturn-Path: [redacted]\r\nReceived: from mail-ot1-f69.google.com (mail-ot1-f69.google.com [209.85.210.69]) by mx.zohomail.com with SMTPS id 1792072782826910.5649452517104; Thu, 15 Oct 2026 06:59:42 -0700 (PDT)\r\nReceived: by mail-ot1-f69.google.com with SMTP id 46e09a7af769-809f1af7992so12430607a34.3 for <admin@matterofplace.com>; Thu, 15 Oct 2026 06:59:42 -0700 (PDT)\r\nDKIM-Signature: [redacted]\r\nX-Google-DKIM-Signature: [redacted]\r\nX-Gm-Message-State: [redacted]\r\nMIME-Version: 1.0\r\nX-Received: [redacted]\r\nDate: Thu, 15 Oct 2026 06:59:41 -0700\r\nTLS-Report-Domain: matterofplace.com\r\nTLS-Report-Submitter: google.com\r\nMessage-ID: [redacted]\r\nSubject: Report Domain: matterofplace.com Submitter: google.com Report-ID: <2026.10.14T00.00.00Z+matterofplace.com@google.com>\r\nFrom: noreply-smtp-tls-reporting@google.com\r\nTo: admin@matterofplace.com\r\nContent-Type: multipart/report; boundary=\"0000000000009345a0065de17543\"; report-type=tlsrpt\r\nX-Zoho-Virus-Status: [redacted]\r\nX-Zoho-AV-Stamp: [redacted]\r\nX-ZohoMail-DKIM: pass (identity @google.com)",
+  "content": "<div>This is an aggregate TLS report from google.com\r<br></div>",
+  "attachments": [
+    {
+      "attachmentId": "140113655838920430",
+      "attachmentName": "google.com!matterofplace.com!1791936000!1792022399!001.json.gz",
+      "attachmentSize": 249,
+      "base64": "H4sIAAAAAAAAAHVQwWrDMAz9laGzVdJsHdSn3cruO3WMIRwnGGwp2PIhC/n3kaS9bBR0kJ6enp40g+SBOPyQBmFkSh4sXESG6J/e2R3AQEfqMRMPHuwMRSkrrpiGjdw27SseGzy+fDSN3eIKBjx3D1jtsz2d7el8hcWAE1ZyioF7AQsl6YgaC2Y/StbAw9uwmTk4SWBghzF0DxZ/J1L1WfoxkrsPjRKDC76A/Zz3Ylov2TPUaVwNsuAN6KVydx+bsJNEgcHCf+nFQKkpUd70VJQiluqcL6WvEYsvZf2qk8oK9mhulJ5CrNn/7TfL8rX8AnchVGeRAQAA"
+    }
+  ]
+}

@@ -274,10 +274,10 @@
     "id": "b8b-g2-catalog-event-count",
     "test": "tests/unit/automation/catalog.test.ts",
     "file": "src/domain/events.ts",
-    "find": "  \"subject_request.received\",\n  \"email.bounced\",\n] as const;",
-    "replace": "  \"subject_request.received\",\n] as const;",
+    "find": "  \"email.bounced\",\n  \"email.received\",\n] as const;",
+    "replace": "  \"email.bounced\",\n] as const;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
-    "expect": "× .*keeps the 19 event types"
+    "expect": "× .*keeps the 20 event types"
   },
   {
     "id": "b8b-g2-catalog-example-parse",
@@ -1515,7 +1515,7 @@
     "find": "return { request_id: row.id, kind: row.kind };",
     "replace": "return { request_id: row.id, kind: undefined };",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/sample-payloads.test.ts",
-    "expect": "× .*builds a payload for each of the 19 triggers"
+    "expect": "× .*builds a payload for each of the 20 triggers"
   },
   {
     "id": "b8b-g5-sam-tier",

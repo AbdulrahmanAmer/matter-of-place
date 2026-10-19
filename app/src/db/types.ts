@@ -605,6 +605,20 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"inbound_mail": {
+                  Row: {
+                    "alias": string | null,"attachments": (string)[],"body": string,"created_at": string,"folder": string,"from_email": string | null,"from_name": string | null,"id": string,"owner_slug": string | null,"provider_id": string,"received_at": string,"report": Json | null,"service": string | null,"source": string,"state": string,"subject": string,"summary": string,"triage": Json | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alias"?: string | null,"attachments"?: (string)[],"body"?: string,"created_at"?: string,"folder": string,"from_email"?: string | null,"from_name"?: string | null,"id"?: string,"owner_slug"?: string | null,"provider_id": string,"received_at": string,"report"?: Json | null,"service"?: string | null,"source": string,"state"?: string,"subject"?: string,"summary"?: string,"triage"?: Json | null
+                  }
+                  Update: {
+                    "alias"?: string | null,"attachments"?: (string)[],"body"?: string,"created_at"?: string,"folder"?: string,"from_email"?: string | null,"from_name"?: string | null,"id"?: string,"owner_slug"?: string | null,"provider_id"?: string,"received_at"?: string,"report"?: Json | null,"service"?: string | null,"source"?: string,"state"?: string,"subject"?: string,"summary"?: string,"triage"?: Json | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"inquiries": {
                   Row: {
                     "anonymised_at": string | null,"assigned_to": string | null,"attribution": NonNullable<Json>,"details": NonNullable<Json>,"email": string,"forwarded_at": string | null,"forwarded_payload": Json | null,"id": string,"intent": Database["public"]['Enums']["inquiry_intent"],"ip_hash": string | null,"location": string | null,"message": string,"name": string,"phone": string | null,"received_at": string,"source_path": string,"state": Database["public"]['Enums']["inquiry_state"],"subject_kind": string | null,"subject_slug": string | null,"subject_title": string | null,"topic": string | null,"turnstile_ok": boolean
@@ -1826,6 +1840,9 @@ isOneToOne: false
                            },
 "health_cron_failures":
 { Args: { "p_since": string }; Returns: number
+                           },
+"inbound_mail_record":
+{ Args: { "p_alias": string,"p_attachments": (string)[],"p_body": string,"p_folder": string,"p_from": string,"p_line": string,"p_name": string,"p_provider_id": string,"p_received_at": string,"p_report": Json,"p_service": string,"p_source": string,"p_state": string,"p_subject": string,"p_summary": string }; Returns: string
                            },
 "is_last_admin":
 { Args: { "p_user_id": string }; Returns: boolean

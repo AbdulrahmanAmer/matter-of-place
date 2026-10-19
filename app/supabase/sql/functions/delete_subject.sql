@@ -16,6 +16,7 @@ declare
   v_inquiries uuid[];
   v_subscribers int;
   v_submissions int;
+  v_inbound int;
   v_counts jsonb;
 begin
   -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears
@@ -77,6 +78,15 @@ begin
     unsubscribed_at = coalesce(s.unsubscribed_at, now())
   where lower(s.email) = v_email;
   get diagnostics v_subscribers = row_count;
+  -- W8 0h review: the person's emails read from the mailbox keep their place and lose the address, name and words.
+  update public.inbound_mail m
+  set from_email = encode(sha256(convert_to(m.from_email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    from_name = null,
+    subject = '',
+    body = '',
+    attachments = '{}'
+  where lower(m.from_email) = v_email;
+  get diagnostics v_inbound = row_count;
 
   update public.subject_requests r
   set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor
@@ -85,7 +95,8 @@ begin
     'subscribers', v_subscribers,
     'inquiries', cardinality(v_inquiries),
     'contacts', cardinality(v_contacts),
-    'submissions', v_submissions
+    'submissions', v_submissions,
+    'inbound_mail', v_inbound
   );
   -- Ids and counts only (invariant 18): the audit trail keeps no copy of the address.
   perform public.write_audit(
