@@ -8788,3 +8788,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed 89d5bdc4 --kinds unit` selects only W8 0h's files and the entries anchored on them.
 - hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
+
+## P-3710 · Several keyset lists on one screen cannot share the address's `cursor`; the mutation `find` of a repeated line matches twice
+- symptom: W7 1: the Sent emails screen already had two parts and the page's one URL `cursor` belonged to Replies; adding pages to "Emails we sent" through `useUrlFilters` would have moved both lists at once. A registry `find` of `...(status === undefined ? {} : { status }),` occurred twice in the new part (the query and the filter form) and edit-impact printed STALE.
+- cause: `useUrlFilters` keeps exactly one `cursor`; InboundMailPart solved it with its own `trail` state. A line used in two places in a file is not a usable `find`.
+- rule: a second list on a screen keeps its own `trail` state (copy InboundMailPart) and is remounted by a `key` of its filters so a new filter starts on page one; give a registry `find` the line before or after it so it occurs once.
+- proof: `cd app && bunx vitest run --project unit tests/unit/emails.service.test.ts` → 14 passed; `node ~/.claude/hooks/edit-impact.mjs --changed .` prints no STALE for `tests/mutations/W7-1.json`.
+- added: 2026-10-19
+
+## P-3711 · A component test file can time out starting its worker (60 s) while an older one in the same project starts in 30 s
+- symptom: W7 1: `bunx vitest run --project component src/admin/audit/sent-emails.test.tsx` printed `Failed to start forks worker ... Timeout waiting for worker to respond` three times in a row (17:45, 17:48, 17:52), while `inbound-mail.test.tsx` of the same folder passed (3 tests, 30.78 s) right after.
+- cause: load (G-031), not the file. Two of the three failed runs overlapped `edit-impact.mjs --changed .` (it ran 2+ minutes); the fourth run, alone, passed in 13.57 s (3 passed). The file's imports equal inbound-mail.test.tsx's.
+- rule: run one component file at a time and never beside edit-impact; after two worker-start timeouts of the same file, run a sibling file to tell the machine from the file before a third try.
+- proof: `cd app && bunx vitest run --project component src/admin/audit/inbound-mail.test.tsx` → `3 passed`.
+- added: 2026-10-19

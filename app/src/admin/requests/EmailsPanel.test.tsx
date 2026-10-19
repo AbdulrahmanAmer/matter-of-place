@@ -20,6 +20,7 @@ const bounced: SubmissionEmails = {
       created_at: "2026-10-15T04:10:03Z",
       sent_at: "2026-10-15T04:10:03Z",
       delivered_at: "2026-10-15T04:10:04Z",
+      opened_at: null,
       suppressed: true,
     },
   ],

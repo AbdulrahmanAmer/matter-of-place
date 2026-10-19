@@ -28,6 +28,9 @@ const actor = (roles: AdminActor["roles"]): AdminActor => ({
   requestId: "req-emails",
 });
 
+const PAGE = { limit: 50 };
+const reader = actor(["chief_editor"]);
+
 const editor = actor(["managing_editor"]);
 const commercial = actor(["commercial"]);
 
@@ -57,8 +60,18 @@ const fairfield = () =>
       message({ id: "00000000-0000-4000-8000-0000000000e4", entity_id: OTHER, resend_id: "re_2" }),
     ],
     email_events: [
-      { resend_email_id: "re_1", type: "email.delivered", data: {} },
-      { resend_email_id: "re_1", type: "email.bounced", data: { bounce_type: "Permanent" } },
+      {
+        resend_email_id: "re_1",
+        type: "email.delivered",
+        at: "2026-10-15T04:10:04.343Z",
+        data: {},
+      },
+      {
+        resend_email_id: "re_1",
+        type: "email.bounced",
+        at: "2026-10-15T04:10:07.200Z",
+        data: { bounce_type: "Permanent" },
+      },
     ],
     email_suppressions: [{ email: ADDRESS, reason: "bounce", at: "2026-10-15T04:10:07.215Z" }],
   });
@@ -166,17 +179,127 @@ describe("sending an email again", () => {
 
 describe("the Sent emails screen", () => {
   it("lists every email with its delivery and the do-not-send list, for those who read the activity log", async () => {
-    const view = await listEmails(actor(["chief_editor"]), fairfield(), {});
+    const view = await listEmails(actor(["chief_editor"]), fairfield(), PAGE);
     expect(view.items).toHaveLength(2);
     expect(view.suppressions.map((row) => row.reason)).toEqual(["bounce"]);
-    expect(await outcome(listEmails(commercial, fairfield(), {}))).toEqual({
+    expect(await outcome(listEmails(commercial, fairfield(), PAGE))).toEqual({
       status: 403,
       code: "forbidden",
     });
   });
 });
 
+// Three emails, newest first: ONE (bounced), TWO (delivered, opened twice) and THREE (skipped, another address).
+const ONE = "00000000-0000-4000-8000-0000000000a1";
+const TWO = "00000000-0000-4000-8000-0000000000a2";
+const THREE = "00000000-0000-4000-8000-0000000000a3";
+
+const log = () =>
+  withTables(fakeDb(), {
+    email_messages: [
+      message({ id: ONE, resend_id: "re_a", created_at: "2026-10-15T12:00:00.000Z" }),
+      message({
+        id: TWO,
+        resend_id: "re_b",
+        status: "delivered",
+        created_at: "2026-10-15T11:00:00.000Z",
+      }),
+      message({
+        id: THREE,
+        resend_id: null,
+        to_email: "owner@example.com",
+        status: "skipped",
+        error: "suppressed",
+        created_at: "2026-10-15T10:00:00.000Z",
+      }),
+    ],
+    email_events: [
+      {
+        resend_email_id: "re_a",
+        type: "email.bounced",
+        at: "2026-10-15T12:00:05.000Z",
+        data: { bounce_type: "Permanent" },
+      },
+      { resend_email_id: "re_b", type: "email.opened", at: "2026-10-15T11:30:00.000Z", data: {} },
+      { resend_email_id: "re_b", type: "email.opened", at: "2026-10-15T11:05:00.000Z", data: {} },
+      {
+        resend_email_id: "re_b",
+        type: "email.delivered",
+        at: "2026-10-15T11:00:02.000Z",
+        data: {},
+      },
+    ],
+    email_suppressions: [{ email: ADDRESS, reason: "bounce", at: "2026-10-15T12:00:07.000Z" }],
+  });
+
+describe("the log of every email sent", () => {
+  it("lists the newest first with each one's bounce, first open and do-not-send state", async () => {
+    const { items } = await listEmails(reader, log(), PAGE);
+    expect(items.map((item) => item.id)).toEqual([ONE, TWO, THREE]);
+    expect(items.map((item) => [item.bounce_type, item.opened_at, item.suppressed])).toEqual([
+      ["Permanent", null, true],
+      [null, "2026-10-15T11:05:00.000Z", true],
+      [null, null, false],
+    ]);
+  });
+
+  it("pages with the cursor it gives, and ends with none", async () => {
+    const first = await listEmails(reader, log(), { limit: 2 });
+    expect(first.items.map((item) => item.id)).toEqual([ONE, TWO]);
+    expect(first.next_cursor).toBe(`2026-10-15T11:00:00.000Z~${TWO}`);
+    const last = await listEmails(reader, log(), { limit: 2, cursor: first.next_cursor ?? "" });
+    expect(last.items.map((item) => item.id)).toEqual([THREE]);
+    expect(last.next_cursor).toBeNull();
+  });
+
+  it("goes on from an email created at the same instant as the last one of the page before", async () => {
+    const [low, mid, high] = [ONE, TWO, THREE]; // their ids, smallest first
+    const db = withTables(fakeDb(), {
+      email_messages: [low, mid, high].map((id) => message({ id, resend_id: null })),
+      email_events: [],
+      email_suppressions: [],
+    });
+    const first = await listEmails(reader, db, { limit: 2 });
+    expect(first.items.map((item) => item.id)).toEqual([high, mid]);
+    const rest = await listEmails(reader, db, { limit: 2, cursor: first.next_cursor ?? "" });
+    expect(rest.items.map((item) => item.id)).toEqual([low]);
+  });
+
+  it("keeps the state and the address asked for on the page after the cursor", async () => {
+    const first = await listEmails(reader, log(), { limit: 1, status: "skipped" });
+    expect(first.items.map((item) => item.id)).toEqual([THREE]);
+    expect(first.next_cursor).toBeNull();
+    const byAddress = await listEmails(reader, log(), {
+      limit: 1,
+      search: ADDRESS.toUpperCase(),
+    });
+    expect(byAddress.items.map((item) => item.id)).toEqual([ONE]);
+    const rest = await listEmails(reader, log(), {
+      limit: 1,
+      search: ADDRESS,
+      cursor: byAddress.next_cursor ?? "",
+    });
+    expect(rest.items.map((item) => item.id)).toEqual([TWO]);
+    expect(rest.next_cursor).toBeNull();
+  });
+
+  it("refuses a cursor that is not one the list gave", async () => {
+    expect(await outcome(listEmails(reader, log(), { ...PAGE, cursor: "tomorrow" }))).toEqual({
+      status: 422,
+      code: "validation",
+    });
+  });
+});
+
 describe("what became of an email, in one sentence", () => {
+  it("says a delivered email was opened when an open came, and not before", async () => {
+    const { items } = await listEmails(reader, log(), PAGE);
+    const delivered = items.find((item) => item.id === TWO);
+    if (delivered === undefined) throw new Error("no delivered email");
+    expect(deliveryLine(delivered)).toBe("The confirmation was delivered and opened.");
+    expect(deliveryLine({ ...delivered, opened_at: null })).toBe("The confirmation was delivered.");
+  });
+
   it("names a transient bounce, a complaint, a skip and a failure plainly", () => {
     const base = {
       id: MESSAGE,
@@ -189,6 +312,7 @@ describe("what became of an email, in one sentence", () => {
       created_at: "2026-10-15T04:10:03.019Z",
       sent_at: null,
       delivered_at: null,
+      opened_at: null,
       suppressed: false,
     };
     expect([

@@ -51,7 +51,7 @@ const NOTICE_ROW = mail({
 
 function open(answers: Record<string, unknown>) {
   const requested = serve({
-    "GET /api/admin/emails": { items: [], suppressions: [] },
+    "GET /api/admin/emails": { items: [], next_cursor: null, suppressions: [] },
     "GET /api/admin/emails/replies": { items: [], next_cursor: null },
     ...answers,
   });
