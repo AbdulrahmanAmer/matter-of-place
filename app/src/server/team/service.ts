@@ -344,7 +344,11 @@ async function keepOrDelete<T>(db: Db, userId: string, write: () => Promise<T>):
  */
 function partialInvite(userId: string, given: readonly string[], failure: unknown): unknown {
   if (given.length === 0) return failure;
-  logLine("error", "team_invite_partial", { userId, code: fromRpcError(failure).code, given });
+  logLine("error", "team_invite_partial", {
+    userId,
+    code: fromRpcError(failure).code,
+    given: given.join(","),
+  });
   return new AppError(
     "team_write_failed",
     undefined,
