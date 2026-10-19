@@ -1,6 +1,8 @@
 import { z, type ZodType, type ZodTypeDef } from "zod";
 import { adminPageSchema } from "../../domain/admin-page.ts";
 import {
+  creditsInPackage,
+  creditValue,
   invoiceListRowSchema,
   issueInvoiceInput,
   markPaidInput,
@@ -258,7 +260,9 @@ export async function waive(actor: AdminActor, db: Db, raw: unknown): Promise<Pa
 
 /**
  * `POST /api/admin/submissions/:id/waive`: a credit or a comp, recorded with no invoice (DL-01, invariant 12), at the
- * price of the stored plan read straight from the table, as an invoice reads it.
+ * price of the stored plan read straight from the table, as an invoice reads it. A Five Features waiver is a credit
+ * spent (W6 item 8, ruling H137): it goes through `spend_client_credit`, which takes one from the contact's ledger in
+ * the same transaction, at the price of one property of the pack. Any other product is a comp.
  */
 export async function waiveWithoutInvoice(
   actor: AdminActor,
@@ -268,12 +272,25 @@ export async function waiveWithoutInvoice(
   authorize(actor, "payments.waive");
   const input = parse(waiveWithoutInvoiceRequest, raw);
   const { products } = await readInvoiceInputs(db);
+  const price = priceFor(products, input.product);
+  const credits = creditsInPackage(input.product);
+  if (credits !== null) {
+    return answer(
+      db,
+      await db.rpc("spend_client_credit", {
+        p_submission_id: input.id,
+        p_amount: creditValue(price, credits),
+        p_reason: input.reason,
+        ...auditContext(actor),
+      }),
+    );
+  }
   return answer(
     db,
     await db.rpc("record_waiver", {
       p_submission_id: input.id,
       p_product: input.product,
-      p_amount: priceFor(products, input.product),
+      p_amount: price,
       p_reason: input.reason,
       ...auditContext(actor),
     }),

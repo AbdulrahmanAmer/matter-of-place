@@ -2272,3 +2272,16 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 21:05 +0300: W6 item 8 builder (overdrive/w6-8, ruling H137). The client room has its four pages (`/account/properties`,
+  `/invoices`, `/credits`, `/reports`, a nav on each) and the credit ledger `client_credits` under them: a paid Five Features payment
+  buys five credits (trigger `payments_grant_credits`; the pack's own property uses the first, four left), the staff "Waive without
+  invoice" of a Five Features request spends one (`spend_client_credit`, `no_credit` when none), the table is append-only, the balance
+  is the sum. Reads: `account_properties/invoices/credits/reports` (service role only, through `app.contact_of`). Phase 2: photographs
+  added to a request until it is activated (`account_add_photos`, signed URLs, the submit form's upload queue). Proved on a native
+  PostgreSQL 18 built from all 156 migrations (scratch `od-w6-8-scratch`, port 55481): db tests client-credits (24), account-photos (8),
+  account, rls, schema, function-source, migration-headers; unit and component tests per page; registry `W6-8.json` 103 replays
+  WATCHED-FAIL OK. NOT DONE: Phase 2 approving the write-up and social posts (H137 (7): decision needed on whether approval holds
+  publication, silence, and the Meta app), a returned credit, `track()` for the room, a notice to the team when photographs arrive.
+  UNPROVEN: the functions on the cloud database, two requests spending the last credit at once, a browser upload into the real
+  bucket, the e2e walk `account-room.spec.ts` (written, not run), the CI `db` and `check` jobs (nothing was run locally: no tsc, eslint,
+  knip, build). Bank: P-4601..P-4605.

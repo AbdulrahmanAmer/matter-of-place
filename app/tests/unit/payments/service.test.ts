@@ -2,7 +2,11 @@ import "../../fixtures/worker-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Database, Tables } from "../../../src/db";
 import { appRoles } from "../../../src/domain/contracts";
-import { requiredInvoiceFields, sqlAssignedFields } from "../../../src/domain/payments";
+import {
+  creditValue,
+  requiredInvoiceFields,
+  sqlAssignedFields,
+} from "../../../src/domain/payments";
 import type { AdminActor } from "../../../src/server/lib/admin-route";
 import type { AppRole } from "../../../src/server/lib/authz";
 import { invoiceSnapshotSchema } from "../../../src/server/payments/invoice-layout";
@@ -395,6 +399,42 @@ describe("waiveWithoutInvoice (DL-01)", () => {
       },
     ]);
     expect(fanout.mock.calls.map(([, eventId]) => eventId)).toEqual([EVENT_ID]);
+  });
+
+  it("spends a credit for Five Features, at one property's share of the pack, and records no plain waiver", async () => {
+    const db = paymentsDb({ spend_client_credit: wrote });
+    const answer = await waiveWithoutInvoice(editor, db, {
+      id: SUBMISSION_ID,
+      product: "Five Features",
+      reason: "Five Features credit",
+    });
+    expect(answer).toEqual({ payment_id: PAYMENT_ID, event_id: EVENT_ID, jobs: expectedJobs });
+    expect(rpcCalls(db, "spend_client_credit")).toEqual([
+      {
+        p_submission_id: SUBMISSION_ID,
+        p_amount: creditValue(priceFor(seedProducts(), "Five Features"), 5),
+        p_reason: "Five Features credit",
+        p_actor: USER_ID,
+        p_actor_kind: "human",
+        p_request_id: "req-payments-unit",
+      },
+    ]);
+    expect(rpcCalls(db, "record_waiver")).toEqual([]);
+    expect(fanout.mock.calls.map(([, eventId]) => eventId)).toEqual([EVENT_ID]);
+  });
+
+  it("answers 409 no_credit when the contact holds no credit", async () => {
+    const db = paymentsDb({ spend_client_credit: () => raised("no_credit") });
+    expect(
+      await refusal(
+        waiveWithoutInvoice(editor, db, {
+          id: SUBMISSION_ID,
+          product: "Five Features",
+          reason: "Five Features credit",
+        }),
+      ),
+    ).toBe("409 no_credit");
+    expect(fanout).not.toHaveBeenCalled();
   });
 
   it("refuses Not sure yet and a 2-character reason with 422", async () => {

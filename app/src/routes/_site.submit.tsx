@@ -7,6 +7,9 @@ import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 
 export const Route = createFileRoute("/_site/submit")({
+  // The client room's "Submit my next property" opens the form with Five Features chosen (W6 item 8).
+  validateSearch: (search: Record<string, unknown>): { package?: "five-features" } =>
+    search["package"] === "five-features" ? { package: "five-features" } : {},
   head: ({ matches }) =>
     pageHead({
       title: "Submit a Property",
@@ -19,6 +22,7 @@ export const Route = createFileRoute("/_site/submit")({
 });
 
 function SubmitPage() {
+  const { package: chosen } = Route.useSearch();
   return (
     <main>
       <PageIntro
@@ -27,7 +31,7 @@ function SubmitPage() {
         text="Submitted as you would submit work to a publication. Every property is reviewed before anything else happens."
       />
       <div className="submit-page">
-        <SubmitWizard />
+        <SubmitWizard {...(chosen === "five-features" ? { chosenPackage: "Five Features" } : {})} />
       </div>
     </main>
   );

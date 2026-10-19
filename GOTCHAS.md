@@ -2123,6 +2123,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: a policy stores the function's oid, a `language sql`/`plpgsql` body stores text resolved at call time, and a body that only names tables records no dependency on them. `alter function ... set schema` is not flagged by `check-migrations.mjs` and drops nothing, so no gate catches the stale names.
 - rule: before moving a function, `git grep -n "public\.<name>"` across `supabase/sql/functions`, `tests`, `scripts` and the plans; regenerate every function that names it with `bun run db:fn`, repoint test SQL and registry `sql` entries, and make `db:reset` drop the new schema too. Replay every registry entry whose `sql` names the function.
 - proof: from `app/` with the dev profile, `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select d.refclassid::regclass, d.deptype from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = 'app.is_staff()'::regprocedure"` → `pg_namespace|n` only (measured 2026-10-03, B2 c9).
+- hit again: 2026-10-19, W6 item 8: the policy of `client_credits` was first written `using (public.is_staff())`, and applying the migrations stopped at it with `function public.is_staff() does not exist`. Write `app.is_staff()` in a new policy.
 - hit again: 2026-10-03, B3 g2: the move did not regenerate `src/db/types.ts`, so main's file still listed `is_staff` and `role_in` under `public`; the next `bun run gen:types` dropped them, and `bun run check` failed typecheck in `tests/unit/db.test.ts` and `tests/unit/fake-db.test.ts`, which used `is_staff` as a sample RPC (`Argument of type '"is_staff"' is not assignable`). Moving a function regenerates the types in the same commit; the two tests now call `public_state` and `record_webhook_receipt`.
 - added: 2026-10-03
 
@@ -8788,3 +8789,38 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed 89d5bdc4 --kinds unit` selects only W8 0h's files and the entries anchored on them.
 - hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
+
+## P-4601 · A route added without a build: the generator package writes `routeTree.gen.ts`, minus the plugin's last block
+- symptom: 2026-10-19, W6 item 8: four new routes (`_site.account.{properties,invoices,credits,reports}.tsx`) are typed by `src/routeTree.gen.ts` (G-001), which only `vite build` or `vite dev` writes, and the brief forbids a local build.
+- cause: the Start plugin calls `@tanstack/router-generator`; run alone, the generator writes the same tree but not the closing `declare module '@tanstack/react-start'` block that the Start plugin appends, so a first run deleted 10 lines.
+- rule: regenerate with a scratch script that imports `node_modules/@tanstack/router-generator/dist/esm/index.js` (`getConfig({ routesDirectory, generatedRouteTree, target: "react" }, root)`, then `new Generator({ config, root }).run()`), then put the last block back from `git show HEAD:app/src/routeTree.gen.ts`. The diff must be insertions only.
+- proof: `cd app && git diff --stat src/routeTree.gen.ts` → `84 insertions(+)` for four routes and no deletion (2026-10-19).
+- added: 2026-10-19
+
+## P-4602 · Types for an unmerged migration come from the native database through a copy of `gen-types.mjs`, run with bun
+- symptom: 2026-10-19, W6 item 8: a copy of `scripts/gen-types.mjs` pointed at the native cluster and started with `node` printed `Cannot find module '.../app/x'`.
+- cause: the script spawns `process.execPath x supabase gen types ...`, which is `bun x ...` only when bun runs it.
+- rule: copy the script to the scratch folder, make `source()` return `["--db-url", "postgresql://postgres@127.0.0.1:<port>/<db>?sslmode=disable"]`, give `APP` and `TYPES_DIR` absolute paths, run it with `bun`, and copy its output over `src/db/types.ts`; the diff against HEAD must hold only the new table and functions.
+- proof: `cd app && git diff --stat src/db/types.ts` → `67 insertions(+)` for one table and seven functions (2026-10-19).
+- added: 2026-10-19
+
+## P-4603 · A calendar day shown through a zone formatter moves back a day in the Americas
+- symptom: 2026-10-19, W6 item 8: the Reports component test expected "Oct 8, 2026 to Oct 14, 2026" and received "Oct 7, 2026 to Oct 13, 2026".
+- cause: a `date` column (`campaign_reports.period_start`) arrives as `2026-10-08`; `new Date("2026-10-08")` is midnight UTC, and `formatInZone` with an Eastern zone prints the evening before.
+- rule: a `date` column is shown with `calendarDay` (`account-format.ts`, `timeZone: "UTC"`); only a `timestamptz` goes through `accountDay` or `plainDay`.
+- proof: `cd app && node node_modules/vitest/vitest.mjs run --project component src/components/account/account-reports.test.tsx` is green, and the entry `w6-8-ui-reports-calendar` of `tests/mutations/W6-8.json` turns it red.
+- added: 2026-10-19
+
+## P-4604 · A registry `sql` entry whose `-t` fragment matches no test title reads as "stayed green"
+- symptom: 2026-10-19, W6 item 8: `w6-8-pack-once` replayed `WATCHED-FAIL BAD: stayed green` although its mutation removed both guards of the trigger.
+- cause: the fragment `touched again adds no row` is not a substring of the title `a payment already paid, touched again, adds no row` (the comma), so vitest ran no test and exited 0.
+- rule: copy the fragment from the title, commas included, and run the entry's command once without the mutation: it must say `Tests  1 passed`, never `0 passed`.
+- proof: with the fragment `touched again, adds no row` the replay prints `WATCHED-FAIL OK W6-8:w6-8-pack-once`.
+- added: 2026-10-19
+
+## P-4605 · Fixture facts for a room test: `publishedProperty` forces `published_at`, a takedown archives, `createSubmission` overwrites the contact's name
+- symptom: 2026-10-19, W6 item 8, first run of `client-credits.db.test.ts`: `properties_archived_pairing`, then `properties_published_pairing` refused the fixture, and the greeting name was "Fixture Submitter 947", not "Test Owner".
+- cause: `properties.editorial_state = 'archived'` requires `archived_at` and `'published'` requires `published_at` (a takedown clears the second), `publishedProperty` always sets `published_at`, and `createSubmission` upserts the contact with the name of the latest submission.
+- rule: a draft property is `publishedProperty(db, { n, editorial_state: "draft", published_at: null })`; a page is live when `editorial_state = 'published'` alone; a test of a room reads the contact's name from the answer rather than expecting one it typed.
+- proof: `grep -n "properties_published_pairing" app/supabase/migrations/20261001090300_catalog.sql` → line 162; `tests/db/client-credits.db.test.ts` case "a property that is not published has no live page" passes.
+- added: 2026-10-19

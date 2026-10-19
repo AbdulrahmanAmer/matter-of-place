@@ -1,7 +1,12 @@
 import "../fixtures/worker-env";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  addPhotos,
   readAccount,
+  readCredits,
+  readInvoices,
+  readProperties,
+  readReports,
   sendAccountLink,
   signOutAccount,
   verifyAccountLink,
@@ -13,6 +18,7 @@ import { hashKey } from "../../src/server/lib/ids";
 import { checkDb, checkMemory } from "../../src/server/lib/ratelimit";
 import { getSessionUser, takeIssuedCookies } from "../../src/server/lib/session";
 import { verifyTurnstile } from "../../src/server/lib/turnstile";
+import { signUpload } from "../../src/server/submissions/service";
 import { fakeDb, type FakeDbOptions } from "../fixtures/fake-db";
 
 // W6 item 7, ruling H119: the client room's service. The room reads `account_room` with the verified session's user
@@ -32,6 +38,7 @@ vi.mock("../../src/server/lib/session", () => ({
 vi.mock("../../src/server/lib/actor", () => ({ enabledRoles: vi.fn() }));
 vi.mock("../../src/server/lib/turnstile", () => ({ verifyTurnstile: vi.fn() }));
 vi.mock("../../src/server/lib/ratelimit", () => ({ checkMemory: vi.fn(), checkDb: vi.fn() }));
+vi.mock("../../src/server/submissions/service", () => ({ signUpload: vi.fn() }));
 
 const USER = "00000000-0000-4000-8000-0000000000a1";
 const REQUEST_ID = "00000000-0000-4000-8000-0000000000b1";
@@ -106,6 +113,151 @@ describe("readAccount", () => {
     vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
     const db = fakeDb({ rpc: { account_room: () => null } });
     expect(await readAccount(db, post().request)).toEqual({ state: "unknown" });
+  });
+});
+
+// W6 item 8, ruling H137: the room's four pages. Each reads its own function with the session's user and nothing else,
+// answers the sign-in form without a session, and the calm "not found" state when no contact is the session's.
+describe.each([
+  {
+    page: "My properties",
+    read: readProperties,
+    rpc: "account_properties",
+    data: { properties: [] },
+  },
+  { page: "Invoices", read: readInvoices, rpc: "account_invoices", data: { invoices: [] } },
+  {
+    page: "Credits",
+    read: readCredits,
+    rpc: "account_credits",
+    data: { balance: 0, purchased: 0, used: 0, entries: [] },
+  },
+  { page: "Reports", read: readReports, rpc: "account_reports", data: { properties: [] } },
+])("the $page page", ({ read, rpc, data }) => {
+  it("shows the sign-in form without a session, and reads nothing", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue(null);
+    const db = fakeDb();
+    expect(await read(db, post().request)).toEqual({ state: "signed-out" });
+    expect(db.calls).toEqual([]);
+  });
+
+  it("reads its own function for the session's own user and names whose room it is", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
+    const db = fakeDb({ rpc: { [rpc]: () => ({ name: "Test Owner", email: EMAIL, ...data }) } });
+    expect(await read(db, post().request)).toEqual({
+      state: "room",
+      name: "Test Owner",
+      email: EMAIL,
+      ...data,
+    });
+    expect(db.calls).toEqual([{ kind: "rpc", name: rpc, args: [{ p_user: USER }] }]);
+  });
+
+  it("says the account was not found when no contact is the session's", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
+    const db = fakeDb({ rpc: { [rpc]: () => null } });
+    expect(await read(db, post().request)).toEqual({ state: "unknown" });
+  });
+
+  it("refuses an answer that is not the page's shape instead of showing it", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
+    const db = fakeDb({ rpc: { [rpc]: () => ({ name: "Test Owner", email: EMAIL, junk: 1 }) } });
+    await expect(read(db, post().request)).rejects.toThrow();
+  });
+});
+
+// W6 item 8 (phase 2), ruling H137: photographs added to an open request. The session's own user is the only one the
+// database is asked about, the files are signed only after the database declared them, and a refusal signs nothing.
+describe("addPhotos", () => {
+  const SUBMISSION = "00000000-0000-4000-8000-0000000000c1";
+  const MEDIA = [
+    "00000000-0000-4000-8000-0000000000d1",
+    "00000000-0000-4000-8000-0000000000d2",
+  ] as const;
+  const photos = {
+    submission_id: SUBMISSION,
+    media: [
+      { name: "front.jpg", size: 1000, type: "image/jpeg" as const },
+      { name: "back.heic", size: 2000, type: "image/heic" as const },
+    ],
+  };
+  const declared = () => [
+    { media_id: MEDIA[0], index: 0, storage_path: `${SUBMISSION}/${MEDIA[0]}.jpg` },
+    { media_id: MEDIA[1], index: 1, storage_path: `${SUBMISSION}/${MEDIA[1]}.heic` },
+  ];
+
+  beforeEach(() => {
+    vi.mocked(signUpload)
+      .mockReset()
+      .mockImplementation((_db, _submission, media) =>
+        Promise.resolve({
+          url: `https://storage.test/${media}`,
+          thumb_url: `https://storage.test/${media}.thumb`,
+        }),
+      );
+  });
+
+  it("declares the photographs for the session's own user and signs each, matched to the list by position", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
+    const db = fakeDb({ rpc: { account_add_photos: declared } });
+    expect(await addPhotos(db, post().request, photos)).toEqual({
+      uploads: [
+        {
+          media_id: MEDIA[0],
+          index: 0,
+          url: `https://storage.test/${MEDIA[0]}`,
+          thumb_url: `https://storage.test/${MEDIA[0]}.thumb`,
+        },
+        {
+          media_id: MEDIA[1],
+          index: 1,
+          url: `https://storage.test/${MEDIA[1]}`,
+          thumb_url: `https://storage.test/${MEDIA[1]}.thumb`,
+        },
+      ],
+    });
+    expect(db.calls).toEqual([
+      {
+        kind: "rpc",
+        name: "account_add_photos",
+        args: [{ p_user: USER, p_submission_id: SUBMISSION, p_media: photos.media }],
+      },
+    ]);
+    expect(vi.mocked(signUpload).mock.calls.map(([, , media, path]) => [media, path])).toEqual(
+      declared().map((entry) => [entry.media_id, entry.storage_path]),
+    );
+  });
+
+  it("refuses a post from another origin before anything is read or written", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
+    const db = fakeDb();
+    await expect(
+      addPhotos(db, post({ origin: "https://evil.example" }).request, photos),
+    ).rejects.toMatchObject({
+      code: "csrf",
+    });
+    expect(db.calls).toEqual([]);
+  });
+
+  it("asks a person without a session to sign in, and touches nothing", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue(null);
+    const db = fakeDb();
+    await expect(addPhotos(db, post().request, photos)).rejects.toMatchObject({
+      code: "session_expired",
+    });
+    expect(db.calls).toEqual([]);
+    expect(vi.mocked(signUpload)).not.toHaveBeenCalled();
+  });
+
+  it("signs nothing when the database refuses the request (not theirs, not open, over the limit)", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
+    const db = fakeDb({
+      rpc: { account_add_photos: () => Object.assign(new Error("wrong_state"), { code: "P0001" }) },
+    });
+    await expect(addPhotos(db, post().request, photos)).rejects.toMatchObject({
+      code: "wrong_state",
+    });
+    expect(vi.mocked(signUpload)).not.toHaveBeenCalled();
   });
 });
 

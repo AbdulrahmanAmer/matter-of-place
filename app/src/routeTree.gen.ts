@@ -51,6 +51,10 @@ import { Route as SiteMarketRegionRouteImport } from './routes/_site.$market.$re
 import { Route as SiteMarketGuideRouteImport } from './routes/_site.$market.guide'
 import { Route as SiteAccountIndexRouteImport } from './routes/_site.account.index'
 import { Route as SiteAccountConfirmRouteImport } from './routes/_site.account.confirm'
+import { Route as SiteAccountCreditsRouteImport } from './routes/_site.account.credits'
+import { Route as SiteAccountInvoicesRouteImport } from './routes/_site.account.invoices'
+import { Route as SiteAccountPropertiesRouteImport } from './routes/_site.account.properties'
+import { Route as SiteAccountReportsRouteImport } from './routes/_site.account.reports'
 import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
 import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
 import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
@@ -490,6 +494,26 @@ const SiteAccountIndexRoute = SiteAccountIndexRouteImport.update({
 const SiteAccountConfirmRoute = SiteAccountConfirmRouteImport.update({
   id: '/account/confirm',
   path: '/account/confirm',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountCreditsRoute = SiteAccountCreditsRouteImport.update({
+  id: '/account/credits',
+  path: '/account/credits',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountInvoicesRoute = SiteAccountInvoicesRouteImport.update({
+  id: '/account/invoices',
+  path: '/account/invoices',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountPropertiesRoute = SiteAccountPropertiesRouteImport.update({
+  id: '/account/properties',
+  path: '/account/properties',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountReportsRoute = SiteAccountReportsRouteImport.update({
+  id: '/account/reports',
+  path: '/account/reports',
   getParentRoute: () => SiteRoute,
 } as any)
 const SiteMarketsIndexRoute = SiteMarketsIndexRouteImport.update({
@@ -1802,6 +1826,10 @@ export interface FileRoutesByFullPath {
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
+  '/account/credits': typeof SiteAccountCreditsRoute
+  '/account/invoices': typeof SiteAccountInvoicesRoute
+  '/account/properties': typeof SiteAccountPropertiesRoute
+  '/account/reports': typeof SiteAccountReportsRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
@@ -2069,6 +2097,10 @@ export interface FileRoutesByTo {
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
+  '/account/credits': typeof SiteAccountCreditsRoute
+  '/account/invoices': typeof SiteAccountInvoicesRoute
+  '/account/properties': typeof SiteAccountPropertiesRoute
+  '/account/reports': typeof SiteAccountReportsRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
@@ -2342,6 +2374,10 @@ export interface FileRoutesById {
   '/_site/$market/$region': typeof SiteMarketRegionRoute
   '/_site/$market/guide': typeof SiteMarketGuideRoute
   '/_site/account/confirm': typeof SiteAccountConfirmRoute
+  '/_site/account/credits': typeof SiteAccountCreditsRoute
+  '/_site/account/invoices': typeof SiteAccountInvoicesRoute
+  '/_site/account/properties': typeof SiteAccountPropertiesRoute
+  '/_site/account/reports': typeof SiteAccountReportsRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
@@ -2615,6 +2651,10 @@ export interface FileRouteTypes {
     | '/$market/$region'
     | '/$market/guide'
     | '/account/confirm'
+    | '/account/credits'
+    | '/account/invoices'
+    | '/account/properties'
+    | '/account/reports'
     | '/markets/$'
     | '/property/$slug'
     | '/stories/$slug'
@@ -2882,6 +2922,10 @@ export interface FileRouteTypes {
     | '/$market/$region'
     | '/$market/guide'
     | '/account/confirm'
+    | '/account/credits'
+    | '/account/invoices'
+    | '/account/properties'
+    | '/account/reports'
     | '/markets/$'
     | '/property/$slug'
     | '/stories/$slug'
@@ -3154,6 +3198,10 @@ export interface FileRouteTypes {
     | '/_site/$market/$region'
     | '/_site/$market/guide'
     | '/_site/account/confirm'
+    | '/_site/account/credits'
+    | '/_site/account/invoices'
+    | '/_site/account/properties'
+    | '/_site/account/reports'
     | '/_site/markets/$'
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
@@ -3799,6 +3847,34 @@ declare module '@tanstack/react-router' {
       path: '/account/confirm'
       fullPath: '/account/confirm'
       preLoaderRoute: typeof SiteAccountConfirmRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/credits': {
+      id: '/_site/account/credits'
+      path: '/account/credits'
+      fullPath: '/account/credits'
+      preLoaderRoute: typeof SiteAccountCreditsRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/invoices': {
+      id: '/_site/account/invoices'
+      path: '/account/invoices'
+      fullPath: '/account/invoices'
+      preLoaderRoute: typeof SiteAccountInvoicesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/properties': {
+      id: '/_site/account/properties'
+      path: '/account/properties'
+      fullPath: '/account/properties'
+      preLoaderRoute: typeof SiteAccountPropertiesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/reports': {
+      id: '/_site/account/reports'
+      path: '/account/reports'
+      fullPath: '/account/reports'
+      preLoaderRoute: typeof SiteAccountReportsRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/markets/': {
@@ -5466,6 +5542,10 @@ interface SiteRouteChildren {
   SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SiteAccountConfirmRoute: typeof SiteAccountConfirmRoute
+  SiteAccountCreditsRoute: typeof SiteAccountCreditsRoute
+  SiteAccountInvoicesRoute: typeof SiteAccountInvoicesRoute
+  SiteAccountPropertiesRoute: typeof SiteAccountPropertiesRoute
+  SiteAccountReportsRoute: typeof SiteAccountReportsRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
   SiteAccountIndexRoute: typeof SiteAccountIndexRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
@@ -5493,6 +5573,10 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
   SiteAccountConfirmRoute: SiteAccountConfirmRoute,
+  SiteAccountCreditsRoute: SiteAccountCreditsRoute,
+  SiteAccountInvoicesRoute: SiteAccountInvoicesRoute,
+  SiteAccountPropertiesRoute: SiteAccountPropertiesRoute,
+  SiteAccountReportsRoute: SiteAccountReportsRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
   SiteAccountIndexRoute: SiteAccountIndexRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,

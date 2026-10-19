@@ -1,10 +1,17 @@
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
-import type { z } from "zod";
+import { z } from "zod";
 import {
+  accountCreditsSchema,
+  type accountPhotosInput,
+  type AccountPhotosAnswer,
+  accountInvoicesSchema,
+  accountPropertiesSchema,
+  accountReportsSchema,
   accountRoomSchema,
   type AccountConfirmStatus,
   type accountConfirmInput,
   type accountLinkInput,
+  type AccountPage,
   type AccountView,
 } from "../../domain/account.ts";
 import { enabledRoles } from "../lib/actor.ts";
@@ -17,7 +24,9 @@ import { clientIp, hashKey } from "../lib/ids.ts";
 import { enqueueJob } from "../lib/jobs.ts";
 import { logLine } from "../lib/log.ts";
 import { checkDb, checkMemory } from "../lib/ratelimit.ts";
+import type { PostgrestError } from "@supabase/supabase-js";
 import { authClient, getSessionUser, takeIssuedCookies } from "../lib/session.ts";
+import { signUpload } from "../submissions/service.ts";
 import { verifyTurnstile } from "../lib/turnstile.ts";
 import { carriesWaitUntil, waitUntilOf } from "../lib/wait-until.ts";
 
@@ -148,13 +157,76 @@ export async function verifyAccountLink(
 }
 
 /** The room of the signed-in person, the "not found" state when no contact is theirs, or the sign-in form. */
-export async function readAccount(db: Db, request: Request): Promise<AccountView> {
+export const readAccount = (db: Db, request: Request): Promise<AccountView> =>
+  readPage(request, accountRoomSchema, (p_user) => db.rpc("account_room", { p_user }));
+
+/**
+ * One page of the room (W6 item 8, ruling H137): what `read` answers for the signed-in person, parsed with the page's
+ * schema. A function per page, each through `app.contact_of`; the Worker passes the verified session's user, never a
+ * browser value. Null from the database is a session with no contact.
+ */
+async function readPage<T extends z.ZodType<{ name: string; email: string }>>(
+  request: Request,
+  schema: T,
+  read: (userId: string) => PromiseLike<{ data: unknown; error: PostgrestError | null }>,
+): Promise<AccountPage<z.output<T>>> {
   const user = await getSessionUser(request);
   if (user === null) return { state: "signed-out" };
-  const { data, error } = await db.rpc("account_room", { p_user: user.userId });
+  const { data, error } = await read(user.userId);
   if (error !== null) throw fromRpcError(error);
-  const room = accountRoomSchema.nullable().parse(data);
-  return room === null ? { state: "unknown" } : { state: "room", ...room };
+  const page = schema.nullable().parse(data);
+  return page === null ? { state: "unknown" } : { state: "room", ...page };
+}
+
+/** My properties: each request with the dates of its timeline and the live page once there is one. */
+export const readProperties = (db: Db, request: Request) =>
+  readPage(request, accountPropertiesSchema, (p_user) => db.rpc("account_properties", { p_user }));
+
+/** Invoices: owed and paid, newest first. */
+export const readInvoices = (db: Db, request: Request) =>
+  readPage(request, accountInvoicesSchema, (p_user) => db.rpc("account_invoices", { p_user }));
+
+/** Credits: the Five Features balance and the ledger behind it. */
+export const readCredits = (db: Db, request: Request) =>
+  readPage(request, accountCreditsSchema, (p_user) => db.rpc("account_credits", { p_user }));
+
+/** Reports: campaign results, page views and inquiry counts for the client's properties. */
+export const readReports = (db: Db, request: Request) =>
+  readPage(request, accountReportsSchema, (p_user) => db.rpc("account_reports", { p_user }));
+
+const addedPhotosSchema = z.array(
+  z.object({ media_id: z.string().uuid(), index: z.number().int(), storage_path: z.string() }),
+);
+
+/**
+ * Photographs added to one of the signed-in person's open requests (W6 item 8, phase 2, ruling H137): the rows are
+ * declared by `account_add_photos`, which checks the request is theirs and not yet live, then each file gets a signed
+ * URL to put its bytes at; the `reconcile` job settles it once the object is there.
+ */
+export async function addPhotos(
+  db: Db,
+  request: Request,
+  input: z.output<typeof accountPhotosInput>,
+): Promise<AccountPhotosAnswer> {
+  if (!sameOrigin(request)) throw foreignOrigin();
+  const user = await getSessionUser(request);
+  if (user === null) throw new AppError("session_expired", undefined, "Please sign in again.");
+  const { data, error } = await db.rpc("account_add_photos", {
+    p_user: user.userId,
+    p_submission_id: input.submission_id,
+    p_media: input.media,
+  });
+  if (error !== null) throw fromRpcError(error);
+  const added = addedPhotosSchema.parse(data);
+  return {
+    uploads: await Promise.all(
+      added.map(async (photo) => ({
+        media_id: photo.media_id,
+        index: photo.index,
+        ...(await signUpload(db, input.submission_id, photo.media_id, photo.storage_path)),
+      })),
+    ),
+  };
 }
 
 /**

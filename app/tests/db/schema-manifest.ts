@@ -448,6 +448,16 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     created_at: "timestamptz",
     updated_at: "timestamptz",
   },
+  client_credits: {
+    id: "uuid",
+    contact_id: "uuid",
+    kind: "text",
+    quantity: "integer",
+    payment_id: "uuid",
+    submission_id: "uuid?",
+    note: "text?",
+    created_at: "timestamptz",
+  },
   rate_limits: {
     id: "bigint",
     bucket: "text",
