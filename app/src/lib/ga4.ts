@@ -20,6 +20,29 @@ function whenIdle(run: () => void): void {
 }
 
 /**
+ * The events that count as leads in GA4, where each is marked a key event (operator, 2026-10-19). Every other event
+ * stays first-party only (`/events`).
+ */
+export const ga4LeadEvents = [
+  "contact_inquiry",
+  "submit_property",
+  "interest_signup",
+  "newsletter_signup",
+  "package_interest",
+] as const;
+
+/**
+ * Sends a lead to GA4 by its name alone, so no address, name or message leaves for Google, and only while the visitor's
+ * consent holds and gtag.js is in the page. Returns whether it was sent.
+ */
+export function sendGa4Lead(event: string): boolean {
+  if (!(ga4LeadEvents as readonly string[]).includes(event) || !consentGranted() || !loaded())
+    return false;
+  gtag("event", event);
+  return true;
+}
+
+/**
  * Loads gtag.js once, after the browser is idle, while `consentGranted()` holds; a call after the script is in the
  * page does nothing. Google signals and ad personalization are off in the first `config` entry.
  */
