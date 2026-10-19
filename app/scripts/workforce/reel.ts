@@ -472,6 +472,23 @@ export type ReelDeps = {
   readFile: (path: string) => Uint8Array;
 };
 
+/** A requested visual's own subject column (E1's check), for `record_requested_reel` and `record_requested_asset`. */
+export function subjectArgs(request: {
+  property_id?: string;
+  market?: string;
+  story_id?: string;
+}): {
+  p_property?: string;
+  p_market?: string;
+  p_story?: string;
+} {
+  return {
+    ...(request.property_id === undefined ? {} : { p_property: request.property_id }),
+    ...(request.market === undefined ? {} : { p_market: request.market }),
+    ...(request.story_id === undefined ? {} : { p_story: request.story_id }),
+  };
+}
+
 export const hash8 = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex").slice(0, 8);
 
@@ -599,9 +616,7 @@ export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise
         studio: folder,
         requested_by: brief.from.agent,
       },
-      ...(request.property_id === undefined ? {} : { p_property: request.property_id }),
-      ...(request.market === undefined ? {} : { p_market: request.market }),
-      ...(request.story_id === undefined ? {} : { p_story: request.story_id }),
+      ...subjectArgs(request),
     });
     if (error !== null) throw new Error(`record_failed: ${error.message}`);
     writeBrief(folder, { ...brief, state: "done", asset_id: assetId });

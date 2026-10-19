@@ -39,6 +39,7 @@ import {
   readVerdict,
   REVISIONS,
   STUDIO,
+  subjectArgs,
   writeBrief,
   type Brief,
 } from "./reel.ts";
@@ -530,15 +531,14 @@ export async function postPass(deps: PostDeps, studio: string = STUDIO): Promise
         request,
         // Approvals and the retention of rejected visuals find a requested visual by this id
         request_id: brief.id,
+        studio: folder,
+        requested_by: brief.from.agent,
         captions: written.captions,
         caption_lint: "passed",
         ...(made.design.slide_alts === undefined ? {} : { slide_alts: made.design.slide_alts }),
         note: made.design.note,
-        studio: folder,
-        requested_by: brief.from.agent,
       },
-      ...(request.market === undefined ? {} : { p_market: request.market }),
-      ...(request.story_id === undefined ? {} : { p_story: request.story_id }),
+      ...subjectArgs(request),
     });
     if (error !== null) throw new Error(`record_failed: ${error.message}`);
     writeBrief(folder, { ...brief, state: "done", asset_id: assetId });
