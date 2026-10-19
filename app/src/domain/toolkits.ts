@@ -104,7 +104,7 @@ export function toolkitWords(toolkit: Toolkit, tools: readonly string[]): string
     ...(toolkit.write.length === 0 && toolkit.render.length === 0
       ? []
       : ["Writes and renders only on work a person started; otherwise it only reads."]),
-    // measured on the real CLI (GOTCHAS P-3577): with a shell, simple reads run inside its places, and so does a
+    // measured on the real CLI (GOTCHAS P-4511): with a shell, simple reads run inside its places, and so does a
     // redirect into a place it may write
     toolkit.render.length === 0
       ? "No command, no keys, nothing sent outside the company without a person's approval."

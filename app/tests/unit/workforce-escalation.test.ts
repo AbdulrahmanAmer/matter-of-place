@@ -15,6 +15,7 @@ import {
   EXPLANATION_MAX,
   explainsHeld,
   handToMatter,
+  handUnavailableOwners,
   OWNER_UNAVAILABLE,
   OWNER_UNAVAILABLE_SUMMARY,
   ownerExplanation,
@@ -188,6 +189,7 @@ interface Query {
   or(filter: string): Query;
   order(column: string, options?: { ascending?: boolean }): Query;
   limit(count: number): Query;
+  select(columns?: string): Query;
   single(): Promise<Answer>;
   maybeSingle(): Promise<Answer>;
   then(done: (answer: Answer) => unknown, fail?: (reason: unknown) => unknown): Promise<unknown>;
@@ -258,6 +260,8 @@ function memoryDb(
         cap = count;
         return built;
       },
+      // `update(...).select()` answers with the rows it changed (the update below already does)
+      select: () => built,
       single: () => {
         const [row] = found();
         return Promise.resolve(
@@ -310,36 +314,45 @@ function memoryDb(
     });
   };
 
+  // a test's side effect just before a table is read: another runner acting between two of the runner's own reads
+  const hooks: { beforeRead?: (table: string) => void } = {};
   const client = {
     from: (table: string) => ({
-      select: (_columns?: string, options?: { head?: boolean }) =>
-        query(table, (rows) => ({
+      select: (_columns?: string, options?: { head?: boolean }) => {
+        hooks.beforeRead?.(table);
+        return query(table, (rows) => ({
           data: options?.head === true ? null : rows.map((row) => ({ ...row })),
           count: rows.length,
           error: null,
-        })),
+        }));
+      },
       update: (patch: Row) =>
         query(table, (rows) => {
           // a column whose migration has not reached the database yet: the whole update is refused, as Postgres does
           if (Object.keys(patch).some((column) => absent.has(column)))
             return { data: null, error: new Error("column does not exist") };
           for (const row of rows) Object.assign(row, patch);
-          return { data: null, error: null };
+          return { data: rows.map((row) => ({ ...row })), error: null };
         }),
       insert: (input: Row | Row[]) => insert(table, input),
       upsert: (input: Row | Row[]) => insert(table, input),
     }),
     rpc: (name: string) => {
       if (name !== "claim_agent_run") throw new Error(`unexpected rpc ${name}`);
+      // as the function does: only an idle or working colleague takes a run
+      const available = (run: Row) =>
+        ["idle", "working"].includes(
+          text(rowsOf("agents").find((agent) => agent["id"] === run["agent_id"])?.["state"]) ?? "",
+        );
       const [next] = rowsOf("agent_runs")
-        .filter((row) => row["state"] === "queued")
+        .filter((row) => row["state"] === "queued" && available(row))
         .sort((a, b) => (text(a["created_at"]) ?? "").localeCompare(text(b["created_at"]) ?? ""));
       if (next !== undefined) Object.assign(next, { state: "running", started_at: stamp() });
       return Promise.resolve({ data: next === undefined ? [] : [{ ...next }], error: null });
     },
   };
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the one cast of the in-memory client
-  return { db: client as unknown as Db, tables, insert };
+  return { db: client as unknown as Db, tables, insert, hooks };
 }
 
 const agentRow = (id: string, slug: string, name: string, tools: string[]): Row => ({
@@ -601,6 +614,60 @@ describe("W8 0d: a held message is explained by its owner, then decided by Matte
     expect(room.runsOn(CONCIERGE_ID, held?.["id"])[0]?.["summary"]).toBe(
       "Explained an outside message held for Matter",
     );
+  });
+
+  it("leaves the queued runs of a paused or off owner on other lines alone", async () => {
+    for (const state of ["paused", "off"]) {
+      const room = office();
+      // a person's message to the colleague and an email reply: queued by the database, never held lines
+      const lines = [
+        { author_kind: "human", author_id: "operator", body: "Please look at the Malibu inquiry." },
+        { author_kind: "system", author_id: "email", body: "A reply came in by email." },
+      ];
+      const queued: unknown[] = [];
+      for (const line of lines) {
+        const { data } = await room
+          .insert("agent_messages", { thread: "concierge", author_name: "x", ...line })
+          .select();
+        const messageId = data[0]?.["id"];
+        void room.insert("agent_runs", {
+          agent_id: CONCIERGE_ID,
+          cause: "message",
+          message_id: messageId,
+        });
+        queued.push(messageId);
+      }
+      for (const agent of room.rows("agents"))
+        if (agent["id"] === CONCIERGE_ID) agent["state"] = state;
+      expect(await handUnavailableOwners(room.db)).toBe(0);
+      expect(await runOnce(room.db)).toBe(false);
+      for (const messageId of queued) {
+        expect(room.runsOn(CONCIERGE_ID, messageId).map((run) => run["state"])).toEqual(["queued"]);
+        expect(room.runsOn(MATTER_ID, messageId)).toEqual([]);
+      }
+      expect(room.bodies("system")).not.toContain(OWNER_UNAVAILABLE);
+      expect(cli.prompts).toEqual([]);
+    }
+  });
+
+  it("leaves an explanation run alone when another runner claimed it since the sweep read it", async () => {
+    answers(matterSays({ allow: false }));
+    const room = office();
+    await runOnce(room.db);
+    const held = room.held();
+    for (const agent of room.rows("agents"))
+      if (agent["id"] === CONCIERGE_ID) agent["state"] = "paused";
+    // between the sweep's read of the queued runs and its update of one, the run is claimed elsewhere
+    room.hooks.beforeRead = (table) => {
+      if (table !== "agent_messages") return;
+      room.hooks.beforeRead = undefined;
+      for (const run of room.runsOn(CONCIERGE_ID, held?.["id"])) run["state"] = "running";
+    };
+    expect(await handUnavailableOwners(room.db)).toBe(0);
+    const ownerRun = room.runsOn(CONCIERGE_ID, held?.["id"])[0];
+    expect([ownerRun?.["state"], ownerRun?.["summary"] ?? null]).toEqual(["running", null]);
+    expect(room.bodies("system")).not.toContain(OWNER_UNAVAILABLE);
+    expect(room.runsOn(MATTER_ID, held?.["id"])).toEqual([]);
   });
 
   it("puts an explanation stopped by the usage limit back in the queue, with no Matter run yet", async () => {

@@ -1,9 +1,17 @@
 import { mkdtempSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { workforceOverride } from "../../scripts/workforce/config";
-import { liveAlive } from "../../scripts/matter/live-alive";
+import {
+  heartbeatStale,
+  isSupervisorCommand,
+  LOOP_STALE_MS,
+  liveAlive,
+  OUTSIDE_STALE_MS,
+  stalledSupervisorPid,
+} from "../../scripts/matter/live-alive";
+import { deadlineFetch } from "../../scripts/workforce/env";
 import {
   isIdle,
   liveArgs,
@@ -126,6 +134,80 @@ describe("rotation and the heartbeat", () => {
       false,
       false,
     ]);
+  });
+
+  it("lets the watchdog end a supervisor whose heartbeat is over ten minutes old, and only then (P-3702)", () => {
+    const file = join(mkdtempSync(join(tmpdir(), "mop-live-")), "live.heartbeat");
+    writeFileSync(file, "x");
+    const now = Date.now();
+    const fresh = heartbeatStale(file, now);
+    const nine = new Date(now - LOOP_STALE_MS + 60_000);
+    utimesSync(file, nine, nine);
+    const underLimit = heartbeatStale(file, now);
+    const eleven = new Date(now - LOOP_STALE_MS - 60_000);
+    utimesSync(file, eleven, eleven);
+    expect([
+      fresh,
+      underLimit,
+      heartbeatStale(file, now),
+      heartbeatStale(join(tmpdir(), "no-such-heartbeat"), now),
+    ]).toEqual([false, false, true, false]);
+  });
+
+  it("names the supervisor for the outside watchdog only when its heartbeat is silent fifteen minutes (P-3703)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mop-live-"));
+    const heartbeat = join(dir, "live.heartbeat");
+    const lock = join(dir, "live.lock");
+    writeFileSync(heartbeat, "x");
+    writeFileSync(lock, "4242");
+    const now = Date.now();
+    const fourteen = new Date(now - OUTSIDE_STALE_MS + 60_000);
+    utimesSync(heartbeat, fourteen, fourteen);
+    const underLimit = stalledSupervisorPid(lock, heartbeat, now);
+    const sixteen = new Date(now - OUTSIDE_STALE_MS - 60_000);
+    utimesSync(heartbeat, sixteen, sixteen);
+    const over = stalledSupervisorPid(lock, heartbeat, now);
+    writeFileSync(lock, "not a pid");
+    expect([underLimit, over, stalledSupervisorPid(lock, heartbeat, now)]).toEqual([
+      null,
+      4242,
+      null,
+    ]);
+  });
+
+  it("ends only a process whose command line is Matter's supervisor, never a reused process id (P-3703)", () => {
+    expect([
+      isSupervisorCommand(String.raw`"C:\bun.exe" scripts\matter\live.ts`),
+      isSupervisorCommand("bun scripts/matter/live.ts"),
+      isSupervisorCommand("bun scripts/workforce/daemon.ts"),
+      isSupervisorCommand(""),
+    ]).toEqual([true, true, false, false]);
+  });
+
+  it("gives up on a database call that never answers instead of waiting forever (P-3703)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      (_input: unknown, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(
+              init.signal?.reason instanceof Error ? init.signal.reason : new Error("aborted"),
+            );
+          });
+        }),
+    );
+    try {
+      const call = deadlineFetch(200)("https://example.invalid/rest/v1/agents").then(
+        () => "answered",
+        (error: unknown) => (error instanceof Error ? error.name : "other"),
+      );
+      const waited = new Promise<string>((settle) =>
+        setTimeout(() => settle("still waiting"), 2_000),
+      );
+      expect(await Promise.race([call, waited])).toBe("TimeoutError");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

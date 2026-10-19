@@ -43,5 +43,41 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
     "expect": "× .*reads the operator's order to set the allowance aside"
+  },
+  {
+    "id": "w8-runner-watchdog-stale",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live-alive.ts",
+    "find": "    return now - statSync(file).mtimeMs > maxMs;",
+    "replace": "    return now - statSync(file).mtimeMs > maxMs * 100;",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*lets the watchdog end a supervisor whose heartbeat is over ten minutes old"
+  },
+  {
+    "id": "w8-runner-outside-watchdog",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live-alive.ts",
+    "find": "  if (!heartbeatStale(heartbeat, now, OUTSIDE_STALE_MS)) return null;",
+    "replace": "  if (!heartbeatStale(heartbeat, now, OUTSIDE_STALE_MS * 100)) return null;",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*names the supervisor for the outside watchdog only when its heartbeat is silent fifteen minutes"
+  },
+  {
+    "id": "w8-runner-outside-watchdog-command",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/matter/live-alive.ts",
+    "find": "  return /matter[\\\\/]live\\.ts/.test(commandLine);",
+    "replace": "  return commandLine !== \"\";",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*ends only a process whose command line is Matter's supervisor"
+  },
+  {
+    "id": "w8-runner-db-deadline",
+    "test": "tests/unit/matter-live.test.ts",
+    "file": "scripts/workforce/env.ts",
+    "find": "      return fetch(input, { ...init, signal });",
+    "replace": "      return fetch(input, init ?? {});",
+    "run": "bunx vitest run --project unit tests/unit/matter-live.test.ts",
+    "expect": "× .*gives up on a database call that never answers"
   }
 ]

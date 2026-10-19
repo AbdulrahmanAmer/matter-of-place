@@ -34,7 +34,7 @@ const MARKET_AREAS = "{account,brand,filters,forms,layout,property,search,site}"
 const ADMIN_FEATURES =
   "{assets,audit,automation,campaigns,channels,dashboard,inquiries,invoices,jobs,markets,media,newsletter,people,properties,reports,requests,settings,stories,team,ui,workforce}";
 const SERVER_DOMAINS =
-  "{account,assets,audit,automation,campaigns,catalog,channels,client-errors,concierge,dashboard,email,events,hooks,inquiries,jobs,kpi,markets,media,newsletter,nitro,omnikom,payments,people,previews,properties,public,reports,search,seo,settings,stories,subjects,submissions,subscribers,team,workforce}";
+  "{account,assets,audit,automation,campaigns,catalog,channels,client-errors,concierge,dashboard,email,events,hooks,inquiries,jobs,kpi,markets,media,newsletter,nitro,omnikom,payments,people,previews,properties,public,publishing,reports,search,seo,settings,stories,subjects,submissions,subscribers,team,workforce}";
 const UNIT_AREAS =
   "{assets,audit,automation,campaigns,channels,email,jobs,kpi,lib,newsletter,omnikom,payments,reel,reports,scripts,security}";
 
@@ -134,8 +134,8 @@ export const APP_ROWS = [
       "scripts/lib/*.{ts,mjs}",
       "scripts/{audit,harden,launch}/**/*.{ts,mjs}",
       // W1: the laptop runner of the AI colleagues, its hidden launcher and its installer.
-      "scripts/workforce/{answer.ts,bounce.ts,charter.ts,cli.ts,colleague-calls.ts,config.ts,criteria.ts,drive-copy.ts,daemon.ts,email-check.ts,env.ts,explain.ts,follow.ts,grounding.ts,growth.ts,hidden-run.vbs,hiring.ts,install.ps1,knowledge.ts,mail.ts,media.ts,meeting.ts,placement.ts,posture.ts,pull-images.ts,reel.ts,render-run.mjs,review.ts,scorecard.ts,site-facts.ts,toolkit-args.ts,triage.ts,usage-policy.ts}",
-      // H115: the live probes of the role toolkits on the real CLI, run by hand (GOTCHAS P-3577).
+      "scripts/workforce/{answer.ts,bounce.ts,charter.ts,cli.ts,colleague-calls.ts,config.ts,criteria.ts,daemon.ts,drive-copy.ts,email-check.ts,env.ts,explain.ts,follow.ts,grounding.ts,growth.ts,hidden-run.vbs,hiring.ts,inbound-mail.ts,install.ps1,knowledge.ts,mail-reports.ts,mail.ts,media.ts,meeting.ts,new-work.ts,placement.ts,posture.ts,proposed-post.ts,pull-images.ts,reel.ts,render-run.mjs,request-desk.ts,review.ts,scorecard.ts,service-notice.ts,site-facts.ts,toolkit-args.ts,triage.ts,usage-policy.ts}",
+      // H115: the live probes of the role toolkits on the real CLI, run by hand (GOTCHAS P-4511).
       "scripts/workforce/probes/toolkits.ts",
       "scripts/matter/{actions.ts,atlas.ts,key.ts,live.ts,live-alive.ts,read.ts,run.ts,settings.json,settings-full.json,system-map.ts}",
       "scripts/harden/checklist.json",

@@ -372,7 +372,7 @@
     "id": "w8-0i-runonce-outside",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "              outside: triage !== null,\n",
+    "find": "              outside: decided.outside,\n",
     "replace": "              outside: false,\n",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*runs the owner's run on an outside message with the outside toolkit"
@@ -471,7 +471,7 @@
     "id": "w8-0i-runonce-placement-line",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "              ...(startedInside && triage === null && wokeBody !== null ? { line: wokeBody } : {}),\n",
+    "find": "              ...(startedInside && !decided.outside && wokeBody !== null ? { line: wokeBody } : {}),\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*gives Social only its reads when a colleague's mention woke it, and its whole toolkit on a person's line"

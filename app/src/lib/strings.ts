@@ -76,6 +76,8 @@ const en = {
   },
   forms: {
     thankYou: "Thank you.",
+    /** Above Cloudflare's box when it asks the visitor to confirm they are a person (src/lib/turnstile.ts). */
+    turnstileAsk: "One more step: tick the box below to confirm you are a person.",
     /** Shown beneath every form while the API is not configured. */
     localNotice: "Delivery opens with the live service. Until then, nothing leaves this device.",
     /** Confirmation while the API is not configured. */

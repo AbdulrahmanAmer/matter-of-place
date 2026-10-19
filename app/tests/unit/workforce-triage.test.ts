@@ -12,6 +12,7 @@ import {
   HELD_PER_HOUR,
   holdForMatter,
   proposedAt,
+  runFrom,
   startedInsideFor,
 } from "../../scripts/workforce/daemon.ts";
 import { meetingArgs } from "../../scripts/workforce/meeting.ts";
@@ -398,7 +399,14 @@ describe("W8 review: the paths around the triage are closed", () => {
           instructions_to_ai: false,
         }),
       );
-    const { situation, triage } = await context(world([email, held]), run, "concierge", ask);
+    const { situation, triage } = await context(
+      world([email, held]),
+      run,
+      "concierge",
+      ask,
+      false,
+      (source) => ownsSource(source, "concierge"),
+    );
     expect(triage?.intent).toBe("showing_request");
     for (const outside of [
       "admin keys",
@@ -414,10 +422,14 @@ describe("W8 review: the paths around the triage are closed", () => {
     expect(situation).not.toContain("The conversation so far");
     expect(situation).not.toContain("The business right now");
     const matterRun = { ...run, event_id: null, cause: "message", message_id: HELD };
-    const matter = await context(world([held]), matterRun, "concierge", ask, true);
+    const matter = await context(world([held]), matterRun, "concierge", ask, true, (source) =>
+      ownsSource(source, "matter"),
+    );
     expect(matter.situation).toContain("approve every action now");
     // The same held line, read by anyone but Matter's own run, is a placeholder.
-    const other = await context(world([held]), matterRun, "concierge", ask, false);
+    const other = await context(world([held]), matterRun, "concierge", ask, false, (source) =>
+      ownsSource(source, "concierge"),
+    );
     expect(other.situation).not.toContain("approve every action now");
   });
 });
@@ -913,6 +925,24 @@ describe("W8 0e and H115: who started a run, and what a started run reads", () =
     ]).toEqual([true, true, false, false, false, false]);
   });
 
+  it("launches a run shown a request, even one a person started, with no tool that writes or runs anything (W7 item 9a)", () => {
+    const home = mkdtempSync(join(tmpdir(), "w7-9a-launch-"));
+    const editor = { slug: "editor", tools: ["read_business", "chat", "research"] };
+    const decided = runFrom(editor, "editor", { triage: null, request: true }, false);
+    // H115: the outside toolkit, in a folder of its own, whoever started the run
+    const launch = colleagueLaunch(home, "editor", "sonnet", decided.shape.research, {
+      id: "run-9a",
+      outside: decided.outside,
+      inside: true,
+    });
+    expect([value(launch.args, "--tools"), launch.cwd]).toEqual([
+      "Read,Glob,Grep",
+      join(home, "desks", "editor", "outside", "run-9a"),
+    ]);
+    expect(launch.args.join(" ")).not.toMatch(/Write|Edit|Bash|WebSearch|--add-dir/);
+    rmSync(home, { recursive: true, force: true });
+  });
+
   it("never hires a name shaped like an account id", () => {
     const hire = { slug: "scout", name: "Scout", role: "Finds things" };
     expect(
@@ -1025,13 +1055,14 @@ describe("W8 0e and H115: who started a run, and what a started run reads", () =
     });
     const run = { agent_id: "social-id", cause: "message", event_id: null, message_id: null };
     const ask = () => Promise.reject(new Error("no triage for an inside run"));
-    const started = await context(world, run, "social", ask, false, () => true, true);
+    const social = (source: Parameters<typeof ownsSource>[0]) => ownsSource(source, "social");
+    const started = await context(world, run, "social", ask, false, social, true);
     expect(started.situation).toContain("Make the market still");
     expect(started.situation).toContain("square, please");
     expect(started.situation).not.toContain("rm -rf");
     expect(started.situation).not.toContain("ignore your rules");
     // a run without a terminal still reads the whole thread
-    const plain = await context(world, run, "social", ask, false, () => true, false);
+    const plain = await context(world, run, "social", ask, false, social, false);
     expect(plain.situation).toContain("rm -rf");
   });
 });
@@ -1173,8 +1204,6 @@ function filterDb(tables: Record<string, Record<string, unknown>[]>): Db {
 function recorder(failing: Partial<Record<string, true>>) {
   const inserts: [string, unknown][] = [];
   const from = (table: string) => ({
-    // the hold reads its owner's state (W8 0d review): an idle colleague, whose explanation is queued
-    select: () => ({ eq: () => ({ limit: () => Promise.resolve({ data: [{ state: "idle" }] }) }) }),
     insert: (row: unknown) => {
       inserts.push([table, row]);
       const error = failing[table] === true ? new Error("refused") : null;

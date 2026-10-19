@@ -1,5 +1,5 @@
 // Role toolkits, the runner's side (ruling H115): a colleague's toolkit (`src/domain/toolkits.ts`) becomes the Claude
-// Code permission rules of one run. Measured on the real CLI under `--permission-mode dontAsk` (GOTCHAS P-3577): a rule
+// Code permission rules of one run. Measured on the real CLI under `--permission-mode dontAsk` (GOTCHAS P-4511): a rule
 // names an absolute Windows path as `//e/...` (lower-case drive letter, no colon) and `--add-dir` lets the run reach a
 // named folder. A colleague's only command is the render wrapper (`render-run.mjs`), never bun or node on its own.
 import { dirname, join, resolve } from "node:path";

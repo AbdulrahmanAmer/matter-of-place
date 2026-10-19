@@ -273,8 +273,8 @@
     "id": "w8-0d2-explain-dropped-words",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "        : shape.rule === \"explain\"\n",
-    "replace": "        : shape.rule === \"held\"\n",
+    "find": "          shape.rule === \"explain\"\n",
+    "replace": "          shape.rule === \"held\"\n",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*lets neither an explanation nor an allowed run propose a social post"
   },
@@ -430,5 +430,23 @@
     "replace": "if (false) await client",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*finishes the owner's run although the column for its reply has not reached the database yet"
+  },
+  {
+    "id": "w8-0d5-sweep-only-held-lines",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "    if (!explainsHeld(owner.slug, line)) continue;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*leaves the queued runs of a paused or off owner on other lines alone"
+  },
+  {
+    "id": "w8-0d5-sweep-claimed-meanwhile",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/explain.ts",
+    "find": "    if (error !== null || (closed ?? []).length === 0) continue;",
+    "replace": "    if (error !== null) continue;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*leaves an explanation run alone when another runner claimed it since the sweep read it"
   }
 ]

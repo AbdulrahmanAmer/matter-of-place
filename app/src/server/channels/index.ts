@@ -81,6 +81,29 @@ export function captionFor(channel: SocialChannel, asset: SocialAsset): string |
   }
 }
 
+const proposedMetaSchema = z.object({
+  proposed_post: z.object({ channel: z.string(), test: z.boolean() }),
+});
+
+/**
+ * W8 item 10 (H134): an asset made by a proposed post's approval goes to its own channel only, whatever its kind
+ * targets, and a test post's asset never goes out. The step's answer when it must not post here, else null.
+ */
+export function proposedSkip(
+  meta: unknown,
+  channel: SocialChannel,
+): "skipped_test_post" | "skipped_other_channel" | null {
+  const proposed = proposedMetaSchema.safeParse(meta).data?.proposed_post;
+  if (proposed === undefined) return null;
+  if (proposed.test) return "skipped_test_post";
+  return proposed.channel === channel ? null : "skipped_other_channel";
+}
+
+/** True when a proposed post's approval made this asset for `channel`: that channel's row is the step's to close. */
+export function ownProposedChannel(meta: unknown, channel: SocialChannel): boolean {
+  return proposedMetaSchema.safeParse(meta).data?.proposed_post.channel === channel;
+}
+
 function disabledBlock(id: SocialChannel): Channel {
   return {
     id,

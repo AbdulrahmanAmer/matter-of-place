@@ -49,6 +49,7 @@ const BUNDLE = {
   inquiries: [],
   contacts: [],
   submissions: [],
+  inbound_mail: [],
 };
 
 /** A request received `daysAgo` days before NOW, due 45 days after it, as B3's generated column has it. */
@@ -150,6 +151,13 @@ describe("the writes", () => {
       answers.push(await refusal(exportSubject(admin, db, { id: REQUEST })));
     }
     expect(answers).toEqual(["409 not_verified", "409 wrong_kind", "409 wrong_state"]);
+  });
+
+  it("hands back the person's recorded emails with the rest of the bundle", async () => {
+    const email = { id: "7d1e4c2a-5b6f-4e8a-9c0d-1a2b3c4d5e6f", subject: "A house" };
+    const db = fakeDb({ rpc: { export_subject: () => ({ ...BUNDLE, inbound_mail: [email] }) } });
+    const bundle = await exportSubject(admin, db, { id: REQUEST });
+    expect(bundle.inbound_mail).toEqual([email]);
   });
 });
 
