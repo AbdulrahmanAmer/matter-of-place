@@ -227,19 +227,40 @@ export async function outsideText(db: Db, source: SourceName, id: string): Promi
         ]);
   }
   if (source === "submission") {
-    const { data } = await db
-      .from("submissions")
-      .select("submitter_name, address, city, story, significance")
-      .eq("id", id)
-      .limit(1);
+    // W7 item 9 (review): every field the submitter typed. The short ones the request desk shows a colleague come
+    // first, so the 8,000 characters the triage reads always reach them; the links and the photographs' names, which no
+    // prompt shows, come last.
+    const [{ data }, { data: media }] = await Promise.all([
+      db
+        .from("submissions")
+        .select(
+          "submitter_name, address, city, zip, architect, designer, brokerage, listing_agent_name, listing_agent_brokerage, listing_url, photography_url, source_url, video_url, story, significance",
+        )
+        .eq("id", id)
+        .limit(1),
+      db.from("submission_media").select("name, source_url").eq("submission_id", id).limit(60),
+    ]);
     const row = data?.[0];
     return row === undefined
       ? ""
       : lines([
           ["Name", row.submitter_name],
-          ["Property", `${row.address}, ${row.city}`],
+          ["Property", `${row.address}, ${row.city} ${row.zip}`],
+          ["Architect", row.architect],
+          ["Designer", row.designer],
+          ["Brokerage", row.brokerage],
+          ["Listing agent", row.listing_agent_name],
+          ["Listing brokerage", row.listing_agent_brokerage],
           ["Story", row.story],
           ["Significance", row.significance],
+          ["Listing link", row.listing_url],
+          ["Photography link", row.photography_url],
+          ["Source link", row.source_url],
+          ["Video link", row.video_url],
+          [
+            "Photograph names",
+            (media ?? []).map((item) => [item.name, item.source_url ?? ""].join(" ")).join("; "),
+          ],
         ]);
   }
   if (source === "privacy_request") {
@@ -576,7 +597,7 @@ export function runShape<T extends { slug: string; tools: readonly string[] }>(
 }
 
 /** A described field as a colleague sees it: one line, no handle, no fence marks, never empty. */
-function plain(field: string): string {
+export function plain(field: string): string {
   const text = field
     .replace(/[\r\n]+/g, " ")
     .replaceAll("@", "")

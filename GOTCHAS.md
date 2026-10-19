@@ -1188,6 +1188,7 @@ Entry template
 - rule: pick each row's input so that exactly one mechanism decides it (a block comment before a `do` block, because `^do` needs the comment gone; `drop table` inside a string, because `drop table` is matched anywhere). When the input the review named is guarded twice, keep it in the probe output of the log and write the row for the input one mechanism carries. Never write a mutation that changes two places to force a red.
 - hit again: 2026-10-04, B8 g7: the plan's watched-fail (as) ("let `retention_accepted_media` ignore `staging_path`") stayed green, `WATCHED-FAIL BAD: stayed green (B8:as)`, because the staged photograph of the test had `media_key` null too, so `pm.media_key is null` alone still kept it out. The row now has both a key and a staging path (a new original waiting while the old variants keep their key), and (as) replays `WATCHED-FAIL OK B8:as`.
 - proof: from `app/`, `node ../scratch/replay.mjs cm-string-drop cm-block-comment` → both `RED`; before the fix round's row change, the run of all `cm-` entries printed `NOT RED cm-rename-string: exit=1 expect=false` (2026-10-02).
+- hit again: 2026-10-16, W7 item 9a third round: `context` asks the request desk only for a request's owner, and `requestDesk` refuses anyone else on its own, so deleting the context gate left every test green; the context test now also asserts the desk was never asked (no `agents` read), and each gate has its own registry entry (`w7-9-owner-context-gate`, `w7-9-owner-desk-only`).
 - added: 2026-10-02
 - hit again: 2026-10-06, B17 g3 rework: a listener that closes the cookie notice on any stored choice made the notice's own `setOpen(false)` after `writeConsent` redundant, so B3b's `b3b-cn-collapse` (remove that line) could no longer turn red. The line became `if (!writeConsent(analytics)) setOpen(false)` (the refused-store path, which has its own test and entry) and the B3b entry now removes the listener's close.
 - hit again: 2026-10-10, B7 g2 (step 15a): the plan's watched-fail (n), "let `delete_subject` write the email into `audit_log`", first added `'email', v_email` to the audit `after`; `write_audit` replaces the value of every `pii_columns` key of the entity (`subject_requests.email`) with `{"pii": "changed"}`, so the no-plaintext case stayed green in CI (run 38034831411). The mutation now writes the address under a key no `pii_columns` row names (`'address'`), which only `delete_subject` guards.
@@ -1422,6 +1423,7 @@ Entry template
 - rule: every lane runs with a `bankBase` and its own `previewPort` (`workspace/05-plans/restart.json`; ruling H45 (5)): spine P-150/G-40 on port 8788, db P-300/G-100 on 8798, tests P-400/G-150 on 8808, design P-700/G-250 on 8818, a fifth lane api P-800/G-300 on 8828; the orchestrator writes from P-500/G-200. Wherever a plan, a script or an entry says 8788, a lane uses its own port, and it stops only the processes it started. When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
 - proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4; `grep -o '"previewPort": [0-9]*' workspace/05-plans/restart.json` prints 8798, 8808 and 8818 (spine takes the default 8788 of `build-slice.js`).
 - hit again: 2026-10-08, B11 g10: merging main into slice/b11 stopped at `bank-merge: refused, nothing written / number collision P-2405` and `P-2406`: the B7 lane had numbered two entries P-2405 and P-2406, inside B11's series (P-2400 on). The lane's two were renumbered P-2421 and P-2422 in a scratch copy of git's stage 2 and merged with `bank-merge.mjs --base --ours --theirs --out`; the earlier B11 log blocks still say P-2405 and P-2406 for them. Two lanes running at once need two bases, and the base belongs in the brief of every lane.
+- hit again: 2026-10-16, W7 item 9 merge: this branch's P-3590 and overdrive/finish's P-3590 were two different entries; `merge-gotchas` kept ours and said so. Ours became P-3700, after reading every number on origin/main and every origin/overdrive/* branch.
 - added: 2026-10-03
 - hit again: 2026-10-08, B10 g9: the merge of main renumbered the lane's P-2405 and P-2406 to P-2223 and P-2224 through `bank-merge.mjs` after it refused the collision; the cost is banked in P-2456.
 - hit again: 2026-10-10, H1 g8: the runner moves a Worker with `HARDEN_PORT_<port>` but not Playwright's dev server (`E2E_PORT`); the sweep was started on 8848, which lane g7 was serving a Worker on (`Error: http://127.0.0.1:8848 is already used`, H1-28 failed). Take every port of a run from the lane's own pair (8838 and 8839 here) and run `netstat -ano | grep LISTENING | grep :<port>` before the first start.
@@ -8554,10 +8556,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-h110-scene-draws-shots` → `WATCHED-FAIL OK`; `reelRequestSchema.safeParse({...brand, photos: [...]})` is `success: false`.
 - added: 2026-10-16
 
-## P-3578 · A studio refusal that names the engine's own drawing cannot be fixed by the designer, so its revisions are spent for nothing
-- symptom: 2026-10-16: the Fairfield test reel was refused in review three times (REVISIONS 2) for "a soft, blurred oval of light on the doorway floor" and a reflection that "fades smoothly"; the designer, confined to the studio folder, can only edit `scene/`, and the pool and the mirrored floor are drawn by `launch/engine/moves/door.mjs` (`ctx.filter = "blur(9px)"`).
-- rule: when a review refusal names a drawing that belongs to the engine (the door move's pool, reflection, beam), the redraw brief says so: draw that shot in `scene.mjs` with flat polygons, or cut the shot; and the engine fix is a PR of its own, not a revision loop.
-- proof: `grep -n 'blur(9px)' launch/engine/moves/door.mjs` → line 483; the refused brief's `reason` in `~/.mop-workforce/studio/2026-10-16-fairfield-test-reel/brief.json` (before the requeue) names the doorway floor.
+## P-3578 · Generate a registry after prettier, never before: prettier rewraps the lines a `find` names
+- symptom: 2026-10-16, W7 9: the registry was written before `prettier --write`; prettier joined the two-line `sizeMark` condition into one line, and the entry `w7-9-family-size-marks` found 0 occurrences (edit-impact: STALE).
+- rule: format every edited file first, then write or update registry `find` strings from the formatted text, then `node scripts/watchfail.mjs --registry tests/mutations --check`.
+- proof: `cd app && node ~/.claude/hooks/edit-impact.mjs --changed ..` prints no STALE line for W7-9 after the registry was regenerated from the formatted files (2026-10-16).
 - added: 2026-10-16
 
 ## P-3692 · A script that rewrote `check-layout.mjs` dropped the closing quote of `SERVER_DOMAINS`, and the first CI run died at its first step
@@ -8627,18 +8629,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
 - added: 2026-10-16
 
-## P-3700 · A merge can leave `GOTCHAS.md` unmerged with no conflict markers, and take the same P-numbers twice
-- symptom: 2026-10-16, `git merge origin/overdrive/finish` into overdrive/followups-a: `git status` showed `UU GOTCHAS.md` and `ls-files -u` three stages, yet `grep '^<<<<<<<'` printed nothing; the other side's new P-3694 and P-3695 had the numbers this branch had already used for different entries.
-- cause: both sides appended entries at the end of one file under a rerun number counter; the file on disk was already a union of text, so the markers are not the signal, the staged stages are.
-- rule: after a merge that touches the bank, diff the sorted lines of stage 2 and stage 3 against the file (`git show :3:GOTCHAS.md | sort -u` against `sort -u GOTCHAS.md`, `comm -23`) to see what is missing, append the missing entries under the next free numbers, then `git add`; never trust the absence of markers.
-- proof: `git ls-files -u GOTCHAS.md` lists stages 1 to 3 while `grep -c '^<<<<<<<' GOTCHAS.md` prints 0; `comm -23` of their side against the file printed 9 lines before the append and none after.
+## P-3700 · A mutation of a threshold stays green when the test's inputs are decided by another threshold
+- symptom: 2026-10-16 (W7 9), the registry entry `w7-9-strangers-apart` raised `SAME_PICTURE_BITS` (the limit for two images of different addresses) to 64 to make "keeps two different pictures apart" red; the replay printed `WATCHED-FAIL BAD: wrong reason`. The test's two addresses (`IMG_1234_1024.jpg`, `IMG_1235_1024.jpg`) share a size family, so `samePicture` used `SAME_FAMILY_BITS` and the mutated limit never applied.
+- rule: before writing a mutation of a constant that one of several branches reads, trace which branch the test's inputs take (`app/scripts/workforce/pull-images.ts`: same family → `SAME_FAMILY_BITS`, else `SAME_PICTURE_BITS`) and mutate that one; one entry per branch the tests reach.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-9-strangers-apart` → `mutated scripts/workforce/pull-images.ts:154  const SAME_FAMILY_BITS = 64;` and `WATCHED-FAIL OK W7-9:w7-9-strangers-apart`.
 - added: 2026-10-16
 
-## P-3701 · An in-memory test database that stamps a column the real runner stamps itself hides clock skew
-- symptom: 2026-10-16, second Opus review of W8 0d: `ownerExplanation` bounded the owner's reply by the run's `started_at` (database `now()`) and `finished_at` (the runner's laptop clock), so a laptop clock behind Supabase's hid the explanation; the unit test passed because its mock database overwrote `finished_at` with its own counter, and said so in a comment that was false for `agent_runs.finished_at`.
-- cause: the mock "owned the clock" for a column production leaves to the caller, and nothing in the test could make the two clocks differ.
-- rule: a mock database stamps only the columns the real one stamps (`created_at`, `started_at` by `claim_agent_run`); a column the runner sends keeps what it sent; give the mock a clock offset and run one walk-through with the database an hour ahead. Bind a reply to the run that wrote it by id (`agent_runs.reply_message_id`), never by a window of times across two clocks.
-- proof: `bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "database clock is an hour ahead"` is green with the id and red with the old `gte`/`lte` window (registry `w8-0d4-explanation-by-reply-id`, `w8-0d4-reply-id-recorded`).
+## P-3701 · `context()`'s test default `owns = () => true` makes every test run the owner of every source, so a new gate on ownership reads tables the fixture never had
+- symptom: 2026-10-16, W7 item 9a third round: `context` began asking the request desk for any run that owns submissions, and the desk began reading the colleague's row first; four tests outside the change failed with `Error: unexpected table agents` (two W8 context tests in `tests/unit/workforce-triage.test.ts` that call `context` with the default `owns`, a concierge and a social run) and `TypeError: client.from(...).update is not a function` (the fake database has no update).
+- cause: the default `owns` says yes to every source, which no real run does (the runner passes `ownsSource(source, agent.slug)`), and the fake database answers only the tables and methods a test registered.
+- rule: a test that calls `context` passes the run's real ownership, `(source) => ownsSource(source, "<slug>")`, never the default; a test of a runner step that writes (an update, an insert) wraps `fakeDb` with a small recorder for that table, as `recorder` in the triage test does.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-triage.test.ts -t "builds the owner's prompt with the triage only"` passes with `ownsSource(source, "concierge")`; with `() => true` back in place it fails on `unexpected table agents` (2026-10-16).
 - added: 2026-10-16
 
 ## P-3608 · A fix to the live supervisor's idle check cannot install itself; restart it
@@ -8703,4 +8704,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: it lists files with `git diff origin/main...HEAD` and reads each from the disk.
 - rule: rename and regenerate migrations, commit, then run `node scripts/check-migrations.mjs`; its answer before the commit is about the old tree.
 - proof: `cd app && node scripts/check-migrations.mjs` after the commit prints no failure (2026-10-16).
+- added: 2026-10-16
+
+## P-3577 · A `context()` test of an event-woken submission run needs `maybeSingle` from the fake database
+- symptom: 2026-10-16, W7 9 review fix: two new `context()` tests on a `submission.received` event failed with `TypeError: client.from(...).select(...).eq(...).maybeSingle is not a function`; every earlier `context()` test used a person's line or an inquiry event, so `requestSequence` (grounding.ts) never ran under `fakeDb`.
+- rule: `tests/fixtures/fake-db.ts` now answers `maybeSingle()` with the first registered row (or null); a runner read that ends in another builder method (`single`, `range`) is added there the same way, never worked around in the test.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts` → the cases "shows a triaged run the request fenced" and "not a triaged run" pass; without `maybeSingle` in the fixture they fail with the TypeError above.
+- added: 2026-10-16
+
+## P-3706 · An in-memory test database that stamps a column the real runner stamps itself hides clock skew
+- symptom: 2026-10-16, second Opus review of W8 0d: `ownerExplanation` bounded the owner's reply by the run's `started_at` (database `now()`) and `finished_at` (the runner's laptop clock), so a laptop clock behind Supabase's hid the explanation; the unit test passed because its mock database overwrote `finished_at` with its own counter, and said so in a comment that was false for `agent_runs.finished_at`.
+- cause: the mock "owned the clock" for a column production leaves to the caller, and nothing in the test could make the two clocks differ.
+- rule: a mock database stamps only the columns the real one stamps (`created_at`, `started_at` by `claim_agent_run`); a column the runner sends keeps what it sent; give the mock a clock offset and run one walk-through with the database an hour ahead. Bind a reply to the run that wrote it by id (`agent_runs.reply_message_id`), never by a window of times across two clocks.
+- proof: `bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "database clock is an hour ahead"` is green with the id and red with the old `gte`/`lte` window (registry `w8-0d4-explanation-by-reply-id`, `w8-0d4-reply-id-recorded`).
 - added: 2026-10-16
