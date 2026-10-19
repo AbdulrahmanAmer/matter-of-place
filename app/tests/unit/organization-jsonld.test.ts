@@ -1,7 +1,8 @@
+import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { absoluteUrl, siteConfig } from "../../src/config/site";
 import { emptySiteSettings, type SiteSettings } from "../../src/domain/settings";
-import { organizationJsonLd } from "../../src/lib/seo";
+import { LOGO_PATH, organizationJsonLd } from "../../src/lib/seo";
 
 const full: SiteSettings = {
   contact: {
@@ -28,6 +29,7 @@ describe("organizationJsonLd", () => {
       name: siteConfig.name,
       url: siteConfig.url,
       description: siteConfig.description,
+      logo: { "@type": "ImageObject", url: absoluteUrl(LOGO_PATH), width: 512, height: 512 },
       parentOrganization: { "@type": "Organization", name: "Omnikom LLC" },
     });
     expect(JSON.stringify(node)).not.toContain("null");
@@ -75,7 +77,10 @@ describe("organizationJsonLd", () => {
     }
   });
 
-  it("carries no logo", () => {
-    expect(organizationJsonLd(full)).not.toHaveProperty("logo");
+  it("carries the brand emblem as its logo, an absolute address of a file the site serves", () => {
+    expect([
+      organizationJsonLd(full).logo.url,
+      existsSync(new URL(`../../public${LOGO_PATH}`, import.meta.url)),
+    ]).toEqual(["https://matterofplace.com/icon-512.png", true]);
   });
 });

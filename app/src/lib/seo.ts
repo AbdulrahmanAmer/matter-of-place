@@ -161,9 +161,12 @@ export const faqJsonLd = (items: { q: string; a: string }[]) => ({
 
 /**
  * The business as structured data. Only what `settings.site` holds appears: an unset leaf adds no key, and `sameAs`
- * is absent when no social address is set. The parent is Omnikom (S33) whatever the settings say. No `logo`: no
- * absolute image URL exists yet (B13).
+ * is absent when no social address is set. The parent is Omnikom (S33) whatever the settings say. The logo is the
+ * brand emblem served from `public/`, so a search for the name finds one unambiguous organization (2026-10-19).
  */
+/** The brand emblem at 512 px square, the size search engines accept for an organization's logo. */
+export const LOGO_PATH = "/icon-512.png";
+
 export function organizationJsonLd({ contact, legal, social }: SiteSettings) {
   const sameAs = [social.instagram, social.x, social.linkedin].filter(
     (value): value is string => value !== null,
@@ -176,6 +179,7 @@ export function organizationJsonLd({ contact, legal, social }: SiteSettings) {
     name: siteConfig.name,
     url: siteConfig.url,
     description: siteConfig.description,
+    logo: { "@type": "ImageObject", url: absoluteUrl(LOGO_PATH), width: 512, height: 512 },
     ...(legal.entity === null ? {} : { legalName: legal.entity }),
     ...(contact.email === null ? {} : { email: contact.email }),
     ...(contact.phone === null ? {} : { telephone: contact.phone }),
