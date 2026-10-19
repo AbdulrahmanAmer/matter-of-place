@@ -3,12 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // P-3700: with no Turnstile token the Worker refuses a sign-in write yet answers "sent", so the form must not send it.
 const mocks = vi.hoisted((): { token: string | null } => ({ token: null }));
 vi.mock("../../src/lib/turnstile", () => ({
-  getTurnstileToken: vi.fn(async () => mocks.token),
+  getTurnstileToken: vi.fn(() => Promise.resolve(mocks.token)),
 }));
 
-const fetchSpy = vi.fn(
-  async (_input: RequestInfo | URL, _init?: RequestInit) =>
-    new Response(JSON.stringify({ status: "sent" }), { status: 200 }),
+const fetchSpy = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) =>
+  Promise.resolve(new Response(JSON.stringify({ status: "sent" }), { status: 200 })),
 );
 
 beforeEach(() => {
