@@ -76,6 +76,8 @@ const en = {
   },
   forms: {
     thankYou: "Thank you.",
+    /** Above Cloudflare's box when it asks the visitor to confirm they are a person (src/lib/turnstile.ts). */
+    turnstileAsk: "One more step: tick the box below to confirm you are a person.",
     /** Shown beneath every form while the API is not configured. */
     localNotice: "Delivery opens with the live service. Until then, nothing leaves this device.",
     /** Confirmation while the API is not configured. */
@@ -128,8 +130,20 @@ const en = {
     localSent:
       "Thank you. Place Notes opens with the live service; your address stays with you for now.",
     liveSent: "Thank you. Check your inbox to confirm.",
-    confirmed: "Thank you. Your address is confirmed.",
-    confirmFailed: "This link has expired or was already used. Subscribe again below.",
+    thanks: {
+      eyebrow: "PLACE NOTES",
+      home: "Home",
+      confirmed: {
+        title: "Thank you.",
+        text: "Your address is confirmed. We write only when there is something worth reading: a property we have accepted, a story, a note from one of our markets.",
+        action: "Read the stories",
+      },
+      expired: {
+        title: "This link has expired.",
+        text: "It was already used, or it is more than a few days old. Leave your address again and we will send a new one.",
+        action: "Subscribe again",
+      },
+    },
   },
   comingSoon: {
     eyebrow: "OPENING SOON",

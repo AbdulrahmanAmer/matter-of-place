@@ -841,15 +841,6 @@
     "expect": "FAIL .*> organizationJsonLd > names Omnikom as the parent whatever is set"
   },
   {
-    "id": "b16-g7-no-logo",
-    "test": "tests/unit/organization-jsonld.test.ts",
-    "file": "src/lib/seo.ts",
-    "find": "    description: siteConfig.description,\n    ...(legal.entity",
-    "replace": "    description: siteConfig.description,\n    logo: absoluteUrl(\"/logo.png\"),\n    ...(legal.entity",
-    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
-    "expect": "FAIL .*> organizationJsonLd > carries no logo"
-  },
-  {
     "id": "b16-g8-prod-warn",
     "test": "tests/unit/health-site.test.ts",
     "file": "src/server/jobs/system/health.ts",

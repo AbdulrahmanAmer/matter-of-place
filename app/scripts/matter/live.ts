@@ -19,7 +19,7 @@ import { proposeCalls, say } from "../workforce/daemon.ts";
 import { childEnv, serviceDb } from "../workforce/env.ts";
 import { LIVE_WORKER_PREFIX } from "../workforce/follow.ts";
 import { applyHires } from "../workforce/hiring.ts";
-import { HEARTBEAT_FILE } from "./live-alive.ts";
+import { HEARTBEAT_FILE, heartbeatStale } from "./live-alive.ts";
 import { DESK, keepNote, matterArgs, matterInputs, matterPrompt } from "./run.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -340,16 +340,27 @@ function ownCodeChanged(from: string, to: string): boolean {
     ["-C", resolve(here, "../../.."), "diff", "--quiet", from, to, "--", ...OWN_CODE],
     {
       windowsHide: true,
+      timeout: 30_000,
     },
   );
   return result.status !== 0;
 }
 
 function runnerHead(): string {
+  // A deadline on every git call: a blocked call here would also block the watchdog's timer (P-3703).
   return spawnSync("git", ["-C", resolve(here, "../.."), "rev-parse", "HEAD"], {
     encoding: "utf8",
     windowsHide: true,
+    timeout: 30_000,
   }).stdout.trim();
+}
+
+/** Waits `ms` while touching the heartbeat every half minute, so a planned rest never reads as a stuck loop. */
+async function rest(ms: number): Promise<void> {
+  for (let left = ms; left > 0; left -= 30_000) {
+    writeFileSync(HEARTBEAT_FILE, new Date().toISOString());
+    await new Promise((settle) => setTimeout(settle, Math.min(left, 30_000)));
+  }
 }
 
 class Supervisor {
@@ -680,6 +691,20 @@ class Supervisor {
     this.say(goalLine(step));
   }
 
+  /**
+   * The watchdog's check, run on its own timer so it fires while the loop is stuck on a call that never answers: a
+   * heartbeat older than LOOP_STALE_MS ends Matter's session and the process, and the scheduled task starts a fresh
+   * supervisor a minute later (P-3702).
+   */
+  exitIfStalled(now: number = Date.now()): boolean {
+    if (!heartbeatStale(HEARTBEAT_FILE, now)) return false;
+    console.log(
+      `${new Date(now).toISOString()} live: no heartbeat for 10 minutes, exiting for a fresh start`,
+    );
+    killTree(this.child?.pid);
+    process.exit(1);
+  }
+
   async loop(): Promise<void> {
     const { data: matter } = await this.client
       .from("agents")
@@ -710,7 +735,7 @@ class Supervisor {
           `${new Date().toISOString()} live: three exits in ten minutes, resting ten minutes`,
         );
         this.crashes = [];
-        await new Promise((settle) => setTimeout(settle, CRASH_WINDOW_MS));
+        await rest(CRASH_WINDOW_MS);
         continue;
       }
       if (
@@ -774,7 +799,11 @@ class Supervisor {
 
 if (import.meta.main) {
   lockOrExit();
-  void new Supervisor(serviceDb()).loop().catch((error: unknown) => {
+  const supervisor = new Supervisor(serviceDb());
+  setInterval(() => {
+    supervisor.exitIfStalled();
+  }, 60_000);
+  void supervisor.loop().catch((error: unknown) => {
     console.log(
       `${new Date().toISOString()} live: ${error instanceof Error ? error.message : String(error)}`,
     );

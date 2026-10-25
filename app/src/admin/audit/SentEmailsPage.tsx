@@ -3,6 +3,7 @@ import { deliveryLine, emailStates } from "../../domain/admin-emails";
 import { Field } from "../ui/Field";
 import { LocalTime } from "../ui/LocalTime";
 import { useUrlFilters } from "../ui/use-url-filters";
+import { InboundMailPart } from "./InboundMailPart";
 import { RepliesPart } from "./RepliesPart";
 import { useSentEmails } from "./sent-emails-queries";
 
@@ -50,6 +51,7 @@ export function SentEmailsPage() {
           onNext: filters.goNext,
         }}
       />
+      <InboundMailPart />
       <h2>Emails we sent</h2>
       <form
         className="admin-toolbar"

@@ -1,4 +1,4 @@
-import type { AccountRequest } from "../../domain/account";
+import { requestStatusLines, type AccountRequest } from "../../domain/account";
 import { formatInZone, marketTimezone } from "../../domain/market-time";
 
 /** The day a request arrived, in its own market's time ("Oct 2, 2026 PT"). */
@@ -43,7 +43,7 @@ export function AccountRoom({
                 {request.address}, {request.city}
               </p>
               <p>
-                {request.workflow_state}. Received {received(request)}.
+                {requestStatusLines[request.workflow_state]} Received {received(request)}.
               </p>
             </li>
           ))}

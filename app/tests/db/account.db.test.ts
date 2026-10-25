@@ -179,6 +179,44 @@ describe("account_room", () => {
       "1 Own Way",
     ]);
   });
+
+  // Ruling H119 (5): a public request made with someone's address joins their room (added), but the name the room
+  // greets them with stays the one first recorded; what the submitter typed stays on the request.
+  it("keeps the name of an existing contact when a public request uses their email", async () => {
+    const seen = await withRollback(async (db) => {
+      const user = await person(db, "test-account-a@example.test");
+      await contact(db, "test-account-a@example.test");
+      await db.query("select id from public.create_submission($1)", [
+        {
+          address: "7 Outsider Way",
+          city: "Berkeley",
+          state: "California",
+          zip: "94702",
+          property_type: "Residence",
+          submitter_kind: "owner",
+          submitter_name: "Somebody Else",
+          submitter_email: "Test-Account-A@Example.test",
+          story: "x",
+          significance: "x",
+          package: "The Feature",
+          source_path: "/__test",
+          rights_version: "test-v1",
+          rights_confirmed_at: "2026-10-01T00:00:00Z",
+          rights_ip_hash: "test-hash",
+          media: [],
+        },
+      ]);
+      const typed = await db.query<{ submitter_name: string }>(
+        "select submitter_name from public.submissions where address = '7 Outsider Way'",
+      );
+      return { answer: await room(db, user), typed: typed.rows[0]?.submitter_name };
+    });
+    expect({
+      name: isRoom(seen.answer) ? seen.answer.name : null,
+      addresses: isRoom(seen.answer) ? seen.answer.requests.map((entry) => entry.address) : [],
+      typed: seen.typed,
+    }).toEqual({ name: "Test Owner", addresses: ["7 Outsider Way"], typed: "Somebody Else" });
+  });
 });
 
 // Ruling H119 (4): a sign-in link is queued only for an address that is a contact's, never archived, whatever its
@@ -225,6 +263,46 @@ describe("account_can_sign_in", () => {
         try {
           await asRole(db, role, role === "anon" ? undefined : a);
           await db.query("select public.account_can_sign_in($1)", ["test-account-a@example.test"]);
+          return "ran";
+        } catch (error) {
+          return error instanceof Error && "code" in error ? String(error.code) : "error";
+        } finally {
+          await db.query("rollback to savepoint attempt");
+        }
+      };
+      return { anon: await attempt("anon"), authenticated: await attempt("authenticated") };
+    });
+    expect(codes).toEqual({ anon: "42501", authenticated: "42501" });
+  });
+});
+
+// W6 item 7, second review: the Team invite finds the auth user of an address that already has an account. Only the
+// service role reads it; the Auth API's `generateLink` is never used, since it mints a live sign-in token.
+describe("user_id_by_email", () => {
+  it("finds the user of an address ignoring case, and answers null for an address nobody holds", async () => {
+    const seen = await withRollback(async (db) => {
+      const id = await person(db, "test-invite-a@example.test", false);
+      const answer = async (email: string) =>
+        (await db.query<{ id: string | null }>("select public.user_id_by_email($1) as id", [email]))
+          .rows[0]?.id;
+      return {
+        id,
+        exact: await answer("test-invite-a@example.test"),
+        shouted: await answer("TEST-Invite-A@Example.Test"),
+        nobody: await answer("test-invite-nobody@example.test"),
+      };
+    });
+    expect(seen).toEqual({ id: seen.id, exact: seen.id, shouted: seen.id, nobody: null });
+  });
+
+  it("refuses anon and a signed-in person", async () => {
+    const codes = await withRollback(async (db) => {
+      const a = await person(db, "test-invite-a@example.test");
+      const attempt = async (role: "anon" | "authenticated"): Promise<string> => {
+        await db.query("savepoint attempt");
+        try {
+          await asRole(db, role, role === "anon" ? undefined : a);
+          await db.query("select public.user_id_by_email($1)", ["test-invite-a@example.test"]);
           return "ran";
         } catch (error) {
           return error instanceof Error && "code" in error ? String(error.code) : "error";
