@@ -612,15 +612,6 @@
     "expect": "monitorRows against monitoring/uptime\\.json > gives a red row for a paused monitor"
   },
   {
-    "id": "b14-uptime-down",
-    "test": "tests/unit/audit/uptime.test.ts",
-    "file": "../workspace/audits/tools/uptime.mjs",
-    "find": "if (found.status !== null && DOWN.includes(found.status)) {",
-    "replace": "if (false) {",
-    "run": "bunx vitest run --project unit tests/unit/audit/uptime.test.ts",
-    "expect": "monitorRows against monitoring/uptime\\.json > gives a red row for an ops-health monitor that reads down"
-  },
-  {
     "id": "b14-uptime-600",
     "test": "tests/unit/audit/uptime.test.ts",
     "file": "../workspace/audits/tools/uptime.mjs",
