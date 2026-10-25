@@ -1,0 +1,11 @@
+[
+  {
+    "id": "fix-undici-waiver-documented",
+    "test": "tests/unit/audit-waivers.test.ts",
+    "file": "docs/security.md",
+    "find": "(GHSA-xjj6-f33q-929c, an HTTP",
+    "replace": "(an HTTP",
+    "run": "bunx vitest run --project unit tests/unit/audit-waivers.test.ts",
+    "expect": "audit:deps waivers > ignores only advisories recorded as waivers in docs/security\\.md"
+  }
+]

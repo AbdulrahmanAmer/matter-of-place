@@ -85,10 +85,22 @@ last run of the workflow) and H1-09 (the report).
 `audit-deps.yml` runs both every Monday, by hand, and on a pull request that changes `scripts/harden/`,
 `docs/runbooks/` or this file. The patched versions come from the `overrides` of `package.json` and
 `launch/package.json`, and for js-yaml 4 and brace-expansion, which the tree holds in two major versions each, from
-their entries in `bun.lock`. One waiver, recorded on 2026-10-09: `extract-zip` 2.0.1 (GHSA-jmr9-qjv8-65gv,
-GHSA-7pqw-9j4j-h8q3; no fixed release exists), pulled in by `puppeteer-core` through `@puppeteer/browsers`, which
-unpacks the browser archives it downloads. The waiver is the two `--ignore` flags of the `audit:deps` script and is
-lifted when a fixed release exists. Proved by H1-10.
+their entries in `bun.lock`. Four waivers, each an `--ignore` flag of the `audit:deps` script, lifted when its
+condition holds; `tests/unit/audit-waivers.test.ts` fails when a flag has no entry here. Recorded on 2026-10-09:
+`extract-zip` 2.0.1 (GHSA-jmr9-qjv8-65gv, GHSA-7pqw-9j4j-h8q3; no fixed release exists), pulled in by
+`puppeteer-core` through `@puppeteer/browsers`, which unpacks the browser archives it downloads; lifted when a fixed
+release exists. Recorded on 2026-10-25: `undici` 7.29.1 and 8.11.2 (GHSA-xjj6-f33q-929c, an HTTP client's denial of
+service on a response with too many content encodings; fixed in 7.30.1 and 8.12.2), pulled in by `miniflare` (pinned
+exactly by `wrangler`, local Worker tooling) and by `jsdom` (unit tests); neither reaches the deployed Worker, which
+uses the runtime's own `fetch`. No `miniflare` release pins a fixed `undici` yet (newest checked: 5.20261019.2-beta);
+lifted when `wrangler` ships one that is at least seven days old. Recorded on 2026-10-25: `body-parser` 1.20.8
+(GHSA-27r3-jxmh-p828, a denial of service from trailing bytes after a compressed request body; fixed in 1.20.9,
+released 2026-10-22), pulled in by `@lhci/cli` through `express`, the local Lighthouse server; lifted on 2026-10-29,
+when 1.20.9 is seven days old, by an `overrides` entry. Recorded on 2026-10-25: `zod` 3.25.76, our own dependency
+(GHSA-mrhx-c7xc-m3w5, memory exhaustion while validating an oversized constrained collection; every 3.x release is
+affected, fixed only in 4.6.6), which validates every request in the deployed Worker; the exposure is bounded because
+both pipelines refuse a body over 64 KB before it is parsed (`MAX_BODY_BYTES` in `src/server/public/pipeline.ts` and
+`src/server/lib/admin-route.ts`); lifted when the app moves to zod 4. Proved by H1-10.
 
 ## Never cached (caching rule 6)
 

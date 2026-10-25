@@ -8794,3 +8794,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
 - proof: `node ~/.claude/hooks/edit-impact.mjs --changed E:/mop-build/finish3` printed the STALE note before the entry was updated and nothing after (2026-10-19).
 - added: 2026-10-19
+
+## P-3723 · New advisories turn every pull request's `check` red at once, and a grep of the log for "error" hides two of three
+- symptom: 2026-10-25, PR 469: `check` failed on `audit:deps`; `gh run view --log-failed | grep -i error` showed only undici (its title says "unhandled error"), while body-parser and zod were also open. Main had not run since 10-19, so nothing had warned.
+- rule: read the audit with `bun audit --audit-level=high <the script's --ignore flags>` from `app/`, not a filtered CI log; for each advisory record the fix's release date against the seven-day rule, and record each waiver in `docs/security.md` "Dependency audit" with what lifts it (`tests/unit/audit-waivers.test.ts` refuses an undocumented `--ignore`).
+- proof: `cd app && bun run audit:deps` exits 0 on fix/undici-waiver and exited 1 listing three advisories before it (2026-10-25).
+- added: 2026-10-25
