@@ -723,6 +723,8 @@ export type ReelDeps = {
   uploadPreview: (key: string, body: Uint8Array) => Promise<void>;
   /** Says a line in the thread that asked. */
   say: (thread: string, body: string) => Promise<void>;
+  /** Says a line in Matter's thread and queues Matter's run on it, so a draft waiting for a decision wakes Matter. */
+  tellMatter: (body: string) => Promise<void>;
   readFile: (path: string) => Uint8Array;
 };
 
@@ -758,18 +760,25 @@ function keepDraft(
  */
 export async function reelPass(deps: ReelDeps, studio: string = STUDIO): Promise<string | null> {
   const done: string[] = [];
+  // the rows follow the folders at the start of the pass (a decision made since the last one), while a piece is being
+  // made, and at its end; a row that could not be written is tried again at the next sync and named at the end
+  await syncPieces(deps.db, studio);
   const approved = nextApproved(studio);
   if (approved !== null) done.push(await publishPiece(deps, approved));
   for (const waiting of needingPreview(studio)) done.push(await previewPiece(deps, waiting));
   const next = nextReel(studio);
-  if (next !== null) done.push(await makePiece(deps, next));
+  if (next !== null) done.push(await makePiece(deps, next, studio));
   const unwritten = await syncPieces(deps.db, studio);
   if (unwritten.length > 0) done.push(`rows not written: ${unwritten.join("; ")}`);
   return done.length === 0 ? null : done.join("; ");
 }
 
 /** Makes one queued piece up to a draft that waits for Matter; answers what happened, for the runner's log. */
-async function makePiece(deps: ReelDeps, next: { folder: string; brief: Brief }): Promise<string> {
+async function makePiece(
+  deps: ReelDeps,
+  next: { folder: string; brief: Brief },
+  studio: string,
+): Promise<string> {
   const { folder } = next;
   const { request } = next.brief;
   let brief: Brief = record(
@@ -777,6 +786,7 @@ async function makePiece(deps: ReelDeps, next: { folder: string; brief: Brief })
     "being made",
   );
   writeBrief(folder, brief);
+  await syncPieces(deps.db, studio);
   try {
     const lines = request.voice ?? [];
     if (lines.length > 0 && deps.voice === null) {
@@ -877,7 +887,18 @@ async function makePiece(deps: ReelDeps, next: { folder: string; brief: Brief })
       brief.from.thread,
       `The reel "${request.name}" is draft ${String(drafts)} in the studio and waits for Matter's review (its status.md and drafts are in ${folder}). Nothing is uploaded until it is approved.`,
     );
-    return `reel ${request.name}: draft ${String(drafts)}`;
+    // W8 0f review: the requester's thread alone woke no one; Matter's thread gets the line and a run of its own
+    // a draft is made whether or not Matter could be told; a line that failed is named in the runner's log
+    const told = await deps
+      .tellMatter(
+        `Studio: the reel "${request.name}" (piece ${basename(folder)}) is draft ${String(drafts)} and waits for your decision: approve, revise or ask_operator.`,
+      )
+      .then(
+        () => "",
+        (failure: unknown) =>
+          ` (Matter was not told: ${failure instanceof Error ? failure.message : String(failure)})`,
+      );
+    return `reel ${request.name}: draft ${String(drafts)}${told}`;
   } catch (failure: unknown) {
     const reason = failure instanceof Error ? failure.message : String(failure);
     writeBrief(folder, record({ ...brief, state: "failed", reason }, `failed: ${reason}`));
@@ -962,11 +983,18 @@ async function publishPiece(
         "uploaded once and recorded as a pending visual",
       ),
     );
-    await deps.say(
-      brief.from.thread,
-      `The reel "${request.name}" was approved, uploaded once, and waits in Visuals as a pending visual: https://matterofplace.com/admin/assets/`,
-    );
-    return `reel ${request.name}: done (${assetId})`;
+    // W8 0f review: the visual is recorded; a thread line that fails must not turn the piece back to failed, or a
+    // second approval would record a second visual
+    const told = await deps
+      .say(
+        brief.from.thread,
+        `The reel "${request.name}" was approved, uploaded once, and waits in Visuals as a pending visual: https://matterofplace.com/admin/assets/`,
+      )
+      .then(
+        () => "",
+        () => " (its thread line was not written)",
+      );
+    return `reel ${request.name}: done (${assetId})${told}`;
   } catch (failure: unknown) {
     const reason = failure instanceof Error ? failure.message : String(failure);
     writeBrief(folder, record({ ...brief, state: "failed", reason }, `upload failed: ${reason}`));
@@ -1149,6 +1177,30 @@ async function realDeps(): Promise<ReelDeps> {
         author_name: "Matter of Place",
         body: body.slice(0, 20000),
       });
+    },
+    tellMatter: async (body) => {
+      const { data: line, error: unsaid } = await db
+        .from("agent_messages")
+        .insert({
+          thread: "matter",
+          author_kind: "system",
+          author_id: "system",
+          author_name: "Matter of Place",
+          body: body.slice(0, 20000),
+        })
+        .select("id")
+        .single();
+      if (unsaid !== null) throw new Error(`tell_matter_failed: ${unsaid.message}`);
+      const { data: matter, error: unread } = await db
+        .from("agents")
+        .select("id")
+        .eq("slug", "matter")
+        .single();
+      if (unread !== null) throw new Error(`tell_matter_failed: ${unread.message}`);
+      const { error: unqueued } = await db
+        .from("agent_runs")
+        .insert({ agent_id: matter.id, cause: "message", message_id: line.id });
+      if (unqueued !== null) throw new Error(`tell_matter_failed: ${unqueued.message}`);
     },
   };
 }

@@ -1,4 +1,4 @@
--- down: re-run bun run db:fn studio_piece_put from the previous commit of supabase/sql/functions/studio_piece_put.sql
+-- down: drop function public.studio_piece_put(uuid, text, text, text, text, text, text, uuid);
 set lock_timeout = '5s';
 
 create or replace function public.studio_piece_put(

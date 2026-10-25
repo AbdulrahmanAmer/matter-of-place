@@ -98,6 +98,10 @@ function deps(
       log.push(`say ${thread}: ${body}`);
       return Promise.resolve();
     },
+    tellMatter: (body) => {
+      log.push(`matter: ${body}`);
+      return Promise.resolve();
+    },
     readFile: (path) => readFileSync(path),
     ...over,
   };
@@ -612,6 +616,10 @@ describe("the studio folder (W8 0f)", () => {
       db,
     );
     expect(await reelPass(run, root)).toBe("reel The door: draft 1");
+    // the draft wakes Matter in his own thread, not only the requester's
+    expect(log.filter((line) => line.startsWith("matter: "))).toEqual([
+      expect.stringContaining('the reel "The door"'),
+    ]);
     expect(decide(root, folder, "revise", "Hold the first title a beat longer.")).toMatchObject({
       ok: true,
       line: expect.stringContaining("goes back to the designer"),
@@ -630,8 +638,7 @@ describe("the studio folder (W8 0f)", () => {
 
     expect(reelWork(root)).toBe(false);
     expect(decide(root, folder, "approve").ok).toBe(true);
-    // with its row in step, an approved piece is work of its own
-    await syncPieces(db, root);
+    // an approved piece is work of its own; the pass itself writes its row (W8 0f review: no sync by hand)
     expect(reelWork(root)).toBe(true);
     expect(await reelPass(run, root)).toBe("reel The door: done (asset-1)");
     const { id } = brief(folder);
@@ -644,9 +651,14 @@ describe("the studio folder (W8 0f)", () => {
     expect(await reelPass(run, root)).toBeNull();
     expect(log.filter((line) => line.startsWith("upload "))).toHaveLength(2);
     expect(db.calls.filter((call) => call.name === "record_requested_reel")).toHaveLength(1);
-    // the row followed the folder: draft, draft, approved, done with the visual it became
+    // the row followed the folder as the runner writes it, at the start of each pass, while the piece is made and at its
+    // end: queued, working, draft; queued for the revision, working, draft; approved, done with the visual it became
     expect(rpcArgs(db)).toMatchObject([
+      { p_state: "queued" },
+      { p_state: "working" },
       { p_state: "draft" },
+      { p_state: "queued" },
+      { p_state: "working" },
       { p_state: "draft" },
       { p_state: "approved" },
       { p_state: "done" },
@@ -659,6 +671,21 @@ describe("the studio folder (W8 0f)", () => {
       p_state: "done",
       p_asset_id: "asset-1",
     });
+  });
+
+  it("keeps a recorded visual done when its thread line fails, so approving again records nothing more", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const db = recording();
+    await reelPass(deps({}, [], db), root);
+    expect(decide(root, folder, "approve").ok).toBe(true);
+    const silent = deps({ say: () => Promise.reject(new Error("thread down")) }, [], db);
+    expect(await reelPass(silent, root)).toBe(
+      "reel The door: done (asset-1) (its thread line was not written)",
+    );
+    expect(brief(folder)).toMatchObject({ state: "done", asset_id: "asset-1" });
+    expect(decide(root, folder, "approve").ok).toBe(false);
+    expect(db.calls.filter((call) => call.name === "record_requested_reel")).toHaveLength(1);
   });
 
   it("holds a draft for the operator: only a small still goes to Storage, and approval still follows", async () => {
