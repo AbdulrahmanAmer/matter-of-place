@@ -1,0 +1,28 @@
+/* Copy of src/styles/components/turnstile.css for the admin sheet, which takes no public file (tests/unit/admin-motion.test.ts); tests/unit/sign-in-token.test.tsx keeps the two identical below this line. */
+
+.turnstile-host {
+  position: fixed;
+  inset-block-end: 20px;
+  inset-inline-end: 20px;
+  z-index: 110;
+  background: var(--background);
+}
+
+.turnstile-host:empty {
+  display: none;
+}
+
+/* Cloudflare asked for the box: the line above it says what to do, so a form never looks stuck. */
+.turnstile-host--asking {
+  padding: 14px 16px 16px;
+  border: 1px solid var(--border);
+  max-inline-size: min(340px, calc(100vw - 40px));
+}
+
+.turnstile-ask {
+  margin: 0 0 10px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--foreground);
+}

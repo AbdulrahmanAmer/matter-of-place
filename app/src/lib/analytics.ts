@@ -1,6 +1,7 @@
 import { siteConfig } from "../config/site";
 import { utmSchema, type Utm } from "../domain/contracts";
 import { consentGranted } from "./consent";
+import { sendGa4Lead } from "./ga4";
 
 /**
  * Analytics events. Every user action calls `track()`; add new names to
@@ -135,6 +136,7 @@ export function track(event: AnalyticsEvent, data: Record<string, unknown> = {})
     data,
   };
   (window.dataLayer ??= []).push({ event, ...data, path: envelope.path, at: envelope.at });
+  sendGa4Lead(event);
   if (siteConfig.apiBaseUrl && typeof navigator.sendBeacon === "function") {
     const utm = sessionUtm();
     enqueue(utm === undefined ? envelope : { ...envelope, data: { ...data, utm } });

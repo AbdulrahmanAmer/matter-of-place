@@ -138,6 +138,61 @@
   animation-delay: 1.29s;
 }
 
+/* The thank-you note: the emblem's two planes come together at the doorway (the launch film's M5), then the eyebrow,
+   the title rising out of its mask, the text, the hairline drawing from the centre and the links. */
+@keyframes planeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(-10px, 0, 0);
+  }
+
+  to {
+    opacity: 0.9;
+    transform: none;
+  }
+}
+
+@keyframes planeMeet {
+  from {
+    opacity: 0;
+    transform: translate3d(10px, 0, 0);
+  }
+
+  to {
+    opacity: 0.4;
+    transform: none;
+  }
+}
+
+.thanks-emblem path:first-child {
+  animation: planeIn 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+.thanks-emblem path:last-child {
+  animation: planeMeet 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+.thanks .eyebrow {
+  animation-delay: 0.55s;
+}
+
+.thanks h1 {
+  animation: lineRise 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both;
+}
+
+.thanks p:not(.eyebrow) {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 1s both;
+}
+
+.thanks-rule {
+  transform-origin: center;
+  animation: drawAcross 1.2s cubic-bezier(0.65, 0, 0.35, 1) 1.2s both;
+}
+
+.thanks-links {
+  animation: softRise 1s cubic-bezier(0.16, 1, 0.3, 1) 1.35s both;
+}
+
 /* A hairline that draws from the left when its section arrives. */
 .motion-ready .coming-soon[data-motion],
 .motion-ready .footer-bottom[data-motion] {

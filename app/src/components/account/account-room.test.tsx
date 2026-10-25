@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { AccountRequest } from "../../domain/account";
+import { requestStatusLines, type AccountRequest } from "../../domain/account";
+import { submissionStates } from "../../domain/contracts";
 import { AccountNotFound } from "./account-not-found";
 import { AccountRoom } from "./account-room";
 
@@ -37,10 +38,39 @@ describe("AccountRoom", () => {
       />,
     );
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "2 Newer Way, MalibuUnder Review. Received Oct 2, 2026 PT.",
-      "1 Older Way, BerkeleySubmitted. Received Oct 1, 2026 PT.",
+      "2 Newer Way, MalibuWe are reading your request. Received Oct 2, 2026 PT.",
+      "1 Older Way, BerkeleyWe have your request and will read it soon. Received Oct 1, 2026 PT.",
     ]);
     expect(screen.getByText("Signed in as Test Owner, owner@example.test.")).toBeTruthy();
+  });
+
+  it("says where each pipeline state stands in a sentence for the client, never the staff label", () => {
+    const every: AccountRequest[] = submissionStates.map((workflow_state, index) => ({
+      id: `00000000-0000-4000-8000-0000000000${String(index + 10)}`,
+      address: `${String(index + 1)} State Way`,
+      city: "Malibu",
+      state: "California",
+      workflow_state,
+      received_at: "2026-10-02T10:00:00+00:00",
+    }));
+    render(
+      <AccountRoom
+        name="Test Owner"
+        email="owner@example.test"
+        requests={every}
+        onSignOut={vi.fn()}
+        signingOut={false}
+      />,
+    );
+    const shown = screen.getAllByRole("listitem").map((item) => item.textContent);
+    expect(shown).toHaveLength(submissionStates.length);
+    submissionStates.forEach((workflow_state, index) => {
+      const sentence = requestStatusLines[workflow_state];
+      expect(shown[index]).toContain(`${sentence} Received Oct 2, 2026 PT.`);
+      // a staff label ("Distribution Active.", "Invoice Issued.") is not what a client reads
+      expect(shown[index]).not.toContain(`${workflow_state}.`);
+      expect(sentence).not.toMatch(/[\u2013\u2014]/);
+    });
   });
 
   it("says plainly that there is nothing yet when the client has no request", () => {

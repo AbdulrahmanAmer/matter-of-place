@@ -23,6 +23,7 @@ export const catalogEventTypes = [
   "health.failed",
   "subject_request.received",
   "email.bounced",
+  "email.received",
 ] as const;
 
 export type CatalogEventType = (typeof catalogEventTypes)[number];

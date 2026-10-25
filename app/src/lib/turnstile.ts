@@ -1,8 +1,19 @@
 /**
  * Cloudflare Turnstile in the browser. The script loads on the first form write, never with the page. The widget
- * runs in execute mode inside one fixed container and stays invisible unless Cloudflare asks for a challenge.
+ * runs in execute mode inside one fixed container and stays invisible unless Cloudflare asks for a challenge; when it
+ * asks, a line above the box says so, and no form ever waits on Cloudflare for longer than `TOKEN_WAIT_MS`.
  */
+import { t } from "./strings";
+
 const SCRIPT_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+
+/**
+ * The longest a form waits for a token before it goes on without one (the Worker then decides). Without it, a
+ * challenge nobody saw kept the sign-in button waiting for good, and no link was ever sent (P-3699).
+ */
+const TOKEN_WAIT_MS = 180_000;
+
+const ASKING = "turnstile-host--asking";
 
 interface TurnstileApi {
   render(
@@ -15,6 +26,8 @@ interface TurnstileApi {
       callback: (token: string) => void;
       "error-callback": () => void;
       "timeout-callback": () => void;
+      "before-interactive-callback": () => void;
+      "after-interactive-callback": () => void;
     },
   ): string;
   execute(widgetId: string): void;
@@ -61,24 +74,49 @@ function container(): HTMLElement {
   return host;
 }
 
+/** Cloudflare wants the visitor to tick its box: say so above it, read out by screen readers. */
+function showAsk(host: HTMLElement): void {
+  host.classList.add(ASKING);
+  if (host.querySelector(".turnstile-ask")) return;
+  const line = document.createElement("p");
+  line.className = "turnstile-ask";
+  line.setAttribute("role", "status");
+  line.textContent = t.forms.turnstileAsk;
+  host.prepend(line);
+}
+
+function hideAsk(host: HTMLElement): void {
+  host.classList.remove(ASKING);
+  host.querySelector(".turnstile-ask")?.remove();
+}
+
 /**
  * A single-use token for the form write named `action` (the route's bucket name, which the Worker checks against
- * Cloudflare's answer), or `null` when no site key is set or Cloudflare cannot be reached. The Worker decides what a
- * missing token means.
+ * Cloudflare's answer), or `null` when no site key is set, Cloudflare cannot be reached or no answer comes within
+ * `TOKEN_WAIT_MS`. The Worker decides what a missing token means.
  */
 export async function getTurnstileToken(action: string): Promise<string | null> {
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
   if (siteKey === undefined || siteKey === "") return null;
   const api = await loadScript();
   if (api === null) return null;
+  const host = container();
   return new Promise((resolve) => {
     // A callback that fired before `render` returned would find no id to remove.
     const widget: { id?: string } = {};
+    let settled = false;
     const settle = (token: string | null) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      hideAsk(host);
       if (widget.id !== undefined) api.remove(widget.id);
       resolve(token);
     };
-    widget.id = api.render(container(), {
+    const timer = window.setTimeout(() => {
+      settle(null);
+    }, TOKEN_WAIT_MS);
+    widget.id = api.render(host, {
       sitekey: siteKey,
       action,
       execution: "execute",
@@ -91,6 +129,12 @@ export async function getTurnstileToken(action: string): Promise<string | null> 
       },
       "timeout-callback": () => {
         settle(null);
+      },
+      "before-interactive-callback": () => {
+        showAsk(host);
+      },
+      "after-interactive-callback": () => {
+        hideAsk(host);
       },
     });
     api.execute(widget.id);
