@@ -8842,3 +8842,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: read `gh repo view --json visibility` before treating `actions_minutes` as a limit; while it answers `PUBLIC` the line is information, not an alarm (finding A-20261017-03 proposes the collector change; `limits.json` is mirrored by `gauges.ts` and pinned by `app/tests/unit/audit/usage.test.ts`).
 - proof: `gh repo view --json visibility` → `{"visibility":"PUBLIC"}` (2026-10-17).
 - added: 2026-10-17
+
+## P-3727 · A records branch that waits a week takes bank numbers main has since used, and the bank's merge driver keeps one side
+- symptom: 2026-10-25, PR 454 (banked P-3696 to P-3698 on 10-17) conflicted with main, which took the same three numbers for other entries on 10-19; gate-loop reported "unresolved conflict in GOTCHAS.md", and the driver's working copy held 454's entries and had dropped main's three.
+- rule: resolve by taking main's `GOTCHAS.md` whole and appending the branch's added entries renumbered past main's highest (`git diff <merge-base> HEAD -- GOTCHAS.md`, script `E:/mop-build/.tmp/resolve-454.mjs`); renumber every citation of the old numbers in the same commit (`git grep -n "P-<n>" origin/main`), then `node workspace/05-plans/check-gotchas.mjs`.
+- proof: after the resolution `git diff origin/main --stat -- GOTCHAS.md` showed only the 21 added lines, and `check-gotchas: OK` (2026-10-25); merged as PR 454 (c1b1f8f5).
+- added: 2026-10-25
