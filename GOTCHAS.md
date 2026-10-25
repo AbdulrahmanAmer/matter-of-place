@@ -8848,3 +8848,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: resolve by taking main's `GOTCHAS.md` whole and appending the branch's added entries renumbered past main's highest (`git diff <merge-base> HEAD -- GOTCHAS.md`, script `E:/mop-build/.tmp/resolve-454.mjs`); renumber every citation of the old numbers in the same commit (`git grep -n "P-<n>" origin/main`), then `node workspace/05-plans/check-gotchas.mjs`.
 - proof: after the resolution `git diff origin/main --stat -- GOTCHAS.md` showed only the 21 added lines, and `check-gotchas: OK` (2026-10-25); merged as PR 454 (c1b1f8f5).
 - added: 2026-10-25
+
+## P-3728 · A skill run from memory skips the skill's own rules (plan before --go, owner answers, approvals, its fix mode)
+- symptom: 2026-10-25, after a compaction the orchestrator ran the SEO skill without re-reading its stage files: --go without showing the plan, intake and seeds answered for the owner, authority started on guessed competitors, findings pasted to Matter instead of the refactor mode. Operator: "you haven't followed the rules of the skill".
+- rule: read the stage file of every skill step before running it (stages/<mode>.md, else SKILL.md); owner-only answers and approvals are asked as picks.
+- proof: `node --test ~/.claude/hooks/skill-stage-guard.test.mjs` (5 pass, watched red); live: running a skill script unread is refused by the hook.
+- enforced-by: ~/.claude/hooks/skill-stage-guard.mjs
+- added: 2026-10-25
+
+## P-3729 · A session started from this one with wt/Start-Process inherits CLAUDE_CODE_CHILD_SESSION: no transcript, not reachable
+- symptom: 2026-10-25, the Fable 5.1 session launched for the skill overhaul showed "Transcript saving is off - inherited CLAUDE_CODE_CHILD_SESSION marker" and never appeared in ListAgents; the first launches also put the task on the command line, which the operator counts as a child launch.
+- rule: start a full session only through a launcher file that clears CLAUDE_CODE_CHILD_SESSION, CLAUDECODE, CLAUDE_CODE_SESSION_ID, CLAUDE_CODE_MESSAGING_TOKEN (and the other CLAUDE_* markers) and runs claude with no prompt; wait for it in ListAgents; send the task as a message.
+- proof: `node --test ~/.claude/hooks/clean-launch-guard.test.mjs` (4 pass, watched red); the clean launcher's session appeared in ListAgents as skills-work-f8 within 20 s.
+- enforced-by: ~/.claude/hooks/clean-launch-guard.mjs
+- added: 2026-10-25
