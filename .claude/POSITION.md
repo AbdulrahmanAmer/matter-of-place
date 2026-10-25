@@ -2294,3 +2294,42 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   watchfail counts); tsc, lint and knip (CI); `queue_event_runs` and the new `ops_health` branch on the real database;
   the type drift of the hand-added `queue_event_runs` type (CI's db job); that runs on events start arriving live once
   merged; a live mailbox run; the `storable` pass over a report's JSON (no test builds such a report). Bank grew: G-1480 (upsert on a partial unique index), P-3585 hit again.
+- 2026-10-19 20:10 +0300: orchestrator. Merged: PR 461 (freeze root cause, P-3703), 462 (logo in the Organization node),
+  465 (c6994630: lead events reach GA4 by name only, under consent: contact_inquiry, submit_property, interest_signup,
+  newsletter_signup, package_interest), 466 (d028e399: a confirm link lands on /place-notes/confirmed or /expired, a
+  centred note on the not-found band with the emblem assembling; the band's grid now centres its column). Google: Search
+  Console linked to GA4 (operator), GA4 event retention 14 months (read back by the Admin API, now enabled), Cloud has no
+  billing, one PSI key, one audit service account. NOT DONE: mark the five lead events as key events in GA4 (the new UI
+  stars only events seen in the last 28 days; do it after the first lead arrives). Read-before-click is a global hook
+  (~/.claude/hooks/read-before-click.mjs, tests watched red, proven live). Ruling H134: Fairfield is the test property;
+  social output is a test, judged by Matter, until the channels are connected. Matter: PR 449 merged 14:24Z, PR 464 (third
+  batch) in CI, builders and Opus reviews running. Six Approvals (four Fairfield test posts, the welcome note to the
+  admin@ test signup, a lesson for Maya) sent to Matter to clear; still pending at 20:05.
+
+- 2026-10-25 23:40 +0300: orchestrator. RESUMED ONE BY ONE (operator: "finish tasks one by one with matter"): PARK file
+  renamed PARK.lifted-2026-10-25, STOP stays, backlog "person" (config.parked-2026-10-19.json kept). Matter's ordered list
+  (thread b8cdcee9): audit 10-25 PRs, then 451-454, dependabot 457, waiting branches one at a time (w8-0h, w8-0f, w6-6,
+  search-rank, w7-1, w8-3, w6-5, w8-1, w6-4 fix, toolkits fix, w6-8, w8-11), records/park-1019. Merged tonight: 472
+  (1bf9cc6c dep waivers), 469 (e5a4f24c down monitor reads red), 473 (7e0c1491 its unit case), 470 (849105d2 report),
+  471 (c48b3456 records), 474 (8a7ac2ea tests for 451/452). The 10-24 ops-health "down" was the laptop asleep 10-24
+  05:45-22:42 (backup + Drive copy missed, ops_health named them after 26 h), not a site outage; "MOP Backup" task now
+  WakeToRun, wake timers enabled on AC only. Two unclean shutdowns today (11:44, 12:29, event 41).
+  SEO (programmatic-enterprise-web-performance skill, run against https://matterofplace.com, files in
+  site-checks/matterofplace.com/, git-excluded): audit-live 26 root causes (5 high: JSON-LD graph lacks
+  #webpage/#website/#organization, /contact h1->h3, /legal and guides orphaned, contact/newsletter forms render without
+  method/action, /stories empty ItemList); PSI phone 94-95 desktop 99-100, phone LCP 2.7-2.9 s. The findings were first sent
+  to Matter as a to-do list (WRONG, pulled back, thread e4aa152b): they go through the skill's refactor mode. Sources
+  connected and keys in .env (names only in ~/.claude/reference/seo-data-sources.md): Search Console via the audit service
+  account (~/.config/pewp/mint-gsc-token.mjs), Bing Webmaster (site imported from GSC, BING_WEBMASTER_KEY), CrUX (on the
+  mop-pagespeed key; no field data yet), Gemini (GEMINI_API_KEY, PEWP_GEMINI_TERMS_ACK=1, operator confirmed). Operator
+  approved: business definition (site-checks/.../.pewp/inputs/business-definition.md), 19 competitors in four groups,
+  local builds allowed for SEO fix runs only (one worker at a time). RUNNING at close: a Sonnet agent capturing 32 searches
+  on Google then Bing; authority.mjs (Common Crawl download + backlinks vs the 19). NOT DONE: Bing related keywords are
+  junk (targets.json NOT trusted until filtered), Gemini citations, seeds approval, page plan, code audit, refactor, new
+  pages, gate, deploy, sitemap.xml regeneration and submission (nothing submitted until then; operator).
+  Skill gaps (22, with evidence) are briefed to a dedicated Fable 5.1 session: ~/.claude/briefs/pewp-overhaul-2026-10-25.md
+  (+ .checklist.md); it adds an `overhaul` mode (14 ordered steps with owner stops) on a worktree branch; nothing merged
+  without the operator's yes. New global hooks (tests watched red): skill-stage-guard (a skill step runs only after its
+  stage file was read since start/compaction), clean-launch-guard (new sessions only via a launcher that clears
+  CLAUDE_CODE_CHILD_SESSION etc., no task on the command line), brief-check (a brief is handed over only with a complete
+  checklist). Settings backup ~/.claude/settings.json.bak-guards-20261025. Bank: P-3728, P-3729.

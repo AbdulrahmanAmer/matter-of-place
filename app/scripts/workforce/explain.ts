@@ -158,7 +158,7 @@ export async function handUnavailableOwners(client: Db): Promise<number> {
       .eq("id", run.id)
       .eq("state", "queued")
       .select("id");
-    if (error !== null || (closed ?? []).length === 0) continue;
+    if (error !== null || closed.length === 0) continue;
     await client.from("agent_messages").insert({
       thread: line.thread,
       author_kind: "system",

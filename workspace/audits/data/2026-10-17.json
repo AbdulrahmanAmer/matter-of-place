@@ -1,0 +1,460 @@
+{
+  "front": {
+    "date": "2026-10-17",
+    "run_id": "audit-2026-10-17",
+    "schedule": "scheduled",
+    "site_url": "https://matterofplace.com",
+    "previous": null,
+    "tools": {
+      "node": "v24.13.0"
+    },
+    "sources_configured": [
+      "SITE_URL",
+      "PSI_API_KEY",
+      "GOOGLE_SA_JSON_B64",
+      "GA4_PROPERTY_ID",
+      "CF_ANALYTICS_TOKEN",
+      "CF_ACCOUNT_ID",
+      "UPTIME_API_KEY",
+      "SENTRY_AUTH_TOKEN",
+      "SENTRY_ORG"
+    ]
+  },
+  "psi": {
+    "strategy": "mobile",
+    "pages": [
+      {
+        "path": "/",
+        "runs": 3,
+        "score": 91,
+        "lcp_ms": 2851,
+        "cls": 0,
+        "inp_ms": null,
+        "weight_bytes": 412815
+      },
+      {
+        "path": "/properties",
+        "runs": 3,
+        "score": 99,
+        "lcp_ms": 1801,
+        "cls": 0,
+        "inp_ms": null,
+        "weight_bytes": 410870
+      },
+      {
+        "path": "/exposure",
+        "runs": 3,
+        "score": 93,
+        "lcp_ms": 2729,
+        "cls": 0,
+        "inp_ms": null,
+        "weight_bytes": 388291
+      },
+      {
+        "path": "/submit",
+        "runs": 3,
+        "score": 92,
+        "lcp_ms": 2926,
+        "cls": 0.004,
+        "inp_ms": null,
+        "weight_bytes": 397159
+      }
+    ],
+    "failed": []
+  },
+  "gsc": {
+    "site": "sc-domain:matterofplace.com",
+    "window_days": 28,
+    "queries": 1,
+    "impressions": 1,
+    "clicks": 0,
+    "top": [
+      {
+        "query": "matter place",
+        "impressions": 1,
+        "clicks": 0
+      }
+    ]
+  },
+  "keywords": {
+    "covered": 0,
+    "total": 33,
+    "missing": [
+      "architect designed home",
+      "architect-designed",
+      "mid-century modern",
+      "california modernism",
+      "modern home california",
+      "case study house",
+      "los angeles architecture",
+      "bay area modern",
+      "la jolla",
+      "orange county architecture",
+      "new york townhouse",
+      "brownstone",
+      "manhattan architecture",
+      "brooklyn townhouse",
+      "hudson valley modern",
+      "florida modern",
+      "palm beach",
+      "miami architecture",
+      "sarasota modern",
+      "coastal architecture",
+      "historic home",
+      "restored home",
+      "residential architecture",
+      "matter of place",
+      "matter of place real estate",
+      "architect designed homes for sale los angeles",
+      "architecturally significant homes",
+      "mid-century modern homes miami beach",
+      "historic homes for sale hudson valley",
+      "architect designed homes hamptons",
+      "historic homes palm beach",
+      "luxury listing exposure beyond the mls",
+      "where to market a luxury home listing besides zillow"
+    ],
+    "window_days": 28
+  },
+  "ga4": {
+    "window_days": 7,
+    "sessions": 28,
+    "events": [
+      {
+        "name": "page_view",
+        "count": 75
+      },
+      {
+        "name": "session_start",
+        "count": 28
+      },
+      {
+        "name": "scroll",
+        "count": 23
+      },
+      {
+        "name": "first_visit",
+        "count": 13
+      },
+      {
+        "name": "user_engagement",
+        "count": 13
+      },
+      {
+        "name": "form_start",
+        "count": 1
+      }
+    ]
+  },
+  "uptime": {
+    "monitors": [
+      {
+        "url": "https://matterofplace.com/",
+        "interval_s": 300,
+        "status": 2,
+        "uptime_30d": 99.95,
+        "type": 1,
+        "keyword_type": 0,
+        "keyword_value": ""
+      },
+      {
+        "url": "https://matterofplace.com/api/hooks/ops-health/<redacted>",
+        "interval_s": 300,
+        "status": 2,
+        "uptime_30d": 99.612,
+        "type": 2,
+        "keyword_type": 2,
+        "keyword_value": "ok"
+      },
+      {
+        "url": "https://matterofplace.com/api/public/markets",
+        "interval_s": 300,
+        "status": 2,
+        "uptime_30d": 99.976,
+        "type": 1,
+        "keyword_type": 0,
+        "keyword_value": ""
+      }
+    ],
+    "rows": [
+      {
+        "check": "Home",
+        "status": "ok",
+        "detail": "30 day uptime 99.95"
+      },
+      {
+        "check": "Public markets",
+        "status": "ok",
+        "detail": "30 day uptime 99.976"
+      },
+      {
+        "check": "Ops health",
+        "status": "ok",
+        "detail": "30 day uptime 99.612"
+      }
+    ]
+  },
+  "usage": [
+    {
+      "line": "workers_requests_day",
+      "limit": 100000,
+      "unit": "requests a day",
+      "source": "cloudflare.mjs",
+      "kind": "vendor",
+      "used": 1269,
+      "percent": 1.3,
+      "status": "ok"
+    },
+    {
+      "line": "workers_requests_month",
+      "limit": 3000000,
+      "unit": "requests a month (30 days of the daily limit)",
+      "source": "cloudflare.mjs",
+      "kind": "vendor",
+      "used": 49492,
+      "percent": 1.6,
+      "status": "ok"
+    },
+    {
+      "line": "storage_egress",
+      "limit": 5368709120,
+      "unit": "bytes a month",
+      "source": "Supabase usage report",
+      "kind": "vendor",
+      "used": null,
+      "percent": null,
+      "status": "Not measured",
+      "reason": "Supabase usage report needs the account token"
+    },
+    {
+      "line": "edge_function_calls",
+      "limit": 500000,
+      "unit": "calls a month",
+      "source": "Supabase usage report",
+      "kind": "vendor",
+      "used": null,
+      "percent": null,
+      "status": "Not measured",
+      "reason": "Supabase usage report needs the account token"
+    },
+    {
+      "line": "actions_minutes",
+      "limit": 2000,
+      "unit": "minutes a month, approximate",
+      "source": "github.mjs",
+      "kind": "vendor",
+      "used": 16518,
+      "percent": 825.9,
+      "status": "LIMIT",
+      "detail": {
+        "runs": 3966
+      }
+    },
+    {
+      "line": "sentry_errors",
+      "limit": 5000,
+      "unit": "errors a month",
+      "source": "sentry.mjs",
+      "kind": "vendor",
+      "used": 861,
+      "percent": 17.2,
+      "status": "ok"
+    }
+  ],
+  "usage_ours": [
+    {
+      "line": "db_bytes",
+      "limit": 524288000,
+      "unit": "bytes",
+      "source": "ours.mjs",
+      "kind": "vendor",
+      "used": null,
+      "percent": null,
+      "status": "Not measured",
+      "reason": "AUDIT_AGENT_KEY unset"
+    },
+    {
+      "line": "storage_bytes",
+      "limit": 1073741824,
+      "unit": "bytes",
+      "source": "ours.mjs",
+      "kind": "vendor",
+      "used": null,
+      "percent": null,
+      "status": "Not measured",
+      "reason": "AUDIT_AGENT_KEY unset"
+    },
+    {
+      "line": "email_sent_today",
+      "limit": 100,
+      "unit": "emails a day",
+      "source": "ours.mjs",
+      "kind": "vendor",
+      "used": null,
+      "percent": null,
+      "status": "Not measured",
+      "reason": "AUDIT_AGENT_KEY unset"
+    },
+    {
+      "line": "email_sent_month",
+      "limit": 3000,
+      "unit": "emails a month",
+      "source": "ours.mjs",
+      "kind": "vendor",
+      "used": null,
+      "percent": null,
+      "status": "Not measured",
+      "reason": "AUDIT_AGENT_KEY unset"
+    },
+    {
+      "line": "resend_contacts",
+      "limit": 1000,
+      "unit": "contacts",
+      "source": "ours.mjs",
+      "kind": "vendor",
+      "used": null,
+      "percent": null,
+      "status": "Not measured",
+      "reason": "AUDIT_AGENT_KEY unset"
+    },
+    {
+      "line": "caption_tokens",
+      "limit": null,
+      "unit": "tokens a month",
+      "source": "ours.mjs",
+      "kind": "info",
+      "used": null,
+      "percent": null,
+      "status": "Not measured",
+      "reason": "AUDIT_AGENT_KEY unset"
+    },
+    {
+      "line": "reels_month",
+      "limit": 10,
+      "unit": "reels a month",
+      "source": "ours.mjs",
+      "kind": "guideline",
+      "used": null,
+      "percent": null,
+      "status": "Not measured",
+      "reason": "AUDIT_AGENT_KEY unset"
+    }
+  ],
+  "seo": {
+    "checks": 9,
+    "failed": []
+  },
+  "aeo": {
+    "jsonld_checked": 2,
+    "jsonld_failed": [],
+    "llms_present": true,
+    "llms_ok": true,
+    "llms_linked": false
+  },
+  "cache": {
+    "host": "matterofplace.com",
+    "probed": 30,
+    "edge_hit_ratio": 1,
+    "edge_hit_reason": null,
+    "headers_present_ratio": 1,
+    "version_stable": true,
+    "query_variant_same_key": true,
+    "never_cached_ok": true,
+    "set_cookie_on_cached": false,
+    "stale_count": 0,
+    "checks": [
+      {
+        "check": "edge_hit_ratio",
+        "status": "ok",
+        "detail": "1 on the second pass, target 0.95"
+      },
+      {
+        "check": "headers_present",
+        "status": "ok",
+        "detail": "1 of probed responses carry x-mop-cache"
+      },
+      {
+        "check": "version_stable",
+        "status": "ok",
+        "detail": "x-catalog-version values: 12"
+      },
+      {
+        "check": "query_variant_same_key",
+        "status": "ok",
+        "detail": "query variants answered from the same key"
+      },
+      {
+        "check": "never_cached /admin",
+        "status": "ok",
+        "detail": "Cache-Control: no-store, expected exactly no-store"
+      },
+      {
+        "check": "never_cached /api/admin/me",
+        "status": "ok",
+        "detail": "Cache-Control: no-store, expected exactly no-store"
+      },
+      {
+        "check": "never_cached /api/hooks/ops-health/<redacted>",
+        "status": "ok",
+        "detail": "Cache-Control: no-store, expected exactly no-store"
+      },
+      {
+        "check": "set_cookie_on_cached",
+        "status": "ok",
+        "detail": "no cached page carries Set-Cookie"
+      },
+      {
+        "check": "stale",
+        "status": "ok",
+        "detail": "0 stale answers"
+      }
+    ]
+  },
+  "security": {
+    "host": "matterofplace.com",
+    "checks": [
+      {
+        "check": "content-security-policy",
+        "status": "watch",
+        "detail": "Report-Only, not enforcing yet (F10)"
+      },
+      {
+        "check": "strict-transport-security",
+        "status": "ok",
+        "detail": "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+      },
+      {
+        "check": "x-frame-options",
+        "status": "ok",
+        "detail": "X-Frame-Options: DENY"
+      },
+      {
+        "check": "referrer-policy",
+        "status": "ok",
+        "detail": "Referrer-Policy: strict-origin-when-cross-origin"
+      },
+      {
+        "check": "secrets_in_js",
+        "status": "ok",
+        "detail": "scripts read: 209, none holds a secret pattern"
+      },
+      {
+        "check": "forms_turnstile",
+        "status": "ok",
+        "detail": "6 pages with a form load a script that names Turnstile"
+      },
+      {
+        "check": "rate_limit_search",
+        "status": "watch",
+        "detail": "61 requests in 5 seconds, no 429: the memory limit is per isolate"
+      }
+    ]
+  },
+  "not_measured": {
+    "schedule": "AUDIT_AGENT_KEY or SITE_URL unset",
+    "bing": "BING_WEBMASTER_API_KEY unset",
+    "not_found": "AUDIT_AGENT_KEY unset",
+    "kpis": "AUDIT_AGENT_KEY unset",
+    "record_run": "AUDIT_AGENT_KEY or SITE_URL unset"
+  }
+}

@@ -261,7 +261,7 @@ async function postedToday(ctx: StepContext, channel: SocialChannel, tz: string)
 const label = (channel: SocialChannel) => socialChannelLabels[channel];
 
 /**
- * The step's answer when it will not post. W8 item 10 (H134): a proposed post's approval already wrote its own
+ * The step's answer when it will not post. W8 item 10 (H135): a proposed post's approval already wrote its own
  * channel's row, so when this step skips that channel (a format the kind does not target, the channel off, no property
  * yet) the row is closed as cancelled, never left scheduled for the reconcile to fail as overdue. Any other asset has
  * no row here.
