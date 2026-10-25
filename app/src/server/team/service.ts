@@ -338,6 +338,24 @@ async function keepOrDelete<T>(db: Db, userId: string, write: () => Promise<T>):
   }
 }
 
+/**
+ * The failure of a later grant when an existing account was given roles one call at a time: the roles before it stay,
+ * so the answer names them. A failure of the first grant is passed on as it is.
+ */
+function partialInvite(userId: string, given: readonly string[], failure: unknown): unknown {
+  if (given.length === 0) return failure;
+  logLine("error", "team_invite_partial", {
+    userId,
+    code: fromRpcError(failure).code,
+    given: given.join(","),
+  });
+  return new AppError(
+    "team_write_failed",
+    undefined,
+    `The account has these roles already: ${given.join(", ")}. The other roles were not given. Grant them from the team list.`,
+  );
+}
+
 /** `GET team/users`: one page of people and agent accounts with their roles. */
 export async function listUsers(
   actor: AdminActor,
@@ -357,17 +375,70 @@ export async function listUsers(
   };
 }
 
-/** `POST team/users`: Supabase Auth mails the invitation; `grant_role` writes each role, with note `invite`. */
+/**
+ * An address that already has an auth user and no `user_roles` row at all is a former client (W6 item 7: asking for a
+ * room link makes the user): the roles go to that user, with note `invite`, and no mail is sent (`mailed: false`);
+ * they sign in at `/admin/sign-in` like any teammate. A person with any role row, enabled or switched off, keeps the
+ * refusal: `grant_role` would start a new role of a switched-off person disabled and cannot repeat a role, so
+ * re-enabling is `setUserDisabled`'s path. The user is read by address through `user_id_by_email` (the admin API has
+ * no such read, and a generated link would mint a live sign-in token). The account is never deleted when a grant fails:
+ * it was not made here, and `grant_role` is safe to repeat. Each role is its own call, so a failure after the first
+ * keeps the earlier roles, and the answer names them (`partialInvite`).
+ */
+async function inviteExisting(
+  actor: AdminActor,
+  db: Db,
+  input: InviteInput,
+): Promise<{ user_id: string; mailed: boolean }> {
+  const userId = z
+    .string()
+    .uuid()
+    .nullable()
+    .parse(await rpcOrThrow(db.rpc("user_id_by_email", { p_email: input.email })));
+  if (userId === null) throw teamWriteFailed();
+  const held = await db.from("user_roles").select("role").eq("user_id", userId);
+  if (held.error !== null) {
+    throw new AppError(
+      "unavailable",
+      undefined,
+      "The service is busy. Please try again in a moment.",
+    );
+  }
+  if (held.data.length > 0) {
+    throw new AppError("already_exists", undefined, "This address already has an account.");
+  }
+  const given: string[] = [];
+  for (const role of input.roles) {
+    await rpcOrThrow(
+      db.rpc("grant_role", {
+        p_user: userId,
+        p_role: role,
+        p_note: "invite",
+        p_display_name: input.display_name,
+        ...auditContext(actor),
+      }),
+    ).catch((failure: unknown) => {
+      throw partialInvite(userId, given, failure);
+    });
+    given.push(role);
+  }
+  return { user_id: userId, mailed: false };
+}
+
+/**
+ * `POST team/users`: Supabase Auth mails the invitation (`mailed: true`); `grant_role` writes each role, with note
+ * `invite`. An address that already has an account takes `inviteExisting`'s path, with no mail.
+ */
 export async function inviteUser(
   actor: AdminActor,
   db: Db,
   input: InviteInput,
-): Promise<{ user_id: string }> {
+): Promise<{ user_id: string; mailed: boolean }> {
   authorize(actor, "team.invite");
   const { data, error } = await db.auth.admin.inviteUserByEmail(input.email);
   if (error !== null) {
     if (isAuthApiError(error) && error.code === "email_exists") {
-      throw new AppError("already_exists", undefined, "This address already has an account.");
+      return inviteExisting(actor, db, input);
     }
     throw authFailure(error);
   }
@@ -385,7 +456,7 @@ export async function inviteUser(
       );
     }
   });
-  return { user_id: userId };
+  return { user_id: userId, mailed: true };
 }
 
 /** `POST team/users/:id/roles`. */

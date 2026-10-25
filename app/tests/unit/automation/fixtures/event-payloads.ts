@@ -98,4 +98,5 @@ export const eventPayloadExamples: Record<EventType, JsonObject> = {
     reason: "bounce",
     bounce_type: "Permanent",
   },
+  "email.received": { inbound_id: "7d1e4c2a-5b6f-4e8a-9c0d-1a2b3c4d5e6f", alias: "hello" },
 };

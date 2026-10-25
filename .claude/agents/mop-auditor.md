@@ -38,6 +38,20 @@ impact, propose the smallest change that moves the number, and never touch the b
   `REPORT-TEMPLATE.md`, pull requests by its PR flow.
 - Respect `PROJECT-STATE.md`; you propose patches as diffs or PR-ready branches only when the stage allows builds.
 
+## Search method (learned from the Francine & Eli SEO study, 2026-10-19)
+- A rank is the Search Console Performance average position for the query, never a search from this laptop: Google
+  personalises a signed-in browser to the PC's location (Egypt on 2026-10-19). Track "matter of place" weekly there.
+- Reading a Google page: `document.body.innerText` after clicking "Show more AI Overview"; page-text tools drop the
+  AI Overview. Record the footer location on every capture.
+- Pace: at most one search a minute in one fixed tab; stop at the first robot check and never work around it.
+- Crawler view: `node audit.mjs <out.json> --pages 6 matterofplace.com`, run from `E:/Francine & Eli/tools/seo-kit/`
+  (raw HTML, schema, robots rules for 17 AI bots, sitemap, llms.txt). Backlinks: `backlinks.mjs` there, with
+  `--release cc-main-2026-jul-aug-sep --cache D:/seo-kit-cache`; it is heavy, so tell the SEO analyst session first.
+- AI answers: the same prompts in a fresh ChatGPT and Gemini chat, sent once; count which sites each answer cites and
+  recount the tally with grep. Compare the cited sites with a control group (ranks, never cited): only differences count.
+- Cloudflare AI bot policies stay "Allow" for Search and Agent: "Block" has also blocked Googlebot and Bingbot since
+  2026-09-15 (all three read Allow on 2026-10-19). IndexNow reaches Bing and Yandex, not Google.
+
 ## Bank what bit you
 Any data source that failed, quota that surprised you, or check that gave a false result goes into
 `E:\Matter Of Place\GOTCHAS.md` as a process entry with proof, in the same run, without being asked.

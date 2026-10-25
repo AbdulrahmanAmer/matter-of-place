@@ -19,7 +19,7 @@ import { logLine } from "../lib/log.ts";
 import { checkDb, checkMemory } from "../lib/ratelimit.ts";
 import { authClient, getSessionUser, takeIssuedCookies } from "../lib/session.ts";
 import { verifyTurnstile } from "../lib/turnstile.ts";
-import { waitUntilOf } from "../lib/wait-until.ts";
+import { carriesWaitUntil, waitUntilOf } from "../lib/wait-until.ts";
 
 // W6 item 7, ruling H119: the client room's sign-in, sign-out and its one read. A client is the signed-in person whose
 // confirmed email is a contact's; the room reads only through `account_room`, given the verified session's user.
@@ -110,6 +110,9 @@ export async function sendAccountLink(
     logLine("warn", "send_link_limited", { reason, route: ROUTE });
     return SENT;
   }
+  // Without the Worker's `waitUntil` the lookup and the enqueue run unguarded after the answer and may be cut off: the
+  // person is told "sent", nothing is mailed. Say so, so a missing `waitUntil` shows in the logs.
+  if (!carriesWaitUntil(request)) logLine("warn", "wait_until_missing", { route: ROUTE });
   waitUntilOf(request)(
     queueLink(db, environment, input.email).catch((error: unknown) => {
       logLine("warn", "auth_send_failed", {

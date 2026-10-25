@@ -126,6 +126,8 @@ export const subjectExportSchema = z.object({
   inquiries: z.array(z.unknown()),
   contacts: z.array(z.unknown()),
   submissions: z.array(z.unknown()),
+  // W8 0h review: the person's emails the mailbox check recorded.
+  inbound_mail: z.array(z.unknown()),
 });
 
 /** What `delete_subject` and `opt_out_subject` changed, as counts only. */

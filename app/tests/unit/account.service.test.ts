@@ -154,6 +154,28 @@ describe("sendAccountLink", () => {
     ]);
   });
 
+  it("logs when the request carries no waitUntil, and stays quiet when it does", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const db = world({ account_can_sign_in: () => false });
+      const carried = post();
+      await sendAccountLink(db, carried.request, env, input);
+      await carried.afterAnswer();
+      expect(warn).not.toHaveBeenCalled();
+      // the same post as the dev server or a server function without the Worker's `waitUntil` sees it
+      const bare = new Request(`${SITE}/_serverfn/account`, {
+        method: "POST",
+        headers: { "cf-connecting-ip": IP, origin: SITE },
+      });
+      expect(await sendAccountLink(db, bare, env, input)).toEqual({ status: "sent" });
+      expect(warn.mock.calls.map(([line]) => String(line))).toEqual([
+        JSON.stringify({ level: "warn", event: "wait_until_missing", route: "account-send-link" }),
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("checks the hourly limits per address of origin and per email before the answer", async () => {
     const db = world({ account_can_sign_in: () => false });
     const { request, afterAnswer } = post();

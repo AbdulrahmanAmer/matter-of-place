@@ -1,7 +1,25 @@
 import { z } from "zod";
-import { submissionStates } from "./contracts.ts";
+import { submissionStates, type SubmissionState } from "./contracts.ts";
 
 // W6 item 7, ruling H119: the client room. Field names are those `account_room` returns.
+
+/**
+ * Where a request stands, in a sentence for the client (W6 item 7 review): the pipeline's own state names are staff
+ * labels. One sentence per state, so a new state cannot reach the room without words. Item 8's timeline reuses these.
+ */
+export const requestStatusLines: Record<SubmissionState, string> = {
+  Submitted: "We have your request and will read it soon.",
+  "Under Review": "We are reading your request.",
+  Accepted: "We accepted your request. What comes next will reach you by email.",
+  Declined: "We are not able to take this one on.",
+  "Awaiting Assets": "We are waiting for the photographs and details we asked you for.",
+  "Invoice Issued": "Your invoice has been sent. Please look for it in your email.",
+  Scheduled: "Your property is scheduled to go live on the site.",
+  Published: "Your property is live on the site.",
+  "Distribution Active": "Your property is live, and we are sharing it with our readers.",
+  Completed: "This request is complete.",
+  Withdrawn: "This request was withdrawn.",
+};
 
 /** One of the client's own requests, by address and state. */
 const accountRequestSchema = z.object({
