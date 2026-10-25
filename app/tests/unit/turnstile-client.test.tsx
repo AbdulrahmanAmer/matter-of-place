@@ -119,4 +119,52 @@ describe("getTurnstileToken", () => {
     void getTurnstileToken("inquiries");
     expect(scripts()).toHaveLength(2);
   });
+
+  it("says above the box what to do while Cloudflare asks, and clears the line when it is done", async () => {
+    const { api, rendered } = fakeApi();
+    window.turnstile = api;
+    const { getTurnstileToken } = await load();
+    const { t } = await import("../../src/lib/strings");
+    const pending = getTurnstileToken("auth-send-link");
+    await vi.waitFor(() => {
+      expect(api.execute).toHaveBeenCalledTimes(1);
+    });
+    const host = document.getElementById("turnstile-host");
+    expect(host?.querySelector(".turnstile-ask")).toBeNull();
+    rendered[0]?.options["before-interactive-callback"]();
+    const line = host?.querySelector(".turnstile-ask");
+    expect(line?.textContent).toBe(t.forms.turnstileAsk);
+    expect(line?.getAttribute("role")).toBe("status");
+    expect(host?.classList.contains("turnstile-host--asking")).toBe(true);
+    rendered[0]?.options["after-interactive-callback"]();
+    expect(host?.querySelector(".turnstile-ask")).toBeNull();
+    rendered[0]?.options["before-interactive-callback"]();
+    rendered[0]?.options.callback("token-asked");
+    expect(await pending).toBe("token-asked");
+    expect(host?.querySelector(".turnstile-ask")).toBeNull();
+    expect(host?.classList.contains("turnstile-host--asking")).toBe(false);
+  });
+
+  it("goes on without a token when Cloudflare never answers, instead of waiting for good", async () => {
+    vi.useFakeTimers();
+    try {
+      const { api, rendered } = fakeApi();
+      window.turnstile = api;
+      const { getTurnstileToken } = await load();
+      const pending = getTurnstileToken("auth-send-link");
+      await vi.waitFor(() => {
+        expect(api.execute).toHaveBeenCalledTimes(1);
+      });
+      rendered[0]?.options["before-interactive-callback"]();
+      // TOKEN_WAIT_MS in src/lib/turnstile.ts: three minutes.
+      await vi.advanceTimersByTimeAsync(180_000);
+      expect(await pending).toBeNull();
+      expect(api.remove).toHaveBeenCalledWith("widget-1");
+      expect(document.querySelector(".turnstile-ask")).toBeNull();
+      rendered[0]?.options.callback("too-late");
+      expect(api.remove).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

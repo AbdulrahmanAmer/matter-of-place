@@ -110,7 +110,8 @@ export const inviteInputSchema = z.object({
     .refine((list) => new Set(list).size === list.length, "Each role once."),
 });
 export type InviteInput = z.infer<typeof inviteInputSchema>;
-export const userCreatedSchema = z.object({ user_id: z.string() });
+/** `mailed` is false when the address already had an account: its roles were given and no email was sent. */
+export const userCreatedSchema = z.object({ user_id: z.string(), mailed: z.boolean() });
 
 /** `POST team/users/:id/roles`. */
 export const roleGrantInputSchema = z.object({

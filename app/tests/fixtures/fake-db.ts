@@ -37,6 +37,7 @@ interface FakeQuery extends Promise<{ data: unknown[]; error: null }> {
   or: () => FakeQuery;
   order: () => FakeQuery;
   limit: () => FakeQuery;
+  maybeSingle: () => Promise<{ data: unknown; error: null }>;
 }
 
 const registered = (table: object | undefined, name: string): unknown =>
@@ -77,6 +78,11 @@ export function fakeDb(options: FakeDbOptions = {}): FakeDb {
         or: query,
         order: query,
         limit: query,
+        // the first registered row, as the database answers a query meant to match one row or none
+        maybeSingle: () => {
+          const first: unknown = rows[0];
+          return Promise.resolve({ data: first ?? null, error: null });
+        },
       });
     return { select: query };
   };

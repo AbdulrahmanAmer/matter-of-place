@@ -1,0 +1,11 @@
+[
+  {
+    "id": "seo-entity-logo",
+    "test": "tests/unit/organization-jsonld.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "export const LOGO_PATH = \"/icon-512.png\";",
+    "replace": "export const LOGO_PATH = \"/logo-missing.png\";",
+    "run": "bunx vitest run --project unit tests/unit/organization-jsonld.test.ts",
+    "expect": "× .*carries the brand emblem as its logo"
+  }
+]
