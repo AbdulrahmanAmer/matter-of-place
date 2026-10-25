@@ -100,7 +100,9 @@ when 1.20.9 is seven days old, by an `overrides` entry. Recorded on 2026-10-25: 
 (GHSA-mrhx-c7xc-m3w5, memory exhaustion while validating an oversized constrained collection; every 3.x release is
 affected, fixed only in 4.6.6), which validates every request in the deployed Worker; the exposure is bounded because
 both pipelines refuse a body over 64 KB before it is parsed (`MAX_BODY_BYTES` in `src/server/public/pipeline.ts` and
-`src/server/lib/admin-route.ts`); lifted when the app moves to zod 4. Proved by H1-10.
+`src/server/lib/admin-route.ts`); lifted when the app moves to zod 4. The same zod advisory is the one waiver of
+`launch/package.json`'s script: `zod` 3.25.76 reaches `launch/` only through `puppeteer`'s `chromium-bidi`, which
+drives the browser that renders the films on the laptop and is never deployed; lifted when `chromium-bidi` moves to zod 4. Proved by H1-10.
 
 ## Never cached (caching rule 6)
 
