@@ -8815,3 +8815,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing the report, read the previous report and sidecar from the newest `audit/*-report` branch with `git show origin/<branch>:<path>` when `main` has none, and name the branch in the report's "Previous report" line.
 - proof: `git ls-files workspace/audits/data` on origin/main → nothing; `git show origin/audit/2026-10-17-report:workspace/audits/data/2026-10-17.json` → the sidecar (2026-10-25).
 - added: 2026-10-25
+
+## P-3723 · New advisories turn every pull request's `check` red at once, and a grep of the log for "error" hides two of three
+- symptom: 2026-10-25, PR 469: `check` failed on `audit:deps`; `gh run view --log-failed | grep -i error` showed only undici (its title says "unhandled error"), while body-parser and zod were also open. Main had not run since 10-19, so nothing had warned.
+- rule: read the audit with `bun audit --audit-level=high <the script's --ignore flags>` from `app/`, not a filtered CI log; for each advisory record the fix's release date against the seven-day rule, and record each waiver in `docs/security.md` "Dependency audit" with what lifts it (`tests/unit/audit-waivers.test.ts` refuses an undocumented `--ignore`).
+- proof: `cd app && bun run audit:deps` exits 0 on fix/undici-waiver and exited 1 listing three advisories before it (2026-10-25).
+- added: 2026-10-25
