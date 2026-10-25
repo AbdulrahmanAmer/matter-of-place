@@ -8821,3 +8821,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: read the audit with `bun audit --audit-level=high <the script's --ignore flags>` from `app/`, not a filtered CI log; for each advisory record the fix's release date against the seven-day rule, and record each waiver in `docs/security.md` "Dependency audit" with what lifts it (`tests/unit/audit-waivers.test.ts` refuses an undocumented `--ignore`).
 - proof: `cd app && bun run audit:deps` exits 0 on fix/undici-waiver and exited 1 listing three advisories before it (2026-10-25).
 - added: 2026-10-25
+
+## P-3724 · The Saturday audit routine starts with none of its credentials, and nothing loads them
+- symptom: 2026-10-17, the routine's `node workspace/audits/tools/run-all.mjs` wrote `sources_configured: []` and 14 keys under `not_measured`; the sidecar held only GitHub usage.
+- cause: the routine session inherits no audit names. The laptop `.env` holds PSI, Google, GA4, Cloudflare analytics, uptime and Sentry names, but `app/scripts/load-env.mjs --profile dev` exports only five of them; `SITE_URL`, `AUDIT_AGENT_KEY`, `CF_ZONE_ID` and `BING_WEBMASTER_API_KEY` are in no env file, and the collectors read `CF_ACCOUNT_ID` where `.env` says `CLOUDFLARE_ACCOUNT_ID`.
+- rule: run `run-all.mjs --check-credentials` first. When names are missing, hand the `.env` audit names to the same scheduled command (never `--manual`, values never printed) with `SITE_URL=https://matterofplace.com` and `CF_ACCOUNT_ID` taken from `CLOUDFLARE_ACCOUNT_ID`, and list what is still missing under `## Not measured`. Without `AUDIT_AGENT_KEY` the schedule switch cannot be read, so "skipped, disabled" can never print.
+- proof: `node workspace/audits/tools/run-all.mjs --check-credentials` in the routine's shell prints `missing` for all 12 names and exits 1 (2026-10-17); report `workspace/audits/2026-10-17.md`, finding A-20261017-01.
+- added: 2026-10-17
+
+## P-3725 · The audit's SEO checkers crash on import, and the crash lines read as failed checks
+- symptom: 2026-10-17, `seo.failed` in the sidecar held 13 lines of a stack trace (`Invalid environment: RATE_LIMIT_SALT Required` at `app/src/server/lib/env.ts:79`), counted as 13 failed SEO checks. With only the salt set, the checker refused on `SUPABASE_PUBLISHABLE_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET` and `SENTRY_DSN`.
+- cause: `check-seo.ts` reaches server modules that parse the Worker's environment on load; `env.ts` defaults `MOP_ENV` to production, and `crawl.mjs` ran the checkers with the bare shell environment. CI never saw it: its seo steps run beside a `.dev.vars` that holds those names.
+- rule: the checkers run with `MOP_ENV=local` and a throwaway salt (`crawl.mjs`, PR 451). A `failed` list whose lines are a stack trace is a crashed tool, not findings: read the text of every failure before ranking it.
+- proof: `cd app && env -u MOP_ENV -u RATE_LIMIT_SALT bun run scripts/check-seo.ts https://matterofplace.com` → `error: Invalid environment: RATE_LIMIT_SALT Required`; `MOP_ENV=local RATE_LIMIT_SALT=audit-checker-only bun run scripts/check-seo.ts https://matterofplace.com` → 9 `ok` lines, exit 0 (2026-10-17).
+- added: 2026-10-17
+
+## P-3726 · The Actions minutes gauge reads LIMIT on a public repository, where standard runners are not billed
+- symptom: 2026-10-17, `usage.actions_minutes` printed 16518 of 2000 minutes, 825.9 percent, status LIMIT.
+- cause: `workspace/audits/tools/collectors/github.mjs` sums run minutes against the private-repository allowance in `limits.json`, whatever the repository's visibility, and the repository is public.
+- rule: read `gh repo view --json visibility` before treating `actions_minutes` as a limit; while it answers `PUBLIC` the line is information, not an alarm (finding A-20261017-03 proposes the collector change; `limits.json` is mirrored by `gauges.ts` and pinned by `app/tests/unit/audit/usage.test.ts`).
+- proof: `gh repo view --json visibility` → `{"visibility":"PUBLIC"}` (2026-10-17).
+- added: 2026-10-17
