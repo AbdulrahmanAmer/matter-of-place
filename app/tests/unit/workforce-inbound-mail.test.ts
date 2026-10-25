@@ -18,7 +18,7 @@ import {
   noteTriage,
   type InboundMessage,
 } from "../../scripts/workforce/inbound-mail.ts";
-import { checkMail, PER_CHECK, type Fetch } from "../../scripts/workforce/mail.ts";
+import { checkMail, MAX_ATTACHMENTS, PER_CHECK, type Fetch } from "../../scripts/workforce/mail.ts";
 import { readReport, reportFailed, reportSummary } from "../../scripts/workforce/mail-reports.ts";
 import { authenticatedDomain, sortMessage } from "../../scripts/workforce/service-notice.ts";
 import { outsideGate, ownsSource, recordOf, type Triage } from "../../scripts/workforce/triage.ts";
@@ -886,6 +886,31 @@ describe("W8 0h: one message never stops a folder", () => {
     expect(done).toEqual({ replies: 0, inbound: 2, unread: [] });
   });
 
+  it("cuts a person's text before cleaning it, so an emoji split at the cap leaves no half the database refuses", async () => {
+    const box = mailbox({
+      "8580671000000008008": [{ ...person(0), content: `<div>${"a".repeat(5999)}😀 more</div>` }],
+    });
+    const { db, rpcs } = mailDb();
+    await checkMail(db, home(), NOW, { names, fetch: box.fetch });
+    expect(recordedOf(rpcs).map((args) => args["p_body"])).toEqual(["a".repeat(5999)]);
+  });
+
+  it("keeps the first fifty attachment names and says in fixed words how many more there were", async () => {
+    const many = Array.from({ length: MAX_ATTACHMENTS + 2 }, (_, index) => ({
+      attachmentId: String(index + 1),
+      attachmentName: `page-${String(index + 1)}.pdf`,
+      base64: "",
+    }));
+    const box = mailbox({ "8580671000000008008": [person(0, many)] });
+    const { db, rpcs } = mailDb();
+    await checkMail(db, home(), NOW, { names, fetch: box.fetch });
+    const names_ = recordedOf(rpcs).map((args) => args["p_attachments"])[0];
+    expect(names_).toHaveLength(MAX_ATTACHMENTS + 1);
+    expect(Array.isArray(names_) ? names_.at(-1) : undefined).toBe(
+      "(2 more attachments not listed)",
+    );
+  });
+
   it("records a message whose text, header and attachment list Zoho refuses, naming what was not read", async () => {
     const refused = person(0, [{ attachmentId: "1", attachmentName: "plan.pdf", base64: "" }]);
     const box = mailbox(
@@ -1249,21 +1274,23 @@ describe("W8 0h: sorting a message reads only its headers", () => {
 describe("W8 0h: a run on an event is queued through queue_event_runs", () => {
   const AT = "2026-10-19T10:00:00.000Z";
   /** Events and agents as the daemon reads them; `queue_event_runs` answers `queued`, or refuses. */
-  function eventsDb(refused: boolean) {
+  function eventsDb(refused: boolean, agentsUnread = false) {
     const calls: { name: string; args: unknown }[] = [];
     const answer = (table: string) => ({
       data:
-        table === "events"
-          ? [{ id: EVENT_ID, type: "email.received", at: AT, entity: "inbound_mail" }]
-          : [
-              {
-                id: "c0ncierge-0000-4000-8000-000000000000",
-                wake_on: ["email.received"],
-                state: "idle",
-              },
-              { id: "e0170r00-0000-4000-8000-000000000000", wake_on: [], state: "idle" },
-            ],
-      error: null,
+        table !== "events" && agentsUnread
+          ? null
+          : table === "events"
+            ? [{ id: EVENT_ID, type: "email.received", at: AT, entity: "inbound_mail" }]
+            : [
+                {
+                  id: "c0ncierge-0000-4000-8000-000000000000",
+                  wake_on: ["email.received"],
+                  state: "idle",
+                },
+                { id: "e0170r00-0000-4000-8000-000000000000", wake_on: [], state: "idle" },
+              ],
+      error: table !== "events" && agentsUnread ? { code: "57014", message: "timeout" } : null,
     });
     const db = {
       from: (table: string) => {
@@ -1310,6 +1337,15 @@ describe("W8 0h: a run on an event is queued through queue_event_runs", () => {
     writeFileSync(file, JSON.stringify({ at: "2026-10-19T09:00:00.000Z" }));
     const { db } = eventsDb(true);
     await expect(wakeOnEvents(db, file)).rejects.toThrow("could not be queued");
+    expect(cursorIn(file)).toBe("2026-10-19T09:00:00.000Z");
+  });
+
+  it("keeps the cursor before an event when the colleagues cannot be read, and queues nothing", async () => {
+    const file = join(home(), "cursor.json");
+    writeFileSync(file, JSON.stringify({ at: "2026-10-19T09:00:00.000Z" }));
+    const { db, calls } = eventsDb(false, true);
+    await expect(wakeOnEvents(db, file)).rejects.toThrow("colleagues could not be read");
+    expect(calls).toEqual([]);
     expect(cursorIn(file)).toBe("2026-10-19T09:00:00.000Z");
   });
 });

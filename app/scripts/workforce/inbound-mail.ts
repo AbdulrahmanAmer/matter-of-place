@@ -149,7 +149,7 @@ export function inboundRecord(message: InboundMessage): Recorded {
       // codes of the accounts on admin@ arrive that way); a person's email keeps its words for the person who answers.
       p_body:
         sorted.source === "email_inbound"
-          ? storable(plainText(message.content)).slice(0, BODY_CAP)
+          ? storable(plainText(message.content).slice(0, BODY_CAP))
           : "",
       p_received_at: new Date(message.receivedAt).toISOString(),
       p_attachments: message.attachments.map((attachment) => storable(attachment.name)),

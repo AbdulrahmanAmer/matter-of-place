@@ -1,4 +1,4 @@
--- down: re-run bun run db:fn queue_event_runs ops_health from the previous commit of supabase/sql/functions/queue_event_runs.sql, supabase/sql/functions/ops_health.sql
+-- down: drop function public.queue_event_runs(uuid[], uuid[]); re-run bun run db:fn ops_health from the previous commit of supabase/sql/functions/ops_health.sql
 set lock_timeout = '5s';
 
 create or replace function public.queue_event_runs(p_agents uuid[], p_events uuid[])

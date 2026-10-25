@@ -268,9 +268,10 @@ export async function wakeOnEvents(client: Db, file = CURSOR_FILE): Promise<numb
     writeFileSync(file, JSON.stringify({ at: cursor }));
     return 0;
   }
-  const { data: agents } = await client.from("agents").select("id, wake_on, state");
+  const { data: agents, error: unread } = await client.from("agents").select("id, wake_on, state");
+  if (unread !== null) throw new Error("workforce: the colleagues could not be read");
   const rows = events.flatMap((event) =>
-    (agents ?? [])
+    agents
       // W9 item 3: a bounce wakes only the owner of the request or inquiry it is about.
       .filter((agent) => wakes(agent, event))
       .map((agent) => ({ agent_id: agent.id, event_id: event.id })),
@@ -1386,7 +1387,11 @@ async function pass(client: Db): Promise<void> {
     return 0;
   });
   if (pages > 0) console.log(`${new Date().toISOString()} site pages ${String(pages)}`);
-  const woke = await wakeOnEvents(client);
+  // A wake that fails keeps its cursor and never stops the runs a person's line or an earlier event queued.
+  const woke = await wakeOnEvents(client).catch((failure: unknown) => {
+    console.log(failure instanceof Error ? failure.message : String(failure));
+    return 0;
+  });
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
   // Up to five runs a pass, one after another; the scheduled task starts the next pass a minute later.
   let ran = 0;

@@ -11,7 +11,13 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import type { Db } from "../../src/server/lib/db.ts";
-import { inboundRecord, recordInbound, storable, type UnreadPart } from "./inbound-mail.ts";
+import {
+  BODY_CAP,
+  inboundRecord,
+  recordInbound,
+  storable,
+  type UnreadPart,
+} from "./inbound-mail.ts";
 import { isReportName, MAX_COMPRESSED } from "./mail-reports.ts";
 import { sortMessage, type Attachment } from "./service-notice.ts";
 
@@ -347,6 +353,9 @@ const UNREAD_LIST: Attachment = {
   refused: "not read",
 };
 
+/** The attachment names a row keeps; past it one entry in fixed words says how many more there were. */
+export const MAX_ATTACHMENTS = 50;
+
 /** The subject a message recorded from its listing alone carries when the database refused the listed one. */
 const LISTED_UNSTORED = "(the subject could not be recorded)";
 
@@ -354,7 +363,7 @@ const LISTED_UNSTORED = "(the subject could not be recorded)";
 async function attachmentsOf(zoho: Zoho, base: string, wanted: boolean): Promise<Attachment[]> {
   const info = attachmentInfoSchema.parse(await zoho.json(`${base}/attachmentinfo`));
   const out: Attachment[] = [];
-  for (const attachment of info.attachments.slice(0, 50)) {
+  for (const attachment of info.attachments.slice(0, MAX_ATTACHMENTS)) {
     const name = attachment.attachmentName;
     if (!wanted || !isReportName(name)) {
       out.push({ name, file: null, refused: "not read" });
@@ -369,6 +378,13 @@ async function attachmentsOf(zoho: Zoho, base: string, wanted: boolean): Promise
       .catch(() => null);
     out.push(file === null ? { name, file: null } : { name, file });
   }
+  const more = info.attachments.length - MAX_ATTACHMENTS;
+  if (more > 0)
+    out.push({
+      name: `(${String(more)} more attachments not listed)`,
+      file: null,
+      refused: "not read",
+    });
   return out;
 }
 
@@ -530,7 +546,7 @@ async function oneMessage(
         p_from: storable(from),
         p_name: storable(row.sender),
         p_subject: storable(row.subject),
-        p_body: storable(withoutQuoted(plainText(content))).slice(0, 6000),
+        p_body: storable(withoutQuoted(plainText(content)).slice(0, BODY_CAP)),
         p_received_at: new Date(row.received).toISOString(),
       });
       if (error !== null) throw new Error("mail: a reply could not be recorded");

@@ -667,5 +667,32 @@
     "replace": "const waiting = mail.state === \"capped\";",
     "run": "bunx vitest run --project component src/admin/audit/inbound-mail.test.tsx -t \"says a message with no owner waits for a person, never that it was sent\"",
     "expect": "× .*says a message with no owner waits for a person, never that "
+  },
+  {
+    "id": "w8-0h5-agents-unread",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (unread !== null) throw new Error(\"workforce: the colleagues could not be read\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"when the colleagues cannot be read\"",
+    "expect": "× .*keeps the cursor before an event when the colleagues cannot be read"
+  },
+  {
+    "id": "w8-0h5-cut-before-clean",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": "storable(plainText(message.content).slice(0, BODY_CAP))",
+    "replace": "storable(plainText(message.content)).slice(0, BODY_CAP)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"an emoji split at the cap\"",
+    "expect": "× .*cuts a person's text before cleaning it"
+  },
+  {
+    "id": "w8-0h5-attachments-more",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "  if (more > 0)\n",
+    "replace": "  if (false)\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"how many more there were\"",
+    "expect": "× .*keeps the first fifty attachment names"
   }
 ]
