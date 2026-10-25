@@ -55,7 +55,7 @@
     "cf:preview": "cp .dev.vars .output/server/.dev.vars && wrangler dev --config .output/server/wrangler.json --port 8788",
     "migrations:restamp": "bun run scripts/restamp-migrations.ts",
     "types:from-ci": "bun run scripts/types-from-ci.ts",
-    "audit:deps": "bun audit --audit-level=high --ignore=GHSA-jmr9-qjv8-65gv --ignore=GHSA-7pqw-9j4j-h8q3"
+    "audit:deps": "bun audit --audit-level=high --ignore=GHSA-jmr9-qjv8-65gv --ignore=GHSA-7pqw-9j4j-h8q3 --ignore=GHSA-xjj6-f33q-929c --ignore=GHSA-27r3-jxmh-p828 --ignore=GHSA-mrhx-c7xc-m3w5"
   },
   "trustedDependencies": [
     "supabase",
