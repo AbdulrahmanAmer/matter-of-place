@@ -407,8 +407,8 @@
     "id": "w8-0r4-plan-wake",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    wake: input.cause !== \"message\" && ruled.wakeMentioned,",
-    "replace": "    wake: input.cause !== \"message\",",
+    "find": "    wake: input.cause !== \"message\" && ruled.wakeMentioned && fromRequest.wakeMentioned,",
+    "replace": "    wake: input.cause !== \"message\" && fromRequest.wakeMentioned,",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*keeps from a triaged run one allowed proposal"
   },
@@ -452,8 +452,8 @@
     "id": "w8-0r4-triaged-sees-no-inside",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "  if (triage === null) {\n    const { data: messages } = await client",
-    "replace": "  if (triage === null || triage !== null) {\n    const { data: messages } = await client",
+    "find": "  if (triage === null && !desk.received) {\n    const { data: messages } = await client",
+    "replace": "  if (!desk.received) {\n    const { data: messages } = await client",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*builds the owner's prompt with the triage only"
   },

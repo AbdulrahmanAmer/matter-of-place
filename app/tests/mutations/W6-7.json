@@ -433,15 +433,6 @@
     "expect": "× .*takes the token from the fragment and out of the address, then spends it on a press"
   },
   {
-    "id": "w6-7-confirm-query",
-    "test": "src/components/account/account-confirm.test.tsx",
-    "file": "src/components/account/account-confirm.tsx",
-    "find": " ??\n    new URLSearchParams(location.search).get(\"token_hash\");",
-    "replace": ";",
-    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-confirm.test.tsx",
-    "expect": "× .*reads the token of a link that carries it in the query, and takes it out too"
-  },
-  {
     "id": "w6-7-confirm-disabled",
     "test": "src/components/account/account-confirm.test.tsx",
     "file": "src/components/account/account-confirm.tsx",
@@ -517,8 +508,8 @@
     "id": "w6-7-room-state",
     "test": "src/components/account/account-room.test.tsx",
     "file": "src/components/account/account-room.tsx",
-    "find": "                {request.workflow_state}. Received",
-    "replace": "                {request.state}. Received",
+    "find": "{requestStatusLines[request.workflow_state]} Received",
+    "replace": "{request.state}. Received",
     "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-room.test.tsx",
     "expect": "× .*lists the client's requests by address and state, in the order given"
   },
@@ -584,5 +575,160 @@
     "replace": "disabled={pending}",
     "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-sign-in.test.tsx",
     "expect": "× .*keeps the button off until an address is typed"
+  },
+  {
+    "id": "w6-7f-contact-name-kept",
+    "kind": "sql",
+    "test": "tests/db/account.db.test.ts",
+    "sql": "create or replace function public.create_submission(p jsonb)\nreturns table (id uuid, received_at timestamptz, media jsonb)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v public.submissions := jsonb_populate_record(null::public.submissions, p);\n  v_entries jsonb := coalesce(p -> 'media', '[]'::jsonb);\n  v_address text := lower(regexp_replace(btrim(v.address), '\\s+', ' ', 'g'));\n  v_existing public.submissions;\n  v_duplicate_of uuid;\n  v_contact_id uuid;\n  v_submission_id uuid;\n  v_received_at timestamptz;\nbegin\n  -- GQ-07: the same number as uploadLimits.maxFiles and the submission_media trigger.\n  if jsonb_array_length(v_entries) > 40 then\n    raise exception 'validation' using errcode = '22023', detail = 'more than 40 media entries';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(v_entries) e\n    where e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp') or e ->> 'type' is null\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported media type';\n  end if;\n\n  -- A double click (ASSUMED: the same submitter, address and zip within 10 minutes) answers with the first request.\n  select * into v_existing\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.zip = v.zip\n    and s.received_at > now() - interval '10 minutes'\n  order by s.received_at\n  limit 1;\n  if found then\n    return query\n    select v_existing.id, v_existing.received_at, coalesce(\n      (select jsonb_agg(\n          jsonb_build_object('id', m.id, 'index', m.sort_order, 'name', m.name, 'storage_path', m.storage_path)\n          order by m.sort_order\n        )\n        from public.submission_media m\n        where m.submission_id = v_existing.id),\n      '[]'::jsonb\n    );\n    return;\n  end if;\n\n  -- Invariant 12 (GD-05): a request for the same address by the same email within 30 days points at the first one.\n  select s.id into v_duplicate_of\n  from public.submissions s\n  where lower(s.submitter_email) = lower(v.submitter_email)\n    and lower(regexp_replace(btrim(s.address), '\\s+', ' ', 'g')) = v_address\n    and s.received_at > now() - interval '30 days'\n  order by s.received_at\n  limit 1;\n\n  -- Invariant 22 (S55): one person is one row. The kind and the name first recorded stay (W6 item 7 review, ruling\n  -- H119 (5): the room says \"Signed in as <name>\", so a name an outsider typed with someone else's address never\n  -- replaces it); the request keeps what was typed.\n  insert into public.contacts as c (kind, name, email, phone, brokerage)\n  values (v.submitter_kind, v.submitter_name, lower(v.submitter_email), v.submitter_phone, v.brokerage)\n  on conflict ((lower(email))) do update\n  set name = excluded.name,\n    phone = coalesce(excluded.phone, c.phone),\n    brokerage = coalesce(excluded.brokerage, c.brokerage)\n  returning c.id into v_contact_id;\n\n  insert into public.submissions as s (\n    address, city, state, zip, listing_url, source_url, price, currency, property_type, beds, baths, interior_sq_ft,\n    architect, designer, year_built, year_renovated, brokerage, submitter_kind, submitter_name, submitter_email,\n    submitter_phone, listed_with_agent, listing_agent_name, listing_agent_brokerage, contact_id, photography_url,\n    video_url, story, significance, package, media_budget, source_path, turnstile_ok, ip_hash, rights_version,\n    rights_confirmed_at, rights_ip_hash, duplicate_of\n  ) values (\n    v.address, v.city, v.state, v.zip, v.listing_url, v.source_url, v.price, coalesce(v.currency, 'USD'),\n    v.property_type, v.beds, v.baths, v.interior_sq_ft, v.architect, v.designer, v.year_built, v.year_renovated,\n    v.brokerage, v.submitter_kind, v.submitter_name, v.submitter_email, v.submitter_phone, v.listed_with_agent,\n    v.listing_agent_name, v.listing_agent_brokerage, v_contact_id, v.photography_url, v.video_url, v.story,\n    v.significance, v.package, v.media_budget, v.source_path, coalesce(v.turnstile_ok, false), v.ip_hash,\n    v.rights_version, v.rights_confirmed_at, v.rights_ip_hash, v_duplicate_of\n  )\n  returning s.id, s.received_at into v_submission_id, v_received_at;\n\n  -- G20: the event commits or rolls back with the row; the 10-minute repeat above returned before it.\n  perform public.emit_event(\n    'submission.received', 'submission', v_submission_id, jsonb_build_object('submission_id', v_submission_id), null\n  );\n\n  -- FE-04: the browser matches each file by its position in the payload, never by its name.\n  return query\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(v_entries) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, v_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      v_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      x.position\n    from entries x\n    returning m.id, m.sort_order, m.name, m.storage_path\n  )\n  select v_submission_id, v_received_at, coalesce(\n    (select jsonb_agg(\n        jsonb_build_object('id', st.id, 'index', st.sort_order, 'name', st.name, 'storage_path', st.storage_path)\n        order by st.sort_order\n      )\n      from stored st),\n    '[]'::jsonb\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"keeps the name of an existing contact\"",
+    "expect": "FAIL .*account\\.db\\.test\\.ts > account_room > keeps the name of an existing contact when a public request uses their email"
+  },
+  {
+    "id": "w6-7f-invite-existing",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "      return inviteExisting(actor, db, input);",
+    "replace": "      throw new AppError(\"already_exists\", undefined, \"This address already has an account.\");",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*gives the roles to the existing account of a former client, audited as an invite, and deletes nothing"
+  },
+  {
+    "id": "w6-7f-invite-existing-note",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "\n        p_note: \"invite\",",
+    "replace": "\n        p_note: \"\",",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*gives the roles to the existing account of a former client, audited as an invite, and deletes nothing"
+  },
+  {
+    "id": "w6-7f-invite-role-holder-refused",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  if (held.data.length > 0) {",
+    "replace": "  if (userId === \"\") {",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*an address whose account holds an enabled role answers 409 already_exists and writes no role"
+  },
+  {
+    "id": "w6-7f-invite-keeps-account",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  if (userId === null) throw teamWriteFailed();\n",
+    "replace": "  if (userId === null) throw teamWriteFailed();\n  await db.auth.admin.deleteUser(userId);\n",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*(gives the roles to the existing account of a former client|keeps the existing account when a grant fails)"
+  },
+  {
+    "id": "w6-7f-confirm-query-ignored",
+    "test": "src/components/account/account-confirm.test.tsx",
+    "file": "src/components/account/account-confirm.tsx",
+    "find": "  const token = new URLSearchParams(location.hash.replace(/^#/, \"\")).get(\"token_hash\");",
+    "replace": "  const token =\n    new URLSearchParams(location.hash.replace(/^#/, \"\")).get(\"token_hash\") ??\n    new URLSearchParams(location.search).get(\"token_hash\");",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-confirm.test.tsx",
+    "expect": "× .*does not read a token from the query: no client link carries one there"
+  },
+  {
+    "id": "w6-7f-wait-until-logged",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "  if (!carriesWaitUntil(request)) logLine(\"warn\", \"wait_until_missing\", { route: ROUTE });\n",
+    "replace": "  void carriesWaitUntil;\n",
+    "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
+    "expect": "× .*logs when the request carries no waitUntil, and stays quiet when it does"
+  },
+  {
+    "id": "w6-7f-status-sentence",
+    "test": "src/components/account/account-room.test.tsx",
+    "file": "src/components/account/account-room.tsx",
+    "find": "{requestStatusLines[request.workflow_state]} Received",
+    "replace": "{request.workflow_state}. Received",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/components/account/account-room.test.tsx",
+    "expect": "× .*says where each pipeline state stands in a sentence for the client, never the staff label"
+  },
+  {
+    "id": "w6-7f-e2e-same-answer",
+    "kind": "manual",
+    "test": "tests/e2e/account.spec.ts",
+    "file": "src/components/account/account-sign-in.tsx",
+    "find": "title=\"Check your email\"",
+    "replace": "title=\"Sent\"",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/account.spec.ts --grep \"Check your email\"",
+    "expect": "Check your email|toBeVisible",
+    "procedure": "Needs the stack of the admin specs (a built Worker with the cloud project's variables), which this lane does not hold. By hand: change the title as above, run the command against that stack (red: the notice 'Check your email' is never found), put it back (green). NOT replayed here: UNPROVEN until the CI e2e job or a lane with the stack runs it."
+  },
+  {
+    "id": "w6-7f-e2e-confirm-clean",
+    "kind": "manual",
+    "test": "tests/e2e/account.spec.ts",
+    "file": "src/components/account/account-confirm.tsx",
+    "find": "  history.replaceState(history.state, \"\", location.pathname);\n",
+    "replace": "",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/account.spec.ts --grep \"clean address\"",
+    "expect": "toEqual|account/confirm",
+    "procedure": "Same reason as w6-7f-e2e-same-answer: the expired notice needs Supabase Auth to refuse the token. By hand: delete the line as above, run the command (red: the address still holds #token_hash), put it back (green). UNPROVEN until it runs on the stack."
+  },
+  {
+    "id": "w6-7g-roles-all-off-refused",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  if (held.data.length > 0) {",
+    "replace": "  if (held.data.some((row) => row.disabled_at === null)) {",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*an address whose roles are all switched off answers 409 already_exists too"
+  },
+  {
+    "id": "w6-7g-existing-not-mailed",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  return { user_id: userId, mailed: false };",
+    "replace": "  return { user_id: userId, mailed: true };",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*gives the roles to the existing account of a former client, audited as an invite, and deletes nothing"
+  },
+  {
+    "id": "w6-7g-new-account-mailed",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  return { user_id: userId, mailed: true };\n}\n\n/** `POST team/users/:id/roles`. */",
+    "replace": "  return { user_id: userId, mailed: false };\n}\n\n/** `POST team/users/:id/roles`. */",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*calls inviteUserByEmail once and writes the user_roles row through grant_role with note invite"
+  },
+  {
+    "id": "w6-7g-lookup-by-address",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "\"user_id_by_email\", { p_email: input.email }",
+    "replace": "\"user_id_by_email\", { p_email: \"\" }",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*gives the roles to the existing account of a former client, audited as an invite, and deletes nothing"
+  },
+  {
+    "id": "w6-7g-toast-says-no-email",
+    "test": "src/admin/team/team.test.tsx",
+    "file": "src/admin/team/TeamPage.tsx",
+    "find": "                  message: invited.mailed\n",
+    "replace": "                  message: true\n",
+    "run": "bunx vitest run --project component --testTimeout=60000 src/admin/team/team.test.tsx",
+    "expect": "× .*says roles were given and no email was sent when the address already had an account"
+  },
+  {
+    "id": "w6-7g-user-id-by-email-case",
+    "kind": "sql",
+    "test": "tests/db/account.db.test.ts",
+    "sql": "create or replace function public.user_id_by_email(p_email text) returns uuid language sql stable security definer set search_path = '' as $$ select u.id from auth.users u where u.email = p_email limit 1; $$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account.db.test.ts -t \"finds the user of an address ignoring case\"",
+    "expect": "FAIL .*account\\.db\\.test\\.ts > user_id_by_email > finds the user of an address ignoring case, and answers null for an address nobody holds"
+  },
+  {
+    "id": "w6-7h-invite-partial-named",
+    "test": "tests/unit/team.service.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "    given.push(role);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/team.service.test.ts",
+    "expect": "× .*names the roles already given when a later grant of an existing account fails"
   }
 ]

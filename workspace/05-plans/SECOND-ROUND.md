@@ -24,3 +24,27 @@ written. Nothing here is built; every item is `[ ]` in its plan with a Waiting l
 | W8 | 2 | A Social proposal becomes a real draft (largely superseded by items 10 and 11; re-read it against them first) | none (read the item) |
 
 Launch order for the second round: the Opus items first (W8 1), then W6 and W8 items, then the W7 items that build on item 9's briefing.
+
+## Parked (operator, 2026-10-16, his words: "now we are going to be able to properly park work and chill and only they can wake up when
+some sort of work is in place regarding MOP so basically now we can relax on build and wait for something to happen")
+
+The build is parked at its boundary; nothing was killed. The five builders launched at 17:12 finish their current item, push their branch
+and stop; no review, fix round or new builder starts until the operator says build again (the STOP file holds the slot filler; Matter's
+goal steps are off through `backlog: "off"` in `~/.mop-workforce/config.json`). The team works only on real Matter of Place work: a
+person's line, a new submission, inquiry or subscriber, an approval, and the scheduled jobs (meeting, captions, backup, the Saturday audit).
+
+Where each item of `overdrive/finish-2` (PR 449) stands, and what resumes it:
+
+| Item | Branch | State at the park | Next step when the build resumes |
+|---|---|---|---|
+| Follow-ups round 2 (W8 0d, W6 7, W7 7) | merged into finish-2 | fresh Opus review PASS; Matter's fix of its medium on finish-2 | read PR 449's CI |
+| Follow-ups round 3 (the review's leftovers) | `overdrive/followups-b` | builder `followups-fix3` (Sonnet) running at the park | fresh Opus review, then merge |
+| W8 10, a home for proposed posts | `overdrive/w8-10` | built; review FAILED (agentRoles); builder `w8-10-fix` (Opus) running | fresh Opus review, then merge, then W8 11 |
+| W8 11, the Proposed posts screen | `overdrive/w8-11` (55d14e2d) | built, not reviewed; waits on W8 10 | merge W8 10 into it, fresh review, merge; then load the Fairfield set (TEST) and reject it by Matter's key |
+| W8 0h, every inbound email is seen | `overdrive/w8-0h` | review FAILED twice; builder `w8-0h-fix2` (Opus) running | fresh Opus review, then merge |
+| W8 0i, role toolkits | `overdrive/toolkits` | review FAILED twice; builder `toolkits-fix3` (Opus) running | fresh Opus review, merge, the live probes, the Fairfield rerun with nothing by hand |
+| W7 9 with 9a and 9b | `overdrive/w7-9` | review FAILED; ruling H132 (the operator's own) settles typed fields; builder `w7-9-fix4` (Opus) running | fresh Opus review, then merge |
+| W8 0d live proof | main | code merged (PR 447); unticked | one real outside message with an instruction to an AI, sent by the operator through the contact form or to hello@ |
+
+Each builder's final message is in `~/.mop-workforce/builders/<id>/run.jsonl`; each review prompt is made with
+`E:/mop-build/.tmp/od-review-make.py` (REF=origin/overdrive/finish-2) and run with `od-review-run.sh`.

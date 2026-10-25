@@ -50,6 +50,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         title: siteConfig.name,
         href: "/feed.json",
       },
+      // The guide for answer engines, named in the head for a crawler that reads only the head (audit 2026-10-17).
+      { rel: "alternate", type: "text/plain", title: "llms.txt", href: "/llms.txt" },
     ],
     // The accessibility settings drawn on <html> before the first paint (src/lib/access.ts); its exact text is in
     // CSP_INLINE_ALLOWLIST, so the policy hashes it.

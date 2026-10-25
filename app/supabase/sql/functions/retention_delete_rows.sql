@@ -43,6 +43,8 @@ begin
     when 'agent_messages' then 'public.agent_messages where created_at < now() - $1'
     -- W4: an email reply names a person and quotes them, so it is deleted, not anonymised.
     when 'email_replies' then 'public.email_replies where received_at < now() - $1'
+    -- W8 0h: inbound mail names a person and quotes them, so it is deleted, not anonymised.
+    when 'inbound_mail' then 'public.inbound_mail where received_at < now() - $1'
   end;
   if v_rows is null then
     raise exception 'bad_request';

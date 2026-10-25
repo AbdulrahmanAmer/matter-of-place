@@ -5352,8 +5352,8 @@
     "id": "b7-14-svc-invite-note",
     "test": "tests/unit/team.service.test.ts",
     "file": "src/server/team/service.ts",
-    "find": "p_note: \"invite\",",
-    "replace": "p_note: \"\",",
+    "find": "\n          p_note: \"invite\",",
+    "replace": "\n          p_note: \"\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
     "expect": "FAIL .*> inviteUser > calls inviteUserByEmail once"
   },
@@ -5373,7 +5373,7 @@
     "find": "error.code === \"email_exists\"",
     "replace": "error.code === \"email_taken\"",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
-    "expect": "FAIL .*> inviteUser > an address that already has an account"
+    "expect": "FAIL .*> inviteUser > gives the roles to the existing account of a former client"
   },
   {
     "id": "b7-14-svc-raw-key",

@@ -24,6 +24,24 @@ export function loadEnvFile(file = resolve(import.meta.dir, "../../../.env")): v
   }
 }
 
+/**
+ * No database call from the laptop waits longer than this. On 2026-10-17 a call made just before the laptop slept never
+ * answered, and Matter's supervisor waited on it for two days (P-3703).
+ */
+const DB_CALL_MS = 60_000;
+
+/** fetch with a deadline: the caller's own signal still works, and the call is abandoned after `ms`. */
+export function deadlineFetch(ms: number = DB_CALL_MS): typeof fetch {
+  return Object.assign(
+    (input: Parameters<typeof fetch>[0], init?: RequestInit): Promise<Response> => {
+      const timeout = AbortSignal.timeout(ms);
+      const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+      return fetch(input, { ...init, signal });
+    },
+    { preconnect: () => undefined },
+  );
+}
+
 /** The project's database under the service role, from the workspace `.env`. */
 export function serviceDb(): Db {
   loadEnvFile();
@@ -33,6 +51,7 @@ export function serviceDb(): Db {
     throw new Error("workforce: the .env names of the project are missing");
   return createClient<Database>(`https://${ref}.supabase.co`, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: deadlineFetch() },
   });
 }
 
