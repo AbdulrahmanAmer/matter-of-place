@@ -8795,6 +8795,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node ~/.claude/hooks/edit-impact.mjs --changed E:/mop-build/finish3` printed the STALE note before the entry was updated and nothing after (2026-10-19).
 - added: 2026-10-19
 
+## P-3720 · The audit's uptime row says ok for a monitor UptimeRobot reads down, and the laptop's ops-health token is stale
+- symptom: 2026-10-25, the sidecar held the ops-health monitor at `status` 9 and `uptime_30d` 0 while `uptime.rows` said `Ops health ok 30 day uptime 0`; the monitor's log showed 503 on 2026-10-24. A probe of the hook with `OPS_HEALTH_TOKEN` from `.env` answered 404 `not found`, which first read as "the hook is gone".
+- cause: `monitorRows` in `workspace/audits/tools/uptime.mjs` turned only status 0 (paused) red, so 8 ("seems down") and 9 ("down") passed. The hook answers 404 to a wrong token by design (`app/src/server/hooks/ops-health.ts`), and the `.env` token no longer matches the one in the monitor's URL.
+- rule: read the monitor's `status` beside its row, never the row alone (PR 469 makes 8 and 9 red). To probe the hook, take the URL from the UptimeRobot API inside one script and print only the status and body; a 404 with the `.env` token means a stale token, a 503 means a failing health check.
+- proof: from the tree root with PR 469, monitorRows fed the 2026-10-25 sidecar monitors → `red  Ops health  monitor reads down (status 9)`, on main → `ok`; the token comparison script printed `token matches .env: false` and the monitor URL answered `200 ok` at 2026-10-25 09:02 UTC (report `workspace/audits/2026-10-25.md`, A-20261025-01 and 04).
+- added: 2026-10-25
+
+## P-3721 · The audit report lint refuses any number in a table that is not in this week's sidecar, last week's values and a "13 months" header included
+- symptom: 2026-10-25, `node scripts/audit/lint-report.mjs workspace/audits/2026-10-25.md` printed `the number 13 in a table is not in the sidecar: | Event | 13 months, oldest first | Change |`, from the template's own header; the Previous and Delta columns cannot hold last week's numbers for the same reason.
+- cause: `numberProblems` collects numbers from the current sidecar only, and the sidecar carries no previous values.
+- rule: write a header number as a word ("Thirteen months"), and put last week's values in a line under each table naming `data/<previous>.json`; never hide a number in a code span to pass the lint. The fix proposed is deltas in the sidecar (A-20261025-07).
+- proof: the same command → `lint-report: OK workspace/audits/2026-10-25.md` after the header edit (2026-10-25).
+- added: 2026-10-25
+
+## P-3722 · An unmerged report pull request leaves the next audit with no previous sidecar
+- symptom: 2026-10-25, `front.previous` was null although the 2026-10-17 run wrote a sidecar; PR 451's checker fix was also missing, so the SEO checkers needed `MOP_ENV=local` in the run's environment again.
+- cause: `previousSidecar` in `run-all.mjs` reads `workspace/audits/data/` of the checkout, and `data/2026-10-17.json` lives only on `audit/2026-10-17-report` (PR 453, open).
+- rule: before writing the report, read the previous report and sidecar from the newest `audit/*-report` branch with `git show origin/<branch>:<path>` when `main` has none, and name the branch in the report's "Previous report" line.
+- proof: `git ls-files workspace/audits/data` on origin/main → nothing; `git show origin/audit/2026-10-17-report:workspace/audits/data/2026-10-17.json` → the sidecar (2026-10-25).
+- added: 2026-10-25
+
 ## P-3723 · New advisories turn every pull request's `check` red at once, and a grep of the log for "error" hides two of three
 - symptom: 2026-10-25, PR 469: `check` failed on `audit:deps`; `gh run view --log-failed | grep -i error` showed only undici (its title says "unhandled error"), while body-parser and zod were also open. Main had not run since 10-19, so nothing had warned.
 - rule: read the audit with `bun audit --audit-level=high <the script's --ignore flags>` from `app/`, not a filtered CI log; for each advisory record the fix's release date against the seven-day rule, and record each waiver in `docs/security.md` "Dependency audit" with what lifts it (`tests/unit/audit-waivers.test.ts` refuses an undocumented `--ignore`).
