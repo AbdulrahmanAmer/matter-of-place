@@ -2128,6 +2128,9 @@ isOneToOne: false
 "queue_digest_add":
 { Args: { "p_asset": string,"p_property": string }; Returns: string
                            },
+"queue_event_runs":
+{ Args: { "p_agents": (string)[],"p_events": (string)[] }; Returns: number
+                           },
 "rate_limit_check":
 { Args: { "p_checks": Json }; Returns: {
               "allowed": boolean,"retry_after": number

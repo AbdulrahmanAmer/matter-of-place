@@ -189,7 +189,7 @@ export const routes: PublicRoute[] = [
     service: subscribers.subscribe,
   },
   {
-    // No schema and no cache: the service parses the query itself, so a bad token lands on ?confirmed=0.
+    // No schema and no cache: the service parses the query itself, so a bad token lands on /place-notes/expired.
     path: "/api/public/subscribers/confirm",
     method: "GET",
     limits: [{ scope: "ip", store: "db", limit: 20, windowSeconds: HOUR }],

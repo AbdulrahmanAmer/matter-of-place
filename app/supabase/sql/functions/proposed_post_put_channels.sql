@@ -20,7 +20,7 @@ declare
   v_files jsonb;
   v_seen text[] := '{}';
 begin
-  -- W8 item 10 (H116, H134): the channel rules of src/domain/proposed-posts.ts, enforced again here because the
+  -- W8 item 10 (H116, H135): the channel rules of src/domain/proposed-posts.ts, enforced again here because the
   -- laptop runner files a colleague's post through create_proposed_post without the admin service. Each refusal names
   -- its reason in the detail, which fromRpcError hands to the person.
   if jsonb_typeof(p_channels) is distinct from 'array' or jsonb_array_length(p_channels) = 0 then

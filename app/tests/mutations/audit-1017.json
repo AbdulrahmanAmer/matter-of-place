@@ -1,0 +1,20 @@
+[
+  {
+    "id": "audit-1017-checker-local",
+    "test": "tests/unit/audit/crawl.test.ts",
+    "file": "../workspace/audits/tools/crawl.mjs",
+    "find": "    MOP_ENV: \"local\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/crawl.test.ts",
+    "expect": "crawl collect > runs the checkers as local with a salt"
+  },
+  {
+    "id": "audit-1017-llms-head-link",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/routes/__root.tsx",
+    "find": "{ rel: \"alternate\", type: \"text/plain\", title: \"llms.txt\", href: \"/llms.txt\" },",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/essentials.test.ts -t llms",
+    "expect": "llms: every page's head names /llms\\.txt as a text/plain alternate"
+  }
+]

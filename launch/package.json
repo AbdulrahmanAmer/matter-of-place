@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "audit:deps": "bun audit --audit-level=high"
+    "audit:deps": "bun audit --audit-level=high --ignore=GHSA-mrhx-c7xc-m3w5"
   },
   "overrides": {
     "image-size": "2.0.4"

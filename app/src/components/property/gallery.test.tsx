@@ -23,10 +23,17 @@ const gallery = (withVideo: boolean) => (
 describe("Gallery film", () => {
   it("names the film without calling it illustrative", () => {
     const { container } = render(gallery(true));
-    fireEvent.click(screen.getByRole("button", { name: "Play property film" }));
+    fireEvent.click(screen.getByRole("button", { name: "Play film · 0:18" }));
     const label = container.querySelector("video")?.getAttribute("aria-label");
     expect(label).toBe("A walk through the house, film of the Malibu property");
     expect(label).not.toMatch(/illustrative/i);
+  });
+
+  it("names the play button by the words it shows (WCAG 2.5.3, axe label-content-name-mismatch)", () => {
+    render(gallery(true));
+    const button = screen.getByText("Play film · 0:18").closest("button");
+    expect(button?.hasAttribute("aria-label")).toBe(false);
+    expect(screen.getByRole("button", { name: "Play film · 0:18" })).toBe(button);
   });
 
   it("gives the film figure the portrait class, with the caption beside it", () => {

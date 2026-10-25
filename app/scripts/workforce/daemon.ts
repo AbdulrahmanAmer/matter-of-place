@@ -234,9 +234,9 @@ function askClaude(
 
 // ---------- waking on events ----------
 
-function readCursor(): string {
+function readCursor(file: string): string {
   try {
-    const value: unknown = JSON.parse(readFileSync(CURSOR_FILE, "utf8"));
+    const value: unknown = JSON.parse(readFileSync(file, "utf8"));
     if (
       typeof value === "object" &&
       value !== null &&
@@ -250,8 +250,14 @@ function readCursor(): string {
   return new Date().toISOString();
 }
 
-async function wakeOnEvents(client: Db): Promise<number> {
-  const cursor = readCursor();
+/**
+ * The runs new events wake (exported for its test, with its own cursor file); the number of runs queued anew. W8 0h
+ * fourth review: they are queued through `queue_event_runs`, whose conflict names the partial index's predicate (the
+ * upsert this replaced was refused by Postgres on every pass); a failure keeps the cursor where it is, so the next pass
+ * wakes the same events again.
+ */
+export async function wakeOnEvents(client: Db, file = CURSOR_FILE): Promise<number> {
+  const cursor = readCursor(file);
   const { data: events, error } = await client
     .from("events")
     .select("id, type, at, entity")
@@ -260,23 +266,28 @@ async function wakeOnEvents(client: Db): Promise<number> {
     .limit(50);
   if (error !== null) throw new Error("workforce: the events could not be read");
   if (events.length === 0) {
-    writeFileSync(CURSOR_FILE, JSON.stringify({ at: cursor }));
+    writeFileSync(file, JSON.stringify({ at: cursor }));
     return 0;
   }
-  const { data: agents } = await client.from("agents").select("id, wake_on, state");
+  const { data: agents, error: unread } = await client.from("agents").select("id, wake_on, state");
+  if (unread !== null) throw new Error("workforce: the colleagues could not be read");
   const rows = events.flatMap((event) =>
-    (agents ?? [])
+    agents
       // W9 item 3: a bounce wakes only the owner of the request or inquiry it is about.
       .filter((agent) => wakes(agent, event))
-      .map((agent) => ({ agent_id: agent.id, cause: "event", event_id: event.id })),
+      .map((agent) => ({ agent_id: agent.id, event_id: event.id })),
   );
+  let queued = 0;
   if (rows.length > 0) {
-    await client
-      .from("agent_runs")
-      .upsert(rows, { onConflict: "agent_id,event_id", ignoreDuplicates: true });
+    const { data, error: refused } = await client.rpc("queue_event_runs", {
+      p_agents: rows.map((row) => row.agent_id),
+      p_events: rows.map((row) => row.event_id),
+    });
+    if (refused !== null) throw new Error("workforce: the runs on new events could not be queued");
+    queued = data;
   }
-  writeFileSync(CURSOR_FILE, JSON.stringify({ at: events.at(-1)?.at ?? cursor }));
-  return rows.length;
+  writeFileSync(file, JSON.stringify({ at: events.at(-1)?.at ?? cursor }));
+  return queued;
 }
 
 // ---------- one run ----------
@@ -991,7 +1002,7 @@ export async function runOnce(client: Db): Promise<boolean> {
       await proposeCalls(client, agent, run.id, thread, allowed);
     }
     for (const proposal of plan.proposals) {
-      // W8 item 10 (H134): a post with its channels and files goes to Proposed posts, not to Approvals.
+      // W8 item 10 (H135): a post with its channels and files goes to Proposed posts, not to Approvals.
       if (isStructuredPost(proposal)) {
         const filed = await fileProposedPost(postDeps(client), {
           agent: agent.slug,
@@ -1384,7 +1395,11 @@ async function pass(client: Db): Promise<void> {
     return 0;
   });
   if (pages > 0) console.log(`${new Date().toISOString()} site pages ${String(pages)}`);
-  const woke = await wakeOnEvents(client);
+  // A wake that fails keeps its cursor and never stops the runs a person's line or an earlier event queued.
+  const woke = await wakeOnEvents(client).catch((failure: unknown) => {
+    console.log(failure instanceof Error ? failure.message : String(failure));
+    return 0;
+  });
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
   // Up to five runs a pass, one after another; the scheduled task starts the next pass a minute later.
   let ran = 0;
