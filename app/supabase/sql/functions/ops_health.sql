@@ -35,10 +35,21 @@ begin
     v_failing := array_append(v_failing, 'backup');
   end if;
   -- W8 0h: the laptop's mailbox check beats `mail_folders` every five minutes; a folder it could not read (or a
-  -- mailbox it could not reach) beats ok false, named here until a check reads them all again.
+  -- mailbox it could not reach, or no Zoho names) beats ok false, named here until a check reads them all again. While
+  -- the laptop runner passes (it touches Matter's last_seen_at every pass; the `runner` row is the Worker's) a check
+  -- that has not beaten for 30 minutes is named too, so a mailbox never read is never green (fourth review, H121 (17)).
   if exists (
     select 1 from public.ops_heartbeats
     where name = 'mail_folders' and at >= p_now - interval '30 minutes' and detail ->> 'ok' = 'false'
+  ) or (
+    exists (
+      select 1 from public.agents
+      where slug = 'matter' and last_seen_at >= p_now - interval '10 minutes'
+    )
+    and not exists (
+      select 1 from public.ops_heartbeats
+      where name = 'mail_folders' and at >= p_now - interval '30 minutes'
+    )
   ) then
     v_failing := array_append(v_failing, 'mail_folders');
   end if;
