@@ -178,7 +178,7 @@ export function decisionToolkits(
   return team
     .map((agent) =>
       agent.slug === "matter"
-        ? "- @matter: its live session holds the operator's tools on the laptop (code, the admin, renders) and works the operator's list first. Give it only work that needs a write, a render or the admin, which no colleague's run can do."
+        ? "- @matter: its live session holds the operator's tools on the laptop (code, the admin, renders) and works the operator's list first. Give it only work that needs a write, a render or the admin, which no colleague's run can do; it takes a decision up only with the operator's yes."
         : `- @${agent.slug} (${agent.name}): ${[
             ...toolkitWords(readOnly(toolkitFor(agent.slug)), agent.tools),
             ...agentTools

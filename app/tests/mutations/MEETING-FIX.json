@@ -135,6 +135,15 @@
     "expect": "× .*shows Matter's open decisions fenced as data at the start of its turn"
   },
   {
+    "id": "meeting-fix-live-operator-word",
+    "file": "scripts/matter/live.ts",
+    "find": "act on one only when the operator's line asks for it or he says yes to it.",
+    "replace": "work them.",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows Matter's open decisions fenced as data at the start of its turn"
+  },
+  {
     "id": "meeting-fix-live-none-empty",
     "file": "scripts/matter/live.ts",
     "find": "  if (decisions.length === 0) return \"\";\n  return `${fenced(",
