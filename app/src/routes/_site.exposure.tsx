@@ -39,7 +39,7 @@ function ExposurePage() {
             Products · USD
           </p>
           {plans.map(toOffering).map((offering) => (
-            <OfferCard key={offering.id} offering={offering} />
+            <OfferCard key={offering.id} offering={offering} level={2} />
           ))}
         </section>
 

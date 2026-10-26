@@ -38,7 +38,7 @@ function ContactPage() {
         <aside className="contact-meta">
           <div>
             <p className="eyebrow">PROPERTY SEEKERS</p>
-            <h3>Ask about a place.</h3>
+            <h2>Ask about a place.</h2>
             <p>
               Each property page has its own inquiry paths: private showings, questions, similar
               properties, and selling first. Start there if you have a specific house in mind.
@@ -49,7 +49,7 @@ function ContactPage() {
           </div>
           <div>
             <p className="eyebrow">OWNERS AND AGENTS</p>
-            <h3>Present a property.</h3>
+            <h2>Present a property.</h2>
             <p>
               Submissions go through a short guided form. Every property is reviewed before a paid
               feature or campaign is agreed.
@@ -60,7 +60,7 @@ function ContactPage() {
           </div>
           <div>
             <p className="eyebrow">MARKETS</p>
-            <h3>California, Florida and New York.</h3>
+            <h2>California, Florida and New York.</h2>
             <p>Three markets, read closely, each with its own guide.</p>
             {(email !== undefined || phone !== undefined) && (
               <p className="contact-details">

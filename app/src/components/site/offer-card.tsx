@@ -7,15 +7,18 @@ import { cx } from "../../lib/cx";
 export function OfferCard({
   offering,
   compact = false,
+  level = 3,
 }: {
   offering: Offering;
   compact?: boolean;
+  /** Heading level of the product name: 2 where no section heading sits above the card, 3 under one. */
+  level?: 2 | 3;
 }) {
   return (
     <article className={cx("fp-card offer-card", offering.recommended && "fp-lead")}>
       {offering.recommended && <p className="offer-flag">Recommended</p>}
       <div className="fp-card-head">
-        <h3>{offering.name}</h3>
+        {level === 2 ? <h2>{offering.name}</h2> : <h3>{offering.name}</h3>}
         <span>{offering.price}</span>
       </div>
       <p className="fp-line">{offering.line}</p>
