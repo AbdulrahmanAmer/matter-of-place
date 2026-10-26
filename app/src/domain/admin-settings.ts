@@ -174,7 +174,9 @@ export const redirectArchivedSchema = redirectRowSchema.extend({ archived_at: z.
 
 export type RedirectArchived = z.infer<typeof redirectArchivedSchema>;
 
-const sitePath = (path: string) => path.startsWith("/") && !path.startsWith("//");
+// A path on this site (SEC-003): `/` then a character that is not a slash or backslash, printable ASCII only
+// (a browser drops tabs and line breaks and reads `\` as `/`), and no encoded slash or backslash right after the `/`.
+const sitePath = (path: string) => /^\/(?![/\\])[\x21-\x7e]*$/.test(path) && !/^\/(?:%2f|%5c)/i.test(path);
 
 /** True when following `to_path` through the other active rows comes back to `from_path`. */
 function closesLoop(row: RedirectPutInput, active: readonly RedirectRow[]): boolean {
