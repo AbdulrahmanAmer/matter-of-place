@@ -41,6 +41,9 @@ function flatten(value, path, found = new Map()) {
   } else if (typeof value === "object" && value !== null) {
     for (const [key, inner] of Object.entries(value)) {
       if (path === "" && SKIPPED_KEYS.includes(key)) continue;
+      // A brand query's `previous` holds last run's numbers: they are compared by their own sidecar, never again by this
+      // one. Only there: another `previous` (the KPI collector's, as the API answers it) is compared as before.
+      if (key === "previous" && path.startsWith("brand_queries.queries[")) continue;
       flatten(inner, path === "" ? key : `${path}.${key}`, found);
     }
   }

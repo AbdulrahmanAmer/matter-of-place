@@ -16,6 +16,18 @@ export type LinkChannel = keyof typeof MEDIUM;
 /** The X limit counts any link at this many characters (ASSUMED 23, UNPROVEN until B10 step 3a). */
 export const X_LINK_LENGTH = 23;
 
+function tracked(path: string, channel: LinkChannel, campaign: string): string {
+  return `${SITE_ORIGIN}${path}?utm_source=${channel}&utm_medium=${MEDIUM[channel]}&utm_campaign=${campaign}`;
+}
+
 export function propertyLink(slug: string, channel: LinkChannel): string {
-  return `${SITE_ORIGIN}/property/${slug}?utm_source=${channel}&utm_medium=${MEDIUM[channel]}&utm_campaign=${slug}`;
+  return tracked(`/property/${slug}`, channel, slug);
+}
+
+/**
+ * W8 item 1: a brand post's address, the home page or a market's page (where the market's interest signup is while it
+ * holds no property), with the post's own campaign name.
+ */
+export function brandLink(market: string | null, channel: LinkChannel, campaign: string): string {
+  return tracked(`/${market ?? ""}`, channel, campaign);
 }

@@ -85,6 +85,17 @@ describe("monitorRows against monitoring/uptime.json", () => {
     expect(red(rows)).toEqual(["Home"]);
   });
 
+  it("gives a red row for an ops-health monitor that reads down", () => {
+    const monitors = parseUptime(recorded()).map((monitor) =>
+      monitor.url.includes("/ops-health/") ? { ...monitor, status: 9 } : monitor,
+    );
+    const rows = monitorRows(monitors, expected);
+    expect(red(rows)).toEqual(["Ops health"]);
+    expect(rows.find((row) => row.check === "Ops health")?.detail).toBe(
+      "monitor reads down (status 9)",
+    );
+  });
+
   it("gives a red row for a 600 second interval", () => {
     const monitors = parseUptime(recorded()).map((monitor) => ({ ...monitor, interval_s: 600 }));
     expect(red(monitorRows(monitors, expected))).toEqual(["Home", "Public markets", "Ops health"]);

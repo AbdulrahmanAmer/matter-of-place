@@ -46,7 +46,14 @@ export function PrivacyRequestForm({ kind: linked }: { kind?: SubjectRequest["ki
   if (state.status === "success") return <SentNotice text={t.privacyRequest.confirmation} />;
 
   return (
-    <form onSubmit={onSubmit} onInput={clear} aria-busy={pending} noValidate>
+    <form
+      method="post"
+      action="/api/form-fallback"
+      onSubmit={onSubmit}
+      onInput={clear}
+      aria-busy={pending}
+      noValidate
+    >
       <fieldset className="privacy-kinds">
         <legend>{t.privacyRequest.kindLegend}</legend>
         {subjectRequestKinds.map((option) => (

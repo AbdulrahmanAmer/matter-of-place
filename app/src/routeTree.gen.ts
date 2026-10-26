@@ -45,6 +45,7 @@ import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
 import { Route as AdminOfficeRouteImport } from './routes/admin/office'
 import { Route as AdminSignInRouteImport } from './routes/admin/sign-in'
 import { Route as ApiConsentRouteImport } from './routes/api/consent'
+import { Route as ApiFormFallbackRouteImport } from './routes/api/form-fallback'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
 import { Route as SiteMarketIndexRouteImport } from './routes/_site.$market.index'
 import { Route as SiteMarketRegionRouteImport } from './routes/_site.$market.$region'
@@ -53,8 +54,8 @@ import { Route as SiteAccountIndexRouteImport } from './routes/_site.account.ind
 import { Route as SiteAccountConfirmRouteImport } from './routes/_site.account.confirm'
 import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
 import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
-import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
 import { Route as SitePlaceNotesStatusRouteImport } from './routes/_site.place-notes_.$status'
+import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as AdminAssetsIndexRouteImport } from './routes/admin/assets.index'
@@ -463,6 +464,11 @@ const ApiConsentRoute = ApiConsentRouteImport.update({
   path: '/api/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFormFallbackRoute = ApiFormFallbackRouteImport.update({
+  id: '/api/form-fallback',
+  path: '/api/form-fallback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MediaSplatRoute = MediaSplatRouteImport.update({
   id: '/media/$',
   path: '/media/$',
@@ -503,14 +509,14 @@ const SiteMarketsSplatRoute = SiteMarketsSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => SiteMarketsRoute,
 } as any)
-const SitePropertySlugRoute = SitePropertySlugRouteImport.update({
-  id: '/property/$slug',
-  path: '/property/$slug',
-  getParentRoute: () => SiteRoute,
-} as any)
 const SitePlaceNotesStatusRoute = SitePlaceNotesStatusRouteImport.update({
   id: '/place-notes_/$status',
   path: '/place-notes/$status',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SitePropertySlugRoute = SitePropertySlugRouteImport.update({
+  id: '/property/$slug',
+  path: '/property/$slug',
   getParentRoute: () => SiteRoute,
 } as any)
 const SiteStoriesIndexRoute = SiteStoriesIndexRouteImport.update({
@@ -1803,14 +1809,15 @@ export interface FileRoutesByFullPath {
   '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
+  '/api/form-fallback': typeof ApiFormFallbackRoute
   '/media/$': typeof MediaSplatRoute
   '/admin/': typeof AdminIndexRoute
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
   '/markets/$': typeof SiteMarketsSplatRoute
-  '/property/$slug': typeof SitePropertySlugRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
+  '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
@@ -2070,6 +2077,7 @@ export interface FileRoutesByTo {
   '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
+  '/api/form-fallback': typeof ApiFormFallbackRoute
   '/media/$': typeof MediaSplatRoute
   '/': typeof SiteIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -2077,8 +2085,8 @@ export interface FileRoutesByTo {
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
   '/markets/$': typeof SiteMarketsSplatRoute
-  '/property/$slug': typeof SitePropertySlugRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
+  '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
@@ -2344,6 +2352,7 @@ export interface FileRoutesById {
   '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
+  '/api/form-fallback': typeof ApiFormFallbackRoute
   '/media/$': typeof MediaSplatRoute
   '/_site/': typeof SiteIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -2351,8 +2360,8 @@ export interface FileRoutesById {
   '/_site/$market/guide': typeof SiteMarketGuideRoute
   '/_site/account/confirm': typeof SiteAccountConfirmRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
-  '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/place-notes_/$status': typeof SitePlaceNotesStatusRoute
+  '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
@@ -2619,14 +2628,15 @@ export interface FileRouteTypes {
     | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
+    | '/api/form-fallback'
     | '/media/$'
     | '/admin/'
     | '/$market/$region'
     | '/$market/guide'
     | '/account/confirm'
     | '/markets/$'
-    | '/property/$slug'
     | '/place-notes/$status'
+    | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/automation/emails'
@@ -2886,6 +2896,7 @@ export interface FileRouteTypes {
     | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
+    | '/api/form-fallback'
     | '/media/$'
     | '/'
     | '/admin'
@@ -2893,8 +2904,8 @@ export interface FileRouteTypes {
     | '/$market/guide'
     | '/account/confirm'
     | '/markets/$'
-    | '/property/$slug'
     | '/place-notes/$status'
+    | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/automation/emails'
@@ -3159,6 +3170,7 @@ export interface FileRouteTypes {
     | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
+    | '/api/form-fallback'
     | '/media/$'
     | '/_site/'
     | '/admin/'
@@ -3166,8 +3178,8 @@ export interface FileRouteTypes {
     | '/_site/$market/guide'
     | '/_site/account/confirm'
     | '/_site/markets/$'
-    | '/_site/property/$slug'
     | '/_site/place-notes_/$status'
+    | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/automation/emails'
@@ -3411,6 +3423,7 @@ export interface RootRouteChildren {
   DotwellKnownMtaStsDottxtRoute: typeof DotwellKnownMtaStsDottxtRoute
   DotwellKnownSecurityDottxtRoute: typeof DotwellKnownSecurityDottxtRoute
   ApiConsentRoute: typeof ApiConsentRoute
+  ApiFormFallbackRoute: typeof ApiFormFallbackRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ApiAdminCampaignsRoute: typeof ApiAdminCampaignsRoute
   ApiAdminDashboardRoute: typeof ApiAdminDashboardRoute
@@ -3771,6 +3784,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/form-fallback': {
+      id: '/api/form-fallback'
+      path: '/api/form-fallback'
+      fullPath: '/api/form-fallback'
+      preLoaderRoute: typeof ApiFormFallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/media/$': {
       id: '/media/$'
       path: '/media/$'
@@ -3827,18 +3847,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteMarketsSplatRouteImport
       parentRoute: typeof SiteMarketsRoute
     }
-    '/_site/property/$slug': {
-      id: '/_site/property/$slug'
-      path: '/property/$slug'
-      fullPath: '/property/$slug'
-      preLoaderRoute: typeof SitePropertySlugRouteImport
-      parentRoute: typeof SiteRoute
-    }
     '/_site/place-notes_/$status': {
       id: '/_site/place-notes_/$status'
       path: '/place-notes/$status'
       fullPath: '/place-notes/$status'
       preLoaderRoute: typeof SitePlaceNotesStatusRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/property/$slug': {
+      id: '/_site/property/$slug'
+      path: '/property/$slug'
+      fullPath: '/property/$slug'
+      preLoaderRoute: typeof SitePropertySlugRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/stories/': {
@@ -5485,8 +5505,8 @@ interface SiteRouteChildren {
   SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SiteAccountConfirmRoute: typeof SiteAccountConfirmRoute
-  SitePropertySlugRoute: typeof SitePropertySlugRoute
   SitePlaceNotesStatusRoute: typeof SitePlaceNotesStatusRoute
+  SitePropertySlugRoute: typeof SitePropertySlugRoute
   SiteAccountIndexRoute: typeof SiteAccountIndexRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
 }
@@ -5513,8 +5533,8 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
   SiteAccountConfirmRoute: SiteAccountConfirmRoute,
-  SitePropertySlugRoute: SitePropertySlugRoute,
   SitePlaceNotesStatusRoute: SitePlaceNotesStatusRoute,
+  SitePropertySlugRoute: SitePropertySlugRoute,
   SiteAccountIndexRoute: SiteAccountIndexRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
 }
@@ -6225,6 +6245,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownMtaStsDottxtRoute: DotwellKnownMtaStsDottxtRoute,
   DotwellKnownSecurityDottxtRoute: DotwellKnownSecurityDottxtRoute,
   ApiConsentRoute: ApiConsentRoute,
+  ApiFormFallbackRoute: ApiFormFallbackRoute,
   MediaSplatRoute: MediaSplatRoute,
   ApiAdminCampaignsRoute: ApiAdminCampaignsRoute,
   ApiAdminDashboardRoute: ApiAdminDashboardRoute,

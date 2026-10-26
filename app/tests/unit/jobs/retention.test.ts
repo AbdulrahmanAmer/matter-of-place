@@ -16,6 +16,7 @@ const SUBMISSION = "5b0c7c4e-0000-4000-8000-000000000001";
 const ALL_KEYS = [
   "declined_submission_media",
   "accepted_submission_media",
+  "rejected_requested_visuals",
   "inquiries_anonymise",
   "contacts_anonymise",
   "analytics_events",
@@ -39,15 +40,38 @@ const mediaRow = (n: number) => {
   return { media_id: id, storage_path: `${SUBMISSION}/${id}.jpg` };
 };
 
+/** A rejected requested visual (W8 item 1) with its two files under requested/. */
+const visualRow = (n: number) => {
+  const id = `9e4b2f10-0000-4000-8000-${String(n).padStart(12, "0")}`;
+  return {
+    asset_id: id,
+    media_keys: [`requested/${id}/slide-0.aaaaaaaa.jpg`, `requested/${id}/slide-1.bbbbbbbb.jpg`],
+  };
+};
+
 interface Setup {
   keys?: string[];
   declined?: number;
+  visuals?: number;
+  /** Visuals the delete function's own check keeps (their rule changed after they were listed). */
+  kept?: readonly string[];
   storageFails?: boolean;
 }
 
-/** The declined list empties once its rows are deleted, as the database would answer it. */
-function setup({ keys = ALL_KEYS, declined = 0, storageFails = false }: Setup = {}): FakeDb {
+/** The declined and the visuals lists empty once their rows are deleted, as the database would answer them. */
+function setup({
+  keys = ALL_KEYS,
+  declined = 0,
+  visuals = 0,
+  kept = [],
+  storageFails = false,
+}: Setup = {}): FakeDb {
   let waiting = Array.from({ length: declined }, (_, n) => mediaRow(n));
+  let rejected = Array.from({ length: visuals }, (_, n) => visualRow(n));
+  const removal = () =>
+    Promise.resolve(
+      storageFails ? { data: null, error: new Error("storage down") } : { data: [], error: null },
+    );
   const db = fakeDb({
     rpc: {
       rollup_analytics_daily: () => 6,
@@ -57,6 +81,15 @@ function setup({ keys = ALL_KEYS, declined = 0, storageFails = false }: Setup = 
         waiting = waiting.filter((row) => !p_ids.includes(row.media_id));
         return p_ids.length;
       },
+      retention_requested_visuals: () => rejected,
+      // like the database: the rows it deleted, with their keys, in id order
+      retention_delete_assets: ({ p_ids }) => {
+        const gone = rejected.filter(
+          (row) => p_ids.includes(row.asset_id) && !kept.includes(row.asset_id),
+        );
+        rejected = rejected.filter((row) => !gone.includes(row));
+        return gone;
+      },
       retention_anonymise_inquiries: ({ p_dry_run }) => (p_dry_run === true ? 0 : 2),
       retention_anonymise_contacts: () => 0,
       retention_drop_analytics: () => 1,
@@ -64,16 +97,7 @@ function setup({ keys = ALL_KEYS, declined = 0, storageFails = false }: Setup = 
       retention_anonymise_email: () => 0,
       retention_log_run: () => 41,
     },
-    storage: {
-      submissions: {
-        remove: () =>
-          Promise.resolve(
-            storageFails
-              ? { data: null, error: new Error("storage down") }
-              : { data: [], error: null },
-          ),
-      },
-    },
+    storage: { submissions: { remove: removal }, media: { remove: removal } },
   });
   const rows = keys.map((key) => ({ key, keep_for: "90 days", action: "delete", enabled: true }));
   return Object.assign(db, {
@@ -167,6 +191,62 @@ describe("retention", () => {
     expect(calls(db, "rpc", "retention_log_run")).toEqual([]);
   });
 
+  it("deletes a rejected requested visual's row in batches of 100, then removes the files of exactly the rows deleted from media (W8 item 1)", async () => {
+    const db = setup({ keys: ["rejected_requested_visuals"], visuals: 120 });
+    await run(db);
+    const removed = calls(db, "storage", "media.remove").map(([keys]) => keys);
+    expect(removed.map((keys) => (Array.isArray(keys) ? keys.length : 0))).toEqual([200, 40]);
+    expect(removed[0]).toEqual(expect.arrayContaining(visualRow(0).media_keys));
+    expect(
+      rpcCalls(db)
+        .filter((call) => call.name === "retention_delete_assets")
+        .map((call) => call.p_ids),
+    ).toEqual([
+      Array.from({ length: 100 }, (_, n) => visualRow(n).asset_id),
+      Array.from({ length: 20 }, (_, n) => visualRow(n + 100).asset_id),
+    ]);
+    // each batch's rows go before its files
+    const order = db.calls
+      .filter((call) => call.name === "retention_delete_assets" || call.name === "media.remove")
+      .map((call) => call.name);
+    expect(order).toEqual([
+      "retention_delete_assets",
+      "media.remove",
+      "retention_delete_assets",
+      "media.remove",
+    ]);
+    const logged = rpcCalls(db).find((call) => call.name === "retention_log_run")?.p_after;
+    expect(logged).toMatchObject({ rejected_requested_visuals: { affected: 120, remaining: 0 } });
+  });
+
+  it("removes no file of a visual the delete function kept, since its rule changed after the list", async () => {
+    const db = setup({
+      keys: ["rejected_requested_visuals"],
+      visuals: 2,
+      kept: [visualRow(1).asset_id],
+    });
+    await run(db);
+    expect(calls(db, "storage", "media.remove").map(([keys]) => keys)).toEqual([
+      visualRow(0).media_keys,
+    ]);
+    const logged = rpcCalls(db).find((call) => call.name === "retention_log_run")?.p_after;
+    expect(logged).toMatchObject({ rejected_requested_visuals: { affected: 1, remaining: 1 } });
+  });
+
+  it("deletes a rejected visual's row before its files, and names the files it could not remove when the job throws", async () => {
+    const db = setup({ keys: ["rejected_requested_visuals"], visuals: 2, storageFails: true });
+    const outcome = await run(db).then(
+      () => null,
+      (error: unknown) =>
+        error instanceof AppError ? `${error.code} ${error.message}` : String(error),
+    );
+    expect(outcome).toContain("storage_unavailable");
+    expect(outcome).toContain(visualRow(1).media_keys[1]);
+    expect(calls(db, "rpc", "retention_delete_assets")).toEqual([
+      [{ p_ids: [visualRow(0).asset_id, visualRow(1).asset_id] }],
+    ]);
+  });
+
   it("runs the policies in order after the rollup and writes one audit row with affected and remaining", async () => {
     const db = setup();
     const result = await run(db);
@@ -179,6 +259,8 @@ describe("retention", () => {
       "retention_declined_media",
       "retention_accepted_media",
       "retention_accepted_media",
+      "retention_requested_visuals",
+      "retention_requested_visuals",
       "retention_anonymise_inquiries",
       "retention_anonymise_contacts",
       "retention_drop_analytics",

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "w8-3-priority-5",
+    "test": "tests/unit/workforce-install.test.ts",
+    "file": "scripts/workforce/install.ps1",
+    "find": "$auditSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -Priority 5",
+    "replace": "$auditSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -Priority 7",
+    "run": "bunx vitest run --project unit tests/unit/workforce-install.test.ts -t \"registers every MOP task at Priority 5 and never two at once\"",
+    "expect": "× .*registers every MOP task at Priority 5 and never two at once"
+  },
+  {
+    "id": "w8-3-one-at-a-time",
+    "test": "tests/unit/workforce-install.test.ts",
+    "file": "scripts/workforce/install.ps1",
+    "find": "$settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew",
+    "replace": "$settings = New-ScheduledTaskSettingsSet -MultipleInstances Parallel",
+    "run": "bunx vitest run --project unit tests/unit/workforce-install.test.ts -t \"registers every MOP task at Priority 5 and never two at once\"",
+    "expect": "× .*registers every MOP task at Priority 5 and never two at once"
+  },
+  {
+    "id": "w8-3-ten-minutes",
+    "test": "tests/unit/workforce-install.test.ts",
+    "file": "scripts/workforce/install.ps1",
+    "find": "-RepetitionInterval (New-TimeSpan -Minutes 10)",
+    "replace": "-RepetitionInterval (New-TimeSpan -Minutes 15)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-install.test.ts -t \"registers MOP Captions to run the captions runner every ten minutes, hidden, with its own log\"",
+    "expect": "× .*registers MOP Captions to run the captions runner every ten minutes, hidden, with its own log"
+  },
+  {
+    "id": "w8-3-runner-script",
+    "test": "tests/unit/workforce-install.test.ts",
+    "file": "scripts/workforce/install.ps1",
+    "find": "scripts\\captions-runner.ts captions",
+    "replace": "scripts\\usage-push.ts captions",
+    "run": "bunx vitest run --project unit tests/unit/workforce-install.test.ts -t \"registers MOP Captions to run the captions runner every ten minutes, hidden, with its own log\"",
+    "expect": "× .*registers MOP Captions to run the captions runner every ten minutes, hidden, with its own log"
+  },
+  {
+    "id": "w8-3-own-log",
+    "test": "tests/unit/workforce-install.test.ts",
+    "file": "scripts/workforce/install.ps1",
+    "find": "scripts\\captions-runner.ts captions",
+    "replace": "scripts\\captions-runner.ts",
+    "run": "bunx vitest run --project unit tests/unit/workforce-install.test.ts -t \"registers MOP Captions to run the captions runner every ten minutes, hidden, with its own log\"",
+    "expect": "× .*registers MOP Captions to run the captions runner every ten minutes, hidden, with its own log"
+  },
+  {
+    "id": "w8-3r-old-task-removed",
+    "test": "tests/unit/workforce-install.test.ts",
+    "file": "scripts/workforce/install.ps1",
+    "find": "Unregister-ScheduledTask -TaskName \"MatterOfPlace Captions\" -Confirm:$false -ErrorAction SilentlyContinue\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-install.test.ts -t \"takes off the old MatterOfPlace Captions task\"",
+    "expect": "× .*takes off the old MatterOfPlace Captions task before it registers MOP Captions"
+  },
+  {
+    "id": "w8-3r-minutes-to-hours",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "age < 2 * HOUR_S",
+    "replace": "age < 4 * HOUR_S",
+    "run": "bunx vitest run --project unit tests/unit/jobs/health.test.ts -t \"counts in minutes up to two hours\"",
+    "expect": "× .*counts in minutes up to two hours and in hours from there"
+  }
+]

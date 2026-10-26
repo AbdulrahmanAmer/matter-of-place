@@ -6,7 +6,9 @@ import { jsonValue } from "../../src/domain/json-value.ts";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import { mediaRequestSchema } from "./media.ts";
 import { HOW_OFF_LIST, POSTURES } from "./posture.ts";
+import { postRequestSchema } from "./post-request.ts";
 import { reelRequestSchema } from "./reel.ts";
+import { studioDecisionSchema } from "./studio.ts";
 
 export const outcome = z.object({
   reply: z.string().default(""),
@@ -35,8 +37,15 @@ export const outcome = z.object({
   how: z.enum(POSTURES).or(z.literal(HOW_OFF_LIST)).optional().catch(HOW_OFF_LIST),
   // Matter only (W6 item 4): the pull requests this full-power run merged through the gate; each writes a build lesson.
   merged: z.array(z.number().int().positive()).max(10).optional(),
-  // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio.
-  media: z.array(z.union([mediaRequestSchema, reelRequestSchema])).default([]),
+  // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio,
+  // and W8 item 1: so does a still post. W8 0f: and Matter's decision on a draft in the studio (approve, revise, ask
+  // the operator).
+  media: z
+    .array(
+      z.union([mediaRequestSchema, reelRequestSchema, postRequestSchema, studioDecisionSchema]),
+    )
+    .default([]),
+>>>>>>> origin/main
   // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
   actions: z.array(z.unknown()).default([]),
 });

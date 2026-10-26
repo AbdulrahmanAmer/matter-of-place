@@ -1,0 +1,128 @@
+[
+  {
+    "id": "w6-6a-script-missing",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "existsSync(join(hooksDir, hook.script)) ?",
+    "replace": "true ?",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*names a hook that is not declared for its tool or whose script is gone"
+  },
+  {
+    "id": "w6-6b-any-tool-counts",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "toolMatches(group.matcher, hook.tool) === true &&",
+    "replace": "true &&",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*names a hook that is not declared for its tool or whose script is gone"
+  },
+  {
+    "id": "w6-6r-match-all",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "if (matcher === undefined || matcher === \"\" || matcher === \"*\") return true;",
+    "replace": "if (matcher === undefined) return true;",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts -t \"empty or star matcher\"",
+    "expect": "× .*takes an empty or star matcher for every tool"
+  },
+  {
+    "id": "w6-6r-invalid-pattern-named",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "  } catch {\n    return null;\n  }",
+    "replace": "  } catch {\n    return false;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts -t \"empty or star matcher\"",
+    "expect": "× .*takes an empty or star matcher for every tool"
+  },
+  {
+    "id": "w6-6c-restricted-allowed",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "if (args.includes(\"--restricted\")) reasons.push(",
+    "replace": "if (false) reasons.push(",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*keep ~/.claude/settings.json for a full-power run"
+  },
+  {
+    "id": "w6-6d-bare-allowed",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "if (args.includes(\"--bare\")) reasons.push(",
+    "replace": "if (false) reasons.push(",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*keep ~/.claude/settings.json for a full-power run"
+  },
+  {
+    "id": "w6-6e-sources-without-user",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": ".split(\",\").includes(\"user\")",
+    "replace": ".split(\",\").includes(\"project\")",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*keep ~/.claude/settings.json for a full-power run"
+  },
+  {
+    "id": "w6-6f-full-run-restricted",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "? [...base, \"--settings\", join(here, \"settings-full.json\")]",
+    "replace": "? [...base, \"--restricted\", \"--settings\", join(here, \"settings-full.json\")]",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*keep ~/.claude/settings.json for a full-power run"
+  },
+  {
+    "id": "w6-6g-probe-model",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "args[model + 1] = \"claude-haiku-5-5\";",
+    "replace": "args[model + 1] = \"claude-sonnet-5-5\";",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*make the probe the same full-power command"
+  },
+  {
+    "id": "w6-6h-probe-hook-events",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "return [...args, \"--verbose\", \"--include-hook-events\"];",
+    "replace": "return [...args, \"--verbose\"];",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*make the probe the same full-power command"
+  },
+  {
+    "id": "w6-6i-foreground-counts",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "updatedInput?.run_in_background === true",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*does not count a shell-shaper note that left the command in the foreground"
+  },
+  {
+    "id": "w6-6j-any-post-note-counts",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "additionalContext?.startsWith(\"edit-impact\") === true",
+    "replace": "additionalContext !== undefined",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*does not count a shell-shaper note that left the command in the foreground"
+  },
+  {
+    "id": "w6-6k-before-edit-event",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "      response.data.hook_event === \"PostToolUse\" &&\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*does not take an edit-impact note for the before-edit event"
+  },
+  {
+    "id": "w6-6l-probe-repo-uncommitted",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "git(\"commit\", \"-q\", \"-m\", \"probe\");",
+    "replace": "git(\"status\", \"-q\");",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
+    "expect": "× .*holds a committed export that another file imports"
+  }
+]
