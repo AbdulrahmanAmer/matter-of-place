@@ -108,7 +108,9 @@ vi.mock("../../scripts/workforce/cli.ts", async (importOriginal) => {
           // what the run's folder holds as it starts, with forward slashes
           files:
             cwd !== "" && fs.existsSync(cwd)
-              ? fs.readdirSync(cwd, { recursive: true }).map((name) => name.replaceAll("\\", "/"))
+              ? fs
+                  .readdirSync(cwd, { recursive: true, encoding: "utf8" })
+                  .map((name) => name.replaceAll("\\", "/"))
               : [],
         },
       ];
@@ -1250,6 +1252,10 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
     // a file an earlier attempt of this run left in its folder
     mkdirSync(own, { recursive: true });
     writeFileSync(join(own, "earlier.md"), "left by an earlier attempt");
+    // the folder of another run a runner killed mid-run left behind
+    const killed = join(home, "desks", "editor", "outside", "a-killed-run");
+    mkdirSync(killed, { recursive: true });
+    writeFileSync(join(killed, "request.md"), "left by a killed runner");
     const photo = readFileSync("src/assets/los-altos.jpg");
     const db = Object.assign(memory.db, {
       storage: {
@@ -1277,6 +1283,7 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
       `requests/${REQUEST_ID}/photos/01.webp`,
     ]);
     expect(launch?.files).not.toContain("earlier.md");
+    expect(existsSync(killed)).toBe(false);
     expect(launch?.args).not.toContain("--add-dir");
     expect(launch?.settings).toContain('"allow":["Read(./**)"]');
     expect(lastPrompt("the colleague")).toContain(`requests/${REQUEST_ID}/ in your folder`);

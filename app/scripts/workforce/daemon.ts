@@ -99,7 +99,7 @@ import {
   type ToolkitPaths,
   type ToolkitRules,
 } from "./toolkit-args.ts";
-import { placePieces, placedLine } from "./placement.ts";
+import { placePieces, placedLine, sourcesFor } from "./placement.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -248,9 +248,9 @@ export interface ColleagueLaunch {
  * or an operator key started (`inside`, `startedInsideFor`) gets its whole toolkit, and the photographs of the pieces
  * its line names placed in its folder from its toolkit's piece sources (`placePieces`, without their metadata; never
  * the studio itself, review of 2026-10-19); any other run (an event, a schedule, a mention) its reads only, since its
- * history may hold a line that carried outside words. Every place it may write is swept of run config first (the
- * Drive folder is the operator's: what is found there refuses the run and is named, never deleted), and the settings
- * file, named by the run id, is written last.
+ * history may hold a line that carried outside words. Its desk is swept of run config first (`deskFor`); any other
+ * place it may write that holds some (the Drive folder is the operator's) refuses the run, each file named and none
+ * deleted; and the settings file, named by the run id, is written last.
  */
 export async function colleagueLaunch(
   home: string,
@@ -269,27 +269,20 @@ export async function colleagueLaunch(
   const paths = toolkitPaths(home, cwd);
   const searches = research && !run.outside;
   const rules = toolkitRules(toolkit, paths, searches);
+  // the work folder was swept by `deskFor`; any other place it may write (the Drive folder, the operator's) is never
+  // swept: what is found there refuses the run and is named, never deleted
   for (const dir of writePlaces(toolkit, paths)) {
     if (!existsSync(dir)) throw new Error(`${dir} is not on this laptop`);
-    if (dir !== paths.driveSocial) sweep(dir);
-    else {
-      const found = runConfigIn(dir);
-      if (found.length > 0)
-        throw new Error(
-          `the Drive folder holds files that would configure a run; a person removes them first: ${found.join(", ")}`,
-        );
-    }
+    const found = runConfigIn(dir);
+    if (found.length > 0)
+      throw new Error(
+        `${dir} holds files that would configure a run; a person removes them first: ${found.join(", ")}`,
+      );
   }
+  // the toolkit decides: a run no person started holds `readOnly`, an outside run `outsideToolkit`, neither a source
   const placed =
-    run.inside && !run.outside && toolkit.pieces.length > 0
-      ? await placePieces(
-          run.line ?? "",
-          {
-            studio: toolkit.pieces.includes("studio") ? paths.studio : null,
-            driveSocial: toolkit.pieces.includes("drive_social") ? paths.driveSocial : null,
-          },
-          work,
-        )
+    toolkit.pieces.length > 0
+      ? await placePieces(run.line ?? "", sourcesFor(toolkit, paths), work)
       : [];
   const settingsFile = join(home, "settings", `${run.id}.json`);
   const launch: ColleagueLaunch = {
@@ -331,6 +324,9 @@ async function askClaude(
     for (const path of launch.cleanup) rmSync(path, { recursive: true, force: true });
   }
 }
+
+/** A run's answer; `render` is what the runner may render once a colleague's run ends (Matter's answer has none). */
+type RunAnswer = Awaited<ReturnType<typeof askClaude>> & { render?: RenderScope | undefined };
 
 // ---------- waking on events ----------
 
@@ -903,8 +899,8 @@ export async function runOnce(client: Db): Promise<boolean> {
     const woke = { author_kind: authorKind, author_id: wokeBy };
     const startedInside = await startedInsideFor(client, run.cause, woke);
     // H115: an outside run's folder holds only what the runner writes for this run (a request's folder, in `context`);
-    // whatever an earlier attempt of it left is gone first
-    rmSync(outsideFolder(HOME, agent.slug, run.id), { recursive: true, force: true });
+    // whatever an earlier attempt of it left is gone first, with every other run's a killed runner left (runs are serial)
+    rmSync(dirname(outsideFolder(HOME, agent.slug, run.id)), { recursive: true, force: true });
     const {
       situation,
       triage,
@@ -976,7 +972,7 @@ export async function runOnce(client: Db): Promise<boolean> {
     const { shape } = decided;
     // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
     const power = isMatter ? matterPower(run.cause, authorKind) : "read";
-    const answer = isMatter
+    const answer: RunAnswer = isMatter
       ? await askMatter(
           matterPrompt({
             ...matterInputs(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
@@ -1077,7 +1073,7 @@ export async function runOnce(client: Db): Promise<boolean> {
           );
     }
     // H115 (review of 2026-10-19): a colleague has no shell, so the runner renders what its answer asks for, here
-    if ("render" in answer)
+    if (answer.render !== undefined)
       for (const line of runRenders(result.renders ?? [], answer.render, childEnv()))
         await say(client, place.thread, line);
     for (const request of media) {

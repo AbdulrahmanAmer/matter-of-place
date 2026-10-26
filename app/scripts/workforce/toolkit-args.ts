@@ -121,7 +121,7 @@ export function toolkitRules(
   return { tools, allow, deny, addDirs };
 }
 
-/** The folders a toolkit writes, its own folder included: the runner sweeps them of run config before each run. */
+/** The folders a toolkit writes, its own folder included: none may hold run config when a run starts (`colleagueLaunch`). */
 export function writePlaces(toolkit: Toolkit, paths: ToolkitPaths): string[] {
   return toolkit.write.map((place) => folder(place, paths) ?? paths.own);
 }
