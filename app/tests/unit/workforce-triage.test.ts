@@ -386,6 +386,7 @@ describe("W8 review: the paths around the triage are closed", () => {
         },
       });
     const run = {
+      id: "r0000000-0000-4000-8000-000000000001",
       agent_id: "99999999-9999-4999-8999-999999999999",
       cause: "event",
       event_id: "88888888-8888-4888-8888-888888888888",
@@ -507,6 +508,7 @@ describe("W8 second review: Matter's read of a held line acts on nothing", () =>
     vi.stubGlobal("fetch", () => Promise.resolve(new Response("", { status: 503 })));
     const db = fakeDb({ tables: { agent_messages: [], agent_approvals: [] } });
     const run = {
+      id: "r0000000-0000-4000-8000-000000000001",
       agent_id: "99999999-9999-4999-8999-999999999999",
       cause: "message",
       event_id: null,
@@ -1054,7 +1056,13 @@ describe("W8 0e and H115: who started a run, and what a started run reads", () =
         properties: [],
       },
     });
-    const run = { agent_id: "social-id", cause: "message", event_id: null, message_id: null };
+    const run = {
+      id: "r0000000-0000-4000-8000-000000000002",
+      agent_id: "social-id",
+      cause: "message",
+      event_id: null,
+      message_id: null,
+    };
     const ask = () => Promise.reject(new Error("no triage for an inside run"));
     const social = (source: Parameters<typeof ownsSource>[0]) => ownsSource(source, "social");
     const started = await context(world, run, "social", ask, false, social, true);

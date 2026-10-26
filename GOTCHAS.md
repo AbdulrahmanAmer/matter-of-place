@@ -9067,9 +9067,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: after a merge that names a bank number, grep `^## P-<n>` for each one it names; when two subjects share a number, renumber this branch's entry past the highest number on origin/main and every origin/overdrive/* branch, and move every citation of it in this branch's files in the same commit (the other side keeps its number).
 - proof: `grep -c "^## P-3577 " GOTCHAS.md` → 1 after the renumber (this branch's entries are P-4555 and P-4556); `git grep -n "P-3577" -- app` names only finish-3's citations.
 - added: 2026-10-19
+- hit again: 2026-10-26, toolkits round 6, merge of origin/main: `merge-gotchas` printed "both sides changed P-4513; ours kept", and "ours kept" meant main's P-4513 (an item may already be half built) was gone from the result, not only renumbered. The bank was rebuilt from `git show origin/main:GOTCHAS.md` whole plus this branch's four entries renumbered (P-4555, P-4556, P-4557, G-1481); proof: `grep -c "^## P-4513 " GOTCHAS.md` → 1 and its title is main's; `node workspace/05-plans/check-gotchas.mjs` → OK.
 
 ## G-1481 · On Windows a child started with a clean environment still carries the profile's names
-- path: app/scripts/render-reel.mjs
+- paths: app/scripts/render-reel.mjs, app/tests/unit/reel/render-reel-script.test.ts
+- severity: warn
 - symptom: 2026-10-19, toolkits round 4: a test that `cueEnv` passes only PATH and the system folders failed: the cue script saw HOMEDRIVE, HOMEPATH, LOGONSERVER, USERDOMAIN, USERNAME and USERPROFILE too.
 - cause: node (libuv) adds the Windows profile's required names to any environment it is given when it starts a process.
 - rule: a test of a clean child environment asserts that the decoy keys are absent and that nothing outside the kept list and those six names arrived; it never asserts an exact list on Windows.

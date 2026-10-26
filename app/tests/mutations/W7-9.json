@@ -117,13 +117,13 @@
     "expect": "× .*stops reading once the bytes it holds reach"
   },
   {
-    "id": "w7-9-desk-work-only",
+    "id": "w7-9-desk-run-folder-only",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "    const folder = join(home, \"desks\", slug, \"work\", \"requests\", row.id);",
-    "replace": "    const folder = join(home, \"desks\", slug, \"requests\", row.id);",
+    "find": "  const requests = join(outsideFolder(home, slug, run.id), \"requests\");",
+    "replace": "  const requests = join(home, \"desks\", slug, \"work\", \"requests\");",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*writes request.md, the sequence and one photo per picture into the work folder only"
+    "expect": "× .*writes request.md, the sequence and one photo per picture into the run's own folder only"
   },
   {
     "id": "w7-9-desk-one-per-picture",
@@ -327,7 +327,7 @@
     "id": "w7-9-held-removes-folder",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
-    "find": "  rmSync(join(home, \"desks\", slug, \"work\", \"requests\"), { recursive: true, force: true });\n",
+    "find": "  rmSync(requests, { recursive: true, force: true });\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
     "expect": "× .*holds a request whose typed fields try to direct the AI"
@@ -348,7 +348,7 @@
     "find": "    received = true;\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*writes request.md, the sequence and one photo per picture into the work folder only"
+    "expect": "× .*writes request.md, the sequence and one photo per picture into the run's own folder only"
   },
   {
     "id": "w7-9-triage-architect-person-run",
@@ -516,10 +516,19 @@
     "id": "w7-9-owner-run-clears",
     "test": "tests/unit/workforce-request-desk.test.ts",
     "file": "scripts/workforce/request-desk.ts",
+    "find": "  rmSync(requests, { recursive: true, force: true });\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
+    "expect": "× .*starts every Editor run with no request but its own in its folder"
+  },
+  {
+    "id": "w7-9-clears-earlier-place",
+    "test": "tests/unit/workforce-request-desk.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
     "find": "  rmSync(join(home, \"desks\", slug, \"work\", \"requests\"), { recursive: true, force: true });\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts",
-    "expect": "× .*starts every Editor run with no request but its own in the work folder"
+    "expect": "× .*and none where an earlier runner wrote them"
   },
   {
     "id": "w7-9-owner-desk-only",

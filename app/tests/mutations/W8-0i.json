@@ -36,7 +36,7 @@
     "expect": "× .*gives Social no shell, its reads and its writes"
   },
   {
-    "id": "w8-0i-editor-no-shell",
+    "id": "w8-0i-editor-no-render",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "src/domain/toolkits.ts",
     "find": "  read: [\"own_folder\", \"knowledge\"],\n  write: [\"own_folder\"],\n  render: [],\n  pieces: [\"studio\"],\n};",
@@ -345,19 +345,28 @@
     "id": "w8-0i-outside-own-folder-per-run",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "  const cwd = run.outside ? join(home, \"desks\", slug, \"outside\", run.id) : work;",
+    "find": "  const cwd = run.outside ? outsideFolder(home, slug, run.id) : work;",
     "replace": "  const cwd = work;",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*launches a run no person started with the toolkit's reads only, and one about outside text"
   },
   {
     "id": "w8-0i-outside-folder-empty",
-    "test": "tests/unit/workforce-toolkits.test.ts",
+    "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    rmSync(cwd, { recursive: true, force: true });\n",
-    "replace": "",
-    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
-    "expect": "× .*launches a run no person started with the toolkit's reads only, and one about outside text"
+    "find": "    // whatever an earlier attempt of it left is gone first\n    rmSync(outsideFolder(HOME, agent.slug, run.id), { recursive: true, force: true });\n",
+    "replace": "    // whatever an earlier attempt of it left is gone first\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*launches the Editor shown a request in its own folder"
+  },
+  {
+    "id": "w8-0i-request-shown-in-run-folder",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/request-desk.ts",
+    "find": "  const requests = join(outsideFolder(home, slug, run.id), \"requests\");",
+    "replace": "  const requests = join(home, \"desks\", slug, \"work\", \"requests\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
+    "expect": "× .*launches the Editor shown a request in its own folder"
   },
   {
     "id": "w8-0i-runonce-outside",
@@ -435,10 +444,19 @@
     "id": "w8-0i-place-fresh-file",
     "test": "tests/unit/workforce-toolkits.test.ts",
     "file": "scripts/workforce/placement.ts",
-    "find": "      rmSync(target, { force: true });\n      writeFileSync(target, bytes, { flag: \"wx\" });",
-    "replace": "      writeFileSync(target, bytes);",
+    "find": "      rmSync(target, { force: true });\n      writeFileSync(target, clean, { flag: \"wx\" });",
+    "replace": "      writeFileSync(target, clean);",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*places the photographs of the pieces a person's line names"
+  },
+  {
+    "id": "w8-0i-place-no-metadata",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/placement.ts",
+    "find": "bytes === null || mime === null ? null : await stripExif(bytes, mime).catch(() => null);",
+    "replace": "bytes === null || mime === null ? null : bytes;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*places a photograph without the words and the place its metadata carried"
   },
   {
     "id": "w8-0i-runonce-placement-line",
@@ -610,5 +628,14 @@
     "replace": "    .optional(),",
     "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
     "expect": "× .*keeps the answer when the list is malformed"
+  },
+  {
+    "id": "w8-0i-answer-renderer-list",
+    "test": "tests/unit/workforce-toolkits.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "        renderer: z.enum(RENDERER_NAMES),",
+    "replace": "        renderer: z.enum([\"carousel\", \"story\"]),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-toolkits.test.ts",
+    "expect": "× .*reads a colleague's renders from its answer"
   }
 ]

@@ -1,4 +1,12 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import type * as Os from "node:os";
 import type * as Path from "node:path";
 import { tmpdir } from "node:os";
@@ -72,7 +80,7 @@ vi.mock("node:path", async (importOriginal) => {
 
 const cli = vi.hoisted(() => ({
   prompts: [] as { who: string; prompt: string }[],
-  launches: [] as { args: readonly string[]; cwd: string; settings: string }[],
+  launches: [] as { args: readonly string[]; cwd: string; settings: string; files: string[] }[],
   answer: (who: string, prompt: string): string | Error => `${who} ${prompt}`.slice(0, 0),
 }));
 
@@ -90,12 +98,18 @@ vi.mock("../../scripts/workforce/cli.ts", async (importOriginal) => {
       // the settings file as the run sees it: the runner removes it when the run ends
       const args = input.args ?? [];
       const file = args.includes("--settings") ? args[args.indexOf("--settings") + 1] : undefined;
+      const cwd = input.cwd ?? "";
       cli.launches = [
         ...cli.launches,
         {
           args,
-          cwd: input.cwd ?? "",
+          cwd,
           settings: file === undefined ? "" : fs.readFileSync(file, "utf8"),
+          // what the run's folder holds as it starts, with forward slashes
+          files:
+            cwd !== "" && fs.existsSync(cwd)
+              ? fs.readdirSync(cwd, { recursive: true }).map((name) => name.replaceAll("\\", "/"))
+              : [],
         },
       ];
       return ask(input.who, input.prompt);
@@ -1076,7 +1090,8 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
 
   const home = join(tmpdir(), "mop-w8-0d-home", ".mop-workforce");
   const PIECE = "4a3c2563-c07a-481d-839b-ad0523827f69";
-  const placed = join(home, "desks", "social", "work", PIECE, "a.jpg");
+  // re-encoded without its metadata (review of 2026-10-19)
+  const placed = join(home, "desks", "social", "work", PIECE, "a.webp");
   const tools = () => {
     const args = cli.launches.at(-1)?.args ?? [];
     return args[args.indexOf("--tools") + 1];
@@ -1107,7 +1122,7 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
     // the person's line names the piece: its photographs are in Social's folder, and the run is told where
     expect(existsSync(placed)).toBe(true);
     expect(lastPrompt("the colleague")).toContain(
-      `The runner placed 1 photograph of ${PIECE} in \`./${PIECE}/\`.`,
+      `The runner placed 1 photograph of ${PIECE} in \`./${PIECE}/\`, each as WebP without its metadata.`,
     );
     // the run's settings file is gone once it ends
     expect(existsSync(join(home, "settings"))).toBe(true);
@@ -1154,6 +1169,120 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
     // its folder and its settings file are removed when it ends
     expect(existsSync(own)).toBe(false);
     expect(existsSync(join(home, "settings", `${String(run?.["id"])}.json`))).toBe(false);
+  });
+
+  it("launches the Editor shown a request in its own folder, which holds the request's photographs and nothing an earlier attempt left", async () => {
+    const EDITOR_ID = "a0000000-0000-4000-8000-000000000004";
+    const REQUEST_ID = "4a3c2563-1111-4111-8111-111111111111";
+    const memory = memoryDb({
+      agents: [
+        agentRow(MATTER_ID, "matter", "Matter", []),
+        agentRow(EDITOR_ID, "editor", "Editor", ["read_business", "chat"]),
+      ],
+      agent_messages: [
+        {
+          id: LINE_ID,
+          thread: "editor",
+          body: `@editor review request ${REQUEST_ID}`,
+          author_kind: "human",
+          author_id: "u1",
+          author_name: "Dave",
+        },
+      ],
+      submissions: [
+        {
+          id: REQUEST_ID,
+          received_at: "2026-10-15T09:00:00Z",
+          workflow_state: "Submitted",
+          address: "1200 Old Ranch Road",
+          city: "Fairfield",
+          state: "California",
+          zip: "94534",
+          property_type: "Residence",
+          price: 3_450_000,
+          currency: "USD",
+          beds: 4,
+          baths: 3.5,
+          interior_sq_ft: 4200,
+          year_built: 1928,
+          year_renovated: 2019,
+          architect: "Julia Morgan",
+          designer: null,
+          package: "The Feature",
+          submitter_kind: "agent",
+          brokerage: "Valley Brokers",
+          listed_with_agent: true,
+          listing_agent_brokerage: "Valley Brokers",
+          rights_confirmed_at: "2026-10-15T09:00:00Z",
+          rights_version: "2026-10-11",
+          duplicate_of: null,
+          listing_url: null,
+          photography_url: null,
+          source_url: null,
+          video_url: null,
+        },
+      ],
+      submission_media: [
+        {
+          id: "m1",
+          submission_id: REQUEST_ID,
+          name: "front.jpg",
+          mime: "image/jpeg",
+          sha256: "sha-m1",
+          sort_order: 0,
+          source_url: null,
+          storage_path: `${REQUEST_ID}/m1`,
+          uploaded_at: "2026-10-15T10:00:00Z",
+        },
+      ],
+      agent_approvals: [],
+      agent_lessons: [],
+      agent_decisions: [],
+      agent_runs: [],
+    });
+    void memory.insert("agent_runs", {
+      agent_id: EDITOR_ID,
+      cause: "message",
+      message_id: LINE_ID,
+    });
+    const runId = String(memory.tables["agent_runs"]?.[0]?.["id"]);
+    const own = join(home, "desks", "editor", "outside", runId);
+    // a file an earlier attempt of this run left in its folder
+    mkdirSync(own, { recursive: true });
+    writeFileSync(join(own, "earlier.md"), "left by an earlier attempt");
+    const photo = readFileSync("src/assets/los-altos.jpg");
+    const db = Object.assign(memory.db, {
+      storage: {
+        from: () => ({
+          download: () => Promise.resolve({ data: new Blob([photo]), error: null }),
+        }),
+      },
+    });
+    cli.answer = (who) =>
+      who === "the triage"
+        ? JSON.stringify({
+            intent: "submit_property",
+            who: "an agent",
+            about: "a house in Fairfield",
+            wants: "a review of the house",
+            instructions_to_ai: false,
+            attempt: "",
+          })
+        : JSON.stringify({ reply: "Reviewed.", task: "Reviewed", proposals: [] });
+    expect(await runOnce(db)).toBe(true);
+    const launch = cli.launches.find((one) => one.cwd === own);
+    // the request's folder is in the folder the run starts in, the one place it may read
+    expect(launch?.files).toContain(`requests/${REQUEST_ID}/request.md`);
+    expect(launch?.files.filter((name) => name.includes("/photos/"))).toEqual([
+      `requests/${REQUEST_ID}/photos/01.webp`,
+    ]);
+    expect(launch?.files).not.toContain("earlier.md");
+    expect(launch?.args).not.toContain("--add-dir");
+    expect(launch?.settings).toContain('"allow":["Read(./**)"]');
+    expect(lastPrompt("the colleague")).toContain(`requests/${REQUEST_ID}/ in your folder`);
+    // nothing of the request in the work folder, which the run cannot read; its own folder goes when it ends
+    expect(existsSync(join(home, "desks", "editor", "work", "requests"))).toBe(false);
+    expect(existsSync(own)).toBe(false);
   });
 });
 
