@@ -431,13 +431,13 @@ describe("csp-inline-rules", () => {
 describe("not-found-head", () => {
   // PR 368: router 1.170.42 runs no `head` of a route whose loader threw notFound, and the sweep's /no-such-page lost
   // its description and canonical.
-  it("not-found-head: a page no route matches has a description, a canonical and noindex", async () => {
+  it("not-found-head: a page no route matches has a description, no canonical and noindex", async () => {
     const page = await renderPage("/no-such-page");
     expect([
       /<meta name="description" content="\S/.test(page),
-      /<link rel="canonical" href="https?:\/\//.test(page),
+      /<link rel="canonical"/.test(page),
       page.includes('content="noindex, nofollow"'),
-    ]).toEqual([true, true, true]);
+    ]).toEqual([true, false, true]);
   });
 });
 

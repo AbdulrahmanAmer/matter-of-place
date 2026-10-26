@@ -724,8 +724,8 @@
     "id": "seo-canonical",
     "test": "tests/unit/seo.test.ts",
     "file": "src/lib/seo.ts",
-    "find": "    links: [{ rel: \"canonical\", href: canonical }],",
-    "replace": "    links: [{ rel: \"canonical\", href: absoluteUrl(\"/\") }],",
+    "find": "    links: withCanonical ? [{ rel: \"canonical\", href: canonical }] : [],",
+    "replace": "    links: withCanonical ? [{ rel: \"canonical\", href: absoluteUrl(\"/\") }] : [],",
     "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
     "expect": "FAIL .*> pageHead > sets the canonical link and og:url to the absolute url of the path"
   },
@@ -737,6 +737,15 @@
     "replace": "    path: \"/\",",
     "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
     "expect": "FAIL .*> pageHead > marks the head of an unresolved dynamic route noindex"
+  },
+  {
+    "id": "seo-unavailable-canonical",
+    "test": "tests/unit/seo.test.ts",
+    "file": "src/lib/seo.ts",
+    "find": "    noindex: true,\n    canonical: false,\n",
+    "replace": "    noindex: true,\n",
+    "run": "bunx vitest run --project unit tests/unit/seo.test.ts",
+    "expect": "FAIL .*> pageHead > gives the head of an unresolved dynamic route no canonical link and no og:url"
   },
   {
     "id": "seo-suffix",

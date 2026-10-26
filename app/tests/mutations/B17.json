@@ -1887,9 +1887,9 @@
     "id": "b17-not-found-head",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/routes/__root.tsx",
-    "find": "      <link rel=\"canonical\" href={absoluteUrl(\"/\")} />\n",
-    "replace": "",
+    "find": "      <meta name=\"robots\" content=\"noindex, nofollow\" />\n",
+    "replace": "      <meta name=\"robots\" content=\"noindex, nofollow\" />\n      <link rel=\"canonical\" href=\"https://matterofplace.com/\" />\n",
     "run": "bunx vitest run --project unit tests/unit/essentials.test.ts -t not-found-head",
-    "expect": "× .*not-found-head: a page no route matches has a description, a canonical and noindex"
+    "expect": "× .*not-found-head: a page no route matches has a description, no canonical and noindex"
   }
 ]

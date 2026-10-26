@@ -118,9 +118,14 @@ describe("putRedirect", () => {
     const answers = [
       await refusal(putRedirect(admin, db, { from_path: "/a", to_path: "/b", status: 301 })),
       await refusal(putRedirect(admin, db, { from_path: "/c-old", to_path: "/c", status: 301 })),
+      await refusal(putRedirect(admin, db, { from_path: "/c-old", to_path: "/a", status: 301 })),
     ];
     expect({ answers, rpc: rpcNames(db) }).toEqual({
-      answers: ["422 invalid_redirect: These addresses would redirect in a loop.", "saved"],
+      answers: [
+        "422 invalid_redirect: These addresses would redirect in a loop.",
+        "422 invalid_redirect: The new address is itself redirected. Point to the final address so visitors take one step.",
+        "saved",
+      ],
       rpc: ["put_redirect"],
     });
   });

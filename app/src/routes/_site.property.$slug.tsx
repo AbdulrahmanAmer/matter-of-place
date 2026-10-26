@@ -78,6 +78,7 @@ export const Route = createFileRoute("/_site/property/$slug")({
           "This property is no longer listed. Browse the homes we publish in California, New York and Florida.",
         path: `/property/${params.slug}`,
         noindex: true,
+        canonical: false,
       });
     }
     const { property, market, region, preview } = loaderData;

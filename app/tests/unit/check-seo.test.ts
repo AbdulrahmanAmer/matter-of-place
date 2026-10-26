@@ -143,7 +143,7 @@ describe("checkHead", () => {
 
 describe("checkRobots", () => {
   const OPEN =
-    "User-agent: *\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: /\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://matterofplace.com/sitemap.xml\n";
+    "User-agent: *\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: /\n\nSitemap: https://matterofplace.com/sitemap.xml\n";
   const CLOSED = "User-agent: *\nDisallow: /\n";
 
   it("expects the allow block and the sitemap line on the production host", () => {
@@ -206,7 +206,7 @@ describe("checkProductionSitemap", () => {
 
 describe("runChecks", () => {
   const OPEN_ROBOTS =
-    "User-agent: *\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: /\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://matterofplace.com/sitemap.xml\n";
+    "User-agent: *\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: /\n\nSitemap: https://matterofplace.com/sitemap.xml\n";
   const sitemap = (...paths: string[]) =>
     `<urlset>${paths.map((path) => `<url><loc>${ORIGIN}${path}</loc></url>`).join("")}</urlset>`;
 

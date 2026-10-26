@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { NotFound } from "../components/layout/not-found";
 import { RouteError } from "../components/layout/route-error";
 import { SiteChrome } from "../components/layout/site-chrome";
-import { absoluteUrl, siteConfig } from "../config/site";
+import { siteConfig } from "../config/site";
 import { ogStaticQuery, siteQuery } from "../lib/queries";
 import { defaultLocale, localeDirection } from "../lib/strings";
 import { ACCESS_BOOTSTRAP } from "../lib/access-bootstrap";
@@ -93,10 +93,9 @@ function PublicNotFound() {
   return (
     <>
       {/* Router 1.170.42 runs no `head` of a route whose loader threw `notFound`, so the page carries its own
-          description, canonical and noindex (React 19 hoists them), as `unavailableHead` gave it before. */}
+          description and noindex, and no canonical (IDX-006) (React 19 hoists them). */}
       <meta name="description" content="This page could not be found." />
       <meta name="robots" content="noindex, nofollow" />
-      <link rel="canonical" href={absoluteUrl("/")} />
       <link rel="stylesheet" href={appCss} precedence="default" />
       <SiteChrome>
         <NotFound />
