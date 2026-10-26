@@ -62,6 +62,7 @@ export const APP_ROWS = [
       "src/routes/admin/*.tsx",
       "src/routes/api/{public,admin,hooks}/*.ts",
       "src/routes/api/consent.ts",
+      "src/routes/api/form-fallback.ts",
     ],
   },
   {
@@ -134,8 +135,10 @@ export const APP_ROWS = [
       "scripts/lib/*.{ts,mjs}",
       "scripts/{audit,harden,launch}/**/*.{ts,mjs}",
       // W1: the laptop runner of the AI colleagues, its hidden launcher and its installer.
-      "scripts/workforce/{answer.ts,bounce.ts,charter.ts,cli.ts,colleague-calls.ts,config.ts,criteria.ts,drive-copy.ts,daemon.ts,email-check.ts,env.ts,explain.ts,follow.ts,grounding.ts,growth.ts,hidden-run.vbs,hiring.ts,install.ps1,knowledge.ts,mail.ts,media.ts,meeting.ts,posture.ts,proposed-post.ts,pull-images.ts,reel.ts,review.ts,scorecard.ts,settings-terminal.json,site-facts.ts,triage.ts,usage-policy.ts,new-work.ts,request-desk.ts,inbound-mail.ts,mail-reports.ts,service-notice.ts}",
-      "scripts/matter/{actions.ts,atlas.ts,key.ts,live.ts,live-alive.ts,read.ts,run.ts,settings.json,settings-full.json,system-map.ts}",
+      "scripts/workforce/{answer.ts,bounce.ts,brand-post.ts,charter.ts,cli.ts,colleague-calls.ts,config.ts,criteria.ts,daemon.ts,drive-copy.ts,email-check.ts,env.ts,explain.ts,follow.ts,grounding.ts,growth.ts,hidden-run.vbs,hiring.ts,inbound-mail.ts,install.ps1,knowledge.ts,mail-reports.ts,mail.ts,media.ts,meeting.ts,new-work.ts,placement.ts,post-request.ts,posture.ts,proposed-post.ts,pull-images.ts,reel.ts,render-run.mjs,request-desk.ts,review.ts,scorecard.ts,service-notice.ts,site-facts.ts,studio.ts,toolkit-args.ts,triage.ts,usage-policy.ts}",
+      // H115: the live probes of the role toolkits on the real CLI, run by hand (GOTCHAS P-4555).
+      "scripts/workforce/probes/toolkits.ts",
+      "scripts/matter/{actions.ts,atlas.ts,hook-reach.ts,key.ts,lessons.ts,live.ts,live-alive.ts,read.ts,run.ts,settings.json,settings-full.json,system-map.ts}",
       "scripts/harden/checklist.json",
       "scripts/harden/rls-review.sql",
       "scripts/harden/{pg-shims,restore-shims,rowcounts}.sql",

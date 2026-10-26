@@ -8,7 +8,7 @@ declare
   v_credits integer := public.credits_in_package(new.product);
   v_contact uuid;
 begin
-  -- W6 item 8 (ruling H137): a pack's credits are bought when its payment is paid, once. The property the pack was
+  -- W6 item 8 (ruling H142): a pack's credits are bought when its payment is paid, once. The property the pack was
   -- paid with is the first of the five, so it uses a credit in the same moment. A request with no contact (a fixture
   -- row; create_submission links every real one) has no ledger.
   if new.status <> 'paid' or v_credits is null or (tg_op = 'UPDATE' and old.status = 'paid') then

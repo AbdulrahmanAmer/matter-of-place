@@ -21,7 +21,7 @@ declare
   v_payment uuid;
   v_event uuid;
 begin
-  -- W6 item 8 (ruling H137): a Five Features credit is spent on one accepted request of the contact that holds it. The
+  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The
   -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the
   -- same transaction, so a credit is never used without its waiver nor waived without its credit.
   select s.contact_id, s.package into v_contact, v_package
@@ -66,7 +66,7 @@ as $$
 declare
   v_contact public.contacts;
 begin
-  -- W6 item 8, rulings H119 and H137: the signed-in person's requests with the dates their timeline needs and the path
+  -- W6 item 8, rulings H119 and H142: the signed-in person's requests with the dates their timeline needs and the path
   -- of the live page, through the same mapping as `account_room`. Null when no contact matches. The fixed field list
   -- leaves out every staff column (notes, the decline note and reason, reviewer ids, address hashes).
   select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);
@@ -121,7 +121,7 @@ as $$
 declare
   v_contact public.contacts;
 begin
-  -- W6 item 8, rulings H119 and H137: the signed-in person's invoices and waivers, newest first. A voided invoice was
+  -- W6 item 8, rulings H119 and H142: the signed-in person's invoices and waivers, newest first. A voided invoice was
   -- withdrawn in error and is not shown. Left out: `notes` (a staff reason), the invoice snapshot, who issued or marked
   -- it, and the Stripe reference. `credit` is true for a waiver that spent a Five Features credit.
   select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);
@@ -172,7 +172,7 @@ as $$
 declare
   v_contact public.contacts;
 begin
-  -- W6 item 8, rulings H119 and H137: the Five Features ledger of the signed-in person. `balance` is what is left (the
+  -- W6 item 8, rulings H119 and H142: the Five Features ledger of the signed-in person. `balance` is what is left (the
   -- sum of the rows), `purchased` and `used` the totals behind it. An entry names the request a credit was used for,
   -- never the staff reason written on its waiver.
   select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);
@@ -225,7 +225,7 @@ declare
   v_contact public.contacts;
   v_rolled date;
 begin
-  -- W6 item 8, rulings H119 and H137: results for each property that came from the signed-in person's requests. Page
+  -- W6 item 8, rulings H119 and H142: results for each property that came from the signed-in person's requests. Page
   -- views are the rolled-up days of `analytics_daily` plus the raw events after the last rolled day, so a day is
   -- counted once; inquiries are counts only (the sender, the address and the message never leave `inquiries`). The
   -- weekly rows are the figures the campaign report email states, the 12 newest weeks of the property's latest campaign.
@@ -311,7 +311,7 @@ declare
   v_next integer;
   v_result jsonb;
 begin
-  -- W6 item 8 (phase 2), ruling H137: photographs added to an open request by the person it belongs to, the way the
+  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the
   -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at
   -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.
   if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 10 then

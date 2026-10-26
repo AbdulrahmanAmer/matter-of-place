@@ -1,0 +1,11 @@
+[
+  {
+    "id": "fix-film-play-label-in-name",
+    "test": "src/components/property/gallery.test.tsx",
+    "file": "src/components/property/gallery.tsx",
+    "find": "<button type=\"button\" className=\"film-play\" onClick={play}>",
+    "replace": "<button type=\"button\" className=\"film-play\" onClick={play} aria-label=\"Play property film\">",
+    "run": "bunx vitest run --project component src/components/property/gallery.test.tsx",
+    "expect": "Gallery film > names the play button by the words it shows"
+  }
+]

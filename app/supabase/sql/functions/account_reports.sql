@@ -9,7 +9,7 @@ declare
   v_contact public.contacts;
   v_rolled date;
 begin
-  -- W6 item 8, rulings H119 and H137: results for each property that came from the signed-in person's requests. Page
+  -- W6 item 8, rulings H119 and H142: results for each property that came from the signed-in person's requests. Page
   -- views are the rolled-up days of `analytics_daily` plus the raw events after the last rolled day, so a day is
   -- counted once; inquiries are counts only (the sender, the address and the message never leave `inquiries`). The
   -- weekly rows are the figures the campaign report email states, the 12 newest weeks of the property's latest campaign.

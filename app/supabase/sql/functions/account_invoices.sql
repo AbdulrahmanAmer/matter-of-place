@@ -8,7 +8,7 @@ as $$
 declare
   v_contact public.contacts;
 begin
-  -- W6 item 8, rulings H119 and H137: the signed-in person's invoices and waivers, newest first. A voided invoice was
+  -- W6 item 8, rulings H119 and H142: the signed-in person's invoices and waivers, newest first. A voided invoice was
   -- withdrawn in error and is not shown. Left out: `notes` (a staff reason), the invoice snapshot, who issued or marked
   -- it, and the Stripe reference. `credit` is true for a waiver that spent a Five Features credit.
   select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);

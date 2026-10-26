@@ -699,6 +699,8 @@ describe("seed (step 4)", () => {
       "email.bounced": 0,
       // W8 0h: a person's email recorded; the colleague's run is the work, so no step.
       "email.received": 0,
+      // W6 item 5: a reply to our email recorded; the colleague's run is the work, so no step.
+      "email.reply_received": 0,
       "health.failed": 1,
       "inquiry.received": 4,
       "invoice.issued": 1,

@@ -3,7 +3,7 @@ import { RoleGate } from "../ui/RoleGate";
 import { ProductField } from "./ProductField";
 import { ReasonDialog } from "./ReasonDialog";
 
-/** What a Five Features waiver does (W6 item 8, ruling H137): it takes a credit from the contact's ledger. */
+/** What a Five Features waiver does (W6 item 8, ruling H142): it takes a credit from the contact's ledger. */
 const SPENDS_A_CREDIT = "This spends one of the client's Five Features credits.";
 
 /**

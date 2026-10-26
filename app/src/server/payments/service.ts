@@ -261,7 +261,7 @@ export async function waive(actor: AdminActor, db: Db, raw: unknown): Promise<Pa
 /**
  * `POST /api/admin/submissions/:id/waive`: a credit or a comp, recorded with no invoice (DL-01, invariant 12), at the
  * price of the stored plan read straight from the table, as an invoice reads it. A Five Features waiver is a credit
- * spent (W6 item 8, ruling H137): it goes through `spend_client_credit`, which takes one from the contact's ledger in
+ * spent (W6 item 8, ruling H142): it goes through `spend_client_credit`, which takes one from the contact's ledger in
  * the same transaction, at the price of one property of the pack. Any other product is a comp.
  */
 export async function waiveWithoutInvoice(

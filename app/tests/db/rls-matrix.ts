@@ -60,7 +60,7 @@ export const rlsMatrix: Record<string, Access> = {
   },
   campaigns: staffRead,
   campaign_reports: staffRead,
-  // W6 item 8 (H137): the credit ledger, written only by payments_grant_credits and spend_client_credit.
+  // W6 item 8 (H142): the credit ledger, written only by payments_grant_credits and spend_client_credit.
   client_credits: staffRead,
   // B6: written only by next_invoice_number under the service role.
   invoice_counters: {},
@@ -85,6 +85,8 @@ export const rlsMatrix: Record<string, Access> = {
   email_replies: staffRead,
   // W8 0h: written only by inbound_mail_record under the service role; read as privacy requests are (W8 0h review).
   inbound_mail: { select: ["chief_editor", "admin"] },
+  // W8 0f: written only by studio_piece_put under the service role.
+  studio_pieces: staffRead,
   email_suppressions: staffRead,
   email_events: staffRead,
   channel_settings: { select: staffRoles, insert: automation, update: automation },

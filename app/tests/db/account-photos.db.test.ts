@@ -1,4 +1,4 @@
-// W6 item 8 (phase 2), ruling H137: photographs added to an open request by the person it belongs to
+// W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to
 // (`account_add_photos`), and the count and the "can add" flag the My properties page reads. Every case runs in one
 // rolled-back transaction.
 import pg from "pg";

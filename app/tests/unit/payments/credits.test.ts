@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { creditsInPackage, creditValue } from "../../../src/domain/payments";
 
-// W6 item 8, ruling H137: what a package pays for in advance, and what one credit is worth. The SQL twin
+// W6 item 8, ruling H142: what a package pays for in advance, and what one credit is worth. The SQL twin
 // `credits_in_package` is held to the same answers by tests/db/client-credits.db.test.ts.
 
 describe("creditsInPackage", () => {

@@ -1,0 +1,137 @@
+[
+  {
+    "id": "w7-1-order",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": "    .order(\"created_at\", { ascending: false })\n    .order(\"id\", { ascending: false })",
+    "replace": "    .order(\"created_at\", { ascending: true })\n    .order(\"id\", { ascending: false })",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*lists the newest first with each one's bounce, first open and do-not-send state"
+  },
+  {
+    "id": "w7-1-first-open",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": "(openedAt.get(row.resend_email_id) ?? row.at) >= row.at",
+    "replace": "(openedAt.get(row.resend_email_id) ?? row.at) <= row.at",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*lists the newest first with each one's bounce, first open and do-not-send state"
+  },
+  {
+    "id": "w7-1-open-type",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": "events(\"email.opened\"),",
+    "replace": "events(\"email.bounced\"),",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*lists the newest first with each one's bounce, first open and do-not-send state"
+  },
+  {
+    "id": "w7-1r-address-submit",
+    "test": "src/admin/audit/sent-emails.test.tsx",
+    "file": "src/admin/audit/SentEmailsPart.tsx",
+    "find": "onFilters({ ...(status === undefined ? {} : { status }), search: search.trim() });",
+    "replace": "onFilters({ ...(status === undefined ? {} : { status }) });",
+    "run": "bunx vitest run --project component src/admin/audit/sent-emails.test.tsx -t \"one state and one address\"",
+    "expect": "× .*asks for one state and one address when they are chosen"
+  },
+  {
+    "id": "w7-1r-bounces-own-query",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": ".eq(\"type\", type)",
+    "replace": ".in(\"type\", [\"email.bounced\", \"email.opened\"])",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts -t \"row cap\"",
+    "expect": "× .*keeps the bounce type when the opens fill PostgREST's row cap"
+  },
+  {
+    "id": "w7-1-next-cursor",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": "next_cursor: last === undefined ? null :",
+    "replace": "next_cursor: true ? null :",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*pages with the cursor it gives, and ends with none"
+  },
+  {
+    "id": "w7-1-ties",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": ".eq(\"created_at\", at).lt(\"id\", id)",
+    "replace": ".eq(\"created_at\", at)",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*goes on from an email created at the same instant as the last one of the page before"
+  },
+  {
+    "id": "w7-1-state-filter",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": "query.eq(\"status\", input.status)",
+    "replace": "query",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*keeps the state and the address asked for on the page after the cursor"
+  },
+  {
+    "id": "w7-1-address-filter",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": ": withState.eq(\"to_email\", input.search.toLowerCase());",
+    "replace": ": withState;",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*keeps the state and the address asked for on the page after the cursor"
+  },
+  {
+    "id": "w7-1-cursor-bad",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": "if (at === undefined || id === undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*refuses a cursor that is not one the list gave"
+  },
+  {
+    "id": "w7-1-opened-words",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/domain/admin-emails.ts",
+    "find": "email.opened_at === null ? \"\" : \" and opened\"",
+    "replace": "\"\"",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
+    "expect": "× .*says a delivered email was opened when an open came, and not before"
+  },
+  {
+    "id": "w7-1-screen-template",
+    "test": "src/admin/audit/sent-emails.test.tsx",
+    "file": "src/admin/audit/SentEmailsPart.tsx",
+    "find": "<td>{email.template_key}</td>",
+    "replace": "<td />",
+    "run": "bunx vitest run --project component src/admin/audit/sent-emails.test.tsx",
+    "expect": "× .*shows each email with its address, template and what became of it, and the do-not-send list"
+  },
+  {
+    "id": "w7-1-screen-suppression-reason",
+    "test": "src/admin/audit/sent-emails.test.tsx",
+    "file": "src/admin/audit/SentEmailsPart.tsx",
+    "find": "<td>{REASON[row.reason]}</td>",
+    "replace": "<td>-</td>",
+    "run": "bunx vitest run --project component src/admin/audit/sent-emails.test.tsx",
+    "expect": "× .*shows each email with its address, template and what became of it, and the do-not-send list"
+  },
+  {
+    "id": "w7-1-screen-filter",
+    "test": "src/admin/audit/sent-emails.test.tsx",
+    "file": "src/admin/audit/SentEmailsPart.tsx",
+    "find": "useSentEmails({\n    ...(status === undefined ? {} : { status }),",
+    "replace": "useSentEmails({",
+    "run": "bunx vitest run --project component src/admin/audit/sent-emails.test.tsx",
+    "expect": "× .*asks for one state and one address when they are chosen"
+  },
+  {
+    "id": "w7-1-screen-next",
+    "test": "src/admin/audit/sent-emails.test.tsx",
+    "file": "src/admin/audit/SentEmailsPart.tsx",
+    "find": "if (nextCursor !== null) setTrail((now) => [...now, nextCursor]);",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/audit/sent-emails.test.tsx",
+    "expect": "× .*pages with the cursor the list gives, and back"
+  }
+]

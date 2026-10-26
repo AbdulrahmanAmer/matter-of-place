@@ -5,7 +5,7 @@
 --     public.credits_in_package(public.exposure_package);
 set lock_timeout = '5s';
 
--- W6 item 8 (ruling H137): the credit ledger. Five Features buys five credits for one contact; each property that is
+-- W6 item 8 (ruling H142): the credit ledger. Five Features buys five credits for one contact; each property that is
 -- accepted under a credit uses one. The balance is the sum of `quantity`, never a stored number, so it cannot drift
 -- from the rows that explain it. Rows are appended (a credit used is never edited back) and written only by
 -- `payments_grant_credits` (a paid pack) and `spend_client_credit` (a credit used), both under the service role.
@@ -38,7 +38,7 @@ language sql
 immutable
 set search_path = ''
 as $$
-  -- W6 item 8 (ruling H137): how many properties a package pays for in advance; mirrored by `creditsInPackage` in
+  -- W6 item 8 (ruling H142): how many properties a package pays for in advance; mirrored by `creditsInPackage` in
   -- `src/domain/credits.ts`. Only Five Features is a pack: the other products are one property each and buy no credit.
   select case p_product::text when 'Five Features' then 5 end;
 $$;
@@ -66,7 +66,7 @@ declare
   v_credits integer := public.credits_in_package(new.product);
   v_contact uuid;
 begin
-  -- W6 item 8 (ruling H137): a pack's credits are bought when its payment is paid, once. The property the pack was
+  -- W6 item 8 (ruling H142): a pack's credits are bought when its payment is paid, once. The property the pack was
   -- paid with is the first of the five, so it uses a credit in the same moment. A request with no contact (a fixture
   -- row; create_submission links every real one) has no ledger.
   if new.status <> 'paid' or v_credits is null or (tg_op = 'UPDATE' and old.status = 'paid') then

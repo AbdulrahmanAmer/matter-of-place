@@ -18,7 +18,7 @@ declare
   v_payment uuid;
   v_event uuid;
 begin
-  -- W6 item 8 (ruling H137): a Five Features credit is spent on one accepted request of the contact that holds it. The
+  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The
   -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the
   -- same transaction, so a credit is never used without its waiver nor waived without its credit.
   select s.contact_id, s.package into v_contact, v_package

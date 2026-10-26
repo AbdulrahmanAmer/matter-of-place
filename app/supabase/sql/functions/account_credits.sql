@@ -8,7 +8,7 @@ as $$
 declare
   v_contact public.contacts;
 begin
-  -- W6 item 8, rulings H119 and H137: the Five Features ledger of the signed-in person. `balance` is what is left (the
+  -- W6 item 8, rulings H119 and H142: the Five Features ledger of the signed-in person. `balance` is what is left (the
   -- sum of the rows), `purchased` and `used` the totals behind it. An entry names the request a credit was used for,
   -- never the staff reason written on its waiver.
   select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);

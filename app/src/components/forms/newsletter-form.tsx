@@ -39,6 +39,8 @@ export function NewsletterForm({ source }: { source: string }) {
 
   return (
     <form
+      method="post"
+      action="/api/form-fallback"
       className="newsletter-form"
       onSubmit={onSubmit}
       onInput={clear}

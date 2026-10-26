@@ -20,6 +20,15 @@ import { childEnv, serviceDb } from "../workforce/env.ts";
 import { LIVE_WORKER_PREFIX } from "../workforce/follow.ts";
 import { applyHires } from "../workforce/hiring.ts";
 import { HEARTBEAT_FILE, heartbeatStale } from "./live-alive.ts";
+import {
+  markUsed,
+  mergeGatePr,
+  recallForMatter,
+  recordBuildLesson,
+  stillPending,
+  takeQueuedMerges,
+  type Gh,
+} from "./lessons.ts";
 import { DESK, keepNote, matterArgs, matterInputs, matterPrompt } from "./run.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -45,6 +54,8 @@ const POLL_MS = 3_000;
 const STALL_MS = 20 * 60_000;
 // How often an idle supervisor asks git for the runner's commit (W5 item 5).
 const HEAD_CHECK_MS = 60_000;
+// How often a merge Matter started is asked about (W6 item 4).
+const MERGE_CHECK_MS = 60_000;
 
 const CRASH_WINDOW_MS = 10 * 60_000;
 
@@ -93,7 +104,7 @@ const streamEvent = z
 
 export type LiveEvent =
   | { kind: "text"; text: string }
-  | { kind: "tool"; name: string; label: string }
+  | { kind: "tool"; name: string; label: string; merged?: number }
   | { kind: "task"; state: "started" | "done"; id: string; label: string }
   | { kind: "result"; text: string; session: string | null; isError: boolean }
   | { kind: "other" };
@@ -148,12 +159,17 @@ export function readStreamLine(line: string): LiveEvent[] {
       if (text.success && text.data.text.trim() !== "")
         out.push({ kind: "text", text: text.data.text.trim() });
       const tool = toolPart.safeParse(part);
-      if (tool.success)
+      if (tool.success) {
+        // W6 item 4: a merge through the gate, read from the command itself so a long label cannot hide it.
+        const command = tool.data.input["command"];
+        const merged = typeof command === "string" ? mergeGatePr(command) : null;
         out.push({
           kind: "tool",
           name: tool.data.name,
           label: toolLabel(tool.data.name, tool.data.input),
+          ...(merged === null ? {} : { merged }),
         });
+      }
     }
     return out.length === 0 ? [{ kind: "other" }] : out;
   }
@@ -363,7 +379,7 @@ async function rest(ms: number): Promise<void> {
   }
 }
 
-class Supervisor {
+export class Supervisor {
   private child: ChildProcessWithoutNullStreams | null = null;
   private buffer = "";
   private active: { runId: string; thread: string }[] = [];
@@ -376,6 +392,12 @@ class Supervisor {
   private headCheckedAt = 0;
   private touchedAt = 0;
   private matterId = "";
+  /** W6 item 4: pull requests this session started merging, with when each was first seen, until GitHub says merged. */
+  private merges = new Map<number, number>();
+  private mergesCheckedAt = 0;
+  private settlingMerges = false;
+  /** The lessons recalled for the session about to start (growth.ts), carried in its first prompt. */
+  private lessons = "";
   // The running session already carries the briefing (a resumed one, or a new one after its first line).
   private seeded = false;
   private lastResultAt = 0;
@@ -385,7 +407,19 @@ class Supervisor {
   // Jay's first condition: what Matter's one-shot runs did since the last line this session read.
   private lastFedAt = new Date().toISOString();
 
-  constructor(private readonly client: Db) {}
+  /**
+   * `seams` replace what touches the outside (GitHub, the kept session, the queue file, the start of the `claude`
+   * process) so a test can drive the rest.
+   */
+  constructor(
+    private readonly client: Db,
+    private readonly seams: {
+      gh?: Gh;
+      kept?: () => SessionRecord | null;
+      queue?: string;
+      launch?: () => void;
+    } = {},
+  ) {}
 
   private async post(thread: string, body: string): Promise<void> {
     await this.client.from("agent_messages").insert({
@@ -450,13 +484,14 @@ class Supervisor {
     this.lastOutput = Date.now();
   }
 
-  private async onLine(line: string): Promise<void> {
+  async onLine(line: string): Promise<void> {
     const thread = this.active.at(-1)?.thread ?? "matter";
     for (const event of readStreamLine(line)) {
       if (event.kind === "text") {
         const shown = postableText(event.text);
         if (shown !== "") await this.post(thread, shown);
       } else if (event.kind === "tool") {
+        if (event.merged !== undefined) this.noteMerge(event.merged);
         await this.setTask(event.label);
       } else if (event.kind === "task") {
         await this.setTask(
@@ -470,7 +505,7 @@ class Supervisor {
     }
   }
 
-  private async onResult(event: Extract<LiveEvent, { kind: "result" }>): Promise<void> {
+  async onResult(event: Extract<LiveEvent, { kind: "result" }>): Promise<void> {
     this.lastResultAt = Date.now();
     if (event.session !== null)
       writeFileSync(
@@ -495,6 +530,7 @@ class Supervisor {
       return;
     }
     const answer = readJsonAnswer(event.text);
+    for (const merged of answer.merged ?? []) this.noteMerge(merged);
     const runs = this.active;
     this.active = [];
     for (const run of runs) {
@@ -528,6 +564,74 @@ class Supervisor {
         );
     }
     await this.setTask(null);
+  }
+
+  private noteMerge(pr: number): void {
+    if (!this.merges.has(pr)) this.merges.set(pr, Date.now());
+  }
+
+  /**
+   * W6 item 4: the lesson of each pull request Matter merged. The gate runs in the background, so a number is asked
+   * about once a minute until GitHub says merged (then the lesson is written once) or half an hour has passed. It runs
+   * beside the loop, never in it: a slow GitHub must not stop the heartbeat. The numbers a one-shot run queued join them.
+   */
+  async settleMerges(now: number): Promise<void> {
+    for (const pr of takeQueuedMerges(this.seams.queue)) this.noteMerge(pr);
+    if (
+      this.merges.size === 0 ||
+      this.settlingMerges ||
+      now - this.mergesCheckedAt < MERGE_CHECK_MS
+    )
+      return;
+    this.settlingMerges = true;
+    this.mergesCheckedAt = now;
+    try {
+      for (const [pr, seenAt] of this.merges) {
+        const answer = await recordBuildLesson(this.client, this.matterId, pr, this.seams.gh);
+        if (stillPending(answer, seenAt, Date.now())) continue;
+        this.merges.delete(pr);
+        console.log(
+          `${new Date().toISOString()} live: build lesson for pull request ${String(pr)}: ${answer}`,
+        );
+      }
+    } finally {
+      this.settlingMerges = false;
+    }
+  }
+
+  /**
+   * One step of the loop: with no session running, recall the lessons and start one; then settle the merges beside the
+   * loop (not awaited, so a slow GitHub never holds the heartbeat).
+   */
+  async tick(now: number): Promise<void> {
+    if (this.child === null) {
+      await this.recallForNewSession();
+      (this.seams.launch ?? (() => this.start()))();
+    }
+    void this.settleMerges(now).catch((failure: unknown) => {
+      console.log(
+        `${new Date().toISOString()} live: build lessons: ${failure instanceof Error ? failure.message : String(failure)}`,
+      );
+    });
+  }
+
+  /** A session with no kept one to resume is new, and is briefed with the lessons recalled now. */
+  async recallForNewSession(): Promise<void> {
+    if ((this.seams.kept ?? readSession)() === null) await this.recallLessons();
+  }
+
+  /** The lessons the new session is shown: the operator's, and what Matter's own earlier builds taught him. */
+  private async recallLessons(): Promise<void> {
+    try {
+      const { shown, block } = await recallForMatter(this.client, this.matterId, stateText());
+      this.lessons = block;
+      await markUsed(this.client, shown);
+    } catch (failure) {
+      this.lessons = "";
+      console.log(
+        `${new Date().toISOString()} live: lessons not recalled: ${failure instanceof Error ? failure.message : String(failure)}`,
+      );
+    }
   }
 
   private async onExit(code: number | null): Promise<void> {
@@ -609,20 +713,22 @@ class Supervisor {
       : `Since your last line, your read-only runs did this (they are you, woken by outside text):\n${lines.join("\n")}\n\n`;
   }
 
-  /** Hands Matter a line; the first line of a session carries his prompt, the live rules and his state. */
+  /** What Matter is sent for a line: the first line of a session carries his prompt, the live rules and his state. */
+  brief(said: string): string {
+    if (this.seeded) return said;
+    this.seeded = true;
+    const prompt = matterPrompt({
+      ...matterInputs(resolve(here, "../../../workspace/05-plans/W2.md")),
+      thread: "",
+      business: this.lessons,
+      power: "full",
+    });
+    return `${prompt}\n\n${LIVE_RULES}\n\n${stateText()}\n\n${said}`;
+  }
+
+  /** Hands Matter a line. */
   private say(said: string): void {
-    if (!this.seeded) {
-      this.seeded = true;
-      const prompt = matterPrompt({
-        ...matterInputs(resolve(here, "../../../workspace/05-plans/W2.md")),
-        thread: "",
-        business: "",
-        power: "full",
-      });
-      this.send(`${prompt}\n\n${LIVE_RULES}\n\n${stateText()}\n\n${said}`);
-    } else {
-      this.send(said);
-    }
+    this.send(this.brief(said));
   }
 
   /** Says why a goal step was skipped, once per reason and half hour (the loop asks every three seconds). */
@@ -769,7 +875,7 @@ class Supervisor {
           process.exit(0);
         }
       }
-      if (this.child === null) this.start();
+      await this.tick(Date.now());
       if (this.active.length > 0 && Date.now() - this.lastOutput > STALL_MS) {
         console.log(`${new Date().toISOString()} live: no output for 20 minutes, restarting`);
         killTree(this.child?.pid);

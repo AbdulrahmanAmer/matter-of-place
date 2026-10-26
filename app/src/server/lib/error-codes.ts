@@ -75,6 +75,8 @@ export const errorCodes = {
   // re-rendered.
   requested_reel_files: 422,
   requested_asset: 422,
+  // W8 item 1: any requested visual, a reel or a still post, is recorded only with its files.
+  requested_asset_files: 422,
   // B10: a social channel is enabled only with proof of its credentials (invariant 9).
   credentials_unverified: 422,
   channel_locked: 422,
@@ -111,7 +113,7 @@ export const errorCodes = {
   caption_too_long: 422,
   media_not_found: 422,
   reel_poster_required: 422,
-  // W6 item 8 (H137): a Five Features credit is spent only by a contact whose ledger holds one.
+  // W6 item 8 (H142): a Five Features credit is spent only by a contact whose ledger holds one.
   no_credit: 409,
 } as const;
 

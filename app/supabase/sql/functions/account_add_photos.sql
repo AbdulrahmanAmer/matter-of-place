@@ -10,7 +10,7 @@ declare
   v_next integer;
   v_result jsonb;
 begin
-  -- W6 item 8 (phase 2), ruling H137: photographs added to an open request by the person it belongs to, the way the
+  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the
   -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at
   -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.
   if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 10 then

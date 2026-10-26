@@ -69,7 +69,7 @@ export const accountConfirmInput = z.object({
 /** What the confirm page's post found: a session, a spent or old token, or a person who signs in at `/admin`. */
 export type AccountConfirmStatus = "signed-in" | "expired" | "staff";
 
-// W6 item 8, rulings H119 and H137: the pages of the room. Field names are those the `account_*` functions return; each
+// W6 item 8, rulings H119 and H142: the pages of the room. Field names are those the `account_*` functions return; each
 // answer names the person it is for (name, email), so every page can say whose room it is.
 
 /** The one name and address every page of the room carries. */

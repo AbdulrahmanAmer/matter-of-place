@@ -1,4 +1,4 @@
-// W6 item 8, ruling H137: the credit ledger (`client_credits`), the function that spends a credit, and the four pages
+// W6 item 8, ruling H142: the credit ledger (`client_credits`), the function that spends a credit, and the four pages
 // the client room reads (`account_properties`, `account_invoices`, `account_credits`, `account_reports`). Every case runs
 // in one rolled-back transaction.
 import pg from "pg";

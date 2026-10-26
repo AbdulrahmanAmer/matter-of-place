@@ -8,7 +8,7 @@ as $$
 declare
   v_contact public.contacts;
 begin
-  -- W6 item 8, rulings H119 and H137: the signed-in person's requests with the dates their timeline needs and the path
+  -- W6 item 8, rulings H119 and H142: the signed-in person's requests with the dates their timeline needs and the path
   -- of the live page, through the same mapping as `account_room`. Null when no contact matches. The fixed field list
   -- leaves out every staff column (notes, the decline note and reason, reviewer ids, address hashes).
   select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);

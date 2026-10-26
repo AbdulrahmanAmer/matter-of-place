@@ -9,6 +9,12 @@ export function findChrome() {
     if (!existsSync(fromEnv)) throw new Error("CHROME_PATH not found: " + fromEnv);
     return fromEnv;
   }
+  if (process.platform !== "win32") {
+    // a CI runner: GitHub's Ubuntu image ships Google Chrome here (W8 item 1's guard test opens a page in it)
+    for (const path of ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium"]) {
+      if (existsSync(path)) return path;
+    }
+  }
   const root = "C:/Users/DELL/.cache/puppeteer/chrome";
   const preferred = join(root, "win64-154.0.8037.57/chrome-win64/chrome.exe");
   if (existsSync(preferred)) return preferred;

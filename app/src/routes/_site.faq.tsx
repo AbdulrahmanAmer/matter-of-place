@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_site/faq")({
       description: pageDescription("faq"),
       path: "/faq",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: faqJsonLd(faqFor(loaderData ?? [])),
+      jsonLd: [faqJsonLd(faqFor(loaderData ?? []))],
     }),
   component: FaqPage,
 });

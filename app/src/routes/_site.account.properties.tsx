@@ -5,7 +5,7 @@ import { PageIntro } from "../components/site/page-intro";
 import { readAccountPropertiesFn } from "../lib/account.functions";
 import { pageHead } from "../lib/seo";
 
-// W6 item 8, ruling H137: a page of the client room. Rendered only in the person's browser and never kept by the edge,
+// W6 item 8, ruling H142: a page of the client room. Rendered only in the person's browser and never kept by the edge,
 // as the front page of the room is (ruling H119 (4)).
 export const Route = createFileRoute("/_site/account/properties")({
   ssr: false,

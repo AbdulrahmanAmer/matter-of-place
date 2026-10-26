@@ -188,11 +188,8 @@ describe("listRedirects, the test-a-link check", () => {
       circled: circled?.steps.map((step) => step.from),
       circleLoop: circled?.loop,
     }).toEqual({
-      hops: [
-        "/summer > /markets",
-        "/markets > /property/old-ridge",
-        "/property/old-ridge > /property/the-ridge",
-      ],
+      // URL-002: the public map answers a chain in one hop, so the check shows the one hop a visitor takes.
+      hops: ["/summer > /property/the-ridge"],
       loop: false,
       circled: ["/a", "/b"],
       circleLoop: true,

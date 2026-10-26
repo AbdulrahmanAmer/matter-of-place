@@ -116,7 +116,7 @@ describe("readAccount", () => {
   });
 });
 
-// W6 item 8, ruling H137: the room's four pages. Each reads its own function with the session's user and nothing else,
+// W6 item 8, ruling H142: the room's four pages. Each reads its own function with the session's user and nothing else,
 // answers the sign-in form without a session, and the calm "not found" state when no contact is the session's.
 describe.each([
   {
@@ -166,7 +166,7 @@ describe.each([
   });
 });
 
-// W6 item 8 (phase 2), ruling H137: photographs added to an open request. The session's own user is the only one the
+// W6 item 8 (phase 2), ruling H142: photographs added to an open request. The session's own user is the only one the
 // database is asked about, the files are signed only after the database declared them, and a refusal signs nothing.
 describe("addPhotos", () => {
   const SUBMISSION = "00000000-0000-4000-8000-0000000000c1";

@@ -6,6 +6,7 @@ import type { Json } from "../../src/db";
 import { applyVisibility } from "../../src/server/catalog/visibility";
 import { mapSnapshot, parseSnapshot, toPropertyCard } from "../../src/server/public/mappers";
 import type { PublicState, ServedCatalog } from "../../src/server/public/state";
+import { pageDates } from "../../src/server/seo/page-dates.gen";
 import { buildSitemap, staticSitemapPaths } from "../../src/server/seo/sitemap";
 import { propertyJson, snapshotJson } from "../fixtures/snapshot";
 
@@ -269,6 +270,60 @@ describe("buildSitemap lastmod", () => {
       properties: [property("p1", { updated_at: "2027-01-01T00:00:00+00:00" })],
     });
     expect(lastmodOf(xml, "/property/p1")).toBe("2026-10-05");
+  });
+});
+
+describe("buildSitemap lastmod on the static pages (W8 item 12b)", () => {
+  const dates = { "/about": "2026-09-11", "/privacy": "2026-09-13", "/faq": "2027-03-01" };
+  const sitemap = (parts: Record<string, Json>, over: Record<string, string> = dates): string => {
+    const { catalog, state: current } = served(parts);
+    return buildSitemap(catalog, current, NOW, over);
+  };
+
+  it("dates a document page by the day its content last changed", () => {
+    const xml = sitemap({});
+    expect(lastmodOf(xml, "/about")).toBe("2026-09-11");
+    expect(lastmodOf(xml, "/privacy")).toBe("2026-09-13");
+  });
+
+  it("gives a page with no known date no lastmod", () => {
+    const xml = sitemap({});
+    expect(xml).toContain(`<url><loc>${ORIGIN}/terms</loc></url>`);
+    expect(xml).toContain(`<url><loc>${ORIGIN}/markets</loc></url>`);
+  });
+
+  it("never dates a page after the day of the build", () => {
+    expect(lastmodOf(sitemap({}), "/faq")).toBe("2026-10-05");
+  });
+
+  it("dates /, /properties and /stories by the newest published item and /markets by nothing", () => {
+    const xml = sitemap({
+      properties: [
+        property("old", { updated_at: "2026-09-10T00:00:00+00:00" }),
+        property("new", { updated_at: "2026-09-20T08:30:00+00:00" }),
+      ],
+      stories: [story("s1")],
+    });
+    expect(lastmodOf(xml, "/properties")).toBe("2026-09-20");
+    expect(lastmodOf(xml, "/stories")).toBe("2026-09-02");
+    expect(lastmodOf(xml, "/")).toBe("2026-09-20");
+    expect(lastmodOf(xml, "/markets")).toBeUndefined();
+  });
+
+  it("gives the catalog pages no lastmod while nothing is published", () => {
+    const xml = sitemap({ properties: [], stories: [] });
+    expect(xml).toContain(`<url><loc>${ORIGIN}/</loc></url>`);
+    expect(xml).toContain(`<url><loc>${ORIGIN}/stories</loc></url>`);
+  });
+
+  it("takes the committed dates of the build by default, each a real day no later than now", () => {
+    const { catalog, state: current } = served({});
+    const xml = buildSitemap(catalog, current, NOW);
+    for (const path of Object.keys(pageDates)) {
+      const day = lastmodOf(xml, path);
+      expect([path, /^\d{4}-\d{2}-\d{2}$/.test(day ?? "")]).toEqual([path, true]);
+      expect([path, (day ?? "") <= "2026-10-05"]).toEqual([path, true]);
+    }
   });
 });
 

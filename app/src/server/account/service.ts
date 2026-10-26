@@ -161,7 +161,7 @@ export const readAccount = (db: Db, request: Request): Promise<AccountView> =>
   readPage(request, accountRoomSchema, (p_user) => db.rpc("account_room", { p_user }));
 
 /**
- * One page of the room (W6 item 8, ruling H137): what `read` answers for the signed-in person, parsed with the page's
+ * One page of the room (W6 item 8, ruling H142): what `read` answers for the signed-in person, parsed with the page's
  * schema. A function per page, each through `app.contact_of`; the Worker passes the verified session's user, never a
  * browser value. Null from the database is a session with no contact.
  */
@@ -199,7 +199,7 @@ const addedPhotosSchema = z.array(
 );
 
 /**
- * Photographs added to one of the signed-in person's open requests (W6 item 8, phase 2, ruling H137): the rows are
+ * Photographs added to one of the signed-in person's open requests (W6 item 8, phase 2, ruling H142): the rows are
  * declared by `account_add_photos`, which checks the request is theirs and not yet live, then each file gets a signed
  * URL to put its bytes at; the `reconcile` job settles it once the object is there.
  */

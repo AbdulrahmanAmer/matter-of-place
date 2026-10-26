@@ -179,7 +179,7 @@ export function tierOf(product: InvoiceProduct): "Feature" | "Reach" | "Campaign
 const packCredits: Partial<Record<InvoiceProduct, number>> = { "Five Features": 5 };
 
 /**
- * The TS mirror of SQL `credits_in_package` (W6 item 8, ruling H137): how many properties a package pays for in
+ * The TS mirror of SQL `credits_in_package` (W6 item 8, ruling H142): how many properties a package pays for in
  * advance, null for a product that is one property. A paid Five Features buys five credits.
  */
 export function creditsInPackage(product: InvoiceProduct): number | null {
