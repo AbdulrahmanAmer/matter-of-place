@@ -1,11 +1,12 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { AccountNav } from "../components/account/account-nav";
 import { AccountNotFound } from "../components/account/account-not-found";
 import { AccountRoom } from "../components/account/account-room";
 import { AccountSignIn } from "../components/account/account-sign-in";
 import { PageIntro } from "../components/site/page-intro";
 import type { AccountView } from "../domain/account";
-import { readAccountFn, signOutAccountFn } from "../lib/account.functions";
+import { useAccountSignOut } from "../hooks/use-account-sign-out";
+import { readAccountFn } from "../lib/account.functions";
 import { pageHead } from "../lib/seo";
 
 const TITLES: Record<AccountView["state"], string> = {
@@ -35,15 +36,7 @@ export const Route = createFileRoute("/_site/account/")({
 function AccountPage() {
   const view = Route.useLoaderData();
   const { state } = Route.useSearch();
-  const router = useRouter();
-  const [signingOut, setSigningOut] = useState(false);
-  const signOut = () => {
-    setSigningOut(true);
-    void signOutAccountFn().finally(() => {
-      setSigningOut(false);
-      void router.invalidate();
-    });
-  };
+  const { signOut, signingOut } = useAccountSignOut();
   return (
     <main>
       <PageIntro
@@ -60,13 +53,16 @@ function AccountPage() {
       ) : view.state === "unknown" ? (
         <AccountNotFound onSignOut={signOut} signingOut={signingOut} />
       ) : (
-        <AccountRoom
-          name={view.name}
-          email={view.email}
-          requests={view.requests}
-          onSignOut={signOut}
-          signingOut={signingOut}
-        />
+        <>
+          <AccountNav />
+          <AccountRoom
+            name={view.name}
+            email={view.email}
+            requests={view.requests}
+            onSignOut={signOut}
+            signingOut={signingOut}
+          />
+        </>
       )}
     </main>
   );

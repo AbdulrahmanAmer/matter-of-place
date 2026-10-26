@@ -172,12 +172,52 @@ function readJob(raw) {
 /**
  * Runs one engine script with node in the foreground, its output in this log.
  * @param {string[]} args
+ * @param {NodeJS.ProcessEnv} [env] the script's environment; the runner's own when not given
  */
-function node(args) {
-  const run = spawnSync("node", args, { cwd: APP, stdio: "inherit" });
+function node(args, env) {
+  const run = spawnSync("node", args, {
+    cwd: APP,
+    stdio: "inherit",
+    ...(env === undefined ? {} : { env }),
+  });
   if (run.status !== 0) {
     throw new Error(`${basename(args[0] ?? "node")} exited ${String(run.status)}`);
   }
+}
+
+// What a cue script needs from the environment, by name in upper case: node on the path and the system's folders.
+const CUE_ENV = new Set([
+  "PATH",
+  "PATHEXT",
+  "SYSTEMROOT",
+  "SYSTEMDRIVE",
+  "WINDIR",
+  "COMSPEC",
+  "TEMP",
+  "TMP",
+  "TMPDIR",
+]);
+
+/**
+ * A cue script's environment: no key, no token, nothing that configures node (review of 2026-10-19). A requested
+ * reel's `cues.mjs` is a file its designer wrote in the studio, and the runner's environment holds the database key.
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {NodeJS.ProcessEnv}
+ */
+export function cueEnv(env = process.env) {
+  return Object.fromEntries(
+    Object.entries(env).filter(([name]) => CUE_ENV.has(name.toUpperCase())),
+  );
+}
+
+/**
+ * Runs a cue script on a spec into its cue file, with `cueEnv`.
+ * @param {string} cues
+ * @param {string} specFile
+ * @param {string} out
+ */
+export function runCues(cues, specFile, out) {
+  node([cues, specFile, out], cueEnv());
 }
 
 /**
@@ -283,7 +323,7 @@ export function gateReel(mp4, between) {
 function film({ scene, cues, spec }) {
   const specFile = join(WORK, "spec.json");
   writeFileSync(specFile, JSON.stringify(spec));
-  node([cues, specFile, join(WORK, "cues.json")]);
+  runCues(cues, specFile, join(WORK, "cues.json"));
   const query = `spec=${SERVED}/spec.json&cues=${SERVED}/cues.json`;
   const workers = String(Math.min(4, availableParallelism()));
   node([

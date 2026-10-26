@@ -461,6 +461,50 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"client_credits": {
+                  Row: {
+                    "contact_id": string,"created_at": string,"id": string,"kind": string,"note": string | null,"payment_id": string,"quantity": number,"submission_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "contact_id": string,"created_at"?: string,"id"?: string,"kind": string,"note"?: string | null,"payment_id": string,"quantity": number,"submission_id"?: string | null
+                  }
+                  Update: {
+                    "contact_id"?: string,"created_at"?: string,"id"?: string,"kind"?: string,"note"?: string | null,"payment_id"?: string,"quantity"?: number,"submission_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "client_credits_contact_id_fkey"
+      columns: ["contact_id"]
+isOneToOne: false
+      referencedRelation: "contacts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "client_credits_payment_id_fkey"
+      columns: ["payment_id"]
+isOneToOne: false
+      referencedRelation: "invoice_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "client_credits_payment_id_fkey"
+      columns: ["payment_id"]
+isOneToOne: false
+      referencedRelation: "payments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "client_credits_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submission_list"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "client_credits_submission_id_fkey"
+      columns: ["submission_id"]
+isOneToOne: false
+      referencedRelation: "submissions"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"contacts": {
                   Row: {
                     "archived_at": string | null,"brokerage": string | null,"created_at": string,"email": string,"id": string,"kind": Database["public"]['Enums']["submitter_kind"],"name": string,"notes": string | null,"phone": string | null,"updated_at": string
@@ -1283,14 +1327,14 @@ isOneToOne: false
                   ]
                 },"submission_media": {
                   Row: {
-                    "bytes": number | null,"id": string,"mime": string | null,"name": string,"sha256": string | null,"sort_order": number,"source_url": string | null,"storage_path": string,"submission_id": string,"uploaded_at": string | null
+                    "bytes": number | null,"declared_at": string,"id": string,"mime": string | null,"name": string,"sha256": string | null,"sort_order": number,"source_url": string | null,"storage_path": string,"submission_id": string,"uploaded_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "bytes"?: number | null,"id"?: string,"mime"?: string | null,"name": string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path": string,"submission_id": string,"uploaded_at"?: string | null
+                    "bytes"?: number | null,"declared_at"?: string,"id"?: string,"mime"?: string | null,"name": string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path": string,"submission_id": string,"uploaded_at"?: string | null
                   }
                   Update: {
-                    "bytes"?: number | null,"id"?: string,"mime"?: string | null,"name"?: string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path"?: string,"submission_id"?: string,"uploaded_at"?: string | null
+                    "bytes"?: number | null,"declared_at"?: string,"id"?: string,"mime"?: string | null,"name"?: string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path"?: string,"submission_id"?: string,"uploaded_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -1486,8 +1530,23 @@ isOneToOne: false
             "accept_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_submission_id": string }; Returns: string
                            },
+"account_add_photos":
+{ Args: { "p_media": Json,"p_submission_id": string,"p_user": string }; Returns: Json
+                           },
 "account_can_sign_in":
 { Args: { "p_email": string }; Returns: boolean
+                           },
+"account_credits":
+{ Args: { "p_user": string }; Returns: Json
+                           },
+"account_invoices":
+{ Args: { "p_user": string }; Returns: Json
+                           },
+"account_properties":
+{ Args: { "p_user": string }; Returns: Json
+                           },
+"account_reports":
+{ Args: { "p_user": string }; Returns: Json
                            },
 "account_room":
 { Args: { "p_user": string }; Returns: Json
@@ -1760,6 +1819,9 @@ isOneToOne: false
 { Args: { "p": Json }; Returns: {
               "id": string,"media": Json,"received_at": string
             }[]
+                           },
+"credits_in_package":
+{ Args: { "p_product": Database["public"]['Enums']["exposure_package"] }; Returns: number
                            },
 "decline_submission":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_reason_id": string,"p_request_id": string,"p_submission_id": string }; Returns: string
@@ -2142,6 +2204,9 @@ isOneToOne: false
 "record_analytics_events":
 { Args: { "p_rows": Json }; Returns: number
                            },
+"record_build_lesson":
+{ Args: { "p_action": string,"p_agent": string,"p_pr": number,"p_trigger": string }; Returns: boolean
+                           },
 "record_channel_check":
 { Args: { "p_channel": string,"p_checked_at": string,"p_expires_at": string,"p_state": string }; Returns: undefined
                            },
@@ -2150,6 +2215,9 @@ isOneToOne: false
                            },
 "record_fanout_failure":
 { Args: { "p_error": string,"p_event_id": string }; Returns: undefined
+                           },
+"record_requested_asset":
+{ Args: { "p_alt_text": string,"p_caption": string,"p_files": Json,"p_kind": Database["public"]['Enums']["asset_kind"],"p_market"?: string,"p_meta": Json,"p_property"?: string,"p_story"?: string,"p_subject": string }; Returns: string
                            },
 "record_requested_reel":
 { Args: { "p_alt_text": string,"p_caption": string,"p_files": Json,"p_market"?: string,"p_meta": Json,"p_property"?: string,"p_story"?: string,"p_subject": string }; Returns: string
@@ -2222,6 +2290,11 @@ isOneToOne: false
               "media_id": string,"storage_path": string
             }[]
                            },
+"retention_delete_assets":
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "asset_id": string,"media_keys": (string)[]
+            }[]
+                           },
 "retention_delete_media":
 { Args: { "p_ids": (string)[] }; Returns: number
                            },
@@ -2233,6 +2306,11 @@ isOneToOne: false
                            },
 "retention_log_run":
 { Args: { "p_after": Json }; Returns: number
+                           },
+"retention_requested_visuals":
+{ Args: { "p_keep": string }; Returns: {
+              "asset_id": string,"media_keys": (string)[]
+            }[]
                            },
 "retry_social_post":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_force": boolean,"p_id": string,"p_request_id": string }; Returns: string
@@ -2406,6 +2484,11 @@ isOneToOne: false
                            },
 "settings_put_site":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
+                           },
+"spend_client_credit":
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_amount": number,"p_reason": string,"p_request_id": string,"p_submission_id": string }; Returns: {
+              "event_id": string,"payment_id": string
+            }[]
                            },
 "staff_can_sign_in":
 { Args: { "p_email": string }; Returns: boolean

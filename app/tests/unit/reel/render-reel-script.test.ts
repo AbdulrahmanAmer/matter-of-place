@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import {
+  cueEnv,
   gateError,
   MAX_BYTES,
   PROVISIONAL,
@@ -7,6 +12,7 @@ import {
   reelFiles,
   reelInput,
   resultFor,
+  runCues,
 } from "../../../scripts/render-reel.mjs";
 
 const PASSED = { name: "duration", ok: true, value: "18.0s" };
@@ -109,5 +115,67 @@ describe("render-reel.mjs", () => {
       ["assets/p1/reel/r2/reel.<hash8>.mp4", { role: "video", w: 1080, h: 1920, bytes: 3 }],
       ["assets/p1/reel/r2/poster.<hash8>.jpg", { role: "poster", w: 1080, h: 1920, bytes: 2 }],
     ]);
+  });
+});
+
+describe("a cue script's environment (review of 2026-10-19)", () => {
+  const KEPT = [
+    "PATH",
+    "PATHEXT",
+    "SYSTEMROOT",
+    "SYSTEMDRIVE",
+    "WINDIR",
+    "COMSPEC",
+    "TEMP",
+    "TMP",
+    "TMPDIR",
+  ];
+
+  it("keeps only the path and the system's folders, in any case", () => {
+    expect(
+      cueEnv({
+        Path: "p",
+        SystemRoot: "C:/Windows",
+        DEV_SUPABASE_SERVICE_ROLE_KEY: "decoy",
+        NODE_OPTIONS: "--require=./x.js",
+        HOME: "h",
+      }),
+    ).toEqual({ Path: "p", SystemRoot: "C:/Windows" });
+  });
+
+  it("runs a requested reel's cue script with no key in its environment", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cues-env-"));
+    const script = join(dir, "cues.mjs");
+    // a designer's cue script that writes down every name it was given
+    writeFileSync(
+      script,
+      'import { writeFileSync } from "node:fs";\nwriteFileSync(process.argv[3], JSON.stringify(Object.keys(process.env)));\n',
+    );
+    writeFileSync(join(dir, "spec.json"), "{}");
+    vi.stubEnv("DEV_SUPABASE_SERVICE_ROLE_KEY", "decoy");
+    vi.stubEnv("MOP_DECOY_TOKEN", "decoy");
+    try {
+      runCues(script, join(dir, "spec.json"), join(dir, "cues.json"));
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    const names = z
+      .array(z.string())
+      .parse(JSON.parse(readFileSync(join(dir, "cues.json"), "utf8")))
+      .map((name) => name.toUpperCase());
+    expect(names).toContain("PATH");
+    expect(names).not.toContain("DEV_SUPABASE_SERVICE_ROLE_KEY");
+    expect(names).not.toContain("MOP_DECOY_TOKEN");
+    // on Windows, node (libuv) adds the profile's required names to every child it starts (measured 2026-10-19)
+    const windows = [
+      "HOMEDRIVE",
+      "HOMEPATH",
+      "LOGONSERVER",
+      "USERDOMAIN",
+      "USERNAME",
+      "USERPROFILE",
+    ];
+    expect(names.filter((name) => !KEPT.includes(name) && !windows.includes(name))).toEqual([]);
+    rmSync(dir, { recursive: true, force: true });
   });
 });

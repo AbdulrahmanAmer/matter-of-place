@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
@@ -158,6 +158,20 @@ describe("a reel request (W7 item 19)", () => {
     expect(studioArgs("opus", "reviewer")).toContain("Bash,WebFetch,WebSearch,NotebookEdit");
   });
 
+  it("names an MCP config outside the studio, written afresh on every use (review of 2026-10-19)", () => {
+    const home = mkdtempSync(join(tmpdir(), "reel-mcp-"));
+    // what a run could have planted where the config lives
+    writeFileSync(
+      join(home, "studio-no-mcp.json"),
+      JSON.stringify({ mcpServers: { planted: { command: "x" } } }),
+    );
+    const args = studioArgs("sonnet", "designer", home);
+    const file = args[args.indexOf("--mcp-config") + 1] ?? "";
+    expect(file).toBe(join(home, "studio-no-mcp.json"));
+    expect(relative(join(home, "studio"), file).startsWith("..")).toBe(true);
+    expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ mcpServers: {} });
+  });
+
   it("says a reel is being made while a brief is working, and not once it is stale (P-3480)", () => {
     const root = studio();
     expect(reelWorking(root)).toBe(false);
@@ -183,6 +197,10 @@ describe("the reel pass", () => {
     expect(await reelPass(deps({}, log, db), root)).toBe("reel The door: draft 1");
     expect(log.filter((line) => line.startsWith("upload"))).toEqual([]);
     expect(brief(folder)).toMatchObject({ state: "draft", drafts: 1, film: "drafts/01/reel.mp4" });
+    // the folder's name, never the laptop's path with its user name
+    expect(log.find((line) => line.includes("waits for Matter's review"))).toContain(
+      `(its status.md and drafts are in ${basename(folder)})`,
+    );
     expect(
       decidePiece({ skill: "studio", piece: basename(folder), decision: "approve" }, root).ok,
     ).toBe(true);
@@ -233,6 +251,8 @@ describe("the reel pass", () => {
     expect(log.at(-1)).toContain(
       "was not made: review_refused: a title is cut off. Nothing was uploaded.",
     );
+    // the folder's name, never the laptop's path with its user name
+    expect(log.at(-1)?.split("Its folder: ")[1]).toBe(basename(folder));
     expect(log.filter((line) => line === "design")).toHaveLength(1 + REVISIONS);
   });
 
@@ -900,6 +920,7 @@ describe("the studio folder (W8 0f)", () => {
     expect(await reelPass(deps({}, log), root)).toMatch(/^reel The door: upload failed \(no_draft/);
     expect(log.some((line) => line.startsWith("upload"))).toBe(false);
     expect(log.at(-1)).toContain("was approved but not uploaded");
+    expect(log.at(-1)?.split("Its folder: ")[1]).toBe(basename(folder));
     expect(brief(folder)).toMatchObject({ state: "failed" });
   });
 });

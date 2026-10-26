@@ -225,7 +225,7 @@ export const subjectRequestKinds = ["access", "deletion", "opt_out", "correction
 export const redirectStatuses = [301, 302, 307, 308] as const;
 
 /** Metadata for a photograph the submitter selected, within the limits of `uploadLimits`. The bytes follow in a separate request. */
-const submissionMediaSchema = z.object({
+export const submissionMediaSchema = z.object({
   name: z.string().min(1).max(255),
   size: z.number().int().nonnegative().max(uploadLimits.maxBytes),
   type: z.enum(uploadLimits.types),

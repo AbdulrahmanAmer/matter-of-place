@@ -1,0 +1,91 @@
+/* Screen 34, proposed posts: one card for each post, a preview for each channel inside it, and the decisions below. */
+
+.admin-proposed__list {
+  display: grid;
+  gap: var(--admin-space-5);
+}
+
+/* As on Visuals: a card is as wide as its column and no wider, and text wraps inside it and is never cut. The admin
+   sheet has no `max-width` for media, so each picture and film is held to the width of its channel's box here. */
+.admin-proposed {
+  display: grid;
+  gap: var(--admin-space-3);
+  align-content: start;
+  min-width: 0;
+  padding: var(--admin-space-4);
+  border: 1px solid var(--border);
+}
+
+.admin-proposed > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.admin-proposed img,
+.admin-proposed video {
+  max-width: 100%;
+  height: auto;
+}
+
+.admin-proposed .admin-asset__head h2 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-proposed__channels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--admin-space-5);
+  align-items: start;
+}
+
+.admin-proposed__channel {
+  display: grid;
+  gap: var(--admin-space-3);
+  align-content: start;
+  min-width: 0;
+  padding: var(--admin-space-3);
+  border: 1px solid var(--border);
+}
+
+.admin-proposed__channel > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.admin-proposed__channel h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.admin-proposed__channel .admin-prose {
+  overflow-wrap: anywhere;
+}
+
+.admin-proposed__count {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.admin-proposed__count[data-over="true"] {
+  color: var(--status-danger);
+}
+
+.admin-proposed__history ol {
+  display: grid;
+  gap: var(--admin-space-2);
+  margin-block-start: var(--admin-space-2);
+  font-size: 13px;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}

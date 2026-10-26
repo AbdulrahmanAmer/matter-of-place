@@ -2941,7 +2941,7 @@
     "kind": "manual",
     "test": "tests/e2e/admin-assets.spec.ts",
     "file": "src/admin/assets/CarouselViewer.tsx",
-    "find": "\n        draggable={false}",
+    "find": "\n          draggable={false}",
     "replace": "",
     "run": "bun run build && E2E_TARGET=built E2E_PORT=8818 bunx playwright test --project=admin tests/e2e/admin-assets.spec.ts --grep \"carousel goes\"",
     "expect": "getByText\\('Slide 7 of 8'\\)",

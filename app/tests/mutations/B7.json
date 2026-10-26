@@ -1520,7 +1520,7 @@
     "find": "routeId: \"/admin/team/\",",
     "replace": "routeId: \"/admin/teams/\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*holds 33 entries, one per screen"
+    "expect": "× .*holds 34 entries, one per screen"
   },
   {
     "id": "b7-g3-nav-groups",
@@ -1529,7 +1529,7 @@
     "find": "  \"Clients\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 27 screens in eight areas"
+    "expect": "× .*shows 28 screens in eight areas"
   },
   {
     "id": "b7-g3-nav-work",
@@ -2286,7 +2286,7 @@
     "find": "{ action: \"people.list\", group: \"people\", roles: appRoles },\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 27 screens in eight areas"
+    "expect": "× .*shows 28 screens in eight areas"
   },
   {
     "id": "b7-5a-route-notes",

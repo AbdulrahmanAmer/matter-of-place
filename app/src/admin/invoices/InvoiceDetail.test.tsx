@@ -448,6 +448,20 @@ describe("the draft", () => {
     expect(screen.queryByRole("dialog", { name: "Issue and email this invoice" })).toBeNull();
   });
 
+  it("tells staff that a Five Features waiver spends a credit, and says so for no other product", async () => {
+    serve({ [`GET ${REQUEST_PATH}`]: request() });
+    mount(ADMIN, <InvoiceDraft submissionId={SUBMISSION} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Waive without invoice" }));
+    const dialog = screen.getByRole("dialog", { name: "Waive without an invoice" });
+    const note = "This spends one of the client's Five Features credits.";
+    fireEvent.change(within(dialog).getByLabelText("Product"), { target: { value: "The Reach" } });
+    expect(within(dialog).queryByText(note)).toBeNull();
+    fireEvent.change(within(dialog).getByLabelText("Product"), {
+      target: { value: "Five Features" },
+    });
+    expect(within(dialog).getByText(note)).toBeTruthy();
+  });
+
   it("keeps the Waive dialog's form out of the Issue form", async () => {
     serve({ [`GET ${REQUEST_PATH}`]: request() });
     mount(ADMIN, <InvoiceDraft submissionId={SUBMISSION} />);

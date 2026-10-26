@@ -50,6 +50,8 @@ const ROUTE_IDS: Record<number, string> = {
   32: "/admin/emails/",
   // W7 item 3: the Campaigns list.
   33: "/admin/campaigns/",
+  // W8 item 11: the Proposed posts screen.
+  34: "/admin/proposed-posts/",
 };
 
 const everyRoute = () => true;
@@ -60,18 +62,18 @@ const screensShown = (sections: ReturnType<typeof visibleNav>) =>
   sections.flatMap((section) => section.entries.map((entry) => entry.screen));
 
 describe("the nav registry", () => {
-  it("holds 33 entries, one per screen, with the routeId list of the plan, W1, the new-invoice form, Interest, Sent emails and Campaigns", () => {
-    expect(navEntries).toHaveLength(33);
+  it("holds 34 entries, one per screen, with the routeId list of the plan, W1, the new-invoice form, Interest, Sent emails, Campaigns and Proposed posts", () => {
+    expect(navEntries).toHaveLength(34);
     expect(Object.fromEntries(navEntries.map((entry) => [entry.screen, entry.routeId]))).toEqual(
       ROUTE_IDS,
     );
   });
 
-  it("shows 27 screens in eight areas when every route and action exists (W3, W7, W9)", () => {
+  it("shows 28 screens in eight areas when every route and action exists (W3, W7, W8, W9)", () => {
     const sections = visibleNav({ hasRoute: everyRoute, actions: everyAction() });
     expect(sections.map((section) => section.group)).toEqual([...navGroups]);
-    expect(sections.map((section) => section.entries.length)).toEqual([2, 4, 3, 4, 4, 4, 3, 3]);
-    expect(screensShown(sections)).toHaveLength(27);
+    expect(sections.map((section) => section.entries.length)).toEqual([2, 4, 3, 5, 4, 4, 3, 3]);
+    expect(screensShown(sections)).toHaveLength(28);
   });
 
   it("names each area's screens for the work: Inbox, Listings, Automation and Settings", () => {
@@ -131,7 +133,7 @@ describe("the nav registry", () => {
       actions: everyAction(),
     });
     expect(screensShown(sections)).not.toContain(23);
-    expect(screensShown(sections)).toHaveLength(26);
+    expect(screensShown(sections)).toHaveLength(27);
   });
 
   it("hides the team screen from a commercial actor", () => {

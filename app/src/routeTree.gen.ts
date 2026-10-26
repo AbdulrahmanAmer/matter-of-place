@@ -52,6 +52,10 @@ import { Route as SiteMarketRegionRouteImport } from './routes/_site.$market.$re
 import { Route as SiteMarketGuideRouteImport } from './routes/_site.$market.guide'
 import { Route as SiteAccountIndexRouteImport } from './routes/_site.account.index'
 import { Route as SiteAccountConfirmRouteImport } from './routes/_site.account.confirm'
+import { Route as SiteAccountCreditsRouteImport } from './routes/_site.account.credits'
+import { Route as SiteAccountInvoicesRouteImport } from './routes/_site.account.invoices'
+import { Route as SiteAccountPropertiesRouteImport } from './routes/_site.account.properties'
+import { Route as SiteAccountReportsRouteImport } from './routes/_site.account.reports'
 import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
 import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
 import { Route as SitePlaceNotesStatusRouteImport } from './routes/_site.place-notes_.$status'
@@ -83,6 +87,7 @@ import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.inde
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminPropertiesIndexRouteImport } from './routes/admin/properties.index'
 import { Route as AdminPropertiesIdRouteImport } from './routes/admin/properties.$id'
+import { Route as AdminProposedPostsIndexRouteImport } from './routes/admin/proposed-posts.index'
 import { Route as AdminReportsIndexRouteImport } from './routes/admin/reports.index'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
 import { Route as AdminRequestsIdRouteImport } from './routes/admin/requests.$id'
@@ -500,6 +505,26 @@ const SiteAccountConfirmRoute = SiteAccountConfirmRouteImport.update({
   path: '/account/confirm',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteAccountCreditsRoute = SiteAccountCreditsRouteImport.update({
+  id: '/account/credits',
+  path: '/account/credits',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountInvoicesRoute = SiteAccountInvoicesRouteImport.update({
+  id: '/account/invoices',
+  path: '/account/invoices',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountPropertiesRoute = SiteAccountPropertiesRouteImport.update({
+  id: '/account/properties',
+  path: '/account/properties',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountReportsRoute = SiteAccountReportsRouteImport.update({
+  id: '/account/reports',
+  path: '/account/reports',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SiteMarketsIndexRoute = SiteMarketsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -680,6 +705,11 @@ const AdminPropertiesIdRoute = AdminPropertiesIdRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/properties.$id.lazy').then((d) => d.Route),
 )
+const AdminProposedPostsIndexRoute = AdminProposedPostsIndexRouteImport.update({
+  id: '/proposed-posts/',
+  path: '/proposed-posts/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminReportsIndexRoute = AdminReportsIndexRouteImport.update({
   id: '/reports/',
   path: '/reports/',
@@ -1822,6 +1852,10 @@ export interface FileRoutesByFullPath {
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
+  '/account/credits': typeof SiteAccountCreditsRoute
+  '/account/invoices': typeof SiteAccountInvoicesRoute
+  '/account/properties': typeof SiteAccountPropertiesRoute
+  '/account/reports': typeof SiteAccountReportsRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
@@ -1876,6 +1910,7 @@ export interface FileRoutesByFullPath {
   '/admin/newsletter/': typeof AdminNewsletterIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
+  '/admin/proposed-posts/': typeof AdminProposedPostsIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/admin/settings/': typeof AdminSettingsIndexRoute
@@ -2092,6 +2127,10 @@ export interface FileRoutesByTo {
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
+  '/account/credits': typeof SiteAccountCreditsRoute
+  '/account/invoices': typeof SiteAccountInvoicesRoute
+  '/account/properties': typeof SiteAccountPropertiesRoute
+  '/account/reports': typeof SiteAccountReportsRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
@@ -2146,6 +2185,7 @@ export interface FileRoutesByTo {
   '/admin/newsletter': typeof AdminNewsletterIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/properties': typeof AdminPropertiesIndexRoute
+  '/admin/proposed-posts': typeof AdminProposedPostsIndexRoute
   '/admin/reports': typeof AdminReportsIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/admin/settings': typeof AdminSettingsIndexRoute
@@ -2368,6 +2408,10 @@ export interface FileRoutesById {
   '/_site/$market/$region': typeof SiteMarketRegionRoute
   '/_site/$market/guide': typeof SiteMarketGuideRoute
   '/_site/account/confirm': typeof SiteAccountConfirmRoute
+  '/_site/account/credits': typeof SiteAccountCreditsRoute
+  '/_site/account/invoices': typeof SiteAccountInvoicesRoute
+  '/_site/account/properties': typeof SiteAccountPropertiesRoute
+  '/_site/account/reports': typeof SiteAccountReportsRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
   '/_site/place-notes_/$status': typeof SitePlaceNotesStatusRoute
   '/_site/property/$slug': typeof SitePropertySlugRoute
@@ -2422,6 +2466,7 @@ export interface FileRoutesById {
   '/admin/newsletter/': typeof AdminNewsletterIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
+  '/admin/proposed-posts/': typeof AdminProposedPostsIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/admin/settings/': typeof AdminSettingsIndexRoute
@@ -2644,6 +2689,10 @@ export interface FileRouteTypes {
     | '/$market/$region'
     | '/$market/guide'
     | '/account/confirm'
+    | '/account/credits'
+    | '/account/invoices'
+    | '/account/properties'
+    | '/account/reports'
     | '/markets/$'
     | '/place-notes/$status'
     | '/property/$slug'
@@ -2698,6 +2747,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter/'
     | '/admin/people/'
     | '/admin/properties/'
+    | '/admin/proposed-posts/'
     | '/admin/reports/'
     | '/admin/requests/'
     | '/admin/settings/'
@@ -2914,6 +2964,10 @@ export interface FileRouteTypes {
     | '/$market/$region'
     | '/$market/guide'
     | '/account/confirm'
+    | '/account/credits'
+    | '/account/invoices'
+    | '/account/properties'
+    | '/account/reports'
     | '/markets/$'
     | '/place-notes/$status'
     | '/property/$slug'
@@ -2968,6 +3022,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter'
     | '/admin/people'
     | '/admin/properties'
+    | '/admin/proposed-posts'
     | '/admin/reports'
     | '/admin/requests'
     | '/admin/settings'
@@ -3189,6 +3244,10 @@ export interface FileRouteTypes {
     | '/_site/$market/$region'
     | '/_site/$market/guide'
     | '/_site/account/confirm'
+    | '/_site/account/credits'
+    | '/_site/account/invoices'
+    | '/_site/account/properties'
+    | '/_site/account/reports'
     | '/_site/markets/$'
     | '/_site/place-notes_/$status'
     | '/_site/property/$slug'
@@ -3243,6 +3302,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter/'
     | '/admin/people/'
     | '/admin/properties/'
+    | '/admin/proposed-posts/'
     | '/admin/reports/'
     | '/admin/requests/'
     | '/admin/settings/'
@@ -3846,6 +3906,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteAccountConfirmRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/account/credits': {
+      id: '/_site/account/credits'
+      path: '/account/credits'
+      fullPath: '/account/credits'
+      preLoaderRoute: typeof SiteAccountCreditsRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/invoices': {
+      id: '/_site/account/invoices'
+      path: '/account/invoices'
+      fullPath: '/account/invoices'
+      preLoaderRoute: typeof SiteAccountInvoicesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/properties': {
+      id: '/_site/account/properties'
+      path: '/account/properties'
+      fullPath: '/account/properties'
+      preLoaderRoute: typeof SiteAccountPropertiesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/reports': {
+      id: '/_site/account/reports'
+      path: '/account/reports'
+      fullPath: '/account/reports'
+      preLoaderRoute: typeof SiteAccountReportsRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/markets/': {
       id: '/_site/markets/'
       path: '/'
@@ -4061,6 +4149,13 @@ declare module '@tanstack/react-router' {
       path: '/properties/$id'
       fullPath: '/admin/properties/$id'
       preLoaderRoute: typeof AdminPropertiesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/proposed-posts/': {
+      id: '/admin/proposed-posts/'
+      path: '/proposed-posts'
+      fullPath: '/admin/proposed-posts/'
+      preLoaderRoute: typeof AdminProposedPostsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/reports/': {
@@ -5525,6 +5620,10 @@ interface SiteRouteChildren {
   SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SiteAccountConfirmRoute: typeof SiteAccountConfirmRoute
+  SiteAccountCreditsRoute: typeof SiteAccountCreditsRoute
+  SiteAccountInvoicesRoute: typeof SiteAccountInvoicesRoute
+  SiteAccountPropertiesRoute: typeof SiteAccountPropertiesRoute
+  SiteAccountReportsRoute: typeof SiteAccountReportsRoute
   SitePlaceNotesStatusRoute: typeof SitePlaceNotesStatusRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
   SiteAccountIndexRoute: typeof SiteAccountIndexRoute
@@ -5553,6 +5652,10 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
   SiteAccountConfirmRoute: SiteAccountConfirmRoute,
+  SiteAccountCreditsRoute: SiteAccountCreditsRoute,
+  SiteAccountInvoicesRoute: SiteAccountInvoicesRoute,
+  SiteAccountPropertiesRoute: SiteAccountPropertiesRoute,
+  SiteAccountReportsRoute: SiteAccountReportsRoute,
   SitePlaceNotesStatusRoute: SitePlaceNotesStatusRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
   SiteAccountIndexRoute: SiteAccountIndexRoute,
@@ -5593,6 +5696,7 @@ interface AdminRouteChildren {
   AdminNewsletterIndexRoute: typeof AdminNewsletterIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminPropertiesIndexRoute: typeof AdminPropertiesIndexRoute
+  AdminProposedPostsIndexRoute: typeof AdminProposedPostsIndexRoute
   AdminReportsIndexRoute: typeof AdminReportsIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
   AdminSettingsIndexRoute: typeof AdminSettingsIndexRoute
@@ -5632,6 +5736,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNewsletterIndexRoute: AdminNewsletterIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminPropertiesIndexRoute: AdminPropertiesIndexRoute,
+  AdminProposedPostsIndexRoute: AdminProposedPostsIndexRoute,
   AdminReportsIndexRoute: AdminReportsIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
   AdminSettingsIndexRoute: AdminSettingsIndexRoute,

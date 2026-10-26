@@ -55,6 +55,10 @@ const staticPaths: [string, RouteClass][] = [
   ["/privacy-choices", "page"],
   ["/account", "page"],
   ["/account/confirm", "page"],
+  ["/account/properties", "page"],
+  ["/account/invoices", "page"],
+  ["/account/credits", "page"],
+  ["/account/reports", "page"],
 ];
 
 export const staticRoutes: SweepRoute[] = staticPaths.map(([path, routeClass]) => ({
@@ -121,6 +125,10 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.place-notes_.$status.tsx": "/place-notes/confirmed",
   "_site.account.index.tsx": "/account",
   "_site.account.confirm.tsx": "/account/confirm",
+  "_site.account.properties.tsx": "/account/properties",
+  "_site.account.invoices.tsx": "/account/invoices",
+  "_site.account.credits.tsx": "/account/credits",
+  "_site.account.reports.tsx": "/account/reports",
   "_site.$market.index.tsx": "/$market",
   "_site.$market.guide.tsx": "/$market/guide",
   "_site.$market.$region.tsx": "/$market/$region",

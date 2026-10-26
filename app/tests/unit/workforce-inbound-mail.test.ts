@@ -1061,6 +1061,7 @@ describe("W8 0h: a person's email reaches its owner only as its triage", () => {
     const { situation, triage } = await context(
       db,
       {
+        id: "r0000000-0000-4000-8000-000000000003",
         agent_id: "c0ncierge-0000-4000-8000-000000000000",
         cause: "event",
         event_id: EVENT_ID,

@@ -33,7 +33,7 @@ export type TeamDecisionList = z.infer<typeof decisionListSchema>;
 /** The optional `status` of the decisions read: one status, or every status when it is left out. */
 export const decisionQuerySchema = z.object({ status: z.enum(decisionStatuses).optional() });
 
-export const lessonSources = ["decline", "edit", "outcome", "matter"] as const;
+export const lessonSources = ["decline", "edit", "outcome", "matter", "build"] as const;
 export const lessonStatuses = ["active", "retired", "promoted"] as const;
 
 const lessonSchema = z.object({

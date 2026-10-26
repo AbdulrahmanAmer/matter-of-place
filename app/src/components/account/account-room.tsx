@@ -1,13 +1,9 @@
 import { requestStatusLines, type AccountRequest } from "../../domain/account";
-import { formatInZone, marketTimezone } from "../../domain/market-time";
+import { accountDay } from "./account-format";
 
 /** The day a request arrived, in its own market's time ("Oct 2, 2026 PT"). */
 const received = (request: AccountRequest): string =>
-  formatInZone(
-    request.received_at,
-    marketTimezone(request.state === "California" ? "california" : null),
-    "date",
-  );
+  accountDay(request.state, request.received_at);
 
 /**
  * The client room (W6 item 7): the person's own requests, by address and where each one stands. Item 8 adds the

@@ -330,6 +330,8 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     sort_order: "integer",
     // W9 item 4: where a pulled photograph came from; null for an upload.
     source_url: "text?",
+    // W6 item 8: when the photograph was declared; the reconcile job ages a waiting row by it.
+    declared_at: "timestamptz",
   },
   inquiries: {
     id: "uuid",
@@ -447,6 +449,16 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     top_creative: "text?",
     created_at: "timestamptz",
     updated_at: "timestamptz",
+  },
+  client_credits: {
+    id: "uuid",
+    contact_id: "uuid",
+    kind: "text",
+    quantity: "integer",
+    payment_id: "uuid",
+    submission_id: "uuid?",
+    note: "text?",
+    created_at: "timestamptz",
   },
   rate_limits: {
     id: "bigint",

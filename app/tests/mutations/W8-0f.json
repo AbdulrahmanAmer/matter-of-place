@@ -93,8 +93,8 @@
     "id": "w8-0f-answer-decision",
     "test": "tests/unit/workforce-reel.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "z.union([mediaRequestSchema, reelRequestSchema, studioDecisionSchema])",
-    "replace": "z.union([mediaRequestSchema, reelRequestSchema, mediaRequestSchema])",
+    "find": "postRequestSchema, studioDecisionSchema])",
+    "replace": "postRequestSchema, mediaRequestSchema])",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*reads a decision only whole"
   },
