@@ -3,16 +3,16 @@
 
 /** The day each static document page last changed, the sitemap's `lastmod` (W8 item 12b). */
 export const pageDates: Readonly<Record<string, string>> = {
-  "/about": "2026-10-11",
-  "/accessibility": "2026-10-13",
+  "/about": "2026-10-26",
+  "/accessibility": "2026-10-26",
   "/contact": "2026-10-26",
-  "/cookies": "2026-10-11",
-  "/editorial-standard": "2026-10-11",
+  "/cookies": "2026-10-26",
+  "/editorial-standard": "2026-10-26",
   "/exposure": "2026-10-26",
   "/faq": "2026-10-26",
-  "/legal": "2026-10-11",
+  "/legal": "2026-10-26",
   "/place-notes": "2026-10-26",
-  "/privacy": "2026-10-13",
-  "/submit": "2026-10-15",
-  "/terms": "2026-10-11",
+  "/privacy": "2026-10-26",
+  "/submit": "2026-10-26",
+  "/terms": "2026-10-26",
 };
