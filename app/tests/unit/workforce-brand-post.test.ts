@@ -534,6 +534,9 @@ describe("the post pass", () => {
     expect(db.calls).toEqual([]);
     expect(brief(folder).state).toBe("failed");
     expect(log.at(-1)).toContain("Nothing was uploaded");
+    // the thread is told the folder's name, never the laptop's path with its user name
+    expect(log.at(-1)?.split("Its folder: ")[1]).toBe(basename(folder));
+    expect(log.at(-1)).not.toContain(root);
   });
 
   it("refuses a caption that breaks the voice before any design", async () => {

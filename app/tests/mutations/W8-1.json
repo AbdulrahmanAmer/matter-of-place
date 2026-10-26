@@ -518,5 +518,86 @@
     "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
     "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-still-page-check",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "  if (rel.startsWith(\"..\") || !postPathAllowed(`/${rel}`))\n    throw new Error(\"the page must be under app/.tmp/post/ of the repository: \" + pagePath);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*refuses to open a page outside app/.tmp/post/"
+  },
+  {
+    "id": "w8-1-still-serve-allow",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "  const server = await serve({ allow: postPathAllowed });",
+    "replace": "  const server = await serve();",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*serves a page's service worker only a post's files"
+  },
+  {
+    "id": "w8-1-still-chrome-args",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "    args: [...CHROME_ARGS, ...postChromeArgs(server.url)],",
+    "replace": "    args: CHROME_ARGS,",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*fails a page that asks for the .env, another file of the checkout, another host or another local service"
+  },
+  {
+    "id": "w8-1-still-guard-page",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      await guardPost(page, server.url);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*fails a page that asks for the .env, another file of the checkout, another host or another local service"
+  },
+  {
+    "id": "w8-1-still-brand-served",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  \"/brand/\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*shoots a page that loads only a post's own files, the brand's emblem here"
+  },
+  {
+    "id": "w8-1-guard-loopback",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "    `--proxy-bypass-list=<-loopback>;${new URL(origin).host}`,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*cannot open a WebSocket to another service of this machine"
+  },
+  {
+    "id": "w8-1-post-failure-folder",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "${cleanup} Its folder: ${basename(folder)}",
+    "replace": "${cleanup} Its folder: ${folder}",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*stops when the reviewer still refuses it after its revisions"
+  },
+  {
+    "id": "w8-1-reel-failure-folder",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "Nothing was uploaded. Its folder: ${basename(folder)}",
+    "replace": "Nothing was uploaded. Its folder: ${folder}",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*uploads nothing and says why when the reviewer refuses it"
+  },
+  {
+    "id": "w8-1-reel-upload-failure-folder",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "Nothing is on the site. Its folder: ${basename(folder)}",
+    "replace": "Nothing is on the site. Its folder: ${folder}",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*stops a pass at an approved piece whose draft is missing"
   }
 ]

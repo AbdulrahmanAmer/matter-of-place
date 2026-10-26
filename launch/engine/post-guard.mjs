@@ -3,8 +3,10 @@
 // Chrome reaches any host, so without this a page could read the runner checkout's .env and paint it, or send it out.
 // Three locks, each enough alone for its part: every request of the page is intercepted and only 127.0.0.1 paths under
 // POST_PATHS go on (guardPost); the server serves only those paths (`serve({ allow: postPathAllowed })`); and Chrome starts
-// with a proxy that does not exist (POST_CHROME_ARGS), so a request the interception does not see (a WebSocket, a
-// worker's fetch, WebRTC) has no way past this machine either.
+// with a proxy that does not exist for everything but the engine's own port (postChromeArgs), so a request the
+// interception does not see (a WebSocket, a service worker's fetch, WebRTC) reaches neither another host nor another
+// service of this machine. A service worker is the reason the server's lock is needed: its requests, its own script
+// included, never reach the interception (measured 2026-10-26, Chrome 154), so the server alone refuses it the .env.
 
 /** The served paths a post's page may load: its own folder, the brand's files, the fonts and Three.js. */
 const POST_PATHS = Object.freeze([
@@ -50,10 +52,15 @@ export async function guardPost(page, origin) {
 }
 
 /**
- * Chrome's flags for a post: every host but this machine's loopback goes to a proxy at port 9, where nothing listens,
- * and WebRTC may not send outside a proxy. Chrome never proxies 127.0.0.1, so the engine's server stays reachable.
+ * Chrome's flags for a post whose engine serves at `origin`: every host goes to a proxy at port 9, where nothing
+ * listens, and WebRTC may not send outside a proxy. Chrome sends loopback past any proxy by itself, so `<-loopback>`
+ * takes that away (fresh Opus review, round 2: a WebSocket, which the interception never sees, could reach another
+ * service of this machine) and only the engine's own host and port go direct.
  */
-export const POST_CHROME_ARGS = Object.freeze([
-  "--proxy-server=http://127.0.0.1:9",
-  "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
-]);
+export function postChromeArgs(origin) {
+  return [
+    "--proxy-server=http://127.0.0.1:9",
+    `--proxy-bypass-list=<-loopback>;${new URL(origin).host}`,
+    "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+  ];
+}

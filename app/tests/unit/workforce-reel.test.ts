@@ -233,6 +233,8 @@ describe("the reel pass", () => {
     expect(log.at(-1)).toContain(
       "was not made: review_refused: a title is cut off. Nothing was uploaded.",
     );
+    // the folder's name, never the laptop's path with its user name
+    expect(log.at(-1)?.split("Its folder: ")[1]).toBe(basename(folder));
     expect(log.filter((line) => line === "design")).toHaveLength(1 + REVISIONS);
   });
 
@@ -900,6 +902,7 @@ describe("the studio folder (W8 0f)", () => {
     expect(await reelPass(deps({}, log), root)).toMatch(/^reel The door: upload failed \(no_draft/);
     expect(log.some((line) => line.startsWith("upload"))).toBe(false);
     expect(log.at(-1)).toContain("was approved but not uploaded");
+    expect(log.at(-1)?.split("Its folder: ")[1]).toBe(basename(folder));
     expect(brief(folder)).toMatchObject({ state: "failed" });
   });
 });

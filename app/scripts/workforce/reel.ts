@@ -948,7 +948,7 @@ async function makePiece(
     writeBrief(folder, record({ ...brief, state: "failed", reason }, `failed: ${reason}`));
     await deps.say(
       brief.from.thread,
-      `The reel "${request.name}" was not made: ${reason}. Nothing was uploaded. Its folder: ${folder}`,
+      `The reel "${request.name}" was not made: ${reason}. Nothing was uploaded. Its folder: ${basename(folder)}`,
     );
     return `reel ${request.name}: failed (${reason})`;
   }
@@ -1043,7 +1043,7 @@ async function publishPiece(
     writeBrief(folder, record({ ...brief, state: "failed", reason }, `upload failed: ${reason}`));
     await deps.say(
       brief.from.thread,
-      `The reel "${request.name}" was approved but not uploaded: ${reason}. Nothing is on the site. Its folder: ${folder}`,
+      `The reel "${request.name}" was approved but not uploaded: ${reason}. Nothing is on the site. Its folder: ${basename(folder)}`,
     );
     return `reel ${request.name}: upload failed (${reason})`;
   }

@@ -571,7 +571,7 @@ export async function postPass(deps: PostDeps, studio: string = STUDIO): Promise
     writeBrief(folder, record({ ...brief, state: "failed", reason }, `failed: ${reason}`));
     await deps.say(
       brief.from.thread,
-      `The post "${request.name}" was not made: ${reason}. ${cleanup} Its folder: ${folder}`,
+      `The post "${request.name}" was not made: ${reason}. ${cleanup} Its folder: ${basename(folder)}`,
     );
     return `post ${request.name}: failed (${reason})`;
   }

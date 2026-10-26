@@ -15,7 +15,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { findChrome, CHROME_ARGS, writeRetry } from "./chrome.mjs";
-import { guardPost, POST_CHROME_ARGS, postPathAllowed } from "./post-guard.mjs";
+import { guardPost, postChromeArgs, postPathAllowed } from "./post-guard.mjs";
 import { serve, ROOT } from "./serve.mjs";
 
 function watch(page) {
@@ -113,7 +113,7 @@ async function frames(specFile) {
   const browser = await puppeteer.launch({
     executablePath: findChrome(),
     headless: true,
-    args: [...CHROME_ARGS, ...POST_CHROME_ARGS],
+    args: [...CHROME_ARGS, ...postChromeArgs(server.url)],
   });
   const report = [];
   try {
