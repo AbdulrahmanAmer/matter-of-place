@@ -8906,7 +8906,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - enforced-by: ~/.claude/hooks/clean-launch-guard.mjs
 - added: 2026-10-25
 
-## P-3730 · `git log -L` takes POSIX regular expressions: a `\{` in the range is an interval, not a brace
+## P-3730 · Bing related keywords are mostly off-topic: research targets are junk until filtered for the business
+- symptom: 2026-10-26, the skill's research step turned Bing related terms into 80 clusters, all of them unrelated to selective property media (celebrity homes, rentals, generic house plans); targets.json passed its validator anyway.
+- rule: never trust targets.json straight from research; filter every Bing term against the business definition's topic and property words (and a block list), log every dropped term, and read the surviving clusters before planning.
+- proof: site-checks/matterofplace.com/.pewp/research/bing.json shows droppedOffTopic 1601; targets.json 24 clusters PASS targets-valid after the filter and clean-targets.
+- added: 2026-10-26
+
+## P-3731 · A mod pane drawn in the terminal refuses Text size and weight props: the pane opens empty
+- symptom: 2026-10-26, the seo-checklist mod's /seo said the pane opened, but it showed empty in this terminal-drawn (Remote Control) session; the engine refused the tree because Text carried size and weight.
+- rule: resolve elements with $.ui.resolve(e) and use only the props that surface's Text declares (no size, no weight on terminal); run claude plugin validate after every mod edit.
+- proof: claude plugin validate C:/Users/DELL/.claude/dev-mods/<session>/seo-checklist passes; /seo reports isPlaced and the checklist draws in the terminal.
+- added: 2026-10-26
+
+## P-3732 · `git log -L` takes POSIX regular expressions: a `\{` in the range is an interval, not a brace
 - symptom: 2026-10-19, dating one section of `strings.ts` for the sitemap, `git log -L '/^  privacy: \{/,/^  \},/:app/src/lib/strings.ts'` answered `fatal: -L parameter ... starting at line 1: Unmatched \{`; and `git log -L` prints a patch unless `-s` is given.
 - rule: write a literal brace as `[{]` and `[}]` in a `-L` range, add `--format=%ct -s`, read the newest stamp (`scripts/gen-page-dates.ts`); a shallow clone makes every date the clone's day, so the script keeps the committed file when `git rev-parse --is-shallow-repository` is not `false`.
 - proof: `git log -L '/^  privacy: [{]/,/^  [}],/:app/src/lib/strings.ts' --format=%cs -s` → `2026-10-08`; `bunx vitest run --project unit tests/unit/page-dates.test.ts` passes, registry `W8-search.json` w8-12b-section-range watched red.

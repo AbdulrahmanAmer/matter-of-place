@@ -2280,7 +2280,7 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   undated by nothing; 12c `brand_queries` in the audit sidecar (position, impressions, clicks of "matter of place" and
   "matter of place real estate", `previous` beside them, "no impressions" never position 0), scorecard rows in
   REPORT-TEMPLATE, auditor agent names the two queries; 12d sameAs untouched. 34 registry entries (`W8-search.json`),
-  each watched red by hand one test file at a time. Bank P-3730 (banked as P-3706, renumbered at merge: main holds P-3706), P-3707. UNPROVEN: tsc, eslint, knip and the full suite
+  each watched red by hand one test file at a time. Bank P-3732 (banked as P-3706, renumbered at merge twice: main took P-3706 and then P-3730), P-3707. UNPROVEN: tsc, eslint, knip and the full suite
   (no local CI; CI judges), the deployed sitemap dates (the build must run with full history), and the ranking itself.
 - 2026-10-19 18:55 +0300: W6 item 6 (branch overdrive/w6-6, builder Sonnet 5.5): `app/scripts/matter/hook-reach.ts` checks that
   `~/.claude/settings.json` declares shell-shaper, push-gate (PreToolUse Bash) and edit-impact (PostToolUse Edit) with their scripts
@@ -2363,3 +2363,16 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   stage file was read since start/compaction), clean-launch-guard (new sessions only via a launcher that clears
   CLAUDE_CODE_CHILD_SESSION etc., no task on the command line), brief-check (a brief is handed over only with a complete
   checklist). Settings backup ~/.claude/settings.json.bak-guards-20261025. Bank: P-3728, P-3729.
+
+- records/1026 2026-10-26 (SEO skill run on matterofplace.com, delegated end to end by the operator): the operator handed the
+  owner approvals to the orchestrator ("follow it end to end in my place"); the checklist with proof per step is
+  site-checks/matterofplace.com/.pewp/runs/END-TO-END.md (git-excluded), shown live by the seo-checklist mod (/seo; draws in
+  the terminal, desktop view UNPROVEN). Done: 28 approved searches (13 kept + 15 added), 100 captures (50 Google, 50 Bing),
+  research with a relevance filter (Bing related terms were junk), targets.json 24 clusters PASS, page plan 24 pages /
+  141 links signed (approved/lock.json), backlinks (we are not in the link graph; gap 100 domains), code check of app/src
+  (130 causes, 20 high, guard PASS, worktree E:/mop-build/seo-code-check at 9fd949f1). RUNNING: the skill's refactor
+  (branch pewp/refactor-2026-10-26, 12 most severe causes, one worker, each FAIL->PASS on a fresh build; C01-C04 FIXED so
+  far). NOT DONE: merge of the refactor through gate-loop, new planned pages, gate, deploy, sitemap.xml regeneration,
+  submission to Google and Bing (nothing submitted before the sitemap is fixed), rank tracking. Build conditions logged with
+  the plan approval: template copy rewritten to the brand, collection pages as editorial guides with interest signup and
+  no illustrative property, programmatic data only from a real dated source. Bank: P-3730, P-3731.
