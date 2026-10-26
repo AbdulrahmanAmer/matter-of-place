@@ -8843,6 +8843,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: from `app/`, `DEV_DB_URL=postgresql://postgres@127.0.0.1:55620/mop env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts tests/db/actor.db.test.ts` → `Tests  33 passed (33)` on the fix round 2 tree; the cluster was built in about five minutes (0 restore errors) by a script of the shape above (2026-10-26).
 - added: 2026-10-26
 
+## P-4608 · A page section heading that repeats the page title fails a strict e2e, and `Intl` in a component helper fails R43
+- symptom: 2026-10-26, W6 item 8, PR 490 at d4c20d32: e2e `strict mode violation: getByRole('heading', { name: 'Invoices' }) resolved to 2 elements` (the `PageIntro` `h1` and the component's own `h2 Invoices`); lint R43 on `new Intl.*` and `toLocaleString` in `components/account/account-format.ts`, and `switch-exhaustiveness-check` on a status switch that ended in `default`.
+- cause: the route renders `PageIntro` with the page title and the component added a heading with the same words; the R43 rule exempts only `src/lib/format.ts`, `src/domain/market-time.ts` and `src/server/**`, so a component-folder formatter is still a component; the lint wants every member of a union named, a `default` does not count.
+- rule: a component rendered under `PageIntro` starts below the `h1` (its first heading is an `h2` with different words, or none); an e2e asks for a page heading with `level: 1`; a formatter that needs `Intl` goes in `src/lib/format.ts`; a switch over a union names every member and has no `default`.
+- proof: `cd app && grep -rnE "new Intl\.|\.toLocale(Date|Time)?String\(" src/components src/routes src/admin` → no hits on the fix round 3 tree; `grep -n "<h2>Invoices" src/components/account/account-invoices.tsx` → no hits.
+- added: 2026-10-26
+
 ## P-3709 · A one-line `sed` fix of code leaves the registry entry that names that line stale, and CI's replay finds it 25 minutes later
 - symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
 - rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.

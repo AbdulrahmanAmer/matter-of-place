@@ -691,6 +691,24 @@
     "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > lists what is owed and what is paid with the amount, the number and the day"
   },
   {
+    "id": "w6-8-ui-invoice-refunded",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/components/account/account-invoices.tsx",
+    "find": "      return \"Refunded\";",
+    "replace": "      return \"Paid\";",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > says refunded for money given back and cancelled for a voided invoice"
+  },
+  {
+    "id": "w6-8-ui-invoice-void",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/components/account/account-invoices.tsx",
+    "find": "      return \"Cancelled\";",
+    "replace": "      return \"Due\";",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > says refunded for money given back and cancelled for a voided invoice"
+  },
+  {
     "id": "w6-8-ui-credits-next",
     "test": "src/components/account/account-credits.test.tsx",
     "file": "src/components/account/account-credits.tsx",
@@ -729,9 +747,9 @@
   {
     "id": "w6-8-ui-reports-calendar",
     "test": "src/components/account/account-reports.test.tsx",
-    "file": "src/components/account/account-format.ts",
-    "find": "timeZone: \"UTC\" }).format(new Date(date))",
-    "replace": "timeZone: \"America/New_York\" }).format(new Date(date))",
+    "file": "src/lib/format.ts",
+    "find": "{ dateStyle: \"medium\", timeZone: \"UTC\" }",
+    "replace": "{ dateStyle: \"medium\", timeZone: \"America/New_York\" }",
     "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-reports.test.tsx",
     "expect": "FAIL .*account-reports\\.test\\.tsx > AccountReports > lists the weekly figures, and says a figure the platform did not report was not measured"
   },
@@ -739,8 +757,8 @@
     "id": "w6-8-ui-reports-measured",
     "test": "src/components/account/account-reports.test.tsx",
     "file": "src/components/account/account-format.ts",
-    "find": "value === null ? \"Not measured\" : value.toLocaleString(\"en-US\")",
-    "replace": "value === null ? \"0\" : value.toLocaleString(\"en-US\")",
+    "find": "value === null ? \"Not measured\" : formatNumber(value)",
+    "replace": "value === null ? \"0\" : formatNumber(value)",
     "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-reports.test.tsx",
     "expect": "FAIL .*account-reports\\.test\\.tsx > AccountReports > lists the weekly figures, and says a figure the platform did not report was not measured"
   },
@@ -765,7 +783,7 @@
   {
     "id": "w6-8-ui-money",
     "test": "src/components/account/account-invoices.test.tsx",
-    "file": "src/components/account/account-format.ts",
+    "file": "src/lib/format.ts",
     "find": "minimumFractionDigits: cents ? 2 : 0,",
     "replace": "minimumFractionDigits: 2,",
     "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",

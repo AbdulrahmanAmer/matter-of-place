@@ -28,50 +28,42 @@ export function AccountProperties({
   onPhotosSent: () => void;
 }) {
   if (properties.length === 0) {
-    return (
-      <>
-        <h2>Your properties</h2>
-        <p>Nothing here yet. A property you submit to us appears here, with where it stands.</p>
-      </>
-    );
+    return <p>Nothing here yet. A property you submit to us appears here, with where it stands.</p>;
   }
   return (
-    <>
-      <h2>Your properties</h2>
-      <ul className="account-list">
-        {properties.map((property) => (
-          <li key={property.id}>
-            <h3>
-              {property.address}, {property.city}
-            </h3>
-            <p>{requestStatusLines[property.workflow_state]}</p>
-            <ol className="account-timeline" aria-label={`Where ${property.address} stands`}>
-              {requestTimeline(property).map((step) => (
-                <li
-                  key={step.label}
-                  data-status={step.status}
-                  aria-current={step.status === "current" ? "step" : undefined}
-                >
-                  <span>{step.label}</span>
-                  <span>{stepNote(step, property.state)}</span>
-                </li>
-              ))}
-            </ol>
-            {property.live_path === null ? null : (
-              <p>
-                <a href={property.live_path}>See the live page</a>
-              </p>
-            )}
-            {property.can_add_photos ? (
-              <AccountPhotos
-                submissionId={property.id}
-                photos={property.photos}
-                onSent={onPhotosSent}
-              />
-            ) : null}
-          </li>
-        ))}
-      </ul>
-    </>
+    <ul className="account-list">
+      {properties.map((property) => (
+        <li key={property.id}>
+          <h2>
+            {property.address}, {property.city}
+          </h2>
+          <p>{requestStatusLines[property.workflow_state]}</p>
+          <ol className="account-timeline" aria-label={`Where ${property.address} stands`}>
+            {requestTimeline(property).map((step) => (
+              <li
+                key={step.label}
+                data-status={step.status}
+                aria-current={step.status === "current" ? "step" : undefined}
+              >
+                <span>{step.label}</span>
+                <span>{stepNote(step, property.state)}</span>
+              </li>
+            ))}
+          </ol>
+          {property.live_path === null ? null : (
+            <p>
+              <a href={property.live_path}>See the live page</a>
+            </p>
+          )}
+          {property.can_add_photos ? (
+            <AccountPhotos
+              submissionId={property.id}
+              photos={property.photos}
+              onSent={onPhotosSent}
+            />
+          ) : null}
+        </li>
+      ))}
+    </ul>
   );
 }

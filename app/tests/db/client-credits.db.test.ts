@@ -3,7 +3,7 @@
 // in one rolled-back transaction.
 import pg from "pg";
 import { describe, expect, it } from "vitest";
-import { creditsInPackage, invoiceProducts } from "../../src/domain/payments";
+import { creditsInPackage, type invoiceProducts } from "../../src/domain/payments";
 import { contact, idsOf, isRecord, person, rowsOf } from "../fixtures/account";
 import { createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
 import {

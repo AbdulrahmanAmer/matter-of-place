@@ -1,5 +1,6 @@
 import type { AccountReport } from "../../domain/account";
-import { calendarDay, count, percent } from "./account-format";
+import { formatCalendarDay } from "../../lib/format";
+import { count, percent } from "./account-format";
 
 /**
  * Reports (W6 item 8): for each property, the campaign's weekly figures, the page views and how many people wrote to
@@ -7,23 +8,17 @@ import { calendarDay, count, percent } from "./account-format";
  */
 export function AccountReports({ properties }: { properties: readonly AccountReport[] }) {
   if (properties.length === 0) {
-    return (
-      <>
-        <h2>Reports</h2>
-        <p>Nothing here yet. Results for a property appear here once it is on the site.</p>
-      </>
-    );
+    return <p>Nothing here yet. Results for a property appear here once it is on the site.</p>;
   }
   return (
     <>
-      <h2>Reports</h2>
       <p>We show how many people looked at a property and how many wrote to us, never who.</p>
       <ul className="account-list">
         {properties.map((property) => (
           <li key={property.id}>
-            <h3>
+            <h2>
               {property.title}, {property.city}
-            </h3>
+            </h2>
             {property.live_path === null ? null : (
               <p>
                 <a href={property.live_path}>See the live page</a>
@@ -63,7 +58,8 @@ export function AccountReports({ properties }: { properties: readonly AccountRep
                     {property.weeks.map((week) => (
                       <tr key={week.period_start}>
                         <td>
-                          {calendarDay(week.period_start)} to {calendarDay(week.period_end)}
+                          {formatCalendarDay(week.period_start)} to{" "}
+                          {formatCalendarDay(week.period_end)}
                         </td>
                         <td>{count(week.impressions)}</td>
                         <td>{count(week.reach)}</td>

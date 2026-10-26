@@ -1,18 +1,24 @@
 import type { AccountInvoice } from "../../domain/account";
-import { money, plainDay } from "./account-format";
+import { formatInvoiceMoney } from "../../lib/format";
+import { plainDay } from "./account-format";
 
-/** The status as a client reads it: when it is due or was paid, and "no charge" for a waiver. */
+/**
+ * The status as a client reads it: when it is due or was paid, and "no charge" for a waiver. The room leaves a voided
+ * invoice out (`account_invoices`), so "Cancelled" is only the word it would carry.
+ */
 function statusLine(invoice: AccountInvoice): string {
   if (invoice.credit) return "Covered by a Five Features credit";
   switch (invoice.status) {
+    case "due":
+      return invoice.due_at === null ? "Due" : `Due ${plainDay(invoice.due_at)}`;
     case "paid":
       return invoice.paid_at === null ? "Paid" : `Paid ${plainDay(invoice.paid_at)}`;
     case "waived":
       return "No charge";
     case "refunded":
       return "Refunded";
-    default:
-      return invoice.due_at === null ? "Due" : `Due ${plainDay(invoice.due_at)}`;
+    case "void":
+      return "Cancelled";
   }
 }
 
@@ -22,16 +28,10 @@ function statusLine(invoice: AccountInvoice): string {
  */
 export function AccountInvoices({ invoices }: { invoices: readonly AccountInvoice[] }) {
   if (invoices.length === 0) {
-    return (
-      <>
-        <h2>Invoices</h2>
-        <p>Nothing here yet. An invoice we send you also appears here.</p>
-      </>
-    );
+    return <p>Nothing here yet. An invoice we send you also appears here.</p>;
   }
   return (
     <>
-      <h2>Invoices</h2>
       <p>Each invoice also reached you by email, with the way to pay.</p>
       <table className="account-table">
         <caption>Your invoices, newest first</caption>
@@ -58,7 +58,7 @@ export function AccountInvoices({ invoices }: { invoices: readonly AccountInvoic
                   </>
                 )}
               </td>
-              <td>{money(invoice.amount, invoice.currency)}</td>
+              <td>{formatInvoiceMoney(invoice.amount, invoice.currency)}</td>
               <td>
                 {statusLine(invoice)}
                 {invoice.status === "due" && invoice.pay_url !== null ? (

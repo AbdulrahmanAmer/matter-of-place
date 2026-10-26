@@ -189,8 +189,8 @@ test("a seeded client walks the room: properties, invoices, credits, reports, an
 
       // My properties: three requests, a timeline each, the live page linked, photographs offered where still open.
       await page.getByRole("link", { name: "My properties" }).click();
-      await expect(page.getByRole("heading", { name: "Your properties" })).toBeVisible();
-      await expect(page.getByRole("heading", { level: 3 })).toHaveCount(3);
+      await expect(page.getByRole("heading", { level: 1, name: "My properties" })).toBeVisible();
+      await expect(page.getByRole("main").getByRole("heading", { level: 2 })).toHaveCount(3);
       const live = page.getByRole("list", { name: `Where ${ADDRESS(LIVE)} stands` });
       await expect(
         live.getByRole("listitem").filter({ hasText: "Live on the site" }),
@@ -211,7 +211,7 @@ test("a seeded client walks the room: properties, invoices, credits, reports, an
 
       // Invoices: the pack, paid, and the Reach, paid.
       await page.getByRole("link", { name: "Invoices" }).click();
-      await expect(page.getByRole("heading", { name: "Invoices" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Invoices" })).toBeVisible();
       await expect(page.getByRole("row").filter({ hasText: "Paid" })).toHaveCount(2);
 
       // Credits: four left, and the next property opens the form with Five Features chosen.
@@ -224,7 +224,7 @@ test("a seeded client walks the room: properties, invoices, credits, reports, an
 
       // Reports: two page views, one inquiry and the week's figures, and nothing of who wrote.
       await page.getByRole("link", { name: "Reports" }).click();
-      await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Reports" })).toBeVisible();
       await expect(
         page.locator(".account-figures > div").filter({ hasText: "Page views" }),
       ).toContainText("2");
@@ -237,9 +237,7 @@ test("a seeded client walks the room: properties, invoices, credits, reports, an
       // No page shows the other client's request.
       for (const name of ["My properties", "Invoices", "Credits", "Reports"]) {
         await page.getByRole("link", { name }).click();
-        await expect(
-          page.getByRole("heading", { name: name === "My properties" ? "Your properties" : name }),
-        ).toBeVisible();
+        await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
         await expect(page.getByText(ADDRESS(OTHERS))).toHaveCount(0);
       }
 

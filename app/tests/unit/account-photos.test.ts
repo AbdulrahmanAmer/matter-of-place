@@ -44,7 +44,7 @@ beforeEach(() => {
 
 describe("sendAccountPhotos", () => {
   it("declares the photographs ten at a time, with the size and type the prepared file has", async () => {
-    const progress = vi.fn();
+    const progress = vi.fn<(step: { done: number; total: number }) => void>();
     const result = await sendAccountPhotos(SUBMISSION, files(25), progress);
     expect(result).toEqual({ sent: 25, failed: 0 });
     expect(

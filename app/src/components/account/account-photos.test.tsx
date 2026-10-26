@@ -81,10 +81,10 @@ describe("AccountPhotos", () => {
     await waitFor(() => {
       expect(screen.getByRole("status").textContent).toBe("Sent 1 of 3.");
     });
-    expect((screen.getByLabelText("Add photographs") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>("Add photographs").disabled).toBe(true);
     finish({ sent: 3, failed: 0 });
     await waitFor(() => {
-      expect((screen.getByLabelText("Add photographs") as HTMLInputElement).disabled).toBe(false);
+      expect(screen.getByLabelText<HTMLInputElement>("Add photographs").disabled).toBe(false);
     });
   });
 

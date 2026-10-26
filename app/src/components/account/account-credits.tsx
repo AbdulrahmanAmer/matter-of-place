@@ -26,18 +26,14 @@ export function AccountCredits({
 }) {
   if (purchased === 0) {
     return (
-      <>
-        <h2>Credits</h2>
-        <p>
-          You hold no Five Features credits. Five Features pays for five properties in advance; it
-          is described on the <Link to="/exposure">exposure page</Link>.
-        </p>
-      </>
+      <p>
+        You hold no Five Features credits. Five Features pays for five properties in advance; it is
+        described on the <Link to="/exposure">exposure page</Link>.
+      </p>
     );
   }
   return (
     <>
-      <h2>Credits</h2>
       <p className="account-balance">
         {balance === 0 ? "No credits left." : `${credits(balance)} left.`}
       </p>

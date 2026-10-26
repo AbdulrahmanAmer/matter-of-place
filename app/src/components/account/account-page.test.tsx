@@ -53,7 +53,7 @@ describe("AccountPageView", () => {
 
   it("sends a visitor without a session to the front page of the room, where the form is", async () => {
     const router = renderInRouter(
-      <AccountPageView view={{ state: "signed-out" } as AccountPage<Data>}>
+      <AccountPageView<Data> view={{ state: "signed-out" }}>
         {(data) => <p>{data.note}</p>}
       </AccountPageView>,
       "/account/credits",
@@ -66,7 +66,7 @@ describe("AccountPageView", () => {
 
   it("shows the calm page, and no data, for an address that holds no request", async () => {
     renderInRouter(
-      <AccountPageView view={{ state: "unknown" } as AccountPage<Data>}>
+      <AccountPageView<Data> view={{ state: "unknown" }}>
         {(data) => <p>{data.note}</p>}
       </AccountPageView>,
     );

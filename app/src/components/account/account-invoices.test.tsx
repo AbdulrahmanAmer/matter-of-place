@@ -73,6 +73,21 @@ describe("AccountInvoices", () => {
     ]);
   });
 
+  it("says refunded for money given back and cancelled for a voided invoice", () => {
+    render(
+      <AccountInvoices
+        invoices={[
+          { ...paid, status: "refunded" },
+          { ...owed, id: "00000000-0000-4000-8000-0000000000d6", status: "void" },
+        ]}
+      />,
+    );
+    expect(rows().map((row) => row.textContent)).toEqual([
+      "2 Paid Way, MalibuMOP-2026-0006Sep 20, 2026 ET$295Refunded",
+      "1 Owed Way, MalibuMOP-2026-0007Oct 1, 2026 ET$295Cancelled",
+    ]);
+  });
+
   it("offers a pay link on an invoice that is due and has one, and on no other", () => {
     render(
       <AccountInvoices
