@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest, setResponseHeader } from "@tanstack/react-start/server";
-import { accountConfirmInput, accountLinkInput } from "../domain/account";
+import { accountConfirmInput, accountLinkInput, accountPhotosInput } from "../domain/account";
 import type * as AccountService from "../server/account/service";
 import type { Db } from "../server/lib/db";
 import type { env } from "../server/lib/env";
@@ -37,6 +37,33 @@ async function withAccount<T>(work: (deps: AccountDeps) => Promise<T>): Promise<
 export const readAccountFn = createServerFn({ method: "POST" }).handler(() =>
   withAccount(({ account, db, request }) => account.readAccount(db, request)),
 );
+
+/** My properties: each request with its timeline dates and the live page. */
+export const readAccountPropertiesFn = createServerFn({ method: "POST" }).handler(() =>
+  withAccount(({ account, db, request }) => account.readProperties(db, request)),
+);
+
+/** Invoices: owed and paid. */
+export const readAccountInvoicesFn = createServerFn({ method: "POST" }).handler(() =>
+  withAccount(({ account, db, request }) => account.readInvoices(db, request)),
+);
+
+/** Credits: the Five Features balance and ledger. */
+export const readAccountCreditsFn = createServerFn({ method: "POST" }).handler(() =>
+  withAccount(({ account, db, request }) => account.readCredits(db, request)),
+);
+
+/** Reports: campaign results, page views and inquiry counts. */
+export const readAccountReportsFn = createServerFn({ method: "POST" }).handler(() =>
+  withAccount(({ account, db, request }) => account.readReports(db, request)),
+);
+
+/** Photographs added to one of the person's open requests: the rows declared and the URLs signed. */
+export const addAccountPhotosFn = createServerFn({ method: "POST" })
+  .validator(accountPhotosInput)
+  .handler(({ data }) =>
+    withAccount(({ account, db, request }) => account.addPhotos(db, request, data)),
+  );
 
 /** Queues a sign-in link for a client's address; always answers `sent`, before any lookup. */
 export const sendAccountLinkFn = createServerFn({ method: "POST" })

@@ -157,8 +157,8 @@
     "id": "w6-7-svc-own-user",
     "test": "tests/unit/account.service.test.ts",
     "file": "src/server/account/service.ts",
-    "find": "{ p_user: user.userId }",
-    "replace": "{ p_user: user.sessionId }",
+    "find": "await read(user.userId)",
+    "replace": "await read(user.sessionId)",
     "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
     "expect": "× .*reads the room of the session's own user"
   },
@@ -166,8 +166,8 @@
     "id": "w6-7-svc-unknown",
     "test": "tests/unit/account.service.test.ts",
     "file": "src/server/account/service.ts",
-    "find": "room === null ? { state: \"unknown\" }",
-    "replace": "room === null ? { state: \"signed-out\" }",
+    "find": "page === null ? { state: \"unknown\" }",
+    "replace": "page === null ? { state: \"signed-out\" }",
     "run": "bunx vitest run --project unit tests/unit/account.service.test.ts",
     "expect": "× .*says the account was not found when no contact is the session's"
   },

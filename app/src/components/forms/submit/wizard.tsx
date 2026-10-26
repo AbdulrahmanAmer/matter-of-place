@@ -13,6 +13,7 @@ import { sentText } from "../../../lib/form-copy";
 import {
   canContinue,
   initialDraft,
+  startingDraft,
   lastStep,
   nextStep,
   previousStep,
@@ -53,9 +54,9 @@ function formMessage(
 }
 
 /** Five-step property submission. Validation lives in `state.ts`; delivery in the submission service. */
-export function SubmitWizard() {
+export function SubmitWizard({ chosenPackage }: { chosenPackage?: SubmitDraft["package"] }) {
   const [step, setStep] = useState<StepIndex>(0);
-  const [draft, setDraft] = useState<SubmitDraft>(initialDraft);
+  const [draft, setDraft] = useState<SubmitDraft>(() => startingDraft(chosenPackage));
 
   // The fields the API or the contract refused. Typing in one clears its mark, so what is left is still to fix.
   const [issues, setIssues] = useState<readonly FieldIssue[]>([]);

@@ -1,0 +1,1026 @@
+[
+  {
+    "id": "w6-8-pack-quantity",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.payments_grant_credits()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_credits integer := public.credits_in_package(new.product);\n  v_contact uuid;\nbegin\n  -- W6 item 8 (ruling H142): a pack's credits are bought when its payment is paid, once. The property the pack was\n  -- paid with is the first of the five, so it uses a credit in the same moment. A request with no contact (a fixture\n  -- row; create_submission links every real one) has no ledger.\n  if new.status <> 'paid' or v_credits is null or (tg_op = 'UPDATE' and old.status = 'paid') then\n    return new;\n  end if;\n  select s.contact_id into v_contact from public.submissions s where s.id = new.submission_id;\n  if v_contact is null then\n    return new;\n  end if;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, note)\n  values (v_contact, 'purchased', v_credits - 1, new.id, new.product::text || ' paid')\n  on conflict do nothing;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, new.id, new.submission_id, 'The first property of the pack')\n  on conflict do nothing;\n  return new;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"buys five credits\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a paid Five Features payment buys five credits and uses one for its own property"
+  },
+  {
+    "id": "w6-8-pack-first-property",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.payments_grant_credits()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_credits integer := public.credits_in_package(new.product);\n  v_contact uuid;\nbegin\n  -- W6 item 8 (ruling H142): a pack's credits are bought when its payment is paid, once. The property the pack was\n  -- paid with is the first of the five, so it uses a credit in the same moment. A request with no contact (a fixture\n  -- row; create_submission links every real one) has no ledger.\n  if new.status <> 'paid' or v_credits is null or (tg_op = 'UPDATE' and old.status = 'paid') then\n    return new;\n  end if;\n  select s.contact_id into v_contact from public.submissions s where s.id = new.submission_id;\n  if v_contact is null then\n    return new;\n  end if;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, note)\n  values (v_contact, 'purchased', v_credits, new.id, new.product::text || ' paid')\n  on conflict do nothing;\n  return new;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"buys five credits\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a paid Five Features payment buys five credits and uses one for its own property"
+  },
+  {
+    "id": "w6-8-pack-only-paid",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.payments_grant_credits()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_credits integer := public.credits_in_package(new.product);\n  v_contact uuid;\nbegin\n  -- W6 item 8 (ruling H142): a pack's credits are bought when its payment is paid, once. The property the pack was\n  -- paid with is the first of the five, so it uses a credit in the same moment. A request with no contact (a fixture\n  -- row; create_submission links every real one) has no ledger.\n  if new.status = 'void' or v_credits is null or (tg_op = 'UPDATE' and old.status = 'paid') then\n    return new;\n  end if;\n  select s.contact_id into v_contact from public.submissions s where s.id = new.submission_id;\n  if v_contact is null then\n    return new;\n  end if;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, note)\n  values (v_contact, 'purchased', v_credits, new.id, new.product::text || ' paid')\n  on conflict do nothing;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, new.id, new.submission_id, 'The first property of the pack')\n  on conflict do nothing;\n  return new;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"due or waived buys nothing\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a payment that is due or waived buys nothing"
+  },
+  {
+    "id": "w6-8-pack-once",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.payments_grant_credits()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_credits integer := public.credits_in_package(new.product);\n  v_contact uuid;\nbegin\n  -- W6 item 8 (ruling H142): a pack's credits are bought when its payment is paid, once. The property the pack was\n  -- paid with is the first of the five, so it uses a credit in the same moment. A request with no contact (a fixture\n  -- row; create_submission links every real one) has no ledger.\n  if new.status <> 'paid' or v_credits is null then\n    return new;\n  end if;\n  select s.contact_id into v_contact from public.submissions s where s.id = new.submission_id;\n  if v_contact is null then\n    return new;\n  end if;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, note)\n  values (v_contact, 'purchased', v_credits, new.id, new.product::text || ' paid')\n;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, new.id, new.submission_id, 'The first property of the pack')\n;\n  return new;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"touched again, adds no row\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a payment already paid, touched again, adds no row"
+  },
+  {
+    "id": "w6-8-pack-other-product",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.credits_in_package(p_product public.exposure_package)\nreturns integer\nlanguage sql\nimmutable\nset search_path = ''\nas $$\n  -- W6 item 8 (ruling H142): how many properties a package pays for in advance; mirrored by `creditsInPackage` in\n  -- `src/domain/payments.ts`. Only Five Features is a pack: the other products are one property each and buy no credit.\n  select 5;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"any other product buys nothing\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a paid payment of any other product buys nothing"
+  },
+  {
+    "id": "w6-8-pack-parity",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.credits_in_package(p_product public.exposure_package)\nreturns integer\nlanguage sql\nimmutable\nset search_path = ''\nas $$\n  -- W6 item 8 (ruling H142): how many properties a package pays for in advance; mirrored by `creditsInPackage` in\n  -- `src/domain/payments.ts`. Only Five Features is a pack: the other products are one property each and buy no credit.\n  select case p_product::text when 'Five Features' then 4 end;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"credits_in_package agrees\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > credits_in_package agrees with creditsInPackage for every product that can be invoiced"
+  },
+  {
+    "id": "w6-8-spend-balance",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.spend_client_credit(\n  p_submission_id uuid,\n  p_amount numeric,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid;\n  v_package public.exposure_package;\n  v_balance integer;\n  v_payment uuid;\n  v_event uuid;\n  v_used public.client_credits;\nbegin\n  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The\n  -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the\n  -- same transaction, so a credit is never used without its waiver nor waived without its credit.\n  select s.contact_id, s.package into v_contact, v_package\n  from public.submissions s where s.id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  -- A credit buys a Five Features property: a request of another package has none to spend.\n  if v_package is distinct from 'Five Features' then\n    raise exception 'not_five_features'\n      using detail = 'This request chose another package, so a Five Features credit cannot be spent on it.';\n  end if;\n  -- A request with no contact has no ledger.\n  if v_contact is null then\n    raise exception 'wrong_state';\n  end if;\n  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit. `no key\n  -- update`, not `update`: the pack trigger's ledger insert takes a key share lock on the same contact, which `update`\n  -- would wait on while the trigger waited on this transaction.\n  perform 1 from public.contacts c where c.id = v_contact for no key update;\n  select coalesce(sum(cc.quantity), 0) into v_balance from public.client_credits cc where cc.contact_id = v_contact;\n  select w.payment_id, w.event_id into v_payment, v_event\n  from public.record_waiver(\n    p_submission_id, 'Five Features', p_amount, p_reason, p_actor, p_actor_kind, p_request_id\n  ) w;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, v_payment, p_submission_id, p_reason)\n  returning * into v_used;\n  -- `record_waiver` audits the payment; the credit it used is a change of its own, under the same action.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.waive', 'client_credits', v_used.id, null, to_jsonb(v_used), p_request_id\n  );\n  return query select v_payment, v_event;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"holds no credit\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > spend_client_credit refuses when the contact holds no credit, and leaves the request as it was"
+  },
+  {
+    "id": "w6-8-spend-last-credit",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.spend_client_credit(\n  p_submission_id uuid,\n  p_amount numeric,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid;\n  v_package public.exposure_package;\n  v_balance integer;\n  v_payment uuid;\n  v_event uuid;\n  v_used public.client_credits;\nbegin\n  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The\n  -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the\n  -- same transaction, so a credit is never used without its waiver nor waived without its credit.\n  select s.contact_id, s.package into v_contact, v_package\n  from public.submissions s where s.id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  -- A credit buys a Five Features property: a request of another package has none to spend.\n  if v_package is distinct from 'Five Features' then\n    raise exception 'not_five_features'\n      using detail = 'This request chose another package, so a Five Features credit cannot be spent on it.';\n  end if;\n  -- A request with no contact has no ledger.\n  if v_contact is null then\n    raise exception 'wrong_state';\n  end if;\n  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit. `no key\n  -- update`, not `update`: the pack trigger's ledger insert takes a key share lock on the same contact, which `update`\n  -- would wait on while the trigger waited on this transaction.\n  perform 1 from public.contacts c where c.id = v_contact for no key update;\n  select coalesce(sum(cc.quantity), 0) into v_balance from public.client_credits cc where cc.contact_id = v_contact;\n  if v_balance < 0 then\n    raise exception 'no_credit' using detail = 'The client has no Five Features credit left.';\n  end if;\n  select w.payment_id, w.event_id into v_payment, v_event\n  from public.record_waiver(\n    p_submission_id, 'Five Features', p_amount, p_reason, p_actor, p_actor_kind, p_request_id\n  ) w;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, v_payment, p_submission_id, p_reason)\n  returning * into v_used;\n  -- `record_waiver` audits the payment; the credit it used is a change of its own, under the same action.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.waive', 'client_credits', v_used.id, null, to_jsonb(v_used), p_request_id\n  );\n  return query select v_payment, v_event;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"last credit is spent once\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > the last credit is spent once: the balance never goes below zero"
+  },
+  {
+    "id": "w6-8-spend-own-contact",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.spend_client_credit(\n  p_submission_id uuid,\n  p_amount numeric,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid;\n  v_package public.exposure_package;\n  v_balance integer;\n  v_payment uuid;\n  v_event uuid;\n  v_used public.client_credits;\nbegin\n  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The\n  -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the\n  -- same transaction, so a credit is never used without its waiver nor waived without its credit.\n  select s.contact_id, s.package into v_contact, v_package\n  from public.submissions s where s.id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  -- A credit buys a Five Features property: a request of another package has none to spend.\n  if v_package is distinct from 'Five Features' then\n    raise exception 'not_five_features'\n      using detail = 'This request chose another package, so a Five Features credit cannot be spent on it.';\n  end if;\n  -- A request with no contact has no ledger.\n  if v_contact is null then\n    raise exception 'wrong_state';\n  end if;\n  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit. `no key\n  -- update`, not `update`: the pack trigger's ledger insert takes a key share lock on the same contact, which `update`\n  -- would wait on while the trigger waited on this transaction.\n  perform 1 from public.contacts c where c.id = v_contact for no key update;\n  select coalesce(sum(cc.quantity), 0) into v_balance from public.client_credits cc;\n  if v_balance < 1 then\n    raise exception 'no_credit' using detail = 'The client has no Five Features credit left.';\n  end if;\n  select w.payment_id, w.event_id into v_payment, v_event\n  from public.record_waiver(\n    p_submission_id, 'Five Features', p_amount, p_reason, p_actor, p_actor_kind, p_request_id\n  ) w;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, v_payment, p_submission_id, p_reason)\n  returning * into v_used;\n  -- `record_waiver` audits the payment; the credit it used is a change of its own, under the same action.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.waive', 'client_credits', v_used.id, null, to_jsonb(v_used), p_request_id\n  );\n  return query select v_payment, v_event;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"never spends a credit of another\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > spend_client_credit never spends a credit of another contact"
+  },
+  {
+    "id": "w6-8-spend-package",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.spend_client_credit(\n  p_submission_id uuid,\n  p_amount numeric,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid;\n  v_package public.exposure_package;\n  v_balance integer;\n  v_payment uuid;\n  v_event uuid;\n  v_used public.client_credits;\nbegin\n  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The\n  -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the\n  -- same transaction, so a credit is never used without its waiver nor waived without its credit.\n  select s.contact_id, s.package into v_contact, v_package\n  from public.submissions s where s.id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  -- A credit buys a Five Features property: a request of another package has none to spend.\n  -- A request with no contact has no ledger.\n  if v_contact is null then\n    raise exception 'wrong_state';\n  end if;\n  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit. `no key\n  -- update`, not `update`: the pack trigger's ledger insert takes a key share lock on the same contact, which `update`\n  -- would wait on while the trigger waited on this transaction.\n  perform 1 from public.contacts c where c.id = v_contact for no key update;\n  select coalesce(sum(cc.quantity), 0) into v_balance from public.client_credits cc where cc.contact_id = v_contact;\n  if v_balance < 1 then\n    raise exception 'no_credit' using detail = 'The client has no Five Features credit left.';\n  end if;\n  select w.payment_id, w.event_id into v_payment, v_event\n  from public.record_waiver(\n    p_submission_id, 'Five Features', p_amount, p_reason, p_actor, p_actor_kind, p_request_id\n  ) w;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, v_payment, p_submission_id, p_reason)\n  returning * into v_used;\n  -- `record_waiver` audits the payment; the credit it used is a change of its own, under the same action.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.waive', 'client_credits', v_used.id, null, to_jsonb(v_used), p_request_id\n  );\n  return query select v_payment, v_event;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"request of another package\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > spend_client_credit refuses a request of another package"
+  },
+  {
+    "id": "w6-8-spend-ledger-row",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.spend_client_credit(\n  p_submission_id uuid,\n  p_amount numeric,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid;\n  v_package public.exposure_package;\n  v_balance integer;\n  v_payment uuid;\n  v_event uuid;\n  v_used public.client_credits;\nbegin\n  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The\n  -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the\n  -- same transaction, so a credit is never used without its waiver nor waived without its credit.\n  select s.contact_id, s.package into v_contact, v_package\n  from public.submissions s where s.id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  -- A credit buys a Five Features property: a request of another package has none to spend.\n  if v_package is distinct from 'Five Features' then\n    raise exception 'not_five_features'\n      using detail = 'This request chose another package, so a Five Features credit cannot be spent on it.';\n  end if;\n  -- A request with no contact has no ledger.\n  if v_contact is null then\n    raise exception 'wrong_state';\n  end if;\n  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit. `no key\n  -- update`, not `update`: the pack trigger's ledger insert takes a key share lock on the same contact, which `update`\n  -- would wait on while the trigger waited on this transaction.\n  perform 1 from public.contacts c where c.id = v_contact for no key update;\n  select coalesce(sum(cc.quantity), 0) into v_balance from public.client_credits cc where cc.contact_id = v_contact;\n  if v_balance < 1 then\n    raise exception 'no_credit' using detail = 'The client has no Five Features credit left.';\n  end if;\n  select w.payment_id, w.event_id into v_payment, v_event\n  from public.record_waiver(\n    p_submission_id, 'Five Features', p_amount, p_reason, p_actor, p_actor_kind, p_request_id\n  ) w;\n  return query select v_payment, v_event;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"waives the next accepted request\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > spend_client_credit waives the next accepted request without an invoice and lowers the balance"
+  },
+  {
+    "id": "w6-8-spend-audit",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.spend_client_credit(\n  p_submission_id uuid,\n  p_amount numeric,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid;\n  v_package public.exposure_package;\n  v_balance integer;\n  v_payment uuid;\n  v_event uuid;\n  v_used public.client_credits;\nbegin\n  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The\n  -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the\n  -- same transaction, so a credit is never used without its waiver nor waived without its credit.\n  select s.contact_id, s.package into v_contact, v_package\n  from public.submissions s where s.id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  -- A credit buys a Five Features property: a request of another package has none to spend.\n  if v_package is distinct from 'Five Features' then\n    raise exception 'not_five_features'\n      using detail = 'This request chose another package, so a Five Features credit cannot be spent on it.';\n  end if;\n  -- A request with no contact has no ledger.\n  if v_contact is null then\n    raise exception 'wrong_state';\n  end if;\n  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit. `no key\n  -- update`, not `update`: the pack trigger's ledger insert takes a key share lock on the same contact, which `update`\n  -- would wait on while the trigger waited on this transaction.\n  perform 1 from public.contacts c where c.id = v_contact for no key update;\n  select coalesce(sum(cc.quantity), 0) into v_balance from public.client_credits cc where cc.contact_id = v_contact;\n  if v_balance < 1 then\n    raise exception 'no_credit' using detail = 'The client has no Five Features credit left.';\n  end if;\n  select w.payment_id, w.event_id into v_payment, v_event\n  from public.record_waiver(\n    p_submission_id, 'Five Features', p_amount, p_reason, p_actor, p_actor_kind, p_request_id\n  ) w;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, v_payment, p_submission_id, p_reason)\n  returning * into v_used;\n  return query select v_payment, v_event;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"waives the next accepted request\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > spend_client_credit waives the next accepted request without an invoice and lowers the balance"
+  },
+  {
+    "id": "w6-8-ledger-append-only",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.client_credits_immutable()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  -- W6 item 8 (ruling H142): the ledger is never edited, deleted or emptied, by any role. The one delete allowed is a\n  -- cleanup of test fixtures that asks for it (`mop.fixture_cleanup`), and never on the production database (ruling H35).\n  if tg_op = 'DELETE' and current_setting('mop.fixture_cleanup', true) = 'on'\n    and (select s.value #>> '{}' from public.settings s where s.key = 'environment') is distinct from 'production' then\n    return old;\n  end if;\n  return new;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"append only\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > the ledger is append only, even to the service role"
+  },
+  {
+    "id": "w6-8-ledger-sign",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "alter table public.client_credits drop constraint client_credits_sign;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"sensible number\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a row buys or uses a sensible number: no empty pack, no use of two, no purchase tied to a request"
+  },
+  {
+    "id": "w6-8-ledger-purchase-once",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "drop index public.client_credits_purchase_idx;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"buys its pack once\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a payment buys its pack once and a request uses one credit once"
+  },
+  {
+    "id": "w6-8-ledger-use-once",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "drop index public.client_credits_use_idx;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"buys its pack once\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a payment buys its pack once and a request uses one credit once"
+  },
+  {
+    "id": "w6-8-ledger-staff-read",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "drop policy client_credits_select_staff on public.client_credits;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"staff read the ledger\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > staff read the ledger and nobody else does"
+  },
+  {
+    "id": "w6-8-ledger-client-read",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create policy client_credits_select_all on public.client_credits for select to authenticated using (true);",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"staff read the ledger\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > staff read the ledger and nobody else does"
+  },
+  {
+    "id": "w6-8-page-who",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_invoices(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's invoices and waivers, newest first. A voided invoice was\n  -- withdrawn in error and is not shown. Left out: `notes` (a staff reason), the invoice snapshot, who issued or marked\n  -- it, and the Stripe reference. `credit` is true for a waiver that spent a Five Features credit.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'invoices', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', pay.id,\n          'address', s.address,\n          'city', s.city,\n          'product', pay.product,\n          'amount', pay.amount,\n          'currency', pay.currency,\n          'status', pay.status,\n          'invoice_number', pay.invoice_number,\n          'issued_at', pay.issued_at,\n          'due_at', pay.due_at,\n          'paid_at', pay.paid_at,\n          'credit', pay.status = 'waived' and exists (\n            select 1 from public.client_credits cc where cc.payment_id = pay.id and cc.kind = 'used'\n          )\n        )\n        order by coalesce(pay.issued_at, pay.created_at) desc, pay.id\n      )\n      from public.payments pay\n      join public.submissions s on s.id = pay.submission_id\n      where s.contact_id = v_contact.id and pay.status <> 'void'\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"says whose room\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > every page says whose room it is, and none answers a session that is no contact's"
+  },
+  {
+    "id": "w6-8-page-nobody",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_credits(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the Five Features ledger of the signed-in person. `balance` is what is left (the\n  -- sum of the rows), `purchased` and `used` the totals behind it. An entry names the request a credit was used for,\n  -- never the staff reason written on its waiver.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'balance', (select coalesce(sum(cc.quantity), 0) from public.client_credits cc where cc.contact_id = v_contact.id),\n    'purchased', (\n      select coalesce(sum(cc.quantity), 0) from public.client_credits cc\n      where cc.contact_id = v_contact.id and cc.kind = 'purchased'\n    ),\n    'used', (\n      select coalesce(-sum(cc.quantity), 0) from public.client_credits cc\n      where cc.contact_id = v_contact.id and cc.kind = 'used'\n    ),\n    'entries', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', cc.id,\n          'kind', cc.kind,\n          'quantity', cc.quantity,\n          'created_at', cc.created_at,\n          'address', s.address,\n          'city', s.city\n        )\n        order by cc.created_at desc, cc.id\n      )\n      from public.client_credits cc\n      left join public.submissions s on s.id = cc.submission_id\n      where cc.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"says whose room\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > every page says whose room it is, and none answers a session that is no contact's"
+  },
+  {
+    "id": "w6-8-page-grants",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "grant execute on function public.account_reports(uuid) to authenticated;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"only the service role calls them\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > only the service role calls them"
+  },
+  {
+    "id": "w6-8-props-own",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_properties(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's requests with the dates their timeline needs and the path\n  -- of the live page, through the same mapping as `account_room`. Null when no contact matches. The fixed field list\n  -- leaves out every staff column (notes, the decline note and reason, reviewer ids, address hashes).\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', s.id,\n          'address', s.address,\n          'city', s.city,\n          'state', s.state,\n          'package', s.package,\n          'workflow_state', s.workflow_state,\n          'received_at', s.received_at,\n          'reviewed_at', s.reviewed_at,\n          'accepted_at', s.accepted_at,\n          'activated_at', s.activated_at,\n          'published_at', p.published_at,\n          -- The photographs on the request, and whether more can be added: until it is activated (account_add_photos)\n          -- and while it holds fewer than forty. Only settled ones count: a file declared but never put, or removed by\n          -- the reconcile job as not a photograph, is not on the request.\n          'photos', settled.n,\n          'can_add_photos', s.workflow_state in (\n            'Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued'\n          ) and settled.n < 40,\n          -- The page a visitor can open: only a published property has one (a takedown archives it).\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      left join public.properties p on p.id = s.property_id\n      cross join lateral (\n        select count(*)::int as n from public.submission_media m\n        where m.submission_id = s.id and m.uploaded_at is not null\n      ) settled\n      where true\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_properties: the client\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_properties: the client's requests with their dates and the live page, and no staff field"
+  },
+  {
+    "id": "w6-8-props-staff-field",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_properties(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's requests with the dates their timeline needs and the path\n  -- of the live page, through the same mapping as `account_room`. Null when no contact matches. The fixed field list\n  -- leaves out every staff column (notes, the decline note and reason, reviewer ids, address hashes).\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', s.id,\n          'notes', s.notes,\n          'address', s.address,\n          'city', s.city,\n          'state', s.state,\n          'package', s.package,\n          'workflow_state', s.workflow_state,\n          'received_at', s.received_at,\n          'reviewed_at', s.reviewed_at,\n          'accepted_at', s.accepted_at,\n          'activated_at', s.activated_at,\n          'published_at', p.published_at,\n          -- The photographs on the request, and whether more can be added: until it is activated (account_add_photos)\n          -- and while it holds fewer than forty. Only settled ones count: a file declared but never put, or removed by\n          -- the reconcile job as not a photograph, is not on the request.\n          'photos', settled.n,\n          'can_add_photos', s.workflow_state in (\n            'Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued'\n          ) and settled.n < 40,\n          -- The page a visitor can open: only a published property has one (a takedown archives it).\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      left join public.properties p on p.id = s.property_id\n      cross join lateral (\n        select count(*)::int as n from public.submission_media m\n        where m.submission_id = s.id and m.uploaded_at is not null\n      ) settled\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_properties: the client\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_properties: the client's requests with their dates and the live page, and no staff field"
+  },
+  {
+    "id": "w6-8-props-live",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_properties(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's requests with the dates their timeline needs and the path\n  -- of the live page, through the same mapping as `account_room`. Null when no contact matches. The fixed field list\n  -- leaves out every staff column (notes, the decline note and reason, reviewer ids, address hashes).\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', s.id,\n          'address', s.address,\n          'city', s.city,\n          'state', s.state,\n          'package', s.package,\n          'workflow_state', s.workflow_state,\n          'received_at', s.received_at,\n          'reviewed_at', s.reviewed_at,\n          'accepted_at', s.accepted_at,\n          'activated_at', s.activated_at,\n          'published_at', p.published_at,\n          -- The photographs on the request, and whether more can be added: until it is activated (account_add_photos)\n          -- and while it holds fewer than forty. Only settled ones count: a file declared but never put, or removed by\n          -- the reconcile job as not a photograph, is not on the request.\n          'photos', settled.n,\n          'can_add_photos', s.workflow_state in (\n            'Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued'\n          ) and settled.n < 40,\n          -- The page a visitor can open: only a published property has one (a takedown archives it).\n          'live_path', case when true then '/property/' || p.slug end\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      left join public.properties p on p.id = s.property_id\n      cross join lateral (\n        select count(*)::int as n from public.submission_media m\n        where m.submission_id = s.id and m.uploaded_at is not null\n      ) settled\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"not published has no live page\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_properties: a property that is not published has no live page"
+  },
+  {
+    "id": "w6-8-inv-void",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_invoices(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's invoices and waivers, newest first. A voided invoice was\n  -- withdrawn in error and is not shown. Left out: `notes` (a staff reason), the invoice snapshot, who issued or marked\n  -- it, and the Stripe reference. `credit` is true for a waiver that spent a Five Features credit.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'invoices', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', pay.id,\n          'address', s.address,\n          'city', s.city,\n          'product', pay.product,\n          'amount', pay.amount,\n          'currency', pay.currency,\n          'status', pay.status,\n          'invoice_number', pay.invoice_number,\n          'issued_at', pay.issued_at,\n          'due_at', pay.due_at,\n          'paid_at', pay.paid_at,\n          'credit', pay.status = 'waived' and exists (\n            select 1 from public.client_credits cc where cc.payment_id = pay.id and cc.kind = 'used'\n          )\n        )\n        order by coalesce(pay.issued_at, pay.created_at) desc, pay.id\n      )\n      from public.payments pay\n      join public.submissions s on s.id = pay.submission_id\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_invoices: owed and paid\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_invoices: owed and paid, newest first, a voided invoice and the staff reason left out"
+  },
+  {
+    "id": "w6-8-inv-own",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_invoices(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's invoices and waivers, newest first. A voided invoice was\n  -- withdrawn in error and is not shown. Left out: `notes` (a staff reason), the invoice snapshot, who issued or marked\n  -- it, and the Stripe reference. `credit` is true for a waiver that spent a Five Features credit.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'invoices', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', pay.id,\n          'address', s.address,\n          'city', s.city,\n          'product', pay.product,\n          'amount', pay.amount,\n          'currency', pay.currency,\n          'status', pay.status,\n          'invoice_number', pay.invoice_number,\n          'issued_at', pay.issued_at,\n          'due_at', pay.due_at,\n          'paid_at', pay.paid_at,\n          'credit', pay.status = 'waived' and exists (\n            select 1 from public.client_credits cc where cc.payment_id = pay.id and cc.kind = 'used'\n          )\n        )\n        order by coalesce(pay.issued_at, pay.created_at) desc, pay.id\n      )\n      from public.payments pay\n      join public.submissions s on s.id = pay.submission_id\n      where pay.status <> 'void'\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_invoices: owed and paid\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_invoices: owed and paid, newest first, a voided invoice and the staff reason left out"
+  },
+  {
+    "id": "w6-8-inv-notes",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_invoices(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's invoices and waivers, newest first. A voided invoice was\n  -- withdrawn in error and is not shown. Left out: `notes` (a staff reason), the invoice snapshot, who issued or marked\n  -- it, and the Stripe reference. `credit` is true for a waiver that spent a Five Features credit.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'invoices', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', pay.id,\n          'notes', pay.notes,\n          'address', s.address,\n          'city', s.city,\n          'product', pay.product,\n          'amount', pay.amount,\n          'currency', pay.currency,\n          'status', pay.status,\n          'invoice_number', pay.invoice_number,\n          'issued_at', pay.issued_at,\n          'due_at', pay.due_at,\n          'paid_at', pay.paid_at,\n          'credit', pay.status = 'waived' and exists (\n            select 1 from public.client_credits cc where cc.payment_id = pay.id and cc.kind = 'used'\n          )\n        )\n        order by coalesce(pay.issued_at, pay.created_at) desc, pay.id\n      )\n      from public.payments pay\n      join public.submissions s on s.id = pay.submission_id\n      where s.contact_id = v_contact.id and pay.status <> 'void'\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_invoices: owed and paid\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_invoices: owed and paid, newest first, a voided invoice and the staff reason left out"
+  },
+  {
+    "id": "w6-8-inv-credit",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_invoices(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's invoices and waivers, newest first. A voided invoice was\n  -- withdrawn in error and is not shown. Left out: `notes` (a staff reason), the invoice snapshot, who issued or marked\n  -- it, and the Stripe reference. `credit` is true for a waiver that spent a Five Features credit.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'invoices', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', pay.id,\n          'address', s.address,\n          'city', s.city,\n          'product', pay.product,\n          'amount', pay.amount,\n          'currency', pay.currency,\n          'status', pay.status,\n          'invoice_number', pay.invoice_number,\n          'issued_at', pay.issued_at,\n          'due_at', pay.due_at,\n          'paid_at', pay.paid_at,\n          'credit', false and exists (\n            select 1 from public.client_credits cc where cc.payment_id = pay.id and cc.kind = 'used'\n          )\n        )\n        order by coalesce(pay.issued_at, pay.created_at) desc, pay.id\n      )\n      from public.payments pay\n      join public.submissions s on s.id = pay.submission_id\n      where s.contact_id = v_contact.id and pay.status <> 'void'\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"a credit that was spent\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_invoices: a credit that was spent shows as a waiver covered by a credit"
+  },
+  {
+    "id": "w6-8-credits-balance",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_credits(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the Five Features ledger of the signed-in person. `balance` is what is left (the\n  -- sum of the rows), `purchased` and `used` the totals behind it. An entry names the request a credit was used for,\n  -- never the staff reason written on its waiver.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'balance', (select coalesce(sum(cc.quantity), 0) from public.client_credits cc),\n    'purchased', (\n      select coalesce(sum(cc.quantity), 0) from public.client_credits cc\n      where cc.contact_id = v_contact.id and cc.kind = 'purchased'\n    ),\n    'used', (\n      select coalesce(-sum(cc.quantity), 0) from public.client_credits cc\n      where cc.contact_id = v_contact.id and cc.kind = 'used'\n    ),\n    'entries', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', cc.id,\n          'kind', cc.kind,\n          'quantity', cc.quantity,\n          'created_at', cc.created_at,\n          'address', s.address,\n          'city', s.city\n        )\n        order by cc.created_at desc, cc.id\n      )\n      from public.client_credits cc\n      left join public.submissions s on s.id = cc.submission_id\n      where cc.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_credits: the balance\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_credits: the balance, what was bought and used, and a line for each, newest first"
+  },
+  {
+    "id": "w6-8-credits-entries",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_credits(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the Five Features ledger of the signed-in person. `balance` is what is left (the\n  -- sum of the rows), `purchased` and `used` the totals behind it. An entry names the request a credit was used for,\n  -- never the staff reason written on its waiver.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'balance', (select coalesce(sum(cc.quantity), 0) from public.client_credits cc where cc.contact_id = v_contact.id),\n    'purchased', (\n      select coalesce(sum(cc.quantity), 0) from public.client_credits cc\n      where cc.contact_id = v_contact.id and cc.kind = 'purchased'\n    ),\n    'used', (\n      select coalesce(-sum(cc.quantity), 0) from public.client_credits cc\n      where cc.contact_id = v_contact.id and cc.kind = 'used'\n    ),\n    'entries', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', cc.id,\n          'kind', cc.kind,\n          'quantity', cc.quantity,\n          'created_at', cc.created_at,\n          'address', s.address,\n          'city', s.city\n        )\n        order by cc.created_at desc, cc.id\n      )\n      from public.client_credits cc\n      left join public.submissions s on s.id = cc.submission_id\n      where true\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_credits: the balance\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_credits: the balance, what was bought and used, and a line for each, newest first"
+  },
+  {
+    "id": "w6-8-credits-zero",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_credits(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the Five Features ledger of the signed-in person. `balance` is what is left (the\n  -- sum of the rows), `purchased` and `used` the totals behind it. An entry names the request a credit was used for,\n  -- never the staff reason written on its waiver.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'balance', (select sum(cc.quantity) from public.client_credits cc where cc.contact_id = v_contact.id),\n    'purchased', (\n      select coalesce(sum(cc.quantity), 0) from public.client_credits cc\n      where cc.contact_id = v_contact.id and cc.kind = 'purchased'\n    ),\n    'used', (\n      select coalesce(-sum(cc.quantity), 0) from public.client_credits cc\n      where cc.contact_id = v_contact.id and cc.kind = 'used'\n    ),\n    'entries', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', cc.id,\n          'kind', cc.kind,\n          'quantity', cc.quantity,\n          'created_at', cc.created_at,\n          'address', s.address,\n          'city', s.city\n        )\n        order by cc.created_at desc, cc.id\n      )\n      from public.client_credits cc\n      left join public.submissions s on s.id = cc.submission_id\n      where cc.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"no pack has a balance of zero\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_credits: a contact with no pack has a balance of zero and no lines"
+  },
+  {
+    "id": "w6-8-reports-views",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_reports(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\n  v_rolled date;\nbegin\n  -- W6 item 8, rulings H119 and H142: results for each property that came from the signed-in person's requests. Page\n  -- views are the rolled-up days of `analytics_daily` plus the raw events after the last rolled day, so a day is\n  -- counted once; inquiries are counts only (the sender, the address and the message never leave `inquiries`). The\n  -- weekly rows are the figures the campaign report email states, the 12 newest weeks of the property's latest campaign.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  select max(d.day) into v_rolled from public.analytics_daily d where d.event = 'property_view';\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', p.id,\n          'title', p.title,\n          'city', p.city,\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end,\n          'package', k.package,\n          'starts_on', k.starts_on,\n          'ends_on', k.ends_on,\n          'page_views', (\n            select coalesce(sum(d.events), 0) from public.analytics_daily d\n            where d.event = 'property_view' and d.path = '/property/' || p.slug\n          ) + (\n            select count(*) from public.analytics_events e\n            where e.event = 'property_view' and e.path = '/property/' || p.slug\n          ),\n          'inquiries', (\n            select count(*) from public.inquiries i\n            where i.subject_kind = 'property' and i.subject_slug = p.slug\n          ),\n          'inquiries_30d', (\n            select count(*) from public.inquiries i\n            where i.subject_kind = 'property' and i.subject_slug = p.slug and i.received_at >= now() - interval '30 days'\n          ),\n          'weeks', coalesce((\n            select jsonb_agg(\n              jsonb_build_object(\n                'period_start', r.period_start,\n                'period_end', r.period_end,\n                'impressions', r.impressions,\n                'reach', r.reach,\n                'clicks', r.clicks,\n                'video_views', r.video_views,\n                'ctr', r.ctr\n              )\n              order by r.period_start desc\n            )\n            from (\n              select * from public.campaign_reports cr where cr.campaign_id = k.id\n              order by cr.period_start desc limit 12\n            ) r\n          ), '[]'::jsonb)\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      join public.properties p on p.id = s.property_id\n      left join lateral (\n        select c.id, c.package, c.starts_on, c.ends_on from public.campaigns c\n        where c.property_id = p.id order by c.created_at desc, c.id limit 1\n      ) k on true\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_reports: page views\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_reports: page views, inquiry counts and the weekly figures of the property's latest campaign"
+  },
+  {
+    "id": "w6-8-reports-own",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_reports(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\n  v_rolled date;\nbegin\n  -- W6 item 8, rulings H119 and H142: results for each property that came from the signed-in person's requests. Page\n  -- views are the rolled-up days of `analytics_daily` plus the raw events after the last rolled day, so a day is\n  -- counted once; inquiries are counts only (the sender, the address and the message never leave `inquiries`). The\n  -- weekly rows are the figures the campaign report email states, the 12 newest weeks of the property's latest campaign.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  select max(d.day) into v_rolled from public.analytics_daily d where d.event = 'property_view';\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', p.id,\n          'title', p.title,\n          'city', p.city,\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end,\n          'package', k.package,\n          'starts_on', k.starts_on,\n          'ends_on', k.ends_on,\n          'page_views', (\n            select coalesce(sum(d.events), 0) from public.analytics_daily d\n            where d.event = 'property_view' and d.path = '/property/' || p.slug\n          ) + (\n            select count(*) from public.analytics_events e\n            where e.event = 'property_view' and e.path = '/property/' || p.slug\n              and (v_rolled is null or e.occurred_at >= (v_rolled + 1)::timestamp at time zone 'utc')\n          ),\n          'inquiries', (\n            select count(*) from public.inquiries i\n            where i.subject_kind = 'property' and i.subject_slug = p.slug\n          ),\n          'inquiries_30d', (\n            select count(*) from public.inquiries i\n            where i.subject_kind = 'property' and i.subject_slug = p.slug and i.received_at >= now() - interval '30 days'\n          ),\n          'weeks', coalesce((\n            select jsonb_agg(\n              jsonb_build_object(\n                'period_start', r.period_start,\n                'period_end', r.period_end,\n                'impressions', r.impressions,\n                'reach', r.reach,\n                'clicks', r.clicks,\n                'video_views', r.video_views,\n                'ctr', r.ctr\n              )\n              order by r.period_start desc\n            )\n            from (\n              select * from public.campaign_reports cr where cr.campaign_id = k.id\n              order by cr.period_start desc limit 12\n            ) r\n          ), '[]'::jsonb)\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      join public.properties p on p.id = s.property_id\n      left join lateral (\n        select c.id, c.package, c.starts_on, c.ends_on from public.campaigns c\n        where c.property_id = p.id order by c.created_at desc, c.id limit 1\n      ) k on true\n      where true\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_reports: page views\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_reports: page views, inquiry counts and the weekly figures of the property's latest campaign"
+  },
+  {
+    "id": "w6-8-reports-30-days",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_reports(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\n  v_rolled date;\nbegin\n  -- W6 item 8, rulings H119 and H142: results for each property that came from the signed-in person's requests. Page\n  -- views are the rolled-up days of `analytics_daily` plus the raw events after the last rolled day, so a day is\n  -- counted once; inquiries are counts only (the sender, the address and the message never leave `inquiries`). The\n  -- weekly rows are the figures the campaign report email states, the 12 newest weeks of the property's latest campaign.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  select max(d.day) into v_rolled from public.analytics_daily d where d.event = 'property_view';\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', p.id,\n          'title', p.title,\n          'city', p.city,\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end,\n          'package', k.package,\n          'starts_on', k.starts_on,\n          'ends_on', k.ends_on,\n          'page_views', (\n            select coalesce(sum(d.events), 0) from public.analytics_daily d\n            where d.event = 'property_view' and d.path = '/property/' || p.slug\n          ) + (\n            select count(*) from public.analytics_events e\n            where e.event = 'property_view' and e.path = '/property/' || p.slug\n              and (v_rolled is null or e.occurred_at >= (v_rolled + 1)::timestamp at time zone 'utc')\n          ),\n          'inquiries', (\n            select count(*) from public.inquiries i\n            where i.subject_kind = 'property' and i.subject_slug = p.slug\n          ),\n          'inquiries_30d', (\n            select count(*) from public.inquiries i\n            where i.subject_kind = 'property' and i.subject_slug = p.slug\n          ),\n          'weeks', coalesce((\n            select jsonb_agg(\n              jsonb_build_object(\n                'period_start', r.period_start,\n                'period_end', r.period_end,\n                'impressions', r.impressions,\n                'reach', r.reach,\n                'clicks', r.clicks,\n                'video_views', r.video_views,\n                'ctr', r.ctr\n              )\n              order by r.period_start desc\n            )\n            from (\n              select * from public.campaign_reports cr where cr.campaign_id = k.id\n              order by cr.period_start desc limit 12\n            ) r\n          ), '[]'::jsonb)\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      join public.properties p on p.id = s.property_id\n      left join lateral (\n        select c.id, c.package, c.starts_on, c.ends_on from public.campaigns c\n        where c.property_id = p.id order by c.created_at desc, c.id limit 1\n      ) k on true\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_reports: page views\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_reports: page views, inquiry counts and the weekly figures of the property's latest campaign"
+  },
+  {
+    "id": "w6-8-reports-inquirer",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.account_reports(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\n  v_rolled date;\nbegin\n  -- W6 item 8, rulings H119 and H142: results for each property that came from the signed-in person's requests. Page\n  -- views are the rolled-up days of `analytics_daily` plus the raw events after the last rolled day, so a day is\n  -- counted once; inquiries are counts only (the sender, the address and the message never leave `inquiries`). The\n  -- weekly rows are the figures the campaign report email states, the 12 newest weeks of the property's latest campaign.\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  select max(d.day) into v_rolled from public.analytics_daily d where d.event = 'property_view';\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', p.id,\n          'title', p.title,\n          'city', p.city,\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end,\n          'package', k.package,\n          'starts_on', k.starts_on,\n          'ends_on', k.ends_on,\n          'page_views', (\n            select coalesce(sum(d.events), 0) from public.analytics_daily d\n            where d.event = 'property_view' and d.path = '/property/' || p.slug\n          ) + (\n            select count(*) from public.analytics_events e\n            where e.event = 'property_view' and e.path = '/property/' || p.slug\n              and (v_rolled is null or e.occurred_at >= (v_rolled + 1)::timestamp at time zone 'utc')\n          ),\n          'inquiries', (\n            select count(*) from public.inquiries i\n            where i.subject_kind = 'property' and i.subject_slug = p.slug\n          ),\n          'inquiries_30d', (\n            select count(*) from public.inquiries i\n            where i.subject_kind = 'property' and i.subject_slug = p.slug and i.received_at >= now() - interval '30 days'\n          ),\n          'last_inquirer', (select i.name from public.inquiries i where i.subject_slug = p.slug limit 1),\n          'weeks', coalesce((\n            select jsonb_agg(\n              jsonb_build_object(\n                'period_start', r.period_start,\n                'period_end', r.period_end,\n                'impressions', r.impressions,\n                'reach', r.reach,\n                'clicks', r.clicks,\n                'video_views', r.video_views,\n                'ctr', r.ctr\n              )\n              order by r.period_start desc\n            )\n            from (\n              select * from public.campaign_reports cr where cr.campaign_id = k.id\n              order by cr.period_start desc limit 12\n            ) r\n          ), '[]'::jsonb)\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      join public.properties p on p.id = s.property_id\n      left join lateral (\n        select c.id, c.package, c.starts_on, c.ends_on from public.campaigns c\n        where c.property_id = p.id order by c.created_at desc, c.id limit 1\n      ) k on true\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"account_reports: page views\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > the room's page functions > account_reports: page views, inquiry counts and the weekly figures of the property's latest campaign"
+  },
+  {
+    "id": "w6-8-photos-owner",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_add_photos(p_user uuid, p_submission_id uuid, p_media jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid := app.contact_of(p_user);\n  v_state public.submission_state;\n  v_next integer;\n  v_result jsonb;\nbegin\n  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the\n  -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at\n  -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.\n  if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 10 then\n    raise exception 'validation' using errcode = '22023', detail = 'one to ten photographs at a time';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(p_media) e\n    where e ->> 'type' is null\n      or e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp')\n      or coalesce(btrim(e ->> 'name'), '') = ''\n      or char_length(e ->> 'name') > 255\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) is null\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) > 26214400\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported photograph';\n  end if;\n  -- The person's own request only; `contact_of` is null for a session that is no contact's, which matches nothing.\n  select s.workflow_state into v_state\n  from public.submissions s\n  where s.id = p_submission_id\n  for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Open: before the request is activated. Activation copies its photographs to the property, so a later one would\n  -- never reach the page; from then on the team handles them.\n  if v_state not in ('Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued') then\n    raise exception 'wrong_state';\n  end if;\n  select coalesce(max(m.sort_order), -1) + 1 into v_next\n  from public.submission_media m where m.submission_id = p_submission_id;\n  -- The browser matches each file by its position in the payload, never by its name (FE-04).\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(p_media) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, p_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      p_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      v_next + x.position\n    from entries x\n    returning m.id, m.storage_path\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', st.id, 'index', en.position, 'storage_path', st.storage_path)\n      order by en.position\n    ),\n    '[]'::jsonb\n  )\n  into v_result\n  from stored st join entries en on en.media_id = st.id;\n  return v_result;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"another person's\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > refuses a request that is another person's, and one that does not exist"
+  },
+  {
+    "id": "w6-8-photos-contact",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_add_photos(p_user uuid, p_submission_id uuid, p_media jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid := app.contact_of(p_user);\n  v_state public.submission_state;\n  v_next integer;\n  v_result jsonb;\nbegin\n  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the\n  -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at\n  -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.\n  if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 10 then\n    raise exception 'validation' using errcode = '22023', detail = 'one to ten photographs at a time';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(p_media) e\n    where e ->> 'type' is null\n      or e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp')\n      or coalesce(btrim(e ->> 'name'), '') = ''\n      or char_length(e ->> 'name') > 255\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) is null\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) > 26214400\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported photograph';\n  end if;\n  -- The person's own request only; `contact_of` is null for a session that is no contact's, which matches nothing.\n  select s.workflow_state into v_state\n  from public.submissions s\n  where s.id = p_submission_id\n  for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Open: before the request is activated. Activation copies its photographs to the property, so a later one would\n  -- never reach the page; from then on the team handles them.\n  if v_state not in ('Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued') then\n    raise exception 'wrong_state';\n  end if;\n  select coalesce(max(m.sort_order), -1) + 1 into v_next\n  from public.submission_media m where m.submission_id = p_submission_id;\n  -- The browser matches each file by its position in the payload, never by its name (FE-04).\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(p_media) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, p_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      p_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      v_next + x.position\n    from entries x\n    returning m.id, m.storage_path\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', st.id, 'index', en.position, 'storage_path', st.storage_path)\n      order by en.position\n    ),\n    '[]'::jsonb\n  )\n  into v_result\n  from stored st join entries en on en.media_id = st.id;\n  return v_result;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"no contact's\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > refuses a session that is no contact's"
+  },
+  {
+    "id": "w6-8-photos-open",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_add_photos(p_user uuid, p_submission_id uuid, p_media jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid := app.contact_of(p_user);\n  v_state public.submission_state;\n  v_next integer;\n  v_result jsonb;\nbegin\n  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the\n  -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at\n  -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.\n  if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 10 then\n    raise exception 'validation' using errcode = '22023', detail = 'one to ten photographs at a time';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(p_media) e\n    where e ->> 'type' is null\n      or e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp')\n      or coalesce(btrim(e ->> 'name'), '') = ''\n      or char_length(e ->> 'name') > 255\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) is null\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) > 26214400\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported photograph';\n  end if;\n  -- The person's own request only; `contact_of` is null for a session that is no contact's, which matches nothing.\n  select s.workflow_state into v_state\n  from public.submissions s\n  where s.id = p_submission_id and s.contact_id = v_contact\n  for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Open: before the request is activated. Activation copies its photographs to the property, so a later one would\n  -- never reach the page; from then on the team handles them.\n  select coalesce(max(m.sort_order), -1) + 1 into v_next\n  from public.submission_media m where m.submission_id = p_submission_id;\n  -- The browser matches each file by its position in the payload, never by its name (FE-04).\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(p_media) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, p_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      p_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      v_next + x.position\n    from entries x\n    returning m.id, m.storage_path\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', st.id, 'index', en.position, 'storage_path', st.storage_path)\n      order by en.position\n    ),\n    '[]'::jsonb\n  )\n  into v_result\n  from stored st join entries en on en.media_id = st.id;\n  return v_result;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"until it is activated\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > accepts a request until it is activated, and refuses it from then on"
+  },
+  {
+    "id": "w6-8-photos-type",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_add_photos(p_user uuid, p_submission_id uuid, p_media jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid := app.contact_of(p_user);\n  v_state public.submission_state;\n  v_next integer;\n  v_result jsonb;\nbegin\n  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the\n  -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at\n  -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.\n  if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 10 then\n    raise exception 'validation' using errcode = '22023', detail = 'one to ten photographs at a time';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(p_media) e\n    where e ->> 'type' is null\n      or coalesce(btrim(e ->> 'name'), '') = ''\n      or char_length(e ->> 'name') > 255\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) is null\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) > 26214400\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported photograph';\n  end if;\n  -- The person's own request only; `contact_of` is null for a session that is no contact's, which matches nothing.\n  select s.workflow_state into v_state\n  from public.submissions s\n  where s.id = p_submission_id and s.contact_id = v_contact\n  for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Open: before the request is activated. Activation copies its photographs to the property, so a later one would\n  -- never reach the page; from then on the team handles them.\n  if v_state not in ('Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued') then\n    raise exception 'wrong_state';\n  end if;\n  select coalesce(max(m.sort_order), -1) + 1 into v_next\n  from public.submission_media m where m.submission_id = p_submission_id;\n  -- The browser matches each file by its position in the payload, never by its name (FE-04).\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(p_media) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, p_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      p_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      v_next + x.position\n    from entries x\n    returning m.id, m.storage_path\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', st.id, 'index', en.position, 'storage_path', st.storage_path)\n      order by en.position\n    ),\n    '[]'::jsonb\n  )\n  into v_result\n  from stored st join entries en on en.media_id = st.id;\n  return v_result;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"refuses an empty list\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > refuses an empty list, more than ten, a file that is not a photograph, a file over 25 MB and a nameless one"
+  },
+  {
+    "id": "w6-8-photos-ten",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_add_photos(p_user uuid, p_submission_id uuid, p_media jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid := app.contact_of(p_user);\n  v_state public.submission_state;\n  v_next integer;\n  v_result jsonb;\nbegin\n  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the\n  -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at\n  -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.\n  if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 11 then\n    raise exception 'validation' using errcode = '22023', detail = 'one to ten photographs at a time';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(p_media) e\n    where e ->> 'type' is null\n      or e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp')\n      or coalesce(btrim(e ->> 'name'), '') = ''\n      or char_length(e ->> 'name') > 255\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) is null\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) > 26214400\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported photograph';\n  end if;\n  -- The person's own request only; `contact_of` is null for a session that is no contact's, which matches nothing.\n  select s.workflow_state into v_state\n  from public.submissions s\n  where s.id = p_submission_id and s.contact_id = v_contact\n  for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Open: before the request is activated. Activation copies its photographs to the property, so a later one would\n  -- never reach the page; from then on the team handles them.\n  if v_state not in ('Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued') then\n    raise exception 'wrong_state';\n  end if;\n  select coalesce(max(m.sort_order), -1) + 1 into v_next\n  from public.submission_media m where m.submission_id = p_submission_id;\n  -- The browser matches each file by its position in the payload, never by its name (FE-04).\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(p_media) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, p_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      p_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      v_next + x.position\n    from entries x\n    returning m.id, m.storage_path\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', st.id, 'index', en.position, 'storage_path', st.storage_path)\n      order by en.position\n    ),\n    '[]'::jsonb\n  )\n  into v_result\n  from stored st join entries en on en.media_id = st.id;\n  return v_result;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"refuses an empty list\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > refuses an empty list, more than ten, a file that is not a photograph, a file over 25 MB and a nameless one"
+  },
+  {
+    "id": "w6-8-photos-size",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_add_photos(p_user uuid, p_submission_id uuid, p_media jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid := app.contact_of(p_user);\n  v_state public.submission_state;\n  v_next integer;\n  v_result jsonb;\nbegin\n  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the\n  -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at\n  -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.\n  if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 10 then\n    raise exception 'validation' using errcode = '22023', detail = 'one to ten photographs at a time';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(p_media) e\n    where e ->> 'type' is null\n      or e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp')\n      or coalesce(btrim(e ->> 'name'), '') = ''\n      or char_length(e ->> 'name') > 255\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) is null\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) > 26214401\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported photograph';\n  end if;\n  -- The person's own request only; `contact_of` is null for a session that is no contact's, which matches nothing.\n  select s.workflow_state into v_state\n  from public.submissions s\n  where s.id = p_submission_id and s.contact_id = v_contact\n  for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Open: before the request is activated. Activation copies its photographs to the property, so a later one would\n  -- never reach the page; from then on the team handles them.\n  if v_state not in ('Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued') then\n    raise exception 'wrong_state';\n  end if;\n  select coalesce(max(m.sort_order), -1) + 1 into v_next\n  from public.submission_media m where m.submission_id = p_submission_id;\n  -- The browser matches each file by its position in the payload, never by its name (FE-04).\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(p_media) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, p_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      p_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      v_next + x.position\n    from entries x\n    returning m.id, m.storage_path\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', st.id, 'index', en.position, 'storage_path', st.storage_path)\n      order by en.position\n    ),\n    '[]'::jsonb\n  )\n  into v_result\n  from stored st join entries en on en.media_id = st.id;\n  return v_result;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"refuses an empty list\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > refuses an empty list, more than ten, a file that is not a photograph, a file over 25 MB and a nameless one"
+  },
+  {
+    "id": "w6-8-photos-order",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_add_photos(p_user uuid, p_submission_id uuid, p_media jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid := app.contact_of(p_user);\n  v_state public.submission_state;\n  v_next integer;\n  v_result jsonb;\nbegin\n  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the\n  -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at\n  -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.\n  if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 10 then\n    raise exception 'validation' using errcode = '22023', detail = 'one to ten photographs at a time';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(p_media) e\n    where e ->> 'type' is null\n      or e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp')\n      or coalesce(btrim(e ->> 'name'), '') = ''\n      or char_length(e ->> 'name') > 255\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) is null\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) > 26214400\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported photograph';\n  end if;\n  -- The person's own request only; `contact_of` is null for a session that is no contact's, which matches nothing.\n  select s.workflow_state into v_state\n  from public.submissions s\n  where s.id = p_submission_id and s.contact_id = v_contact\n  for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Open: before the request is activated. Activation copies its photographs to the property, so a later one would\n  -- never reach the page; from then on the team handles them.\n  if v_state not in ('Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued') then\n    raise exception 'wrong_state';\n  end if;\n  select coalesce(max(m.sort_order), -1) + 1 into v_next\n  from public.submission_media m where m.submission_id = p_submission_id;\n  -- The browser matches each file by its position in the payload, never by its name (FE-04).\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(p_media) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, p_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      p_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'heic'\n        else 'webp'\n      end,\n      x.position\n    from entries x\n    returning m.id, m.storage_path\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', st.id, 'index', en.position, 'storage_path', st.storage_path)\n      order by en.position\n    ),\n    '[]'::jsonb\n  )\n  into v_result\n  from stored st join entries en on en.media_id = st.id;\n  return v_result;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"declares the photographs\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > declares the photographs on the person's own open request, after the ones it holds, at paths of their own"
+  },
+  {
+    "id": "w6-8-photos-extension",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_add_photos(p_user uuid, p_submission_id uuid, p_media jsonb)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid := app.contact_of(p_user);\n  v_state public.submission_state;\n  v_next integer;\n  v_result jsonb;\nbegin\n  -- W6 item 8 (phase 2), ruling H142: photographs added to an open request by the person it belongs to, the way the\n  -- submit form declares them: a row first (the same limits as `create_submission`), then the browser puts each file at\n  -- its signed path, then the `reconcile` job settles it. One to ten at a time, so one call signs them all.\n  if jsonb_typeof(p_media) is distinct from 'array' or jsonb_array_length(p_media) not between 1 and 10 then\n    raise exception 'validation' using errcode = '22023', detail = 'one to ten photographs at a time';\n  end if;\n  if exists (\n    select 1 from jsonb_array_elements(p_media) e\n    where e ->> 'type' is null\n      or e ->> 'type' not in ('image/jpeg', 'image/png', 'image/heic', 'image/webp')\n      or coalesce(btrim(e ->> 'name'), '') = ''\n      or char_length(e ->> 'name') > 255\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) is null\n      or (case when e ->> 'size' ~ '^[0-9]{1,8}$' then (e ->> 'size')::bigint end) > 26214400\n  ) then\n    raise exception 'validation' using errcode = '22023', detail = 'unsupported photograph';\n  end if;\n  -- The person's own request only; `contact_of` is null for a session that is no contact's, which matches nothing.\n  select s.workflow_state into v_state\n  from public.submissions s\n  where s.id = p_submission_id and s.contact_id = v_contact\n  for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  -- Open: before the request is activated. Activation copies its photographs to the property, so a later one would\n  -- never reach the page; from then on the team handles them.\n  if v_state not in ('Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued') then\n    raise exception 'wrong_state';\n  end if;\n  select coalesce(max(m.sort_order), -1) + 1 into v_next\n  from public.submission_media m where m.submission_id = p_submission_id;\n  -- The browser matches each file by its position in the payload, never by its name (FE-04).\n  with entries as (\n    select e.value as entry, (e.ordinality - 1)::int as position, gen_random_uuid() as media_id\n    from jsonb_array_elements(p_media) with ordinality e\n  ),\n  stored as (\n    insert into public.submission_media as m (id, submission_id, name, bytes, storage_path, sort_order)\n    select x.media_id, p_submission_id, x.entry ->> 'name', (x.entry ->> 'size')::bigint,\n      p_submission_id || '/' || x.media_id || '.' || case x.entry ->> 'type'\n        when 'image/jpeg' then 'jpg'\n        when 'image/png' then 'png'\n        when 'image/heic' then 'jpg'\n        else 'webp'\n      end,\n      v_next + x.position\n    from entries x\n    returning m.id, m.storage_path\n  )\n  select coalesce(\n    jsonb_agg(\n      jsonb_build_object('media_id', st.id, 'index', en.position, 'storage_path', st.storage_path)\n      order by en.position\n    ),\n    '[]'::jsonb\n  )\n  into v_result\n  from stored st join entries en on en.media_id = st.id;\n  return v_result;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"declares the photographs\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > declares the photographs on the person's own open request, after the ones it holds, at paths of their own"
+  },
+  {
+    "id": "w6-8-photos-limit",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.enforce_submission_media_limit()\nreturns trigger\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- GQ-07: the row lock makes concurrent inserts for one submission run one after another, so the count is exact.\n  perform 1 from public.submissions where id = new.submission_id for update;\n  if (select count(*) from public.submission_media where submission_id = new.submission_id) >= 400 then\n    raise exception 'upload_limit';\n  end if;\n  return new;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"limit of forty\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > holds the limit of forty photographs across calls"
+  },
+  {
+    "id": "w6-8-photos-grant",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "grant execute on function public.account_add_photos(uuid, uuid, jsonb) to authenticated;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"service role only\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_add_photos > is called by the service role only"
+  },
+  {
+    "id": "w6-8-photos-flag",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_properties(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's requests with the dates their timeline needs and the path\n  -- of the live page, through the same mapping as `account_room`. Null when no contact matches. The fixed field list\n  -- leaves out every staff column (notes, the decline note and reason, reviewer ids, address hashes).\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', s.id,\n          'address', s.address,\n          'city', s.city,\n          'state', s.state,\n          'package', s.package,\n          'workflow_state', s.workflow_state,\n          'received_at', s.received_at,\n          'reviewed_at', s.reviewed_at,\n          'accepted_at', s.accepted_at,\n          'activated_at', s.activated_at,\n          'published_at', p.published_at,\n          -- The photographs on the request, and whether more can be added: until it is activated (account_add_photos)\n          -- and while it holds fewer than forty. Only settled ones count: a file declared but never put, or removed by\n          -- the reconcile job as not a photograph, is not on the request.\n          'photos', settled.n,\n          'can_add_photos', true or s.workflow_state in (\n            'Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued'\n          ) and settled.n < 40,\n          -- The page a visitor can open: only a published property has one (a takedown archives it).\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      left join public.properties p on p.id = s.property_id\n      cross join lateral (\n        select count(*)::int as n from public.submission_media m\n        where m.submission_id = s.id and m.uploaded_at is not null\n      ) settled\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"counts the photographs\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_properties photographs > counts the photographs on each request and says which can still take more"
+  },
+  {
+    "id": "w6-8-photos-count",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_properties(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's requests with the dates their timeline needs and the path\n  -- of the live page, through the same mapping as `account_room`. Null when no contact matches. The fixed field list\n  -- leaves out every staff column (notes, the decline note and reason, reviewer ids, address hashes).\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', s.id,\n          'address', s.address,\n          'city', s.city,\n          'state', s.state,\n          'package', s.package,\n          'workflow_state', s.workflow_state,\n          'received_at', s.received_at,\n          'reviewed_at', s.reviewed_at,\n          'accepted_at', s.accepted_at,\n          'activated_at', s.activated_at,\n          'published_at', p.published_at,\n          -- The photographs on the request, and whether more can be added: until it is activated (account_add_photos)\n          -- and while it holds fewer than forty. Only settled ones count: a file declared but never put, or removed by\n          -- the reconcile job as not a photograph, is not on the request.\n          'photos', 0,\n          'can_add_photos', s.workflow_state in (\n            'Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued'\n          ) and settled.n < 40,\n          -- The page a visitor can open: only a published property has one (a takedown archives it).\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      left join public.properties p on p.id = s.property_id\n      cross join lateral (\n        select count(*)::int as n from public.submission_media m\n        where m.submission_id = s.id and m.uploaded_at is not null\n      ) settled\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"counts the photographs\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_properties photographs > counts the photographs on each request and says which can still take more"
+  },
+  {
+    "id": "w6-8-timeline-declined-stops",
+    "test": "tests/unit/account-timeline.test.ts",
+    "file": "src/domain/account.ts",
+    "find": "  Declined: 1,",
+    "replace": "  Declined: 2,",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account-timeline.test.ts",
+    "expect": "FAIL .*account-timeline\\.test\\.ts > requestTimeline > a declined request shows the steps it passed and then says it was not taken on"
+  },
+  {
+    "id": "w6-8-timeline-awaiting",
+    "test": "tests/unit/account-timeline.test.ts",
+    "file": "src/domain/account.ts",
+    "find": "  \"Awaiting Assets\": 2,",
+    "replace": "  \"Awaiting Assets\": 1,",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account-timeline.test.ts",
+    "expect": "FAIL .*account-timeline\\.test\\.ts > requestTimeline > waiting for photographs is the accepted step, and a distribution that runs is the live step"
+  },
+  {
+    "id": "w6-8-timeline-completed",
+    "test": "tests/unit/account-timeline.test.ts",
+    "file": "src/domain/account.ts",
+    "find": "const finished = ended || state === \"Completed\";",
+    "replace": "const finished = ended;",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account-timeline.test.ts",
+    "expect": "FAIL .*account-timeline\\.test\\.ts > requestTimeline > a completed request has nothing in progress"
+  },
+  {
+    "id": "w6-8-timeline-dates",
+    "test": "tests/unit/account-timeline.test.ts",
+    "file": "src/domain/account.ts",
+    "find": "at: index <= last ? (dates[index] ?? null) : null,",
+    "replace": "at: dates[index] ?? null,",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account-timeline.test.ts",
+    "expect": "FAIL .*account-timeline\\.test\\.ts > requestTimeline > carries the day a step was reached where the record holds it, and none for a step to come"
+  },
+  {
+    "id": "w6-8-timeline-ended-label",
+    "test": "tests/unit/account-timeline.test.ts",
+    "file": "src/domain/account.ts",
+    "find": "label: state === \"Declined\" ? \"Not taken on\" : \"Withdrawn\"",
+    "replace": "label: state === \"Declined\" ? \"Declined\" : \"Withdrawn\"",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account-timeline.test.ts",
+    "expect": "FAIL .*account-timeline\\.test\\.ts > requestTimeline > a declined request shows the steps it passed and then says it was not taken on"
+  },
+  {
+    "id": "w6-8-credits-pack-size",
+    "test": "tests/unit/payments/credits.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "{ \"Five Features\": 5 }",
+    "replace": "{ \"Five Features\": 4 }",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/payments/credits.test.ts",
+    "expect": "FAIL .*credits\\.test\\.ts > creditsInPackage > is five for Five Features and nothing for a product that is one property"
+  },
+  {
+    "id": "w6-8-credits-value",
+    "test": "tests/unit/payments/credits.test.ts",
+    "file": "src/domain/payments.ts",
+    "find": "Math.round((packPrice * 100) / credits) / 100",
+    "replace": "Math.floor(packPrice / credits)",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/payments/credits.test.ts",
+    "expect": "FAIL .*credits\\.test\\.ts > creditValue > is the pack's price over its credits, to the cent"
+  },
+  {
+    "id": "w6-8-svc-account_properties",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "db.rpc(\"account_properties\", { p_user })",
+    "replace": "db.rpc(\"account_invoices\", { p_user })",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account.service.test.ts",
+    "expect": "FAIL .*account\\.service\\.test\\.ts > the My properties page > reads its own function for the session's own user and names whose room it is"
+  },
+  {
+    "id": "w6-8-svc-account_invoices",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "db.rpc(\"account_invoices\", { p_user })",
+    "replace": "db.rpc(\"account_credits\", { p_user })",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account.service.test.ts",
+    "expect": "FAIL .*account\\.service\\.test\\.ts > the Invoices page > reads its own function for the session's own user and names whose room it is"
+  },
+  {
+    "id": "w6-8-svc-account_credits",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "db.rpc(\"account_credits\", { p_user })",
+    "replace": "db.rpc(\"account_reports\", { p_user })",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account.service.test.ts",
+    "expect": "FAIL .*account\\.service\\.test\\.ts > the Credits page > reads its own function for the session's own user and names whose room it is"
+  },
+  {
+    "id": "w6-8-svc-account_reports",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "db.rpc(\"account_reports\", { p_user })",
+    "replace": "db.rpc(\"account_properties\", { p_user })",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account.service.test.ts",
+    "expect": "FAIL .*account\\.service\\.test\\.ts > the Reports page > reads its own function for the session's own user and names whose room it is"
+  },
+  {
+    "id": "w6-8-svc-shape",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "const page = schema.nullable().parse(data);",
+    "replace": "const page = data as z.output<T> | null;",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account.service.test.ts",
+    "expect": "FAIL .*account\\.service\\.test\\.ts > the Reports page > refuses an answer that is not the page's shape instead of showing it"
+  },
+  {
+    "id": "w6-8-svc-photos-origin",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "  if (!sameOrigin(request)) throw foreignOrigin();\n  const user = await getSessionUser(request);\n  if (user === null) throw new AppError(\"session_expired\"",
+    "replace": "  const user = await getSessionUser(request);\n  if (user === null) throw new AppError(\"session_expired\"",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account.service.test.ts",
+    "expect": "FAIL .*account\\.service\\.test\\.ts > addPhotos > refuses a post from another origin before anything is read or written"
+  },
+  {
+    "id": "w6-8-svc-photos-session",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "  if (user === null) throw new AppError(\"session_expired\", undefined, \"Please sign in again.\");",
+    "replace": "",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account.service.test.ts",
+    "expect": "FAIL .*account\\.service\\.test\\.ts > addPhotos > asks a person without a session to sign in, and touches nothing"
+  },
+  {
+    "id": "w6-8-svc-photos-user",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "    p_user: user.userId,\n    p_submission_id: input.submission_id,",
+    "replace": "    p_user: input.submission_id,\n    p_submission_id: input.submission_id,",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account.service.test.ts",
+    "expect": "FAIL .*account\\.service\\.test\\.ts > addPhotos > declares the photographs for the session's own user and signs each, matched to the list by position"
+  },
+  {
+    "id": "w6-8-svc-photos-index",
+    "test": "tests/unit/account.service.test.ts",
+    "file": "src/server/account/service.ts",
+    "find": "        index: photo.index,",
+    "replace": "        index: 0,",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account.service.test.ts",
+    "expect": "FAIL .*account\\.service\\.test\\.ts > addPhotos > declares the photographs for the session's own user and signs each, matched to the list by position"
+  },
+  {
+    "id": "w6-8-pay-credit-route",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "  if (credits !== null) {",
+    "replace": "  if (credits === null) {",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > waiveWithoutInvoice \\(DL-01\\) > spends a credit for Five Features, at one property's share of the pack, and records no plain waiver"
+  },
+  {
+    "id": "w6-8-pay-credit-amount",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/payments/service.ts",
+    "find": "        p_amount: creditValue(price, credits),",
+    "replace": "        p_amount: price,",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > waiveWithoutInvoice \\(DL-01\\) > spends a credit for Five Features, at one property's share of the pack, and records no plain waiver"
+  },
+  {
+    "id": "w6-8-pay-no-credit-code",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/lib/error-codes.ts",
+    "find": "  no_credit: 409,",
+    "replace": "  no_credit: 400,",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > waiveWithoutInvoice \\(DL-01\\) > answers 409 no_credit when the contact holds no credit"
+  },
+  {
+    "id": "w6-8-lib-batch",
+    "test": "tests/unit/account-photos.test.ts",
+    "file": "src/lib/account-photos.ts",
+    "find": "const BATCH = 10;",
+    "replace": "const BATCH = 20;",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account-photos.test.ts",
+    "expect": "FAIL .*account-photos\\.test\\.ts > sendAccountPhotos > declares the photographs ten at a time, with the size and type the prepared file has"
+  },
+  {
+    "id": "w6-8-lib-type",
+    "test": "tests/unit/account-photos.test.ts",
+    "file": "src/lib/account-photos.ts",
+    "find": "      if (!isPhotoType(image.type)) throw new UnsupportedPhotoError(file.name);\n",
+    "replace": "",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account-photos.test.ts",
+    "expect": "FAIL .*account-photos\\.test\\.ts > sendAccountPhotos > refuses a file that is not a photograph before anything is declared"
+  },
+  {
+    "id": "w6-8-lib-failed",
+    "test": "tests/unit/account-photos.test.ts",
+    "file": "src/lib/account-photos.ts",
+    "find": "sent += batch.length - result.failed.length;",
+    "replace": "sent += batch.length;",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account-photos.test.ts",
+    "expect": "FAIL .*account-photos\\.test\\.ts > sendAccountPhotos > counts the photographs that did not go through, and sends no more than it was given"
+  },
+  {
+    "id": "w6-8-lib-signed",
+    "test": "tests/unit/account-photos.test.ts",
+    "file": "src/lib/account-photos.ts",
+    "find": "fetchMore: () => Promise.resolve([]),",
+    "replace": "fetchMore: () => Promise.resolve([{ media_id: \"x\", url: \"u\", thumb_url: \"t\" }]),",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/account-photos.test.ts",
+    "expect": "FAIL .*account-photos\\.test\\.ts > sendAccountPhotos > hands each batch's prepared files to the upload queue with the URLs the Worker signed"
+  },
+  {
+    "id": "w6-8-submit-starting",
+    "test": "tests/unit/submit-state.test.ts",
+    "file": "src/components/forms/submit/state.ts",
+    "find": "  chosen === undefined ? initialDraft : { ...initialDraft, package: chosen };",
+    "replace": "  initialDraft;",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/submit-state.test.ts",
+    "expect": "FAIL .*submit-state\\.test\\.ts > startingDraft > is the empty draft with the exposure chosen, and nothing else filled in"
+  },
+  {
+    "id": "w6-8-submit-search",
+    "test": "tests/unit/submit-route-search.test.tsx",
+    "file": "src/routes/_site.submit.tsx",
+    "find": "search[\"package\"] === \"five-features\" ? { package: \"five-features\" } : {},",
+    "replace": "search[\"package\"] === undefined ? {} : { package: \"five-features\" },",
+    "run": "node node_modules/vitest/vitest.mjs run --project component tests/unit/submit-route-search.test.tsx",
+    "expect": "FAIL .*submit-route-search\\.test\\.tsx > the submit page's search > keeps five-features and drops every other value"
+  },
+  {
+    "id": "w6-8-ui-timeline-upcoming",
+    "test": "src/components/account/account-properties.test.tsx",
+    "file": "src/components/account/account-properties.tsx",
+    "find": "if (step.status === \"upcoming\") return \"Not yet\";",
+    "replace": "if (step.status === \"upcoming\") return \"Soon\";",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-properties.test.tsx",
+    "expect": "FAIL .*account-properties\\.test\\.tsx > AccountProperties > shows a request as a timeline: the days it passed, where it is now and what is still to come"
+  },
+  {
+    "id": "w6-8-ui-timeline-current",
+    "test": "src/components/account/account-properties.test.tsx",
+    "file": "src/components/account/account-properties.tsx",
+    "find": "aria-current={step.status === \"current\" ? \"step\" : undefined}",
+    "replace": "aria-current={undefined}",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-properties.test.tsx",
+    "expect": "FAIL .*account-properties\\.test\\.tsx > AccountProperties > marks the step a request is at for assistive technology"
+  },
+  {
+    "id": "w6-8-ui-status-sentence",
+    "test": "src/components/account/account-properties.test.tsx",
+    "file": "src/components/account/account-properties.tsx",
+    "find": "<p>{requestStatusLines[property.workflow_state]}</p>",
+    "replace": "<p>{property.workflow_state}</p>",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-properties.test.tsx",
+    "expect": "FAIL .*account-properties\\.test\\.tsx > AccountProperties > says where a request stands in a sentence, never the staff label"
+  },
+  {
+    "id": "w6-8-ui-live-link",
+    "test": "src/components/account/account-properties.test.tsx",
+    "file": "src/components/account/account-properties.tsx",
+    "find": "{property.live_path === null ? null : (",
+    "replace": "{false ? null : (",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-properties.test.tsx",
+    "expect": "FAIL .*account-properties\\.test\\.tsx > AccountProperties > links to the live page once there is one, and not before"
+  },
+  {
+    "id": "w6-8-ui-photos-open",
+    "test": "src/components/account/account-properties.test.tsx",
+    "file": "src/components/account/account-properties.tsx",
+    "find": "{property.can_add_photos ? (",
+    "replace": "{true ? (",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-properties.test.tsx",
+    "expect": "FAIL .*account-properties\\.test\\.tsx > AccountProperties > offers to add photographs to a request that can still take them, and to no other"
+  },
+  {
+    "id": "w6-8-ui-ended-closed",
+    "test": "src/components/account/account-properties.test.tsx",
+    "file": "src/components/account/account-properties.tsx",
+    "find": "if (step.status === \"ended\") return \"Closed\";",
+    "replace": "if (step.status === \"ended\") return \"Done\";",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-properties.test.tsx",
+    "expect": "FAIL .*account-properties\\.test\\.tsx > AccountProperties > ends a declined request with a plain closing step and no steps to come"
+  },
+  {
+    "id": "w6-8-ui-invoice-credit",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/components/account/account-invoices.tsx",
+    "find": "  if (invoice.credit) return \"Covered by a Five Features credit\";\n",
+    "replace": "",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > shows a spent credit as covered by the credit and any other waiver as no charge"
+  },
+  {
+    "id": "w6-8-ui-invoice-waived",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/components/account/account-invoices.tsx",
+    "find": "      return \"No charge\";",
+    "replace": "      return \"Waived\";",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > shows a spent credit as covered by the credit and any other waiver as no charge"
+  },
+  {
+    "id": "w6-8-ui-invoice-pay-due",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/components/account/account-invoices.tsx",
+    "find": "invoice.status === \"due\" && invoice.pay_url !== null",
+    "replace": "invoice.pay_url !== null",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > offers a pay link on an invoice that is due and has one, and on no other"
+  },
+  {
+    "id": "w6-8-ui-invoice-due-day",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/components/account/account-invoices.tsx",
+    "find": "return invoice.due_at === null ? \"Due\" : `Due ${plainDay(invoice.due_at)}`;",
+    "replace": "return \"Due\";",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > lists what is owed and what is paid with the amount, the number and the day"
+  },
+  {
+    "id": "w6-8-ui-invoice-refunded",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/components/account/account-invoices.tsx",
+    "find": "      return \"Refunded\";",
+    "replace": "      return \"Paid\";",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > says refunded for money given back and cancelled for a voided invoice"
+  },
+  {
+    "id": "w6-8-ui-invoice-void",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/components/account/account-invoices.tsx",
+    "find": "      return \"Cancelled\";",
+    "replace": "      return \"Due\";",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > says refunded for money given back and cancelled for a voided invoice"
+  },
+  {
+    "id": "w6-8-ui-credits-next",
+    "test": "src/components/account/account-credits.test.tsx",
+    "file": "src/components/account/account-credits.tsx",
+    "find": "{balance > 0 ? (",
+    "replace": "{true ? (",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-credits.test.tsx",
+    "expect": "FAIL .*account-credits\\.test\\.tsx > AccountCredits > offers no submission when the credits are used up"
+  },
+  {
+    "id": "w6-8-ui-credits-link",
+    "test": "src/components/account/account-credits.test.tsx",
+    "file": "src/components/account/account-credits.tsx",
+    "find": "search={{ package: \"five-features\" }}",
+    "replace": "search={{}}",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-credits.test.tsx",
+    "expect": "FAIL .*account-credits\\.test\\.tsx > AccountCredits > opens the form with Five Features chosen while a credit remains"
+  },
+  {
+    "id": "w6-8-ui-credits-none",
+    "test": "src/components/account/account-credits.test.tsx",
+    "file": "src/components/account/account-credits.tsx",
+    "find": "if (purchased === 0) {",
+    "replace": "if (false) {",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-credits.test.tsx",
+    "expect": "FAIL .*account-credits\\.test\\.tsx > AccountCredits > explains Five Features to a client who holds none"
+  },
+  {
+    "id": "w6-8-ui-credits-singular",
+    "test": "src/components/account/account-credits.test.tsx",
+    "file": "src/components/account/account-credits.tsx",
+    "find": "count === 1 ? \"credit\" : \"credits\"",
+    "replace": "\"credits\"",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-credits.test.tsx",
+    "expect": "FAIL .*account-credits\\.test\\.tsx > AccountCredits > says one credit in the singular"
+  },
+  {
+    "id": "w6-8-ui-reports-calendar",
+    "test": "src/components/account/account-reports.test.tsx",
+    "file": "src/lib/format.ts",
+    "find": "{ dateStyle: \"medium\", timeZone: \"UTC\" }",
+    "replace": "{ dateStyle: \"medium\", timeZone: \"America/New_York\" }",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-reports.test.tsx",
+    "expect": "FAIL .*account-reports\\.test\\.tsx > AccountReports > lists the weekly figures, and says a figure the platform did not report was not measured"
+  },
+  {
+    "id": "w6-8-ui-reports-measured",
+    "test": "src/components/account/account-reports.test.tsx",
+    "file": "src/components/account/account-format.ts",
+    "find": "value === null ? \"Not measured\" : formatNumber(value)",
+    "replace": "value === null ? \"0\" : formatNumber(value)",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-reports.test.tsx",
+    "expect": "FAIL .*account-reports\\.test\\.tsx > AccountReports > lists the weekly figures, and says a figure the platform did not report was not measured"
+  },
+  {
+    "id": "w6-8-ui-reports-empty-weeks",
+    "test": "src/components/account/account-reports.test.tsx",
+    "file": "src/components/account/account-reports.tsx",
+    "find": "{property.weeks.length === 0 ? (",
+    "replace": "{false ? (",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-reports.test.tsx",
+    "expect": "FAIL .*account-reports\\.test\\.tsx > AccountReports > says weekly figures appear once a campaign has run, for a property without any"
+  },
+  {
+    "id": "w6-8-ui-reports-counts",
+    "test": "src/components/account/account-reports.test.tsx",
+    "file": "src/components/account/account-reports.tsx",
+    "find": "<dd>{count(property.inquiries)}</dd>",
+    "replace": "<dd>{count(property.inquiries_30d)}</dd>",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-reports.test.tsx",
+    "expect": "FAIL .*account-reports\\.test\\.tsx > AccountReports > states the page views and the inquiry counts of a property"
+  },
+  {
+    "id": "w6-8-ui-money",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/lib/format.ts",
+    "find": "minimumFractionDigits: cents ? 2 : 0,",
+    "replace": "minimumFractionDigits: 2,",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > lists what is owed and what is paid with the amount, the number and the day"
+  },
+  {
+    "id": "w6-8-ui-plain-day",
+    "test": "src/components/account/account-invoices.test.tsx",
+    "file": "src/components/account/account-format.ts",
+    "find": "export const plainDay = (at: string): string => formatInZone(at, marketTimezone(null), \"date\");",
+    "replace": "export const plainDay = (at: string): string => formatInZone(at, marketTimezone(\"california\"), \"date\");",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-invoices.test.tsx",
+    "expect": "FAIL .*account-invoices\\.test\\.tsx > AccountInvoices > lists what is owed and what is paid with the amount, the number and the day"
+  },
+  {
+    "id": "w6-8-ui-page-signed-out",
+    "test": "src/components/account/account-page.test.tsx",
+    "file": "src/components/account/account-page.tsx",
+    "find": "return <Navigate to=\"/account\" replace />;",
+    "replace": "return null;",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-page.test.tsx",
+    "expect": "FAIL .*account-page\\.test\\.tsx > AccountPageView > sends a visitor without a session to the front page of the room, where the form is"
+  },
+  {
+    "id": "w6-8-ui-page-unknown",
+    "test": "src/components/account/account-page.test.tsx",
+    "file": "src/components/account/account-page.tsx",
+    "find": "if (view.state === \"unknown\") {",
+    "replace": "if (false as boolean) {",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-page.test.tsx",
+    "expect": "FAIL .*account-page\\.test\\.tsx > AccountPageView > shows the calm page, and no data, for an address that holds no request"
+  },
+  {
+    "id": "w6-8-ui-page-who",
+    "test": "src/components/account/account-page.test.tsx",
+    "file": "src/components/account/account-page.tsx",
+    "find": "          Signed in as {view.name}, {view.email}.",
+    "replace": "          Signed in.",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-page.test.tsx",
+    "expect": "FAIL .*account-page\\.test\\.tsx > AccountPageView > names whose room it is, lists the pages of the room and shows the page's own"
+  },
+  {
+    "id": "w6-8-ui-nav-current",
+    "test": "src/components/account/account-page.test.tsx",
+    "file": "src/components/account/account-nav.tsx",
+    "find": "<Link to={page.path}>",
+    "replace": "<Link to=\"/account/properties\">",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-page.test.tsx",
+    "expect": "FAIL .*account-page\\.test\\.tsx > AccountPageView > marks the page the visitor is on"
+  },
+  {
+    "id": "w6-8-ui-nav-pages",
+    "test": "src/components/account/account-page.test.tsx",
+    "file": "src/domain/account.ts",
+    "find": "{ path: \"/account/credits\", label: \"Credits\" },",
+    "replace": "{ path: \"/account/credits\", label: \"Credit\" },",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-page.test.tsx",
+    "expect": "FAIL .*account-page\\.test\\.tsx > AccountPageView > names whose room it is, lists the pages of the room and shows the page's own"
+  },
+  {
+    "id": "w6-8-ui-sign-out",
+    "test": "src/components/account/account-page.test.tsx",
+    "file": "src/hooks/use-account-sign-out.ts",
+    "find": "void signOutAccountFn().finally(() => {",
+    "replace": "void Promise.resolve().finally(() => {",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-page.test.tsx",
+    "expect": "FAIL .*account-page\\.test\\.tsx > AccountPageView > signs out from the nav"
+  },
+  {
+    "id": "w6-8-ui-photos-accept",
+    "test": "src/components/account/account-photos.test.tsx",
+    "file": "src/components/account/account-photos.tsx",
+    "find": "accept={uploadLimits.types.join(\",\")}",
+    "replace": "accept=\"image/*\"",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-photos.test.tsx",
+    "expect": "FAIL .*account-photos\\.test\\.tsx > AccountPhotos > takes only the photograph kinds the submit form takes"
+  },
+  {
+    "id": "w6-8-ui-photos-none",
+    "test": "src/components/account/account-photos.test.tsx",
+    "file": "src/components/account/account-photos.tsx",
+    "find": "    if (files.length === 0) return;\n",
+    "replace": "",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-photos.test.tsx",
+    "expect": "FAIL .*account-photos\\.test\\.tsx > AccountPhotos > does nothing when no file was chosen"
+  },
+  {
+    "id": "w6-8-ui-photos-sent",
+    "test": "src/components/account/account-photos.test.tsx",
+    "file": "src/components/account/account-photos.tsx",
+    "find": "        onSent();\n",
+    "replace": "",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-photos.test.tsx",
+    "expect": "FAIL .*account-photos\\.test\\.tsx > AccountPhotos > sends the chosen files to this request, then says they arrived and asks the page to read the new count"
+  },
+  {
+    "id": "w6-8-ui-photos-kind",
+    "test": "src/components/account/account-photos.test.tsx",
+    "file": "src/components/account/account-photos.tsx",
+    "find": "if (error instanceof UnsupportedPhotoError) return error.message;",
+    "replace": "",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-photos.test.tsx",
+    "expect": "FAIL .*account-photos\\.test\\.tsx > AccountPhotos > names a file that is not a photograph, and a plain retry for anything else"
+  },
+  {
+    "id": "w6-8-ui-photos-busy",
+    "test": "src/components/account/account-photos.test.tsx",
+    "file": "src/components/account/account-photos.tsx",
+    "find": "disabled={busy}",
+    "replace": "disabled={false}",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-photos.test.tsx",
+    "expect": "FAIL .*account-photos\\.test\\.tsx > AccountPhotos > shows the progress while the files go"
+  },
+  {
+    "id": "w6-8-ui-photos-failed",
+    "test": "src/components/account/account-photos.test.tsx",
+    "file": "src/components/account/account-photos.tsx",
+    "find": "failed === 0\n            ? ",
+    "replace": "true\n            ? ",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/components/account/account-photos.test.tsx",
+    "expect": "FAIL .*account-photos\\.test\\.tsx > AccountPhotos > says which did not go through, and to choose them again"
+  },
+  {
+    "id": "w6-8-ui-waive-credit-note",
+    "test": "src/admin/invoices/InvoiceDetail.test.tsx",
+    "file": "src/admin/invoices/WaiveWithoutInvoiceDialog.tsx",
+    "find": "{...(product === \"Five Features\" ? { hint: SPENDS_A_CREDIT } : {})}",
+    "replace": "{...(product === \"Five Features\" ? {} : {})}",
+    "run": "node node_modules/vitest/vitest.mjs run --project component src/admin/invoices/InvoiceDetail.test.tsx",
+    "expect": "FAIL .*InvoiceDetail\\.test\\.tsx > the draft > tells staff that a Five Features waiver spends a credit, and says so for no other product"
+  },
+  {
+    "id": "w6-8-e2e-walk-credits",
+    "kind": "manual",
+    "test": "tests/e2e/account-room.spec.ts",
+    "file": "src/components/account/account-credits.tsx",
+    "find": "search={{ package: \"five-features\" }}",
+    "replace": "search={{}}",
+    "run": "E2E_TARGET=url E2E_BASE_URL=http://127.0.0.1:8968 bunx playwright test --project=admin tests/e2e/account-room.spec.ts",
+    "expect": "submit\\?package=five-features|toHaveURL",
+    "procedure": "Needs the stack of the admin specs (a built Worker with the cloud project's variables and DEV_DB_URL), which this lane does not hold. By hand: change the link as above, run the command (red: the address after 'Submit my next property' has no package), put it back (green). NOT replayed here: UNPROVEN until the CI e2e job or a lane with the stack runs the walk."
+  },
+  {
+    "id": "w6-8-reconcile-declared-at",
+    "kind": "sql",
+    "test": "tests/db/reconcile.db.test.ts",
+    "sql": "alter table public.submission_media alter column declared_at set default now() - interval '3 hours';",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/reconcile.db.test.ts -t \"received a week ago\"",
+    "expect": "FAIL .*reconcile\\.db\\.test\\.ts > reconcileUploads on the database > settles a photograph added from the room to a request received a week ago, and removes one that is not an image"
+  },
+  {
+    "id": "w6-8-ledger-no-truncate",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "drop trigger client_credits_no_truncate on public.client_credits;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"append only\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > the ledger is append only, even to the service role"
+  },
+  {
+    "id": "w6-8-ledger-truncate-grant",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "grant truncate on table public.client_credits to service_role;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"append only\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > the ledger is append only, even to the service role"
+  },
+  {
+    "id": "w6-8-ledger-cleanup-production",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.client_credits_immutable()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  -- W6 item 8 (ruling H142): the ledger is never edited, deleted or emptied, by any role. The one delete allowed is a\n  -- cleanup of test fixtures that asks for it (`mop.fixture_cleanup`), and never on the production database (ruling H35):\n  -- only a known non-production environment allows it, as `public_state` reads it, so a missing row refuses.\n  if tg_op = 'DELETE' and current_setting('mop.fixture_cleanup', true) = 'on' then\n    return old;\n  end if;\n  raise exception 'append_only';\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"never on the production database\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a fixture cleanup that asks may delete ledger rows, never on the production database"
+  },
+  {
+    "id": "w6-8-ledger-cleanup-unknown",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.client_credits_immutable()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  -- W6 item 8 (ruling H142): the ledger is never edited, deleted or emptied, by any role. The one delete allowed is a\n  -- cleanup of test fixtures that asks for it (`mop.fixture_cleanup`), and never on the production database (ruling H35):\n  -- only a known non-production environment allows it, as `public_state` reads it, so a missing row refuses.\n  if tg_op = 'DELETE' and current_setting('mop.fixture_cleanup', true) = 'on'\n    and (select s.value #>> '{}' from public.settings s where s.key = 'environment') is distinct from 'production' then\n    return old;\n  end if;\n  raise exception 'append_only';\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"never on the production database\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a fixture cleanup that asks may delete ledger rows, never on the production database"
+  },
+  {
+    "id": "w6-8-ledger-cleanup-asked",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.client_credits_immutable()\nreturns trigger\nlanguage plpgsql\nset search_path = ''\nas $$\nbegin\n  -- W6 item 8 (ruling H142): the ledger is never edited, deleted or emptied, by any role. The one delete allowed is a\n  -- cleanup of test fixtures that asks for it (`mop.fixture_cleanup`), and never on the production database (ruling H35):\n  -- only a known non-production environment allows it, as `public_state` reads it, so a missing row refuses.\n  if tg_op = 'DELETE' and false\n    and (select s.value #>> '{}' in ('development', 'preview') from public.settings s where s.key = 'environment') then\n    return old;\n  end if;\n  raise exception 'append_only';\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"never on the production database\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > a fixture cleanup that asks may delete ledger rows, never on the production database"
+  },
+  {
+    "id": "w6-8-ledger-fn-execute",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "grant execute on function public.payments_grant_credits() to public;\ngrant execute on function public.client_credits_immutable() to public;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"execute the ledger's trigger functions\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > no client role may execute the ledger's trigger functions"
+  },
+  {
+    "id": "w6-8-spend-lock",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.spend_client_credit(\n  p_submission_id uuid,\n  p_amount numeric,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid;\n  v_package public.exposure_package;\n  v_balance integer;\n  v_payment uuid;\n  v_event uuid;\n  v_used public.client_credits;\nbegin\n  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The\n  -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the\n  -- same transaction, so a credit is never used without its waiver nor waived without its credit.\n  select s.contact_id, s.package into v_contact, v_package\n  from public.submissions s where s.id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  -- A credit buys a Five Features property: a request of another package has none to spend.\n  if v_package is distinct from 'Five Features' then\n    raise exception 'not_five_features'\n      using detail = 'This request chose another package, so a Five Features credit cannot be spent on it.';\n  end if;\n  -- A request with no contact has no ledger.\n  if v_contact is null then\n    raise exception 'wrong_state';\n  end if;\n  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit. `no key\n  -- update`, not `update`: the pack trigger's ledger insert takes a key share lock on the same contact, which `update`\n  -- would wait on while the trigger waited on this transaction.\n  perform 1 from public.contacts c where c.id = v_contact for update;\n  select coalesce(sum(cc.quantity), 0) into v_balance from public.client_credits cc where cc.contact_id = v_contact;\n  if v_balance < 1 then\n    raise exception 'no_credit' using detail = 'The client has no Five Features credit left.';\n  end if;\n  select w.payment_id, w.event_id into v_payment, v_event\n  from public.record_waiver(\n    p_submission_id, 'Five Features', p_amount, p_reason, p_actor, p_actor_kind, p_request_id\n  ) w;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, v_payment, p_submission_id, p_reason)\n  returning * into v_used;\n  -- `record_waiver` audits the payment; the credit it used is a change of its own, under the same action.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.waive', 'client_credits', v_used.id, null, to_jsonb(v_used), p_request_id\n  );\n  return query select v_payment, v_event;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"locks the contact for no key update\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > spend_client_credit locks the contact for no key update, which the pack trigger's key share does not wait on"
+  },
+  {
+    "id": "w6-8-spend-package-words",
+    "kind": "sql",
+    "test": "tests/db/client-credits.db.test.ts",
+    "sql": "create or replace function public.spend_client_credit(\n  p_submission_id uuid,\n  p_amount numeric,\n  p_reason text,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns table (payment_id uuid, event_id uuid)\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact uuid;\n  v_package public.exposure_package;\n  v_balance integer;\n  v_payment uuid;\n  v_event uuid;\n  v_used public.client_credits;\nbegin\n  -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The\n  -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the\n  -- same transaction, so a credit is never used without its waiver nor waived without its credit.\n  select s.contact_id, s.package into v_contact, v_package\n  from public.submissions s where s.id = p_submission_id;\n  if not found then\n    raise exception 'not_found';\n  end if;\n  -- A credit buys a Five Features property: a request of another package has none to spend.\n  if v_package is distinct from 'Five Features' then\n    raise exception 'not_five_features';\n  end if;\n  -- A request with no contact has no ledger.\n  if v_contact is null then\n    raise exception 'wrong_state';\n  end if;\n  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit. `no key\n  -- update`, not `update`: the pack trigger's ledger insert takes a key share lock on the same contact, which `update`\n  -- would wait on while the trigger waited on this transaction.\n  perform 1 from public.contacts c where c.id = v_contact for no key update;\n  select coalesce(sum(cc.quantity), 0) into v_balance from public.client_credits cc where cc.contact_id = v_contact;\n  if v_balance < 1 then\n    raise exception 'no_credit' using detail = 'The client has no Five Features credit left.';\n  end if;\n  select w.payment_id, w.event_id into v_payment, v_event\n  from public.record_waiver(\n    p_submission_id, 'Five Features', p_amount, p_reason, p_actor, p_actor_kind, p_request_id\n  ) w;\n  insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)\n  values (v_contact, 'used', -1, v_payment, p_submission_id, p_reason)\n  returning * into v_used;\n  -- `record_waiver` audits the payment; the credit it used is a change of its own, under the same action.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'payments.waive', 'client_credits', v_used.id, null, to_jsonb(v_used), p_request_id\n  );\n  return query select v_payment, v_event;\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts -t \"request of another package\"",
+    "expect": "FAIL .*client-credits\\.db\\.test\\.ts > client_credits > spend_client_credit refuses a request of another package"
+  },
+  {
+    "id": "w6-8-photos-settled",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_properties(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's requests with the dates their timeline needs and the path\n  -- of the live page, through the same mapping as `account_room`. Null when no contact matches. The fixed field list\n  -- leaves out every staff column (notes, the decline note and reason, reviewer ids, address hashes).\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', s.id,\n          'address', s.address,\n          'city', s.city,\n          'state', s.state,\n          'package', s.package,\n          'workflow_state', s.workflow_state,\n          'received_at', s.received_at,\n          'reviewed_at', s.reviewed_at,\n          'accepted_at', s.accepted_at,\n          'activated_at', s.activated_at,\n          'published_at', p.published_at,\n          -- The photographs on the request, and whether more can be added: until it is activated (account_add_photos)\n          -- and while it holds fewer than forty. Only settled ones count: a file declared but never put, or removed by\n          -- the reconcile job as not a photograph, is not on the request.\n          'photos', settled.n,\n          'can_add_photos', s.workflow_state in (\n            'Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued'\n          ) and settled.n < 40,\n          -- The page a visitor can open: only a published property has one (a takedown archives it).\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      left join public.properties p on p.id = s.property_id\n      cross join lateral (\n        select count(*)::int as n from public.submission_media m\n        where m.submission_id = s.id\n      ) settled\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"counts the photographs\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_properties photographs > counts the photographs on each request and says which can still take more"
+  },
+  {
+    "id": "w6-8-photos-forty",
+    "kind": "sql",
+    "test": "tests/db/account-photos.db.test.ts",
+    "sql": "create or replace function public.account_properties(p_user uuid)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_contact public.contacts;\nbegin\n  -- W6 item 8, rulings H119 and H142: the signed-in person's requests with the dates their timeline needs and the path\n  -- of the live page, through the same mapping as `account_room`. Null when no contact matches. The fixed field list\n  -- leaves out every staff column (notes, the decline note and reason, reviewer ids, address hashes).\n  select * into v_contact from public.contacts c where c.id = app.contact_of(p_user);\n  if not found then\n    return null;\n  end if;\n  return jsonb_build_object(\n    'name', v_contact.name,\n    'email', v_contact.email,\n    'properties', coalesce((\n      select jsonb_agg(\n        jsonb_build_object(\n          'id', s.id,\n          'address', s.address,\n          'city', s.city,\n          'state', s.state,\n          'package', s.package,\n          'workflow_state', s.workflow_state,\n          'received_at', s.received_at,\n          'reviewed_at', s.reviewed_at,\n          'accepted_at', s.accepted_at,\n          'activated_at', s.activated_at,\n          'published_at', p.published_at,\n          -- The photographs on the request, and whether more can be added: until it is activated (account_add_photos)\n          -- and while it holds fewer than forty. Only settled ones count: a file declared but never put, or removed by\n          -- the reconcile job as not a photograph, is not on the request.\n          'photos', settled.n,\n          'can_add_photos', s.workflow_state in (\n            'Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued'\n          ),\n          -- The page a visitor can open: only a published property has one (a takedown archives it).\n          'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end\n        )\n        order by s.received_at desc, s.id\n      )\n      from public.submissions s\n      left join public.properties p on p.id = s.property_id\n      cross join lateral (\n        select count(*)::int as n from public.submission_media m\n        where m.submission_id = s.id and m.uploaded_at is not null\n      ) settled\n      where s.contact_id = v_contact.id\n    ), '[]'::jsonb)\n  );\nend;\n$$;",
+    "run": "node node_modules/vitest/vitest.mjs run --project db tests/db/account-photos.db.test.ts -t \"forty settled photographs\"",
+    "expect": "FAIL .*account-photos\\.db\\.test\\.ts > account_properties photographs > says a request that holds forty settled photographs can take no more"
+  },
+  {
+    "id": "w6-8-spend-package-status",
+    "test": "tests/unit/payments/service.test.ts",
+    "file": "src/server/lib/error-codes.ts",
+    "find": "  not_five_features: 409,",
+    "replace": "  not_five_features: 400,",
+    "run": "node node_modules/vitest/vitest.mjs run --project unit tests/unit/payments/service.test.ts",
+    "expect": "FAIL .*service\\.test\\.ts > waiveWithoutInvoice \\(DL-01\\) > answers 409 not_five_features, in words, when the request chose another package"
+  }
+]

@@ -113,6 +113,10 @@ export const errorCodes = {
   caption_too_long: 422,
   media_not_found: 422,
   reel_poster_required: 422,
+  // W6 item 8 (H142): a Five Features credit is spent only by a contact whose ledger holds one.
+  no_credit: 409,
+  // ... and only on a request that chose Five Features; the message says so in words.
+  not_five_features: 409,
 } as const;
 
 export type ErrorCode = keyof typeof errorCodes;

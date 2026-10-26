@@ -96,6 +96,13 @@ export const initialDraft: SubmitDraft = {
   files: [],
 };
 
+/**
+ * The draft a visitor starts with: empty, or with the exposure already chosen when they arrive from their room's
+ * "Submit my next property" (W6 item 8), which opens the form with Five Features selected.
+ */
+export const startingDraft = (chosen: ExposurePackage | undefined): SubmitDraft =>
+  chosen === undefined ? initialDraft : { ...initialDraft, package: chosen };
+
 const stateOptions: readonly SubmitDraft["state"][] = ["", ...acceptedStates, otherState];
 const typeOptions: readonly SubmitDraft["propertyType"][] = ["", ...propertyTypes];
 const kindOptions: readonly SubmitDraft["submitterKind"][] = ["", ...submitterKinds];
