@@ -1,4 +1,4 @@
-// W8 item 10 (rulings H116, H134): a colleague's `social_post` proposal that carries a structured `post` is filed as a
+// W8 item 10 (rulings H116, H135): a colleague's `social_post` proposal that carries a structured `post` is filed as a
 // proposed post, never as a generic approval. Its pictures and reel are files in the studio or the Google Drive folder
 // on this laptop, or keys already in storage. The database cannot read this disk, so the runner checks each path lies
 // in one of those folders, measures it, uploads it to the public `media` bucket under `proposed/<batch>/` (as the reel
@@ -26,7 +26,7 @@ import {
   type PostFile,
 } from "../../src/domain/proposed-posts.ts";
 import type { Db } from "../../src/server/lib/db.ts";
-import { STUDIO } from "./reel.ts";
+import { STUDIO } from "./studio.ts";
 
 /** The social media folder of the company's Google Drive on this laptop: no other Drive file can be proposed. */
 export const DRIVE = "G:/My Drive/Matter of Place/Social Media";

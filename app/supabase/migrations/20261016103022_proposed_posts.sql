@@ -8,7 +8,7 @@
 --   The functions come from the fn migration that follows (bun run db:fn): its down is in its own header.
 set lock_timeout = '5s';
 
--- W8 item 10 (rulings H116, H134): a post a colleague or a person proposes, kept apart from `social_posts`, which records
+-- W8 item 10 (rulings H116, H135): a post a colleague or a person proposes, kept apart from `social_posts`, which records
 -- only what went to a channel. Approval turns each channel of the post into an approved asset of its subject and the
 -- `social_posts` row the channel posting reads; nothing posts without a person's yes.
 create type public.proposed_post_status as enum ('proposed', 'rejected', 'approved', 'scheduled', 'posted');
@@ -106,5 +106,5 @@ create policy proposed_post_revisions_select_staff on public.proposed_post_revis
   using (app.is_staff());
 
 -- Item 1 has not landed: a brand post's asset has no property (H107 made `assets.property_id` nullable), so its
--- `social_posts` row has none either (H134).
+-- `social_posts` row has none either (H135).
 alter table public.social_posts alter column property_id drop not null;

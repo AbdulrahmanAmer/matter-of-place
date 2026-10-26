@@ -62,6 +62,29 @@ export type Recorded = {
   };
 };
 
+/**
+ * W8 0h fourth review: Postgres text refuses U+0000 and its JSON refuses an unpaired surrogate, and a decoded subject,
+ * a sender's name or a report's field can carry either; one such character must never stop a folder. Every text the
+ * mailbox sends to a recording call passes through this.
+ */
+export function storable(text: string): string {
+  return text
+    .replaceAll("\u0000", "")
+    .replaceAll(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
+
+/** `storable` on every string of a report's JSON, keys included. */
+function storableJson(value: Json | undefined): Json {
+  if (value === undefined) return null;
+  if (typeof value === "string") return storable(value);
+  if (Array.isArray(value)) return value.map((item) => storableJson(item));
+  if (value !== null && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [storable(key), storableJson(item)]),
+    );
+  return value;
+}
+
 /** The JSON a report is kept as: counts and checked names only (mail-reports.ts). */
 function reportJson(reports: readonly (Report | Unparsed)[]): Json {
   if (reports.length === 0) return null;
@@ -116,27 +139,30 @@ export function inboundRecord(message: InboundMessage): Recorded {
     sorted,
     state: notice.state,
     args: {
-      p_provider_id: message.providerId,
-      p_folder: message.folder.name,
-      p_from: message.from,
-      p_name: message.fromName,
+      p_provider_id: storable(message.providerId),
+      p_folder: storable(message.folder.name),
+      p_from: storable(message.from),
+      p_name: storable(message.fromName),
       p_alias: alias ?? "",
-      p_subject: message.subject,
+      p_subject: storable(message.subject),
       // W8 0h review: a service's or our own mail keeps its subject and labels, never its body (login and verification
       // codes of the accounts on admin@ arrive that way); a person's email keeps its words for the person who answers.
       p_body:
-        sorted.source === "email_inbound" ? plainText(message.content).slice(0, BODY_CAP) : "",
+        sorted.source === "email_inbound"
+          ? storable(plainText(message.content).slice(0, BODY_CAP))
+          : "",
       p_received_at: new Date(message.receivedAt).toISOString(),
-      p_attachments: message.attachments.map((attachment) => attachment.name),
+      p_attachments: message.attachments.map((attachment) => storable(attachment.name)),
       p_source: sorted.source,
       p_state: notice.state,
-      p_service: sorted.service ?? "",
-      p_summary:
+      p_service: storable(sorted.service ?? ""),
+      p_summary: storable(
         (message.unread ?? []).length === 0
           ? notice.summary
           : `${notice.summary.replace(/\.?$/, ".")} Not read: ${(message.unread ?? []).join(", ")}; a person reads it in the mailbox.`,
-      p_report: reportJson(notice.reports),
-      p_line: line,
+      ),
+      p_report: storableJson(reportJson(notice.reports)),
+      p_line: storable(line),
     },
   };
 }
@@ -205,12 +231,11 @@ export async function handToEditor(
     .limit(1);
   const editorId = editor?.[0]?.id;
   if (editorId === undefined) return false;
-  const { error } = await client
-    .from("agent_runs")
-    .upsert([{ agent_id: editorId, cause: "event", event_id: eventId }], {
-      onConflict: "agent_id,event_id",
-      ignoreDuplicates: true,
-    });
+  // A run already queued for the Editor on this event counts 0 and is handed all the same (fourth review).
+  const { error } = await client.rpc("queue_event_runs", {
+    p_agents: [editorId],
+    p_events: [eventId],
+  });
   if (error !== null) return false;
   const { error: named } = await client
     .from("inbound_mail")

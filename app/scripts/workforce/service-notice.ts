@@ -352,10 +352,14 @@ export function readNotice(
 
 /** A subject as Matter is shown it: one line, no fence marks, no handle, no long number (a code), at most 160 characters. */
 export function cleanSubject(subject: string): string {
-  const text = subject
-    .replace(/[\r\n\t]+/g, " ")
-    .replaceAll("<<<", "")
-    .replaceAll(">>>", "")
+  // The fence marks go first and until none is left (taking one out can join the pieces of another, `<<>>><`); the
+  // collapse of white space after them flattens every line break.
+  let unfenced = subject;
+  for (let before = ""; before !== unfenced;) {
+    before = unfenced;
+    unfenced = unfenced.replaceAll("<<<", "").replaceAll(">>>", "");
+  }
+  const text = unfenced
     .replaceAll("@", " at ")
     .replace(/\d{4,}/g, "[number]")
     .replace(/\s+/g, " ")

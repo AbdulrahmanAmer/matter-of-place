@@ -1523,8 +1523,8 @@
     "id": "bi",
     "test": "tests/unit/jobs/health.test.ts",
     "file": "src/server/jobs/system/health.ts",
-    "find": "if (age === null || age < 2 * HOUR_S)",
-    "replace": "if (age === null || age < 4 * HOUR_S)",
+    "find": "if (age === null || age <= HOUR_S)",
+    "replace": "if (age === null || age <= 4 * HOUR_S)",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is fail at 3 hours, with one health.failed naming it\"",
     "expect": "× .*is fail at 3 hours, with one health\\.failed naming it"
   },
@@ -1532,10 +1532,19 @@
     "id": "captions-23",
     "test": "tests/unit/jobs/health.test.ts",
     "file": "src/server/jobs/system/health.ts",
-    "find": "if (age === null || age < 2 * HOUR_S)",
+    "find": "if (age === null || age <= HOUR_S)",
     "replace": "if (age === null || age < HOUR_S / 2)",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is ok at 1 hour and while no caption job waits\"",
     "expect": "× .*is ok at 1 hour and while no caption job waits"
+  },
+  {
+    "id": "captions-61",
+    "test": "tests/unit/jobs/health.test.ts",
+    "file": "src/server/jobs/system/health.ts",
+    "find": "if (age === null || age <= HOUR_S)",
+    "replace": "if (age === null || age <= 2 * HOUR_S)",
+    "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/jobs/health.test.ts -t \"is fail one minute past the hour, naming the wait in minutes\"",
+    "expect": "× .*is fail one minute past the hour, naming the wait in minutes"
   },
   {
     "id": "bn",

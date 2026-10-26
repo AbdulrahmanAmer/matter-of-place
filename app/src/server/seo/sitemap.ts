@@ -4,6 +4,7 @@ import { indexable } from "../../lib/seo.ts";
 import { loadRedirectMap } from "../public/redirects.ts";
 import type { PublicState, ServedCatalog } from "../public/state.ts";
 import { listFacets } from "./archive.ts";
+import { pageDates } from "./page-dates.gen.ts";
 
 /**
  * The XML sitemap, a pure function over the output of `getCatalog` and `getPublicState` (architecture 13 rule 1):
@@ -45,7 +46,7 @@ interface Image {
 
 interface Entry {
   path: string;
-  lastmod?: string;
+  lastmod?: string | undefined;
   images?: Image[];
 }
 
@@ -59,12 +60,16 @@ const entities: Record<string, string> = {
 const escapeXml = (text: string): string =>
   text.replace(/[&<>"']/g, (char) => entities[char] ?? char);
 
-/** The day of a stored timestamp, never later than `now`: a clock that ran ahead must not date a page in the future. */
-function lastmodOf(updatedAt: string | undefined, publishedAt: string, now: Date): string {
-  const day = (updatedAt ?? publishedAt).slice(0, 10);
+/** A day never later than `now`: a clock that ran ahead must not date a page in the future. */
+function notAfter(day: string, now: Date): string {
   const today = now.toISOString().slice(0, 10);
   return day > today ? today : day;
 }
+
+const lastmodOf = (updatedAt: string | undefined, publishedAt: string, now: Date): string =>
+  notAfter((updatedAt ?? publishedAt).slice(0, 10), now);
+
+const newest = (days: string[]): string | undefined => days.sort().at(-1);
 
 function imagesOf(property: Property): Image[] {
   const photographs = [
@@ -91,9 +96,30 @@ const entryXml = ({ path, lastmod, images = [] }: Entry): string =>
 
 const listed = (count: number): boolean => indexable(count).robots === undefined;
 
-export function buildSitemap(source: Source, state: PublicState, now: Date): string {
+/**
+ * `documentDates` is the day each static document page last changed (`page-dates.gen.ts`, made at build from git). The
+ * catalog pages (`/`, `/properties`, `/stories`) are dated by their newest published item; `/markets` and a page
+ * with no known date carry no `lastmod` (W8 item 12b).
+ */
+export function buildSitemap(
+  source: Source,
+  state: PublicState,
+  now: Date,
+  documentDates: Readonly<Record<string, string>> = pageDates,
+): string {
   const taken = new Set(source.gone);
   const properties = source.properties.filter(({ slug }) => !taken.has(slug));
+  const propertyDays = properties.map((p) => lastmodOf(p.updatedAt, p.publishedAt, now));
+  const storyDays = source.stories.map((s) => lastmodOf(s.updatedAt, s.publishedAt, now));
+  const catalogDates: Record<string, string | undefined> = {
+    "/": newest([...propertyDays, ...storyDays]),
+    "/properties": newest(propertyDays),
+    "/stories": newest(storyDays),
+  };
+  const datedStatic = (path: string): string | undefined => {
+    const document = documentDates[path];
+    return document === undefined ? catalogDates[path] : notAfter(document, now);
+  };
   const countIn = (market: string, region?: string): number =>
     properties.filter(
       (property) =>
@@ -103,7 +129,7 @@ export function buildSitemap(source: Source, state: PublicState, now: Date): str
   const entries: Entry[] = [
     ...staticSitemapPaths
       .filter((path) => path !== "/properties" || listed(properties.length))
-      .map((path) => ({ path })),
+      .map((path) => ({ path, lastmod: datedStatic(path) })),
     ...source.markets.flatMap((market) => [
       ...(listed(countIn(market.slug)) ? [{ path: `/${market.slug}` }] : []),
       { path: `/${market.slug}/guide` },

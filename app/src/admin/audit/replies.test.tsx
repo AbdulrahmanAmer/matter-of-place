@@ -39,7 +39,7 @@ const reply = (over: Partial<Reply> = {}): Reply => ({
 function open(actions: string[], items: Reply[], extra: Record<string, unknown> = {}) {
   // The descriptors are copied, so an answer given as a getter is read once per request, as the fetch asks.
   const answers = {
-    [`GET ${EMAILS}`]: { items: [], suppressions: [] },
+    [`GET ${EMAILS}`]: { items: [], next_cursor: null, suppressions: [] },
     [`GET ${REPLIES}`]: { items, next_cursor: null },
   };
   Object.defineProperties(answers, Object.getOwnPropertyDescriptors(extra));

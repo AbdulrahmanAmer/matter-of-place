@@ -8,7 +8,7 @@ import {
   type PostDeps,
 } from "../../scripts/workforce/proposed-post";
 
-// W8 item 10 (H134): the runner files a colleague's structured post. The channel rules run before anything is uploaded;
+// W8 item 10 (H135): the runner files a colleague's structured post. The channel rules run before anything is uploaded;
 // a file must lie in the studio or the Drive folder (or already be in storage); each is measured, uploaded under
 // `proposed/<batch>/` and named in create_proposed_post with where it came from.
 

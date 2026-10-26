@@ -42,6 +42,8 @@ export const sentEmailSchema = z.object({
   created_at: at,
   sent_at: at.nullable(),
   delivered_at: at.nullable(),
+  /** When the first open event came (Resend's open tracking; some mail apps fire it without a person reading). */
+  opened_at: at.nullable(),
   /** The address is on the do-not-send list. */
   suppressed: z.boolean(),
 });
@@ -66,14 +68,14 @@ export const resendEmailInputSchema = z.object({
 
 export const resendEmailAnswerSchema = z.object({ job_id: uuid });
 
-/** `GET /api/admin/emails`: the newest emails, filtered by state or address, and the do-not-send list. */
-export const emailListInputSchema = z.object({
+/** `GET /api/admin/emails`: one keyset page of emails, newest first, filtered by state or address (invariant 17c). */
+export const emailListInputSchema = adminPageSchema.extend({
   status: z.enum(emailStates).optional(),
   search: z.string().trim().max(254).optional(),
 });
 
-export const emailListSchema = z.object({
-  items: z.array(sentEmailSchema),
+/** The page of emails and the do-not-send list (its newest hundred), which does not move with the page. */
+export const emailListSchema = adminPageAnswer(sentEmailSchema).extend({
   suppressions: z.array(suppressionSchema),
 });
 
@@ -168,9 +170,11 @@ export function deliveryLine(email: SentEmail): string {
     case "skipped":
       return `${name} was not sent: ${notSent[email.error ?? ""] ?? email.error ?? "no reason was given"}.`;
     case "delivered":
-      return `${name} was delivered.`;
+      return `${name} was delivered${email.opened_at === null ? "" : " and opened"}.`;
     case "sent":
-      return `${name} was sent; delivery is not confirmed yet.`;
+      return email.opened_at === null
+        ? `${name} was sent; delivery is not confirmed yet.`
+        : `${name} was sent and opened.`;
     case "queued":
       return `${name} is waiting to be sent.`;
   }
