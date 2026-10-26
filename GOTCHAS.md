@@ -70,6 +70,7 @@ Entry template
 - cause: `src/domain/*.ts` (camelCase) = API JSON = the columns of `supabase/migrations` (snake_case) = the generated `src/db/types.ts`; the HTTP adapter has no mapping layer by design (ADR 0002).
 - rule: change the migration, the regenerated types, the domain type and the Zod contract in the same commit. Every enum a domain list mirrors is a pair in `src/domain/enums.check.ts`; a new enum or list adds its pair there.
 - proof: `cd app && bun run gen:types && bun run typecheck` exits 0, and after a value is added to `submission_state` in `src/db/types.ts` it fails in `src/domain/enums.check.ts` (`Type 'false' does not satisfy the constraint 'true'`); `grep -rn "<oldName>" src` → no hits.
+- hit again: 2026-10-19, W6 item 4 review: the migration added `build` to the `agent_lessons` source check but `lessonSources` in `src/domain/admin-team-memory.ts` stayed four values, so the first build lesson would have made `listLessons` throw and blanked the whole Lessons panel; no test failed because nothing tied the two lists. `lessonSources` is not in `enums.check.ts`, so `tests/db/build-lessons.db.test.ts` now reads the check from `pg_get_constraintdef` and compares it with `lessonSources`.
 - enforced-by: src/domain/enums.check.ts
 - added: 2026-09-30
 
@@ -8998,4 +8999,52 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-26, PR 483 (10 causes FIXED, stability PASS by refactor.mjs) failed CI four rounds: a new route outside the folder map (check-layout), the robots.txt body pinned in five files (P-3600), five stale mutations, prettier and no-unsafe-type-assertion lint, 13 unit tests holding the old behaviour, a hex colour outside tokens (R42), a component test that found two rows.
 - rule: a refactor branch is not done when its own checks pass; before pushing, list what the repo pins for every changed file (`node ~/.claude/hooks/edit-impact.mjs --changed <worktree>`, `grep -rln` of each changed literal in app/tests and tests/mutations, check-layout's map for new files) and change those in the same branch; expect the first CI round to find the rest.
 - proof: `gh pr view 483 --json commits -q '.commits[].messageHeadline'` shows the four fix commits after the ten refactor commits; merged as db4d03c1.
+- added: 2026-10-26
+
+## P-4548 · A plan item that names a column value can name one the table's check refuses
+- symptom: W6 item 4 said "`agent_lessons` with `source = 'build'`", but `agent_lessons_source_check` allowed only decline, edit, outcome and matter; written as the item reads, every insert fails and the item needed a migration its brief did not mention.
+- cause: the item was written from the idea ("a build lesson") and never checked against the table's check constraint.
+- rule: before a builder takes an item that names an enum-like value, read the table's check (`grep -rn "<table>_<column>_check" app/supabase/migrations`); widen it in a migration of its own (drop and add the check, as `20261015100000_email_bounced_event.sql` does) and say so in the ruling.
+- proof: `grep -n "source in" app/supabase/migrations/20261012104700_agent_growth.sql app/supabase/migrations/20261026120000_build_lessons.sql` → the first lists four sources, the second five (2026-10-19; renamed from 20261019143000 when main was merged, 2026-10-26).
+- added: 2026-10-19
+
+## P-4549 · A helper script written to `/tmp` from Git Bash is not found by `node`
+- symptom: `node /tmp/edit-types.mjs` → `Cannot find module 'C:\Users\DELL\AppData\Local\Temp\edit-types.mjs'`: the Write/heredoc put the file where Git Bash's `/tmp` is, and Windows `node` looked elsewhere.
+- rule: a one-off script that edits repository files goes in the worktree (`app/scripts/<name>.tmp.mjs`), runs, and is deleted in the same command; for a single change use the Edit tool.
+- proof: `cd app && node scripts/patch-lessons.tmp.mjs && rm scripts/patch-lessons.tmp.mjs` ran (2026-10-19).
+- added: 2026-10-19
+
+## P-4550 · A class whose logic hides behind private methods and an endless loop cannot be tested, and the review says so twice
+- symptom: W6 item 4 review: the live supervisor's merge bookkeeping (`noteMerge` from the tool event and from the closing JSON, `settleMerges`, the recall for a new session, `business: this.lessons`) had no test and no registry entry; deleting any line left every test green.
+- cause: the logic lived in private methods of `Supervisor` (not exported) that read the real session file and call `gh`, so the first round tested only the pure helpers beside it.
+- rule: give such a class its outside seams through the constructor (`gh`, the kept session, the queue file), export it (the file guards its start with `import.meta.main`), make the methods a test must drive public, and test through them with a recording fake database; a call that only the endless loop makes stays UNPROVEN and is said so.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-lessons.test.ts -t "live supervisor"` → 5 passed (2026-10-19).
+- added: 2026-10-19
+
+## P-4551 · A pull request's own text is outside text once the repository is public: check who made it before it becomes a lesson
+- symptom: W6 item 4 review: `recordBuildLesson` only checked `state == MERGED`, so any merged pull request, an outsider's included, would have put its title, commit subjects and CI messages into Matter's full-power prompt as a directive lesson.
+- cause: "each merged PR of his" was read as "each merged PR the gate reports"; nothing asked whose it was.
+- rule: anything a tool reads from GitHub that reaches an AI prompt first passes the author and head check (`isHis`: not a fork, owner and author are the repository owner); a pull request that is not his gets the final answer "not his" and no row (H101, H138).
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-lessons.test.ts -t "whose pull request"` → 4 passed (2026-10-19).
+- added: 2026-10-19
+
+## P-4552 · Two builders took the same ruling number, and a merge of a third branch made it three
+- symptom: W6 item 4 numbered its ruling H135; after the merges W8 10 held H134 and then H135 as well, and the Fairfield ruling arrived on main as H134.
+- cause: each builder picked "the next free number" from the tree it had; no tree sees the others'.
+- rule: before writing a ruling number list every one used on origin/main and on every origin/overdrive/* branch (`git show <branch>:workspace/05-plans/ASSUMED.md | grep -o '^| H1[0-9][0-9] |'`) and take one above them all; after a merge of main, count the rows again.
+- proof: `for b in $(git branch -r | grep origin/overdrive/); do git show $b:workspace/05-plans/ASSUMED.md | grep -o '^| H1[3-9][0-9] |'; done | sort | uniq -c` printed H135 twice, H136 twice and H137 once on 2026-10-19, so this ruling is H138.
+- added: 2026-10-19
+
+## P-4553 · A conflict resolved by an Edit of its first two markers keeps the third, and the merge commit carries it
+- symptom: W6 item 4 round 3: `answer.ts` was resolved with an Edit whose old text ran from `<<<<<<< HEAD` through `=======`; the `>>>>>>> origin/main` line stayed, `git add` took it, and the merge was committed with it. Only the next vitest run (`transformWithOxc` error at line 48) showed it.
+- cause: the registry check after the merge looks at `find` strings, not at markers, and `git add` marks a file resolved whatever it holds.
+- rule: before committing a merge run `git grep -nE '^(<<<<<<<|=======|>>>>>>>)( |$)' -- . ':!*.md'` and expect nothing; resolve a hunk with one Edit whose old text spans all three markers.
+- proof: `git grep -nE '^(<<<<<<<|>>>>>>>) ' 8c606263 -- app/scripts` → `app/scripts/workforce/answer.ts:48:>>>>>>> origin/main` (2026-10-26; fixed in the next commit).
+- added: 2026-10-26
+
+## P-4554 · His commits carry no GitHub login: the git author's email is not linked to his account
+- symptom: W6 item 4 round 3 was asked to quote only commits whose `authors[].login` is his account; on his own pull requests 470, 483 and 486 every commit's git author login is `""` (the co-author is `claude`), so the filter quotes no commit of his at all.
+- cause: GitHub resolves a commit author to an account only by an email linked to it; the runner's git email is not one.
+- rule: never decide trust by a commit's git author: it is whatever email the committer typed, and his own read as `""`. Trust follows who opened and pushed the pull request (H138 (7)); before relying on any commit field, measure a real pull request.
+- proof: `gh pr view 486 --repo AbdulrahmanAmer/matter-of-place --json commits --jq '[.commits[] | .authors | map(.login)] | .[0:4]'` → `[["","claude"],["","claude"],[""],["","claude"]]` (2026-10-26).
 - added: 2026-10-26

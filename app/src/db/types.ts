@@ -2142,6 +2142,9 @@ isOneToOne: false
 "record_analytics_events":
 { Args: { "p_rows": Json }; Returns: number
                            },
+"record_build_lesson":
+{ Args: { "p_action": string,"p_agent": string,"p_pr": number,"p_trigger": string }; Returns: boolean
+                           },
 "record_channel_check":
 { Args: { "p_channel": string,"p_checked_at": string,"p_expires_at": string,"p_state": string }; Returns: undefined
                            },

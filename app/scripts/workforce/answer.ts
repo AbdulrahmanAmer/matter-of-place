@@ -35,6 +35,8 @@ export const outcome = z.object({
   allow: z.boolean().default(false),
   // W8 0d: and how, as one of the closed postures; a missing value, or any other, allows nothing.
   how: z.enum(POSTURES).or(z.literal(HOW_OFF_LIST)).optional().catch(HOW_OFF_LIST),
+  // Matter only (W6 item 4): the pull requests this full-power run merged through the gate; each writes a build lesson.
+  merged: z.array(z.number().int().positive()).max(10).optional(),
   // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio,
   // and W8 item 1: so does a still post. W8 0f: and Matter's decision on a draft in the studio (approve, revise, ask
   // the operator).

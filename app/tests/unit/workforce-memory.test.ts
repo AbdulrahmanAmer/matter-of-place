@@ -420,6 +420,19 @@ describe("GET /api/admin/workforce/memory/lessons", () => {
     expect(outcome(await get(lessonsRoute, path, person, db))).toEqual(refused);
   });
 
+  it("shows a lesson Matter learned from his own build, with its source", async () => {
+    const db = memoryDb({
+      agents: team,
+      agent_lessons: [lesson(L1, { agent_id: CHIEF, source: "build", evidence_ref: "pr:464" })],
+    });
+    const answer = await get(lessonsRoute, path, person, db);
+    const items = field(answer.body, "items");
+    expect({
+      status: answer.status,
+      sources: Array.isArray(items) ? items.map((item) => field(item, "source")) : items,
+    }).toEqual({ status: 200, sources: ["build"] });
+  });
+
   it("refuses a lesson whose source is outside the contract with 503, never showing it as Matter's", async () => {
     const db = memoryDb({ agents: team, agent_lessons: [lesson(L1, { source: "rumour" })] });
     expect(outcome(await get(lessonsRoute, path, person, db))).toEqual(refused);

@@ -79,6 +79,7 @@ import { groundingLines, requestSequence } from "./grounding.ts";
 import { requestDesk } from "./request-desk.ts";
 import { forgetNewWork, newWorkLines } from "./new-work.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
+import { mergedByRun, queueMerges } from "../matter/lessons.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
 import { handToEditor, noteTriage } from "./inbound-mail.ts";
@@ -853,7 +854,7 @@ export async function runOnce(client: Db): Promise<boolean> {
     // W2 step 6: the lessons this colleague has been taught, recalled for what woke it.
     const { data: lessonRows } = await client
       .from("agent_lessons")
-      .select("id, trigger, action, uses, last_used_at, created_at")
+      .select("id, trigger, action, uses, last_used_at, created_at, source")
       .eq("status", "active")
       .or(`agent_id.eq.${agent.id},agent_id.is.null`);
     const shown: Lesson[] = recallLessons(lessonRows ?? [], situation);
@@ -1045,6 +1046,12 @@ export async function runOnce(client: Db): Promise<boolean> {
         power === "full",
       );
     }
+    // W6 item 4: what a full-power run merged through the gate becomes build lessons; the live supervisor asks GitHub.
+    const queued = queueMerges(mergedByRun(isMatter, power, result.merged));
+    if (queued.length > 0)
+      console.log(
+        `${new Date().toISOString()} build lessons queued for pull requests ${queued.join(", ")}`,
+      );
     const finished = {
       state: "done" as const,
       finished_at: new Date().toISOString(),
