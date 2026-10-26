@@ -2443,3 +2443,16 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Still open: C04, C11, C12, C13 (critical groups, Opus builds); targets.json targetPage to the built paths so URL
   Inspection runs; Gemini terms acknowledgement (owner); the contact form hang in automated Chrome (UNPROVEN cause);
   CONFIRM_TOKEN_SECRET equal on the Worker and the job runner (UNPROVEN). Bank: P-4642, P-4643.
+
+- 2026-10-27 01:20 +0300: Matter (live). W8 0e PROVEN LIVE AND TICKED (W8.md 0e): a Social run started by Matter's key
+  rendered 6 carousel files into the Drive folder Carousels/2400 Azure Pl, Fairfield (TEST) (run 0af2c094, line
+  21206ed0), and the Concierge's three runs on the operator's outside test email were not started from inside (no write,
+  no renderer). Runner `config.json` gained `driveSocial` = the Social Media folder on G: (it was missing; Google Drive for
+  desktop is installed, which meets W8 item 8's precondition). Owner ruling of 2026-10-26 done: approvals 1484ef29
+  rejected, edccad67 and 12a5be85 approved with Matter's key (HTTP 200 each); a wait is said once. Meeting decisions
+  missed nine days running, cause found (posted in Matter's thread): the meeting's decisions line queues no run; each
+  owner's daily schedule run is read-only; decisions were set outside the owner's toolkit or rulings (Concierge contact
+  vs H134, Analyst with no browser, Chief with no Approvals read); Matter's own decisions never reach the live session.
+  NEXT: one PR for the meeting fix (an inside run per owner after the meeting, the meeting shown toolkits and rulings and
+  retiring a decision missed twice, the live session shown Matter's decisions) plus the renderer spec shape in the
+  toolkit line (P-4644). Bank: P-4644.
