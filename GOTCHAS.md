@@ -8550,6 +8550,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a component run says `Failed to start forks worker`, rerun it with `--pool=threads` before calling anything red; a registry entry's `run` may carry `--pool=threads` (W7-4.json does). Two replays in a row then went `BAD: wrong reason` once each for entries that were `WATCHED-FAIL OK` alone, so a BAD under load is rerun alone before it is believed.
 - proof: `cd app && bunx vitest run --project component --pool=threads src/admin/workforce/team-memory.test.tsx` → `Tests 18 passed (18)`.
 - added: 2026-10-16
+- hit again: 2026-10-19, W8 0h fourth review: `src/admin/audit/inbound-mail.test.tsx` failed twice with `Failed to start forks worker ... Timeout waiting for worker to respond` and `Tests no tests` before this entry was found; with `--pool=threads` → `Tests 4 passed (4)`. Search the bank for the error's words before the second run, not after.
 
 ## P-3579 · A reel about a property filed as `brand` shows no photograph of it, and nothing in the route or the review noticed (H110 miss)
 - symptom: 2026-10-16, the Fairfield test: Maya's request was `kind: "brand"` with her three picks named in prose, because the house was not on the site (a campaign reel needs `property_id`). The studio drew abstract models and a flat-roofed box for a 2021 pitched-roof house; the gate and the review passed it (it was well made), and the operator caught it: "a reader would be misled about the home".
@@ -8789,6 +8790,62 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
 
+## P-3710 · Several keyset lists on one screen cannot share the address's `cursor`; the mutation `find` of a repeated line matches twice
+- symptom: W7 1: the Sent emails screen already had two parts and the page's one URL `cursor` belonged to Replies; adding pages to "Emails we sent" through `useUrlFilters` would have moved both lists at once. A registry `find` of `...(status === undefined ? {} : { status }),` occurred twice in the new part (the query and the filter form) and edit-impact printed STALE.
+- cause: `useUrlFilters` keeps exactly one `cursor`; InboundMailPart solved it with its own `trail` state. A line used in two places in a file is not a usable `find`.
+- rule: a second list on a screen keeps its own `trail` state (copy InboundMailPart) and is remounted by a `key` of its filters so a new filter starts on page one; give a registry `find` the line before or after it so it occurs once.
+- proof: `cd app && bunx vitest run --project unit tests/unit/emails.service.test.ts` → 14 passed; `node ~/.claude/hooks/edit-impact.mjs --changed .` prints no STALE for `tests/mutations/W7-1.json`.
+- added: 2026-10-19
+
+## P-3711 · A component test file can time out starting its worker (60 s) while an older one in the same project starts in 30 s
+- symptom: W7 1: `bunx vitest run --project component src/admin/audit/sent-emails.test.tsx` printed `Failed to start forks worker ... Timeout waiting for worker to respond` three times in a row (17:45, 17:48, 17:52), while `inbound-mail.test.tsx` of the same folder passed (3 tests, 30.78 s) right after.
+- cause: load (G-031), not the file. Two of the three failed runs overlapped `edit-impact.mjs --changed .` (it ran 2+ minutes); the fourth run, alone, passed in 13.57 s (3 passed). The file's imports equal inbound-mail.test.tsx's.
+- rule: run one component file at a time and never beside edit-impact; after two worker-start timeouts of the same file, run a sibling file to tell the machine from the file before a third try.
+- proof: `cd app && bunx vitest run --project component src/admin/audit/inbound-mail.test.tsx` → `3 passed`.
+- added: 2026-10-19
+
+## P-3718 · A heredoc script that shell-shaper rewrites lands under E:\tmp, not in Git Bash's /tmp
+- symptom: 2026-10-19, W6 item 6: `cat > /tmp/probe-try/patch1.mjs <<'EOF'` was rewritten by shell-shaper to `: wrote /tmp/probe-try/patch1.mjs`, and `node /tmp/probe-try/patch1.mjs` then failed with MODULE_NOT_FOUND at `C:\Users\DELL\AppData\Local\Temp\probe-try\patch1.mjs`. The hook writes with Node, where `/tmp` means `<current drive>:\tmp` (here `E:\tmp\probe-try\`), while Git Bash maps `/tmp` to the Windows temp folder.
+- rule: write a script with the Write tool at a full Windows path (`C:/Users/DELL/AppData/Local/Temp/...` or a path in the worktree) and run it by that path; never a heredoc into `/tmp`. Clean a stray `E:\tmp\...` file with plain `rm <file>` and `rmdir` (RAGA guard blocks `rm -rf`).
+- proof: `ls /e/tmp/probe-try` showed the file after the failed run (2026-10-19); with the Write tool at the temp path `node C:/Users/DELL/AppData/Local/Temp/probe-try/replay.mjs` ran.
+- added: 2026-10-19
+
+## P-3719 · edit-impact says nothing in a scratch repository unless the files sit under src, lib, test, tests, app or scripts
+- symptom: 2026-10-19, W6 item 6: a probe repo with `lib.ts` and `use.ts` at its top gave an empty answer from edit-impact after `greet` was renamed; with the same files under `src/` it printed `GONE greet left src/lib.ts but is still imported by: src/use.ts.`. Outside Matter of Place the hook reads only those folders (`load()` in `~/.claude/hooks/edit-impact.mjs`) for the files that import the edited one.
+- rule: a fixture that must make edit-impact speak (the hook-reach probe, `scripts/matter/hook-reach.ts`) keeps its files under `src/`; and a replay that mutates a source file makes the hook print STALE for the entry being replayed while it runs, which is the mutation, not a stale entry: re-run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` after the replay has restored the file.
+- proof: `bun scripts/matter/hook-reach.ts probe` → `hook-reach: live run, edit-impact said "edit-impact (fix these before running any test or check): - GONE greet left src/lib.ts ...`, exit 0.
+- added: 2026-10-19
+
+## P-4540 · A path stored in a brief is written with `path.join`: on Windows it comes back with backslashes
+- symptom: W8 0f, 2026-10-19: the studio test expected `film: "drafts/01/reel.mp4"` and read `drafts\\01\\reel.mp4` from `brief.json`; the piece read fine on this laptop and would not have anywhere else.
+- cause: `join("drafts", "01", "reel.mp4")` uses the machine's separator, and `brief.json` is a record other tools (Drive copy, a Linux CI, a person) read.
+- rule: a relative path written into a record (`brief.json`, a table, a spec) is built with `posix.join`; `join(folder, stored)` still reads it on every system.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts` → 31 passed; with `posix.join` put back to `join` in `keepDraft`, the two draft cases print `"film": "drafts\\01\\reel.mp4"` in the diff (2026-10-19).
+- added: 2026-10-19
+
+## P-4541 · A "this is work" assertion that is also true for another reason stays green when its own branch is cut
+- symptom: W8 0f: `expect(reelWork(root)).toBe(true)` after an approval looked like proof that an approved piece is work; the registry entry removing the `approved` branch of `reelWork` printed `WATCHED-FAIL BAD: stayed green`.
+- cause: the approval had also changed the piece's state, so its row was out of step and `reelWork` was true through the sync branch.
+- rule: when a predicate is an OR of causes, bring the other causes to false first (sync the row, then assert), so the assertion can only pass through the branch it names; the watched-fail is what shows it.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0f-approved-is-work` → `WATCHED-FAIL OK` after the test syncs before asserting; before, `WATCHED-FAIL BAD: stayed green` (2026-10-19).
+- added: 2026-10-19
+
+## P-4542 · `edit-impact` prints STALE for registry entries while a watchfail replay is running: it is the mutation in place
+- symptom: W8 0f: during a loop of `watchfail --only` replays, `edit-impact` after an unrelated command named a different entry as `STALE ... its find occurs 0 times` each time, and the entry was fine afterwards.
+- cause: the hook reads the source file while watchfail has the mutation written into it; the next idle moment the file is restored.
+- rule: do not touch the files a replay covers, and do not trust a STALE note raised while one runs; read it again after the replay's `done` line and `git status --short` shows only your own edits.
+- proof: `git status --short` after the loop listed only the files edited; `grep -n 'status.md' app/scripts/workforce/reel.ts` found the line the STALE note said was gone (2026-10-19).
+- added: 2026-10-19
+
+## G-1480 · `upsert(..., { onConflict })` on a partial unique index is refused by Postgres (42P10), and nothing is written
+- paths: app/scripts/**, app/src/server/**
+- severity: warn
+- symptom: W8 0h fourth review, 2026-10-19: the Editor hand-off and the daemon's `wakeOnEvents` both upserted `agent_runs` with `onConflict: "agent_id,event_id"`. The only matching index, `agent_runs_agent_event`, is `where event_id is not null`. On the stub cluster the statement PostgREST sends answers `there is no unique or exclusion constraint matching the ON CONFLICT specification`; `wakeOnEvents` never read the error, so no run on an event was ever queued by it, and every unit test passed on fakes that accept any `onConflict`.
+- cause: Postgres infers a partial unique index for `ON CONFLICT (cols)` only when the statement names the index's predicate (`ON CONFLICT (cols) WHERE ...`), and supabase-js has no way to send one.
+- rule: a write that must skip duplicates of a partial unique index goes through a service-role SQL function whose `on conflict` names the predicate (`queue_event_runs`); never `upsert` with `onConflict` on such columns, and always read the error of a write. A fake that accepts any `onConflict` proves nothing about it: give the write a db test.
+- proof: on a P-718 stub cluster with the branch's migrations, `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:55492/mopw env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/inbound-mail.db.test.ts -t "queues one Editor run"` → `1 passed`: the case asserts the plain `on conflict (agent_id, event_id)` insert fails with `no unique or exclusion constraint`, beside the function's 1 then 0 (2026-10-19, 13 of 13 for the file).
+- added: 2026-10-19
+
 ## P-3709 · A one-line `sed` fix of code leaves the registry entry that names that line stale, and CI's replay finds it 25 minutes later
 - symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
 - rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
@@ -8862,3 +8919,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node --test ~/.claude/hooks/clean-launch-guard.test.mjs` (4 pass, watched red); the clean launcher's session appeared in ListAgents as skills-work-f8 within 20 s.
 - enforced-by: ~/.claude/hooks/clean-launch-guard.mjs
 - added: 2026-10-25
+
+## P-3730 · Bing related keywords are mostly off-topic: research targets are junk until filtered for the business
+- symptom: 2026-10-26, the skill's research step turned Bing related terms into 80 clusters, all of them unrelated to selective property media (celebrity homes, rentals, generic house plans); targets.json passed its validator anyway.
+- rule: never trust targets.json straight from research; filter every Bing term against the business definition's topic and property words (and a block list), log every dropped term, and read the surviving clusters before planning.
+- proof: site-checks/matterofplace.com/.pewp/research/bing.json shows droppedOffTopic 1601; targets.json 24 clusters PASS targets-valid after the filter and clean-targets.
+- added: 2026-10-26
+
+## P-3731 · A mod pane drawn in the terminal refuses Text size and weight props: the pane opens empty
+- symptom: 2026-10-26, the seo-checklist mod's /seo said the pane opened, but it showed empty in this terminal-drawn (Remote Control) session; the engine refused the tree because Text carried size and weight.
+- rule: resolve elements with $.ui.resolve(e) and use only the props that surface's Text declares (no size, no weight on terminal); run claude plugin validate after every mod edit.
+- proof: claude plugin validate C:/Users/DELL/.claude/dev-mods/<session>/seo-checklist passes; /seo reports isPlaced and the checklist draws in the terminal.
+- added: 2026-10-26
+
+## P-3732 · `git log -L` takes POSIX regular expressions: a `\{` in the range is an interval, not a brace
+- symptom: 2026-10-19, dating one section of `strings.ts` for the sitemap, `git log -L '/^  privacy: \{/,/^  \},/:app/src/lib/strings.ts'` answered `fatal: -L parameter ... starting at line 1: Unmatched \{`; and `git log -L` prints a patch unless `-s` is given.
+- rule: write a literal brace as `[{]` and `[}]` in a `-L` range, add `--format=%ct -s`, read the newest stamp (`scripts/gen-page-dates.ts`); a shallow clone makes every date the clone's day, so the script keeps the committed file when `git rev-parse --is-shallow-repository` is not `false`.
+- proof: `git log -L '/^  privacy: [{]/,/^  [}],/:app/src/lib/strings.ts' --format=%cs -s` → `2026-10-08`; `bunx vitest run --project unit tests/unit/page-dates.test.ts` passes, registry `W8-search.json` w8-12b-section-range watched red.
+- added: 2026-10-19
+
+## P-3707 · `toEqual({})` passes for an object whose key holds `undefined`: a test of "left out" measures nothing
+- symptom: 2026-10-19, `expect(resolvePageDates(...)).toEqual({})` stayed green with the guard that leaves an undated page out removed (the key then held `undefined`); the watched-fail of the new test was green, so the assertion measured nothing.
+- rule: to assert a key is absent use `Object.keys(x)` `toEqual([])` or `not.toHaveProperty`, never `toEqual({})`; a new assertion is watched red before it is trusted (registry `w8-12b-left-out`).
+- proof: `bunx vitest run --project unit tests/unit/page-dates.test.ts` passes; with `if (newest !== undefined)` replaced by `if (true)` it fails on "leaves a page out when none of its files has a commit".
+- added: 2026-10-19

@@ -26,7 +26,7 @@ import {
   type PostFile,
 } from "../../src/domain/proposed-posts.ts";
 import type { Db } from "../../src/server/lib/db.ts";
-import { STUDIO } from "./reel.ts";
+import { STUDIO } from "./studio.ts";
 
 /** The social media folder of the company's Google Drive on this laptop: no other Drive file can be proposed. */
 export const DRIVE = "G:/My Drive/Matter of Place/Social Media";

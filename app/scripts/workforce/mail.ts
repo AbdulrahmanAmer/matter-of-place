@@ -11,7 +11,13 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import type { Db } from "../../src/server/lib/db.ts";
-import { inboundRecord, recordInbound, type UnreadPart } from "./inbound-mail.ts";
+import {
+  BODY_CAP,
+  inboundRecord,
+  recordInbound,
+  storable,
+  type UnreadPart,
+} from "./inbound-mail.ts";
 import { isReportName, MAX_COMPRESSED } from "./mail-reports.ts";
 import { sortMessage, type Attachment } from "./service-notice.ts";
 
@@ -347,11 +353,17 @@ const UNREAD_LIST: Attachment = {
   refused: "not read",
 };
 
+/** The attachment names a row keeps; past it one entry in fixed words says how many more there were. */
+export const MAX_ATTACHMENTS = 50;
+
+/** The subject a message recorded from its listing alone carries when the database refused the listed one. */
+const LISTED_UNSTORED = "(the subject could not be recorded)";
+
 /** A message's attachments: names always, bytes only for a report a service notice may carry. */
 async function attachmentsOf(zoho: Zoho, base: string, wanted: boolean): Promise<Attachment[]> {
   const info = attachmentInfoSchema.parse(await zoho.json(`${base}/attachmentinfo`));
   const out: Attachment[] = [];
-  for (const attachment of info.attachments.slice(0, 50)) {
+  for (const attachment of info.attachments.slice(0, MAX_ATTACHMENTS)) {
     const name = attachment.attachmentName;
     if (!wanted || !isReportName(name)) {
       out.push({ name, file: null, refused: "not read" });
@@ -366,6 +378,13 @@ async function attachmentsOf(zoho: Zoho, base: string, wanted: boolean): Promise
       .catch(() => null);
     out.push(file === null ? { name, file: null } : { name, file });
   }
+  const more = info.attachments.length - MAX_ATTACHMENTS;
+  if (more > 0)
+    out.push({
+      name: `(${String(more)} more attachments not listed)`,
+      file: null,
+      refused: "not read",
+    });
   return out;
 }
 
@@ -391,7 +410,6 @@ export async function checkMail(
   const done: MailCheck = { replies: 0, inbound: 0, unread: [] };
   if (now - cursor.checked < EVERY_MS) return done;
   const names = deps.names();
-  if (names === null) return done;
   writeFileSync(file, JSON.stringify({ ...cursor, checked: now }));
   const beat = async (unread: string[]) => {
     const { error } = await client.rpc("beat", {
@@ -400,6 +418,13 @@ export async function checkMail(
     });
     if (error !== null) console.log("mail: the mailbox heartbeat was not recorded");
   };
+  // W8 0h fourth review: with no Zoho names the mailbox is never read, and ops_health says so (no silent green).
+  if (names === null) {
+    console.log(`${new Date().toISOString()} mail: the mailbox names are missing`);
+    done.unread.push("the mailbox");
+    await beat(done.unread);
+    return done;
+  }
   let zoho: Zoho;
   let id: string;
   let folders: z.infer<typeof folderSchema>[];
@@ -517,11 +542,11 @@ async function oneMessage(
       .eq("to_email", from);
     if ((count ?? 0) > 0) {
       const { data, error } = await client.rpc("email_reply_record", {
-        p_provider_id: row.messageId,
-        p_from: from,
-        p_name: row.sender,
-        p_subject: row.subject,
-        p_body: withoutQuoted(plainText(content)).slice(0, 6000),
+        p_provider_id: storable(row.messageId),
+        p_from: storable(from),
+        p_name: storable(row.sender),
+        p_subject: storable(row.subject),
+        p_body: storable(withoutQuoted(plainText(content)).slice(0, BODY_CAP)),
         p_received_at: new Date(row.received).toISOString(),
       });
       if (error !== null) throw new Error("mail: a reply could not be recorded");
@@ -551,20 +576,30 @@ async function oneMessage(
   const attachments = has
     ? await part("the attachment list", [UNREAD_LIST], () => attachmentsOf(zoho, base, wanted))
     : [];
-  const recorded = inboundRecord({
-    providerId: row.messageId,
-    folder: { name, type: folder.folderType ?? "" },
-    from,
-    fromName: row.sender,
-    subject: row.subject,
-    receivedAt: row.received,
-    header,
-    content,
-    attachments,
-    automatic,
-    unread,
-  });
-  const fresh = await recordInbound(client, recorded);
+  const recordOf = (listed: { subject: string; fromName: string }) =>
+    inboundRecord({
+      providerId: row.messageId,
+      folder: { name, type: folder.folderType ?? "" },
+      from,
+      ...listed,
+      receivedAt: row.received,
+      header,
+      content,
+      attachments,
+      automatic,
+      unread,
+    });
+  let recorded = recordOf({ subject: row.subject, fromName: row.sender });
+  let fresh: boolean;
+  try {
+    fresh = await recordInbound(client, recorded);
+  } catch (failure: unknown) {
+    // W8 0h fourth review: from its listing alone, a subject or name the database still refuses gives way to fixed
+    // words, so one message never stops its folder; a person reads the rest in the mailbox.
+    if (!listingOnly) throw failure;
+    recorded = recordOf({ subject: LISTED_UNSTORED, fromName: "" });
+    fresh = await recordInbound(client, recorded);
+  }
   if (fresh)
     console.log(
       `${new Date().toISOString()} mail: ${recorded.args.p_source} ${recorded.state} in ${name}`,

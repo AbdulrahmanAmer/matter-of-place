@@ -83,6 +83,8 @@ export const rlsMatrix: Record<string, Access> = {
   email_replies: staffRead,
   // W8 0h: written only by inbound_mail_record under the service role; read as privacy requests are (W8 0h review).
   inbound_mail: { select: ["chief_editor", "admin"] },
+  // W8 0f: written only by studio_piece_put under the service role.
+  studio_pieces: staffRead,
   email_suppressions: staffRead,
   email_events: staffRead,
   channel_settings: { select: staffRoles, insert: automation, update: automation },

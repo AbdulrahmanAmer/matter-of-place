@@ -1,12 +1,8 @@
-import { Outlet } from "@tanstack/react-router";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { serveAdmin as serve } from "../../../tests/fixtures/admin-serve";
 import type { InboundMail } from "../../domain/admin-inbound-mail";
 import { standInForDialogs } from "../ui/test-dialog";
-import { AdminProviders } from "../ui/test-providers";
-import { mountRoutes, pageRoute } from "../ui/test-router";
-import { SentEmailsPage } from "./SentEmailsPage";
+import { openSentEmails } from "./test-sent-emails";
 
 // W8 0h: the Inbound mail part of the Sent emails screen: every message that reached our addresses, its source, what
 // became of it, its owner and state, as plain text, with filters and keyset pages.
@@ -49,24 +45,6 @@ const NOTICE_ROW = mail({
   state: "escalated",
 });
 
-function open(answers: Record<string, unknown>) {
-  const requested = serve({
-    "GET /api/admin/emails": { items: [], suppressions: [] },
-    "GET /api/admin/emails/replies": { items: [], next_cursor: null },
-    ...answers,
-  });
-  mountRoutes(
-    () => (
-      <AdminProviders actions={["audit.list"]}>
-        <Outlet />
-      </AdminProviders>
-    ),
-    "/admin/emails/",
-    (root) => [pageRoute(root, "/admin/emails/", () => <SentEmailsPage />)],
-  );
-  return requested;
-}
-
 beforeAll(standInForDialogs);
 
 afterEach(() => {
@@ -75,7 +53,7 @@ afterEach(() => {
 
 describe("the inbound mail on the Sent emails screen", () => {
   it("shows each message with its source, what became of it, its owner and state, as plain text", async () => {
-    open({ [`GET ${INBOUND}`]: { items: [mail(), NOTICE_ROW], next_cursor: null } });
+    openSentEmails({ [`GET ${INBOUND}`]: { items: [mail(), NOTICE_ROW], next_cursor: null } });
     const table = await screen.findByRole("table", { name: "Inbound mail (2)" });
     const [person, notice] = within(table).getAllByRole("row").slice(1);
     expect(person?.textContent).toContain("Dana Reyes <dana@example.net> to hello@");
@@ -92,8 +70,30 @@ describe("the inbound mail on the Sent emails screen", () => {
     expect(notice?.textContent).toContain("Sent to Matter");
   });
 
+  it("says a message with no owner waits for a person, never that it was sent", async () => {
+    openSentEmails({
+      [`GET ${INBOUND}`]: {
+        items: [
+          mail({ triage: null, owner_slug: null, state: "new" }),
+          { ...NOTICE_ROW, owner_slug: null },
+        ],
+        next_cursor: null,
+      },
+    });
+    const table = await screen.findByRole("table", { name: "Inbound mail (2)" });
+    const rows = within(table).getAllByRole("row").slice(1);
+    for (const row of rows) {
+      expect(row.textContent).toContain("No one");
+      expect(within(row).getByText("Waiting for a person").getAttribute("data-tone")).toBe(
+        "warning",
+      );
+      expect(row.textContent).not.toContain("With its owner");
+      expect(row.textContent).not.toContain("Sent to Matter");
+    }
+  });
+
   it("asks for one source and one state when they are chosen", async () => {
-    const requested = open({
+    const requested = openSentEmails({
       [`GET ${INBOUND}`]: { items: [mail()], next_cursor: null },
       [`GET ${INBOUND}?source=service_notice`]: { items: [NOTICE_ROW], next_cursor: null },
       [`GET ${INBOUND}?source=service_notice&state=escalated`]: {
@@ -114,7 +114,7 @@ describe("the inbound mail on the Sent emails screen", () => {
     const cursor = `2026-10-15T16:00:00.000Z~${PERSON}`;
     // The page builds its query with URLSearchParams, which also encodes "~".
     const after = `GET ${INBOUND}?${new URLSearchParams({ cursor }).toString()}`;
-    const requested = open({
+    const requested = openSentEmails({
       [`GET ${INBOUND}`]: { items: [mail()], next_cursor: cursor },
       [after]: { items: [NOTICE_ROW], next_cursor: null },
     });
