@@ -45,6 +45,7 @@ import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
 import { Route as AdminOfficeRouteImport } from './routes/admin/office'
 import { Route as AdminSignInRouteImport } from './routes/admin/sign-in'
 import { Route as ApiConsentRouteImport } from './routes/api/consent'
+import { Route as ApiFormFallbackRouteImport } from './routes/api/form-fallback'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
 import { Route as SiteMarketIndexRouteImport } from './routes/_site.$market.index'
 import { Route as SiteMarketRegionRouteImport } from './routes/_site.$market.$region'
@@ -461,6 +462,11 @@ const AdminSignInRoute = AdminSignInRouteImport.update({
 const ApiConsentRoute = ApiConsentRouteImport.update({
   id: '/api/consent',
   path: '/api/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFormFallbackRoute = ApiFormFallbackRouteImport.update({
+  id: '/api/form-fallback',
+  path: '/api/form-fallback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MediaSplatRoute = MediaSplatRouteImport.update({
@@ -1803,6 +1809,7 @@ export interface FileRoutesByFullPath {
   '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
+  '/api/form-fallback': typeof ApiFormFallbackRoute
   '/media/$': typeof MediaSplatRoute
   '/admin/': typeof AdminIndexRoute
   '/$market/$region': typeof SiteMarketRegionRoute
@@ -2070,6 +2077,7 @@ export interface FileRoutesByTo {
   '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
+  '/api/form-fallback': typeof ApiFormFallbackRoute
   '/media/$': typeof MediaSplatRoute
   '/': typeof SiteIndexRoute
   '/admin': typeof AdminIndexRoute
@@ -2344,6 +2352,7 @@ export interface FileRoutesById {
   '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
+  '/api/form-fallback': typeof ApiFormFallbackRoute
   '/media/$': typeof MediaSplatRoute
   '/_site/': typeof SiteIndexRoute
   '/admin/': typeof AdminIndexRoute
@@ -2619,6 +2628,7 @@ export interface FileRouteTypes {
     | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
+    | '/api/form-fallback'
     | '/media/$'
     | '/admin/'
     | '/$market/$region'
@@ -2886,6 +2896,7 @@ export interface FileRouteTypes {
     | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
+    | '/api/form-fallback'
     | '/media/$'
     | '/'
     | '/admin'
@@ -3159,6 +3170,7 @@ export interface FileRouteTypes {
     | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
+    | '/api/form-fallback'
     | '/media/$'
     | '/_site/'
     | '/admin/'
@@ -3411,6 +3423,7 @@ export interface RootRouteChildren {
   DotwellKnownMtaStsDottxtRoute: typeof DotwellKnownMtaStsDottxtRoute
   DotwellKnownSecurityDottxtRoute: typeof DotwellKnownSecurityDottxtRoute
   ApiConsentRoute: typeof ApiConsentRoute
+  ApiFormFallbackRoute: typeof ApiFormFallbackRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ApiAdminCampaignsRoute: typeof ApiAdminCampaignsRoute
   ApiAdminDashboardRoute: typeof ApiAdminDashboardRoute
@@ -3769,6 +3782,13 @@ declare module '@tanstack/react-router' {
       path: '/api/consent'
       fullPath: '/api/consent'
       preLoaderRoute: typeof ApiConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/form-fallback': {
+      id: '/api/form-fallback'
+      path: '/api/form-fallback'
+      fullPath: '/api/form-fallback'
+      preLoaderRoute: typeof ApiFormFallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/media/$': {
@@ -6225,6 +6245,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownMtaStsDottxtRoute: DotwellKnownMtaStsDottxtRoute,
   DotwellKnownSecurityDottxtRoute: DotwellKnownSecurityDottxtRoute,
   ApiConsentRoute: ApiConsentRoute,
+  ApiFormFallbackRoute: ApiFormFallbackRoute,
   MediaSplatRoute: MediaSplatRoute,
   ApiAdminCampaignsRoute: ApiAdminCampaignsRoute,
   ApiAdminDashboardRoute: ApiAdminDashboardRoute,

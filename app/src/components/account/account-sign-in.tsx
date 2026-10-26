@@ -28,7 +28,13 @@ export function AccountSignIn({ expired }: { expired: boolean }) {
     void run(email);
   };
   return (
-    <form onSubmit={onSubmit} aria-busy={pending} noValidate>
+    <form
+      method="post"
+      action="/api/form-fallback"
+      onSubmit={onSubmit}
+      aria-busy={pending}
+      noValidate
+    >
       {expired ? (
         <p className="form-note">
           That link has expired or was already used. Ask for a new one below.

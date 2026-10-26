@@ -64,6 +64,8 @@ export function ContactForm() {
 
   return (
     <form
+      method="post"
+      action="/api/form-fallback"
       className="contact-form"
       onSubmit={onSubmit}
       onInput={clear}
