@@ -133,7 +133,7 @@ describe("the nav registry", () => {
       actions: everyAction(),
     });
     expect(screensShown(sections)).not.toContain(23);
-    expect(screensShown(sections)).toHaveLength(26);
+    expect(screensShown(sections)).toHaveLength(27);
   });
 
   it("hides the team screen from a commercial actor", () => {
