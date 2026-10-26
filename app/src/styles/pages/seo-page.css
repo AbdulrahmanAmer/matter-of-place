@@ -5,6 +5,12 @@
   margin-top: 40px;
 }
 
+/* base.css paints the current page in the accent, which fails contrast on the ivory column (axe, e2e sweep);
+   here it reads in the same tone as the links. */
+.seo-page .breadcrumb span {
+  color: var(--muted-foreground);
+}
+
 .seo-page .seo-lede {
   max-width: 56ch;
   margin-top: 36px;
