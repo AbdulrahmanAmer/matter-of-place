@@ -4,6 +4,7 @@ import { dailyLimitsSchema } from "./admin-team.ts";
 import type { redirectStatuses } from "./contracts.ts";
 import { productPlanSchema, productsReadSchema } from "./exposure.ts";
 import { invoiceSettingsSchema } from "./payments.ts";
+import { redirectKey } from "./route-path.ts";
 import { siteSettingsSchema } from "./settings.ts";
 
 // Screen 24 (B7 step 15). The API JSON is the stored value of each `settings` key under its own snake_case name
@@ -196,11 +197,18 @@ const isSystemPath = (path: string) =>
 /** True when following `to_path` through the other active rows comes back to `from_path`. */
 function closesLoop(row: RedirectPutInput, active: readonly RedirectRow[]): boolean {
   const next = new Map(
-    active.filter((other) => other.id !== row.id).map((other) => [other.from_path, other.to_path]),
+    active
+      .filter((other) => other.id !== row.id)
+      .map((other) => [redirectKey(other.from_path), redirectKey(other.to_path)]),
   );
+  const from = redirectKey(row.from_path);
   const seen = new Set<string>();
-  for (let path: string | undefined = row.to_path; path !== undefined; path = next.get(path)) {
-    if (path === row.from_path) return true;
+  for (
+    let path: string | undefined = redirectKey(row.to_path);
+    path !== undefined;
+    path = next.get(path)
+  ) {
+    if (path === from) return true;
     if (seen.has(path)) return false;
     seen.add(path);
   }
@@ -218,6 +226,8 @@ export function redirectSchema(active: readonly RedirectRow[]) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message });
     };
     const from = row.from_path;
+    const fromKey = redirectKey(from);
+    const toKey = redirectKey(row.to_path);
     const others = active.filter((other) => other.id !== row.id);
     if (!sitePath(from)) refuse("The old address must be a path on this site.");
     else if (from.startsWith("/admin") || from === "/api" || from.startsWith("/api/")) {
@@ -227,20 +237,21 @@ export function redirectSchema(active: readonly RedirectRow[]) {
         "The home page, crawler files, feeds, media and .well-known addresses cannot be redirected.",
       );
     } else if (from.includes("?")) refuse("The old address cannot carry a query string.");
+    else if (from.includes("#")) refuse("The old address cannot carry a fragment.");
     else if (!sitePath(row.to_path)) refuse("The new address must be a path on this site.");
-    else if (row.to_path === from) refuse("A redirect cannot point to itself.");
+    else if (toKey === fromKey) refuse("A redirect cannot point to itself.");
     else if (!redirectStatusChoices.some((status) => status === row.status)) {
       refuse("The status must be 301 or 302.");
-    } else if (active.some((other) => other.from_path === from && other.id !== row.id)) {
+    } else if (others.some((other) => redirectKey(other.from_path) === fromKey)) {
       refuse("That old address is already redirected.");
     } else if (closesLoop(row, active)) refuse("These addresses would redirect in a loop.");
     else if (row.to_path.length > 1 && row.to_path.endsWith("/")) {
       refuse("The new address cannot end in a slash: the site would redirect it a second time.");
-    } else if (others.some((other) => other.from_path === row.to_path)) {
+    } else if (others.some((other) => redirectKey(other.from_path) === toKey)) {
       refuse(
         "The new address is itself redirected. Point to the final address so visitors take one step.",
       );
-    } else if (others.some((other) => other.to_path === from)) {
+    } else if (others.some((other) => redirectKey(other.to_path) === fromKey)) {
       refuse(
         "Another redirect already leads to this old address. Point that one at the final address first.",
       );
