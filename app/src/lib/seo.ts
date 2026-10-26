@@ -59,6 +59,38 @@ function hasAbsoluteHttpsUrl({ url }: PageImage): boolean {
   }
 }
 
+type Node = Record<string, unknown>;
+
+/** A FAQ page has no builder that knows its address, so its node takes the page's `#primary` id here. */
+function withPrimaryId(nodes: JsonLdObject[], canonical: string): JsonLdObject[] {
+  return nodes.map((node) =>
+    (node as Node)["@type"] === "FAQPage" && (node as Node)["@id"] === undefined
+      ? { "@id": `${canonical}#primary`, ...node }
+      : node,
+  );
+}
+
+/** The page itself, tying its breadcrumb and main entity to the site (SCH-001). */
+function webPageNode(
+  page: { canonical: string; title: string; description: string },
+  nodes: JsonLdObject[],
+) {
+  const has = (id: string) => nodes.some((node) => (node as Node)["@id"] === id);
+  const link = (id: string) => (has(id) ? { "@id": id } : undefined);
+  const breadcrumb = link(`${page.canonical}#breadcrumb`);
+  const mainEntity = link(`${page.canonical}#primary`);
+  return {
+    "@type": "WebPage",
+    "@id": `${page.canonical}#webpage`,
+    url: page.canonical,
+    name: page.title,
+    description: page.description,
+    isPartOf: { "@id": absoluteUrl("/#website") },
+    ...(breadcrumb === undefined ? {} : { breadcrumb }),
+    ...(mainEntity === undefined ? {} : { mainEntity }),
+  };
+}
+
 /**
  * Builds the `head()` return value for a route: unique title and description,
  * Open Graph and Twitter tags, a canonical link and optional JSON-LD. An image
@@ -87,8 +119,12 @@ export function pageHead({
   const fullTitle = hasBrand ? title : `${title}${suffix}`;
   const canonical = absoluteUrl(canonicalPath(path));
   const shownImage = image !== undefined && hasAbsoluteHttpsUrl(image) ? image : undefined;
+  const nodes = Array.isArray(jsonLd) ? withPrimaryId(jsonLd, canonical) : [];
   const graph = Array.isArray(jsonLd)
-    ? { "@context": "https://schema.org", "@graph": jsonLd }
+    ? {
+        "@context": "https://schema.org",
+        "@graph": [webPageNode({ canonical, title: fullTitle, description }, nodes), ...nodes],
+      }
     : jsonLd;
   return {
     meta: [
@@ -150,7 +186,6 @@ export const unavailableHead = (noun: string) =>
   });
 
 export const faqJsonLd = (items: { q: string; a: string }[]) => ({
-  "@context": "https://schema.org",
   "@type": "FAQPage",
   mainEntity: items.map((item) => ({
     "@type": "Question",
