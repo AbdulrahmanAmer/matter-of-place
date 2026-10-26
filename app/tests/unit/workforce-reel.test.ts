@@ -620,10 +620,9 @@ describe("the studio folder (W8 0f)", () => {
     expect(log.filter((line) => line.startsWith("matter: "))).toEqual([
       expect.stringContaining('the reel "The door"'),
     ]);
-    expect(decide(root, folder, "revise", "Hold the first title a beat longer.")).toMatchObject({
-      ok: true,
-      line: expect.stringContaining("goes back to the designer"),
-    });
+    const revised = decide(root, folder, "revise", "Hold the first title a beat longer.");
+    expect(revised.ok).toBe(true);
+    expect(revised.line).toContain("goes back to the designer");
     expect(brief(folder)).toMatchObject({
       state: "queued",
       revise: "Hold the first title a beat longer.",
@@ -708,10 +707,10 @@ describe("the studio folder (W8 0f)", () => {
     expect(log.filter((line) => line.startsWith("preview "))).toEqual([
       expect.stringMatching(new RegExp(`^preview studio/${id}/preview\\.[0-9a-f]{8}\\.jpg$`)),
     ]);
-    expect(rpcArgs(db).at(-1)).toMatchObject({
-      p_state: "waiting_operator",
-      p_preview_key: expect.stringMatching(/^studio\//),
-    });
+    const held = rpcArgs(db).at(-1);
+    expect(held).toMatchObject({ p_state: "waiting_operator" });
+    const previewKey = held?.["p_preview_key"];
+    expect(typeof previewKey === "string" && previewKey.startsWith("studio/")).toBe(true);
     expect(readFileSync(join(folder, "status.md"), "utf8")).toContain(
       "Waits for the operator (Is the second title right for this owner?)",
     );
@@ -740,7 +739,7 @@ describe("the studio folder (W8 0f)", () => {
     expect(await reelPass(run, root)).toBeNull();
   });
 
-  it("refuses a decision on no piece, outside the studio, in the wrong state, or without a draft", async () => {
+  it("refuses a decision on no piece, outside the studio, in the wrong state, or without a draft", () => {
     // a piece that could take the decision, one folder above the studio: a name that climbs to it is refused
     const outer = studio();
     const decoy = queueReel(brand, from, outer);

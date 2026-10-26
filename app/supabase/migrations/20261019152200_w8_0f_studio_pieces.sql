@@ -28,6 +28,8 @@ create table public.studio_pieces (
   updated_at timestamptz not null default now()
 );
 create index studio_pieces_state_idx on public.studio_pieces (state, updated_at desc);
+-- R24: every foreign key leads an index (a deleted asset sets this column to null by it)
+create index studio_pieces_asset_id_idx on public.studio_pieces (asset_id);
 
 alter table public.studio_pieces enable row level security;
 revoke all on table public.studio_pieces from anon, authenticated;
