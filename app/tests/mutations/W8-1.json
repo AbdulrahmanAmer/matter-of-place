@@ -1,0 +1,621 @@
+[
+  {
+    "id": "w8-1-subject-needs",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/post-request.ts",
+    "find": "if (needs === \"market\" && request.market === undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names the subject its kind needs and no other"
+  },
+  {
+    "id": "w8-1-carousel-count",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/post-request.ts",
+    "find": "format === \"carousel\" ? [2, 6] : [1, 3]",
+    "replace": "format === \"carousel\" ? [1, 6] : [1, 3]",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names the subject its kind needs and no other"
+  },
+  {
+    "id": "w8-1-answer-reads-post",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "reelRequestSchema, postRequestSchema, studioDecisionSchema",
+    "replace": "reelRequestSchema, reelRequestSchema, studioDecisionSchema",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*is read from Matter's answer beside a reel"
+  },
+  {
+    "id": "w8-1-frame-sizes",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/post-request.ts",
+    "find": "      width: 1080,\n      height: 1350,",
+    "replace": "      width: 1080,\n      height: 1080,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*is shot at B9's sizes and roles"
+  },
+  {
+    "id": "w8-1-matter-told",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/matter/run.ts",
+    "find": "{\"skill\": \"post\", \"name\": \"short name\"",
+    "replace": "{\"skill\": \"still\", \"name\": \"short name\"",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*tells Matter how to ask for one"
+  },
+  {
+    "id": "w8-1-caption-link",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "{ x: `${x} ${brandLink(market, \"x\", campaign)}` }",
+    "replace": "{ x }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*adds the post's own link on X and LinkedIn"
+  },
+  {
+    "id": "w8-1-caption-figures",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "src/server/assets/voice.ts",
+    "find": "if (figures.length > 0) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses a figure, a hashtag"
+  },
+  {
+    "id": "w8-1-gate-typeface",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    if (foreign.length > 0)\n",
+    "replace": "    if (false)\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names every broken rule of every frame"
+  },
+  {
+    "id": "w8-1-gate-stray",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "if (stray.length > 0) problems.push(",
+    "replace": "if (false) problems.push(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names every broken rule of every frame"
+  },
+  {
+    "id": "w8-1-gate-blank",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "if (shot.spread < MIN_SPREAD)",
+    "replace": "if (false)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names every broken rule of every frame"
+  },
+  {
+    "id": "w8-1-gate-palette",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "if (off.length > 0) problems.push(",
+    "replace": "if (false) problems.push(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names every broken rule of every frame"
+  },
+  {
+    "id": "w8-1-palette-only",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "return paletteRgb.has([r, g, b].join(\",\"));",
+    "replace": "return true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*takes a palette colour at any alpha"
+  },
+  {
+    "id": "w8-1-stray-case",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    .toLowerCase()\n    .replace(",
+    "replace": "    .replace(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*reads the words a frame shows past the allowed lines"
+  },
+  {
+    "id": "w8-1-source-canvas",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "  [/create(?:Linear|Radial|Conic)Gradient\\s*\\(/, \"a canvas gradient\"],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*reads the page's files for what a canvas draws"
+  },
+  {
+    "id": "w8-1-source-none",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "(?:text|box)-shadow\\s*:(?!\\s*none)",
+    "replace": "(?:text|box)-shadow\\s*:",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*reads the page's files for what a canvas draws"
+  },
+  {
+    "id": "w8-1-design-slides",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "if (slides > 0 && design.slide_alts?.length !== slides) return null;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*reads the designer's alt text, and for a carousel one per slide"
+  },
+  {
+    "id": "w8-1-earlier-done",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "brief.state !== \"done\") return [];",
+    "replace": "false) return [];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*shows the designer and the reviewer the newest earlier posts"
+  },
+  {
+    "id": "w8-1-earlier-order",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": ".sort((a, b) => b.at.localeCompare(a.at))",
+    "replace": ".sort((a, b) => a.at.localeCompare(b.at))",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*shows the designer and the reviewer the newest earlier posts"
+  },
+  {
+    "id": "w8-1-prompt-layout",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "Yours must share no layout with any of them",
+    "replace": "Yours may share a layout with them",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*shows the designer and the reviewer the newest earlier posts"
+  },
+  {
+    "id": "w8-1-review-layout",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "\"Refuse it if its layout repeats one of the earlier posts:",
+    "replace": "\"Its layout may echo the earlier posts:",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*shows the designer and the reviewer the newest earlier posts"
+  },
+  {
+    "id": "w8-1-pass-subject",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "p_subject: postSubjectOf[request.kind],",
+    "replace": "p_subject: \"brand\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*draws an interest post from its market's own picture"
+  },
+  {
+    "id": "w8-1-pass-roles",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "        role: frame.role,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*designs, gates, has it reviewed, uploads each frame"
+  },
+  {
+    "id": "w8-1-pass-gate",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "const gate = stillGate(reports, frames, allowed);",
+    "replace": "const gate = null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*gives the designer the gate's refusal"
+  },
+  {
+    "id": "w8-1-pass-review",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "        if (verdict.pass) {\n          made = { reports, design };",
+    "replace": "        if (true) {\n          made = { reports, design };",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*stops when the reviewer still refuses it"
+  },
+  {
+    "id": "w8-1-caption-first",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "if (written.issues.length > 0) throw new Error(",
+    "replace": "if (false) throw new Error(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses a caption that breaks the voice before any design"
+  },
+  {
+    "id": "w8-1-market-picture",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "writeFileSync(join(folder, \"shots\", file), await deps.download(subject.image));",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*draws an interest post from its market's own picture"
+  },
+  {
+    "id": "w8-1-story-published",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "if (data.editorial_state !== \"published\") throw new Error(\"story_not_published\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses a story card of a story nobody can read yet"
+  },
+  {
+    "id": "w8-1-remove-on-fail",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": ": await deps.remove(uploaded).then(",
+    "replace": ": await Promise.resolve().then(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*removes what it uploaded when the visual cannot be recorded"
+  },
+  {
+    "id": "w8-1-post-pass-skill",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "  if (request.skill !== \"post\") return null;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*leaves a post to the post pass and a reel to the reel pass"
+  },
+  {
+    "id": "w8-1-reel-pass-skill",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  return request.skill === \"reel\"\n    ? { folder: piece.folder",
+    "replace": "  return true\n    ? { folder: piece.folder",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*leaves a post to the post pass and a reel to the reel pass"
+  },
+  {
+    "id": "w8-1-retention-step",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "      [\"rejected_requested_visuals\", (policy) => visualsPolicy(db, policy, dryRun)],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/jobs/retention.test.ts",
+    "expect": "× .*deletes a rejected requested visual's row in batches of 100"
+  },
+  {
+    "id": "w8-1-retention-deleted-keys",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "const keys = deleted.data.flatMap((row) => row.media_keys);",
+    "replace": "const keys = batch.flatMap((row) => row.media_keys);",
+    "run": "bunx vitest run --project unit tests/unit/jobs/retention.test.ts",
+    "expect": "× .*removes no file of a visual the delete function kept"
+  },
+  {
+    "id": "w8-1-retention-storage",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "const { error } = await db.storage.from(\"media\").remove(keys);",
+    "replace": "const error = null;",
+    "run": "bunx vitest run --project unit tests/unit/jobs/retention.test.ts",
+    "expect": "× .*deletes a rejected visual's row before its files, and names the files"
+  },
+  {
+    "id": "w8-1-guard-interception",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  await page.setRequestInterception(true);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*is refused the repository's .env, any other file of the checkout and any other host"
+  },
+  {
+    "id": "w8-1-guard-paths",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  return POST_PATHS.some((prefix) => path.startsWith(prefix));",
+    "replace": "  return true;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*allows its own folder, the brand, the fonts and Three.js"
+  },
+  {
+    "id": "w8-1-guard-climb",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  if (/(^|[\\\\/])\\.\\.([\\\\/]|$)/.test(path)) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*allows its own folder, the brand, the fonts and Three.js"
+  },
+  {
+    "id": "w8-1-guard-origin",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  return parsed.origin === origin && postPathAllowed(parsed.pathname);",
+    "replace": "  return postPathAllowed(parsed.pathname);",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*allows its own folder, the brand, the fonts and Three.js"
+  },
+  {
+    "id": "w8-1-serve-allow",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/serve.mjs",
+    "find": "    if (allow !== null && !allow(pathname)) return res.writeHead(403).end();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*is all the engine's server serves when given the guard"
+  },
+  {
+    "id": "w8-1-text-px",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "at least ${String(MIN_TEXT_PX)} px tall",
+    "replace": "at least 28 px tall",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*tells the designer the one smallest text size the gate lets through"
+  },
+  {
+    "id": "w8-1-meta-studio",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "        studio: basename(folder),\n",
+    "replace": "        studio: folder,\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*designs, gates, has it reviewed, uploads each frame"
+  },
+  {
+    "id": "w8-1-db-kind",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.record_requested_asset(\n  p_subject text,\n  p_kind public.asset_kind,\n  p_files jsonb,\n  p_caption text,\n  p_alt_text text,\n  p_meta jsonb,\n  p_property uuid default null,\n  p_market text default null,\n  p_story uuid default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_key text := p_subject || ':' || coalesce(p_property::text, p_market, p_story::text, 'brand');\n  v_revision int;\n  v_id uuid;\nbegin\n  -- W7 item 19 and W8 item 1 (H107): a visual a colleague or Matter asked for, made and gated on the operator's laptop,\n  -- waits in Visuals as a pending asset of its subject: a reel, or a still post (a carousel, a story, a cover). The\n  -- table's check refuses a subject without its column; approval works as for any asset of the kind.\n  if jsonb_typeof(p_files) is distinct from 'array' or jsonb_array_length(p_files) = 0 then\n    raise exception 'requested_asset_files' using errcode = '22023';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:requested:' || p_kind::text || ':' || v_key));\n  select coalesce(max(a.revision), 0) + 1 into v_revision\n  from public.assets a\n  where a.kind = p_kind\n    and a.subject = p_subject\n    and a.property_id is not distinct from p_property\n    and a.market_slug is not distinct from p_market\n    and a.story_id is not distinct from p_story;\n  insert into public.assets (subject, property_id, market_slug, story_id, kind, revision, files, caption, alt_text, meta)\n  values (\n    p_subject, p_property, p_market, p_story, p_kind, v_revision, p_files, p_caption, p_alt_text,\n    coalesce(p_meta, '{}'::jsonb)\n  )\n  returning id into v_id;\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, note)\n  values (\n    null, null, case when p_kind = 'reel' then 'assets.request_reel' else 'assets.request_post' end, 'assets', v_id,\n    null, jsonb_build_object('subject', p_subject, 'kind', p_kind, 'revision', v_revision, 'status', 'pending'), null\n  );\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.record_requested_asset(\n  text, public.asset_kind, jsonb, text, text, jsonb, uuid, text, uuid\n) from public, anon, authenticated;\ngrant execute on function public.record_requested_asset(\n  text, public.asset_kind, jsonb, text, text, jsonb, uuid, text, uuid\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*refuses a kind that is not a visual"
+  },
+  {
+    "id": "w8-1-db-files",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.record_requested_asset(\n  p_subject text,\n  p_kind public.asset_kind,\n  p_files jsonb,\n  p_caption text,\n  p_alt_text text,\n  p_meta jsonb,\n  p_property uuid default null,\n  p_market text default null,\n  p_story uuid default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_key text := p_subject || ':' || coalesce(p_property::text, p_market, p_story::text, 'brand');\n  v_revision int;\n  v_id uuid;\nbegin\n  -- W7 item 19 and W8 item 1 (H107): a visual a colleague or Matter asked for, made and gated on the operator's laptop,\n  -- waits in Visuals as a pending asset of its subject: a reel, or a still post (a carousel, a story, a cover). The\n  -- table's check refuses a subject without its column; approval works as for any asset of the kind.\n  if p_kind not in ('cover', 'carousel', 'story', 'reel') then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  if false then\n    raise exception 'requested_asset_files' using errcode = '22023';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:requested:' || p_kind::text || ':' || v_key));\n  select coalesce(max(a.revision), 0) + 1 into v_revision\n  from public.assets a\n  where a.kind = p_kind\n    and a.subject = p_subject\n    and a.property_id is not distinct from p_property\n    and a.market_slug is not distinct from p_market\n    and a.story_id is not distinct from p_story;\n  insert into public.assets (subject, property_id, market_slug, story_id, kind, revision, files, caption, alt_text, meta)\n  values (\n    p_subject, p_property, p_market, p_story, p_kind, v_revision, p_files, p_caption, p_alt_text,\n    coalesce(p_meta, '{}'::jsonb)\n  )\n  returning id into v_id;\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, note)\n  values (\n    null, null, case when p_kind = 'reel' then 'assets.request_reel' else 'assets.request_post' end, 'assets', v_id,\n    null, jsonb_build_object('subject', p_subject, 'kind', p_kind, 'revision', v_revision, 'status', 'pending'), null\n  );\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.record_requested_asset(\n  text, public.asset_kind, jsonb, text, text, jsonb, uuid, text, uuid\n) from public, anon, authenticated;\ngrant execute on function public.record_requested_asset(\n  text, public.asset_kind, jsonb, text, text, jsonb, uuid, text, uuid\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*refuses a kind that is not a visual"
+  },
+  {
+    "id": "w8-1-db-action",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.record_requested_asset(\n  p_subject text,\n  p_kind public.asset_kind,\n  p_files jsonb,\n  p_caption text,\n  p_alt_text text,\n  p_meta jsonb,\n  p_property uuid default null,\n  p_market text default null,\n  p_story uuid default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_key text := p_subject || ':' || coalesce(p_property::text, p_market, p_story::text, 'brand');\n  v_revision int;\n  v_id uuid;\nbegin\n  -- W7 item 19 and W8 item 1 (H107): a visual a colleague or Matter asked for, made and gated on the operator's laptop,\n  -- waits in Visuals as a pending asset of its subject: a reel, or a still post (a carousel, a story, a cover). The\n  -- table's check refuses a subject without its column; approval works as for any asset of the kind.\n  if p_kind not in ('cover', 'carousel', 'story', 'reel') then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  if jsonb_typeof(p_files) is distinct from 'array' or jsonb_array_length(p_files) = 0 then\n    raise exception 'requested_asset_files' using errcode = '22023';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:requested:' || p_kind::text || ':' || v_key));\n  select coalesce(max(a.revision), 0) + 1 into v_revision\n  from public.assets a\n  where a.kind = p_kind\n    and a.subject = p_subject\n    and a.property_id is not distinct from p_property\n    and a.market_slug is not distinct from p_market\n    and a.story_id is not distinct from p_story;\n  insert into public.assets (subject, property_id, market_slug, story_id, kind, revision, files, caption, alt_text, meta)\n  values (\n    p_subject, p_property, p_market, p_story, p_kind, v_revision, p_files, p_caption, p_alt_text,\n    coalesce(p_meta, '{}'::jsonb)\n  )\n  returning id into v_id;\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, note)\n  values (\n    null, null, 'assets.request_reel', 'assets', v_id,\n    null, jsonb_build_object('subject', p_subject, 'kind', p_kind, 'revision', v_revision, 'status', 'pending'), null\n  );\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.record_requested_asset(\n  text, public.asset_kind, jsonb, text, text, jsonb, uuid, text, uuid\n) from public, anon, authenticated;\ngrant execute on function public.record_requested_asset(\n  text, public.asset_kind, jsonb, text, text, jsonb, uuid, text, uuid\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*writes a pending still of its subject"
+  },
+  {
+    "id": "w8-1-db-revision-kind",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.record_requested_asset(\n  p_subject text,\n  p_kind public.asset_kind,\n  p_files jsonb,\n  p_caption text,\n  p_alt_text text,\n  p_meta jsonb,\n  p_property uuid default null,\n  p_market text default null,\n  p_story uuid default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_key text := p_subject || ':' || coalesce(p_property::text, p_market, p_story::text, 'brand');\n  v_revision int;\n  v_id uuid;\nbegin\n  -- W7 item 19 and W8 item 1 (H107): a visual a colleague or Matter asked for, made and gated on the operator's laptop,\n  -- waits in Visuals as a pending asset of its subject: a reel, or a still post (a carousel, a story, a cover). The\n  -- table's check refuses a subject without its column; approval works as for any asset of the kind.\n  if p_kind not in ('cover', 'carousel', 'story', 'reel') then\n    raise exception 'invalid_kind' using errcode = '22023';\n  end if;\n  if jsonb_typeof(p_files) is distinct from 'array' or jsonb_array_length(p_files) = 0 then\n    raise exception 'requested_asset_files' using errcode = '22023';\n  end if;\n  perform pg_advisory_xact_lock(hashtext('assets:requested:' || p_kind::text || ':' || v_key));\n  select coalesce(max(a.revision), 0) + 1 into v_revision\n  from public.assets a\n  where a.subject = p_subject\n    and a.property_id is not distinct from p_property\n    and a.market_slug is not distinct from p_market\n    and a.story_id is not distinct from p_story;\n  insert into public.assets (subject, property_id, market_slug, story_id, kind, revision, files, caption, alt_text, meta)\n  values (\n    p_subject, p_property, p_market, p_story, p_kind, v_revision, p_files, p_caption, p_alt_text,\n    coalesce(p_meta, '{}'::jsonb)\n  )\n  returning id into v_id;\n  insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, note)\n  values (\n    null, null, case when p_kind = 'reel' then 'assets.request_reel' else 'assets.request_post' end, 'assets', v_id,\n    null, jsonb_build_object('subject', p_subject, 'kind', p_kind, 'revision', v_revision, 'status', 'pending'), null\n  );\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.record_requested_asset(\n  text, public.asset_kind, jsonb, text, text, jsonb, uuid, text, uuid\n) from public, anon, authenticated;\ngrant execute on function public.record_requested_asset(\n  text, public.asset_kind, jsonb, text, text, jsonb, uuid, text, uuid\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*writes a pending still of its subject"
+  },
+  {
+    "id": "w8-1-db-reel-delegates",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.record_requested_reel(\n  p_subject text,\n  p_files jsonb,\n  p_caption text,\n  p_alt_text text,\n  p_meta jsonb,\n  p_property uuid default null,\n  p_market text default null,\n  p_story uuid default null\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\nbegin\n  -- W7 item 19 (H107): a reel a colleague or Matter asked for. W8 item 1: written by record_requested_asset, the one\n  -- writer of every requested visual; this name stays for the reel pass, with its own refusal of a reel without files.\n  if jsonb_typeof(p_files) is distinct from 'array' or jsonb_array_length(p_files) = 0 then\n    raise exception 'requested_reel_files' using errcode = '22023';\n  end if;\n  return public.record_requested_asset(\n    p_subject, 'cover', p_files, p_caption, p_alt_text, p_meta, p_property, p_market, p_story\n  );\nend;\n$$;\n\nrevoke execute on function public.record_requested_reel(text, jsonb, text, text, jsonb, uuid, text, uuid)\n  from public, anon, authenticated;\ngrant execute on function public.record_requested_reel(text, jsonb, text, text, jsonb, uuid, text, uuid)\n  to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*is the one writer of a requested reel too"
+  },
+  {
+    "id": "w8-1-db-list-rejected",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-list-posted",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-list-requested-keys",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') ,\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-age",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-grant",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\ngrant execute on function public.retention_delete_assets(uuid[]) to anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*is a policy row of 90 days, and anon and authenticated cannot run either function"
+  },
+  {
+    "id": "w8-1-db-list-subject",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-list-request-id",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-list-proposed",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-subject",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-status",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-request-id",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-posted",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-proposed",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-enabled",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*deletes nothing while its policy is off"
+  },
+  {
+    "id": "w8-1-db-delete-keys",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-still-page-check",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "  if (rel.startsWith(\"..\") || !postPathAllowed(`/${rel}`))\n    throw new Error(\"the page must be under app/.tmp/post/ of the repository: \" + pagePath);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*refuses to open a page outside app/.tmp/post/"
+  },
+  {
+    "id": "w8-1-still-serve-allow",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "  const server = await serve({ allow: postPathAllowed });",
+    "replace": "  const server = await serve();",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*serves a page's service worker only a post's files"
+  },
+  {
+    "id": "w8-1-still-chrome-args",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "    args: [...CHROME_ARGS, ...postChromeArgs(server.url)],",
+    "replace": "    args: CHROME_ARGS,",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*fails a page that asks for the .env, another file of the checkout, another host or another local service"
+  },
+  {
+    "id": "w8-1-still-guard-page",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      await guardPost(page, server.url);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*fails a page that asks for the .env, another file of the checkout, another host or another local service"
+  },
+  {
+    "id": "w8-1-still-brand-served",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  \"/brand/\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*shoots a page that loads only a post's own files, the brand's emblem here"
+  },
+  {
+    "id": "w8-1-guard-loopback",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "    `--proxy-bypass-list=<-loopback>;${new URL(origin).host}`,\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*cannot open a WebSocket to another service of this machine"
+  },
+  {
+    "id": "w8-1-post-failure-folder",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "${cleanup} Its folder: ${basename(folder)}",
+    "replace": "${cleanup} Its folder: ${folder}",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*stops when the reviewer still refuses it after its revisions"
+  },
+  {
+    "id": "w8-1-reel-failure-folder",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "Nothing was uploaded. Its folder: ${basename(folder)}",
+    "replace": "Nothing was uploaded. Its folder: ${folder}",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*uploads nothing and says why when the reviewer refuses it"
+  },
+  {
+    "id": "w8-1-reel-upload-failure-folder",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "Nothing is on the site. Its folder: ${basename(folder)}",
+    "replace": "Nothing is on the site. Its folder: ${folder}",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*stops a pass at an approved piece whose draft is missing"
+  },
+  {
+    "id": "w8-1-reel-draft-folder",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "(its status.md and drafts are in ${basename(folder)})",
+    "replace": "(its status.md and drafts are in ${folder})",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*designs, films, has it reviewed, keeps a draft"
+  },
+  {
+    "id": "w8-1-ci-runs-on-sandbox",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "    types: [opened, synchronize, reopened, ready_for_review]\n    paths-ignore: [\"workspace/**\", \"launch/01-launch-film/**\"",
+    "replace": "    types: [opened, synchronize, reopened, ready_for_review]\n    paths-ignore: [\"workspace/**\", \"launch/**\", \"launch/01-launch-film/**\"",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
+    "expect": "× .*refuses a pull request that changes only the post page sandbox with no checks"
+  }
+]

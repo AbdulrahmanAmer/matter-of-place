@@ -139,7 +139,7 @@ export function toolkitWords(toolkit: Toolkit, tools: readonly string[]): string
     ...(toolkit.write.length === 0 && toolkit.render.length === 0
       ? []
       : ["Writes and renders only on work a person started; otherwise it only reads."]),
-    // no shell for anyone (GOTCHAS P-4511): deny rules on the real CLI never stopped a redirect from a read-only command
+    // no shell for anyone (GOTCHAS P-4555): deny rules on the real CLI never stopped a redirect from a read-only command
     "No command, no keys, nothing sent outside the company without a person's approval.",
   ];
 }

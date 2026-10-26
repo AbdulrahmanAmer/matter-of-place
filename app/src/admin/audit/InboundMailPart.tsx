@@ -39,6 +39,16 @@ function sender(mail: InboundMail): string {
   return name === null ? address : `${name} <${address}>`;
 }
 
+/**
+ * Its state as a person reads it. A state that names an owner reads "Waiting for a person" when no colleague was on to
+ * take it (Matter off for a notice, no one on for a person's email): the label never says what did not happen.
+ */
+function stateOf(mail: InboundMail): { label: string; waiting: boolean } {
+  const owned = mail.state === "new" || mail.state === "routed" || mail.state === "escalated";
+  const waiting = mail.state === "capped" || (owned && mail.owner_slug === null);
+  return { label: waiting ? STATE.capped : STATE[mail.state], waiting };
+}
+
 /** What became of it: the triage's labels for a person's message, else the runner's own words. */
 function result(mail: InboundMail): string {
   if (mail.triage === null) return mail.summary;
@@ -162,10 +172,10 @@ export function InboundMailPart() {
                     <span
                       className="admin-pill"
                       data-tone={
-                        row.state === "held" || row.state === "capped" ? "warning" : undefined
+                        row.state === "held" || stateOf(row).waiting ? "warning" : undefined
                       }
                     >
-                      {STATE[row.state]}
+                      {stateOf(row).label}
                     </span>
                   </td>
                 </tr>

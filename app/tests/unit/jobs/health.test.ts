@@ -352,4 +352,23 @@ describe("captions_waiting", () => {
       statusOf(none.result, "captions_waiting"),
     ]).toEqual(["ok", "ok"]);
   });
+
+  it("is fail one minute past the hour, naming the wait in minutes", async () => {
+    const { result } = await run({ counts: { local_oldest_age_s: 3660 } });
+    expect(checksOf(result).find((check) => check.name === "captions_waiting")).toEqual({
+      name: "captions_waiting",
+      status: "fail",
+      message:
+        "caption job waiting 61 minutes: the laptop's MOP Captions task is not running (is the laptop on?), or type the captions by hand",
+    });
+  });
+
+  it("counts in minutes up to two hours and in hours from there (W8 item 3 review)", async () => {
+    const at = async (seconds: number) =>
+      checksOf((await run({ counts: { local_oldest_age_s: seconds } })).result).find(
+        (check) => check.name === "captions_waiting",
+      )?.message;
+    expect(await at(7140)).toContain("caption job waiting 119 minutes:");
+    expect(await at(7200)).toContain("caption job waiting 2 hours:");
+  });
 });

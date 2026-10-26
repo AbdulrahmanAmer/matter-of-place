@@ -35,10 +35,11 @@ import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
 import {
   briefId,
+  decidePiece,
   mediaFor,
-  nextReel,
   queueReel,
   REEL_TOOL_LINE,
+  reelWork,
   reelWorking,
   withReel,
 } from "./reel.ts";
@@ -78,6 +79,7 @@ import { groundingLines, requestSequence } from "./grounding.ts";
 import { requestDesk } from "./request-desk.ts";
 import { forgetNewWork, newWorkLines } from "./new-work.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
+import { mergedByRun, queueMerges } from "../matter/lessons.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
 import { handToEditor, noteTriage } from "./inbound-mail.ts";
@@ -332,9 +334,9 @@ async function askClaude(
 
 // ---------- waking on events ----------
 
-function readCursor(): string {
+function readCursor(file: string): string {
   try {
-    const value: unknown = JSON.parse(readFileSync(CURSOR_FILE, "utf8"));
+    const value: unknown = JSON.parse(readFileSync(file, "utf8"));
     if (
       typeof value === "object" &&
       value !== null &&
@@ -348,8 +350,14 @@ function readCursor(): string {
   return new Date().toISOString();
 }
 
-async function wakeOnEvents(client: Db): Promise<number> {
-  const cursor = readCursor();
+/**
+ * The runs new events wake (exported for its test, with its own cursor file); the number of runs queued anew. W8 0h
+ * fourth review: they are queued through `queue_event_runs`, whose conflict names the partial index's predicate (the
+ * upsert this replaced was refused by Postgres on every pass); a failure keeps the cursor where it is, so the next pass
+ * wakes the same events again.
+ */
+export async function wakeOnEvents(client: Db, file = CURSOR_FILE): Promise<number> {
+  const cursor = readCursor(file);
   const { data: events, error } = await client
     .from("events")
     .select("id, type, at, entity")
@@ -358,23 +366,28 @@ async function wakeOnEvents(client: Db): Promise<number> {
     .limit(50);
   if (error !== null) throw new Error("workforce: the events could not be read");
   if (events.length === 0) {
-    writeFileSync(CURSOR_FILE, JSON.stringify({ at: cursor }));
+    writeFileSync(file, JSON.stringify({ at: cursor }));
     return 0;
   }
-  const { data: agents } = await client.from("agents").select("id, wake_on, state");
+  const { data: agents, error: unread } = await client.from("agents").select("id, wake_on, state");
+  if (unread !== null) throw new Error("workforce: the colleagues could not be read");
   const rows = events.flatMap((event) =>
-    (agents ?? [])
+    agents
       // W9 item 3: a bounce wakes only the owner of the request or inquiry it is about.
       .filter((agent) => wakes(agent, event))
-      .map((agent) => ({ agent_id: agent.id, cause: "event", event_id: event.id })),
+      .map((agent) => ({ agent_id: agent.id, event_id: event.id })),
   );
+  let queued = 0;
   if (rows.length > 0) {
-    await client
-      .from("agent_runs")
-      .upsert(rows, { onConflict: "agent_id,event_id", ignoreDuplicates: true });
+    const { data, error: refused } = await client.rpc("queue_event_runs", {
+      p_agents: rows.map((row) => row.agent_id),
+      p_events: rows.map((row) => row.event_id),
+    });
+    if (refused !== null) throw new Error("workforce: the runs on new events could not be queued");
+    queued = data;
   }
-  writeFileSync(CURSOR_FILE, JSON.stringify({ at: events.at(-1)?.at ?? cursor }));
-  return rows.length;
+  writeFileSync(file, JSON.stringify({ at: events.at(-1)?.at ?? cursor }));
+  return queued;
 }
 
 // ---------- one run ----------
@@ -949,7 +962,7 @@ export async function runOnce(client: Db): Promise<boolean> {
     // W2 step 6: the lessons this colleague has been taught, recalled for what woke it.
     const { data: lessonRows } = await client
       .from("agent_lessons")
-      .select("id, trigger, action, uses, last_used_at, created_at")
+      .select("id, trigger, action, uses, last_used_at, created_at, source")
       .eq("status", "active")
       .or(`agent_id.eq.${agent.id},agent_id.is.null`);
     const shown: Lesson[] = recallLessons(lessonRows ?? [], situation);
@@ -1076,6 +1089,18 @@ export async function runOnce(client: Db): Promise<boolean> {
         await say(client, thread, `The reel "${request.name}" is queued in the studio: ${folder}`);
         continue;
       }
+      if (request.skill === "post") {
+        // W8 item 1: a still post (Matter's only, `mediaFor`) is made in the same studio queue, one at a time.
+        const folder = queueReel(request, { agent: agent.slug, thread });
+        await say(client, thread, `The post "${request.name}" is queued in the studio: ${folder}`);
+        continue;
+      }
+      if (request.skill === "studio") {
+        // W8 0f: Matter's decision on a draft in the studio (media is kept only for Matter at full power, so a person's
+        // word is behind it); the runner's pass then uploads, revises or sends the preview.
+        await say(client, thread, decidePiece(request).line);
+        continue;
+      }
       await client
         .from("agents")
         .update({ current_task: `Making the voice-over "${request.name}"` })
@@ -1137,6 +1162,12 @@ export async function runOnce(client: Db): Promise<boolean> {
         power === "full",
       );
     }
+    // W6 item 4: what a full-power run merged through the gate becomes build lessons; the live supervisor asks GitHub.
+    const queued = queueMerges(mergedByRun(isMatter, power, result.merged));
+    if (queued.length > 0)
+      console.log(
+        `${new Date().toISOString()} build lessons queued for pull requests ${queued.join(", ")}`,
+      );
     const finished = {
       state: "done" as const,
       finished_at: new Date().toISOString(),
@@ -1454,8 +1485,9 @@ async function pass(client: Db): Promise<void> {
     }
   }
   // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute. It
-  // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480).
-  if (!reelBusy && nextReel() !== null) {
+  // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480). W8 0f: the same
+  // pass uploads an approved draft, sends a waiting piece's preview and writes the rows of the studio.
+  if (!reelBusy && reelWork()) {
     spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
       cwd: resolve(import.meta.dir, "../.."),
       detached: true,
@@ -1494,7 +1526,11 @@ async function pass(client: Db): Promise<void> {
     return 0;
   });
   if (pages > 0) console.log(`${new Date().toISOString()} site pages ${String(pages)}`);
-  const woke = await wakeOnEvents(client);
+  // A wake that fails keeps its cursor and never stops the runs a person's line or an earlier event queued.
+  const woke = await wakeOnEvents(client).catch((failure: unknown) => {
+    console.log(failure instanceof Error ? failure.message : String(failure));
+    return 0;
+  });
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
   // Up to five runs a pass, one after another; the scheduled task starts the next pass a minute later.
   let ran = 0;

@@ -77,6 +77,8 @@ const sourceOfEvent: Partial<Record<string, SourceName>> = {
   "subject_request.received": "privacy_request",
   // W8 0h: a person's email, recorded by `inbound_mail_record`; the event names the row, its text stays there.
   "email.received": "email_inbound",
+  // W6 item 5: a reply to our own email, recorded by `email_reply_record`; the event names the row, its text stays there.
+  "email.reply_received": "email_reply",
 };
 
 /** The outside source an event is, or null when the event carries no outside text (an inside event). */

@@ -1,5 +1,5 @@
 // Role toolkits, the runner's side (ruling H115): a colleague's toolkit (`src/domain/toolkits.ts`) becomes the Claude
-// Code permission rules of one run. Measured on the real CLI under `--permission-mode dontAsk` (GOTCHAS P-4511): a rule
+// Code permission rules of one run. Measured on the real CLI under `--permission-mode dontAsk` (GOTCHAS P-4555): a rule
 // names an absolute Windows path as `//e/...` (lower-case drive letter, no colon) and `--add-dir` lets the run reach a
 // named folder. A colleague runs no command at all (review of 2026-10-19: on the real CLI, deny rules never stopped a
 // read-only command's redirect); the runner renders what its answer asks for (`runRenders`).
@@ -208,7 +208,7 @@ const RENDER_TIMEOUT_MS = 10 * 60_000;
  * names on this run, each through the wrapper's checks (`renderPlan`: the spec in its folder, the output in its folder
  * or another write place, bun from the app folder with only what a render needs in its environment). Answers one line
  * per render for the thread; a run that may not render is told so once, without its words.
- * It blocks the pass for up to three renders of ten minutes each (ruling H136): runs are taken one after another, a
+ * It blocks the pass for up to three renders of ten minutes each (ruling H141): runs are taken one after another, a
  * render belongs to the run that asked for it, and the run's result in the thread waits for it.
  */
 export function runRenders(

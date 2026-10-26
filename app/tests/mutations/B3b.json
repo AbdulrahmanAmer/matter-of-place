@@ -17,7 +17,7 @@
     "find": "    badge: \"Opening soon\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
-    "expect": "× .*holds 32 strings"
+    "expect": "× .*holds 31 strings"
   },
   {
     "id": "b3b-cv-hype",

@@ -99,6 +99,52 @@ async function mediaPolicy(
   return { affected, remaining: (await listMedia(db, fn, policy.keepFor)).length };
 }
 
+interface VisualRow {
+  asset_id: string;
+  media_keys: string[];
+}
+
+async function listVisuals(db: Db, keep: string): Promise<VisualRow[]> {
+  const { data, error } = await db.rpc("retention_requested_visuals", { p_keep: keep });
+  if (error !== null) throw unavailable("retention_requested_visuals");
+  return data;
+}
+
+/**
+ * W8 item 1: a rejected visual made on request has no property to go with. In batches, its row is deleted first by
+ * `retention_delete_assets`, which checks the rule again and answers the rows it deleted with their keys, and only
+ * those files then leave bucket `media` (an orphan file does less harm than a row whose files are gone). A Storage
+ * error throws and names the keys left behind, so a person can remove them.
+ */
+async function removeVisuals(db: Db, rows: VisualRow[]): Promise<number> {
+  let removed = 0;
+  for (let start = 0; start < rows.length; start += REMOVE_BATCH) {
+    const batch = rows.slice(start, start + REMOVE_BATCH);
+    const deleted = await db.rpc("retention_delete_assets", {
+      p_ids: batch.map((row) => row.asset_id),
+    });
+    if (deleted.error !== null) throw unavailable("retention_delete_assets");
+    removed += deleted.data.length;
+    const keys = deleted.data.flatMap((row) => row.media_keys);
+    if (keys.length === 0) continue;
+    const { error } = await db.storage.from("media").remove(keys);
+    if (error === null) continue;
+    throw new AppError(
+      "storage_unavailable",
+      undefined,
+      `Storage did not remove the files of ${String(deleted.data.length)} deleted visuals: ${keys.join(", ")}`,
+    );
+  }
+  return removed;
+}
+
+async function visualsPolicy(db: Db, policy: Policy, dryRun: boolean): Promise<Tally> {
+  const rows = await listVisuals(db, policy.keepFor);
+  if (dryRun) return { affected: rows.length, remaining: rows.length };
+  const affected = await removeVisuals(db, rows);
+  return { affected, remaining: (await listVisuals(db, policy.keepFor)).length };
+}
+
 async function keepCount(db: Db, fn: KeepCounter, keep: string, dryRun: boolean): Promise<number> {
   const { data, error } = await db.rpc(fn, { p_keep: keep, p_dry_run: dryRun });
   if (error !== null) throw unavailable(fn);
@@ -172,6 +218,7 @@ export const retention: SystemJobDefinition = {
         "accepted_submission_media",
         (policy) => mediaPolicy(db, "retention_accepted_media", policy, dryRun),
       ],
+      ["rejected_requested_visuals", (policy) => visualsPolicy(db, policy, dryRun)],
       [
         "inquiries_anonymise",
         (policy) => anonymisePolicy(db, "retention_anonymise_inquiries", policy, dryRun),

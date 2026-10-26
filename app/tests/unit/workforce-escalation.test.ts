@@ -8,6 +8,7 @@ import { readJsonAnswer, type Outcome } from "../../scripts/workforce/answer.ts"
 import type * as Cli from "../../scripts/workforce/cli.ts";
 import { UsageLimitError } from "../../scripts/workforce/cli.ts";
 import type * as Run from "../../scripts/matter/run.ts";
+import { takeQueuedMerges } from "../../scripts/matter/lessons.ts";
 import { matterPrompt } from "../../scripts/matter/run.ts";
 import { allowForOwner, answerPlan, runOnce } from "../../scripts/workforce/daemon.ts";
 import {
@@ -1153,5 +1154,47 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
     // its folder and its settings file are removed when it ends
     expect(existsSync(own)).toBe(false);
     expect(existsSync(join(home, "settings", `${String(run?.["id"])}.json`))).toBe(false);
+  });
+});
+
+describe("W6 item 4: the pull requests Matter's one-shot run says it merged", () => {
+  /** Matter answers a line from `authorKind` with a closing object that names pull request 464 as merged. */
+  async function matterRunFor(authorKind: string) {
+    takeQueuedMerges();
+    answers(matterSays({ merged: [464] }));
+    const memory = memoryDb({
+      agents: [agentRow(MATTER_ID, "matter", "Matter", [])],
+      agent_messages: [],
+      agent_runs: [],
+      agent_lessons: [],
+      agent_decisions: [],
+      agent_approvals: [],
+      events: [],
+      inquiries: [],
+    });
+    const { data } = await memory
+      .insert("agent_messages", {
+        thread: "matter",
+        author_kind: authorKind,
+        author_id: "operator",
+        author_name: "Operator",
+        body: "Merge pull request 464.",
+      })
+      .select();
+    void memory.insert("agent_runs", {
+      agent_id: MATTER_ID,
+      cause: "message",
+      message_id: data[0]?.["id"],
+    });
+    await runOnce(memory.db);
+    return takeQueuedMerges();
+  }
+
+  it("is left for the live supervisor to settle, never asked of GitHub inside the run", async () => {
+    expect(await matterRunFor("human")).toEqual([464]);
+  });
+
+  it("is dropped when the line that woke Matter was not a person's", async () => {
+    expect(await matterRunFor("agent")).toEqual([]);
   });
 });

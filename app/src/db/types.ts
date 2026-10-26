@@ -1247,6 +1247,26 @@ isOneToOne: false
       referencedColumns: ["slug"]
     }
                   ]
+                },"studio_pieces": {
+                  Row: {
+                    "asset_id": string | null,"created_at": string,"folder": string,"id": string,"note": string,"owner_slug": string,"preview_key": string | null,"state": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "asset_id"?: string | null,"created_at"?: string,"folder": string,"id": string,"note"?: string,"owner_slug": string,"preview_key"?: string | null,"state": string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "asset_id"?: string | null,"created_at"?: string,"folder"?: string,"id"?: string,"note"?: string,"owner_slug"?: string,"preview_key"?: string | null,"state"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "studio_pieces_asset_id_fkey"
+      columns: ["asset_id"]
+isOneToOne: false
+      referencedRelation: "assets"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"subject_requests": {
                   Row: {
                     "created_at": string,"due_at": string | null,"email": string,"fulfilled_at": string | null,"handled_by": string | null,"id": string,"ip_hash": string | null,"kind": string,"note": string | null,"received_at": string,"status": string,"turnstile_ok": boolean,"updated_at": string,"verified_at": string | null
@@ -2108,6 +2128,9 @@ isOneToOne: false
 "queue_digest_add":
 { Args: { "p_asset": string,"p_property": string }; Returns: string
                            },
+"queue_event_runs":
+{ Args: { "p_agents": (string)[],"p_events": (string)[] }; Returns: number
+                           },
 "rate_limit_check":
 { Args: { "p_checks": Json }; Returns: {
               "allowed": boolean,"retry_after": number
@@ -2119,6 +2142,9 @@ isOneToOne: false
 "record_analytics_events":
 { Args: { "p_rows": Json }; Returns: number
                            },
+"record_build_lesson":
+{ Args: { "p_action": string,"p_agent": string,"p_pr": number,"p_trigger": string }; Returns: boolean
+                           },
 "record_channel_check":
 { Args: { "p_channel": string,"p_checked_at": string,"p_expires_at": string,"p_state": string }; Returns: undefined
                            },
@@ -2127,6 +2153,9 @@ isOneToOne: false
                            },
 "record_fanout_failure":
 { Args: { "p_error": string,"p_event_id": string }; Returns: undefined
+                           },
+"record_requested_asset":
+{ Args: { "p_alt_text": string,"p_caption": string,"p_files": Json,"p_kind": Database["public"]['Enums']["asset_kind"],"p_market"?: string,"p_meta": Json,"p_property"?: string,"p_story"?: string,"p_subject": string }; Returns: string
                            },
 "record_requested_reel":
 { Args: { "p_alt_text": string,"p_caption": string,"p_files": Json,"p_market"?: string,"p_meta": Json,"p_property"?: string,"p_story"?: string,"p_subject": string }; Returns: string
@@ -2199,6 +2228,11 @@ isOneToOne: false
               "media_id": string,"storage_path": string
             }[]
                            },
+"retention_delete_assets":
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "asset_id": string,"media_keys": (string)[]
+            }[]
+                           },
 "retention_delete_media":
 { Args: { "p_ids": (string)[] }; Returns: number
                            },
@@ -2210,6 +2244,11 @@ isOneToOne: false
                            },
 "retention_log_run":
 { Args: { "p_after": Json }; Returns: number
+                           },
+"retention_requested_visuals":
+{ Args: { "p_keep": string }; Returns: {
+              "asset_id": string,"media_keys": (string)[]
+            }[]
                            },
 "retry_social_post":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_force": boolean,"p_id": string,"p_request_id": string }; Returns: string
@@ -2395,6 +2434,9 @@ isOneToOne: false
                            },
 "store_channel_token":
 { Args: { "p_channel": string,"p_token_set": Json,"p_used_refresh_sha256": string }; Returns: string
+                           },
+"studio_piece_put":
+{ Args: { "p_asset_id"?: string,"p_folder": string,"p_id": string,"p_note": string,"p_owner": string,"p_preview_key"?: string,"p_state": string,"p_title": string }; Returns: undefined
                            },
 "submission_event_payload":
 { Args: { "p_submission": Omit<Database["public"]['Tables']["submissions"]['Row'], Database["public"]['Tables']["submissions"]['ComputedFields']> }; Returns: Json

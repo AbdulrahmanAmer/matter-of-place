@@ -1,4 +1,4 @@
-// Role toolkits (ruling H115, GOTCHAS P-4511): live probes on the real Claude CLI with the exact arguments
+// Role toolkits (ruling H115, GOTCHAS P-4555): live probes on the real Claude CLI with the exact arguments
 // `colleagueLaunch` writes, in a throwaway tree under the system temp folder only (never the real desks, studio or
 // Drive). Decoys: a planted bunfig preload, a `.env`, a NODE_OPTIONS script, a secret outside every folder, a draft
 // with a buyer's details in the work folder. Each tool call and its result is read from stream-json and printed.
