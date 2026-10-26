@@ -8,9 +8,8 @@ import { buildRobots, isIndexableHost } from "../../src/server/seo/robots";
 const WORKERS = "holy-meadow-4327.workers.dev";
 const INDEXABLE_BODY = [
   "User-agent: *",
+  "Content-Signal: search=yes, ai-input=yes, ai-train=no",
   "Allow: /",
-  "Disallow: /admin",
-  "Disallow: /api",
   "",
   "Sitemap: https://matterofplace.com/sitemap.xml",
   "",
@@ -50,7 +49,7 @@ describe("isIndexableHost", () => {
 });
 
 describe("buildRobots", () => {
-  it("gives the real domain one allow block, the two disallows and the sitemap line", async () => {
+  it("gives the real domain one allow block, no disallow and the sitemap line", async () => {
     const response = buildRobots("matterofplace.com", "production");
     expect(await response.text()).toBe(INDEXABLE_BODY);
   });

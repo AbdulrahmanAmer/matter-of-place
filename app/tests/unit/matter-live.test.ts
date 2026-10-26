@@ -1,9 +1,17 @@
 import { mkdtempSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { workforceOverride } from "../../scripts/workforce/config";
-import { liveAlive } from "../../scripts/matter/live-alive";
+import {
+  heartbeatStale,
+  isSupervisorCommand,
+  LOOP_STALE_MS,
+  liveAlive,
+  OUTSIDE_STALE_MS,
+  stalledSupervisorPid,
+} from "../../scripts/matter/live-alive";
+import { deadlineFetch } from "../../scripts/workforce/env";
 import {
   isIdle,
   liveArgs,
@@ -14,6 +22,7 @@ import {
   shouldMove,
   shouldRotate,
   shouldTouch,
+  withoutStaleTasks,
 } from "../../scripts/matter/live";
 
 // W5 item 1: Matter's live session (operator, 2026-10-13: "work and keep building ... with status update ... if I text
@@ -126,6 +135,80 @@ describe("rotation and the heartbeat", () => {
       false,
     ]);
   });
+
+  it("lets the watchdog end a supervisor whose heartbeat is over ten minutes old, and only then (P-3702)", () => {
+    const file = join(mkdtempSync(join(tmpdir(), "mop-live-")), "live.heartbeat");
+    writeFileSync(file, "x");
+    const now = Date.now();
+    const fresh = heartbeatStale(file, now);
+    const nine = new Date(now - LOOP_STALE_MS + 60_000);
+    utimesSync(file, nine, nine);
+    const underLimit = heartbeatStale(file, now);
+    const eleven = new Date(now - LOOP_STALE_MS - 60_000);
+    utimesSync(file, eleven, eleven);
+    expect([
+      fresh,
+      underLimit,
+      heartbeatStale(file, now),
+      heartbeatStale(join(tmpdir(), "no-such-heartbeat"), now),
+    ]).toEqual([false, false, true, false]);
+  });
+
+  it("names the supervisor for the outside watchdog only when its heartbeat is silent fifteen minutes (P-3703)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mop-live-"));
+    const heartbeat = join(dir, "live.heartbeat");
+    const lock = join(dir, "live.lock");
+    writeFileSync(heartbeat, "x");
+    writeFileSync(lock, "4242");
+    const now = Date.now();
+    const fourteen = new Date(now - OUTSIDE_STALE_MS + 60_000);
+    utimesSync(heartbeat, fourteen, fourteen);
+    const underLimit = stalledSupervisorPid(lock, heartbeat, now);
+    const sixteen = new Date(now - OUTSIDE_STALE_MS - 60_000);
+    utimesSync(heartbeat, sixteen, sixteen);
+    const over = stalledSupervisorPid(lock, heartbeat, now);
+    writeFileSync(lock, "not a pid");
+    expect([underLimit, over, stalledSupervisorPid(lock, heartbeat, now)]).toEqual([
+      null,
+      4242,
+      null,
+    ]);
+  });
+
+  it("ends only a process whose command line is Matter's supervisor, never a reused process id (P-3703)", () => {
+    expect([
+      isSupervisorCommand(String.raw`"C:\bun.exe" scripts\matter\live.ts`),
+      isSupervisorCommand("bun scripts/matter/live.ts"),
+      isSupervisorCommand("bun scripts/workforce/daemon.ts"),
+      isSupervisorCommand(""),
+    ]).toEqual([true, true, false, false]);
+  });
+
+  it("gives up on a database call that never answers instead of waiting forever (P-3703)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      (_input: unknown, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(
+              init.signal?.reason instanceof Error ? init.signal.reason : new Error("aborted"),
+            );
+          });
+        }),
+    );
+    try {
+      const call = deadlineFetch(200)("https://example.invalid/rest/v1/agents").then(
+        () => "answered",
+        (error: unknown) => (error instanceof Error ? error.name : "other"),
+      );
+      const waited = new Promise<string>((settle) =>
+        setTimeout(() => settle("still waiting"), 2_000),
+      );
+      expect(await Promise.race([call, waited])).toBe("TimeoutError");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe("the laptop's switches", () => {
@@ -145,20 +228,48 @@ describe("the laptop's switches", () => {
       workforceOverride(join(tmpdir(), "no-such-config.json")),
     ]).toEqual([{ matterModel: "claude-sonnet-5-5", backlog: "off" }, {}, {}]);
   });
+
+  it("reads the operator's order to set the allowance aside, and nothing for follow", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mop-config-"));
+    const ignore = join(dir, "ignore.json");
+    const follow = join(dir, "follow.json");
+    writeFileSync(ignore, JSON.stringify({ matterModel: "claude-opus-5-5", allowance: "ignore" }));
+    writeFileSync(follow, JSON.stringify({ allowance: "follow" }));
+    expect([workforceOverride(ignore), workforceOverride(follow)]).toEqual([
+      { allowance: "ignore", matterModel: "claude-opus-5-5" },
+      {},
+    ]);
+  });
 });
 
 describe("a background task keeps the session busy (2026-10-13, a rotation dropped a running W4 check)", () => {
   it("opens a task on its start and closes it on its finish, and is idle only with nothing open", () => {
-    const started = openTasks(new Set(), { id: "t-1", label: "bun run check", state: "started" });
+    const started = openTasks(new Map(), { id: "t-1", label: "bun run check", state: "started" });
     const second = openTasks(started, { id: "t-2", label: "tests", state: "started" });
     const oneDone = openTasks(second, { id: "t-1", label: "bun run check", state: "done" });
     const allDone = openTasks(oneDone, { id: "t-2", label: "tests", state: "done" });
-    expect([...oneDone]).toEqual(["t-2"]);
+    expect([...oneDone.keys()]).toEqual(["t-2"]);
     expect([isIdle(0, oneDone.size), isIdle(0, allDone.size), isIdle(1, 0)]).toEqual([
       false,
       true,
       false,
     ]);
+  });
+});
+
+describe("a task that never reports back does not hold the session busy for ever (2026-10-16, P-3580)", () => {
+  it("records when a task started and forgets one that is still open after three hours", () => {
+    const hour = 60 * 60_000;
+    const open = openTasks(
+      openTasks(new Map(), { id: "old", label: "a", state: "started" }, 0),
+      { id: "new", label: "b", state: "started" },
+      2 * hour,
+    );
+    expect(withoutStaleTasks(open, 2.5 * hour)).toEqual({ open, dropped: [] });
+    const later = withoutStaleTasks(open, 3 * hour + 1);
+    expect([[...later.open.keys()], later.dropped]).toEqual([["new"], ["old"]]);
+    expect(isIdle(0, later.open.size)).toBe(false);
+    expect(isIdle(0, withoutStaleTasks(open, 6 * hour).open.size)).toBe(true);
   });
 });
 

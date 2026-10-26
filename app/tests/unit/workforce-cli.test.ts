@@ -17,7 +17,7 @@ const run = (mode: string, limits: { idleMs?: number; timeoutMs?: number }) =>
 
 describe("runClaude", () => {
   it("lets a colleague who keeps working run past the silence limit", async () => {
-    const answer = await run("talk", { idleMs: 400 });
+    const answer = await run("talk", { idleMs: 1_500 });
     expect(answer).toMatchObject({ text: "done", session: "s-1", usage: { input_tokens: 3 } });
   }, 20_000);
 

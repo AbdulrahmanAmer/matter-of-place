@@ -145,11 +145,12 @@ export const navEntries: readonly NavEntry[] = [
   },
   // W8 item 11 (2026-10-16): posts a colleague proposes, previewed per channel, before anything is filed to go out.
   {
-    screen: 33,
+    screen: 34,
     path: "/admin/proposed-posts",
     routeId: "/admin/proposed-posts/",
     group: "Publishing",
     label: "Proposed posts",
+    requiresAction: "channels.proposed_list",
   },
   {
     screen: 13,
@@ -181,6 +182,15 @@ export const navEntries: readonly NavEntry[] = [
     label: "New invoice",
     hidden: true,
     parent: 5,
+  },
+  // W7 item 3: what each paid property is running, read only, leading to its Reports.
+  {
+    screen: 33,
+    path: "/admin/campaigns",
+    routeId: "/admin/campaigns/",
+    group: "Clients",
+    label: "Campaigns",
+    requiresAction: "reports.list",
   },
   {
     screen: 22,

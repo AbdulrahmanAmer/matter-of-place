@@ -519,7 +519,7 @@
     "id": "b6-g3-waiver-amount",
     "test": "tests/unit/payments/service.test.ts",
     "file": "src/server/payments/service.ts",
-    "find": "      p_amount: priceFor(products, input.product),\n      p_reason",
+    "find": "      p_amount: price,\n      p_reason",
     "replace": "      p_amount: 1,\n      p_reason",
     "run": "bunx vitest run --project unit tests/unit/payments/service.test.ts",
     "expect": "FAIL .*> waiveWithoutInvoice \\(DL-01\\) > records one waiver at the priceFor amount and issues no invoice"

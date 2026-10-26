@@ -136,8 +136,6 @@ export const propertyDetailSchema = z.object({
 
 export type PropertyDetail = z.infer<typeof propertyDetailSchema>;
 
-const nullableNumber = z.number().positive().nullable();
-const nullableInt = z.number().int().min(0).nullable();
 const nullableText = (max: number) => z.string().trim().max(max).nullable();
 
 /**
@@ -152,11 +150,11 @@ const propertyFieldsSchema = z.object({
   neighborhood: nullableText(120),
   country: nullableText(80),
   address: text(200),
-  price: nullableNumber,
-  beds: nullableInt,
+  price: z.number().positive().max(9_999_999_999).nullable(),
+  beds: z.number().int().min(0).max(99).nullable(),
   baths: z.number().min(0).max(99).nullable(),
-  interior_sq_ft: nullableInt,
-  lot_acres: z.number().min(0).nullable(),
+  interior_sq_ft: z.number().int().min(0).max(10_000_000).nullable(),
+  lot_acres: z.number().min(0).max(100_000).nullable(),
   year_built: z.number().int().min(1600).max(2100).nullable(),
   type,
   style: nullableText(120),

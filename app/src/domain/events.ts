@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { marketSlugSchema } from "./market.ts";
 
-/** The event catalog of architecture 3.6: the same 19 types as the check constraint on `events.type`. */
+/** The event catalog of architecture 3.6: the same 21 types as the check constraint on `events.type`. */
 export const eventTypes = [
   "submission.received",
   "submission.declined",
@@ -22,6 +22,8 @@ export const eventTypes = [
   "health.failed",
   "subject_request.received",
   "email.bounced",
+  "email.received",
+  "email.reply_received",
 ] as const;
 
 export type EventType = (typeof eventTypes)[number];
@@ -157,5 +159,14 @@ export const eventPayloadSchemas = {
       submission_id: id.optional(),
       inquiry_id: id.optional(),
     })
+    .passthrough(),
+  // W8 0h: a person's email, recorded in inbound_mail; the row's id and our alias only, never its words.
+  "email.received": z
+    .object({ inbound_id: id, alias: z.string().max(20).nullable() })
+    .passthrough(),
+  // W6 item 5: a reply to an email we sent, recorded in email_replies; the row's id and the source it answers
+  // (the entity kind and id), never its words.
+  "email.reply_received": z
+    .object({ reply_id: id, entity: z.string().max(20), entity_id: id })
     .passthrough(),
 } satisfies Record<EventType, z.ZodTypeAny>;

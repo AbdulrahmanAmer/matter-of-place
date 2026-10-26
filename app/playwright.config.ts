@@ -97,6 +97,8 @@ export default defineConfig({
         "**/admin-newsletter.spec.ts",
         "**/admin-jobs.spec.ts",
         "**/exposure-products.spec.ts",
+        "**/account.spec.ts",
+        "**/account-room.spec.ts",
       ],
       // Admin pages render in the browser only (`ssr: false`), and `vite dev` compiles them on first request.
       timeout: 120_000,

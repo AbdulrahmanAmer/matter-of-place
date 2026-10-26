@@ -62,6 +62,10 @@
   --frame-specs-top: var(--social-carousel-specs-top);
 }
 
+.social-frame--compact {
+  --frame-photo-h: calc(var(--frame-h) - var(--social-carousel-compact-band));
+}
+
 .social-frame--story {
   --frame-w: var(--social-story-w);
   --frame-h: var(--social-story-h);

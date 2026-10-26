@@ -10,8 +10,8 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { outsideToolkit, readOnly, toolkitFor } from "../../src/domain/toolkits.ts";
 import { agentTools, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import {
@@ -35,23 +35,29 @@ import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
 import {
   briefId,
+  decidePiece,
   mediaFor,
-  nextReel,
   queueReel,
   REEL_TOOL_LINE,
+  reelWork,
   reelWorking,
   withReel,
 } from "./reel.ts";
-import { breakerUntil, type CliUsage, isolatedArgs, runClaude, UsageLimitError } from "./cli.ts";
+import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
+import { fileProposedPost, isStructuredPost, POST_TOOL_LINE, postDeps } from "./proposed-post.ts";
 import type { SourceName } from "./criteria.ts";
+import { explainsHeld, handToMatter, handUnavailableOwners, ownerExplanation } from "./explain.ts";
+import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
 import {
   allowLine,
   HELD_AUTHOR,
   heldLine,
   MATTER_ALLOWS_AUTHOR,
+  OUTSIDE_REPLY_PREFIX,
+  OUTSIDE_SUMMARY_MARK,
   outsideGate,
   outsideWords,
   insideLine,
@@ -70,14 +76,30 @@ import {
   type Triage,
 } from "./triage.ts";
 import { groundingLines, requestSequence } from "./grounding.ts";
+import { requestDesk } from "./request-desk.ts";
+import { forgetNewWork, newWorkLines } from "./new-work.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
+import { mergedByRun, queueMerges } from "../matter/lessons.ts";
 import { applyHires } from "./hiring.ts";
 import { checkMail } from "./mail.ts";
+import { handToEditor, noteTriage } from "./inbound-mail.ts";
 import { bounceFacts, wakes } from "./bounce.ts";
 import { checkNewAddresses, refusedAddress } from "./email-check.ts";
-import { refreshPolicy, staffPolicy } from "./config.ts";
+import { driveSocialFolder, refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
-import { liveAlive } from "../matter/live-alive.ts";
+import { isSupervisorCommand, liveAlive, stalledSupervisorPid } from "../matter/live-alive.ts";
+import {
+  outsideFolder,
+  renderRoots,
+  runRenders,
+  toolkitLine,
+  toolkitRules,
+  writePlaces,
+  type RenderScope,
+  type ToolkitPaths,
+  type ToolkitRules,
+} from "./toolkit-args.ts";
+import { placePieces, placedLine, sourcesFor } from "./placement.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -103,79 +125,95 @@ function matterEnv(): NodeJS.ProcessEnv {
 
 function emptyMcpConfig(): string {
   const file = join(HOME, "no-mcp.json");
+  // the runner's home may not exist yet (a first run, CI): make it before writing under it (GOTCHAS P-3532)
+  mkdirSync(HOME, { recursive: true });
   if (!existsSync(file)) writeFileSync(file, JSON.stringify({ mcpServers: {} }));
   return file;
 }
 
 /**
- * A colleague's command line. A run about an outside message (W8 fifth review) is shut off like the triage: no tool,
- * no setting source (so none of the operator's settings, hooks or skills load into it), no MCP server.
+ * A colleague's command line (ruling H115, role toolkits): exactly the tools of its toolkit, each allowed by a rule in
+ * the run's own settings file, and anything not allowed refused, never asked. No setting source loads (so nothing a run
+ * wrote in a desk, a hook in `.claude/`, ever runs, W8 0e) and no MCP server; the runner gives it no key (childEnv). A
+ * run about an outside message, and a run shown a request (W7 item 9a, `runFrom`), gets the outside toolkit.
  */
-export function colleagueArgs(
-  model: string,
-  research: boolean,
-  outside: boolean,
-  terminal = false,
-): string[] {
-  const base = ["-p", "--model", model, "--output-format", "stream-json", "--verbose"];
-  if (outside) return [...base, ...isolatedArgs(HOME)];
-  // W8 0e (ruling H113): the terminal is file tools in the colleague's own work folder, never a shell (a shell reaches
-  // every secret on the disk). Reads and writes allowed only inside that folder, none of the operator's settings, no
-  // MCP; the runner gives it no key (childEnv).
-  if (terminal)
-    return [
-      ...base,
-      ...["--tools", "Read,Write,Edit,Glob,Grep", "--setting-sources", ""],
-      ...["--strict-mcp-config", "--mcp-config", emptyMcpConfig(), "--restricted"],
-      ...["--permission-mode", "dontAsk", "--settings", TERMINAL_SETTINGS],
-    ];
+function colleagueArgs(model: string, rules: ToolkitRules, settingsFile: string): string[] {
   return [
-    ...base,
-    // W8 0e (second review): no settings file loads, so nothing a terminal wrote in a desk (a hook in .claude/) runs.
-    "--setting-sources",
-    "",
-    "--strict-mcp-config",
-    "--mcp-config",
-    emptyMcpConfig(),
-    // H101: no shell, no web fetch, files only inside the desk; anything not allowed is refused, never asked.
-    "--restricted",
-    "--permission-mode",
-    "dontAsk",
-    // W2 step 7: a colleague with the research tool may search the web, and nothing more.
-    ...(research ? ["--allowedTools", "WebSearch"] : []),
+    ...["-p", "--model", model, "--output-format", "stream-json", "--verbose"],
+    ...["--setting-sources", "", "--strict-mcp-config", "--mcp-config", emptyMcpConfig()],
+    ...[
+      "--tools",
+      rules.tools.join(","),
+      "--permission-mode",
+      "dontAsk",
+      "--settings",
+      settingsFile,
+    ],
+    ...rules.addDirs.flatMap((dir) => ["--add-dir", dir]),
   ];
 }
 
-/** W8 0e: what a colleague is told when a person or Matter started its run and it has a terminal. */
-export const TERMINAL_LINE =
-  "A person or Matter started this run, so you may write files in your work folder (read, write and edit; no shell, no web): drafts, scenes, copy, data, an SVG. Say in your reply what you made and where; anything that leaves the company is still a proposal a person approves.";
-
-/** A colleague's terminal settings (W8 0e): file tools inside the work folder only, nothing that configures a run. */
-const TERMINAL_SETTINGS = join(dirname(fileURLToPath(import.meta.url)), "settings-terminal.json");
-
-/**
- * Names that configure a Claude run when found in its folder: a terminal may never leave one behind (second review).
- * Lower case, and compared in lower case: Windows finds `.Claude` or `claude.md` as the same file (third review).
- */
-const RUN_CONFIG = new Set([".claude", "claude.md", "claude.local.md", ".mcp.json"]);
-
-/**
- * W8 0e: a colleague's folder for this run. A terminal works in `desks/<slug>/work`; every other run in the desk.
- * Before each run, anything that would configure a run (`RUN_CONFIG`) is removed from the whole desk, so what one run
- * wrote can never steer the next.
- */
-export function deskFor(home: string, slug: string, terminal: boolean): string {
-  const desk = join(home, "desks", slug);
-  mkdirSync(join(desk, "work"), { recursive: true });
-  sweep(desk, 0);
-  return terminal ? join(desk, "work") : desk;
+/** The folders a toolkit names, on this laptop; the Drive folder is the one the runner's config names (W8 item 8). */
+function toolkitPaths(home: string, own: string): ToolkitPaths {
+  return {
+    own,
+    studio: join(home, "studio"),
+    knowledge: join(home, "matter", "knowledge"),
+    driveSocial: driveSocialFolder(join(home, "config.json")),
+  };
 }
 
-function sweep(dir: string, depth: number): void {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+/**
+ * Names that configure a run when found in its folder: a Claude run (W8 0e, second review) or bun and node started there
+ * (H115, review of 2026-10-16). Compared in lower case: Windows finds `.Claude` or `claude.md` as the same file (third
+ * review). The toolkit's deny rules name the same (`RUN_CONFIG` in toolkit-args.ts).
+ */
+const RUN_CONFIG = new Set([
+  ".claude",
+  "claude.md",
+  "claude.local.md",
+  ".mcp.json",
+  "bunfig.toml",
+  ".bunfig.toml",
+  "package.json",
+  ".npmrc",
+]);
+
+function runConfigName(name: string): boolean {
+  const lower = name.toLowerCase();
+  return RUN_CONFIG.has(lower) || lower.startsWith(".env") || /^tsconfig.*\.json$/.test(lower);
+}
+
+/**
+ * W8 0e and H115: a colleague's folder for every run, `desks/<slug>/work`, where the runner puts the material it was
+ * woken for. Before each run, anything that would configure a run is removed from the whole desk, so what one run
+ * wrote can never steer the next.
+ */
+export function deskFor(home: string, slug: string): string {
+  const desk = join(home, "desks", slug);
+  mkdirSync(join(desk, "work"), { recursive: true });
+  sweep(desk);
+  return join(desk, "work");
+}
+
+/** Everything under `dir` that would configure a run, eight levels deep, never through a link. */
+function runConfigIn(dir: string, depth = 0): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    if (RUN_CONFIG.has(entry.name.toLowerCase())) rmSync(path, { recursive: true, force: true });
-    else if (entry.isDirectory() && !entry.isSymbolicLink() && depth < 8) sweep(path, depth + 1);
+    if (runConfigName(entry.name)) return [path];
+    return entry.isDirectory() && !entry.isSymbolicLink() && depth < 8
+      ? runConfigIn(path, depth + 1)
+      : [];
+  });
+}
+
+/** Removes run config from a folder the runner owns (a desk, the studio), and says each removal in the runner's log. */
+function sweep(dir: string): void {
+  for (const path of runConfigIn(dir)) {
+    rmSync(path, { recursive: true, force: true });
+    console.log(
+      `${new Date().toISOString()} removed ${path} before a run: it would configure the run`,
+    );
   }
 }
 
@@ -191,42 +229,110 @@ export async function startedInsideFor(
   return startedFromInside(cause, woke, await keyAccountLive(client, woke));
 }
 
+export interface ColleagueLaunch {
+  args: string[];
+  cwd: string;
+  line: string;
+  /** What the runner may render for this run once it ends (`runRenders`): a colleague runs no command itself. */
+  render: RenderScope;
+  settingsFile: string;
+  /** What the runner removes when the run ends: the settings file, and an outside run's own folder. */
+  cleanup: string[];
+}
+
 /**
- * W8 0e (third review): a colleague run's command line and folder, from its shape. One about outside text is shut
- * off like the triage; a terminal works in its own work folder; any other run reads its desk.
+ * H115: a colleague run's command line, folder and the line that tells it its tools, from its toolkit. A run about an
+ * outside message gets `outsideToolkit` in a folder of its own, `outsideFolder` (review of 2026-10-16: never the work
+ * folder, where other runs leave drafts), which `runOnce` empties before the run's context is read and removes after
+ * it; only the runner fills it (a request's folder for its owner, `requestDesk`, review of 2026-10-19). A run a person
+ * or an operator key started (`inside`, `startedInsideFor`) gets its whole toolkit, and the photographs of the pieces
+ * its line names placed in its folder from its toolkit's piece sources (`placePieces`, without their metadata; never
+ * the studio itself, review of 2026-10-19); any other run (an event, a schedule, a mention) its reads only, since its
+ * history may hold a line that carried outside words. Its desk is swept of run config first (`deskFor`); any other
+ * place it may write that holds some (the Drive folder is the operator's) refuses the run, each file named and none
+ * deleted; and the settings file, named by the run id, is written last.
  */
-export function colleagueLaunch(
+export async function colleagueLaunch(
   home: string,
   slug: string,
   model: string,
-  shape: { research: boolean; terminal: boolean },
-  outside: boolean,
-): { args: string[]; cwd: string } {
-  return {
-    args: colleagueArgs(model, shape.research, outside, shape.terminal),
-    cwd: deskFor(home, slug, shape.terminal),
+  research: boolean,
+  run: { id: string; outside: boolean; inside: boolean; line?: string },
+): Promise<ColleagueLaunch> {
+  const work = deskFor(home, slug);
+  const cwd = run.outside ? outsideFolder(home, slug, run.id) : work;
+  const toolkit = run.outside
+    ? outsideToolkit
+    : run.inside
+      ? toolkitFor(slug)
+      : readOnly(toolkitFor(slug));
+  const paths = toolkitPaths(home, cwd);
+  const searches = research && !run.outside;
+  const rules = toolkitRules(toolkit, paths, searches);
+  // the work folder was swept by `deskFor`; any other place it may write (the Drive folder, the operator's) is never
+  // swept: what is found there refuses the run and is named, never deleted
+  for (const dir of writePlaces(toolkit, paths)) {
+    if (!existsSync(dir)) throw new Error(`${dir} is not on this laptop`);
+    const found = runConfigIn(dir);
+    if (found.length > 0)
+      throw new Error(
+        `${dir} holds files that would configure a run; a person removes them first: ${found.join(", ")}`,
+      );
+  }
+  // the toolkit decides: a run no person started holds `readOnly`, an outside run `outsideToolkit`, neither a source
+  const placed =
+    toolkit.pieces.length > 0
+      ? await placePieces(run.line ?? "", sourcesFor(toolkit, paths), work)
+      : [];
+  const settingsFile = join(home, "settings", `${run.id}.json`);
+  const launch: ColleagueLaunch = {
+    args: colleagueArgs(model, rules, settingsFile),
+    cwd,
+    line: [toolkitLine(toolkit, paths, searches), placedLine(placed)]
+      .filter((text) => text !== "")
+      .join(" "),
+    // what the wrapper's checks confine a render to
+    render: { allowed: toolkit.render, work: cwd, roots: renderRoots(toolkit, paths) },
+    settingsFile,
+    cleanup: [settingsFile, ...(run.outside ? [cwd] : [])],
   };
+  // emptied by `runOnce` before the context wrote what this run is shown into it
+  if (run.outside) mkdirSync(cwd, { recursive: true });
+  mkdirSync(dirname(settingsFile), { recursive: true });
+  writeFileSync(
+    settingsFile,
+    JSON.stringify({ permissions: { allow: rules.allow, deny: rules.deny } }),
+  );
+  return launch;
 }
 
-function askClaude(
-  prompt: string,
-  launch: { args: string[]; cwd: string },
+/** A colleague's run; the prompt is built inside, so whatever stops it, the run's files are removed. */
+async function askClaude(
+  launch: ColleagueLaunch,
+  prompt: (toolkit: string) => string,
 ): Promise<{ text: string; session?: string; usage?: CliUsage }> {
-  return runClaude({
-    args: launch.args,
-    cwd: launch.cwd,
-    env: childEnv(),
-    prompt,
-    idleMs: CLI_IDLE_MS,
-    who: "the colleague",
-  });
+  try {
+    return await runClaude({
+      args: launch.args,
+      cwd: launch.cwd,
+      env: childEnv(),
+      prompt: prompt(launch.line),
+      idleMs: CLI_IDLE_MS,
+      who: "the colleague",
+    });
+  } finally {
+    for (const path of launch.cleanup) rmSync(path, { recursive: true, force: true });
+  }
 }
+
+/** A run's answer; `render` is what the runner may render once a colleague's run ends (Matter's answer has none). */
+type RunAnswer = Awaited<ReturnType<typeof askClaude>> & { render?: RenderScope | undefined };
 
 // ---------- waking on events ----------
 
-function readCursor(): string {
+function readCursor(file: string): string {
   try {
-    const value: unknown = JSON.parse(readFileSync(CURSOR_FILE, "utf8"));
+    const value: unknown = JSON.parse(readFileSync(file, "utf8"));
     if (
       typeof value === "object" &&
       value !== null &&
@@ -240,8 +346,14 @@ function readCursor(): string {
   return new Date().toISOString();
 }
 
-async function wakeOnEvents(client: Db): Promise<number> {
-  const cursor = readCursor();
+/**
+ * The runs new events wake (exported for its test, with its own cursor file); the number of runs queued anew. W8 0h
+ * fourth review: they are queued through `queue_event_runs`, whose conflict names the partial index's predicate (the
+ * upsert this replaced was refused by Postgres on every pass); a failure keeps the cursor where it is, so the next pass
+ * wakes the same events again.
+ */
+export async function wakeOnEvents(client: Db, file = CURSOR_FILE): Promise<number> {
+  const cursor = readCursor(file);
   const { data: events, error } = await client
     .from("events")
     .select("id, type, at, entity")
@@ -250,23 +362,28 @@ async function wakeOnEvents(client: Db): Promise<number> {
     .limit(50);
   if (error !== null) throw new Error("workforce: the events could not be read");
   if (events.length === 0) {
-    writeFileSync(CURSOR_FILE, JSON.stringify({ at: cursor }));
+    writeFileSync(file, JSON.stringify({ at: cursor }));
     return 0;
   }
-  const { data: agents } = await client.from("agents").select("id, wake_on, state");
+  const { data: agents, error: unread } = await client.from("agents").select("id, wake_on, state");
+  if (unread !== null) throw new Error("workforce: the colleagues could not be read");
   const rows = events.flatMap((event) =>
-    (agents ?? [])
+    agents
       // W9 item 3: a bounce wakes only the owner of the request or inquiry it is about.
       .filter((agent) => wakes(agent, event))
-      .map((agent) => ({ agent_id: agent.id, cause: "event", event_id: event.id })),
+      .map((agent) => ({ agent_id: agent.id, event_id: event.id })),
   );
+  let queued = 0;
   if (rows.length > 0) {
-    await client
-      .from("agent_runs")
-      .upsert(rows, { onConflict: "agent_id,event_id", ignoreDuplicates: true });
+    const { data, error: refused } = await client.rpc("queue_event_runs", {
+      p_agents: rows.map((row) => row.agent_id),
+      p_events: rows.map((row) => row.event_id),
+    });
+    if (refused !== null) throw new Error("workforce: the runs on new events could not be queued");
+    queued = data;
   }
-  writeFileSync(CURSOR_FILE, JSON.stringify({ at: events.at(-1)?.at ?? cursor }));
-  return rows.length;
+  writeFileSync(file, JSON.stringify({ at: events.at(-1)?.at ?? cursor }));
+  return queued;
 }
 
 // ---------- one run ----------
@@ -292,19 +409,33 @@ export function answerPlan(input: {
   triage: Triage | null;
   power: "full" | "read";
   cause: string;
+  /** W7 item 9: the run was shown what a submitter typed or sent (`context`'s `request`). */
+  request?: boolean;
 }) {
   const { agent, shape, triage, power } = input;
   const isMatter = agent.slug === "matter";
   const ruled = ruleOutside(input.answer, shape.rule);
-  const result = ruled.kept;
-  const fixed = outsideWords(shape.rule);
+  const fromRequest = ruleRequest(ruled.kept, input.request === true);
+  const result = fromRequest.kept;
+  const fixed = outsideWords(shape.rule) ?? (input.request === true ? REQUEST_WORDS : null);
   const full = isMatter && power === "full";
+  const dropped = [
+    ...(ruled.dropped.length === 0
+      ? []
+      : [
+          shape.rule === "explain"
+            ? `Not proposed: ${ruled.dropped.join(", ")}; an explanation of a held message proposes nothing (W8 0d).`
+            : `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage === null ? "a held outside message" : triage.source} (W8 0c).`,
+        ]),
+    ...(fromRequest.dropped.length === 0
+      ? []
+      : [
+          `Not done: ${fromRequest.dropped.join(", ")}; a run shown a request's typed fields or photographs may not (W7 item 9).`,
+        ]),
+  ];
   return {
     result,
-    dropped:
-      ruled.dropped.length === 0
-        ? null
-        : `Not proposed: ${ruled.dropped.join(", ")}; not allowed for ${triage === null ? "a held outside message" : triage.source} (W8 0c).`,
+    dropped: dropped.length === 0 ? null : dropped.join(" "),
     keepNote: full,
     // W2 step 5 and W7 item 20: Matter at full power, or a colleague with `request_reel` (one reel); a Matter read
     // run asks for no media (W8 review), and a triaged run has none left after the ruling.
@@ -317,7 +448,7 @@ export function answerPlan(input: {
             author_id: shape.place.author_id,
             body: result.reply.slice(0, 20000),
           },
-    wake: input.cause !== "message" && ruled.wakeMentioned,
+    wake: input.cause !== "message" && ruled.wakeMentioned && fromRequest.wakeMentioned,
     proposals: result.proposals
       .filter((proposal) => agent.tools.includes(allowedProposal[proposal.action] ?? ""))
       .map((proposal) => ({
@@ -328,22 +459,118 @@ export function answerPlan(input: {
     summary: fixed?.run ?? (result.task || result.reply).slice(0, 300),
     // W8 0d: only Matter's read of a held message can let its owner answer it.
     allow: shape.rule === "held" && input.answer.allow,
+    // and how, as one of the closed postures (null: a "how" off the list, so no allowance is made, H117)
+    how: shape.rule === "held" && input.answer.allow ? postureOf(input.answer.how) : null,
   };
+}
+
+/**
+ * W7 item 9a (reviews of 2026-10-16, ruling H132): a run shown a request's typed fields or photographs
+ * (request-desk.ts) holds words a submitter chose, so its answer reaches no other colleague's run: no colleague woken by
+ * a mention, no admin call (its reason becomes a thread line and a team line), no hire, no media request (the one-hop
+ * paths `ruleOutside` closes for outside messages). Its proposals stay, each waiting for a person, under fixed words
+ * (`REQUEST_WORDS`). Exported for its test.
+ */
+export function ruleRequest<
+  A extends { actions: readonly unknown[]; hire: readonly unknown[]; media: readonly unknown[] },
+>(answer: A, received: boolean): { kept: A; wakeMentioned: boolean; dropped: string[] } {
+  if (!received) return { kept: answer, wakeMentioned: true, dropped: [] };
+  return {
+    kept: { ...answer, actions: [], hire: [], media: [] },
+    wakeMentioned: false,
+    dropped: [
+      ...(answer.actions.length > 0 ? ["admin calls"] : []),
+      ...(answer.hire.length > 0 ? ["hires"] : []),
+      ...(answer.media.length > 0 ? ["media"] : []),
+    ],
+  };
+}
+
+/**
+ * The words a run shown a request leaves behind (W7 item 9a, third review): its proposals' summaries (a team line when
+ * approved, a lesson when declined, a line of later pending lists) and its run summary (the daily meeting), as for a
+ * run about an outside message (`outsideWords`). The proposal's content is untouched: a person reads it in Approvals.
+ */
+export const REQUEST_WORDS = {
+  proposal: (action: string) => `A ${action} proposal about a request ${OUTSIDE_SUMMARY_MARK}`,
+  run: "Worked on a request it was shown",
+};
+
+/**
+ * W7 item 9a (third review, ruling H132): how a run goes, from what its context showed it, decided in one tested place
+ * the runner only carries out (`runOnce`). A run shown a request is shaped like a run about an outside message: no web
+ * search, no admin call or hire offered, launched with the outside toolkit (`outside`, ruling H115: it reads its own
+ * folder and writes and runs nothing), and its reply written in
+ * its own thread under an `OUTSIDE_REPLY_PREFIX` author, so every later reader sees it fenced (`shownBody`). Its plan
+ * is ruled with the request (`ruleRequest`, `REQUEST_WORDS`).
+ */
+export function runFrom<T extends { slug: string; tools: readonly string[] }>(
+  agent: T,
+  thread: string,
+  seen: { triage: Triage | null; request: boolean },
+  matterReadsHeld: boolean,
+) {
+  const base = runShape(agent, thread, seen.triage, matterReadsHeld);
+  const shape = seen.request
+    ? {
+        ...base,
+        research: false,
+        agent: {
+          ...base.agent,
+          tools: base.agent.tools.filter((tool) => tool !== "admin_call" && tool !== "hire"),
+        },
+        place: { thread: agent.slug, author_id: `${OUTSIDE_REPLY_PREFIX}${agent.slug}` },
+      }
+    : base;
+  return {
+    shape,
+    outside: seen.triage !== null || seen.request,
+    plan: (answer: Outcome, power: "full" | "read", cause: string) =>
+      answerPlan({
+        agent,
+        answer,
+        shape,
+        triage: seen.triage,
+        power,
+        cause,
+        request: seen.request,
+      }),
+  };
+}
+
+/**
+ * The start of every pass (exported for its test): Matter's side chat says "online" while this runner passes (one touch
+ * of Matter's row), and the newest work is read afresh for the pass's runs (W7 item 9, `newWorkLines`).
+ */
+export async function beginPass(client: Db): Promise<void> {
+  await client
+    .from("agents")
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq("slug", "matter")
+    .neq("state", "working");
+  forgetNewWork();
 }
 
 /**
  * W8 0d: Matter's decision that a held message may be answered. The runner writes it in the owner's thread in its own
  * words with the record, and wakes the owner on it; that run triages the record afresh and may propose within the
- * criteria only (a person approves). A decision that cannot be written fails the run. Exported for its test.
+ * criteria only (a person approves). The posture reaches it only in the runner's fixed words; an allowance in a posture
+ * off the list is not made, and the thread says so. A decision that cannot be written fails the run. Exported for its
+ * test.
  */
 export async function allowForOwner(
   client: Db,
   agents: readonly { id: string; slug: string }[],
   owner: string,
   record: { source: SourceName; id: string },
+  how: Posture | null,
 ): Promise<void> {
   const ownerRow = agents.find((row) => row.slug === owner);
   if (ownerRow === undefined) throw new Error("the held message's owner is not in the team");
+  if (how === null) {
+    await say(client, owner, HOW_REFUSED);
+    return;
+  }
   const { data: rows, error } = await client
     .from("agent_messages")
     .insert({
@@ -351,7 +578,7 @@ export async function allowForOwner(
       author_kind: "system",
       author_id: MATTER_ALLOWS_AUTHOR,
       author_name: "Matter",
-      body: allowLine(record, owner),
+      body: allowLine(record, owner, how),
     })
     .select("id");
   const line = rows?.[0];
@@ -371,7 +598,13 @@ export async function allowForOwner(
  */
 export async function context(
   client: Db,
-  run: { agent_id: string; cause: string; event_id: string | null; message_id: string | null },
+  run: {
+    id: string;
+    agent_id: string;
+    cause: string;
+    event_id: string | null;
+    message_id: string | null;
+  },
   thread: string,
   ask: (prompt: string) => Promise<string> = askTriage,
   matterReadsHeld = false,
@@ -379,7 +612,7 @@ export async function context(
   startedInside = false,
 ) {
   const parts: string[] = [];
-  let event: { type: string; entity_id: string | null } | null = null;
+  let event: { type: string; entity: string | null; entity_id: string | null } | null = null;
   if (run.event_id !== null) {
     const { data: rows } = await client
       .from("events")
@@ -425,7 +658,8 @@ export async function context(
       .then(({ data }) => data ?? []),
   ]);
   // W8 0b: an outside message reaches the prompt only as its triage; its text stays in the database for a person.
-  const triage = await triageRun(client, ask, event, woke, owns);
+  // W8 0d: Matter's read of a held line is no triaged run (its owner's explanation of that line is).
+  const triage = await triageRun(client, ask, event, matterReadsHeld ? null : woke, owns);
   if (triage !== null) parts.push(...triageLines(triage));
   const wokeShown =
     woke === null
@@ -434,9 +668,18 @@ export async function context(
         ? woke
         : { ...woke, body: shownBody(woke) };
   parts.push(...groundingLines(wokeShown, pending));
+  // W7 item 9a: a run of the request's owner about a request receives the request itself (request-desk.ts), named by
+  // its event or its line, after the triage read and classified what its submitter typed; no one else is shown a
+  // request (H132). Its folder is written into the run's own outside folder, where the run is launched.
+  const line = woke === null ? null : shownBody(woke);
+  const desk = owns("submission")
+    ? await requestDesk(client, run.agent_id, event, line, { id: run.id, triage, ask })
+    : { lines: [], received: false };
+  parts.push(...desk.lines);
   // W8 fourth review: a run about an outside message sees the triage, its own pending list and the site's facts, and
-  // nothing of the company's inside (no thread history, decisions or counts), so no reply can carry them.
-  if (triage === null) {
+  // nothing of the company's inside (no thread history, decisions or counts), so no reply can carry them. A run shown a
+  // request's typed fields is such a run whatever woke it (H132: the path of W8 0a to 0c, no second one).
+  if (triage === null && !desk.received) {
     const { data: messages } = await client
       .from("agent_messages")
       .select("author_kind, author_id, author_name, body, created_at")
@@ -447,8 +690,8 @@ export async function context(
       parts.push(
         `The conversation so far (${thread === "team" ? "the team chat" : "your direct thread"}, oldest first):\n` +
           messages
-            // W8 0e (second review): a run that may hold a terminal reads only people's and keys' lines; any other
-            // line may carry words that passed through an outside message
+            // W8 0e and H115: a run a person or a key started, the only kind that holds its toolkit's writes and
+            // renders, reads only people's and keys' lines; any other line may carry words from an outside message
             .filter((message) => !startedInside || insideLine(message))
             .reverse()
             .map((message) => `${message.author_name}: ${shownBody(message)}`)
@@ -482,19 +725,22 @@ export async function context(
     parts.push(
       `The business right now: ${String(requests.count ?? 0)} new requests, ${String(inquiries.count ?? 0)} inquiries in total, ${String(properties.count ?? 0)} published properties.`,
     );
+    // W7 item 9: the newest requests and inquiries themselves, for their owners (new-work.ts).
+    parts.push(...(await newWorkLines(client, owns)));
   }
   // W5 item 13: our own products, prices and markets, so no reply brackets a price it could have read.
   parts.push(await readSiteFacts());
   // W8 0d: the record a held line names, for Matter's read of it (the runner wrote it, last in the line).
   const heldRecord =
     matterReadsHeld && woke?.author_id === HELD_AUTHOR ? recordOf(woke.body) : null;
-  return { situation: parts.join("\n\n"), triage, heldRecord };
+  return { situation: parts.join("\n\n"), triage, heldRecord, request: desk.received };
 }
 
 /**
- * W8 0d: holds an outside message for Matter in its owner's thread and queues Matter's run on it. A hold that cannot be
- * made fails the run, so the message is never dropped in silence: Matter missing, the line not written, or Matter's run
- * not queued. Exported for its test.
+ * W8 0d: holds an outside message for Matter in its owner's thread and queues the owner's run on it first: the owner
+ * explains the context to the team, and the end of that run queues Matter's (explain.ts, `handToMatter`). A hold that
+ * cannot be made fails the run, so the message is never dropped in silence: Matter or the owner missing, the line not
+ * written, or the owner's run not queued. Exported for its test.
  */
 export async function holdForMatter(
   client: Db,
@@ -505,6 +751,9 @@ export async function holdForMatter(
 ): Promise<void> {
   const matterRow = agents.find((row) => row.slug === "matter");
   if (matterRow === undefined) throw new Error("Matter is not in the team, so nothing can be held");
+  const ownerRow = agents.find((row) => row.slug === owner);
+  if (ownerRow === undefined)
+    throw new Error("the owner of the held message is not in the team, so it cannot be explained");
   const { data: heldRows, error: heldError } = await client
     .from("agent_messages")
     .insert({
@@ -529,10 +778,13 @@ export async function holdForMatter(
       );
     return;
   }
+  // An owner that is paused or off at any time after this never claims the run: `handUnavailableOwners` (explain.ts),
+  // swept at the start of every runner loop, hands such a line to Matter.
   const { error: queueError } = await client
     .from("agent_runs")
-    .insert({ agent_id: matterRow.id, cause: "message", message_id: held.id });
-  if (queueError !== null) throw new Error("Matter's run on the held line could not be queued");
+    .insert({ agent_id: ownerRow.id, cause: "message", message_id: held.id });
+  if (queueError !== null)
+    throw new Error("the owner's explanation of the held line could not be queued");
 }
 
 /** How many held messages an hour Matter reads; the rest wait for a person (W8 fourth review). */
@@ -560,7 +812,7 @@ function promptFor(
   lessons = "",
   charter = "",
   knowledge = "",
-  terminal = false,
+  toolkit = "",
 ): string {
   const may = agentTools.filter((tool) => agent.tools.includes(tool));
   return [
@@ -578,13 +830,18 @@ function promptFor(
         ]
       : []),
     ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
-    ...(terminal ? [TERMINAL_LINE] : []),
+    ...(agent.tools.includes("draft_post") ? [POST_TOOL_LINE] : []),
+    ...(toolkit === "" ? [] : [toolkit]),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
   ].join("\n\n");
 }
 
-async function runOnce(client: Db): Promise<boolean> {
+/** One claimed run, start to end. Exported for the W8 0d test that walks a held message through the runner. */
+export async function runOnce(client: Db): Promise<boolean> {
+  // W8 0d second review: an explanation queued for an owner that is paused or off is handed to Matter, whatever the
+  // loop does next (explain.ts).
+  await handUnavailableOwners(client);
   const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
   const { count } = await client
     .from("agent_runs")
@@ -614,17 +871,23 @@ async function runOnce(client: Db): Promise<boolean> {
   let thread = "team";
   let authorKind: string | null = null;
   let wokeBy: string | null = null;
+  let wokeBody: string | null = null;
   if (run.message_id !== null) {
     const { data: message } = await client
       .from("agent_messages")
-      .select("thread, author_kind, author_id")
+      .select("thread, author_kind, author_id, body")
       .eq("id", run.message_id)
       .single();
     // A line that cannot be read fails the run inside `context` (W8 review), where the failure is recorded.
     thread = message?.thread ?? "team";
     authorKind = message?.author_kind ?? null;
     wokeBy = message?.author_id ?? null;
+    wokeBody = message?.body ?? null;
   }
+  // W8 0d: the owner's run on a held line explains it, and any end of it hands the line to Matter.
+  const explains =
+    run.message_id !== null &&
+    explainsHeld(agent.slug, { thread, author_kind: authorKind, author_id: wokeBy });
   await client
     .from("agents")
     .update({ state: "working", current_task: "Reading", last_seen_at: new Date().toISOString() })
@@ -635,7 +898,15 @@ async function runOnce(client: Db): Promise<boolean> {
     // W8 0e: a key's line counts only if its account is an unrevoked agent key.
     const woke = { author_kind: authorKind, author_id: wokeBy };
     const startedInside = await startedInsideFor(client, run.cause, woke);
-    const { situation, triage, heldRecord } = await context(
+    // H115: an outside run's folder holds only what the runner writes for this run (a request's folder, in `context`);
+    // whatever an earlier attempt of it left is gone first, with every other run's a killed runner left (runs are serial)
+    rmSync(dirname(outsideFolder(HOME, agent.slug, run.id)), { recursive: true, force: true });
+    const {
+      situation,
+      triage,
+      heldRecord,
+      request: shownRequest,
+    } = await context(
       client,
       run,
       thread,
@@ -646,13 +917,19 @@ async function runOnce(client: Db): Promise<boolean> {
     );
     // W8 0a/0d: an outside message is answered by its owner only; anyone else it woke does nothing with it.
     const gate = outsideGate(triage, agent.slug);
-    if (gate === "not_owner") {
+    if (explains && gate !== "explain")
+      throw new Error("the held line names no record its owner can explain");
+    // W8 0h: a person's email shows in the admin whether its triage let the owner answer it or held it.
+    await noteTriage(client, triage, gate);
+    // W8 0h review: a property offered to any of our addresses goes to the Editor once its triage says so.
+    const handed = await handToEditor(client, triage, gate, agent.slug, run.event_id);
+    if (gate === "not_owner" || handed) {
       await client
         .from("agent_runs")
         .update({
           state: "done",
           finished_at: new Date().toISOString(),
-          summary: "Not its owner (W8 0a)",
+          summary: handed ? "Handed to the Editor (W8 0h)" : "Not its owner (W8 0a)",
         })
         .eq("id", run.id);
       return true;
@@ -681,7 +958,7 @@ async function runOnce(client: Db): Promise<boolean> {
     // W2 step 6: the lessons this colleague has been taught, recalled for what woke it.
     const { data: lessonRows } = await client
       .from("agent_lessons")
-      .select("id, trigger, action, uses, last_used_at, created_at")
+      .select("id, trigger, action, uses, last_used_at, created_at, source")
       .eq("status", "active")
       .or(`agent_id.eq.${agent.id},agent_id.is.null`);
     const shown: Lesson[] = recallLessons(lessonRows ?? [], situation);
@@ -690,10 +967,12 @@ async function runOnce(client: Db): Promise<boolean> {
       .filter((row) => row.id !== agent.id)
       .map(({ name, slug, role }) => ({ name, slug, role }));
     const isMatter = agent.slug === "matter";
-    const shape = runShape(agent, thread, triage, matterReadsHeld, startedInside);
+    // W7 item 9a: what the context showed decides the shape, the launch and the plan, in one tested place.
+    const decided = runFrom(agent, thread, { triage, request: shownRequest }, matterReadsHeld);
+    const { shape } = decided;
     // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
     const power = isMatter ? matterPower(run.cause, authorKind) : "read";
-    const answer = isMatter
+    const answer: RunAnswer = isMatter
       ? await askMatter(
           matterPrompt({
             ...matterInputs(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
@@ -701,50 +980,62 @@ async function runOnce(client: Db): Promise<boolean> {
             business: lessons,
             power,
             held: matterReadsHeld,
+            // W8 0d: the owner's explanation, fenced as data; null when there is none (its run failed, said nothing, or never ran)
+            explanation:
+              matterReadsHeld && run.message_id !== null
+                ? await ownerExplanation(
+                    client,
+                    { id: run.message_id, thread },
+                    (agents ?? []).find((row) => row.slug === thread)?.id ?? "",
+                  )
+                : null,
           }),
           matterEnv(),
           power,
           matterReadsHeld,
         )
-      : await askClaude(
-          promptFor(
-            // W8 0c: a run about an outside message is not offered admin calls or hires at all.
-            shape.agent,
-            team,
-            situation,
-            lessons,
-            staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
-            triage === null ? knowledgeBlock(situation) : "",
-            shape.terminal,
-          ),
-          colleagueLaunch(
+      : await (async () => {
+          // H115: the run's toolkit decides its command line, its folder and what it is told it may use.
+          const launch = await colleagueLaunch(
             HOME,
             agent.slug,
             models[underCeiling(agent.model, policy.colleagueCeiling)] ??
               models["sonnet"] ??
               "claude-sonnet-5-5",
-            shape,
-            triage !== null,
-          ),
-        );
+            shape.research,
+            {
+              id: run.id,
+              outside: decided.outside,
+              inside: startedInside,
+              // the pieces whose photographs the runner places: only a person's or a key's line names them
+              ...(startedInside && !decided.outside && wokeBody !== null ? { line: wokeBody } : {}),
+            },
+          );
+          const asked = await askClaude(launch, (toolkit) =>
+            promptFor(
+              // W8 0c: a run about an outside message is not offered admin calls or hires at all.
+              shape.agent,
+              team,
+              situation,
+              lessons,
+              staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
+              decided.outside ? "" : knowledgeBlock(situation),
+              toolkit,
+            ),
+          );
+          return { ...asked, render: launch.render };
+        })();
     // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
     // nothing that acts (W8 review): it read the outside text itself.
     // The plan is decided in one tested function (W8 fourth review); the runner only carries it out.
-    const plan = answerPlan({
-      agent,
-      answer: readJsonAnswer(answer.text),
-      shape,
-      triage,
-      power,
-      cause: run.cause,
-    });
+    const plan = decided.plan(readJsonAnswer(answer.text), power, run.cause);
     const result = plan.result;
     const { place } = shape;
     if (plan.dropped !== null) await say(client, place.thread, plan.dropped);
     if (plan.keepNote) keepNote(result.note);
     if (plan.allow && heldRecord !== null)
-      await allowForOwner(client, agents ?? [], thread, heldRecord);
+      await allowForOwner(client, agents ?? [], thread, heldRecord, plan.how);
     if (plan.allow && heldRecord === null)
       await say(
         client,
@@ -753,6 +1044,7 @@ async function runOnce(client: Db): Promise<boolean> {
       );
     const media = plan.media;
     let reel: { request_id: string; name: string } | null = null;
+    let replyId: string | null = null;
 
     if (plan.reply !== null) {
       // W8 0e (second review): the woken colleagues read this reply, never whatever line is newest by then.
@@ -767,6 +1059,7 @@ async function runOnce(client: Db): Promise<boolean> {
         })
         .select("id")
         .single();
+      replyId = written?.id ?? null;
       // A colleague handing work to another wakes them, once.
       const handed = mentionedSlugs(result.reply).filter((slug) => slug !== agent.slug);
       const targets = (agents ?? []).filter(
@@ -779,6 +1072,10 @@ async function runOnce(client: Db): Promise<boolean> {
             targets.map((row) => ({ agent_id: row.id, cause: "message", message_id: written.id })),
           );
     }
+    // H115 (review of 2026-10-19): a colleague has no shell, so the runner renders what its answer asks for, here
+    if (answer.render !== undefined)
+      for (const line of runRenders(result.renders ?? [], answer.render, childEnv()))
+        await say(client, place.thread, line);
     for (const request of media) {
       if (request.skill === "reel") {
         // W7 item 19: a reel takes many minutes, so it waits in the studio for the reel pass, never inside a run.
@@ -786,6 +1083,18 @@ async function runOnce(client: Db): Promise<boolean> {
         const requestId = briefId(folder);
         if (requestId !== null) reel = { request_id: requestId, name: request.name };
         await say(client, thread, `The reel "${request.name}" is queued in the studio: ${folder}`);
+        continue;
+      }
+      if (request.skill === "post") {
+        // W8 item 1: a still post (Matter's only, `mediaFor`) is made in the same studio queue, one at a time.
+        const folder = queueReel(request, { agent: agent.slug, thread });
+        await say(client, thread, `The post "${request.name}" is queued in the studio: ${folder}`);
+        continue;
+      }
+      if (request.skill === "studio") {
+        // W8 0f: Matter's decision on a draft in the studio (media is kept only for Matter at full power, so a person's
+        // word is behind it); the runner's pass then uploads, revises or sends the preview.
+        await say(client, thread, decidePiece(request).line);
         continue;
       }
       await client
@@ -812,6 +1121,23 @@ async function runOnce(client: Db): Promise<boolean> {
       await proposeCalls(client, agent, run.id, thread, allowed);
     }
     for (const proposal of plan.proposals) {
+      // W8 item 10 (H135): a post with its channels and files goes to Proposed posts, not to Approvals.
+      if (isStructuredPost(proposal)) {
+        const filed = await fileProposedPost(postDeps(client), {
+          agent: agent.slug,
+          run: run.id,
+          summary: proposal.summary,
+          post: proposal.content.post,
+        });
+        await say(
+          client,
+          thread,
+          "id" in filed
+            ? `The post "${proposal.summary}" waits in Proposed posts for a person's approval.`
+            : `The post "${proposal.summary}" was not proposed: ${filed.refused}.`,
+        );
+        continue;
+      }
       // W7 item 20: a post or a plan of this run carries the reel it asked for; the hash covers what is stored.
       const content = withReel(proposal.action, proposal.content, reel);
       await client.from("agent_approvals").insert({
@@ -832,27 +1158,37 @@ async function runOnce(client: Db): Promise<boolean> {
         power === "full",
       );
     }
-    await client
+    // W6 item 4: what a full-power run merged through the gate becomes build lessons; the live supervisor asks GitHub.
+    const queued = queueMerges(mergedByRun(isMatter, power, result.merged));
+    if (queued.length > 0)
+      console.log(
+        `${new Date().toISOString()} build lessons queued for pull requests ${queued.join(", ")}`,
+      );
+    const finished = {
+      state: "done" as const,
+      finished_at: new Date().toISOString(),
+      // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
+      // its own words could carry the outside text into the meeting and the live session's digest.
+      summary: plan.summary,
+      session_id: "session" in answer && typeof answer.session === "string" ? answer.session : null,
+      turns: 1,
+      lessons_used: shown.map((lesson) => lesson.id),
+      ...(answer.usage === undefined
+        ? {}
+        : {
+            input_tokens: inputTokens(answer.usage),
+            output_tokens: answer.usage.output_tokens,
+            cost_microusd: costMicroUsd(agent.model, answer.usage),
+          }),
+    };
+    // W8 0d second review: the line this run wrote as its reply, which Matter's read shows as the explanation.
+    const { error: finishFailed } = await client
       .from("agent_runs")
-      .update({
-        state: "done",
-        finished_at: new Date().toISOString(),
-        // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
-        // its own words could carry the outside text into the meeting and the live session's digest.
-        summary: plan.summary,
-        session_id:
-          "session" in answer && typeof answer.session === "string" ? answer.session : null,
-        turns: 1,
-        lessons_used: shown.map((lesson) => lesson.id),
-        ...(answer.usage === undefined
-          ? {}
-          : {
-              input_tokens: inputTokens(answer.usage),
-              output_tokens: answer.usage.output_tokens,
-              cost_microusd: costMicroUsd(agent.model, answer.usage),
-            }),
-      })
+      .update({ ...finished, reply_message_id: replyId })
       .eq("id", run.id);
+    // The runner follows main at once, the migration that adds the column reaches the database with deploy's dev job:
+    // in between the update above fails, and a run left `running` would be claimed and answered again (followups review).
+    if (finishFailed !== null) await client.from("agent_runs").update(finished).eq("id", run.id);
     // A lesson shown is a lesson used: its count ranks it, and the weekly review promotes the ones used often.
     const now = new Date().toISOString();
     for (const lesson of shown) {
@@ -861,6 +1197,8 @@ async function runOnce(client: Db): Promise<boolean> {
         .update({ uses: lesson.uses + 1, last_used_at: now })
         .eq("id", lesson.id);
     }
+    if (explains && run.message_id !== null)
+      await handToMatter(client, agents ?? [], run.message_id, thread, false);
     console.log(`${new Date().toISOString()} ${agent.slug} done`);
   } catch (failure) {
     if (failure instanceof UsageLimitError) {
@@ -892,7 +1230,12 @@ async function runOnce(client: Db): Promise<boolean> {
         ? `Matter stopped before finishing: ${message}. The work so far stays in Matter's desk; your next message picks it up from there.`
         : `${agent.name} stopped before finishing: ${message}.`,
     );
+    // W8 0d: a failed explanation is said, and does not stop Matter's decision.
+    if (explains && run.message_id !== null)
+      await handToMatter(client, agents ?? [], run.message_id, thread, true);
   } finally {
+    // the request's folder a context wrote is removed whatever ended the run, a failure before its launch included
+    rmSync(outsideFolder(HOME, agent.slug, run.id), { recursive: true, force: true });
     await client
       .from("agents")
       .update({
@@ -1091,12 +1434,7 @@ async function makeApprovedCalls(client: Db): Promise<void> {
 }
 
 async function pass(client: Db): Promise<void> {
-  // W2: Matter's side chat says "online" while this runner passes; one touch of Matter's row per pass.
-  await client
-    .from("agents")
-    .update({ last_seen_at: new Date().toISOString() })
-    .eq("slug", "matter")
-    .neq("state", "working");
+  await beginPass(client);
   mkdirSync(HOME, { recursive: true });
   // W6 item 1: the staff policy follows the weekly allowance; a change is said once in the team thread.
   const { policy, changed, reading } = refreshPolicy();
@@ -1143,8 +1481,9 @@ async function pass(client: Db): Promise<void> {
     }
   }
   // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute. It
-  // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480).
-  if (!reelBusy && nextReel() !== null) {
+  // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480). W8 0f: the same
+  // pass uploads an approved draft, sends a waiting piece's preview and writes the rows of the studio.
+  if (!reelBusy && reelWork()) {
     spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
       cwd: resolve(import.meta.dir, "../.."),
       detached: true,
@@ -1154,12 +1493,16 @@ async function pass(client: Db): Promise<void> {
     console.log(`${new Date().toISOString()} reel pass started`);
   }
   await makeApprovedCalls(client);
-  // W4: replies to our email reach their colleague; a mailbox that fails never stops the runs.
-  const replies = await checkMail(client, HOME).catch((failure: unknown) => {
+  // W4: replies to our email reach their colleague; W8 0h: every other message of every folder is recorded once and
+  // reaches its owner or Matter. A mailbox that fails never stops the runs; a folder it could not read is named.
+  const mail = await checkMail(client, HOME).catch((failure: unknown) => {
     console.log(failure instanceof Error ? failure.message : String(failure));
-    return 0;
+    return null;
   });
-  if (replies > 0) console.log(`${new Date().toISOString()} replies ${String(replies)}`);
+  if (mail !== null && mail.replies + mail.inbound + mail.unread.length > 0)
+    console.log(
+      `${new Date().toISOString()} mail: replies ${String(mail.replies)}, inbound ${String(mail.inbound)}${mail.unread.length === 0 ? "" : `, not read: ${mail.unread.join(", ")}`}`,
+    );
   // W9 item 1: where port 25 opens, each new address is probed once and a refused one is never mailed.
   const refused = await checkNewAddresses(client, HOME).catch((failure: unknown) => {
     console.log(`email check: ${failure instanceof Error ? failure.message : String(failure)}`);
@@ -1179,7 +1522,11 @@ async function pass(client: Db): Promise<void> {
     return 0;
   });
   if (pages > 0) console.log(`${new Date().toISOString()} site pages ${String(pages)}`);
-  const woke = await wakeOnEvents(client);
+  // A wake that fails keeps its cursor and never stops the runs a person's line or an earlier event queued.
+  const woke = await wakeOnEvents(client).catch((failure: unknown) => {
+    console.log(failure instanceof Error ? failure.message : String(failure));
+    return 0;
+  });
   if (woke > 0) console.log(`${new Date().toISOString()} woke ${String(woke)}`);
   // Up to five runs a pass, one after another; the scheduled task starts the next pass a minute later.
   let ran = 0;
@@ -1192,7 +1539,32 @@ async function pass(client: Db): Promise<void> {
   if (ran === 0 && policy.backlog === "all") await wakeBacklog(client);
 }
 
+/**
+ * The outside watchdog: a supervisor whose heartbeat is silent for 15 minutes is ended from here, because a process
+ * blocked on one call cannot run its own timer and "MOP Matter Live" will not start a second copy (P-3703).
+ */
+function endStalledSupervisor(now: number = Date.now()): boolean {
+  const pid = stalledSupervisorPid(undefined, undefined, now);
+  if (pid === null) return false;
+  const found = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      `(Get-CimInstance Win32_Process -Filter 'ProcessId=${String(pid)}').CommandLine`,
+    ],
+    { encoding: "utf8", windowsHide: true, timeout: 30_000 },
+  );
+  if (!isSupervisorCommand(found.stdout)) return false;
+  console.log(
+    `${new Date(now).toISOString()} matter: live supervisor ${String(pid)} silent 15 minutes, ended from outside`,
+  );
+  spawnSync("taskkill", ["/T", "/F", "/PID", String(pid)], { windowsHide: true, timeout: 30_000 });
+  return true;
+}
+
 async function main(): Promise<void> {
+  endStalledSupervisor();
   const client = db();
   if (process.argv.includes("--loop")) {
     for (;;) {

@@ -26,6 +26,47 @@ function tables(overrides: NonNullable<FakeDbOptions["tables"]> = {}): FakeDbOpt
       inquiries: [inquiryRow()],
       subscribers: [subscriberRow()],
       subject_requests: [subjectRequestRow()],
+      // W8 0h: a person's email as the mailbox recorded it.
+      inbound_mail: [
+        {
+          id: ID,
+          provider_id: "1792080000000000001",
+          folder: "Inbox",
+          from_email: "dana@example.net",
+          from_name: "Dana",
+          alias: "hello",
+          subject: "A house",
+          body: "Is it available?",
+          attachments: [],
+          received_at: "2026-10-13T13:00:00.000Z",
+          source: "email_inbound",
+          service: null,
+          summary: "a person writing to us",
+          report: null,
+          triage: null,
+          owner_slug: "concierge",
+          state: "new",
+          created_at: "2026-10-13T13:00:01.000Z",
+        },
+      ],
+      // W6 item 5: a reply to our own email.
+      email_replies: [
+        {
+          id: ID,
+          provider_id: "1792080000000000002",
+          from_email: "dana@example.net",
+          from_name: "Dana",
+          subject: "Re: A house",
+          body: "Thursday works.",
+          received_at: "2026-10-13T14:00:00.000Z",
+          send_id: null,
+          entity: "inquiry",
+          entity_id: ID,
+          owner_slug: "concierge",
+          state: "new",
+          created_at: "2026-10-13T14:00:01.000Z",
+        },
+      ],
       ...overrides,
     },
   };
@@ -35,13 +76,21 @@ const sample = (trigger: string, options: FakeDbOptions = tables()) =>
   samplePayloadFor(fakeDb(options), trigger, ID, NOW);
 
 describe("samplePayloadFor", () => {
-  it("builds a payload for each of the 19 triggers that its event schema accepts", async () => {
+  it("names a reply's row and the source it answers, never its words (W6 item 5)", async () => {
+    expect(await sample("email.reply_received")).toEqual({
+      reply_id: ID,
+      entity: "inquiry",
+      entity_id: ID,
+    });
+  });
+
+  it("builds a payload for each of the 21 triggers that its event schema accepts", async () => {
     const refused: string[] = [];
     for (const type of eventTypes) {
       const payload = await sample(type);
       if (!eventPayloadSchemas[type].safeParse(payload).success) refused.push(type);
     }
-    expect(eventTypes).toHaveLength(19);
+    expect(eventTypes).toHaveLength(21);
     expect(refused).toEqual([]);
   });
 

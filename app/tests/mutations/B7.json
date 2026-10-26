@@ -57,7 +57,7 @@
     "id": "b7-g1-role-check",
     "test": "tests/unit/authz.matrix.test.ts",
     "file": "src/server/lib/authz.ts",
-    "find": "return entry.roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
+    "find": "return roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
     "replace": "return null;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/authz.matrix.test.ts",
     "expect": "× .*refuses a roleless actor everywhere"
@@ -66,7 +66,7 @@
     "id": "b7-g1-sweep-probe",
     "test": "tests/unit/admin-authz-sweep.test.ts",
     "file": "src/server/lib/authz.ts",
-    "find": "return entry.roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
+    "find": "return roles.some((role) => actor.roles.includes(role)) ? null : \"forbidden\";",
     "replace": "return null;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-authz-sweep.test.ts",
     "expect": "× .*the probe tells a guarded service"
@@ -1520,7 +1520,7 @@
     "find": "routeId: \"/admin/team/\",",
     "replace": "routeId: \"/admin/teams/\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*holds 33 entries, one per screen"
+    "expect": "× .*holds 34 entries, one per screen"
   },
   {
     "id": "b7-g3-nav-groups",
@@ -1529,7 +1529,7 @@
     "find": "  \"Clients\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 27 screens in eight areas"
+    "expect": "× .*shows 28 screens in eight areas"
   },
   {
     "id": "b7-g3-nav-work",
@@ -2286,7 +2286,7 @@
     "find": "{ action: \"people.list\", group: \"people\", roles: appRoles },\n",
     "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*shows 27 screens in eight areas"
+    "expect": "× .*shows 28 screens in eight areas"
   },
   {
     "id": "b7-5a-route-notes",
@@ -3930,9 +3930,9 @@
   {
     "id": "b7-g9-ui-warning-80",
     "test": "src/admin/dashboard/dashboard.test.tsx",
-    "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "const WARNING_AT = 0.7;",
-    "replace": "const WARNING_AT = 0.8;",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_WARNING_AT = 0.7;",
+    "replace": "const GAUGE_WARNING_AT = 0.8;",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*805306368 bytes of Storage is 75 percent of 1 GB"
   },
@@ -3948,9 +3948,9 @@
   {
     "id": "b7-g9-ui-alert",
     "test": "src/admin/dashboard/dashboard.test.tsx",
-    "file": "src/admin/dashboard/GaugesTile.tsx",
-    "find": "const ALERT_AT = 0.9;",
-    "replace": "const ALERT_AT = 0.95;",
+    "file": "src/domain/usage-gauges.ts",
+    "find": "const GAUGE_ALERT_AT = 0.9;",
+    "replace": "const GAUGE_ALERT_AT = 0.95;",
     "run": "bunx vitest run --project component --testTimeout=60000 src/admin/dashboard/dashboard.test.tsx",
     "expect": "× .*a share of 92 percent is in the alert state"
   },
@@ -5352,8 +5352,8 @@
     "id": "b7-14-svc-invite-note",
     "test": "tests/unit/team.service.test.ts",
     "file": "src/server/team/service.ts",
-    "find": "p_note: \"invite\",",
-    "replace": "p_note: \"\",",
+    "find": "\n          p_note: \"invite\",",
+    "replace": "\n          p_note: \"\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
     "expect": "FAIL .*> inviteUser > calls inviteUserByEmail once"
   },
@@ -5373,7 +5373,7 @@
     "find": "error.code === \"email_exists\"",
     "replace": "error.code === \"email_taken\"",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/team.service.test.ts",
-    "expect": "FAIL .*> inviteUser > an address that already has an account"
+    "expect": "FAIL .*> inviteUser > gives the roles to the existing account of a former client"
   },
   {
     "id": "b7-14-svc-raw-key",

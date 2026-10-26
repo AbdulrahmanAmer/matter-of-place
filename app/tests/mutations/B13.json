@@ -985,8 +985,8 @@
     "id": "b13-s6-robots-body-admin",
     "test": "tests/unit/robots.test.ts",
     "file": "src/server/seo/robots.ts",
-    "find": "Disallow: /admin\n",
-    "replace": "",
+    "find": "Allow: /\n\n",
+    "replace": "Allow: /\nDisallow: /admin\n\n",
     "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
     "expect": "FAIL .*buildRobots > gives the real domain one allow block"
   },
@@ -994,8 +994,8 @@
     "id": "b13-s6-robots-body-api",
     "test": "tests/unit/robots.test.ts",
     "file": "src/server/seo/robots.ts",
-    "find": "Disallow: /api\n",
-    "replace": "",
+    "find": "Allow: /\n\n",
+    "replace": "Allow: /\nDisallow: /api\n\n",
     "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
     "expect": "FAIL .*buildRobots > gives the real domain one allow block"
   },
@@ -1012,8 +1012,8 @@
     "id": "b13-s6-robots-body-ai-rule",
     "test": "tests/unit/robots.test.ts",
     "file": "src/server/seo/robots.ts",
-    "find": "Allow: /\nDisallow: /admin",
-    "replace": "Allow: /\n\nUser-agent: GPTBot\nDisallow: /\nDisallow: /admin",
+    "find": "Allow: /\n\n",
+    "replace": "Allow: /\n\nUser-agent: GPTBot\nDisallow: /\n\n",
     "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
     "expect": "FAIL .*buildRobots > names no crawler but the wildcard"
   },
@@ -2503,5 +2503,32 @@
     "find": "run: node scripts/perf-targets.mjs .lighthouseci-pages",
     "replace": "run: node scripts/perf-targets.mjs .lighthouseci",
     "expect": "FAIL .*> reads the kept Lighthouse reports for the performance targets"
+  },
+  {
+    "id": "h114-robots-signal-body",
+    "test": "tests/unit/robots.test.ts",
+    "file": "src/server/seo/robots.ts",
+    "find": "ai-train=no\nAllow: /",
+    "replace": "ai-train=yes\nAllow: /",
+    "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
+    "expect": "FAIL .*buildRobots > gives the real domain one allow block"
+  },
+  {
+    "id": "h114-robots-signal-check",
+    "test": "tests/unit/check-seo.test.ts",
+    "file": "scripts/check-seo.ts",
+    "find": "      \"Content-Signal: search=yes, ai-input=yes, ai-train=no\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/check-seo.test.ts",
+    "expect": "FAIL .*checkRobots > expects the content signal line on the production host"
+  },
+  {
+    "id": "market-card-heading-level",
+    "test": "tests/unit/no-image.test.tsx",
+    "file": "src/components/site/market-card.tsx",
+    "find": "const Heading = level === 2 ? \"h2\" : \"h3\";",
+    "replace": "const Heading = \"h3\";",
+    "run": "bunx vitest run --project component tests/unit/no-image.test.tsx",
+    "expect": "FAIL .*MarketCard > names the market in an h2 straight under the page's h1"
   }
 ]

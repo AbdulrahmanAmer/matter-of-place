@@ -143,13 +143,20 @@ describe("checkHead", () => {
 
 describe("checkRobots", () => {
   const OPEN =
-    "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://matterofplace.com/sitemap.xml\n";
+    "User-agent: *\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: /\n\nSitemap: https://matterofplace.com/sitemap.xml\n";
   const CLOSED = "User-agent: *\nDisallow: /\n";
 
   it("expects the allow block and the sitemap line on the production host", () => {
     expect(checkRobots(OPEN, "matterofplace.com")).toEqual([]);
     expect(checkRobots(OPEN, "127.0.0.1:8788")).toEqual([]);
     expect(checkRobots(CLOSED, "matterofplace.com").join("\n")).toContain('lacks "Allow: /"');
+  });
+
+  it("expects the content signal line on the production host", () => {
+    const unsigned = OPEN.split("Content-Signal: search=yes, ai-input=yes, ai-train=no\n").join("");
+    expect(checkRobots(unsigned, "matterofplace.com")).toEqual([
+      'robots.txt lacks "Content-Signal: search=yes, ai-input=yes, ai-train=no"',
+    ]);
   });
 
   it("fails a production body that closes the site", () => {
@@ -199,7 +206,7 @@ describe("checkProductionSitemap", () => {
 
 describe("runChecks", () => {
   const OPEN_ROBOTS =
-    "User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n\nSitemap: https://matterofplace.com/sitemap.xml\n";
+    "User-agent: *\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: /\n\nSitemap: https://matterofplace.com/sitemap.xml\n";
   const sitemap = (...paths: string[]) =>
     `<urlset>${paths.map((path) => `<url><loc>${ORIGIN}${path}</loc></url>`).join("")}</urlset>`;
 

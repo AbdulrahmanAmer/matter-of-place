@@ -102,6 +102,22 @@
   font-size: 13px;
 }
 
+/* H115: a colleague's toolkit in words, folded under its card */
+.wf-card__tools {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.wf-card__tools summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+}
+
+.wf-card__tools ul {
+  margin: var(--admin-space-2) 0 0;
+  padding-inline-start: 1.1em;
+}
+
 .wf-card__state {
   display: flex;
   align-items: baseline;
@@ -623,4 +639,139 @@
       transform: rotate(360deg);
     }
   }
+}
+
+/* W7 item 4: the team's memory (decisions, lessons, instruction history), read only. */
+.wf-mem h2 {
+  margin-block-end: var(--admin-space-2);
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.wf-mem__lead {
+  margin-block-end: var(--admin-space-4);
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+.wf-mem__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--admin-space-3);
+  margin-block-end: var(--admin-space-4);
+}
+
+.wf-mem__filters button {
+  padding: var(--admin-space-1) var(--admin-space-3);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 13px;
+}
+
+.wf-mem__filters button[aria-pressed="true"] {
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+
+.wf-mem__scroll {
+  overflow-x: auto;
+}
+
+.wf-mem table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wf-mem th,
+.wf-mem td {
+  padding: var(--admin-space-2) var(--admin-space-3);
+  border-block-end: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.wf-mem thead th {
+  color: var(--muted-foreground);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.wf-mem__wide {
+  min-inline-size: 240px;
+  max-inline-size: 420px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wf-mem__status {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.wf-mem__status--open {
+  color: var(--status-info);
+}
+
+.wf-mem__status--done {
+  color: var(--status-ok);
+}
+
+.wf-mem__status--missed {
+  color: var(--status-danger);
+}
+
+.wf-mem__colleague {
+  margin-block-end: var(--admin-space-6);
+}
+
+.wf-mem__colleague h3 {
+  margin-block-end: var(--admin-space-3);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.wf-mem__colleague ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block-start: 1px solid var(--foreground);
+}
+
+.wf-mem__version {
+  padding: var(--admin-space-3) 0;
+  border-block-end: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.wf-mem__version-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--admin-space-3);
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.wf-mem__version-head strong {
+  color: var(--foreground);
+}
+
+.wf-mem__reason {
+  margin-block: var(--admin-space-1) var(--admin-space-2);
+  overflow-wrap: anywhere;
+}
+
+.wf-mem__text {
+  margin-block: var(--admin-space-3) 0;
+  padding: var(--admin-space-3);
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

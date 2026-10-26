@@ -88,7 +88,8 @@ async function signPath(db: Db, path: string): Promise<string> {
   return data.signedUrl;
 }
 
-async function sign(
+/** The signed upload URLs of one photograph and its thumbnail, valid for two hours. */
+export async function signUpload(
   db: Db,
   submissionId: string,
   mediaId: string,
@@ -153,7 +154,7 @@ export async function create(
   const signed = await Promise.all(
     media
       .slice(0, SIGNED_PER_REQUEST)
-      .map((entry) => sign(db, row.id, entry.id, entry.storage_path)),
+      .map((entry) => signUpload(db, row.id, entry.id, entry.storage_path)),
   );
   return {
     id: row.id,
@@ -188,7 +189,7 @@ export async function signMore(
     uploads: await Promise.all(
       data.map(async (row) => ({
         media_id: row.media_id,
-        ...(await sign(db, input.id, row.media_id, row.storage_path)),
+        ...(await signUpload(db, input.id, row.media_id, row.storage_path)),
       })),
     ),
   };

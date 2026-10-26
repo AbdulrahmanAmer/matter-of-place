@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 
 // W9 item 2 (operator, 2026-10-15: "we need to be able to see from the admin dashboard if an email is wrong or
 // bounced"): what became of each email we sent, from `email_messages` and the Resend events `email_events` holds, and
@@ -41,6 +42,8 @@ export const sentEmailSchema = z.object({
   created_at: at,
   sent_at: at.nullable(),
   delivered_at: at.nullable(),
+  /** When the first open event came (Resend's open tracking; some mail apps fire it without a person reading). */
+  opened_at: at.nullable(),
   /** The address is on the do-not-send list. */
   suppressed: z.boolean(),
 });
@@ -65,16 +68,60 @@ export const resendEmailInputSchema = z.object({
 
 export const resendEmailAnswerSchema = z.object({ job_id: uuid });
 
-/** `GET /api/admin/emails`: the newest emails, filtered by state or address, and the do-not-send list. */
-export const emailListInputSchema = z.object({
+/** `GET /api/admin/emails`: one keyset page of emails, newest first, filtered by state or address (invariant 17c). */
+export const emailListInputSchema = adminPageSchema.extend({
   status: z.enum(emailStates).optional(),
   search: z.string().trim().max(254).optional(),
 });
 
-export const emailListSchema = z.object({
-  items: z.array(sentEmailSchema),
+/** The page of emails and the do-not-send list (its newest hundred), which does not move with the page. */
+export const emailListSchema = adminPageAnswer(sentEmailSchema).extend({
   suppressions: z.array(suppressionSchema),
 });
+
+/** The states `email_replies.state` takes (migration 20261013180000_email_replies.sql). */
+export const replyStates = ["new", "seen", "answered", "ignored"] as const;
+
+/** The states a person may mark a reply with: `seen` when it is opened, `answered` or `ignored` when dealt with. */
+const replyMarks = ["seen", "answered", "ignored"] as const;
+
+/** The email a reply answers, as it was sent (`email_replies.send_id`). */
+const repliedToSchema = z.object({
+  id: uuid,
+  template_key: z.string(),
+  to_email: z.string().nullable(),
+  created_at: at,
+  sent_at: at.nullable(),
+});
+
+/** A reply to our email, read from the mailbox. Its words come from outside the company: plain text, never HTML. */
+export const replySchema = z.object({
+  id: uuid,
+  from_email: z.string().nullable(),
+  from_name: z.string().nullable(),
+  subject: z.string(),
+  body: z.string(),
+  received_at: at,
+  /** The colleague whose thread the reply went to (`agents.slug`); null when no colleague was on. */
+  owner_slug: z.string().nullable(),
+  state: z.enum(replyStates),
+  /** Null when the email it answers was deleted. */
+  sent: repliedToSchema.nullable(),
+});
+
+export type Reply = z.infer<typeof replySchema>;
+
+/** `GET /api/admin/emails/replies`: one keyset page of replies, newest first, optionally one state (invariant 17c). */
+export const replyListInputSchema = adminPageSchema.extend({
+  state: z.enum(replyStates).optional(),
+});
+
+export const replyListSchema = adminPageAnswer(replySchema);
+
+/** `POST /api/admin/emails/replies/:id`: the mark and the state the reply is in after it. */
+export const replyMarkInputSchema = z.object({ id: uuid, state: z.enum(replyMarks) });
+
+export const replyMarkAnswerSchema = z.object({ id: uuid, state: z.enum(replyStates) });
 
 /** The states a person may send again from the request page (`resend_submission_email`). */
 export const resendableStates: readonly SentEmail["status"][] = ["bounced", "failed", "skipped"];
@@ -105,7 +152,7 @@ const notSent: Readonly<Record<string, string>> = {
 };
 
 /** The name of an email as the team reads it. */
-const emailName = (templateKey: string): string => emailNames[templateKey] ?? "The email";
+export const emailName = (templateKey: string): string => emailNames[templateKey] ?? "The email";
 
 /** One sentence on what became of an email: "The confirmation bounced: this mailbox does not exist." */
 export function deliveryLine(email: SentEmail): string {
@@ -123,9 +170,11 @@ export function deliveryLine(email: SentEmail): string {
     case "skipped":
       return `${name} was not sent: ${notSent[email.error ?? ""] ?? email.error ?? "no reason was given"}.`;
     case "delivered":
-      return `${name} was delivered.`;
+      return `${name} was delivered${email.opened_at === null ? "" : " and opened"}.`;
     case "sent":
-      return `${name} was sent; delivery is not confirmed yet.`;
+      return email.opened_at === null
+        ? `${name} was sent; delivery is not confirmed yet.`
+        : `${name} was sent and opened.`;
     case "queued":
       return `${name} is waiting to be sent.`;
   }

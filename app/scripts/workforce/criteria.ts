@@ -41,6 +41,31 @@ export const sources = {
     owner: "concierge",
     actions: [],
   },
+  // W8 0h: a person writing to one of our addresses who is not replying to our mail (a new client, a press request, a
+  // privacy request by mail). Its owner is chosen by the alias (`inbound_mail_record`: the Editor for listings@, else
+  // the Concierge); press and anything else outside these intents is held for Matter (W8 0d).
+  email_inbound: {
+    label: "an email a person sent to one of our addresses",
+    intents: [
+      "property_question",
+      "showing_request",
+      "list_a_property",
+      "privacy_request",
+      "correction",
+    ],
+    owner: "concierge",
+    actions: ["reply_inquiry"],
+  },
+  // W8 0h: mail from a known service (Google, Cloudflare, Sentry ...) that authenticated as it. It never wakes a
+  // colleague and is never triaged: the runner decides its intent from the message's own reports (a clean report is
+  // only recorded) and writes the rest as a notice in fixed words in Matter's thread (service-notice.ts).
+  service_notice: {
+    label: "a notice from a service we use",
+    intents: ["clean_report", "failing_report", "service_alert"],
+    // No colleague owns it (no slug is empty), and never Matter: Matter reads only the runner's line about it.
+    owner: "",
+    actions: [],
+  },
 } as const satisfies Record<string, Source>;
 
 export type SourceName = keyof typeof sources;
@@ -50,6 +75,10 @@ const sourceOfEvent: Partial<Record<string, SourceName>> = {
   "inquiry.received": "inquiry",
   "submission.received": "submission",
   "subject_request.received": "privacy_request",
+  // W8 0h: a person's email, recorded by `inbound_mail_record`; the event names the row, its text stays there.
+  "email.received": "email_inbound",
+  // W6 item 5: a reply to our own email, recorded by `email_reply_record`; the event names the row, its text stays there.
+  "email.reply_received": "email_reply",
 };
 
 /** The outside source an event is, or null when the event carries no outside text (an inside event). */

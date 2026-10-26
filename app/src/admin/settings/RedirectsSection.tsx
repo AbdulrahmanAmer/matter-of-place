@@ -178,6 +178,9 @@ function LinkTester({
                 ))}
               </ol>
             )}
+            {check.steps.length > 1 && !check.loop ? (
+              <p>{`This link takes ${String(check.steps.length)} steps. Point the old address at the final address so visitors take one.`}</p>
+            ) : null}
             {check.loop ? <p>These addresses lead in a circle.</p> : null}
           </>
         )}

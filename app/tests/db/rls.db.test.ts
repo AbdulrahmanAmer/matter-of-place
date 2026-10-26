@@ -5,6 +5,7 @@ import { createAuthUser, createStaffUser, withRollback, type Db } from "../fixtu
 import {
   allows,
   authenticatedFunctions,
+  clientAllows,
   rlsMatrix,
   staffRoles,
   tableOperations,
@@ -32,6 +33,7 @@ declare
   v_submission uuid;
   v_payment uuid;
   v_campaign uuid;
+  v_contact uuid;
 begin
   insert into public.migration_checksums (version, sha256) values ('00000000000000', 'test')
   on conflict do nothing;
@@ -59,14 +61,16 @@ begin
   insert into public.slug_history (slug, property_id) values ('test-rls-old', v_property);
   insert into public.redirects (from_path, to_path) values ('/test-rls-from', '/test-rls-to');
   insert into public.retention_policies (key, table_name, action) values ('test_rls', 'inquiries', 'keep');
-  insert into public.contacts (kind, name, email) values ('owner', 'Test Person', 'test-rls-' || v_user || '@example.test');
+  -- W6 item 7: the request, its media, its payment and its campaign report belong to this contact, the client probes'.
+  insert into public.contacts (kind, name, email) values ('owner', 'Test Person', 'test-rls-' || v_user || '@example.test')
+  returning id into v_contact;
   insert into public.decline_reasons (code, label, email_paragraph) values ('test_rls', 'Test', 'x');
   insert into public.submissions (
     address, city, state, zip, property_type, submitter_kind, submitter_name, submitter_email, story, significance,
-    package, source_path, rights_version, rights_confirmed_at, rights_ip_hash
+    package, source_path, rights_version, rights_confirmed_at, rights_ip_hash, contact_id
   ) values (
     '1 Test Way', 'Berkeley', 'California', '94702', 'Residence', 'owner', 'Test Person', 'person@example.test',
-    'x', 'x', 'The Feature', '/submit', 'test-v1', now(), 'test-hash'
+    'x', 'x', 'The Feature', '/submit', 'test-v1', now(), 'test-hash', v_contact
   ) returning id into v_submission;
   insert into public.submission_media (submission_id, name, storage_path) values (v_submission, 'a.jpg', 'test/a.jpg');
   insert into public.inquiries (intent, name, email, message, source_path)
@@ -81,6 +85,8 @@ begin
   returning id into v_campaign;
   insert into public.campaign_reports (campaign_id, period_start, period_end)
   values (v_campaign, current_date, current_date);
+  insert into public.client_credits (contact_id, kind, quantity, payment_id)
+  values (v_contact, 'purchased', 5, v_payment);
   insert into public.rate_limits (bucket, key_hash) values ('test-rls', 'test-rls-' || v_user);
   insert into public.webhook_receipts (provider, id) values ('test-rls', 'test-rls-' || v_user);
   insert into public.subject_requests (email, kind) values ('test-rls-' || v_user || '@example.test', 'access');
@@ -97,6 +103,12 @@ begin
   -- W4: a reply read from the mailbox (written only by email_reply_record in production).
   insert into public.email_replies (provider_id, from_email, received_at)
   values ('test-rls-' || v_user, 'test-rls-' || v_user || '@example.test', now());
+  -- W8 0h: a message read from the mailbox (written only by inbound_mail_record in production).
+  insert into public.inbound_mail (provider_id, folder, received_at, source)
+  values ('test-rls-' || v_user, 'Inbox', now(), 'email_inbound');
+  -- W8 0f: a piece of the studio folder (written only by studio_piece_put in production).
+  insert into public.studio_pieces (id, title, owner_slug, state, folder)
+  values (gen_random_uuid(), 'test-rls', 'social', 'draft', 'test-rls-' || v_user);
   insert into public.email_suppressions (email, reason) values ('test-rls-' || v_user || '@example.test', 'manual');
   insert into public.email_events (provider_event_id, type, at) values ('test-rls-' || v_user, 'email.sent', now());
   insert into public.newsletter_issues (number, status)
@@ -123,6 +135,13 @@ begin
   select id, 'test-rls-' || v_user, 'test-rls task' from public.agents where slug = 'chief';
   insert into public.vendor_usage (line, used, measured_at) values ('sentry_errors', 1, now())
   on conflict (line) do nothing;
+  -- W8 item 10: a proposed post, one channel and one revision sent back (written only by its functions in production).
+  insert into public.proposed_posts (title, proposer_kind, proposer_agent, status, rejection_note)
+  values ('test-rls', 'agent', 'chief', 'rejected', 'test-rls');
+  insert into public.proposed_post_channels (post_id, revision, channel, format, caption, media)
+  select id, 1, 'x', 'single', 'test-rls', '{}'::jsonb from public.proposed_posts where title = 'test-rls';
+  insert into public.proposed_post_revisions (post_id, revision, reason, note, asked_by_kind, snapshot)
+  select id, 1, 'rejected', 'test-rls', 'human', '{}'::jsonb from public.proposed_posts where title = 'test-rls';
 end
 $$`;
 
@@ -194,12 +213,21 @@ interface Probe {
   label: string;
   role: "anon" | "authenticated";
   roles: StaffRole[] | null;
+  /** W6 item 7: a client whose contact owns the fixture rows, or the client of another contact. */
+  client?: "own" | "other";
 }
 
 const probes: Probe[] = [
   ...staffRoles.map((role): Probe => ({ label: role, role: "authenticated", roles: [role] })),
   { label: "admin plus chief_editor", role: "authenticated", roles: ["admin", "chief_editor"] },
   { label: "a signed-in user with no role", role: "authenticated", roles: [] },
+  { label: "a client, on their own rows", role: "authenticated", roles: [], client: "own" },
+  {
+    label: "a client, on another client's rows",
+    role: "authenticated",
+    roles: [],
+    client: "other",
+  },
   { label: "anon", role: "anon", roles: null },
 ];
 
@@ -209,12 +237,35 @@ interface Outcome {
   outcome: string;
 }
 
+// Ruling H119 (1): a client is the auth user whose confirmed email is a contact's email. The fixture contact's
+// email is `test-rls-<owner>@example.test`, so the owner becomes that contact's client.
+const CONFIRM_AS = `update auth.users set email = $2, email_confirmed_at = now() where id = $1`;
+
+async function probeUser(db: Db, probe: Probe, owner: string): Promise<string | null> {
+  if (probe.roles === null) return null;
+  if (probe.client === "own") {
+    await db.query(CONFIRM_AS, [owner, `test-rls-${owner}@example.test`]);
+    return owner;
+  }
+  if (probe.client === "other") {
+    const other = await createAuthUser(db);
+    const email = `test-rls-other-${other}@example.test`;
+    await db.query(
+      "insert into public.contacts (kind, name, email) values ('owner', 'Other Person', $1)",
+      [email],
+    );
+    await db.query(CONFIRM_AS, [other, email]);
+    return other;
+  }
+  return createStaffUser(db, probe.roles);
+}
+
 async function observe(db: Db, probe: Probe): Promise<Outcome[]> {
   const owner = await createAuthUser(db);
   await db.query("select set_config('mop.rls_user', $1, true)", [owner]);
   await db.query(FIXTURES);
   await db.query(PROBE);
-  const user = probe.roles === null ? null : await createStaffUser(db, probe.roles);
+  const user = await probeUser(db, probe, owner);
   const tables = (await publicTables(db)).map(({ name }) => name);
   const result = await db.query<Outcome>(
     `select t.name, o.op, pg_temp.rls_probe(format('public.%I', t.name)::regclass, o.op, $1, $2) as outcome
@@ -278,7 +329,9 @@ describe("privileges", () => {
     const observed = held.map(({ name, privileges }) => `${name}: ${privileges.join(" ")}`);
     const expected = held.map(
       ({ name }) =>
-        `${name}: ${tableOperations.filter((op) => allows(name, op, staffRoles)).join(" ")}`,
+        `${name}: ${tableOperations
+          .filter((op) => allows(name, op, staffRoles) || clientAllows(name, op))
+          .join(" ")}`,
     );
     expect(observed).toEqual(expected);
   });
@@ -332,7 +385,11 @@ describe("the matrix as behaviour", () => {
       ({ name, op, outcome }) => `${name} ${op}: ${verdict(op, outcome)}`,
     );
     const expected = outcomes.map(({ name, op }) => {
-      const answer: Verdict = allows(name, op, roles) ? "allowed" : "refused";
+      const allowed =
+        probe.client === undefined
+          ? allows(name, op, roles)
+          : probe.client === "own" && clientAllows(name, op);
+      const answer: Verdict = allowed ? "allowed" : "refused";
       return `${name} ${op}: ${answer}`;
     });
     expect(observed).toEqual(expected);

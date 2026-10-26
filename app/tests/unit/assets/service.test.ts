@@ -73,6 +73,14 @@ const human = (roles: Actor["roles"]): Actor => ({
 });
 const asActor = (actor: Actor): AdminActor => ({ ...actor, requestId: "req-assets" });
 const mediaOps = asActor(human(["media_ops"]));
+/** W8 item 9: Matter's key as `verifyKey` reads it: its agent account, `admin`, every agent scope it holds. */
+const MATTER = "00000000-0000-4000-8000-00000000000a";
+const matterKey: Actor = {
+  userId: MATTER,
+  kind: "agent",
+  roles: ["admin"],
+  scopes: ["assets", "jobs"],
+};
 
 const COVER_FILES = [
   { media_key: KEY, w: 1200, h: 630, bytes: 182_044, role: "main" },
@@ -198,6 +206,61 @@ describe("the six /api/admin/assets* handlers", () => {
     expect({ status: answer.status, code: errorCode(answer.body), calls: live.db.calls }).toEqual({
       status: 403,
       code: "manual_approval",
+      calls: [],
+    });
+  });
+
+  it("lets Matter's key reject with a note through reject_asset, the audit actor its own account as an agent (W8 item 9)", async () => {
+    live.actor = matterKey;
+    const eventId = "3f2a9c1d-0000-4000-8000-0000000000e1";
+    live.db = fakeDb({ rpc: { reject_asset: () => eventId } });
+    const answer = await send("reject", { note: "The stair is cut off at the top." });
+    expect({ status: answer.status, body: answer.body, rpc: rpcCalls(live.db) }).toEqual({
+      status: 200,
+      body: { asset_id: ASSET_ID, event_id: eventId },
+      rpc: [
+        {
+          kind: "rpc",
+          name: "reject_asset",
+          args: [
+            {
+              p_asset: ASSET_ID,
+              p_note: "The stair is cut off at the top.",
+              p_actor: MATTER,
+              p_actor_kind: "agent",
+              p_request_id: "req-assets",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("refuses a colleague's key on reject and re-render with 403 forbidden before any call (W8 item 9)", async () => {
+    live.actor = { userId: USER, kind: "agent", roles: ["media_ops"], scopes: ["assets"] };
+    live.db = fakeDb();
+    const reject = await send("reject", { note: "Too dark." });
+    const rerender = await send("rerender", {});
+    expect({
+      codes: [reject.status, errorCode(reject.body), rerender.status, errorCode(rerender.body)],
+      calls: live.db.calls,
+    }).toEqual({ codes: [403, "forbidden", 403, "forbidden"], calls: [] });
+  });
+
+  it("refuses Matter's key on approve at the route and in the service, calling no SQL function (W8 item 9)", async () => {
+    // The matrix refuses it first (`assets.approve` names no agent role); `manual_approval` answers any agent it passes.
+    live.actor = matterKey;
+    live.db = fakeDb();
+    const route = await send("approve", {});
+    const db = fakeDb();
+    const service = await outcome(approveAsset(asActor(matterKey), db, { id: ASSET_ID }));
+    expect({
+      route: [route.status, errorCode(route.body)],
+      service,
+      calls: [...live.db.calls, ...db.calls],
+    }).toEqual({
+      route: [403, "forbidden"],
+      service: { status: 403, code: "forbidden" },
       calls: [],
     });
   });
@@ -366,5 +429,17 @@ describe("rerenderAsset", () => {
     const first = await rerenderAsset(mediaOps, db, { id: ASSET_ID });
     const second = await rerenderAsset(mediaOps, db, { id: ASSET_ID });
     expect([first, second]).toEqual([pending, pending]);
+  });
+
+  it("asks rerender_asset for a new render with Matter's key, the actor its account as an agent (W8 item 9)", async () => {
+    const pending = { asset_id: "3f2a9c1d-0000-4000-8000-0000000000b9", job_id: JOB_ID };
+    const db = fakeDb({ rpc: { rerender_asset: () => pending } });
+    const answer = await rerenderAsset(asActor(matterKey), db, { id: ASSET_ID });
+    expect({ answer, args: rpcCalls(db).map((call) => call.args[0]) }).toEqual({
+      answer: pending,
+      args: [
+        { p_asset: ASSET_ID, p_actor: MATTER, p_actor_kind: "agent", p_request_id: "req-assets" },
+      ],
+    });
   });
 });

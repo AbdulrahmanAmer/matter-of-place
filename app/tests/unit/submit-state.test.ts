@@ -8,6 +8,7 @@ import {
   maxFiles,
   nextStep,
   steps,
+  startingDraft,
   submittedBy,
   toKindOption,
   toSubmission,
@@ -141,5 +142,16 @@ describe("submittedBy", () => {
 
   it("is empty before a kind is chosen", () => {
     expect(submittedBy(initialDraft)).toBe("");
+  });
+});
+
+// W6 item 8: "Submit my next property" in the client room opens the form with Five Features already chosen.
+describe("startingDraft", () => {
+  it("is the empty draft when nothing is chosen", () => {
+    expect(startingDraft(undefined)).toEqual(initialDraft);
+  });
+
+  it("is the empty draft with the exposure chosen, and nothing else filled in", () => {
+    expect(startingDraft("Five Features")).toEqual({ ...initialDraft, package: "Five Features" });
   });
 });

@@ -10,7 +10,8 @@ import {
 } from "../../src/server/lib/authz";
 
 // The permissions matrix of B7 typed by hand (invariant 2): a matrix edit is a visible diff in two files. A slice that
-// adds a group file adds its rows here in the same commit. After `|`: H humanOnly, R recentAuth, S scopeFree.
+// adds a group file adds its rows here in the same commit. After `|`: H humanOnly, R recentAuth, S scopeFree, and
+// `agent` followed by the roles an agent key needs instead (agentRoles, W8 item 9).
 const FIXTURE = `
 submissions.list                   CE ME VE MO CO AD
 submissions.get                    CE ME VE MO CO AD
@@ -82,6 +83,7 @@ settings.redirects_put             AD | H R
 settings.products_put              AD | H R
 settings.products_preview          AD | H R
 audit.list                         CE AD
+audit.reply_mark                   CE AD
 audit.subject_requests             CE AD
 audit.subject_export               AD | H R
 audit.subject_delete               AD | H R
@@ -130,7 +132,14 @@ channels.cancel                    CE MO AD
 channels.metrics_refresh           CE MO AD
 channels.mark_withdrawn            CE MO AD | H
 channels.ids_put                   MO AD | H
-reports.list                       CE ME VE MO CO AD
+channels.proposed_list             CE ME VE MO CO AD
+channels.proposed_get              CE ME VE MO CO AD
+channels.proposed_create           CE MO AD | agent AD
+channels.proposed_revise           CE MO AD | agent AD
+channels.proposed_approve          CE MO | H
+channels.proposed_reject           CE MO | agent AD
+channels.proposed_rerender         CE MO | agent AD
+reports.list                      CE ME VE MO CO AD
 reports.get                        CE ME VE MO CO AD
 reports.export                     CE ME VE MO CO AD
 reports.email                      CE ME | H
@@ -148,8 +157,8 @@ jobs.retry_bulk                    MO AD | H
 assets.list                        CE ME VE MO CO AD
 assets.get                         CE ME VE MO CO AD
 assets.approve                     CE MO
-assets.reject                      CE MO
-assets.re_render                   CE MO
+assets.reject                      CE MO | agent AD
+assets.re_render                   CE MO | agent AD
 assets.caption                     CE MO
 workforce.office                   CE ME VE MO CO AD
 workforce.messages                 CE ME VE MO CO AD
@@ -172,7 +181,12 @@ const ROLE: Record<string, AppRole> = {
 const describeEntry = (
   action: string,
   roles: readonly string[],
-  flags: { humanOnly?: boolean; recentAuth?: boolean; scopeFree?: boolean },
+  flags: {
+    humanOnly?: boolean;
+    recentAuth?: boolean;
+    scopeFree?: boolean;
+    agentRoles?: readonly string[];
+  },
 ) =>
   [
     action,
@@ -180,6 +194,7 @@ const describeEntry = (
     flags.humanOnly ? "H" : "-",
     flags.recentAuth ? "R" : "-",
     flags.scopeFree ? "S" : "-",
+    flags.agentRoles === undefined ? "-" : `agent ${[...flags.agentRoles].sort().join(" ")}`,
   ].join(" ");
 
 const fixtureRows = FIXTURE.trim()
@@ -187,15 +202,15 @@ const fixtureRows = FIXTURE.trim()
   .map((line) => {
     const [left = "", flags = ""] = line.split("|");
     const [action = "", ...codes] = left.trim().split(/\s+/);
-    return describeEntry(
-      action,
-      codes.map((code) => ROLE[code] ?? code),
-      {
-        humanOnly: flags.includes("H"),
-        recentAuth: flags.includes("R"),
-        scopeFree: flags.includes("S"),
-      },
-    );
+    const tokens = flags.trim().split(/\s+/);
+    const agent = tokens.indexOf("agent");
+    const toRole = (code: string) => ROLE[code] ?? code;
+    return describeEntry(action, codes.map(toRole), {
+      humanOnly: tokens.includes("H"),
+      recentAuth: tokens.includes("R"),
+      scopeFree: tokens.includes("S"),
+      ...(agent === -1 ? {} : { agentRoles: tokens.slice(agent + 1).map(toRole) }),
+    });
   })
   .sort();
 
@@ -257,6 +272,41 @@ describe("the authorization matrix", () => {
     expect(refusalOf(agent, "me")).toBe("allowed");
     expect(refusalOf(agent, "dashboard.get")).toBe("out_of_scope");
     expect(refusalOf(agent, "submissions.decline")).toBe("allowed");
+  });
+
+  it("lets Matter's key reject and re-render a visual, and nothing else it did not have (W8 item 9)", () => {
+    const matter = actor("agent", ["admin"], ["assets"]);
+    const decisions: ActionId[] = [
+      "assets.reject",
+      "assets.re_render",
+      "assets.approve",
+      "assets.caption",
+    ];
+    expect(decisions.map((action) => refusalOf(matter, action))).toEqual([
+      "allowed",
+      "allowed",
+      "forbidden",
+      "forbidden",
+    ]);
+    expect(refusalOf(actor("agent", ["admin"], ["jobs"]), "assets.reject")).toBe("out_of_scope");
+  });
+
+  it("refuses a colleague's key on reject and re-render whatever its role, and widens no person (W8 item 9)", () => {
+    const colleagues = [
+      actor("agent", ["media_ops"], ["assets"]),
+      actor("agent", ["chief_editor", "visual_editor"], ["assets"]),
+    ];
+    expect(
+      colleagues.flatMap((who) => [
+        refusalOf(who, "assets.reject"),
+        refusalOf(who, "assets.re_render"),
+      ]),
+    ).toEqual(["forbidden", "forbidden", "forbidden", "forbidden"]);
+    expect([
+      refusalOf(actor("human", ["admin"]), "assets.reject"),
+      refusalOf(actor("human", ["media_ops"]), "assets.reject"),
+      refusalOf(actor("human", ["chief_editor"]), "assets.re_render"),
+    ]).toEqual(["forbidden", "allowed", "allowed"]);
   });
 
   it("refuses a roleless actor everywhere, me included", () => {

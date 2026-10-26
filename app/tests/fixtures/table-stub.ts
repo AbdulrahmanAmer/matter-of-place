@@ -4,8 +4,8 @@ export type Row = Record<string, unknown>;
 
 // `fakeDb` answers a registered table with every row whatever the query asks. A service that reads through filters
 // (an entity's rows, a request's photographs) is tested against this instead: the rows go through the same `eq`, `in`,
-// PostgREST `or` text, `order`, `limit`, `range` and column list the query names, so a wrong filter returns the wrong
-// rows.
+// PostgREST `or` text, `lt` (text order), `order`, `limit`, `range` and column list the query names, so a wrong
+// filter returns the wrong rows.
 
 const resolved = (data: unknown) => Promise.resolve({ data, error: null });
 
@@ -50,6 +50,8 @@ interface Shape {
   counted: boolean;
   /** `select(columns, { head: true })`: the count without the rows. */
   head: boolean;
+  /** PostgREST's `max-rows`: an answer holds at most this many rows, cut in silence (W7 item 1 review). */
+  maxRows: number | undefined;
 }
 
 /** PostgREST's answer to a counted `range` that starts past the last row (measured on mop-dev, G-252). */
@@ -74,7 +76,7 @@ function query(all: readonly Row[], shape: Shape) {
     );
   const answer = (part: readonly Row[]) =>
     Promise.resolve({
-      data: shape.head ? null : shown(part),
+      data: shape.head ? null : shown(part.slice(0, shape.maxRows ?? part.length)),
       error: null,
       count: shape.counted ? rows.length : null,
     });
@@ -82,6 +84,8 @@ function query(all: readonly Row[], shape: Shape) {
   return Object.assign(answer(rows), {
     eq: (column: string, value: unknown) =>
       next(rows.filter((row) => valueAt(row, column) === value)),
+    lt: (column: string, value: string) =>
+      next(rows.filter((row) => String(valueAt(row, column)) < value)),
     in: (column: string, values: readonly unknown[]) =>
       next(rows.filter((row) => values.includes(valueAt(row, column)))),
     or: (text: string) =>
@@ -97,20 +101,28 @@ function query(all: readonly Row[], shape: Shape) {
   });
 }
 
-/** `db` with a `from()` that filters the rows of each registered table; an unregistered table throws. */
-export function withTables(db: FakeDb, tables: Record<string, readonly Row[]>): FakeDb {
+/**
+ * `db` with a `from()` that filters the rows of each registered table; an unregistered table throws. `maxRows` cuts
+ * every answer as PostgREST's `max-rows` does.
+ */
+export function withTables(
+  db: FakeDb,
+  tables: Record<string, readonly Row[]>,
+  options: { maxRows?: number } = {},
+): FakeDb {
   return Object.assign(db, {
     from: (name: string) => {
       db.calls.push({ kind: "from", name, args: [] });
       const rows = tables[name];
       if (rows === undefined) throw new Error(`unexpected table ${name}`);
       return {
-        select: (columns = "*", options?: { count?: string; head?: boolean }) =>
+        select: (columns = "*", selected?: { count?: string; head?: boolean }) =>
           query(rows, {
             columns: columns.split(",").map((column) => column.trim()),
             orders: [],
-            counted: options?.count !== undefined,
-            head: options?.head === true,
+            counted: selected?.count !== undefined,
+            head: selected?.head === true,
+            maxRows: options.maxRows,
           }),
       };
     },

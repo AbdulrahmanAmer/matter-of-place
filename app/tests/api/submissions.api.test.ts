@@ -408,7 +408,7 @@ describe("POST /api/public/submissions", () => {
     expect(rows[2]?.duplicate_of).toBeNull();
   });
 
-  it("links one contact per email: an agent first, then the same person as an owner keeps the kind and the brokerage", async () => {
+  it("links one contact per email: an agent first, then the same person as an owner keeps the kind, the name and the brokerage", async () => {
     const ips = [nextIp(), nextIp()];
     const email = nextEmail();
     const outcome = await run(ips, [email], async (pg) => {
@@ -443,7 +443,8 @@ describe("POST /api/public/submissions", () => {
     expect(outcome.rows.map((row) => row.contact_id)).toEqual([contact?.id, contact?.id]);
     expect(outcome.rows.map((row) => row.submitter_kind)).toEqual(["agent", "owner"]);
     expect(contact?.kind).toBe("agent");
-    expect(contact?.name).toBe("Ada Owner");
+    // H119 (5): a later submission never renames a contact (an outsider could choose the name shown in the room)
+    expect(contact?.name).toBe("Ada Test");
     expect(contact?.phone).toBe("+1 310 555 0199");
     expect(contact?.brokerage).toBe("Test Realty");
   });

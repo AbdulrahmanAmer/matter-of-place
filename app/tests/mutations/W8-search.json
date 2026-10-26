@@ -1,0 +1,317 @@
+[
+  {
+    "id": "w8-12a-home-statement",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.index.tsx",
+    "find": "<p>{t.home.intro}</p>",
+    "replace": "<p></p>",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*says what Matter of Place is once, in plain words, in either state \\(W8 item 12a\\)"
+  },
+  {
+    "id": "w8-12a-home-lede",
+    "test": "tests/unit/legal-identity-pages.test.tsx",
+    "file": "src/routes/_site.index.tsx",
+    "find": "<p className=\"hero-text-lede\">{t.home.intro}</p>",
+    "replace": "<p className=\"hero-text-lede\"></p>",
+    "run": "bunx vitest run --project component tests/unit/legal-identity-pages.test.tsx",
+    "expect": "FAIL .*says what Matter of Place is once, in plain words, in either state \\(W8 item 12a\\)"
+  },
+  {
+    "id": "w8-12a-voice-sentences",
+    "test": "tests/unit/copy-voice.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "Price never decides what we publish.",
+    "replace": "Price never decides what we publish. It is quiet. It is calm.",
+    "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
+    "expect": "FAIL .*is two or three whole sentences of at most 300 characters"
+  },
+  {
+    "id": "w8-12a-voice-banned",
+    "test": "tests/unit/copy-voice.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "Price never decides what we publish.",
+    "replace": "Price never decides what we publish!",
+    "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
+    "expect": "FAIL .*has no em dash, en dash or exclamation mark, no hyperbole and no promise of leads, buyers or sales"
+  },
+  {
+    "id": "w8-12a-voice-markets",
+    "test": "tests/unit/copy-voice.test.ts",
+    "file": "src/lib/strings.ts",
+    "find": "in California, New York and Florida. We choose",
+    "replace": "in California and Florida. We choose",
+    "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
+    "expect": "FAIL .*names the three markets and no other place"
+  },
+  {
+    "id": "w8-12b-newest-commit",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "Math.max(...stamps)",
+    "replace": "Math.min(...stamps)",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*reads one section of the string table through a literal-brace range, newest stamp first"
+  },
+  {
+    "id": "w8-12b-no-commit",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "stamps.length === 0 ? undefined :",
+    "replace": "stamps.length === 0 ? \"1970-01-01\" :",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*is undefined where git has no commit for the file"
+  },
+  {
+    "id": "w8-12b-section-range",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "/^  ${source.section}: [{]/,/^  [}],/:${source.file}",
+    "replace": "/^  ${source.section}: {/,/^  },/:${source.file}",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*reads one section of the string table through a literal-brace range, newest stamp first"
+  },
+  {
+    "id": "w8-12b-newest-file",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "days.sort().at(-1)",
+    "replace": "days.sort().at(0)",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*dates a page by the newest of its files"
+  },
+  {
+    "id": "w8-12b-not-after-now",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "dates[path] = newest > today ? today : newest;",
+    "replace": "dates[path] = newest;",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*never dates a page later than now"
+  },
+  {
+    "id": "w8-12b-left-out",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "if (newest !== undefined) dates[path]",
+    "replace": "if (true) dates[path]",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*leaves a page out when none of its files has a commit"
+  },
+  {
+    "id": "w8-12b-render",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "    \"};\",\n    \"\",\n  ].join",
+    "replace": "    \"}\",\n    \"\",\n  ].join",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*is what the generator writes from the dates it holds"
+  },
+  {
+    "id": "w8-12b-keys",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "  \"/about\": [route(\"about\")],\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*holds exactly the document pages of the sitemap and no catalog page"
+  },
+  {
+    "id": "w8-12b-future",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "src/server/seo/page-dates.gen.ts",
+    "find": "\"/about\": \"2026-10-11\"",
+    "replace": "\"/about\": \"2099-10-11\"",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*holds a real day for each page, none in the future"
+  },
+  {
+    "id": "w8-12b-missing-file",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "\"src/data/faq.ts\"",
+    "replace": "\"src/data/faqs.ts\"",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*names only files and folders that exist"
+  },
+  {
+    "id": "w8-12b-missing-section",
+    "test": "tests/unit/page-dates.test.ts",
+    "file": "scripts/gen-page-dates.ts",
+    "find": "section: \"newsletter\"",
+    "replace": "section: \"newsletters\"",
+    "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
+    "expect": "FAIL .*names a section that the string table has"
+  },
+  {
+    "id": "w8-12b-sitemap-document",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "return document === undefined ? catalogDates[path] : notAfter(document, now);",
+    "replace": "return catalogDates[path];",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*dates a document page by the day its content last changed"
+  },
+  {
+    "id": "w8-12b-sitemap-undated",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "lastmod: datedStatic(path) }",
+    "replace": "lastmod: datedStatic(path) ?? now.toISOString().slice(0, 10) }",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*gives a page with no known date no lastmod"
+  },
+  {
+    "id": "w8-12b-sitemap-future",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "return document === undefined ? catalogDates[path] : notAfter(document, now);",
+    "replace": "return document === undefined ? catalogDates[path] : document;",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*never dates a page after the day of the build"
+  },
+  {
+    "id": "w8-12b-sitemap-catalog",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "\"/properties\": newest(propertyDays),",
+    "replace": "\"/properties\": undefined,",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*dates /, /properties and /stories by the newest published item and /markets by nothing"
+  },
+  {
+    "id": "w8-12b-sitemap-empty-catalog",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "\"/\": newest([...propertyDays, ...storyDays]),",
+    "replace": "\"/\": \"2026-01-01\",",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*gives the catalog pages no lastmod while nothing is published"
+  },
+  {
+    "id": "w8-12b-sitemap-default",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "documentDates: Readonly<Record<string, string>> = pageDates,",
+    "replace": "documentDates: Readonly<Record<string, string>> = {},",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*takes the committed dates of the build by default, each a real day no later than now"
+  },
+  {
+    "id": "w8-12c-no-impressions",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "found.impressions < 1 ||",
+    "replace": "false ||",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*writes a query with no impression as no impressions, never as position 0"
+  },
+  {
+    "id": "w8-12c-list",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "\"matter of place real estate\"];",
+    "replace": "\"matter of place realty\"];",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*tracks exactly the two brand queries"
+  },
+  {
+    "id": "w8-12c-case",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "row.query.trim().toLocaleLowerCase(\"en-US\") === name",
+    "replace": "row.query.trim() === name",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*matches the query whatever its case, and not a longer query that contains it"
+  },
+  {
+    "id": "w8-12c-exact",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "row.query.trim().toLocaleLowerCase(\"en-US\") === name",
+    "replace": "row.query.trim().toLocaleLowerCase(\"en-US\").includes(name)",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*matches the query whatever its case, and not a longer query that contains it"
+  },
+  {
+    "id": "w8-12c-not-returned",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "if (found === undefined || ",
+    "replace": "if (",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*writes a query Search Console did not return as no impressions"
+  },
+  {
+    "id": "w8-12c-previous-null",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "if (old === undefined) return { ...row, previous: null };",
+    "replace": "if (old === undefined) return { ...row };",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*gives previous null when there is no earlier sidecar or it held no brand numbers"
+  },
+  {
+    "id": "w8-12c-previous-numbers",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "impressions: count(old[\"impressions\"]),",
+    "replace": "impressions: 0,",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*puts last run's numbers beside this run's, a query with none as no impressions"
+  },
+  {
+    "id": "w8-12c-collect",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "    brand_queries: measured({ window_days: WINDOW_DAYS, queries: brandRows(rows) }),\n  };",
+    "replace": "    brand_queries: notMeasured(\"x\"),\n  };",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*records the brand queries from the answer: a position for one, no impressions for the other"
+  },
+  {
+    "id": "w8-12c-collect-empty",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "      brand_queries: measured({ window_days: WINDOW_DAYS, queries: brandRows(rows) }),\n    };",
+    "replace": "      brand_queries: notMeasured(reason),\n    };",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*records no impressions for both brand queries when the answer has no rows, and nothing else as measured"
+  },
+  {
+    "id": "w8-12c-collect-unset",
+    "test": "tests/unit/audit/gsc.test.ts",
+    "file": "../workspace/audits/tools/gsc.mjs",
+    "find": "    brand_queries: notMeasured(reason),\n  });",
+    "replace": "  });",
+    "run": "bunx vitest run --project unit tests/unit/audit/gsc.test.ts",
+    "expect": "FAIL .*records both keys under not_measured while the credential is unset, with no call"
+  },
+  {
+    "id": "w8-12c-run-all",
+    "test": "tests/unit/audit/run-all.test.ts",
+    "file": "../workspace/audits/tools/run-all.mjs",
+    "find": "if (brand !== undefined) {",
+    "replace": "if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/audit/run-all.test.ts",
+    "expect": "FAIL .*writes the previous sidecar's numbers into each brand query"
+  },
+  {
+    "id": "w8-12c-compare",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "      if (key === \"previous\" && path.startsWith(\"brand_queries.queries[\")) continue;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "FAIL .*compares the position of a query by its name and never reads the previous block again"
+  },
+  {
+    "id": "w8-12c-compare-kpis-previous",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "key === \"previous\" && path.startsWith(\"brand_queries.queries[\")",
+    "replace": "key === \"previous\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "FAIL .*still compares a previous block elsewhere, as the KPI collector stores it"
+  }
+]

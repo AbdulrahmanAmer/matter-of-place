@@ -39,6 +39,7 @@ export const adminKeys = {
   proposedPosts: feature("proposed-posts"),
   newsletter: feature("newsletter"),
   reports: feature("reports"),
+  campaigns: feature("campaigns"),
   workforce: feature("workforce"),
   automation: {
     all: () => ["admin", "automation"] as const,

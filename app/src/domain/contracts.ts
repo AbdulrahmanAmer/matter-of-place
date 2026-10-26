@@ -225,7 +225,7 @@ export const subjectRequestKinds = ["access", "deletion", "opt_out", "correction
 export const redirectStatuses = [301, 302, 307, 308] as const;
 
 /** Metadata for a photograph the submitter selected, within the limits of `uploadLimits`. The bytes follow in a separate request. */
-const submissionMediaSchema = z.object({
+export const submissionMediaSchema = z.object({
   name: z.string().min(1).max(255),
   size: z.number().int().nonnegative().max(uploadLimits.maxBytes),
   type: z.enum(uploadLimits.types),
@@ -293,12 +293,12 @@ export const submissionSchema = z
       .regex(/^\d{5}$/),
     listingUrl: optionalUrl,
     sourceUrl: optionalUrl,
-    price: z.number().positive().optional(),
+    price: z.number().positive().max(9_999_999_999).optional(),
     currency: z.enum(supportedCurrencies),
     propertyType: z.enum(propertyTypes),
-    beds: z.number().int().nonnegative().optional(),
-    baths: z.number().nonnegative().optional(),
-    interiorSqFt: z.number().int().positive().optional(),
+    beds: z.number().int().nonnegative().max(99).optional(),
+    baths: z.number().nonnegative().max(99).optional(),
+    interiorSqFt: z.number().int().positive().max(10_000_000).optional(),
     architect: optionalShort,
     designer: optionalShort,
     yearBuilt: optionalYear,
@@ -316,7 +316,7 @@ export const submissionSchema = z
     story: longText.min(1),
     significance: longText.min(1),
     package: z.enum(exposurePackages),
-    mediaBudget: z.number().nonnegative().optional(),
+    mediaBudget: z.number().nonnegative().max(9_999_999_999).optional(),
     rightsConfirmed: z.literal(true),
     media: z.array(submissionMediaSchema).max(uploadLimits.maxFiles).default([]),
     sourcePath: z.string().max(300),

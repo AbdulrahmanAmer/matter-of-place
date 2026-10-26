@@ -3,7 +3,7 @@
 // card). Run from `app/` with bun:
 //   bun scripts/admin-shot.ts visuals|proposed [--out .tmp/shots/out]
 // The scenes are `tests/fixtures/admin-scenes.tsx` (React, so it is loaded by path: this file is checked without the DOM
-// library). Bun renders the markup, node drives Chrome (`admin-shot-measure.mjs`, P-3601). It makes the pictures and the
+// library). Bun renders the markup, node drives Chrome (`admin-shot-measure.mjs`, P-1218). It makes the pictures and the
 // film it draws under `.tmp/shots` with ffmpeg and reaches no network and no database.
 import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";

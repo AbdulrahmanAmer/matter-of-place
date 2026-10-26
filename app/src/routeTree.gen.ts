@@ -45,12 +45,20 @@ import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
 import { Route as AdminOfficeRouteImport } from './routes/admin/office'
 import { Route as AdminSignInRouteImport } from './routes/admin/sign-in'
 import { Route as ApiConsentRouteImport } from './routes/api/consent'
+import { Route as ApiFormFallbackRouteImport } from './routes/api/form-fallback'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
 import { Route as SiteMarketIndexRouteImport } from './routes/_site.$market.index'
 import { Route as SiteMarketRegionRouteImport } from './routes/_site.$market.$region'
 import { Route as SiteMarketGuideRouteImport } from './routes/_site.$market.guide'
+import { Route as SiteAccountIndexRouteImport } from './routes/_site.account.index'
+import { Route as SiteAccountConfirmRouteImport } from './routes/_site.account.confirm'
+import { Route as SiteAccountCreditsRouteImport } from './routes/_site.account.credits'
+import { Route as SiteAccountInvoicesRouteImport } from './routes/_site.account.invoices'
+import { Route as SiteAccountPropertiesRouteImport } from './routes/_site.account.properties'
+import { Route as SiteAccountReportsRouteImport } from './routes/_site.account.reports'
 import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
 import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
+import { Route as SitePlaceNotesStatusRouteImport } from './routes/_site.place-notes_.$status'
 import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
@@ -62,6 +70,7 @@ import { Route as AdminAutomationReasonsRouteImport } from './routes/admin/autom
 import { Route as AdminAutomationRecipesRouteImport } from './routes/admin/automation.recipes'
 import { Route as AdminAutomationRevisionsRouteImport } from './routes/admin/automation.revisions'
 import { Route as AdminAutomationSettingsRouteImport } from './routes/admin/automation.settings'
+import { Route as AdminCampaignsIndexRouteImport } from './routes/admin/campaigns.index'
 import { Route as AdminChannelsIndexRouteImport } from './routes/admin/channels.index'
 import { Route as AdminEmailsIndexRouteImport } from './routes/admin/emails.index'
 import { Route as AdminInquiriesIndexRouteImport } from './routes/admin/inquiries.index'
@@ -86,6 +95,7 @@ import { Route as AdminSettingsIndexRouteImport } from './routes/admin/settings.
 import { Route as AdminStoriesIndexRouteImport } from './routes/admin/stories.index'
 import { Route as AdminStoriesIdRouteImport } from './routes/admin/stories.$id'
 import { Route as AdminTeamIndexRouteImport } from './routes/admin/team.index'
+import { Route as ApiAdminCampaignsRouteImport } from './routes/api/admin/campaigns'
 import { Route as ApiAdminDashboardRouteImport } from './routes/api/admin/dashboard'
 import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
 import { Route as ApiAdminReportsRouteImport } from './routes/api/admin/reports'
@@ -157,6 +167,8 @@ import { Route as ApiAdminPropertiesIndexRouteImport } from './routes/api/admin/
 import { Route as ApiAdminPropertiesIdRouteImport } from './routes/api/admin/properties.$id'
 import { Route as ApiAdminPropertiesFromSubmissionRouteImport } from './routes/api/admin/properties.from-submission'
 import { Route as ApiAdminPropertiesRepresentativesRouteImport } from './routes/api/admin/properties.representatives'
+import { Route as ApiAdminProposedPostsIndexRouteImport } from './routes/api/admin/proposed-posts.index'
+import { Route as ApiAdminProposedPostsIdRouteImport } from './routes/api/admin/proposed-posts.$id'
 import { Route as ApiAdminReportsIdRouteImport } from './routes/api/admin/reports.$id'
 import { Route as ApiAdminSettingsIndexRouteImport } from './routes/api/admin/settings.index'
 import { Route as ApiAdminSettingsComingSoonRouteImport } from './routes/api/admin/settings.coming-soon'
@@ -165,6 +177,7 @@ import { Route as ApiAdminSettingsNotificationsRouteImport } from './routes/api/
 import { Route as ApiAdminSettingsProductsRouteImport } from './routes/api/admin/settings.products'
 import { Route as ApiAdminSettingsRedirectsRouteImport } from './routes/api/admin/settings.redirects'
 import { Route as ApiAdminSettingsSiteRouteImport } from './routes/api/admin/settings.site'
+import { Route as ApiAdminSettingsUsageRouteImport } from './routes/api/admin/settings.usage'
 import { Route as ApiAdminStoriesIndexRouteImport } from './routes/api/admin/stories.index'
 import { Route as ApiAdminStoriesIdRouteImport } from './routes/api/admin/stories.$id'
 import { Route as ApiAdminSubmissionsIndexRouteImport } from './routes/api/admin/submissions.index'
@@ -197,6 +210,9 @@ import { Route as ApiAdminAutomationScheduleSettingsKeyRouteImport } from './rou
 import { Route as ApiAdminAutomationTemplatesKeyRouteImport } from './routes/api/admin/automation.templates.$key'
 import { Route as ApiAdminAutomationTemplatesPreviewRouteImport } from './routes/api/admin/automation.templates.preview'
 import { Route as ApiAdminChannelsIdsKeyRouteImport } from './routes/api/admin/channels.ids.$key'
+import { Route as ApiAdminEmailsInboundIndexRouteImport } from './routes/api/admin/emails.inbound.index'
+import { Route as ApiAdminEmailsRepliesIndexRouteImport } from './routes/api/admin/emails.replies.index'
+import { Route as ApiAdminEmailsRepliesIdRouteImport } from './routes/api/admin/emails.replies.$id'
 import { Route as ApiAdminInquiriesIdAssignRouteImport } from './routes/api/admin/inquiries.$id.assign'
 import { Route as ApiAdminInquiriesIdCloseRouteImport } from './routes/api/admin/inquiries.$id.close'
 import { Route as ApiAdminInquiriesIdForwardRouteImport } from './routes/api/admin/inquiries.$id.forward'
@@ -222,6 +238,10 @@ import { Route as ApiAdminPropertiesIdRelatedRouteImport } from './routes/api/ad
 import { Route as ApiAdminPropertiesIdRevokePreviewsRouteImport } from './routes/api/admin/properties.$id.revoke-previews'
 import { Route as ApiAdminPropertiesIdTimelineRouteImport } from './routes/api/admin/properties.$id.timeline'
 import { Route as ApiAdminPropertiesIdUnpublishRouteImport } from './routes/api/admin/properties.$id.unpublish'
+import { Route as ApiAdminProposedPostsIdApproveRouteImport } from './routes/api/admin/proposed-posts.$id.approve'
+import { Route as ApiAdminProposedPostsIdRejectRouteImport } from './routes/api/admin/proposed-posts.$id.reject'
+import { Route as ApiAdminProposedPostsIdRerenderRouteImport } from './routes/api/admin/proposed-posts.$id.rerender'
+import { Route as ApiAdminProposedPostsIdReviseRouteImport } from './routes/api/admin/proposed-posts.$id.revise'
 import { Route as ApiAdminReportsIdEmailRouteImport } from './routes/api/admin/reports.$id.email'
 import { Route as ApiAdminSettingsProductsPreviewRouteImport } from './routes/api/admin/settings.products.preview'
 import { Route as ApiAdminStoriesIdPublishRouteImport } from './routes/api/admin/stories.$id.publish'
@@ -241,6 +261,9 @@ import { Route as ApiAdminSubmissionsIdWithdrawRouteImport } from './routes/api/
 import { Route as ApiAdminTeamAgentsRevokeAllRouteImport } from './routes/api/admin/team.agents.revoke-all'
 import { Route as ApiAdminWorkforceAgentsSlugRouteImport } from './routes/api/admin/workforce.agents.$slug'
 import { Route as ApiAdminWorkforceApprovalsIdRouteImport } from './routes/api/admin/workforce.approvals.$id'
+import { Route as ApiAdminWorkforceMemoryDecisionsRouteImport } from './routes/api/admin/workforce.memory.decisions'
+import { Route as ApiAdminWorkforceMemoryInstructionsRouteImport } from './routes/api/admin/workforce.memory.instructions'
+import { Route as ApiAdminWorkforceMemoryLessonsRouteImport } from './routes/api/admin/workforce.memory.lessons'
 import { Route as ApiPublicSubmissionsIdUploadsRouteImport } from './routes/api/public/submissions.$id.uploads'
 import { Route as ApiAdminAuditSubjectRequestsIdDeleteRouteImport } from './routes/api/admin/audit.subject-requests.$id.delete'
 import { Route as ApiAdminAuditSubjectRequestsIdExportRouteImport } from './routes/api/admin/audit.subject-requests.$id.export'
@@ -259,6 +282,7 @@ import { Route as ApiAdminNewsletterIssuesIdUnapproveRouteImport } from './route
 import { Route as ApiAdminTeamAgentsIdKeysRouteImport } from './routes/api/admin/team.agents.$id.keys'
 import { Route as ApiAdminTeamUsersIdDisableRouteImport } from './routes/api/admin/team.users.$id.disable'
 import { Route as ApiAdminTeamUsersIdRolesRouteImport } from './routes/api/admin/team.users.$id.roles'
+import { Route as ApiAdminWorkforceMemoryInstructionsIdRouteImport } from './routes/api/admin/workforce.memory.instructions.$id'
 import { Route as ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport } from './routes/api/admin/submissions.$id.media.$mediaId.original'
 import { Route as ApiAdminTeamAgentsIdKeysKeyIdRouteImport } from './routes/api/admin/team.agents.$id.keys.$keyId'
 import { Route as ApiAdminTeamUsersIdRolesRoleRouteImport } from './routes/api/admin/team.users.$id.roles.$role'
@@ -445,6 +469,11 @@ const ApiConsentRoute = ApiConsentRouteImport.update({
   path: '/api/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFormFallbackRoute = ApiFormFallbackRouteImport.update({
+  id: '/api/form-fallback',
+  path: '/api/form-fallback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MediaSplatRoute = MediaSplatRouteImport.update({
   id: '/media/$',
   path: '/media/$',
@@ -465,6 +494,36 @@ const SiteMarketGuideRoute = SiteMarketGuideRouteImport.update({
   path: '/guide',
   getParentRoute: () => SiteMarketRoute,
 } as any)
+const SiteAccountIndexRoute = SiteAccountIndexRouteImport.update({
+  id: '/account/',
+  path: '/account/',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountConfirmRoute = SiteAccountConfirmRouteImport.update({
+  id: '/account/confirm',
+  path: '/account/confirm',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountCreditsRoute = SiteAccountCreditsRouteImport.update({
+  id: '/account/credits',
+  path: '/account/credits',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountInvoicesRoute = SiteAccountInvoicesRouteImport.update({
+  id: '/account/invoices',
+  path: '/account/invoices',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountPropertiesRoute = SiteAccountPropertiesRouteImport.update({
+  id: '/account/properties',
+  path: '/account/properties',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteAccountReportsRoute = SiteAccountReportsRouteImport.update({
+  id: '/account/reports',
+  path: '/account/reports',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SiteMarketsIndexRoute = SiteMarketsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -474,6 +533,11 @@ const SiteMarketsSplatRoute = SiteMarketsSplatRouteImport.update({
   id: '/$',
   path: '/$',
   getParentRoute: () => SiteMarketsRoute,
+} as any)
+const SitePlaceNotesStatusRoute = SitePlaceNotesStatusRouteImport.update({
+  id: '/place-notes_/$status',
+  path: '/place-notes/$status',
+  getParentRoute: () => SiteRoute,
 } as any)
 const SitePropertySlugRoute = SitePropertySlugRouteImport.update({
   id: '/property/$slug',
@@ -531,6 +595,11 @@ const AdminAutomationRevisionsRoute =
 const AdminAutomationSettingsRoute = AdminAutomationSettingsRouteImport.update({
   id: '/automation/settings',
   path: '/automation/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCampaignsIndexRoute = AdminCampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminChannelsIndexRoute = AdminChannelsIndexRouteImport.update({
@@ -678,6 +747,11 @@ const AdminTeamIndexRoute = AdminTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiAdminCampaignsRoute = ApiAdminCampaignsRouteImport.update({
+  id: '/api/admin/campaigns',
+  path: '/api/admin/campaigns',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminDashboardRoute = ApiAdminDashboardRouteImport.update({
   id: '/api/admin/dashboard',
@@ -1050,6 +1124,17 @@ const ApiAdminPropertiesRepresentativesRoute =
     path: '/api/admin/properties/representatives',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminProposedPostsIndexRoute =
+  ApiAdminProposedPostsIndexRouteImport.update({
+    id: '/api/admin/proposed-posts/',
+    path: '/api/admin/proposed-posts/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminProposedPostsIdRoute = ApiAdminProposedPostsIdRouteImport.update({
+  id: '/api/admin/proposed-posts/$id',
+  path: '/api/admin/proposed-posts/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminReportsIdRoute = ApiAdminReportsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -1092,6 +1177,11 @@ const ApiAdminSettingsRedirectsRoute =
 const ApiAdminSettingsSiteRoute = ApiAdminSettingsSiteRouteImport.update({
   id: '/api/admin/settings/site',
   path: '/api/admin/settings/site',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminSettingsUsageRoute = ApiAdminSettingsUsageRouteImport.update({
+  id: '/api/admin/settings/usage',
+  path: '/api/admin/settings/usage',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminStoriesIndexRoute = ApiAdminStoriesIndexRouteImport.update({
@@ -1269,6 +1359,23 @@ const ApiAdminChannelsIdsKeyRoute = ApiAdminChannelsIdsKeyRouteImport.update({
   path: '/api/admin/channels/ids/$key',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminEmailsInboundIndexRoute =
+  ApiAdminEmailsInboundIndexRouteImport.update({
+    id: '/api/admin/emails/inbound/',
+    path: '/api/admin/emails/inbound/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminEmailsRepliesIndexRoute =
+  ApiAdminEmailsRepliesIndexRouteImport.update({
+    id: '/api/admin/emails/replies/',
+    path: '/api/admin/emails/replies/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminEmailsRepliesIdRoute = ApiAdminEmailsRepliesIdRouteImport.update({
+  id: '/api/admin/emails/replies/$id',
+  path: '/api/admin/emails/replies/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminInquiriesIdAssignRoute =
   ApiAdminInquiriesIdAssignRouteImport.update({
     id: '/assign',
@@ -1411,6 +1518,30 @@ const ApiAdminPropertiesIdUnpublishRoute =
     path: '/unpublish',
     getParentRoute: () => ApiAdminPropertiesIdRoute,
   } as any)
+const ApiAdminProposedPostsIdApproveRoute =
+  ApiAdminProposedPostsIdApproveRouteImport.update({
+    id: '/approve',
+    path: '/approve',
+    getParentRoute: () => ApiAdminProposedPostsIdRoute,
+  } as any)
+const ApiAdminProposedPostsIdRejectRoute =
+  ApiAdminProposedPostsIdRejectRouteImport.update({
+    id: '/reject',
+    path: '/reject',
+    getParentRoute: () => ApiAdminProposedPostsIdRoute,
+  } as any)
+const ApiAdminProposedPostsIdRerenderRoute =
+  ApiAdminProposedPostsIdRerenderRouteImport.update({
+    id: '/rerender',
+    path: '/rerender',
+    getParentRoute: () => ApiAdminProposedPostsIdRoute,
+  } as any)
+const ApiAdminProposedPostsIdReviseRoute =
+  ApiAdminProposedPostsIdReviseRouteImport.update({
+    id: '/revise',
+    path: '/revise',
+    getParentRoute: () => ApiAdminProposedPostsIdRoute,
+  } as any)
 const ApiAdminReportsIdEmailRoute = ApiAdminReportsIdEmailRouteImport.update({
   id: '/email',
   path: '/email',
@@ -1524,6 +1655,24 @@ const ApiAdminWorkforceApprovalsIdRoute =
     path: '/$id',
     getParentRoute: () => ApiAdminWorkforceApprovalsRoute,
   } as any)
+const ApiAdminWorkforceMemoryDecisionsRoute =
+  ApiAdminWorkforceMemoryDecisionsRouteImport.update({
+    id: '/api/admin/workforce/memory/decisions',
+    path: '/api/admin/workforce/memory/decisions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminWorkforceMemoryInstructionsRoute =
+  ApiAdminWorkforceMemoryInstructionsRouteImport.update({
+    id: '/api/admin/workforce/memory/instructions',
+    path: '/api/admin/workforce/memory/instructions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminWorkforceMemoryLessonsRoute =
+  ApiAdminWorkforceMemoryLessonsRouteImport.update({
+    id: '/api/admin/workforce/memory/lessons',
+    path: '/api/admin/workforce/memory/lessons',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicSubmissionsIdUploadsRoute =
   ApiPublicSubmissionsIdUploadsRouteImport.update({
     id: '/$id/uploads',
@@ -1632,6 +1781,12 @@ const ApiAdminTeamUsersIdRolesRoute =
     path: '/$id/roles',
     getParentRoute: () => ApiAdminTeamUsersRoute,
   } as any)
+const ApiAdminWorkforceMemoryInstructionsIdRoute =
+  ApiAdminWorkforceMemoryInstructionsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => ApiAdminWorkforceMemoryInstructionsRoute,
+  } as any)
 const ApiAdminSubmissionsIdMediaMediaIdOriginalRoute =
   ApiAdminSubmissionsIdMediaMediaIdOriginalRouteImport.update({
     id: '/media/$mediaId/original',
@@ -1686,11 +1841,18 @@ export interface FileRoutesByFullPath {
   '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
+  '/api/form-fallback': typeof ApiFormFallbackRoute
   '/media/$': typeof MediaSplatRoute
   '/admin/': typeof AdminIndexRoute
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
+  '/account/confirm': typeof SiteAccountConfirmRoute
+  '/account/credits': typeof SiteAccountCreditsRoute
+  '/account/invoices': typeof SiteAccountInvoicesRoute
+  '/account/properties': typeof SiteAccountPropertiesRoute
+  '/account/reports': typeof SiteAccountReportsRoute
   '/markets/$': typeof SiteMarketsSplatRoute
+  '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
@@ -1706,6 +1868,7 @@ export interface FileRoutesByFullPath {
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
+  '/api/admin/campaigns': typeof ApiAdminCampaignsRoute
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
@@ -1725,10 +1888,12 @@ export interface FileRoutesByFullPath {
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market/': typeof SiteMarketIndexRoute
+  '/account/': typeof SiteAccountIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/audit/': typeof AdminAuditIndexRoute
+  '/admin/campaigns/': typeof AdminCampaignsIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/emails/': typeof AdminEmailsIndexRoute
   '/admin/inquiries/': typeof AdminInquiriesIndexRoute
@@ -1789,6 +1954,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
   '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
   '/api/admin/properties/representatives': typeof ApiAdminPropertiesRepresentativesRoute
+  '/api/admin/proposed-posts/$id': typeof ApiAdminProposedPostsIdRouteWithChildren
   '/api/admin/reports/$id': typeof ApiAdminReportsIdRouteWithChildren
   '/api/admin/settings/coming-soon': typeof ApiAdminSettingsComingSoonRoute
   '/api/admin/settings/invoice': typeof ApiAdminSettingsInvoiceRoute
@@ -1796,6 +1962,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
+  '/api/admin/settings/usage': typeof ApiAdminSettingsUsageRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -1824,6 +1991,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
+  '/api/admin/proposed-posts/': typeof ApiAdminProposedPostsIndexRoute
   '/api/admin/settings/': typeof ApiAdminSettingsIndexRoute
   '/api/admin/stories/': typeof ApiAdminStoriesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
@@ -1839,6 +2007,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/emails/replies/$id': typeof ApiAdminEmailsRepliesIdRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
   '/api/admin/inquiries/$id/close': typeof ApiAdminInquiriesIdCloseRoute
   '/api/admin/inquiries/$id/forward': typeof ApiAdminInquiriesIdForwardRoute
@@ -1864,6 +2033,10 @@ export interface FileRoutesByFullPath {
   '/api/admin/properties/$id/revoke-previews': typeof ApiAdminPropertiesIdRevokePreviewsRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
+  '/api/admin/proposed-posts/$id/approve': typeof ApiAdminProposedPostsIdApproveRoute
+  '/api/admin/proposed-posts/$id/reject': typeof ApiAdminProposedPostsIdRejectRoute
+  '/api/admin/proposed-posts/$id/rerender': typeof ApiAdminProposedPostsIdRerenderRoute
+  '/api/admin/proposed-posts/$id/revise': typeof ApiAdminProposedPostsIdReviseRoute
   '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
   '/api/admin/settings/products/preview': typeof ApiAdminSettingsProductsPreviewRoute
   '/api/admin/stories/$id/publish': typeof ApiAdminStoriesIdPublishRoute
@@ -1883,7 +2056,12 @@ export interface FileRoutesByFullPath {
   '/api/admin/team/agents/revoke-all': typeof ApiAdminTeamAgentsRevokeAllRoute
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
+  '/api/admin/workforce/memory/decisions': typeof ApiAdminWorkforceMemoryDecisionsRoute
+  '/api/admin/workforce/memory/instructions': typeof ApiAdminWorkforceMemoryInstructionsRouteWithChildren
+  '/api/admin/workforce/memory/lessons': typeof ApiAdminWorkforceMemoryLessonsRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/inbound/': typeof ApiAdminEmailsInboundIndexRoute
+  '/api/admin/emails/replies/': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
@@ -1901,6 +2079,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/team/agents/$id/keys': typeof ApiAdminTeamAgentsIdKeysRouteWithChildren
   '/api/admin/team/users/$id/disable': typeof ApiAdminTeamUsersIdDisableRoute
   '/api/admin/team/users/$id/roles': typeof ApiAdminTeamUsersIdRolesRouteWithChildren
+  '/api/admin/workforce/memory/instructions/$id': typeof ApiAdminWorkforceMemoryInstructionsIdRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
   '/api/admin/team/agents/$id/keys/$keyId': typeof ApiAdminTeamAgentsIdKeysKeyIdRoute
   '/api/admin/team/users/$id/roles/$role': typeof ApiAdminTeamUsersIdRolesRoleRoute
@@ -1935,12 +2114,19 @@ export interface FileRoutesByTo {
   '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
+  '/api/form-fallback': typeof ApiFormFallbackRoute
   '/media/$': typeof MediaSplatRoute
   '/': typeof SiteIndexRoute
   '/admin': typeof AdminIndexRoute
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
+  '/account/confirm': typeof SiteAccountConfirmRoute
+  '/account/credits': typeof SiteAccountCreditsRoute
+  '/account/invoices': typeof SiteAccountInvoicesRoute
+  '/account/properties': typeof SiteAccountPropertiesRoute
+  '/account/reports': typeof SiteAccountReportsRoute
   '/markets/$': typeof SiteMarketsSplatRoute
+  '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
@@ -1956,6 +2142,7 @@ export interface FileRoutesByTo {
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
+  '/api/admin/campaigns': typeof ApiAdminCampaignsRoute
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
@@ -1975,10 +2162,12 @@ export interface FileRoutesByTo {
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market': typeof SiteMarketIndexRoute
+  '/account': typeof SiteAccountIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
   '/admin/assets': typeof AdminAssetsIndexRoute
   '/admin/audit': typeof AdminAuditIndexRoute
+  '/admin/campaigns': typeof AdminCampaignsIndexRoute
   '/admin/channels': typeof AdminChannelsIndexRoute
   '/admin/emails': typeof AdminEmailsIndexRoute
   '/admin/inquiries': typeof AdminInquiriesIndexRoute
@@ -2039,6 +2228,7 @@ export interface FileRoutesByTo {
   '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
   '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
   '/api/admin/properties/representatives': typeof ApiAdminPropertiesRepresentativesRoute
+  '/api/admin/proposed-posts/$id': typeof ApiAdminProposedPostsIdRouteWithChildren
   '/api/admin/reports/$id': typeof ApiAdminReportsIdRouteWithChildren
   '/api/admin/settings/coming-soon': typeof ApiAdminSettingsComingSoonRoute
   '/api/admin/settings/invoice': typeof ApiAdminSettingsInvoiceRoute
@@ -2046,6 +2236,7 @@ export interface FileRoutesByTo {
   '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
+  '/api/admin/settings/usage': typeof ApiAdminSettingsUsageRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -2074,6 +2265,7 @@ export interface FileRoutesByTo {
   '/api/admin/payments': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties': typeof ApiAdminPropertiesIndexRoute
+  '/api/admin/proposed-posts': typeof ApiAdminProposedPostsIndexRoute
   '/api/admin/settings': typeof ApiAdminSettingsIndexRoute
   '/api/admin/stories': typeof ApiAdminStoriesIndexRoute
   '/api/admin/submissions': typeof ApiAdminSubmissionsIndexRoute
@@ -2089,6 +2281,7 @@ export interface FileRoutesByTo {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/emails/replies/$id': typeof ApiAdminEmailsRepliesIdRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
   '/api/admin/inquiries/$id/close': typeof ApiAdminInquiriesIdCloseRoute
   '/api/admin/inquiries/$id/forward': typeof ApiAdminInquiriesIdForwardRoute
@@ -2114,6 +2307,10 @@ export interface FileRoutesByTo {
   '/api/admin/properties/$id/revoke-previews': typeof ApiAdminPropertiesIdRevokePreviewsRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
+  '/api/admin/proposed-posts/$id/approve': typeof ApiAdminProposedPostsIdApproveRoute
+  '/api/admin/proposed-posts/$id/reject': typeof ApiAdminProposedPostsIdRejectRoute
+  '/api/admin/proposed-posts/$id/rerender': typeof ApiAdminProposedPostsIdRerenderRoute
+  '/api/admin/proposed-posts/$id/revise': typeof ApiAdminProposedPostsIdReviseRoute
   '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
   '/api/admin/settings/products/preview': typeof ApiAdminSettingsProductsPreviewRoute
   '/api/admin/stories/$id/publish': typeof ApiAdminStoriesIdPublishRoute
@@ -2133,7 +2330,12 @@ export interface FileRoutesByTo {
   '/api/admin/team/agents/revoke-all': typeof ApiAdminTeamAgentsRevokeAllRoute
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
+  '/api/admin/workforce/memory/decisions': typeof ApiAdminWorkforceMemoryDecisionsRoute
+  '/api/admin/workforce/memory/instructions': typeof ApiAdminWorkforceMemoryInstructionsRouteWithChildren
+  '/api/admin/workforce/memory/lessons': typeof ApiAdminWorkforceMemoryLessonsRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/inbound': typeof ApiAdminEmailsInboundIndexRoute
+  '/api/admin/emails/replies': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
@@ -2151,6 +2353,7 @@ export interface FileRoutesByTo {
   '/api/admin/team/agents/$id/keys': typeof ApiAdminTeamAgentsIdKeysRouteWithChildren
   '/api/admin/team/users/$id/disable': typeof ApiAdminTeamUsersIdDisableRoute
   '/api/admin/team/users/$id/roles': typeof ApiAdminTeamUsersIdRolesRouteWithChildren
+  '/api/admin/workforce/memory/instructions/$id': typeof ApiAdminWorkforceMemoryInstructionsIdRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
   '/api/admin/team/agents/$id/keys/$keyId': typeof ApiAdminTeamAgentsIdKeysKeyIdRoute
   '/api/admin/team/users/$id/roles/$role': typeof ApiAdminTeamUsersIdRolesRoleRoute
@@ -2191,12 +2394,19 @@ export interface FileRoutesById {
   '/admin/office': typeof AdminOfficeRoute
   '/admin/sign-in': typeof AdminSignInRoute
   '/api/consent': typeof ApiConsentRoute
+  '/api/form-fallback': typeof ApiFormFallbackRoute
   '/media/$': typeof MediaSplatRoute
   '/_site/': typeof SiteIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_site/$market/$region': typeof SiteMarketRegionRoute
   '/_site/$market/guide': typeof SiteMarketGuideRoute
+  '/_site/account/confirm': typeof SiteAccountConfirmRoute
+  '/_site/account/credits': typeof SiteAccountCreditsRoute
+  '/_site/account/invoices': typeof SiteAccountInvoicesRoute
+  '/_site/account/properties': typeof SiteAccountPropertiesRoute
+  '/_site/account/reports': typeof SiteAccountReportsRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
+  '/_site/place-notes_/$status': typeof SitePlaceNotesStatusRoute
   '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
@@ -2212,6 +2422,7 @@ export interface FileRoutesById {
   '/admin/properties/$id': typeof AdminPropertiesIdRoute
   '/admin/requests/$id': typeof AdminRequestsIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
+  '/api/admin/campaigns': typeof ApiAdminCampaignsRoute
   '/api/admin/dashboard': typeof ApiAdminDashboardRoute
   '/api/admin/me': typeof ApiAdminMeRouteWithChildren
   '/api/admin/reports': typeof ApiAdminReportsRouteWithChildren
@@ -2231,10 +2442,12 @@ export interface FileRoutesById {
   '/api/public/submissions': typeof ApiPublicSubmissionsRouteWithChildren
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/_site/$market/': typeof SiteMarketIndexRoute
+  '/_site/account/': typeof SiteAccountIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
   '/admin/audit/': typeof AdminAuditIndexRoute
+  '/admin/campaigns/': typeof AdminCampaignsIndexRoute
   '/admin/channels/': typeof AdminChannelsIndexRoute
   '/admin/emails/': typeof AdminEmailsIndexRoute
   '/admin/inquiries/': typeof AdminInquiriesIndexRoute
@@ -2295,6 +2508,7 @@ export interface FileRoutesById {
   '/api/admin/properties/$id': typeof ApiAdminPropertiesIdRouteWithChildren
   '/api/admin/properties/from-submission': typeof ApiAdminPropertiesFromSubmissionRoute
   '/api/admin/properties/representatives': typeof ApiAdminPropertiesRepresentativesRoute
+  '/api/admin/proposed-posts/$id': typeof ApiAdminProposedPostsIdRouteWithChildren
   '/api/admin/reports/$id': typeof ApiAdminReportsIdRouteWithChildren
   '/api/admin/settings/coming-soon': typeof ApiAdminSettingsComingSoonRoute
   '/api/admin/settings/invoice': typeof ApiAdminSettingsInvoiceRoute
@@ -2302,6 +2516,7 @@ export interface FileRoutesById {
   '/api/admin/settings/products': typeof ApiAdminSettingsProductsRouteWithChildren
   '/api/admin/settings/redirects': typeof ApiAdminSettingsRedirectsRoute
   '/api/admin/settings/site': typeof ApiAdminSettingsSiteRoute
+  '/api/admin/settings/usage': typeof ApiAdminSettingsUsageRoute
   '/api/admin/stories/$id': typeof ApiAdminStoriesIdRouteWithChildren
   '/api/admin/submissions/$id': typeof ApiAdminSubmissionsIdRouteWithChildren
   '/api/admin/submissions/decline-reasons': typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -2330,6 +2545,7 @@ export interface FileRoutesById {
   '/api/admin/payments/': typeof ApiAdminPaymentsIndexRoute
   '/api/admin/people/': typeof ApiAdminPeopleIndexRoute
   '/api/admin/properties/': typeof ApiAdminPropertiesIndexRoute
+  '/api/admin/proposed-posts/': typeof ApiAdminProposedPostsIndexRoute
   '/api/admin/settings/': typeof ApiAdminSettingsIndexRoute
   '/api/admin/stories/': typeof ApiAdminStoriesIndexRoute
   '/api/admin/submissions/': typeof ApiAdminSubmissionsIndexRoute
@@ -2345,6 +2561,7 @@ export interface FileRoutesById {
   '/api/admin/automation/templates/$key': typeof ApiAdminAutomationTemplatesKeyRouteWithChildren
   '/api/admin/automation/templates/preview': typeof ApiAdminAutomationTemplatesPreviewRoute
   '/api/admin/channels/ids/$key': typeof ApiAdminChannelsIdsKeyRoute
+  '/api/admin/emails/replies/$id': typeof ApiAdminEmailsRepliesIdRoute
   '/api/admin/inquiries/$id/assign': typeof ApiAdminInquiriesIdAssignRoute
   '/api/admin/inquiries/$id/close': typeof ApiAdminInquiriesIdCloseRoute
   '/api/admin/inquiries/$id/forward': typeof ApiAdminInquiriesIdForwardRoute
@@ -2370,6 +2587,10 @@ export interface FileRoutesById {
   '/api/admin/properties/$id/revoke-previews': typeof ApiAdminPropertiesIdRevokePreviewsRoute
   '/api/admin/properties/$id/timeline': typeof ApiAdminPropertiesIdTimelineRoute
   '/api/admin/properties/$id/unpublish': typeof ApiAdminPropertiesIdUnpublishRoute
+  '/api/admin/proposed-posts/$id/approve': typeof ApiAdminProposedPostsIdApproveRoute
+  '/api/admin/proposed-posts/$id/reject': typeof ApiAdminProposedPostsIdRejectRoute
+  '/api/admin/proposed-posts/$id/rerender': typeof ApiAdminProposedPostsIdRerenderRoute
+  '/api/admin/proposed-posts/$id/revise': typeof ApiAdminProposedPostsIdReviseRoute
   '/api/admin/reports/$id/email': typeof ApiAdminReportsIdEmailRoute
   '/api/admin/settings/products/preview': typeof ApiAdminSettingsProductsPreviewRoute
   '/api/admin/stories/$id/publish': typeof ApiAdminStoriesIdPublishRoute
@@ -2389,7 +2610,12 @@ export interface FileRoutesById {
   '/api/admin/team/agents/revoke-all': typeof ApiAdminTeamAgentsRevokeAllRoute
   '/api/admin/workforce/agents/$slug': typeof ApiAdminWorkforceAgentsSlugRoute
   '/api/admin/workforce/approvals/$id': typeof ApiAdminWorkforceApprovalsIdRoute
+  '/api/admin/workforce/memory/decisions': typeof ApiAdminWorkforceMemoryDecisionsRoute
+  '/api/admin/workforce/memory/instructions': typeof ApiAdminWorkforceMemoryInstructionsRouteWithChildren
+  '/api/admin/workforce/memory/lessons': typeof ApiAdminWorkforceMemoryLessonsRoute
   '/api/public/submissions/$id/uploads': typeof ApiPublicSubmissionsIdUploadsRoute
+  '/api/admin/emails/inbound/': typeof ApiAdminEmailsInboundIndexRoute
+  '/api/admin/emails/replies/': typeof ApiAdminEmailsRepliesIndexRoute
   '/api/admin/audit/subject-requests/$id/delete': typeof ApiAdminAuditSubjectRequestsIdDeleteRoute
   '/api/admin/audit/subject-requests/$id/export': typeof ApiAdminAuditSubjectRequestsIdExportRoute
   '/api/admin/audit/subject-requests/$id/opt-out': typeof ApiAdminAuditSubjectRequestsIdOptOutRoute
@@ -2407,6 +2633,7 @@ export interface FileRoutesById {
   '/api/admin/team/agents/$id/keys': typeof ApiAdminTeamAgentsIdKeysRouteWithChildren
   '/api/admin/team/users/$id/disable': typeof ApiAdminTeamUsersIdDisableRoute
   '/api/admin/team/users/$id/roles': typeof ApiAdminTeamUsersIdRolesRouteWithChildren
+  '/api/admin/workforce/memory/instructions/$id': typeof ApiAdminWorkforceMemoryInstructionsIdRoute
   '/api/admin/submissions/$id/media/$mediaId/original': typeof ApiAdminSubmissionsIdMediaMediaIdOriginalRoute
   '/api/admin/team/agents/$id/keys/$keyId': typeof ApiAdminTeamAgentsIdKeysKeyIdRoute
   '/api/admin/team/users/$id/roles/$role': typeof ApiAdminTeamUsersIdRolesRoleRoute
@@ -2448,11 +2675,18 @@ export interface FileRouteTypes {
     | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
+    | '/api/form-fallback'
     | '/media/$'
     | '/admin/'
     | '/$market/$region'
     | '/$market/guide'
+    | '/account/confirm'
+    | '/account/credits'
+    | '/account/invoices'
+    | '/account/properties'
+    | '/account/reports'
     | '/markets/$'
+    | '/place-notes/$status'
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
@@ -2468,6 +2702,7 @@ export interface FileRouteTypes {
     | '/admin/properties/$id'
     | '/admin/requests/$id'
     | '/admin/stories/$id'
+    | '/api/admin/campaigns'
     | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
@@ -2487,10 +2722,12 @@ export interface FileRouteTypes {
     | '/api/public/submissions'
     | '/api/public/subscribers'
     | '/$market/'
+    | '/account/'
     | '/markets/'
     | '/stories/'
     | '/admin/assets/'
     | '/admin/audit/'
+    | '/admin/campaigns/'
     | '/admin/channels/'
     | '/admin/emails/'
     | '/admin/inquiries/'
@@ -2551,6 +2788,7 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id'
     | '/api/admin/properties/from-submission'
     | '/api/admin/properties/representatives'
+    | '/api/admin/proposed-posts/$id'
     | '/api/admin/reports/$id'
     | '/api/admin/settings/coming-soon'
     | '/api/admin/settings/invoice'
@@ -2558,6 +2796,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
+    | '/api/admin/settings/usage'
     | '/api/admin/stories/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
@@ -2586,6 +2825,7 @@ export interface FileRouteTypes {
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
+    | '/api/admin/proposed-posts/'
     | '/api/admin/settings/'
     | '/api/admin/stories/'
     | '/api/admin/submissions/'
@@ -2601,6 +2841,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/emails/replies/$id'
     | '/api/admin/inquiries/$id/assign'
     | '/api/admin/inquiries/$id/close'
     | '/api/admin/inquiries/$id/forward'
@@ -2626,6 +2867,10 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/revoke-previews'
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/properties/$id/unpublish'
+    | '/api/admin/proposed-posts/$id/approve'
+    | '/api/admin/proposed-posts/$id/reject'
+    | '/api/admin/proposed-posts/$id/rerender'
+    | '/api/admin/proposed-posts/$id/revise'
     | '/api/admin/reports/$id/email'
     | '/api/admin/settings/products/preview'
     | '/api/admin/stories/$id/publish'
@@ -2645,7 +2890,12 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/revoke-all'
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
+    | '/api/admin/workforce/memory/decisions'
+    | '/api/admin/workforce/memory/instructions'
+    | '/api/admin/workforce/memory/lessons'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/inbound/'
+    | '/api/admin/emails/replies/'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
     | '/api/admin/audit/subject-requests/$id/opt-out'
@@ -2663,6 +2913,7 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/$id/keys'
     | '/api/admin/team/users/$id/disable'
     | '/api/admin/team/users/$id/roles'
+    | '/api/admin/workforce/memory/instructions/$id'
     | '/api/admin/submissions/$id/media/$mediaId/original'
     | '/api/admin/team/agents/$id/keys/$keyId'
     | '/api/admin/team/users/$id/roles/$role'
@@ -2697,12 +2948,19 @@ export interface FileRouteTypes {
     | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
+    | '/api/form-fallback'
     | '/media/$'
     | '/'
     | '/admin'
     | '/$market/$region'
     | '/$market/guide'
+    | '/account/confirm'
+    | '/account/credits'
+    | '/account/invoices'
+    | '/account/properties'
+    | '/account/reports'
     | '/markets/$'
+    | '/place-notes/$status'
     | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
@@ -2718,6 +2976,7 @@ export interface FileRouteTypes {
     | '/admin/properties/$id'
     | '/admin/requests/$id'
     | '/admin/stories/$id'
+    | '/api/admin/campaigns'
     | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
@@ -2737,10 +2996,12 @@ export interface FileRouteTypes {
     | '/api/public/submissions'
     | '/api/public/subscribers'
     | '/$market'
+    | '/account'
     | '/markets'
     | '/stories'
     | '/admin/assets'
     | '/admin/audit'
+    | '/admin/campaigns'
     | '/admin/channels'
     | '/admin/emails'
     | '/admin/inquiries'
@@ -2801,6 +3062,7 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id'
     | '/api/admin/properties/from-submission'
     | '/api/admin/properties/representatives'
+    | '/api/admin/proposed-posts/$id'
     | '/api/admin/reports/$id'
     | '/api/admin/settings/coming-soon'
     | '/api/admin/settings/invoice'
@@ -2808,6 +3070,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
+    | '/api/admin/settings/usage'
     | '/api/admin/stories/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
@@ -2836,6 +3099,7 @@ export interface FileRouteTypes {
     | '/api/admin/payments'
     | '/api/admin/people'
     | '/api/admin/properties'
+    | '/api/admin/proposed-posts'
     | '/api/admin/settings'
     | '/api/admin/stories'
     | '/api/admin/submissions'
@@ -2851,6 +3115,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/emails/replies/$id'
     | '/api/admin/inquiries/$id/assign'
     | '/api/admin/inquiries/$id/close'
     | '/api/admin/inquiries/$id/forward'
@@ -2876,6 +3141,10 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/revoke-previews'
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/properties/$id/unpublish'
+    | '/api/admin/proposed-posts/$id/approve'
+    | '/api/admin/proposed-posts/$id/reject'
+    | '/api/admin/proposed-posts/$id/rerender'
+    | '/api/admin/proposed-posts/$id/revise'
     | '/api/admin/reports/$id/email'
     | '/api/admin/settings/products/preview'
     | '/api/admin/stories/$id/publish'
@@ -2895,7 +3164,12 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/revoke-all'
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
+    | '/api/admin/workforce/memory/decisions'
+    | '/api/admin/workforce/memory/instructions'
+    | '/api/admin/workforce/memory/lessons'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/inbound'
+    | '/api/admin/emails/replies'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
     | '/api/admin/audit/subject-requests/$id/opt-out'
@@ -2913,6 +3187,7 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/$id/keys'
     | '/api/admin/team/users/$id/disable'
     | '/api/admin/team/users/$id/roles'
+    | '/api/admin/workforce/memory/instructions/$id'
     | '/api/admin/submissions/$id/media/$mediaId/original'
     | '/api/admin/team/agents/$id/keys/$keyId'
     | '/api/admin/team/users/$id/roles/$role'
@@ -2952,12 +3227,19 @@ export interface FileRouteTypes {
     | '/admin/office'
     | '/admin/sign-in'
     | '/api/consent'
+    | '/api/form-fallback'
     | '/media/$'
     | '/_site/'
     | '/admin/'
     | '/_site/$market/$region'
     | '/_site/$market/guide'
+    | '/_site/account/confirm'
+    | '/_site/account/credits'
+    | '/_site/account/invoices'
+    | '/_site/account/properties'
+    | '/_site/account/reports'
     | '/_site/markets/$'
+    | '/_site/place-notes_/$status'
     | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
@@ -2973,6 +3255,7 @@ export interface FileRouteTypes {
     | '/admin/properties/$id'
     | '/admin/requests/$id'
     | '/admin/stories/$id'
+    | '/api/admin/campaigns'
     | '/api/admin/dashboard'
     | '/api/admin/me'
     | '/api/admin/reports'
@@ -2992,10 +3275,12 @@ export interface FileRouteTypes {
     | '/api/public/submissions'
     | '/api/public/subscribers'
     | '/_site/$market/'
+    | '/_site/account/'
     | '/_site/markets/'
     | '/_site/stories/'
     | '/admin/assets/'
     | '/admin/audit/'
+    | '/admin/campaigns/'
     | '/admin/channels/'
     | '/admin/emails/'
     | '/admin/inquiries/'
@@ -3056,6 +3341,7 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id'
     | '/api/admin/properties/from-submission'
     | '/api/admin/properties/representatives'
+    | '/api/admin/proposed-posts/$id'
     | '/api/admin/reports/$id'
     | '/api/admin/settings/coming-soon'
     | '/api/admin/settings/invoice'
@@ -3063,6 +3349,7 @@ export interface FileRouteTypes {
     | '/api/admin/settings/products'
     | '/api/admin/settings/redirects'
     | '/api/admin/settings/site'
+    | '/api/admin/settings/usage'
     | '/api/admin/stories/$id'
     | '/api/admin/submissions/$id'
     | '/api/admin/submissions/decline-reasons'
@@ -3091,6 +3378,7 @@ export interface FileRouteTypes {
     | '/api/admin/payments/'
     | '/api/admin/people/'
     | '/api/admin/properties/'
+    | '/api/admin/proposed-posts/'
     | '/api/admin/settings/'
     | '/api/admin/stories/'
     | '/api/admin/submissions/'
@@ -3106,6 +3394,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/templates/$key'
     | '/api/admin/automation/templates/preview'
     | '/api/admin/channels/ids/$key'
+    | '/api/admin/emails/replies/$id'
     | '/api/admin/inquiries/$id/assign'
     | '/api/admin/inquiries/$id/close'
     | '/api/admin/inquiries/$id/forward'
@@ -3131,6 +3420,10 @@ export interface FileRouteTypes {
     | '/api/admin/properties/$id/revoke-previews'
     | '/api/admin/properties/$id/timeline'
     | '/api/admin/properties/$id/unpublish'
+    | '/api/admin/proposed-posts/$id/approve'
+    | '/api/admin/proposed-posts/$id/reject'
+    | '/api/admin/proposed-posts/$id/rerender'
+    | '/api/admin/proposed-posts/$id/revise'
     | '/api/admin/reports/$id/email'
     | '/api/admin/settings/products/preview'
     | '/api/admin/stories/$id/publish'
@@ -3150,7 +3443,12 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/revoke-all'
     | '/api/admin/workforce/agents/$slug'
     | '/api/admin/workforce/approvals/$id'
+    | '/api/admin/workforce/memory/decisions'
+    | '/api/admin/workforce/memory/instructions'
+    | '/api/admin/workforce/memory/lessons'
     | '/api/public/submissions/$id/uploads'
+    | '/api/admin/emails/inbound/'
+    | '/api/admin/emails/replies/'
     | '/api/admin/audit/subject-requests/$id/delete'
     | '/api/admin/audit/subject-requests/$id/export'
     | '/api/admin/audit/subject-requests/$id/opt-out'
@@ -3168,6 +3466,7 @@ export interface FileRouteTypes {
     | '/api/admin/team/agents/$id/keys'
     | '/api/admin/team/users/$id/disable'
     | '/api/admin/team/users/$id/roles'
+    | '/api/admin/workforce/memory/instructions/$id'
     | '/api/admin/submissions/$id/media/$mediaId/original'
     | '/api/admin/team/agents/$id/keys/$keyId'
     | '/api/admin/team/users/$id/roles/$role'
@@ -3186,7 +3485,9 @@ export interface RootRouteChildren {
   DotwellKnownMtaStsDottxtRoute: typeof DotwellKnownMtaStsDottxtRoute
   DotwellKnownSecurityDottxtRoute: typeof DotwellKnownSecurityDottxtRoute
   ApiConsentRoute: typeof ApiConsentRoute
+  ApiFormFallbackRoute: typeof ApiFormFallbackRoute
   MediaSplatRoute: typeof MediaSplatRoute
+  ApiAdminCampaignsRoute: typeof ApiAdminCampaignsRoute
   ApiAdminDashboardRoute: typeof ApiAdminDashboardRoute
   ApiAdminMeRoute: typeof ApiAdminMeRouteWithChildren
   ApiAdminReportsRoute: typeof ApiAdminReportsRouteWithChildren
@@ -3246,12 +3547,14 @@ export interface RootRouteChildren {
   ApiAdminPropertiesIdRoute: typeof ApiAdminPropertiesIdRouteWithChildren
   ApiAdminPropertiesFromSubmissionRoute: typeof ApiAdminPropertiesFromSubmissionRoute
   ApiAdminPropertiesRepresentativesRoute: typeof ApiAdminPropertiesRepresentativesRoute
+  ApiAdminProposedPostsIdRoute: typeof ApiAdminProposedPostsIdRouteWithChildren
   ApiAdminSettingsComingSoonRoute: typeof ApiAdminSettingsComingSoonRoute
   ApiAdminSettingsInvoiceRoute: typeof ApiAdminSettingsInvoiceRoute
   ApiAdminSettingsNotificationsRoute: typeof ApiAdminSettingsNotificationsRoute
   ApiAdminSettingsProductsRoute: typeof ApiAdminSettingsProductsRouteWithChildren
   ApiAdminSettingsRedirectsRoute: typeof ApiAdminSettingsRedirectsRoute
   ApiAdminSettingsSiteRoute: typeof ApiAdminSettingsSiteRoute
+  ApiAdminSettingsUsageRoute: typeof ApiAdminSettingsUsageRoute
   ApiAdminStoriesIdRoute: typeof ApiAdminStoriesIdRouteWithChildren
   ApiAdminSubmissionsIdRoute: typeof ApiAdminSubmissionsIdRouteWithChildren
   ApiAdminSubmissionsDeclineReasonsRoute: typeof ApiAdminSubmissionsDeclineReasonsRoute
@@ -3276,10 +3579,17 @@ export interface RootRouteChildren {
   ApiAdminPaymentsIndexRoute: typeof ApiAdminPaymentsIndexRoute
   ApiAdminPeopleIndexRoute: typeof ApiAdminPeopleIndexRoute
   ApiAdminPropertiesIndexRoute: typeof ApiAdminPropertiesIndexRoute
+  ApiAdminProposedPostsIndexRoute: typeof ApiAdminProposedPostsIndexRoute
   ApiAdminSettingsIndexRoute: typeof ApiAdminSettingsIndexRoute
   ApiAdminStoriesIndexRoute: typeof ApiAdminStoriesIndexRoute
   ApiAdminSubmissionsIndexRoute: typeof ApiAdminSubmissionsIndexRoute
   ApiAdminChannelsIdsKeyRoute: typeof ApiAdminChannelsIdsKeyRoute
+  ApiAdminEmailsRepliesIdRoute: typeof ApiAdminEmailsRepliesIdRoute
+  ApiAdminWorkforceMemoryDecisionsRoute: typeof ApiAdminWorkforceMemoryDecisionsRoute
+  ApiAdminWorkforceMemoryInstructionsRoute: typeof ApiAdminWorkforceMemoryInstructionsRouteWithChildren
+  ApiAdminWorkforceMemoryLessonsRoute: typeof ApiAdminWorkforceMemoryLessonsRoute
+  ApiAdminEmailsInboundIndexRoute: typeof ApiAdminEmailsInboundIndexRoute
+  ApiAdminEmailsRepliesIndexRoute: typeof ApiAdminEmailsRepliesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -3536,6 +3846,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/form-fallback': {
+      id: '/api/form-fallback'
+      path: '/api/form-fallback'
+      fullPath: '/api/form-fallback'
+      preLoaderRoute: typeof ApiFormFallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/media/$': {
       id: '/media/$'
       path: '/media/$'
@@ -3564,6 +3881,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteMarketGuideRouteImport
       parentRoute: typeof SiteMarketRoute
     }
+    '/_site/account/': {
+      id: '/_site/account/'
+      path: '/account'
+      fullPath: '/account/'
+      preLoaderRoute: typeof SiteAccountIndexRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/confirm': {
+      id: '/_site/account/confirm'
+      path: '/account/confirm'
+      fullPath: '/account/confirm'
+      preLoaderRoute: typeof SiteAccountConfirmRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/credits': {
+      id: '/_site/account/credits'
+      path: '/account/credits'
+      fullPath: '/account/credits'
+      preLoaderRoute: typeof SiteAccountCreditsRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/invoices': {
+      id: '/_site/account/invoices'
+      path: '/account/invoices'
+      fullPath: '/account/invoices'
+      preLoaderRoute: typeof SiteAccountInvoicesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/properties': {
+      id: '/_site/account/properties'
+      path: '/account/properties'
+      fullPath: '/account/properties'
+      preLoaderRoute: typeof SiteAccountPropertiesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/account/reports': {
+      id: '/_site/account/reports'
+      path: '/account/reports'
+      fullPath: '/account/reports'
+      preLoaderRoute: typeof SiteAccountReportsRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/markets/': {
       id: '/_site/markets/'
       path: '/'
@@ -3577,6 +3936,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/markets/$'
       preLoaderRoute: typeof SiteMarketsSplatRouteImport
       parentRoute: typeof SiteMarketsRoute
+    }
+    '/_site/place-notes_/$status': {
+      id: '/_site/place-notes_/$status'
+      path: '/place-notes/$status'
+      fullPath: '/place-notes/$status'
+      preLoaderRoute: typeof SitePlaceNotesStatusRouteImport
+      parentRoute: typeof SiteRoute
     }
     '/_site/property/$slug': {
       id: '/_site/property/$slug'
@@ -3653,6 +4019,13 @@ declare module '@tanstack/react-router' {
       path: '/automation/settings'
       fullPath: '/admin/automation/settings'
       preLoaderRoute: typeof AdminAutomationSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/campaigns/': {
+      id: '/admin/campaigns/'
+      path: '/campaigns'
+      fullPath: '/admin/campaigns/'
+      preLoaderRoute: typeof AdminCampaignsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/channels/': {
@@ -3822,6 +4195,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/team/'
       preLoaderRoute: typeof AdminTeamIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/admin/campaigns': {
+      id: '/api/admin/campaigns'
+      path: '/api/admin/campaigns'
+      fullPath: '/api/admin/campaigns'
+      preLoaderRoute: typeof ApiAdminCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/admin/dashboard': {
       id: '/api/admin/dashboard'
@@ -4320,6 +4700,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPropertiesRepresentativesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/proposed-posts/': {
+      id: '/api/admin/proposed-posts/'
+      path: '/api/admin/proposed-posts'
+      fullPath: '/api/admin/proposed-posts/'
+      preLoaderRoute: typeof ApiAdminProposedPostsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/proposed-posts/$id': {
+      id: '/api/admin/proposed-posts/$id'
+      path: '/api/admin/proposed-posts/$id'
+      fullPath: '/api/admin/proposed-posts/$id'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/reports/$id': {
       id: '/api/admin/reports/$id'
       path: '/$id'
@@ -4374,6 +4768,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/settings/site'
       fullPath: '/api/admin/settings/site'
       preLoaderRoute: typeof ApiAdminSettingsSiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/settings/usage': {
+      id: '/api/admin/settings/usage'
+      path: '/api/admin/settings/usage'
+      fullPath: '/api/admin/settings/usage'
+      preLoaderRoute: typeof ApiAdminSettingsUsageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/stories/': {
@@ -4600,6 +5001,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminChannelsIdsKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/emails/inbound/': {
+      id: '/api/admin/emails/inbound/'
+      path: '/api/admin/emails/inbound'
+      fullPath: '/api/admin/emails/inbound/'
+      preLoaderRoute: typeof ApiAdminEmailsInboundIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/emails/replies/': {
+      id: '/api/admin/emails/replies/'
+      path: '/api/admin/emails/replies'
+      fullPath: '/api/admin/emails/replies/'
+      preLoaderRoute: typeof ApiAdminEmailsRepliesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/emails/replies/$id': {
+      id: '/api/admin/emails/replies/$id'
+      path: '/api/admin/emails/replies/$id'
+      fullPath: '/api/admin/emails/replies/$id'
+      preLoaderRoute: typeof ApiAdminEmailsRepliesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/inquiries/$id/assign': {
       id: '/api/admin/inquiries/$id/assign'
       path: '/assign'
@@ -4775,6 +5197,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminPropertiesIdUnpublishRouteImport
       parentRoute: typeof ApiAdminPropertiesIdRoute
     }
+    '/api/admin/proposed-posts/$id/approve': {
+      id: '/api/admin/proposed-posts/$id/approve'
+      path: '/approve'
+      fullPath: '/api/admin/proposed-posts/$id/approve'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdApproveRouteImport
+      parentRoute: typeof ApiAdminProposedPostsIdRoute
+    }
+    '/api/admin/proposed-posts/$id/reject': {
+      id: '/api/admin/proposed-posts/$id/reject'
+      path: '/reject'
+      fullPath: '/api/admin/proposed-posts/$id/reject'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdRejectRouteImport
+      parentRoute: typeof ApiAdminProposedPostsIdRoute
+    }
+    '/api/admin/proposed-posts/$id/rerender': {
+      id: '/api/admin/proposed-posts/$id/rerender'
+      path: '/rerender'
+      fullPath: '/api/admin/proposed-posts/$id/rerender'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdRerenderRouteImport
+      parentRoute: typeof ApiAdminProposedPostsIdRoute
+    }
+    '/api/admin/proposed-posts/$id/revise': {
+      id: '/api/admin/proposed-posts/$id/revise'
+      path: '/revise'
+      fullPath: '/api/admin/proposed-posts/$id/revise'
+      preLoaderRoute: typeof ApiAdminProposedPostsIdReviseRouteImport
+      parentRoute: typeof ApiAdminProposedPostsIdRoute
+    }
     '/api/admin/reports/$id/email': {
       id: '/api/admin/reports/$id/email'
       path: '/email'
@@ -4908,6 +5358,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminWorkforceApprovalsIdRouteImport
       parentRoute: typeof ApiAdminWorkforceApprovalsRoute
     }
+    '/api/admin/workforce/memory/decisions': {
+      id: '/api/admin/workforce/memory/decisions'
+      path: '/api/admin/workforce/memory/decisions'
+      fullPath: '/api/admin/workforce/memory/decisions'
+      preLoaderRoute: typeof ApiAdminWorkforceMemoryDecisionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/workforce/memory/instructions': {
+      id: '/api/admin/workforce/memory/instructions'
+      path: '/api/admin/workforce/memory/instructions'
+      fullPath: '/api/admin/workforce/memory/instructions'
+      preLoaderRoute: typeof ApiAdminWorkforceMemoryInstructionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/workforce/memory/lessons': {
+      id: '/api/admin/workforce/memory/lessons'
+      path: '/api/admin/workforce/memory/lessons'
+      fullPath: '/api/admin/workforce/memory/lessons'
+      preLoaderRoute: typeof ApiAdminWorkforceMemoryLessonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/submissions/$id/uploads': {
       id: '/api/public/submissions/$id/uploads'
       path: '/$id/uploads'
@@ -5034,6 +5505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminTeamUsersIdRolesRouteImport
       parentRoute: typeof ApiAdminTeamUsersRoute
     }
+    '/api/admin/workforce/memory/instructions/$id': {
+      id: '/api/admin/workforce/memory/instructions/$id'
+      path: '/$id'
+      fullPath: '/api/admin/workforce/memory/instructions/$id'
+      preLoaderRoute: typeof ApiAdminWorkforceMemoryInstructionsIdRouteImport
+      parentRoute: typeof ApiAdminWorkforceMemoryInstructionsRoute
+    }
     '/api/admin/submissions/$id/media/$mediaId/original': {
       id: '/api/admin/submissions/$id/media/$mediaId/original'
       path: '/media/$mediaId/original'
@@ -5123,7 +5601,14 @@ interface SiteRouteChildren {
   SiteSubmitRoute: typeof SiteSubmitRoute
   SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
+  SiteAccountConfirmRoute: typeof SiteAccountConfirmRoute
+  SiteAccountCreditsRoute: typeof SiteAccountCreditsRoute
+  SiteAccountInvoicesRoute: typeof SiteAccountInvoicesRoute
+  SiteAccountPropertiesRoute: typeof SiteAccountPropertiesRoute
+  SiteAccountReportsRoute: typeof SiteAccountReportsRoute
+  SitePlaceNotesStatusRoute: typeof SitePlaceNotesStatusRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
+  SiteAccountIndexRoute: typeof SiteAccountIndexRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
 }
 
@@ -5148,7 +5633,14 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteSubmitRoute: SiteSubmitRoute,
   SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
+  SiteAccountConfirmRoute: SiteAccountConfirmRoute,
+  SiteAccountCreditsRoute: SiteAccountCreditsRoute,
+  SiteAccountInvoicesRoute: SiteAccountInvoicesRoute,
+  SiteAccountPropertiesRoute: SiteAccountPropertiesRoute,
+  SiteAccountReportsRoute: SiteAccountReportsRoute,
+  SitePlaceNotesStatusRoute: SitePlaceNotesStatusRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
+  SiteAccountIndexRoute: SiteAccountIndexRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
 }
 
@@ -5174,6 +5666,7 @@ interface AdminRouteChildren {
   AdminStoriesIdRoute: typeof AdminStoriesIdRoute
   AdminAssetsIndexRoute: typeof AdminAssetsIndexRoute
   AdminAuditIndexRoute: typeof AdminAuditIndexRoute
+  AdminCampaignsIndexRoute: typeof AdminCampaignsIndexRoute
   AdminChannelsIndexRoute: typeof AdminChannelsIndexRoute
   AdminEmailsIndexRoute: typeof AdminEmailsIndexRoute
   AdminInquiriesIndexRoute: typeof AdminInquiriesIndexRoute
@@ -5213,6 +5706,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminStoriesIdRoute: AdminStoriesIdRoute,
   AdminAssetsIndexRoute: AdminAssetsIndexRoute,
   AdminAuditIndexRoute: AdminAuditIndexRoute,
+  AdminCampaignsIndexRoute: AdminCampaignsIndexRoute,
   AdminChannelsIndexRoute: AdminChannelsIndexRoute,
   AdminEmailsIndexRoute: AdminEmailsIndexRoute,
   AdminInquiriesIndexRoute: AdminInquiriesIndexRoute,
@@ -5660,6 +6154,26 @@ const ApiAdminPropertiesIdRouteChildren: ApiAdminPropertiesIdRouteChildren = {
 const ApiAdminPropertiesIdRouteWithChildren =
   ApiAdminPropertiesIdRoute._addFileChildren(ApiAdminPropertiesIdRouteChildren)
 
+interface ApiAdminProposedPostsIdRouteChildren {
+  ApiAdminProposedPostsIdApproveRoute: typeof ApiAdminProposedPostsIdApproveRoute
+  ApiAdminProposedPostsIdRejectRoute: typeof ApiAdminProposedPostsIdRejectRoute
+  ApiAdminProposedPostsIdRerenderRoute: typeof ApiAdminProposedPostsIdRerenderRoute
+  ApiAdminProposedPostsIdReviseRoute: typeof ApiAdminProposedPostsIdReviseRoute
+}
+
+const ApiAdminProposedPostsIdRouteChildren: ApiAdminProposedPostsIdRouteChildren =
+  {
+    ApiAdminProposedPostsIdApproveRoute: ApiAdminProposedPostsIdApproveRoute,
+    ApiAdminProposedPostsIdRejectRoute: ApiAdminProposedPostsIdRejectRoute,
+    ApiAdminProposedPostsIdRerenderRoute: ApiAdminProposedPostsIdRerenderRoute,
+    ApiAdminProposedPostsIdReviseRoute: ApiAdminProposedPostsIdReviseRoute,
+  }
+
+const ApiAdminProposedPostsIdRouteWithChildren =
+  ApiAdminProposedPostsIdRoute._addFileChildren(
+    ApiAdminProposedPostsIdRouteChildren,
+  )
+
 interface ApiAdminSettingsProductsRouteChildren {
   ApiAdminSettingsProductsPreviewRoute: typeof ApiAdminSettingsProductsPreviewRoute
 }
@@ -5810,6 +6324,21 @@ const ApiAdminWorkforceApprovalsRouteWithChildren =
     ApiAdminWorkforceApprovalsRouteChildren,
   )
 
+interface ApiAdminWorkforceMemoryInstructionsRouteChildren {
+  ApiAdminWorkforceMemoryInstructionsIdRoute: typeof ApiAdminWorkforceMemoryInstructionsIdRoute
+}
+
+const ApiAdminWorkforceMemoryInstructionsRouteChildren: ApiAdminWorkforceMemoryInstructionsRouteChildren =
+  {
+    ApiAdminWorkforceMemoryInstructionsIdRoute:
+      ApiAdminWorkforceMemoryInstructionsIdRoute,
+  }
+
+const ApiAdminWorkforceMemoryInstructionsRouteWithChildren =
+  ApiAdminWorkforceMemoryInstructionsRoute._addFileChildren(
+    ApiAdminWorkforceMemoryInstructionsRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   SiteRoute: SiteRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
@@ -5823,7 +6352,9 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownMtaStsDottxtRoute: DotwellKnownMtaStsDottxtRoute,
   DotwellKnownSecurityDottxtRoute: DotwellKnownSecurityDottxtRoute,
   ApiConsentRoute: ApiConsentRoute,
+  ApiFormFallbackRoute: ApiFormFallbackRoute,
   MediaSplatRoute: MediaSplatRoute,
+  ApiAdminCampaignsRoute: ApiAdminCampaignsRoute,
   ApiAdminDashboardRoute: ApiAdminDashboardRoute,
   ApiAdminMeRoute: ApiAdminMeRouteWithChildren,
   ApiAdminReportsRoute: ApiAdminReportsRouteWithChildren,
@@ -5890,12 +6421,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminPropertiesFromSubmissionRoute: ApiAdminPropertiesFromSubmissionRoute,
   ApiAdminPropertiesRepresentativesRoute:
     ApiAdminPropertiesRepresentativesRoute,
+  ApiAdminProposedPostsIdRoute: ApiAdminProposedPostsIdRouteWithChildren,
   ApiAdminSettingsComingSoonRoute: ApiAdminSettingsComingSoonRoute,
   ApiAdminSettingsInvoiceRoute: ApiAdminSettingsInvoiceRoute,
   ApiAdminSettingsNotificationsRoute: ApiAdminSettingsNotificationsRoute,
   ApiAdminSettingsProductsRoute: ApiAdminSettingsProductsRouteWithChildren,
   ApiAdminSettingsRedirectsRoute: ApiAdminSettingsRedirectsRoute,
   ApiAdminSettingsSiteRoute: ApiAdminSettingsSiteRoute,
+  ApiAdminSettingsUsageRoute: ApiAdminSettingsUsageRoute,
   ApiAdminStoriesIdRoute: ApiAdminStoriesIdRouteWithChildren,
   ApiAdminSubmissionsIdRoute: ApiAdminSubmissionsIdRouteWithChildren,
   ApiAdminSubmissionsDeclineReasonsRoute:
@@ -5921,10 +6454,18 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminPaymentsIndexRoute: ApiAdminPaymentsIndexRoute,
   ApiAdminPeopleIndexRoute: ApiAdminPeopleIndexRoute,
   ApiAdminPropertiesIndexRoute: ApiAdminPropertiesIndexRoute,
+  ApiAdminProposedPostsIndexRoute: ApiAdminProposedPostsIndexRoute,
   ApiAdminSettingsIndexRoute: ApiAdminSettingsIndexRoute,
   ApiAdminStoriesIndexRoute: ApiAdminStoriesIndexRoute,
   ApiAdminSubmissionsIndexRoute: ApiAdminSubmissionsIndexRoute,
   ApiAdminChannelsIdsKeyRoute: ApiAdminChannelsIdsKeyRoute,
+  ApiAdminEmailsRepliesIdRoute: ApiAdminEmailsRepliesIdRoute,
+  ApiAdminWorkforceMemoryDecisionsRoute: ApiAdminWorkforceMemoryDecisionsRoute,
+  ApiAdminWorkforceMemoryInstructionsRoute:
+    ApiAdminWorkforceMemoryInstructionsRouteWithChildren,
+  ApiAdminWorkforceMemoryLessonsRoute: ApiAdminWorkforceMemoryLessonsRoute,
+  ApiAdminEmailsInboundIndexRoute: ApiAdminEmailsInboundIndexRoute,
+  ApiAdminEmailsRepliesIndexRoute: ApiAdminEmailsRepliesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,17 +1,28 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
   briefId,
   COPY_RULE,
+  decidePiece,
+  deskPhoto,
   GATE_RULES,
   mediaFor,
   nextReel,
   queueReel,
+  reelWork,
   REEL_TOOL_LINE,
+  syncPieces,
   withReel,
   REVISIONS,
   reelPass,
@@ -26,6 +37,7 @@ import {
   type ReelDeps,
   type ReelRequest,
 } from "../../scripts/workforce/reel.ts";
+import { PREVIEW_MAX_BYTES, studioDecisionSchema } from "../../scripts/workforce/studio.ts";
 import { mediaRow, propertyRow } from "../fixtures/asset-rows.ts";
 import { fakeDb, type FakeDb } from "../fixtures/fake-db.ts";
 
@@ -39,7 +51,8 @@ const brand: ReelRequest = {
   titles: ["Not every home", "is accepted."],
 };
 
-const recording = (): FakeDb => fakeDb({ rpc: { record_requested_reel: () => "asset-1" } });
+const recording = (): FakeDb =>
+  fakeDb({ rpc: { record_requested_reel: () => "asset-1", studio_piece_put: () => undefined } });
 
 function deps(
   over: Partial<ReelDeps> = {},
@@ -49,6 +62,7 @@ function deps(
   return {
     db,
     download: () => Promise.resolve(new Uint8Array([1])),
+    desk: () => new Uint8Array([2]),
     design: (folder) => {
       log.push("design");
       for (const file of ["scene.html", "scene.mjs", "cues.mjs"]) {
@@ -75,8 +89,17 @@ function deps(
       log.push(`upload ${key}`);
       return Promise.resolve();
     },
+    preview: () => new Uint8Array([7, 7]),
+    uploadPreview: (key) => {
+      log.push(`preview ${key}`);
+      return Promise.resolve();
+    },
     say: (thread, body) => {
       log.push(`say ${thread}: ${body}`);
+      return Promise.resolve();
+    },
+    tellMatter: (body) => {
+      log.push(`matter: ${body}`);
       return Promise.resolve();
     },
     readFile: (path) => readFileSync(path),
@@ -135,6 +158,20 @@ describe("a reel request (W7 item 19)", () => {
     expect(studioArgs("opus", "reviewer")).toContain("Bash,WebFetch,WebSearch,NotebookEdit");
   });
 
+  it("names an MCP config outside the studio, written afresh on every use (review of 2026-10-19)", () => {
+    const home = mkdtempSync(join(tmpdir(), "reel-mcp-"));
+    // what a run could have planted where the config lives
+    writeFileSync(
+      join(home, "studio-no-mcp.json"),
+      JSON.stringify({ mcpServers: { planted: { command: "x" } } }),
+    );
+    const args = studioArgs("sonnet", "designer", home);
+    const file = args[args.indexOf("--mcp-config") + 1] ?? "";
+    expect(file).toBe(join(home, "studio-no-mcp.json"));
+    expect(relative(join(home, "studio"), file).startsWith("..")).toBe(true);
+    expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ mcpServers: {} });
+  });
+
   it("says a reel is being made while a brief is working, and not once it is stale (P-3480)", () => {
     const root = studio();
     expect(reelWorking(root)).toBe(false);
@@ -152,11 +189,21 @@ describe("a reel request (W7 item 19)", () => {
 });
 
 describe("the reel pass", () => {
-  it("designs, films, has it reviewed, uploads under requested/<id>/ and records a pending visual", async () => {
+  it("designs, films, has it reviewed, keeps a draft and uploads nothing until Matter approves it, then uploads under requested/<id>/ and records a pending visual", async () => {
     const root = studio();
     const folder = queueReel(brand, from, root);
     const log: string[] = [];
     const db = recording();
+    expect(await reelPass(deps({}, log, db), root)).toBe("reel The door: draft 1");
+    expect(log.filter((line) => line.startsWith("upload"))).toEqual([]);
+    expect(brief(folder)).toMatchObject({ state: "draft", drafts: 1, film: "drafts/01/reel.mp4" });
+    // the folder's name, never the laptop's path with its user name
+    expect(log.find((line) => line.includes("waits for Matter's review"))).toContain(
+      `(its status.md and drafts are in ${basename(folder)})`,
+    );
+    expect(
+      decidePiece({ skill: "studio", piece: basename(folder), decision: "approve" }, root).ok,
+    ).toBe(true);
     expect(await reelPass(deps({}, log, db), root)).toBe("reel The door: done (asset-1)");
     const { id } = brief(folder);
     expect(log.slice(0, 3)).toEqual(["design", "render", "review"]);
@@ -165,7 +212,7 @@ describe("the reel pass", () => {
       expect.stringMatching(new RegExp(`^requested/${id}/reel\\.[0-9a-f]{8}\\.mp4$`)),
       expect.stringMatching(new RegExp(`^requested/${id}/poster\\.[0-9a-f]{8}\\.jpg$`)),
     ]);
-    expect(db.calls).toMatchObject([
+    expect(db.calls.filter((call) => call.name === "record_requested_reel")).toMatchObject([
       {
         kind: "rpc",
         name: "record_requested_reel",
@@ -179,7 +226,7 @@ describe("the reel pass", () => {
       },
     ]);
     expect(brief(folder)).toMatchObject({ state: "done", asset_id: "asset-1" });
-    expect(log.at(-1)).toContain("waits in Visuals");
+    expect(log.at(-1)).toContain("uploaded once, and waits in Visuals");
     expect(existsSync(join(folder, "reference", "DIRECTION.md"))).toBe(true);
   });
 
@@ -196,11 +243,16 @@ describe("the reel pass", () => {
     expect(await reelPass(refused, root)).toBe(
       "reel The door: failed (review_refused: a title is cut off)",
     );
-    expect([log.some((line) => line.startsWith("upload")), db.calls]).toEqual([false, []]);
+    expect([
+      log.some((line) => line.startsWith("upload")),
+      db.calls.filter((call) => call.name === "record_requested_reel"),
+    ]).toEqual([false, []]);
     expect(brief(folder)).toMatchObject({ state: "failed" });
     expect(log.at(-1)).toContain(
       "was not made: review_refused: a title is cut off. Nothing was uploaded.",
     );
+    // the folder's name, never the laptop's path with its user name
+    expect(log.at(-1)?.split("Its folder: ")[1]).toBe(basename(folder));
     expect(log.filter((line) => line === "design")).toHaveLength(1 + REVISIONS);
   });
 
@@ -228,7 +280,7 @@ describe("the reel pass", () => {
       },
       log,
     );
-    expect(await reelPass(revised, root)).toBe("reel The door: done (asset-1)");
+    expect(await reelPass(revised, root)).toBe("reel The door: draft 2");
     expect([prompts.length, reviews]).toEqual([2, 2]);
     expect(prompts[1]).toContain(
       "a fresh reviewer looking at its stills refused it: review_refused: Frame 2: the title is cut off",
@@ -265,7 +317,7 @@ describe("the reel pass", () => {
       },
       log,
     );
-    expect(await reelPass(revised, root)).toBe("reel The door: done (asset-1)");
+    expect(await reelPass(revised, root)).toBe("reel The door: draft 2");
     expect([prompts.length, films]).toEqual([2, 2]);
     expect(prompts[1]).toContain("the motion gate refused it: gate_failed: coverage 46.3%");
   });
@@ -357,5 +409,518 @@ describe("Social and Campaigns ask for a reel (W7 item 20)", () => {
     );
     const folder = queueReel(brand, from, studio());
     expect(briefId(folder)).toBe(brief(folder).id);
+  });
+});
+
+describe("a reel about a property shows that property's own photographs (H110)", () => {
+  const own = {
+    ...brand,
+    name: "Fairfield",
+    kind: "campaign" as const,
+    photos: [
+      "requests/r1/photos/1-front-from-the-street.jpg",
+      "requests/r1/photos/2-entry-stair.jpg",
+    ],
+  };
+  const sceneWith = (text: string): Partial<ReelDeps> => ({
+    design: (folder) => {
+      for (const file of ["scene.html", "cues.mjs"])
+        writeFileSync(join(folder, "scene", file), "x");
+      writeFileSync(join(folder, "scene", "scene.mjs"), text);
+      return Promise.resolve('{"duration_s": 18}');
+    },
+  });
+
+  it("takes the photographs of a property not on the site as the request's own, never for a brand piece", () => {
+    expect(reelRequestSchema.safeParse(own).success).toBe(true);
+    expect(reelRequestSchema.safeParse({ ...own, photos: undefined }).success).toBe(false);
+    expect(reelRequestSchema.safeParse({ ...brand, photos: own.photos }).success).toBe(false);
+    const property_id = "8d5f2c1e-1a2b-4c3d-9e8f-0a1b2c3d4e5f";
+    expect(
+      [
+        { ...own, property_id },
+        { ...own, kind: "market" as const, market: "florida" as const },
+        { ...own, kind: "story" as const, story_id: property_id },
+      ].map((request) => reelRequestSchema.safeParse(request).success),
+    ).toEqual([false, false, false]);
+  });
+
+  it("reads a picture from the requester's own work folder and refuses a path that leaves it or is no picture", () => {
+    const home = mkdtempSync(join(tmpdir(), "home-"));
+    const work = join(home, ".mop-workforce", "desks", "social", "work");
+    mkdirSync(join(work, "requests", "r1", "photos"), { recursive: true });
+    writeFileSync(join(work, "requests", "r1", "photos", "1-front.jpg"), "picture");
+    writeFileSync(join(work, "requests", "r1", "notes.md"), "notes");
+    writeFileSync(join(home, ".mop-workforce", "secret.jpg"), "not yours");
+    expect(
+      Buffer.from(deskPhoto("social", "requests/r1/photos/1-front.jpg", home)).toString(),
+    ).toBe("picture");
+    const refused = (agent: string, rel: string) => {
+      try {
+        deskPhoto(agent, rel, home);
+        return "read";
+      } catch (failure) {
+        return failure instanceof Error ? failure.message.split(":")[0] : "other";
+      }
+    };
+    expect([
+      refused("social", "../../../secret.jpg"),
+      refused("social", "requests/r1/notes.md"),
+      refused("social", "requests/r1/photos"),
+      refused("social/../editor", "requests/r1/photos/1-front.jpg"),
+      refused("social", "requests/r1/photos/missing.jpg"),
+    ]).toEqual([
+      "photo_refused",
+      "photo_refused",
+      "photo_refused",
+      "photo_refused",
+      "photo_unavailable",
+    ]);
+  });
+
+  it("films a property reel from the request's pictures, tells the reviewer to look for them, and keeps the film out of Visuals when the property is not on the site", async () => {
+    const root = studio();
+    const folder = queueReel(own, from, root);
+    const log: string[] = [];
+    const db = recording();
+    const seen: string[] = [];
+    const run = deps(
+      {
+        ...sceneWith("for (const shot of spec.shots) draw(shot.src)"),
+        download: () => Promise.reject(new Error("the bucket is for the site's own pictures")),
+        desk: (agent, rel) => {
+          seen.push(`${agent} ${rel}`);
+          return new Uint8Array([3]);
+        },
+        review: (_folder, _mp4, prompt) => {
+          seen.push(prompt);
+          return Promise.resolve('{"pass": true, "reasons": []}');
+        },
+      },
+      log,
+      db,
+    );
+    expect(await reelPass(run, root)).toBe("reel Fairfield: draft 1");
+    expect(
+      decidePiece({ skill: "studio", piece: basename(folder), decision: "approve" }, root).ok,
+    ).toBe(true);
+    expect(await reelPass(run, root)).toBe("reel Fairfield: done (kept in the studio)");
+    expect(seen.slice(0, 2)).toEqual([
+      "social requests/r1/photos/1-front-from-the-street.jpg",
+      "social requests/r1/photos/2-entry-stair.jpg",
+    ]);
+    expect(seen[2]).toMatch(
+      /2 of the subject's own photographs were supplied.*Refuse it if the stills show none/,
+    );
+    expect(readFileSync(join(folder, "shots", "0.jpg"))).toEqual(Buffer.from([3]));
+    expect([
+      db.calls.filter((call) => call.name === "record_requested_reel"),
+      log.some((line) => line.startsWith("upload")),
+    ]).toEqual([[], false]);
+    expect(brief(folder)).toMatchObject({ state: "done", kept: true });
+    expect(log.at(-1)).toContain("not on the site, so it is not in Visuals");
+  });
+
+  it("sends back a scene that draws none of the photographs, before any film is made", async () => {
+    const root = studio();
+    queueReel(own, from, root);
+    const log: string[] = [];
+    const run = deps(sceneWith("drawHouseModel()"), log);
+    expect(await reelPass(run, root)).toMatch(
+      /^reel Fairfield: failed \(gate_failed: scene\.mjs does not draw spec\.shots/,
+    );
+    expect(log.filter((line) => line === "render")).toEqual([]);
+  });
+
+  it("tells the designer to show the photographs and the reviewer to refuse a drawn house", () => {
+    const queued: Brief = {
+      id: "8d5f2c1e-1a2b-4c3d-9e8f-0a1b2c3d4e5f",
+      at: "2026-10-15T09:00:00Z",
+      request: own,
+      from,
+      state: "queued",
+    };
+    expect(
+      scenePrompt(queued, [{ key: "k", alt: "front", orientation: "landscape", file: "0.jpg" }]),
+    ).toMatch(/Never draw, model or imitate the house/);
+    expect(scenePrompt({ ...queued, request: brand }, [])).not.toMatch(
+      /Never draw, model or imitate/,
+    );
+    expect(reviewPrompt(queued, 5)).toMatch(
+      /a drawing or a model of a house stands in for the subject \(a drawn house is not the house\)/,
+    );
+    expect(reviewPrompt({ ...queued, request: brand })).toMatch(/shows no property's photographs/);
+    expect(REEL_TOOL_LINE).toMatch(/"photos".*a "brand" reel never shows a property/);
+  });
+});
+
+describe("the studio folder (W8 0f)", () => {
+  const rpcArgs = (db: FakeDb) =>
+    db.calls.filter((call) => call.name === "studio_piece_put").map((call) => call.args[0]);
+  const decide = (
+    root: string,
+    folder: string,
+    decision: "approve" | "revise" | "ask_operator",
+    note?: string,
+  ) =>
+    decidePiece(
+      {
+        skill: "studio",
+        piece: basename(folder),
+        decision,
+        ...(note === undefined ? {} : { note }),
+      },
+      root,
+    );
+
+  it("keeps status.md beside the brief: who, state and next, and every step in its history", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const queued = readFileSync(join(folder, "status.md"), "utf8");
+    expect(queued).toContain("# The door");
+    expect(queued).toContain("- Who: social, asked in the social thread");
+    expect(queued).toContain("- State: queued");
+    await reelPass(deps(), root);
+    const drafted = readFileSync(join(folder, "status.md"), "utf8");
+    expect(drafted).toContain("- State: draft");
+    expect(drafted).toContain("- Next: Matter reviews draft 1: approve it, ask for a revision");
+    expect(drafted).toMatch(/draft 1 passed the motion gate and the review; it waits for Matter/);
+  });
+
+  it("keeps every render as a draft, a refused one with its scene and what refused it", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const log: string[] = [];
+    const base = deps({}, log);
+    let films = 0;
+    const run = deps(
+      {
+        render: (where, spec) => {
+          films += 1;
+          return films === 1
+            ? Promise.reject(new Error("gate_failed: coverage 46.3%"))
+            : base.render(where, spec);
+        },
+      },
+      log,
+    );
+    expect(await reelPass(run, root)).toBe("reel The door: draft 2");
+    expect(readdirSync(join(folder, "drafts")).sort()).toEqual(["01", "02"]);
+    expect(existsSync(join(folder, "drafts", "01", "scene", "scene.mjs"))).toBe(true);
+    expect(existsSync(join(folder, "drafts", "01", "reel.mp4"))).toBe(false);
+    expect(readdirSync(join(folder, "drafts", "02")).sort()).toEqual([
+      "poster.jpg",
+      "reel.mp4",
+      "scene",
+    ]);
+    expect(readFileSync(join(folder, "status.md"), "utf8")).toContain(
+      "draft 1 refused: gate_failed: coverage 46.3%",
+    );
+  });
+
+  it("drafts a reel, revises it on Matter's word, approves it, uploads it once, and the row tracks it", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const log: string[] = [];
+    const prompts: string[] = [];
+    const db = recording();
+    const base = deps({}, log, db);
+    const run = deps(
+      {
+        design: (where, prompt) => {
+          prompts.push(prompt);
+          return base.design(where, prompt);
+        },
+      },
+      log,
+      db,
+    );
+    expect(await reelPass(run, root)).toBe("reel The door: draft 1");
+    // the draft wakes Matter in his own thread, not only the requester's
+    expect(log.filter((line) => line.startsWith("matter: "))).toEqual([
+      expect.stringContaining('the reel "The door"'),
+    ]);
+    const revised = decide(root, folder, "revise", "Hold the first title a beat longer.");
+    expect(revised.ok).toBe(true);
+    expect(revised.line).toContain("goes back to the designer");
+    expect(brief(folder)).toMatchObject({
+      state: "queued",
+      revise: "Hold the first title a beat longer.",
+    });
+    expect(await reelPass(run, root)).toBe("reel The door: draft 2");
+    expect(prompts[1]).toContain("Hold the first title a beat longer.");
+    expect(brief(folder)).toMatchObject({ state: "draft", drafts: 2, film: "drafts/02/reel.mp4" });
+    expect(brief(folder)["revise"]).toBeUndefined();
+    // nothing has left the laptop yet
+    expect(log.filter((line) => /^(upload|preview) /.test(line))).toEqual([]);
+    expect(db.calls.some((call) => call.name === "record_requested_reel")).toBe(false);
+
+    expect(reelWork(root)).toBe(false);
+    expect(decide(root, folder, "approve").ok).toBe(true);
+    // an approved piece is work of its own; the pass itself writes its row (W8 0f review: no sync by hand)
+    expect(reelWork(root)).toBe(true);
+    expect(await reelPass(run, root)).toBe("reel The door: done (asset-1)");
+    const { id } = brief(folder);
+    const uploads = log.filter((line) => line.startsWith("upload ")).map((line) => line.slice(7));
+    expect(uploads).toEqual([
+      expect.stringMatching(new RegExp(`^requested/${id}/reel\\.[0-9a-f]{8}\\.mp4$`)),
+      expect.stringMatching(new RegExp(`^requested/${id}/poster\\.[0-9a-f]{8}\\.jpg$`)),
+    ]);
+    // a later pass finds nothing to do and uploads nothing again
+    expect(await reelPass(run, root)).toBeNull();
+    expect(log.filter((line) => line.startsWith("upload "))).toHaveLength(2);
+    expect(db.calls.filter((call) => call.name === "record_requested_reel")).toHaveLength(1);
+    // the row followed the folder as the runner writes it, at the start of each pass, while the piece is made and at its
+    // end: queued, working, draft; queued for the revision, working, draft; approved, done with the visual it became
+    expect(rpcArgs(db)).toMatchObject([
+      { p_state: "queued" },
+      { p_state: "working" },
+      { p_state: "draft" },
+      { p_state: "queued" },
+      { p_state: "working" },
+      { p_state: "draft" },
+      { p_state: "approved" },
+      { p_state: "done" },
+    ]);
+    expect(rpcArgs(db).at(-1)).toMatchObject({
+      p_id: id,
+      p_title: "The door",
+      p_owner: "social",
+      p_folder: basename(folder),
+      p_state: "done",
+      p_asset_id: "asset-1",
+    });
+  });
+
+  it("counts an approved piece as work of its own, even with its row in step", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const db = recording();
+    await reelPass(deps({}, [], db), root);
+    expect(decide(root, folder, "approve").ok).toBe(true);
+    // nothing is out of step any more, so only the approval itself can make it work
+    await syncPieces(db, root);
+    expect(reelWork(root)).toBe(true);
+  });
+
+  it("keeps a recorded visual done when its thread line fails, so approving again records nothing more", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const db = recording();
+    await reelPass(deps({}, [], db), root);
+    expect(decide(root, folder, "approve").ok).toBe(true);
+    const silent = deps({ say: () => Promise.reject(new Error("thread down")) }, [], db);
+    expect(await reelPass(silent, root)).toBe(
+      "reel The door: done (asset-1) (its thread line was not written)",
+    );
+    expect(brief(folder)).toMatchObject({ state: "done", asset_id: "asset-1" });
+    expect(decide(root, folder, "approve").ok).toBe(false);
+    expect(db.calls.filter((call) => call.name === "record_requested_reel")).toHaveLength(1);
+  });
+
+  it("holds a draft for the operator: only a small still goes to Storage, and approval still follows", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const log: string[] = [];
+    const db = recording();
+    const run = deps({}, log, db);
+    await reelPass(run, root);
+    expect(
+      decide(root, folder, "ask_operator", "Is the second title right for this owner?").ok,
+    ).toBe(true);
+    expect(brief(folder)).toMatchObject({ state: "waiting_operator" });
+    // with its row in step, a piece waiting for its preview is work of its own
+    await syncPieces(db, root);
+    expect(reelWork(root)).toBe(true);
+    expect(await reelPass(run, root)).toBe("reel The door: preview uploaded");
+    const { id } = brief(folder);
+    expect(log.filter((line) => line.startsWith("upload "))).toEqual([]);
+    expect(log.filter((line) => line.startsWith("preview "))).toEqual([
+      expect.stringMatching(new RegExp(`^preview studio/${id}/preview\\.[0-9a-f]{8}\\.jpg$`)),
+    ]);
+    const held = rpcArgs(db).at(-1);
+    expect(held).toMatchObject({ p_state: "waiting_operator" });
+    expect(z.object({ p_preview_key: z.string() }).parse(held).p_preview_key).toMatch(/^studio\//);
+    expect(readFileSync(join(folder, "status.md"), "utf8")).toContain(
+      "Waits for the operator (Is the second title right for this owner?)",
+    );
+    // one preview, not one a minute
+    expect(await reelPass(run, root)).toBeNull();
+    expect(log.filter((line) => line.startsWith("preview "))).toHaveLength(1);
+    // the operator's word reaches the piece through Matter: now it uploads, once
+    expect(decide(root, folder, "approve").ok).toBe(true);
+    expect(await reelPass(run, root)).toBe("reel The door: done (asset-1)");
+    expect(brief(folder)["preview"]).toBeUndefined();
+  });
+
+  it("sends no preview that is not small, and does not try again every minute", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const log: string[] = [];
+    const run = deps({ preview: () => new Uint8Array(PREVIEW_MAX_BYTES + 1) }, log);
+    await reelPass(run, root);
+    decide(root, folder, "ask_operator", "A question.");
+    expect(await reelPass(run, root)).toBe("reel The door: no preview (preview_too_large)");
+    expect(log.some((line) => line.startsWith("preview "))).toBe(false);
+    expect(brief(folder)).toMatchObject({
+      state: "waiting_operator",
+      preview_error: "preview_too_large",
+    });
+    expect(await reelPass(run, root)).toBeNull();
+  });
+
+  it("refuses a decision on no piece, outside the studio, in the wrong state, or without a draft", () => {
+    // a piece that could take the decision, one folder above the studio: a name that climbs to it is refused
+    const outer = studio();
+    const decoy = queueReel(brand, from, outer);
+    writeFileSync(
+      join(decoy, "brief.json"),
+      JSON.stringify({ ...brief(decoy), state: "failed", reason: "x" }),
+    );
+    const root = join(outer, "pieces");
+    mkdirSync(root);
+    const folder = queueReel(brand, from, root);
+    const refused = (piece: string, decision: "approve" | "revise" | "ask_operator") =>
+      decidePiece({ skill: "studio", piece, decision, note: "n" }, root);
+    expect(refused("nothing-here", "approve")).toEqual({
+      ok: false,
+      line: 'There is no piece "nothing-here" in the studio.',
+    });
+    expect(refused("..", "approve").ok).toBe(false);
+    expect(refused(`../${basename(decoy)}`, "revise").ok).toBe(false);
+    expect(brief(decoy)).toMatchObject({ state: "failed" });
+    expect(refused(basename(folder), "approve")).toMatchObject({
+      ok: false,
+      line: 'The piece "The door" is queued, so it cannot be approved now.',
+    });
+    // a piece that failed before it had a draft has nothing to approve, but can be sent back
+    writeFileSync(
+      join(folder, "brief.json"),
+      JSON.stringify({ ...brief(folder), state: "failed", reason: "scene_missing: scene.html" }),
+    );
+    expect(refused(basename(folder), "approve")).toEqual({
+      ok: false,
+      line: 'The piece "The door" has no finished draft to approve.',
+    });
+    expect(refused(basename(folder), "ask_operator").ok).toBe(false);
+    expect(refused(basename(folder), "revise").ok).toBe(true);
+    expect(brief(folder)).toMatchObject({ state: "queued" });
+    expect(brief(folder)["reason"]).toBeUndefined();
+  });
+
+  it("reads a decision only whole: a revision or a question needs its note, and a piece is a folder name", () => {
+    const ok = (value: unknown) => studioDecisionSchema.safeParse(value).success;
+    expect(ok({ skill: "studio", piece: "2026-10-16-the-door", decision: "approve" })).toBe(true);
+    expect(ok({ skill: "studio", piece: "2026-10-16-the-door", decision: "revise" })).toBe(false);
+    expect(ok({ skill: "studio", piece: "x", decision: "ask_operator" })).toBe(false);
+    expect(ok({ skill: "studio", piece: "../desks", decision: "approve" })).toBe(false);
+    expect(ok({ skill: "studio", piece: "a/b", decision: "approve" })).toBe(false);
+    const answer = readJsonAnswer(
+      `Reviewed. ${JSON.stringify({ reply: "ok", media: [{ skill: "studio", piece: "p1", decision: "approve" }] })}`,
+    );
+    expect(answer.media).toEqual([{ skill: "studio", piece: "p1", decision: "approve" }]);
+  });
+
+  it("keeps the decision on a draft to Matter: a colleague asking for a reel gets no studio entry through", () => {
+    const decision = { skill: "studio", piece: "p1" };
+    const reel = { skill: "reel", name: "r" };
+    expect(mediaFor([decision, reel], false, ["chat", "request_reel"])).toEqual([reel]);
+    expect(mediaFor([decision], false, ["chat", "request_reel"])).toEqual([]);
+    expect(mediaFor([decision, reel], true, [])).toEqual([decision, reel]);
+  });
+
+  it("writes a row only when the folder changed, names a row it could not write, and tries it again later", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    writeFileSync(
+      join(folder, "brief.json"),
+      JSON.stringify({ ...brief(folder), state: "done", asset_id: "asset-9" }),
+    );
+    const at = new Date("2026-10-19T10:00:00Z");
+    expect(reelWork(root, at)).toBe(true);
+    const failing = fakeDb({
+      rpc: { studio_piece_put: () => new Error("relation does not exist") },
+    });
+    expect(await syncPieces(failing, root, at)).toEqual([
+      `${basename(folder)}: studio_row_failed: relation does not exist`,
+    ]);
+    expect(reelWork(root, new Date(at.getTime() + 60_000))).toBe(false);
+    expect(await syncPieces(failing, root, new Date(at.getTime() + 60_000))).toEqual([]);
+    expect(failing.calls).toHaveLength(1);
+    const later = new Date(at.getTime() + 11 * 60_000);
+    expect(reelWork(root, later)).toBe(true);
+    const working = recording();
+    expect(await syncPieces(working, root, later)).toEqual([]);
+    expect(reelWork(root, later)).toBe(false);
+    expect(await syncPieces(working, root, later)).toEqual([]);
+    expect(rpcArgs(working)).toEqual([
+      expect.objectContaining({
+        p_state: "done",
+        p_asset_id: "asset-9",
+        p_folder: basename(folder),
+      }),
+    ]);
+  });
+
+  it("keeps a decision made while the row was being written, and writes the row again for it", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    await reelPass(deps(), root);
+    // Matter approves while the pass's write of the draft's row is still on its way
+    const racing = fakeDb({
+      rpc: {
+        studio_piece_put: () => {
+          decide(root, folder, "approve");
+          return undefined;
+        },
+      },
+    });
+    writeFileSync(
+      join(folder, "brief.json"),
+      JSON.stringify({ ...brief(folder), synced: undefined }),
+    );
+    expect(await syncPieces(racing, root)).toEqual([]);
+    expect(brief(folder)).toMatchObject({ state: "approved" });
+    // the row said "draft", so the next pass writes "approved"
+    const next = recording();
+    expect(await syncPieces(next, root)).toEqual([]);
+    expect(rpcArgs(next)).toMatchObject([{ p_state: "approved" }]);
+  });
+
+  it("does not put a preview into a piece that was decided while the still was going up", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const log: string[] = [];
+    await reelPass(deps({}, log), root);
+    decide(root, folder, "ask_operator", "A question.");
+    const run = deps(
+      {
+        uploadPreview: () => {
+          decide(root, folder, "approve");
+          return Promise.resolve();
+        },
+      },
+      log,
+    );
+    expect(await reelPass(run, root)).toBe("reel The door: preview uploaded");
+    expect(brief(folder)["preview"]).toBeUndefined();
+    expect(brief(folder)).toMatchObject({ state: "approved" });
+    // the approval was kept, and the next pass uploads the film once
+    expect(await reelPass(run, root)).toBe("reel The door: done (asset-1)");
+  });
+
+  it("stops a pass at an approved piece whose draft is missing, and says so without uploading", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const log: string[] = [];
+    writeFileSync(
+      join(folder, "brief.json"),
+      JSON.stringify({ ...brief(folder), state: "approved" }),
+    );
+    expect(await reelPass(deps({}, log), root)).toMatch(/^reel The door: upload failed \(no_draft/);
+    expect(log.some((line) => line.startsWith("upload"))).toBe(false);
+    expect(log.at(-1)).toContain("was approved but not uploaded");
+    expect(log.at(-1)?.split("Its folder: ")[1]).toBe(basename(folder));
+    expect(brief(folder)).toMatchObject({ state: "failed" });
   });
 });

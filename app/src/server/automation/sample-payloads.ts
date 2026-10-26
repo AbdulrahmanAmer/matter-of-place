@@ -121,6 +121,22 @@ const builders: Record<EventType, Builder> = {
     const row = await submissionRow(db, id);
     return { submission_id: row.id, message_id: row.id, template: "received", reason: "bounce" };
   },
+  // W8 0h: a dry run of a person's email names its row and alias only.
+  "email.received": async (db, id) => {
+    const row = await firstRow(
+      db.from("inbound_mail").select("id, alias").eq("id", id).limit(1),
+      "inbound message",
+    );
+    return { inbound_id: row.id, alias: row.alias };
+  },
+  // W6 item 5: a dry run of a reply names its row and the source it answers only.
+  "email.reply_received": async (db, id) => {
+    const row = await firstRow(
+      db.from("email_replies").select("id, entity, entity_id").eq("id", id).limit(1),
+      "email reply",
+    );
+    return { reply_id: row.id, entity: row.entity, entity_id: row.entity_id };
+  },
   "submission.declined": async (db, id) => {
     const row = await submissionRow(db, id);
     return {
@@ -302,6 +318,8 @@ const placeholders: Partial<Record<EventType, JsonObject>> = {
     template: "received",
     reason: "bounce",
   },
+  "email.received": { inbound_id: SAMPLE_ID, alias: "hello" },
+  "email.reply_received": { reply_id: SAMPLE_ID, entity: "inquiry", entity_id: SAMPLE_ID },
 };
 
 /** Builds the payload of `trigger` from the row `entityId` names; a system event needs no row. */

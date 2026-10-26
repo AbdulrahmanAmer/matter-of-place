@@ -47,7 +47,7 @@ function StoriesPage() {
         <ComingSoon scope="stories" />
       ) : (
         <section className="section-wrap collection">
-          <StoryGrid items={stories} />
+          <StoryGrid items={stories} level={2} />
         </section>
       )}
       <Newsletter source="stories" />

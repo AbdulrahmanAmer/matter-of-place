@@ -17,7 +17,7 @@
     "find": "    badge: \"Opening soon\",\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/copy-voice.test.ts",
-    "expect": "× .*holds 32 strings"
+    "expect": "× .*holds 31 strings"
   },
   {
     "id": "b3b-cv-hype",
@@ -994,8 +994,8 @@
     "kind": "manual",
     "test": "tests/e2e/coming-soon.spec.ts",
     "file": "src/components/site/market-card.tsx",
-    "find": "open ? \"EDITORIAL DESK\" : t.comingSoon.badge",
-    "replace": "\"EDITORIAL DESK\"",
+    "find": "{t.comingSoon.badge}",
+    "replace": "EDITORIAL DESK",
     "run": "E2E_PORT=8878 E2E_TARGET=built E2E_MODE=live bun run test:e2e:coming-soon",
     "expect": "home shows three market cards[\\s\\S]*Expected substring: \"Opening soon\""
   },
