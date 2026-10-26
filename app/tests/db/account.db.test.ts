@@ -1,26 +1,8 @@
 // W6 item 7, ruling H119: the client room's one read. A client is the auth user whose confirmed email is a contact's
 // email; `account_room` answers that contact's requests and nothing else, and only the service role may call it.
 import { describe, expect, it } from "vitest";
-import { asRole, createAuthUser, withRollback, type Db } from "../fixtures/db";
-
-/** An auth user with `email`, confirmed unless `confirmed` is false. */
-async function person(db: Db, email: string, confirmed = true): Promise<string> {
-  const id = await createAuthUser(db);
-  await db.query(
-    "update auth.users set email = $2, email_confirmed_at = case when $3 then now() end where id = $1",
-    [id, email, confirmed],
-  );
-  return id;
-}
-
-async function contact(db: Db, email: string, archived = false): Promise<string> {
-  const { rows } = await db.query<{ id: string }>(
-    `insert into public.contacts (kind, name, email, archived_at)
-     values ('owner', 'Test Owner', $1, case when $2 then now() end) returning id`,
-    [email, archived],
-  );
-  return rows[0]?.id ?? "";
-}
+import { contact, person } from "../fixtures/account";
+import { asRole, withRollback, type Db } from "../fixtures/db";
 
 async function request(
   db: Db,

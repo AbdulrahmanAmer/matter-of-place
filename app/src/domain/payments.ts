@@ -175,3 +175,18 @@ const tiers: Record<InvoiceProduct, "Feature" | "Reach" | "Campaign"> = {
 export function tierOf(product: InvoiceProduct): "Feature" | "Reach" | "Campaign" {
   return tiers[product];
 }
+
+const packCredits: Partial<Record<InvoiceProduct, number>> = { "Five Features": 5 };
+
+/**
+ * The TS mirror of SQL `credits_in_package` (W6 item 8, ruling H142): how many properties a package pays for in
+ * advance, null for a product that is one property. A paid Five Features buys five credits.
+ */
+export function creditsInPackage(product: InvoiceProduct): number | null {
+  return packCredits[product] ?? null;
+}
+
+/** The dollars one credit is worth, as the waiver that spends it records them: the pack's price over its credits. */
+export function creditValue(packPrice: number, credits: number): number {
+  return Math.round((packPrice * 100) / credits) / 100;
+}

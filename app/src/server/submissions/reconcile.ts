@@ -43,7 +43,7 @@ const rowsSchema = z.array(
   z.object({
     id: z.string(),
     storage_path: z.string(),
-    submissions: z.object({ received_at: z.string() }),
+    declared_at: z.string(),
   }),
 );
 
@@ -69,10 +69,12 @@ export interface ReconcileCounts {
 }
 
 /**
- * Every row still without its object whose submission arrived after `since` minus the upload window: a found object
- * whose bytes match the declared type is marked uploaded, any other found object is removed, and a row whose window
- * has passed with no object counts as missing. A Storage or database error other than not-found throws, so the job
- * retries; a row already settled is skipped on the retry.
+ * Every row still without its object that was declared after `since` minus the upload window: a found object whose
+ * bytes match the declared type is marked uploaded, any other found object is removed, and a row whose window has
+ * passed with no object counts as missing. A row is aged by its own `declared_at`, not by its request's arrival: a
+ * photograph added from the client room to an older request has a window of its own (W6 item 8, ruling H142). A
+ * Storage or database error other than not-found throws, so the job retries; a row already settled is skipped on the
+ * retry.
  *
  * The rows are read newest first, CONCURRENCY at a time, and no row is started after `deadline` (epoch milliseconds):
  * one Storage round trip costs about 0.2 s, so a crowd of waiting rows read one after the other outran the job's
@@ -86,14 +88,14 @@ export async function reconcileUploads(
 ): Promise<ReconcileCounts> {
   const { data, error } = await db
     .from("submission_media")
-    .select("id, storage_path, submissions!inner(received_at)")
+    .select("id, storage_path, declared_at")
     .is("uploaded_at", null)
-    .gt("submissions.received_at", new Date(since.getTime() - UPLOAD_WINDOW_MS).toISOString());
+    .gt("declared_at", new Date(since.getTime() - UPLOAD_WINDOW_MS).toISOString());
   if (error !== null) throw databaseUnavailable();
   const rows = rowsSchema
     .parse(data)
     .filter((row) => !row.storage_path.startsWith(STAGING))
-    .sort((a, b) => Date.parse(b.submissions.received_at) - Date.parse(a.submissions.received_at));
+    .sort((a, b) => Date.parse(b.declared_at) - Date.parse(a.declared_at));
   const counts: ReconcileCounts = { checked: 0, uploaded: 0, deleted: 0, missing: 0, deferred: 0 };
   const store = db.storage.from(BUCKET);
 
@@ -101,7 +103,7 @@ export async function reconcileUploads(
     const download = await store.download(row.storage_path);
     if (download.error !== null) {
       if (!isNotFound(download.error)) throw storageUnavailable();
-      if (now - Date.parse(row.submissions.received_at) > UPLOAD_WINDOW_MS) counts.missing += 1;
+      if (now - Date.parse(row.declared_at) > UPLOAD_WINDOW_MS) counts.missing += 1;
       return;
     }
     const bytes = new Uint8Array(await download.data.arrayBuffer());

@@ -180,6 +180,7 @@ const media = (
   sort_order: 0,
   source_url,
   storage_path: `${REQUEST}/${id}`,
+  declared_at: "2026-10-15T09:55:00Z",
   uploaded_at: uploaded ? "2026-10-15T10:00:00Z" : null,
 });
 
