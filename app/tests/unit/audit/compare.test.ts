@@ -84,6 +84,14 @@ describe("brand queries (W8 item 12c)", () => {
     expect(lines).toContain("brand_queries.queries[matter of place].position  9.1 -> 8.3  -0.8");
     expect(lines.join("\n")).not.toMatch(/previous/);
   });
+
+  it("still compares a previous block elsewhere, as the KPI collector stores it", () => {
+    const kpis = (visits: number, before: number) => ({
+      kpis: { current: { visits }, previous: { visits: before } },
+    });
+    const lines = describeDeltas(compareSidecars(kpis(12, 10), kpis(10, 8)));
+    expect(lines.some((line) => line.startsWith("kpis.previous.visits"))).toBe(true);
+  });
 });
 
 describe("choosing the two sidecars", () => {

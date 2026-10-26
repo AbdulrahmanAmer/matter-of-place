@@ -300,9 +300,18 @@
     "id": "w8-12c-compare",
     "test": "tests/unit/audit/compare.test.ts",
     "file": "../workspace/audits/tools/compare.mjs",
-    "find": "      if (key === \"previous\") continue;\n",
+    "find": "      if (key === \"previous\" && path.startsWith(\"brand_queries.queries[\")) continue;\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
     "expect": "FAIL .*compares the position of a query by its name and never reads the previous block again"
+  },
+  {
+    "id": "w8-12c-compare-kpis-previous",
+    "test": "tests/unit/audit/compare.test.ts",
+    "file": "../workspace/audits/tools/compare.mjs",
+    "find": "key === \"previous\" && path.startsWith(\"brand_queries.queries[\")",
+    "replace": "key === \"previous\"",
+    "run": "bunx vitest run --project unit tests/unit/audit/compare.test.ts",
+    "expect": "FAIL .*still compares a previous block elsewhere, as the KPI collector stores it"
   }
 ]
