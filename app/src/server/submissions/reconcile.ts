@@ -72,8 +72,9 @@ export interface ReconcileCounts {
  * Every row still without its object that was declared after `since` minus the upload window: a found object whose
  * bytes match the declared type is marked uploaded, any other found object is removed, and a row whose window has
  * passed with no object counts as missing. A row is aged by its own `declared_at`, not by its request's arrival: a
- * photograph added from the client room to an older request has a window of its own (W6 item 8, ruling H142). A Storage or database error other than not-found throws, so the job
- * retries; a row already settled is skipped on the retry.
+ * photograph added from the client room to an older request has a window of its own (W6 item 8, ruling H142). A
+ * Storage or database error other than not-found throws, so the job retries; a row already settled is skipped on the
+ * retry.
  *
  * The rows are read newest first, CONCURRENCY at a time, and no row is started after `deadline` (epoch milliseconds):
  * one Storage round trip costs about 0.2 s, so a crowd of waiting rows read one after the other outran the job's

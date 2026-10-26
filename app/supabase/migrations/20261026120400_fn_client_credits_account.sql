@@ -20,6 +20,7 @@ declare
   v_balance integer;
   v_payment uuid;
   v_event uuid;
+  v_used public.client_credits;
 begin
   -- W6 item 8 (ruling H142): a Five Features credit is spent on one accepted request of the contact that holds it. The
   -- waiver is `record_waiver` (ruling H18, invariant 12): no invoice, no number, no mail. The ledger row is written in the
@@ -51,7 +52,12 @@ begin
     p_submission_id, 'Five Features', p_amount, p_reason, p_actor, p_actor_kind, p_request_id
   ) w;
   insert into public.client_credits (contact_id, kind, quantity, payment_id, submission_id, note)
-  values (v_contact, 'used', -1, v_payment, p_submission_id, p_reason);
+  values (v_contact, 'used', -1, v_payment, p_submission_id, p_reason)
+  returning * into v_used;
+  -- `record_waiver` audits the payment; the credit it used is a change of its own, under the same action.
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'payments.waive', 'client_credits', v_used.id, null, to_jsonb(v_used), p_request_id
+  );
   return query select v_payment, v_event;
 end;
 $$;

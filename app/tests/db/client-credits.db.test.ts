@@ -3,7 +3,7 @@
 // in one rolled-back transaction.
 import pg from "pg";
 import { describe, expect, it } from "vitest";
-import { creditsInPackage } from "../../src/domain/payments";
+import { creditsInPackage, invoiceProducts } from "../../src/domain/payments";
 import { contact, idsOf, isRecord, person, rowsOf } from "../fixtures/account";
 import { createStaffUser, dbNow, withRollback, type Db } from "../fixtures/db";
 import {
@@ -72,7 +72,7 @@ async function request(
   n: number,
   email: string,
   state: SubmissionFactoryInput["state"],
-  product: "The Feature" | "Five Features" = "Five Features",
+  product: (typeof invoiceProducts)[number] = "Five Features",
 ): Promise<string> {
   return createSubmission(db, {
     state,
@@ -193,7 +193,20 @@ describe("client_credits", () => {
         "select quantity, payment_id = $2 as same_payment from public.client_credits where submission_id = $1",
         [next, spent.payment_id],
       );
-      return { payment, used: used.rows, balance: await balanceOf(db, OWNER) };
+      // The waiver audits the payment and the credit it used, each under its own entity.
+      const audited = await db.query(
+        `select a.action, a.entity, a.actor_id = $1 as by_actor,
+           a.entity_id = case a.entity when 'payments' then $2::uuid
+             else (select cc.id from public.client_credits cc where cc.submission_id = $3) end as same_row
+         from public.audit_log a where a.request_id = 'req-credits-db' order by a.entity`,
+        [actor, spent.payment_id, next],
+      );
+      return {
+        payment,
+        used: used.rows,
+        audited: audited.rows,
+        balance: await balanceOf(db, OWNER),
+      };
     });
     expect(seen).toEqual({
       payment: {
@@ -205,6 +218,10 @@ describe("client_credits", () => {
         state: "Invoice Issued",
       },
       used: [{ quantity: -1, same_payment: true }],
+      audited: [
+        { action: "payments.waive", entity: "client_credits", by_actor: true, same_row: true },
+        { action: "payments.waive", entity: "payments", by_actor: true, same_row: true },
+      ],
       balance: 3,
     });
   });
@@ -332,14 +349,21 @@ describe("client_credits", () => {
       await db.query("select set_config('mop.fixture_cleanup', 'on', true)");
       const inProduction = await attempt(db, remove, [payment]);
       await db.query("rollback to savepoint production");
+      // A database that does not say which environment it is may be production: it refuses too.
+      await db.query("savepoint unknown");
+      await db.query("delete from public.settings where key = 'environment'");
+      await db.query("select set_config('mop.fixture_cleanup', 'on', true)");
+      const unknown = await attempt(db, remove, [payment]);
+      await db.query("rollback to savepoint unknown");
       await db.query("select set_config('mop.fixture_cleanup', '', true)");
       const unasked = await attempt(db, remove, [payment]);
       await db.query("select set_config('mop.fixture_cleanup', 'on', true)");
       const asked = await attempt(db, remove, [payment]);
-      return { inProduction, unasked, asked, rows: (await ledger(db, OWNER)).length };
+      return { inProduction, unknown, unasked, asked, rows: (await ledger(db, OWNER)).length };
     });
     expect(seen).toEqual({
       inProduction: "P0001 append_only",
+      unknown: "P0001 append_only",
       unasked: "P0001 append_only",
       asked: "ok",
       rows: 0,
@@ -444,13 +468,17 @@ describe("client_credits", () => {
   });
 });
 
-/** The answer of one of the room's page functions for the person at `email`. */
-async function page(db: Db, fn: string, email: string): Promise<unknown> {
+/** The answer of one of the room's page functions for the auth user `user`. */
+async function answerOf(db: Db, fn: string, user: string): Promise<unknown> {
   // Times print in the session's zone; PostgREST sessions are UTC, and so is this one.
   await db.query("set local time zone 'UTC'");
-  const user = await person(db, email);
   const { rows } = await db.query<{ answer: unknown }>(`select public.${fn}($1) as answer`, [user]);
   return rows[0]?.answer;
+}
+
+/** The answer of one of the room's page functions for a new person at `email` (one call per test: emails are unique). */
+async function page(db: Db, fn: string, email: string): Promise<unknown> {
+  return answerOf(db, fn, await person(db, email));
 }
 
 /** "<name>, <email>" of a page's answer, or null when the answer names no one. */
@@ -463,6 +491,9 @@ describe("the room's page functions", () => {
   it("every page says whose room it is, and none answers a session that is no contact's", async () => {
     const seen = await withRollback(async (db) => {
       await contact(db, OWNER);
+      // Each person is made once: `auth.users` holds one row per email, and the four calls share them.
+      const owner = await person(db, OWNER);
+      const stranger = await person(db, "test-credits-nobody@example.test");
       const answers: Record<string, unknown> = {};
       for (const fn of [
         "account_properties",
@@ -470,8 +501,8 @@ describe("the room's page functions", () => {
         "account_credits",
         "account_reports",
       ]) {
-        const known = await page(db, fn, OWNER);
-        const nobody = await page(db, fn, "test-credits-nobody@example.test");
+        const known = await answerOf(db, fn, owner);
+        const nobody = await answerOf(db, fn, stranger);
         answers[fn] = {
           who: whoOf(known),
           nobody,
