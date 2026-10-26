@@ -135,8 +135,6 @@ export function checkRobots(body: string, host: string): string[] {
     for (const line of [
       "Content-Signal: search=yes, ai-input=yes, ai-train=no",
       "Allow: /",
-      "Disallow: /admin",
-      "Disallow: /api",
       `Sitemap: ${ORIGIN}/sitemap.xml`,
     ])
       if (!has(line)) problems.push(`robots.txt lacks "${line}"`);
