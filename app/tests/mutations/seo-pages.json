@@ -1,0 +1,128 @@
+[
+  {
+    "id": "seo-pages-article-modified",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/lib/seo-page.ts",
+    "find": "dateModified: page.updated,",
+    "replace": "dateModified: \"2026-01-01\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the head of an article guide > writes Article data, a breadcrumb under Guides, and no FAQPage or Service"
+  },
+  {
+    "id": "seo-pages-og-article",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/lib/seo-page.ts",
+    "find": "type: page.kind === \"guide\" ? \"article\" : \"website\",",
+    "replace": "type: \"website\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the head of an article guide > writes the title, the canonical and the article dates from the content, not the clock"
+  },
+  {
+    "id": "seo-pages-jsonld-dropped",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/lib/seo-page.ts",
+    "find": "jsonLd: seoPageJsonLd(page),",
+    "replace": "jsonLd: [],",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the head of a collection guide > writes a website page with Service and FAQPage data in one graph, and no Article"
+  },
+  {
+    "id": "seo-pages-inline-unserved",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/lib/seo-links.ts",
+    "find": "parts.push(isServedPath(to) ? { text: anchor, to } : { text: anchor });",
+    "replace": "parts.push({ text: anchor, to });",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*splitInline > keeps a link to a page that exists and writes a link to one that does not as its anchor"
+  },
+  {
+    "id": "seo-pages-footer-link",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<Link to=\"/guides\">{t.nav.guides}</Link>",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the routes > links the guides index from the footer, so no search page is an orphan"
+  },
+  {
+    "id": "seo-pages-outline",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/historic-homes-for-sale.ts",
+    "find": "heading: \"How it works\",",
+    "replace": "heading: \"How it really works\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the registry of search pages > follows the outline of its kind, then the questions, then the closing section"
+  },
+  {
+    "id": "seo-pages-voice-exclamation",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/historic-homes-for-sale.ts",
+    "find": "Historic homes for sale are existing houses",
+    "replace": "Historic homes for sale! Existing houses",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the copy of the search pages follows the brand rules > has no em dash, en dash or exclamation mark, no hyperbole and no market outside the three"
+  },
+  {
+    "id": "seo-pages-sitemap-entries",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "...seoEntries(now),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap search pages \\(src/content/seo\\) > lists every search page and the /guides index, whatever the catalog holds"
+  },
+  {
+    "id": "seo-pages-word-range",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/historic-homes-for-sale.ts",
+    "find": "words: [700, 1400],",
+    "replace": "words: [100, 200],",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the registry of search pages > stays inside the word range its page declares"
+  },
+  {
+    "id": "seo-pages-city-outline",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/historic-homes-for-sale-hudson-valley.ts",
+    "find": "heading: \"How we help in Hudson Valley\",",
+    "replace": "heading: \"How we help in the Hudson Valley\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the registry of search pages > follows the outline of its kind, then the questions, then the closing section"
+  },
+  {
+    "id": "seo-pages-meta-drift",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/meta.ts",
+    "find": "path: \"/historic-homes-for-sale\",",
+    "replace": "path: \"/historic-homes-for-sale-x\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the light lists that keep page copy out of the chunk every route loads > repeats the address, kind, headline and description of every page, in the registry's order"
+  },
+  {
+    "id": "seo-pages-loader-slug",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/loaders.ts",
+    "find": "[\"house-of-the-day\", async",
+    "replace": "[\"house-of-day\", async",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the light lists that keep page copy out of the chunk every route loads > loads each article guide by its slug, and only the guides"
+  },
+  {
+    "id": "seo-pages-static-copy-import",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/routes/_site.historic-homes-for-sale.tsx",
+    "find": "import { SeoPage } from \"../components/site/seo-page\";",
+    "replace": "import { SeoPage } from \"../components/site/seo-page\";\nimport { historicHomesForSale } from \"../content/seo/historic-homes-for-sale\";",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the light lists that keep page copy out of the chunk every route loads > imports no page copy at the top of a file every route loads"
+  },
+  {
+    "id": "seo-pages-guide-404",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/routes/_site.guides.$slug.tsx",
+    "find": "if (load === undefined) throw notFound();",
+    "replace": "if (load === undefined) return undefined;",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the head of an article guide > answers an unknown slug 404 and marks its head noindex"
+  }
+]

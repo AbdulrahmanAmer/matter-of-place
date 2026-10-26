@@ -1120,6 +1120,7 @@ Entry template
 - hit again: 2026-10-07, B6 g1: a leftover `cat > /tmp/fixpay.cjs 2>/dev/null;` ahead of a heredoc waited on stdin until the 120 s ceiling moved the call to the background; the `cat` was ended by its own process id (`ps -ef`), and the node patch after it then ran.
 - hit again: 2026-10-08, B7 g1 resume: a `python - <<EOF` that resolved two merge conflicts (`src/db/types.ts`, `tests/unit/assert-not-production.test.ts`) ran, but its text-mode `open(p, "w")` wrote every line ending as CRLF; `bun run check` then stopped at lint with 93 `Delete ␍ prettier/prettier` errors after a 10-minute run. `git checkout -- <file>` did not rewrite the file (git saw no change); `rm <file> && git checkout -- <file>` did. Proof: `git -C app ls-files --eol | grep -c w/crlf` → `0` after the fix. Resolve conflicts with the Edit tool or a node script, never python.
 - hit again: 2026-10-26, W8 item 11 fix round: a stray `python - 2>/dev/null;` left in front of a `sed` in a `&&` chain hung the call 120 s and moved it to the background; the cause was a habit, not a need (the sed ran in the next call). No python in this project, P-008.
+- hit again: 2026-10-26, SEO pages phase 1: a `python - <<'EOF' ... || echo nopython` probe before a one-line edit hung 120 s and went to the background; the edit was made with the Edit tool.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -8797,68 +8798,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
 
-## P-4601 · A route added without a build: the generator package writes `routeTree.gen.ts`, minus the plugin's last block
-- symptom: 2026-10-19, W6 item 8: four new routes (`_site.account.{properties,invoices,credits,reports}.tsx`) are typed by `src/routeTree.gen.ts` (G-001), which only `vite build` or `vite dev` writes, and the brief forbids a local build.
-- cause: the Start plugin calls `@tanstack/router-generator`; run alone, the generator writes the same tree but not the closing `declare module '@tanstack/react-start'` block that the Start plugin appends, so a first run deleted 10 lines.
-- rule: regenerate with a scratch script that imports `node_modules/@tanstack/router-generator/dist/esm/index.js` (`getConfig({ routesDirectory, generatedRouteTree, target: "react" }, root)`, then `new Generator({ config, root }).run()`), then put the last block back from `git show HEAD:app/src/routeTree.gen.ts`. The diff must be insertions only.
-- proof: `cd app && git diff --stat src/routeTree.gen.ts` → `84 insertions(+)` for four routes and no deletion (2026-10-19).
-- added: 2026-10-19
-
-## P-4602 · Types for an unmerged migration come from the native database through a copy of `gen-types.mjs`, run with bun
-- symptom: 2026-10-19, W6 item 8: a copy of `scripts/gen-types.mjs` pointed at the native cluster and started with `node` printed `Cannot find module '.../app/x'`.
-- cause: the script spawns `process.execPath x supabase gen types ...`, which is `bun x ...` only when bun runs it.
-- rule: copy the script to the scratch folder, make `source()` return `["--db-url", "postgresql://postgres@127.0.0.1:<port>/<db>?sslmode=disable"]`, give `APP` and `TYPES_DIR` absolute paths, run it with `bun`, and copy its output over `src/db/types.ts`; the diff against HEAD must hold only the new table and functions.
-- proof: `cd app && git diff --stat src/db/types.ts` → `67 insertions(+)` for one table and seven functions (2026-10-19).
-- added: 2026-10-19
-
-## P-4603 · A calendar day shown through a zone formatter moves back a day in the Americas
-- symptom: 2026-10-19, W6 item 8: the Reports component test expected "Oct 8, 2026 to Oct 14, 2026" and received "Oct 7, 2026 to Oct 13, 2026".
-- cause: a `date` column (`campaign_reports.period_start`) arrives as `2026-10-08`; `new Date("2026-10-08")` is midnight UTC, and `formatInZone` with an Eastern zone prints the evening before.
-- rule: a `date` column is shown with `calendarDay` (`account-format.ts`, `timeZone: "UTC"`); only a `timestamptz` goes through `accountDay` or `plainDay`.
-- proof: `cd app && node node_modules/vitest/vitest.mjs run --project component src/components/account/account-reports.test.tsx` is green, and the entry `w6-8-ui-reports-calendar` of `tests/mutations/W6-8.json` turns it red.
-- added: 2026-10-19
-
-## P-4604 · A registry `sql` entry whose `-t` fragment matches no test title reads as "stayed green"
-- symptom: 2026-10-19, W6 item 8: `w6-8-pack-once` replayed `WATCHED-FAIL BAD: stayed green` although its mutation removed both guards of the trigger.
-- cause: the fragment `touched again adds no row` is not a substring of the title `a payment already paid, touched again, adds no row` (the comma), so vitest ran no test and exited 0.
-- rule: copy the fragment from the title, commas included, and run the entry's command once without the mutation: it must say `Tests  1 passed`, never `0 passed`.
-- proof: with the fragment `touched again, adds no row` the replay prints `WATCHED-FAIL OK W6-8:w6-8-pack-once`.
-- added: 2026-10-19
-
-## P-4605 · Fixture facts for a room test: `publishedProperty` forces `published_at`, a takedown archives, `createSubmission` overwrites the contact's name
-- symptom: 2026-10-19, W6 item 8, first run of `client-credits.db.test.ts`: `properties_archived_pairing`, then `properties_published_pairing` refused the fixture, and the greeting name was "Fixture Submitter 947", not "Test Owner".
-- cause: `properties.editorial_state = 'archived'` requires `archived_at` and `'published'` requires `published_at` (a takedown clears the second), `publishedProperty` always sets `published_at`, and `createSubmission` upserts the contact with the name of the latest submission.
-- rule: a draft property is `publishedProperty(db, { n, editorial_state: "draft", published_at: null })`; a page is live when `editorial_state = 'published'` alone; a test of a room reads the contact's name from the answer rather than expecting one it typed.
-- proof: `grep -n "properties_published_pairing" app/supabase/migrations/20261001090300_catalog.sql` → line 162; `tests/db/client-credits.db.test.ts` case "a property that is not published has no live page" passes.
-- added: 2026-10-19
-
-## P-4606 · Main's newest migration can be stamped ahead of the clock, so `bun run db:fn` writes a version older than it
-- symptom: 2026-10-26 09:16 UTC, W6 item 8 fix round: main's newest migrations were `20261026120000_build_lessons.sql` and `20261026120100_build_lesson_fn.sql` (written by hand ahead of UTC), and `bun run db:fn --name fn_client_credits_account ...` wrote `20261026091648_fn_client_credits_account.sql`, which `node scripts/check-migrations.mjs` refuses (`rename ... to a timestamp after 20261026120100`).
-- cause: `supabase migration new` stamps the current UTC time; the order check compares with the newest version on origin/main, whatever clock wrote it.
-- rule: before adding a migration, `git ls-tree --name-only origin/main app/supabase/migrations/ | tail -2`; when the newest is ahead of `date -u +%Y%m%d%H%M%S`, name new table migrations after it by hand and rename the file `db:fn` writes to the next free version after them (its text does not name its own version), keeping the order the SQL needs.
-- proof: `git ls-tree --name-only origin/main app/supabase/migrations/ | tail -2` → `...120000_build_lessons.sql`, `...120100_build_lesson_fn.sql` while `date -u` said 09:16; this branch's three migrations are `20261026120200`, `120300` and `120400`.
-- added: 2026-10-26
-
-## P-4607 · A stub-only probe of a db branch missed three CI failures that a schema-dump cluster runs in minutes
-- symptom: 2026-10-26, W6 item 8, PR 490 at a2e87ca3: CI's tsc refused `request(db, 950, OWNER, "Distribution Active", "The Reach")` (a test helper typed `"The Feature" | "Five Features"`); the db job failed `actor.db.test.ts` (`+ Received: "spend_client_credit"`: a new function taking `p_actor` that never calls `write_audit`) and a client-credits case with `duplicate key value violates unique constraint "users_email_partial_key"` (`page()` made the same person once per page in one transaction). The round had been probed only by hand on a stub cluster that named the touched tables, so no test file ran.
-- cause: hand probes check the behaviour you thought of; the repository's cross-cutting tests (the actor sweep, auth's unique email) only run when the files run.
-- rule: for a branch that adds SQL, build a P-718 cluster from `pg_dump --schema-only --no-owner -n public -n app` of mop-dev plus `--data-only` of the config tables (settings, action_roles, retention_policies, pii_columns, markets, regions, invoice_counters, decline_reasons), set `environment` to development there, apply the branch's migrations, and run the branch's db files and `tests/db/actor.db.test.ts` (any new `p_actor` function) before the push; the stub schema must give `auth.users` the partial unique index on email. A test helper's literal parameter takes the domain list's type (`(typeof invoiceProducts)[number]`), never a hand union.
-- proof: from `app/`, `DEV_DB_URL=postgresql://postgres@127.0.0.1:55620/mop env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts tests/db/actor.db.test.ts` → `Tests  33 passed (33)` on the fix round 2 tree; the cluster was built in about five minutes (0 restore errors) by a script of the shape above (2026-10-26).
-- added: 2026-10-26
-
-## P-4608 · A page section heading that repeats the page title fails a strict e2e, and `Intl` in a component helper fails R43
-- symptom: 2026-10-26, W6 item 8, PR 490 at d4c20d32: e2e `strict mode violation: getByRole('heading', { name: 'Invoices' }) resolved to 2 elements` (the `PageIntro` `h1` and the component's own `h2 Invoices`); lint R43 on `new Intl.*` and `toLocaleString` in `components/account/account-format.ts`, and `switch-exhaustiveness-check` on a status switch that ended in `default`.
-- cause: the route renders `PageIntro` with the page title and the component added a heading with the same words; the R43 rule exempts only `src/lib/format.ts`, `src/domain/market-time.ts` and `src/server/**`, so a component-folder formatter is still a component; the lint wants every member of a union named, a `default` does not count.
-- rule: a component rendered under `PageIntro` starts below the `h1` (its first heading is an `h2` with different words, or none); an e2e asks for a page heading with `level: 1`; a formatter that needs `Intl` goes in `src/lib/format.ts`; a switch over a union names every member and has no `default`.
-- proof: `cd app && grep -rnE "new Intl\.|\.toLocale(Date|Time)?String\(" src/components src/routes src/admin` → no hits on the fix round 3 tree; `grep -n "<h2>Invoices" src/components/account/account-invoices.tsx` → no hits.
-- added: 2026-10-26
-
-## P-3709 · A one-line `sed` fix of code leaves the registry entry that names that line stale, and CI's replay finds it 25 minutes later
-- symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
-- rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
-- proof: `node ~/.claude/hooks/edit-impact.mjs --changed E:/mop-build/finish3` printed the STALE note before the entry was updated and nothing after (2026-10-19).
-- added: 2026-10-19
-
 ## P-4520 · A builder worktree cannot run the `db` project, and a function change is still provable on a throwaway native cluster in minutes
 - symptom: W6 item 5 (2026-10-19): `node node_modules/vitest/vitest.mjs run --project db tests/db/email-replies.db.test.ts` from the worktree printed `ENOENT: no such file or directory, open '...\od-w6-5\.env'` and then `Error: refusing: DEV_DB_URL is not set (load the dev profile)`; the db tests also refuse any URL that is not local, and `mop-dev` is production after the launch switch (H35). The P-312 prelude route is closed for the same reason.
 - cause: a worktree holds no `.env`, and `tests/db/global-setup.ts` accepts only a local database.
@@ -8933,6 +8872,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: Postgres infers a partial unique index for `ON CONFLICT (cols)` only when the statement names the index's predicate (`ON CONFLICT (cols) WHERE ...`), and supabase-js has no way to send one.
 - rule: a write that must skip duplicates of a partial unique index goes through a service-role SQL function whose `on conflict` names the predicate (`queue_event_runs`); never `upsert` with `onConflict` on such columns, and always read the error of a write. A fake that accepts any `onConflict` proves nothing about it: give the write a db test.
 - proof: on a P-718 stub cluster with the branch's migrations, `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:55492/mopw env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/inbound-mail.db.test.ts -t "queues one Editor run"` → `1 passed`: the case asserts the plain `on conflict (agent_id, event_id)` insert fails with `no unique or exclusion constraint`, beside the function's 1 then 0 (2026-10-19, 13 of 13 for the file).
+- added: 2026-10-19
+
+## P-3709 · A one-line `sed` fix of code leaves the registry entry that names that line stale, and CI's replay finds it 25 minutes later
+- symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
+- rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
+- proof: `node ~/.claude/hooks/edit-impact.mjs --changed E:/mop-build/finish3` printed the STALE note before the entry was updated and nothing after (2026-10-19).
 - added: 2026-10-19
 
 ## P-3720 · The audit's uptime row says ok for a monitor UptimeRobot reads down, and the laptop's ops-health token is stale
@@ -9063,6 +9008,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh pr view 483 --json commits -q '.commits[].messageHeadline'` shows the four fix commits after the ten refactor commits; merged as db4d03c1.
 - added: 2026-10-26
 
+## P-3734 · A new route file needs `src/routeTree.gen.ts` regenerated; without a build, the route generator alone does it, in place
+- symptom: 2026-10-26, SEO pages phase 1: three new route files, and the rule that no build, tsc or test runs on the laptop (CI judges) left `routeTree.gen.ts` stale, which fails `bun run check` at typecheck (G-021). Writing the file by hand is the thing G-001 forbids; writing the generator's output to another folder changed the line wrapping of every long `import('./routes/...lazy')` line.
+- cause: the tree is made by `Generator` of `@tanstack/router-generator` during `vite build`; its output wraps lines by the length of the relative import path, so only a file written at its real place matches CI. The Start plugin then appends a `declare module '@tanstack/react-start'` block the bare generator does not write.
+- rule: run `Generator` from `@tanstack/router-generator` (any copy under a node_modules) with `getConfig({ target: "react", routesDirectory: "<app>/src/routes", generatedRouteTree: "<app>/src/routeTree.gen.ts", autoCodeSplitting: false, disableLogging: true }, "<app>")`, then put back the last 10 lines of the committed file (the blank line, two `import type` lines and the `declare module '@tanstack/react-start'` block) and delete the `.tanstack/` folder it leaves. `git diff --stat app/src/routeTree.gen.ts` must show additions only. Do not reach for python for the splice (P-094). Never run `prettier --write` on `GOTCHAS.md` or `routeTree.gen.ts`: it took 36 s and rewrote 1169 lines of the bank.
+- proof: `git diff --numstat origin/main -- app/src/routeTree.gen.ts` → `64	0` for the three SEO routes (`_site.historic-homes-for-sale`, `_site.guides.index`, `_site.guides.$slug`); a regeneration with the committed routes only gave 89 lines of difference when written outside `src/`.
+- added: 2026-10-26
+
 ## P-4548 · A plan item that names a column value can name one the table's check refuses
 - symptom: W6 item 4 said "`agent_lessons` with `source = 'build'`", but `agent_lessons_source_check` allowed only decline, edit, outcome and matter; written as the item reads, every insert fails and the item needed a migration its brief did not mention.
 - cause: the item was written from the idea ("a build lesson") and never checked against the table's check constraint.
@@ -9140,6 +9092,62 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a test of a clean child environment asserts that the decoy keys are absent and that nothing outside the kept list and those six names arrived; it never asserts an exact list on Windows.
 - proof: `cd app && bunx vitest run --project unit tests/unit/reel/render-reel-script.test.ts` → passes; with the six names dropped from its `windows` list it fails listing them (measured 2026-10-19).
 - added: 2026-10-19
+
+## P-4601 · A route added without a build: the generator package writes `routeTree.gen.ts`, minus the plugin's last block
+- symptom: 2026-10-19, W6 item 8: four new routes (`_site.account.{properties,invoices,credits,reports}.tsx`) are typed by `src/routeTree.gen.ts` (G-001), which only `vite build` or `vite dev` writes, and the brief forbids a local build.
+- cause: the Start plugin calls `@tanstack/router-generator`; run alone, the generator writes the same tree but not the closing `declare module '@tanstack/react-start'` block that the Start plugin appends, so a first run deleted 10 lines.
+- rule: regenerate with a scratch script that imports `node_modules/@tanstack/router-generator/dist/esm/index.js` (`getConfig({ routesDirectory, generatedRouteTree, target: "react" }, root)`, then `new Generator({ config, root }).run()`), then put the last block back from `git show HEAD:app/src/routeTree.gen.ts`. The diff must be insertions only.
+- proof: `cd app && git diff --stat src/routeTree.gen.ts` → `84 insertions(+)` for four routes and no deletion (2026-10-19).
+- added: 2026-10-19
+
+## P-4602 · Types for an unmerged migration come from the native database through a copy of `gen-types.mjs`, run with bun
+- symptom: 2026-10-19, W6 item 8: a copy of `scripts/gen-types.mjs` pointed at the native cluster and started with `node` printed `Cannot find module '.../app/x'`.
+- cause: the script spawns `process.execPath x supabase gen types ...`, which is `bun x ...` only when bun runs it.
+- rule: copy the script to the scratch folder, make `source()` return `["--db-url", "postgresql://postgres@127.0.0.1:<port>/<db>?sslmode=disable"]`, give `APP` and `TYPES_DIR` absolute paths, run it with `bun`, and copy its output over `src/db/types.ts`; the diff against HEAD must hold only the new table and functions.
+- proof: `cd app && git diff --stat src/db/types.ts` → `67 insertions(+)` for one table and seven functions (2026-10-19).
+- added: 2026-10-19
+
+## P-4603 · A calendar day shown through a zone formatter moves back a day in the Americas
+- symptom: 2026-10-19, W6 item 8: the Reports component test expected "Oct 8, 2026 to Oct 14, 2026" and received "Oct 7, 2026 to Oct 13, 2026".
+- cause: a `date` column (`campaign_reports.period_start`) arrives as `2026-10-08`; `new Date("2026-10-08")` is midnight UTC, and `formatInZone` with an Eastern zone prints the evening before.
+- rule: a `date` column is shown with `calendarDay` (`account-format.ts`, `timeZone: "UTC"`); only a `timestamptz` goes through `accountDay` or `plainDay`.
+- proof: `cd app && node node_modules/vitest/vitest.mjs run --project component src/components/account/account-reports.test.tsx` is green, and the entry `w6-8-ui-reports-calendar` of `tests/mutations/W6-8.json` turns it red.
+- added: 2026-10-19
+
+## P-4604 · A registry `sql` entry whose `-t` fragment matches no test title reads as "stayed green"
+- symptom: 2026-10-19, W6 item 8: `w6-8-pack-once` replayed `WATCHED-FAIL BAD: stayed green` although its mutation removed both guards of the trigger.
+- cause: the fragment `touched again adds no row` is not a substring of the title `a payment already paid, touched again, adds no row` (the comma), so vitest ran no test and exited 0.
+- rule: copy the fragment from the title, commas included, and run the entry's command once without the mutation: it must say `Tests  1 passed`, never `0 passed`.
+- proof: with the fragment `touched again, adds no row` the replay prints `WATCHED-FAIL OK W6-8:w6-8-pack-once`.
+- added: 2026-10-19
+
+## P-4605 · Fixture facts for a room test: `publishedProperty` forces `published_at`, a takedown archives, `createSubmission` overwrites the contact's name
+- symptom: 2026-10-19, W6 item 8, first run of `client-credits.db.test.ts`: `properties_archived_pairing`, then `properties_published_pairing` refused the fixture, and the greeting name was "Fixture Submitter 947", not "Test Owner".
+- cause: `properties.editorial_state = 'archived'` requires `archived_at` and `'published'` requires `published_at` (a takedown clears the second), `publishedProperty` always sets `published_at`, and `createSubmission` upserts the contact with the name of the latest submission.
+- rule: a draft property is `publishedProperty(db, { n, editorial_state: "draft", published_at: null })`; a page is live when `editorial_state = 'published'` alone; a test of a room reads the contact's name from the answer rather than expecting one it typed.
+- proof: `grep -n "properties_published_pairing" app/supabase/migrations/20261001090300_catalog.sql` → line 162; `tests/db/client-credits.db.test.ts` case "a property that is not published has no live page" passes.
+- added: 2026-10-19
+
+## P-4606 · Main's newest migration can be stamped ahead of the clock, so `bun run db:fn` writes a version older than it
+- symptom: 2026-10-26 09:16 UTC, W6 item 8 fix round: main's newest migrations were `20261026120000_build_lessons.sql` and `20261026120100_build_lesson_fn.sql` (written by hand ahead of UTC), and `bun run db:fn --name fn_client_credits_account ...` wrote `20261026091648_fn_client_credits_account.sql`, which `node scripts/check-migrations.mjs` refuses (`rename ... to a timestamp after 20261026120100`).
+- cause: `supabase migration new` stamps the current UTC time; the order check compares with the newest version on origin/main, whatever clock wrote it.
+- rule: before adding a migration, `git ls-tree --name-only origin/main app/supabase/migrations/ | tail -2`; when the newest is ahead of `date -u +%Y%m%d%H%M%S`, name new table migrations after it by hand and rename the file `db:fn` writes to the next free version after them (its text does not name its own version), keeping the order the SQL needs.
+- proof: `git ls-tree --name-only origin/main app/supabase/migrations/ | tail -2` → `...120000_build_lessons.sql`, `...120100_build_lesson_fn.sql` while `date -u` said 09:16; this branch's three migrations are `20261026120200`, `120300` and `120400`.
+- added: 2026-10-26
+
+## P-4607 · A stub-only probe of a db branch missed three CI failures that a schema-dump cluster runs in minutes
+- symptom: 2026-10-26, W6 item 8, PR 490 at a2e87ca3: CI's tsc refused `request(db, 950, OWNER, "Distribution Active", "The Reach")` (a test helper typed `"The Feature" | "Five Features"`); the db job failed `actor.db.test.ts` (`+ Received: "spend_client_credit"`: a new function taking `p_actor` that never calls `write_audit`) and a client-credits case with `duplicate key value violates unique constraint "users_email_partial_key"` (`page()` made the same person once per page in one transaction). The round had been probed only by hand on a stub cluster that named the touched tables, so no test file ran.
+- cause: hand probes check the behaviour you thought of; the repository's cross-cutting tests (the actor sweep, auth's unique email) only run when the files run.
+- rule: for a branch that adds SQL, build a P-718 cluster from `pg_dump --schema-only --no-owner -n public -n app` of mop-dev plus `--data-only` of the config tables (settings, action_roles, retention_policies, pii_columns, markets, regions, invoice_counters, decline_reasons), set `environment` to development there, apply the branch's migrations, and run the branch's db files and `tests/db/actor.db.test.ts` (any new `p_actor` function) before the push; the stub schema must give `auth.users` the partial unique index on email. A test helper's literal parameter takes the domain list's type (`(typeof invoiceProducts)[number]`), never a hand union.
+- proof: from `app/`, `DEV_DB_URL=postgresql://postgres@127.0.0.1:55620/mop env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/client-credits.db.test.ts tests/db/actor.db.test.ts` → `Tests  33 passed (33)` on the fix round 2 tree; the cluster was built in about five minutes (0 restore errors) by a script of the shape above (2026-10-26).
+- added: 2026-10-26
+
+## P-4608 · A page section heading that repeats the page title fails a strict e2e, and `Intl` in a component helper fails R43
+- symptom: 2026-10-26, W6 item 8, PR 490 at d4c20d32: e2e `strict mode violation: getByRole('heading', { name: 'Invoices' }) resolved to 2 elements` (the `PageIntro` `h1` and the component's own `h2 Invoices`); lint R43 on `new Intl.*` and `toLocaleString` in `components/account/account-format.ts`, and `switch-exhaustiveness-check` on a status switch that ended in `default`.
+- cause: the route renders `PageIntro` with the page title and the component added a heading with the same words; the R43 rule exempts only `src/lib/format.ts`, `src/domain/market-time.ts` and `src/server/**`, so a component-folder formatter is still a component; the lint wants every member of a union named, a `default` does not count.
+- rule: a component rendered under `PageIntro` starts below the `h1` (its first heading is an `h2` with different words, or none); an e2e asks for a page heading with `level: 1`; a formatter that needs `Intl` goes in `src/lib/format.ts`; a switch over a union names every member and has no `default`.
+- proof: `cd app && grep -rnE "new Intl\.|\.toLocale(Date|Time)?String\(" src/components src/routes src/admin` → no hits on the fix round 3 tree; `grep -n "<h2>Invoices" src/components/account/account-invoices.tsx` → no hits.
+- added: 2026-10-26
 
 ## P-4609 · `<video>` and `<img>` in the admin have no `max-width`: a reel's poster widens its grid cell and the caption under it runs into the next card
 - symptom: 2026-10-16: on Visuals the text under a card (caption, notes, buttons) ran into the card beside it. Measured with `bun scripts/admin-shot.ts visuals`: at 390 px the reel card's header, video, caption and buttons spanned 33..1113 px inside a card that ended at 374; the page scrolled sideways (1113 > 390).

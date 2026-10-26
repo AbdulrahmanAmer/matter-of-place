@@ -93,6 +93,7 @@ export const APP_ROWS = [
   { name: "src/hooks", patterns: ["src/hooks/*.ts"] },
   { name: "src/config", patterns: ["src/config/*.ts"] },
   { name: "src/data", patterns: ["src/data/*.ts"] },
+  { name: "src/content", patterns: ["src/content/seo/*.ts"] },
   { name: "src/db", patterns: ["src/db/*.ts"] },
   { name: "src/styles", patterns: ["src/styles/**/*.css"] },
   {
