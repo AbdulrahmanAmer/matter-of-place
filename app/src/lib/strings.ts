@@ -185,6 +185,8 @@ const en = {
     meta: {
       properties:
         "No property is listed yet. Leave your email to hear when the first one is published.",
+      stories:
+        "No story is published yet. Leave your email to hear when the first one is published.",
       market: "{intro} No property is listed in {market} yet.",
     },
     illustrative: {

@@ -129,6 +129,7 @@ export function buildSitemap(
   const entries: Entry[] = [
     ...staticSitemapPaths
       .filter((path) => path !== "/properties" || listed(properties.length))
+      .filter((path) => path !== "/stories" || listed(source.stories.length))
       .map((path) => ({ path, lastmod: datedStatic(path) })),
     ...source.markets.flatMap((market) => [
       ...(listed(countIn(market.slug)) ? [{ path: `/${market.slug}` }] : []),
