@@ -12,8 +12,8 @@
     "id": "w7-e2-answer-reads-reel",
     "test": "tests/unit/workforce-reel.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "z.union([mediaRequestSchema, reelRequestSchema, studioDecisionSchema])",
-    "replace": "z.union([mediaRequestSchema, mediaRequestSchema, studioDecisionSchema])",
+    "find": "reelRequestSchema, postRequestSchema, studioDecisionSchema",
+    "replace": "mediaRequestSchema, postRequestSchema, studioDecisionSchema",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*names the subject its kind needs"
   },

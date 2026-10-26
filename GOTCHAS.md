@@ -8964,6 +8964,36 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `bunx vitest run --project unit tests/unit/page-dates.test.ts` passes; with `if (newest !== undefined)` replaced by `if (true)` it fails on "leaves a page out when none of its files has a commit".
 - added: 2026-10-19
 
+## P-4543 · A delete function that "checks the lister's rule again" but not its period deletes a row the lister would never name
+- symptom: W8 item 1: `retention_delete_assets` re-checked subject, status, `meta.request_id` and "no post points at it", and its db case passed four ids (one listed, one rejected yesterday, one pending, one posted) expecting 1 deleted; it deleted 2, the one rejected yesterday included. The retention job only passes listed ids, so nothing showed it in the unit tests.
+- cause: the period lives in the policy row, which the lister takes as `p_keep` and the delete function never read, so the "same rule" was the same rule minus its age.
+- rule: a guarded delete re-checks every clause of its lister, the period included, reading `retention_policies.keep_for` itself (as `retention_delete_rows` does) and deleting nothing when the policy is disabled; its db case names a row that fails each clause, the age among them.
+- proof: `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/mop node node_modules/vitest/vitest.mjs run --project db tests/db/brand-posts.db.test.ts -t "lists a rejected one"` on a P-3610 cluster → passed; the registry entry `w8-1-db-delete-age` takes the age clause out and turns it red (`expected 2 to be 1`).
+- hit again: 2026-10-26, fresh Opus review of W8 item 1: the age was fixed, but the case still had no property asset, no asset without `meta.request_id`, none in `proposed_post_channels` and no disabled policy, so each of those clauses (in both functions) could be deleted green. Every clause gets a row that only it refuses and a registry entry that removes it (`w8-1-db-list-*`, `w8-1-db-delete-*`); a guard that is redundant with another (the disabled policy's early `return` is also covered by its null period) is mutated where it is not (`and enabled`).
+- added: 2026-10-19
+
+## P-4544 · A request guard in puppeteer aborts Chrome's own `/favicon.ico` request, and a page watcher that fails on `requestfailed` then refuses every clean page
+- symptom: W8 item 1 review fix, 2026-10-26: with `guardPost` in `still.mjs --frames`, a clean page that loaded only `/brand/...svg` failed with `Page errors in frame a: request failed: http://127.0.0.1:61045/favicon.ico`; the guard's unit test passed, since it reads the page's own fetch results and not the watcher.
+- cause: Chrome asks for `/favicon.ico` by itself; interception aborts it like any refused path, and `watch()` excused the favicon only for an HTTP error, not for a failed request.
+- rule: a page watcher that fails on refused requests excuses Chrome's own favicon request in both handlers; a guard is proved end to end through the script that uses it, a clean page and a refused one, never only through its own test.
+- proof: `node launch/engine/still.mjs --frames app/.tmp/post/guard-manual/good.json` (a page under `app/.tmp/post/` that loads the emblem) → exit 0 and its report; the same page set with `fetch("/.env")` and an outside host → exit 1, `request failed: https://example.com/` and `request failed: http://127.0.0.1:<port>/.env`.
+- added: 2026-10-26
+- hit again: 2026-10-26, round 2: the second fresh Opus review failed the item for this rule's second half (the guard's call sites in `still.mjs` had no test, so deleting any left every test green); the end-to-end proof now lives in `tests/unit/reel/post-guard.test.ts` ("the engine shooting a post's page"), registry `w8-1-still-*`.
+
+## P-4545 · Puppeteer's request interception never sees a service worker's requests, and Chrome sends loopback past `--proxy-server`
+- symptom: W8 item 1 round 2, 2026-10-26: a page under `guardPost` on a server that served the whole repository registered a service worker that fetched `/app/package.json`: 200, and the page saw neither the request nor `sw.js` itself. With only `--proxy-server=http://127.0.0.1:9`, a page's `new WebSocket("ws://127.0.0.1:<port>/")` reaches any local service: the interception does not see WebSockets either.
+- cause: page-level interception (`Fetch` on the page's session) covers the page and its dedicated workers (measured: a dedicated worker's fetch is refused), not a service worker, which is its own target; Chrome bypasses the proxy for 127.0.0.1 and localhost unless `<-loopback>` is in `--proxy-bypass-list`.
+- rule: a sandbox for model-written pages never relies on interception alone: the server serves only the allowed paths, and Chrome gets `--proxy-bypass-list=<-loopback>;<engine host:port>` with the dead proxy (`postChromeArgs`). A test of a lock must use an input only that lock decides (P-112): a service worker for the server's lock, a WebSocket for the proxy's.
+- proof: `cd app && bunx vitest run --project unit tests/unit/reel/post-guard.test.ts` → 8 passed; "serves a page's service worker only a post's files" reads `checkout 403, local refused` from the frame's report, and `w8-1-still-serve-allow` (`serve()` without `allow`) turns it red in CI's replay.
+- added: 2026-10-26
+
+## P-4546 · A test of code under an ignored path guards nothing: CI never runs on a pull request that changes only that path
+- symptom: W8 item 1 round 3 review, 2026-10-26: the post page sandbox (`launch/engine/post-guard.mjs`, `still.mjs`) had its tests and registry entries, but `ci.yml` ignored `launch/**`, so a pull request deleting `guardPost` and touching nothing else would run no check, and the merge gate lets a no-check pull request through when every path is ignored (H42 (1)).
+- cause: `paths-ignore` was written when `launch/` held only films and decks; app tests later came to cover `launch/engine`, `reel`, `shared` and `tools`, and the list never followed.
+- rule: when an app test starts covering a file outside `app/`, check that `ci.yml`'s `paths-ignore` does not hide it; `launch/` is ignored folder by folder, never whole, and a new folder runs CI until it is named.
+- proof: `cd app && bunx vitest run --project unit tests/unit/merge-gate.test.ts -t "post page sandbox"` → passes (CI's unit run, PR 486); registry `w8-1-ci-runs-on-sandbox` (`launch/**` put back) turns it red in CI's replay.
+- added: 2026-10-26
+
 ## P-3733 · The SEO skill's refactor proves a fix against its own checks only: the repo's CI then fails it five times
 - symptom: 2026-10-26, PR 483 (10 causes FIXED, stability PASS by refactor.mjs) failed CI four rounds: a new route outside the folder map (check-layout), the robots.txt body pinned in five files (P-3600), five stale mutations, prettier and no-unsafe-type-assertion lint, 13 unit tests holding the old behaviour, a hex colour outside tokens (R42), a component test that found two rows.
 - rule: a refactor branch is not done when its own checks pass; before pushing, list what the repo pins for every changed file (`node ~/.claude/hooks/edit-impact.mjs --changed <worktree>`, `grep -rln` of each changed literal in app/tests and tests/mutations, check-layout's map for new files) and change those in the same branch; expect the first CI round to find the rest.

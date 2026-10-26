@@ -972,6 +972,12 @@ export async function runOnce(client: Db): Promise<boolean> {
         await say(client, thread, `The reel "${request.name}" is queued in the studio: ${folder}`);
         continue;
       }
+      if (request.skill === "post") {
+        // W8 item 1: a still post (Matter's only, `mediaFor`) is made in the same studio queue, one at a time.
+        const folder = queueReel(request, { agent: agent.slug, thread });
+        await say(client, thread, `The post "${request.name}" is queued in the studio: ${folder}`);
+        continue;
+      }
       if (request.skill === "studio") {
         // W8 0f: Matter's decision on a draft in the studio (media is kept only for Matter at full power, so a person's
         // word is behind it); the runner's pass then uploads, revises or sends the preview.

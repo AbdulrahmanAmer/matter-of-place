@@ -2151,6 +2151,9 @@ isOneToOne: false
 "record_fanout_failure":
 { Args: { "p_error": string,"p_event_id": string }; Returns: undefined
                            },
+"record_requested_asset":
+{ Args: { "p_alt_text": string,"p_caption": string,"p_files": Json,"p_kind": Database["public"]['Enums']["asset_kind"],"p_market"?: string,"p_meta": Json,"p_property"?: string,"p_story"?: string,"p_subject": string }; Returns: string
+                           },
 "record_requested_reel":
 { Args: { "p_alt_text": string,"p_caption": string,"p_files": Json,"p_market"?: string,"p_meta": Json,"p_property"?: string,"p_story"?: string,"p_subject": string }; Returns: string
                            },
@@ -2222,6 +2225,11 @@ isOneToOne: false
               "media_id": string,"storage_path": string
             }[]
                            },
+"retention_delete_assets":
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "asset_id": string,"media_keys": (string)[]
+            }[]
+                           },
 "retention_delete_media":
 { Args: { "p_ids": (string)[] }; Returns: number
                            },
@@ -2233,6 +2241,11 @@ isOneToOne: false
                            },
 "retention_log_run":
 { Args: { "p_after": Json }; Returns: number
+                           },
+"retention_requested_visuals":
+{ Args: { "p_keep": string }; Returns: {
+              "asset_id": string,"media_keys": (string)[]
+            }[]
                            },
 "retry_social_post":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_force": boolean,"p_id": string,"p_request_id": string }; Returns: string

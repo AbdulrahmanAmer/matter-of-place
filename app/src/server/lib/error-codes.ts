@@ -75,6 +75,8 @@ export const errorCodes = {
   // re-rendered.
   requested_reel_files: 422,
   requested_asset: 422,
+  // W8 item 1: any requested visual, a reel or a still post, is recorded only with its files.
+  requested_asset_files: 422,
   // B10: a social channel is enabled only with proof of its credentials (invariant 9).
   credentials_unverified: 422,
   channel_locked: 422,
