@@ -153,12 +153,7 @@ export function PropertyFilm({
               height={1104}
               alt={`${video.caption}, poster frame`}
             />
-            <button
-              type="button"
-              className="film-play"
-              onClick={play}
-              aria-label="Play property film"
-            >
+            <button type="button" className="film-play" onClick={play}>
               <span className="film-play-ring">
                 <Play size={18} aria-hidden="true" />
               </span>

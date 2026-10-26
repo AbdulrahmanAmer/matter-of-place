@@ -25,7 +25,7 @@ declare
   v_events uuid[] := '{}';
   v_socials uuid[] := '{}';
 begin
-  -- W8 item 10 (H116, H134): a person's yes, for the exact revision they saw. Each channel becomes an approved asset
+  -- W8 item 10 (H116, H135): a person's yes, for the exact revision they saw. Each channel becomes an approved asset
   -- of the post's subject (approve_asset audits it and emits asset.approved, whose recipe runs the post steps) and the
   -- social_posts row the channel posting reads (schedule_social_post). Nothing posts without a person for the first
   -- 60 days: an agent or the system is refused here as approve_asset would refuse it without evidence.
@@ -105,7 +105,7 @@ begin
     returning id into v_asset;
     v_event := public.approve_asset(v_asset, p_actor, p_actor_kind, p_request_id, null);
     v_social := public.schedule_social_post(v_asset, v_channel.channel, now());
-    -- A test post never goes out (H134): its rows are closed as cancelled here, never left for the reconcile's overdue.
+    -- A test post never goes out (H135): its rows are closed as cancelled here, never left for the reconcile's overdue.
     if v_post.test then
       perform public.fail_social_post(v_social.id, 'cancelled');
     end if;

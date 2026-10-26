@@ -2274,7 +2274,120 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
 - 2026-10-19 18:40 +0300: builder W8 item 3 (overdrive/w8-3, Sonnet 5.5). The scheduled task, the runner and a health check already
   existed (db291cd0). Done: `captions_waiting` fails past one hour and names minutes (health.ts, B8.json bi/captions-23/captions-61);
-  `install-captions-task.ps1` removed (one installer, `workforce/install.ps1`), plan lines and trace entries updated, ruling H136;
+  `install-captions-task.ps1` removed (one installer, `workforce/install.ps1`), plan lines and trace entries updated, ruling H140 (banked as H136; W8 0f took that number on main);
   `tests/unit/workforce-install.test.ts` + `tests/mutations/W8-3.json`. Local: install 2 of 2, health 21 of 21. UNPROVEN: the task
   registered and run on the laptop, a real published property captioned unattended, watchfail replay (CI), full suites (CI).
   Bank: P-4513.
+- 2026-10-19 17:58 +0300: builder, W7 1 (branch overdrive/w7-1, from finish-3). Main already held the sent-email log (W9 item 2:
+  `/admin/emails`, newest hundred, state and address filter, bounce type, do-not-send list). Added only what it lacked:
+  keyset pages of fifty past the newest hundred (`listEmails`, cursor `created_at~id`), the template column, "opened"
+  from the first `email.opened` event in the sentence of what became of it; the list is its own part
+  (`SentEmailsPart.tsx`, own page trail, remounted by a key of its filters). Tests: emails.service.test.ts 14 passed,
+  sent-emails.test.tsx 3 passed, inbound-mail.test.tsx 3 passed; registry `tests/mutations/W7-1.json` (13 entries) and
+  the W7-2 `screen-sent-filter` entry re-anchored. NOT RUN (NO LOCAL CI): tsc, eslint, knip, watchfail replays (CI
+  replays them). UNPROVEN: Resend open events for transactional mail, paging on the real table, the screen on real rows.
+  Bank: P-3710, P-3711.
+- 2026-10-19 17:30 +0300: builder, overdrive/search-rank (W8 item 12, the operator's search order). Plan first: W8.md section E.
+  Built: 12a `t.home.intro` (three sentences) replaces `t.comingSoon.what`, shown once under the headline while coming
+  soon and in the editorial statement once a property is published; 12b `scripts/gen-page-dates.ts` (git day of each
+  document page's files, `bun run build` runs it first, a shallow clone keeps the committed `page-dates.gen.ts`) and the
+  sitemap dates those pages, `/`, `/properties` and `/stories` by the newest published item, `/markets` and anything
+  undated by nothing; 12c `brand_queries` in the audit sidecar (position, impressions, clicks of "matter of place" and
+  "matter of place real estate", `previous` beside them, "no impressions" never position 0), scorecard rows in
+  REPORT-TEMPLATE, auditor agent names the two queries; 12d sameAs untouched. 34 registry entries (`W8-search.json`),
+  each watched red by hand one test file at a time. Bank P-3732 (banked as P-3706, renumbered at merge twice: main took P-3706 and then P-3730), P-3707. UNPROVEN: tsc, eslint, knip and the full suite
+  (no local CI; CI judges), the deployed sitemap dates (the build must run with full history), and the ranking itself.
+- 2026-10-19 18:55 +0300: W6 item 6 (branch overdrive/w6-6, builder Sonnet 5.5): `app/scripts/matter/hook-reach.ts` checks that
+  `~/.claude/settings.json` declares shell-shaper, push-gate (PreToolUse Bash) and edit-impact (PostToolUse Edit) with their scripts
+  present, that `matterArgs("full")` and `liveArgs` carry no `--restricted`/`--bare`/user-less `--setting-sources`, and (`probe`) runs
+  one Haiku turn of Matter's full-power arguments in a scratch repo with `--include-hook-events`. PROVEN on this laptop (claude
+  2.1.296): `bun scripts/matter/hook-reach.ts probe` exit 0, shell-shaper "long command sent to the background" and edit-impact
+  "GONE greet left src/lib.ts..." in the stream. Unit `matter-hook-reach.test.ts` 8 of 8; registry `W6-6.json` 12 of 12 red for the
+  right reason (hand replay, one test file at a time, not the watchfail tool). Not run locally: tsc, eslint, knip, full suite (no
+  local CI). UNPROVEN: push-gate inside a run (probe does not push); a production run's own log (the supervisor does not ask for
+  hook events). Box 6 stays open. Bank: P-3718, P-3719.
+- 2026-10-19 19:05 +0300: builder of W8 0f (Sonnet 5.5, overdrive/w8-0f). The studio folder: a reel that passes the gate and the
+  fresh reviewer is a DRAFT kept under `drafts/NN/` (every render, refused ones too), with `status.md` rewritten beside
+  `brief.json` on every change; nothing is uploaded until Matter's `media` entry `{"skill":"studio","piece","decision":
+  "approve|revise|ask_operator","note"}` (or `reel.ts --decide`); approve uploads once and records the pending visual, revise
+  sends Matter's note to the designer, ask_operator holds it and sends one 360 px still to the private `submissions` bucket.
+  Table `studio_pieces` + `studio_piece_put` (migrations 20261019152200, 20261019152546), rows brought in step with the
+  folders at the start and end of each pass (retry after 10 minutes). Ruling H136. Proof so far: `workforce-reel.test.ts`
+  33, `workforce-studio.test.ts` 7, `workforce-studio-decision.test.ts` 2 pass; the 29 unit registry entries of `W8-0f.json`
+  WATCHED-FAIL OK (one stayed green first: P-4541), the 29 of `W7-e2.json` still OK; the four SQL entries and `tests/db/studio-pieces.db.test.ts` are CI's db job. UNPROVEN: the migrations on the cloud
+  project; a real decision through Matter's live session; ffmpeg's still and the private upload; Storage's "already exists"
+  answer. NOT DONE: the admin screen that lists the rows. Bank: P-4540..P-4542.
+- 2026-10-19 18:20 +0300 W8 0h third and fourth review rounds (overdrive/w8-0h, pushed, no PR; Matter merges through
+  the gate). Third round (caec66c7, 2026-10-16, no block then): one message never stops a folder (a 200-character cut
+  of attachment names, unread parts named in fixed words, three failed checks then the listing alone), the privacy-scoped
+  read, `export_subject` and `delete_subject` cover `inbound_mail`, only listed senders wake Matter (H121 (14), (15)).
+  Fourth round (Opus 5.5, merged origin/overdrive/finish-3 first, a fast-forward): (1) the Editor hand-off and the
+  daemon's `wakeOnEvents` queue runs through the new `queue_event_runs`, whose conflict names the partial index's
+  predicate; the old upsert was refused by Postgres (42P10, measured on the stub), so `wakeOnEvents` had never queued a
+  run on an event (it never read the error); a failure now keeps its cursor. (2) `storable` strips U+0000 and unpaired
+  surrogates from every recording argument (report JSON included) and the `email_reply_record` path; from its listing
+  alone a refused subject is recorded as fixed words with no name. (3) `cleanSubject` strips fence marks until none is
+  left, then collapses white space; a hostile-subject test. (4) W8.md's proof words restored; the deviation is H121 (16).
+  (5) Missing Zoho names beat `mail_folders` not ok ("the mailbox"); `ops_health` also names it after 30 silent minutes
+  while Matter's `last_seen_at` is under 10 minutes old (H121 (17): the `runner` row is the Worker's). (6) The tick names
+  the branch and the report day (14 October UTC, delivered the 15th). (7) No owner reads "Waiting for a person".
+  Migration 20261019144155_w8_0h_event_runs_mail_health.sql (queue_event_runs, ops_health); types by hand (G-1303 form).
+  Proof, run here: unit file 44/44, component file 4/4 (threads pool, P-3585), db file 13/13 on the stub cluster 55492
+  (`/e/mop-build/od-w8-0h-tools/db-round4.sh`; the stub gained `agents.last_seen_at`). Registry W8-0h.json 76 (14 new,
+  w8-0h-body-person-only and w8-0h-sql-health repointed). NOT DONE: `email_replies` in `export_subject` and
+  `delete_subject` (low finding, a follow-up item). UNPROVEN: the 14 new registry entries replayed (no local CI; CI's
+  watchfail counts); tsc, lint and knip (CI); `queue_event_runs` and the new `ops_health` branch on the real database;
+  the type drift of the hand-added `queue_event_runs` type (CI's db job); that runs on events start arriving live once
+  merged; a live mailbox run; the `storable` pass over a report's JSON (no test builds such a report). Bank grew: G-1480 (upsert on a partial unique index), P-3585 hit again.
+- 2026-10-19 20:10 +0300: orchestrator. Merged: PR 461 (freeze root cause, P-3703), 462 (logo in the Organization node),
+  465 (c6994630: lead events reach GA4 by name only, under consent: contact_inquiry, submit_property, interest_signup,
+  newsletter_signup, package_interest), 466 (d028e399: a confirm link lands on /place-notes/confirmed or /expired, a
+  centred note on the not-found band with the emblem assembling; the band's grid now centres its column). Google: Search
+  Console linked to GA4 (operator), GA4 event retention 14 months (read back by the Admin API, now enabled), Cloud has no
+  billing, one PSI key, one audit service account. NOT DONE: mark the five lead events as key events in GA4 (the new UI
+  stars only events seen in the last 28 days; do it after the first lead arrives). Read-before-click is a global hook
+  (~/.claude/hooks/read-before-click.mjs, tests watched red, proven live). Ruling H134: Fairfield is the test property;
+  social output is a test, judged by Matter, until the channels are connected. Matter: PR 449 merged 14:24Z, PR 464 (third
+  batch) in CI, builders and Opus reviews running. Six Approvals (four Fairfield test posts, the welcome note to the
+  admin@ test signup, a lesson for Maya) sent to Matter to clear; still pending at 20:05.
+
+- 2026-10-25 23:40 +0300: orchestrator. RESUMED ONE BY ONE (operator: "finish tasks one by one with matter"): PARK file
+  renamed PARK.lifted-2026-10-25, STOP stays, backlog "person" (config.parked-2026-10-19.json kept). Matter's ordered list
+  (thread b8cdcee9): audit 10-25 PRs, then 451-454, dependabot 457, waiting branches one at a time (w8-0h, w8-0f, w6-6,
+  search-rank, w7-1, w8-3, w6-5, w8-1, w6-4 fix, toolkits fix, w6-8, w8-11), records/park-1019. Merged tonight: 472
+  (1bf9cc6c dep waivers), 469 (e5a4f24c down monitor reads red), 473 (7e0c1491 its unit case), 470 (849105d2 report),
+  471 (c48b3456 records), 474 (8a7ac2ea tests for 451/452). The 10-24 ops-health "down" was the laptop asleep 10-24
+  05:45-22:42 (backup + Drive copy missed, ops_health named them after 26 h), not a site outage; "MOP Backup" task now
+  WakeToRun, wake timers enabled on AC only. Two unclean shutdowns today (11:44, 12:29, event 41).
+  SEO (programmatic-enterprise-web-performance skill, run against https://matterofplace.com, files in
+  site-checks/matterofplace.com/, git-excluded): audit-live 26 root causes (5 high: JSON-LD graph lacks
+  #webpage/#website/#organization, /contact h1->h3, /legal and guides orphaned, contact/newsletter forms render without
+  method/action, /stories empty ItemList); PSI phone 94-95 desktop 99-100, phone LCP 2.7-2.9 s. The findings were first sent
+  to Matter as a to-do list (WRONG, pulled back, thread e4aa152b): they go through the skill's refactor mode. Sources
+  connected and keys in .env (names only in ~/.claude/reference/seo-data-sources.md): Search Console via the audit service
+  account (~/.config/pewp/mint-gsc-token.mjs), Bing Webmaster (site imported from GSC, BING_WEBMASTER_KEY), CrUX (on the
+  mop-pagespeed key; no field data yet), Gemini (GEMINI_API_KEY, PEWP_GEMINI_TERMS_ACK=1, operator confirmed). Operator
+  approved: business definition (site-checks/.../.pewp/inputs/business-definition.md), 19 competitors in four groups,
+  local builds allowed for SEO fix runs only (one worker at a time). RUNNING at close: a Sonnet agent capturing 32 searches
+  on Google then Bing; authority.mjs (Common Crawl download + backlinks vs the 19). NOT DONE: Bing related keywords are
+  junk (targets.json NOT trusted until filtered), Gemini citations, seeds approval, page plan, code audit, refactor, new
+  pages, gate, deploy, sitemap.xml regeneration and submission (nothing submitted until then; operator).
+  Skill gaps (22, with evidence) are briefed to a dedicated Fable 5.1 session: ~/.claude/briefs/pewp-overhaul-2026-10-25.md
+  (+ .checklist.md); it adds an `overhaul` mode (14 ordered steps with owner stops) on a worktree branch; nothing merged
+  without the operator's yes. New global hooks (tests watched red): skill-stage-guard (a skill step runs only after its
+  stage file was read since start/compaction), clean-launch-guard (new sessions only via a launcher that clears
+  CLAUDE_CODE_CHILD_SESSION etc., no task on the command line), brief-check (a brief is handed over only with a complete
+  checklist). Settings backup ~/.claude/settings.json.bak-guards-20261025. Bank: P-3728, P-3729.
+
+- records/1026 2026-10-26 (SEO skill run on matterofplace.com, delegated end to end by the operator): the operator handed the
+  owner approvals to the orchestrator ("follow it end to end in my place"); the checklist with proof per step is
+  site-checks/matterofplace.com/.pewp/runs/END-TO-END.md (git-excluded), shown live by the seo-checklist mod (/seo; draws in
+  the terminal, desktop view UNPROVEN). Done: 28 approved searches (13 kept + 15 added), 100 captures (50 Google, 50 Bing),
+  research with a relevance filter (Bing related terms were junk), targets.json 24 clusters PASS, page plan 24 pages /
+  141 links signed (approved/lock.json), backlinks (we are not in the link graph; gap 100 domains), code check of app/src
+  (130 causes, 20 high, guard PASS, worktree E:/mop-build/seo-code-check at 9fd949f1). RUNNING: the skill's refactor
+  (branch pewp/refactor-2026-10-26, 12 most severe causes, one worker, each FAIL->PASS on a fresh build; C01-C04 FIXED so
+  far). NOT DONE: merge of the refactor through gate-loop, new planned pages, gate, deploy, sitemap.xml regeneration,
+  submission to Google and Bing (nothing submitted before the sitemap is fixed), rank tracking. Build conditions logged with
+  the plan approval: template copy rewritten to the brand, collection pages as editorial guides with interest signup and
+  no illustrative property, programmatic data only from a real dated source. Bank: P-3730, P-3731.

@@ -19,6 +19,8 @@ const OPS_HEALTH = "/api/hooks/ops-health/";
 const KEYWORD_MONITOR = 2;
 const ALERT_WHEN_MISSING = 2;
 const PAUSED = 0;
+// UptimeRobot v2 status: 8 is "seems down", 9 is "down".
+const DOWN = [8, 9];
 const EXPECTED_COUNT = 3;
 
 /**
@@ -84,6 +86,9 @@ export function monitorRows(monitors, expected) {
     const row = (status, detail) => ({ check: want.name, status, detail });
     if (found === undefined) return row("red", `no monitor for ${redactUrl(path)}`);
     if (found.status === PAUSED) return row("red", "monitor is paused");
+    if (found.status !== null && DOWN.includes(found.status)) {
+      return row("red", `monitor reads down (status ${String(found.status)})`);
+    }
     if ((found.interval_s ?? Infinity) > want.interval_s) {
       return row(
         "red",
