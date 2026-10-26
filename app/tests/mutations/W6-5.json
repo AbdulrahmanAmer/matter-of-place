@@ -1,0 +1,97 @@
+[
+  {
+    "id": "w6-5-catalog",
+    "test": "tests/unit/workforce-reply-event.test.ts",
+    "file": "src/domain/events.ts",
+    "find": "  \"email.received\",\n  \"email.reply_received\",\n] as const;",
+    "replace": "  \"email.received\",\n] as const;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reply-event.test.ts",
+    "expect": "× .*is in the catalog with an id-only payload"
+  },
+  {
+    "id": "w6-5-wake-label",
+    "test": "tests/unit/workforce-reply-event.test.ts",
+    "file": "src/domain/workforce.ts",
+    "find": "  \"email.reply_received\": \"A person replies to an email we sent\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reply-event.test.ts",
+    "expect": "× .*is in the catalog with an id-only payload"
+  },
+  {
+    "id": "w6-5-source-map",
+    "test": "tests/unit/workforce-reply-event.test.ts",
+    "file": "scripts/workforce/criteria.ts",
+    "find": "  \"email.reply_received\": \"email_reply\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reply-event.test.ts",
+    "expect": "× .*is an outside source"
+  },
+  {
+    "id": "w6-5r-reply-wakes-no-one",
+    "test": "tests/unit/workforce-reply-event.test.ts",
+    "file": "scripts/workforce/bounce.ts",
+    "find": "  if (event.type === \"email.reply_received\") return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reply-event.test.ts -t \"wakes no one through the wake rule\"",
+    "expect": "× .*wakes no one through the wake rule"
+  },
+  {
+    "id": "w6-5-triage-row",
+    "test": "tests/unit/workforce-reply-event.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "return { source: fromEvent, id: event?.entity_id ?? \"unknown\" };",
+    "replace": "return { source: fromEvent, id: \"unknown\" };",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reply-event.test.ts",
+    "expect": "× .*is triaged from the row the event names"
+  },
+  {
+    "id": "w6-5-fails-closed",
+    "test": "tests/unit/workforce-reply-event.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "  if (text.trim() === \"\") return ours(readTriage(outside.source, \"\"));",
+    "replace": "  if (text.trim() === \"\" && outside.id === \"never\") return ours(readTriage(outside.source, \"\"));",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reply-event.test.ts",
+    "expect": "× .*holds a reply whose row is gone or empty"
+  },
+  {
+    "id": "w6-5-sample-builder",
+    "test": "tests/unit/automation/sample-payloads.test.ts",
+    "file": "src/server/automation/sample-payloads.ts",
+    "find": "return { reply_id: row.id, entity: row.entity, entity_id: row.entity_id };",
+    "replace": "return { reply_id: row.id, entity: row.entity, entity_id: undefined };",
+    "run": "bunx vitest run --project unit tests/unit/automation/sample-payloads.test.ts",
+    "expect": "× .*names a reply's row and the source it answers, never its words"
+  },
+  {
+    "id": "w6-5-db-no-event",
+    "kind": "sql",
+    "test": "tests/db/email-replies.db.test.ts",
+    "sql": "create or replace function public.email_reply_record(\n  p_provider_id text,\n  p_from text,\n  p_name text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_from text := lower(btrim(coalesce(p_from, '')));\n  v_topic text := lower(btrim(regexp_replace(\n    coalesce(p_subject, ''), '^(\\s*(re|fw|fwd|aw|sv)\\s*(\\[\\d+\\])?\\s*:\\s*)+', '', 'i')));\n  v_send record;\n  v_owners text[];\n  v_owner text;\n  v_id uuid;\n  v_event uuid;\n  v_text text;\nbegin\n  -- W4 (operator, 2026-10-13): a reply to an email we sent, read from the Zoho mailbox by the laptop runner\n  -- (scripts/workforce/mail.ts). It is matched to the newest send to the same address whose subject the reply's\n  -- subject carries, else the newest send to that address, within 90 days (the email_pii period). Mail from anyone\n  -- we did not write to is never stored. A reply already recorded, or one with no send, returns null.\n  if v_from = '' or p_provider_id is null or btrim(p_provider_id) = '' then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.email_replies where provider_id = p_provider_id) then\n    return null;\n  end if;\n  select m.id, m.subject, m.entity, m.entity_id into v_send\n  from public.email_messages m\n  where m.to_email = v_from\n    and m.kind in ('transactional', 'bulk')\n    and m.entity in ('submission', 'inquiry', 'subscriber', 'subject_request')\n    and m.created_at > p_received_at - interval '90 days'\n    and m.created_at <= p_received_at\n  order by\n    (coalesce(btrim(m.subject), '') <> '' and position(lower(btrim(m.subject)) in v_topic) > 0) desc,\n    m.created_at desc\n  limit 1;\n  if not found then\n    return null;\n  end if;\n  -- The colleague who owns the thread: the Editor for a property request, the Concierge for everything else, then\n  -- the chief of staff. Never Matter: a reply is outside text and must not sit in the thread a person's line gives\n  -- full power to (ruling H101).\n  v_owners := array[case when v_send.entity = 'submission' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n  select a.slug into v_owner\n  from public.agents a\n  where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n  order by array_position(v_owners, a.slug)\n  limit 1;\n  insert into public.email_replies (\n    provider_id, from_email, from_name, subject, body, received_at, send_id, entity, entity_id, owner_slug\n  )\n  values (\n    p_provider_id, v_from, left(nullif(btrim(coalesce(p_name, '')), ''), 200), left(coalesce(p_subject, ''), 500),\n    left(coalesce(p_body, ''), 6000), p_received_at, v_send.id, v_send.entity, v_send.entity_id, v_owner\n  )\n  returning id into v_id;\n  if v_owner is null then\n    return v_id;\n  end if;\n  -- W6 item 5: the reply is the event email.reply_received, which names the row and the source it answers and\n  -- carries none of its text, not even the sender's address (W8 0b). The owner's run is queued with that event: the\n  -- runner reads the reply from email_replies, has a call with no tools triage it, and shows the owner only the\n  -- triage (scripts/workforce/triage.ts; `sourceOf` maps the event to the email_reply source). Its answer is only\n  -- ever a proposal in Approvals. The text stays here for a person to read. A line in the owner's thread tells the\n  -- team a reply came in; our own email's subject is ours, and the line wakes no one.\n  v_event := null;\n  v_text := format(\n    'An email reply arrived about our email \"%s\" (reply %s). You are shown it only as its triage.',\n    regexp_replace(left(coalesce(v_send.subject, ''), 200), '(<<<|>>>)', '', 'g'), v_id\n  );\n  insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n  values (v_owner, 'system', 'email', 'Email reply', v_text);\n  insert into public.agent_runs (agent_id, cause, event_id)\n  select a.id, 'event', v_event from public.agents a where a.slug = v_owner\n  on conflict do nothing;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.email_reply_record(text, text, text, text, text, timestamptz)\n  from public, anon, authenticated;\ngrant execute on function public.email_reply_record(text, text, text, text, text, timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/email-replies.db.test.ts",
+    "expect": "× .*matches the send whose subject the reply carries"
+  },
+  {
+    "id": "w6-5-db-event-words",
+    "kind": "sql",
+    "test": "tests/db/email-replies.db.test.ts",
+    "sql": "create or replace function public.email_reply_record(\n  p_provider_id text,\n  p_from text,\n  p_name text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_from text := lower(btrim(coalesce(p_from, '')));\n  v_topic text := lower(btrim(regexp_replace(\n    coalesce(p_subject, ''), '^(\\s*(re|fw|fwd|aw|sv)\\s*(\\[\\d+\\])?\\s*:\\s*)+', '', 'i')));\n  v_send record;\n  v_owners text[];\n  v_owner text;\n  v_id uuid;\n  v_event uuid;\n  v_text text;\nbegin\n  -- W4 (operator, 2026-10-13): a reply to an email we sent, read from the Zoho mailbox by the laptop runner\n  -- (scripts/workforce/mail.ts). It is matched to the newest send to the same address whose subject the reply's\n  -- subject carries, else the newest send to that address, within 90 days (the email_pii period). Mail from anyone\n  -- we did not write to is never stored. A reply already recorded, or one with no send, returns null.\n  if v_from = '' or p_provider_id is null or btrim(p_provider_id) = '' then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.email_replies where provider_id = p_provider_id) then\n    return null;\n  end if;\n  select m.id, m.subject, m.entity, m.entity_id into v_send\n  from public.email_messages m\n  where m.to_email = v_from\n    and m.kind in ('transactional', 'bulk')\n    and m.entity in ('submission', 'inquiry', 'subscriber', 'subject_request')\n    and m.created_at > p_received_at - interval '90 days'\n    and m.created_at <= p_received_at\n  order by\n    (coalesce(btrim(m.subject), '') <> '' and position(lower(btrim(m.subject)) in v_topic) > 0) desc,\n    m.created_at desc\n  limit 1;\n  if not found then\n    return null;\n  end if;\n  -- The colleague who owns the thread: the Editor for a property request, the Concierge for everything else, then\n  -- the chief of staff. Never Matter: a reply is outside text and must not sit in the thread a person's line gives\n  -- full power to (ruling H101).\n  v_owners := array[case when v_send.entity = 'submission' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n  select a.slug into v_owner\n  from public.agents a\n  where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n  order by array_position(v_owners, a.slug)\n  limit 1;\n  insert into public.email_replies (\n    provider_id, from_email, from_name, subject, body, received_at, send_id, entity, entity_id, owner_slug\n  )\n  values (\n    p_provider_id, v_from, left(nullif(btrim(coalesce(p_name, '')), ''), 200), left(coalesce(p_subject, ''), 500),\n    left(coalesce(p_body, ''), 6000), p_received_at, v_send.id, v_send.entity, v_send.entity_id, v_owner\n  )\n  returning id into v_id;\n  if v_owner is null then\n    return v_id;\n  end if;\n  -- W6 item 5: the reply is the event email.reply_received, which names the row and the source it answers and\n  -- carries none of its text, not even the sender's address (W8 0b). The owner's run is queued with that event: the\n  -- runner reads the reply from email_replies, has a call with no tools triage it, and shows the owner only the\n  -- triage (scripts/workforce/triage.ts; `sourceOf` maps the event to the email_reply source). Its answer is only\n  -- ever a proposal in Approvals. The text stays here for a person to read. A line in the owner's thread tells the\n  -- team a reply came in; our own email's subject is ours, and the line wakes no one.\n  v_event := public.emit_event(\n    'email.reply_received', 'email_reply', v_id,\n    jsonb_build_object('reply_id', v_id, 'entity', v_send.entity, 'entity_id', v_send.entity_id, 'body', p_body)\n  );\n  v_text := format(\n    'An email reply arrived about our email \"%s\" (reply %s). You are shown it only as its triage.',\n    regexp_replace(left(coalesce(v_send.subject, ''), 200), '(<<<|>>>)', '', 'g'), v_id\n  );\n  insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n  values (v_owner, 'system', 'email', 'Email reply', v_text);\n  insert into public.agent_runs (agent_id, cause, event_id)\n  select a.id, 'event', v_event from public.agents a where a.slug = v_owner\n  on conflict do nothing;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.email_reply_record(text, text, text, text, text, timestamptz)\n  from public, anon, authenticated;\ngrant execute on function public.email_reply_record(text, text, text, text, text, timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/email-replies.db.test.ts",
+    "expect": "× .*puts none of a reply's words in any thread"
+  },
+  {
+    "id": "w6-5-db-wakes-by-line",
+    "kind": "sql",
+    "test": "tests/db/email-replies.db.test.ts",
+    "sql": "create or replace function public.email_reply_record(\n  p_provider_id text,\n  p_from text,\n  p_name text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_from text := lower(btrim(coalesce(p_from, '')));\n  v_topic text := lower(btrim(regexp_replace(\n    coalesce(p_subject, ''), '^(\\s*(re|fw|fwd|aw|sv)\\s*(\\[\\d+\\])?\\s*:\\s*)+', '', 'i')));\n  v_send record;\n  v_owners text[];\n  v_owner text;\n  v_id uuid;\n  v_event uuid;\n  v_text text;\nbegin\n  -- W4 (operator, 2026-10-13): a reply to an email we sent, read from the Zoho mailbox by the laptop runner\n  -- (scripts/workforce/mail.ts). It is matched to the newest send to the same address whose subject the reply's\n  -- subject carries, else the newest send to that address, within 90 days (the email_pii period). Mail from anyone\n  -- we did not write to is never stored. A reply already recorded, or one with no send, returns null.\n  if v_from = '' or p_provider_id is null or btrim(p_provider_id) = '' then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.email_replies where provider_id = p_provider_id) then\n    return null;\n  end if;\n  select m.id, m.subject, m.entity, m.entity_id into v_send\n  from public.email_messages m\n  where m.to_email = v_from\n    and m.kind in ('transactional', 'bulk')\n    and m.entity in ('submission', 'inquiry', 'subscriber', 'subject_request')\n    and m.created_at > p_received_at - interval '90 days'\n    and m.created_at <= p_received_at\n  order by\n    (coalesce(btrim(m.subject), '') <> '' and position(lower(btrim(m.subject)) in v_topic) > 0) desc,\n    m.created_at desc\n  limit 1;\n  if not found then\n    return null;\n  end if;\n  -- The colleague who owns the thread: the Editor for a property request, the Concierge for everything else, then\n  -- the chief of staff. Never Matter: a reply is outside text and must not sit in the thread a person's line gives\n  -- full power to (ruling H101).\n  v_owners := array[case when v_send.entity = 'submission' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n  select a.slug into v_owner\n  from public.agents a\n  where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n  order by array_position(v_owners, a.slug)\n  limit 1;\n  insert into public.email_replies (\n    provider_id, from_email, from_name, subject, body, received_at, send_id, entity, entity_id, owner_slug\n  )\n  values (\n    p_provider_id, v_from, left(nullif(btrim(coalesce(p_name, '')), ''), 200), left(coalesce(p_subject, ''), 500),\n    left(coalesce(p_body, ''), 6000), p_received_at, v_send.id, v_send.entity, v_send.entity_id, v_owner\n  )\n  returning id into v_id;\n  if v_owner is null then\n    return v_id;\n  end if;\n  -- W6 item 5: the reply is the event email.reply_received, which names the row and the source it answers and\n  -- carries none of its text, not even the sender's address (W8 0b). The owner's run is queued with that event: the\n  -- runner reads the reply from email_replies, has a call with no tools triage it, and shows the owner only the\n  -- triage (scripts/workforce/triage.ts; `sourceOf` maps the event to the email_reply source). Its answer is only\n  -- ever a proposal in Approvals. The text stays here for a person to read. A line in the owner's thread tells the\n  -- team a reply came in; our own email's subject is ours, and the line wakes no one.\n  v_event := public.emit_event(\n    'email.reply_received', 'email_reply', v_id,\n    jsonb_build_object('reply_id', v_id, 'entity', v_send.entity, 'entity_id', v_send.entity_id)\n  );\n  v_text := format(\n    'An email reply arrived about our email \"%s\" (reply %s). You are shown it only as its triage.',\n    regexp_replace(left(coalesce(v_send.subject, ''), 200), '(<<<|>>>)', '', 'g'), v_id\n  );\n  insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n  values (v_owner, 'system', 'email', 'Email reply', v_text)\n  returning id into v_event;\n  insert into public.agent_runs (agent_id, cause, message_id)\n  select a.id, 'message', v_event from public.agents a where a.slug = v_owner;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.email_reply_record(text, text, text, text, text, timestamptz)\n  from public, anon, authenticated;\ngrant execute on function public.email_reply_record(text, text, text, text, text, timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/email-replies.db.test.ts",
+    "expect": "× .*puts none of a reply's words in any thread"
+  },
+  {
+    "id": "w6-5-db-recipe",
+    "kind": "sql",
+    "test": "tests/db/automation.db.test.ts",
+    "sql": "delete from public.automation_recipes where trigger = 'email.reply_received'",
+    "run": "bunx vitest run --project db tests/db/automation.db.test.ts",
+    "expect": "× .*holds one recipe per event type with the plan's step counts"
+  }
+]

@@ -28,11 +28,16 @@ const phoneOf = (phone: string | null): string =>
 const addressOf = (email: string | null): string =>
   email === null || email.trim() === "" ? "none given" : "on the page";
 
-/** Whether an event wakes a colleague: on duty, the type in its `wake_on`, and for a bounce, the owner of its source. */
+/**
+ * Whether an event wakes a colleague: on duty, the type in its `wake_on`, and for a bounce, the owner of its source. A
+ * reply wakes no one here: `email_reply_record` queues the run of the reply's routed owner itself, so a second colleague
+ * with the rule would draft a second answer to a thread it does not own (W6 item 5 review).
+ */
 export function wakes(
   agent: { wake_on: readonly string[]; state: string },
   event: { type: string; entity: string | null },
 ): boolean {
+  if (event.type === "email.reply_received") return false;
   if (agent.state === "off" || agent.state === "paused" || !agent.wake_on.includes(event.type))
     return false;
   if (event.type !== "email.bounced") return true;
