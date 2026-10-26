@@ -7,18 +7,24 @@
 // height }] }; each frame is written to <out>/<name>.png, and <report> receives, per frame, what the page drew with:
 // the font families and the smallest size of its text, its visible text, the colours of its text, fills and borders,
 // and every gradient, shadow, blur or backdrop filter in its computed styles (the house rules forbid them; the caller
-// judges). Pixels a canvas draws are not in the report: the caller reads the page's source for those.
+// judges). Pixels a canvas draws are not in the report: the caller reads the page's source for those. The page was
+// written by a model, so it reaches only a post's own files and nothing past this machine (post-guard.mjs): a refused
+// request fails the frame, like any request that fails.
 import puppeteer from "puppeteer-core";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { findChrome, CHROME_ARGS, writeRetry } from "./chrome.mjs";
+import { guardPost, POST_CHROME_ARGS, postPathAllowed } from "./post-guard.mjs";
 import { serve, ROOT } from "./serve.mjs";
 
 function watch(page) {
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  page.on("requestfailed", (r) => errors.push("request failed: " + r.url()));
+  // Chrome asks for /favicon.ico by itself; a post's guard refuses it, and that is no fault of the page
+  page.on("requestfailed", (r) => {
+    if (!r.url().endsWith("/favicon.ico")) errors.push("request failed: " + r.url());
+  });
   page.on("response", (r) => {
     if (r.status() >= 400 && !r.url().endsWith("/favicon.ico"))
       errors.push(`HTTP ${r.status()} ${r.url()}`);
@@ -100,19 +106,20 @@ async function frames(specFile) {
   const spec = JSON.parse(readFileSync(specFile, "utf8"));
   const pagePath = resolve(spec.page);
   const rel = relative(ROOT, pagePath).split("\\").join("/");
-  if (rel.startsWith(".."))
-    throw new Error("the page must be under the repository root: " + pagePath);
+  if (rel.startsWith("..") || !postPathAllowed(`/${rel}`))
+    throw new Error("the page must be under app/.tmp/post/ of the repository: " + pagePath);
   mkdirSync(spec.out, { recursive: true });
-  const server = await serve();
+  const server = await serve({ allow: postPathAllowed });
   const browser = await puppeteer.launch({
     executablePath: findChrome(),
     headless: true,
-    args: CHROME_ARGS,
+    args: [...CHROME_ARGS, ...POST_CHROME_ARGS],
   });
   const report = [];
   try {
     for (const frame of spec.frames) {
       const page = await browser.newPage();
+      await guardPost(page, server.url);
       const errors = watch(page);
       await page.setViewport({ width: frame.width, height: frame.height, deviceScaleFactor: 1 });
       const query = new URLSearchParams({

@@ -15,9 +15,13 @@ const TYPES = {
   ".mp4": "video/mp4", ".wav": "audio/wav", ".woff2": "font/woff2",
 };
 
-export function serve({ port = 0, root = ROOT } = {}) {
+// `allow`, when given, is a test of the request's path (W8 item 1: a still post's page is served only its own files,
+// post-guard.mjs); anything it refuses is a 403.
+export function serve({ port = 0, root = ROOT, allow = null } = {}) {
   const server = createServer((req, res) => {
-    const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+    const pathname = new URL(req.url, "http://x").pathname;
+    if (allow !== null && !allow(pathname)) return res.writeHead(403).end();
+    const path = decodeURIComponent(pathname);
     const file = normalize(join(root, path));
     if (!file.startsWith(normalize(root))) return res.writeHead(403).end();
     let st;

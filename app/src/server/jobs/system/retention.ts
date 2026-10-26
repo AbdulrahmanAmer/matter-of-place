@@ -111,29 +111,29 @@ async function listVisuals(db: Db, keep: string): Promise<VisualRow[]> {
 }
 
 /**
- * W8 item 1: a rejected visual made on request has no property to go with, so its files leave bucket `media` and then
- * the rows of exactly the visuals removed, in batches; a Storage error leaves that batch and throws, as removeMedia.
+ * W8 item 1: a rejected visual made on request has no property to go with. In batches, its row is deleted first by
+ * `retention_delete_assets`, which checks the rule again and answers the rows it deleted with their keys, and only
+ * those files then leave bucket `media` (an orphan file does less harm than a row whose files are gone). A Storage
+ * error throws and names the keys left behind, so a person can remove them.
  */
 async function removeVisuals(db: Db, rows: VisualRow[]): Promise<number> {
   let removed = 0;
   for (let start = 0; start < rows.length; start += REMOVE_BATCH) {
     const batch = rows.slice(start, start + REMOVE_BATCH);
-    const keys = batch.flatMap((row) => row.media_keys);
-    if (keys.length > 0) {
-      const { error } = await db.storage.from("media").remove(keys);
-      if (error !== null) {
-        throw new AppError(
-          "storage_unavailable",
-          undefined,
-          `Storage did not remove the files of ${String(batch.length)} rejected visuals.`,
-        );
-      }
-    }
     const deleted = await db.rpc("retention_delete_assets", {
       p_ids: batch.map((row) => row.asset_id),
     });
     if (deleted.error !== null) throw unavailable("retention_delete_assets");
-    removed += deleted.data;
+    removed += deleted.data.length;
+    const keys = deleted.data.flatMap((row) => row.media_keys);
+    if (keys.length === 0) continue;
+    const { error } = await db.storage.from("media").remove(keys);
+    if (error === null) continue;
+    throw new AppError(
+      "storage_unavailable",
+      undefined,
+      `Storage did not remove the files of ${String(deleted.data.length)} deleted visuals: ${keys.join(", ")}`,
+    );
   }
   return removed;
 }

@@ -8,7 +8,7 @@ as $$
   -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that
   -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.
   -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;
-  -- retention.ts removes the files and then the rows whose files are gone.
+  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.
   select a.id,
     coalesce(
       array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),

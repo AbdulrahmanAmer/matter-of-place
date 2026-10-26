@@ -312,14 +312,30 @@ describe("a brand still is approved like any visual", () => {
 });
 
 describe("the retention of rejected requested visuals", () => {
-  it("lists a rejected one past its period with its requested/ files, never a pending, recent, property or posted one, and deletes only those", async () => {
+  it("lists a rejected one past its period with its requested/ files, never a pending, recent, property, unrequested, posted or proposed one, and deletes only those", async () => {
     await withRollback(async (db) => {
+      await california(db);
       const person = await createStaffUser(db, ["media_ops"]);
+      const property = await scalar<string>(
+        db,
+        `insert into public.properties (slug, title, market_slug, city, state, address, type)
+         values ('w8-1-retention', 'Test house', 'california', 'Berkeley', 'CA', '1 Test Way', 'Residence')
+         returning id as v`,
+      );
       const old = await brandCarousel(db);
       const recent = await brandCarousel(db);
       const pending = await brandCarousel(db);
       const posted = await brandCarousel(db);
-      for (const id of [old, recent, posted]) {
+      const proposed = await brandCarousel(db);
+      const unrequested = await brandCarousel(db);
+      // a rejected visual of a property made on request (a campaign piece): it goes with its property, never here
+      const campaign = await scalar<string>(
+        db,
+        `select public.record_requested_asset('property', 'carousel', $1::jsonb, 'A house.', 'A house.', $2::jsonb, $3) as v`,
+        [SLIDES, META, property],
+      );
+      const all = [old, recent, pending, posted, proposed, unrequested, campaign];
+      for (const id of [old, recent, posted, proposed, unrequested, campaign]) {
         await db.query(
           "select public.reject_asset($1, 'Not this one.', $2, 'human', 'req-reject')",
           [id, person],
@@ -330,12 +346,26 @@ describe("the retention of rejected requested visuals", () => {
          values ($1, null, 'instagram', 'failed', now(), 'cancelled')`,
         [posted],
       );
+      const post = await scalar<string>(
+        db,
+        `insert into public.proposed_posts (title, proposer_kind, proposer_agent, status, rejection_note)
+         values ('w8-1-retention', 'agent', 'chief', 'rejected', 'w8-1') returning id as v`,
+      );
+      await db.query(
+        `insert into public.proposed_post_channels (post_id, revision, channel, format, caption, media, asset_id)
+         values ($1, 1, 'x', 'single', 'w8-1', '{}'::jsonb, $2)`,
+        [post, proposed],
+      );
       // set_updated_at stamps every update with now(), so the age is written with it off (rolled back with the case)
       await db.query("alter table public.assets disable trigger assets_set_updated_at");
       await db.query(
         "update public.assets set updated_at = now() - interval '100 days' where id = any($1::uuid[])",
-        [[old, pending, posted]],
+        [[old, pending, posted, proposed, unrequested, campaign]],
       );
+      // a visual nobody asked for (no meta.request_id) is a person's upload, never the retention's
+      await db.query("update public.assets set meta = meta - 'request_id' where id = $1", [
+        unrequested,
+      ]);
       // a file outside requested/ is never the retention's to remove
       await db.query(
         `update public.assets set files = files || '[{"role":"slide","index":2,"media_key":"proposed/b/kept.cccccccc.jpg","w":1080,"h":1350,"bytes":1}]'::jsonb
@@ -343,27 +373,56 @@ describe("the retention of rejected requested visuals", () => {
         [old],
       );
       await db.query("alter table public.assets enable trigger assets_set_updated_at");
+      const keys = ["requested/p1/slide-0.aaaaaaaa.jpg", "requested/p1/slide-1.bbbbbbbb.jpg"];
       const listed = await db.query<{ asset_id: string; media_keys: string[] }>(
         "select asset_id, media_keys from public.retention_requested_visuals(interval '90 days')",
       );
-      expect(listed.rows).toEqual([
-        {
-          asset_id: old,
-          media_keys: ["requested/p1/slide-0.aaaaaaaa.jpg", "requested/p1/slide-1.bbbbbbbb.jpg"],
-        },
-      ]);
-      expect(
-        await scalar<number>(db, "select public.retention_delete_assets($1::uuid[]) as v", [
-          [old, recent, pending, posted],
-        ]),
-      ).toBe(1);
+      expect(listed.rows).toEqual([{ asset_id: old, media_keys: keys }]);
+      // the delete function checks every clause again on its own: named all of them, it deletes only the old one
+      const deleted = await db.query<{ asset_id: string; media_keys: string[] }>(
+        "select asset_id, media_keys from public.retention_delete_assets($1::uuid[])",
+        [all],
+      );
+      expect(deleted.rows).toEqual([{ asset_id: old, media_keys: keys }]);
       expect(
         await scalar<string[]>(
           db,
           "select array_agg(id order by id) as v from public.assets where id = any($1::uuid[])",
-          [[old, recent, pending, posted]],
+          [all],
         ),
-      ).toEqual([recent, pending, posted].sort());
+      ).toEqual(all.filter((id) => id !== old).sort());
+    });
+  });
+
+  it("deletes nothing while its policy is off, and the same visual once it is on", async () => {
+    await withRollback(async (db) => {
+      const person = await createStaffUser(db, ["media_ops"]);
+      const old = await brandCarousel(db);
+      await db.query("select public.reject_asset($1, 'Not this one.', $2, 'human', 'req-reject')", [
+        old,
+        person,
+      ]);
+      await db.query("alter table public.assets disable trigger assets_set_updated_at");
+      await db.query(
+        "update public.assets set updated_at = now() - interval '100 days' where id = $1",
+        [old],
+      );
+      await db.query("alter table public.assets enable trigger assets_set_updated_at");
+      const deleteOld = async () =>
+        (
+          await db.query<{ asset_id: string }>(
+            "select asset_id from public.retention_delete_assets($1::uuid[])",
+            [[old]],
+          )
+        ).rows.map((row) => row.asset_id);
+      await db.query(
+        "update public.retention_policies set enabled = false where key = 'rejected_requested_visuals'",
+      );
+      expect(await deleteOld()).toEqual([]);
+      await db.query(
+        "update public.retention_policies set enabled = true where key = 'rejected_requested_visuals'",
+      );
+      expect(await deleteOld()).toEqual([old]);
     });
   });
 
@@ -384,7 +443,9 @@ describe("the retention of rejected requested visuals", () => {
         outcomes.push(
           await attempt(db, "select * from public.retention_requested_visuals(interval '0 days')"),
         );
-        outcomes.push(await attempt(db, "select public.retention_delete_assets('{}'::uuid[])"));
+        outcomes.push(
+          await attempt(db, "select * from public.retention_delete_assets('{}'::uuid[])"),
+        );
         await db.query("rollback to savepoint as_role");
       }
       expect(outcomes).toEqual([

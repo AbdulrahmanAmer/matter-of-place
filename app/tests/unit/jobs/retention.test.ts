@@ -53,6 +53,8 @@ interface Setup {
   keys?: string[];
   declined?: number;
   visuals?: number;
+  /** Visuals the delete function's own check keeps (their rule changed after they were listed). */
+  kept?: readonly string[];
   storageFails?: boolean;
 }
 
@@ -61,6 +63,7 @@ function setup({
   keys = ALL_KEYS,
   declined = 0,
   visuals = 0,
+  kept = [],
   storageFails = false,
 }: Setup = {}): FakeDb {
   let waiting = Array.from({ length: declined }, (_, n) => mediaRow(n));
@@ -79,9 +82,13 @@ function setup({
         return p_ids.length;
       },
       retention_requested_visuals: () => rejected,
+      // like the database: the rows it deleted, with their keys, in id order
       retention_delete_assets: ({ p_ids }) => {
-        rejected = rejected.filter((row) => !p_ids.includes(row.asset_id));
-        return p_ids.length;
+        const gone = rejected.filter(
+          (row) => p_ids.includes(row.asset_id) && !kept.includes(row.asset_id),
+        );
+        rejected = rejected.filter((row) => !gone.includes(row));
+        return gone;
       },
       retention_anonymise_inquiries: ({ p_dry_run }) => (p_dry_run === true ? 0 : 2),
       retention_anonymise_contacts: () => 0,
@@ -184,7 +191,7 @@ describe("retention", () => {
     expect(calls(db, "rpc", "retention_log_run")).toEqual([]);
   });
 
-  it("removes a rejected requested visual's files from media in batches of 100, then deletes only those assets (W8 item 1)", async () => {
+  it("deletes a rejected requested visual's row in batches of 100, then removes the files of exactly the rows deleted from media (W8 item 1)", async () => {
     const db = setup({ keys: ["rejected_requested_visuals"], visuals: 120 });
     await run(db);
     const removed = calls(db, "storage", "media.remove").map(([keys]) => keys);
@@ -198,18 +205,46 @@ describe("retention", () => {
       Array.from({ length: 100 }, (_, n) => visualRow(n).asset_id),
       Array.from({ length: 20 }, (_, n) => visualRow(n + 100).asset_id),
     ]);
+    // each batch's rows go before its files
+    const order = db.calls
+      .filter((call) => call.name === "retention_delete_assets" || call.name === "media.remove")
+      .map((call) => call.name);
+    expect(order).toEqual([
+      "retention_delete_assets",
+      "media.remove",
+      "retention_delete_assets",
+      "media.remove",
+    ]);
     const logged = rpcCalls(db).find((call) => call.name === "retention_log_run")?.p_after;
     expect(logged).toMatchObject({ rejected_requested_visuals: { affected: 120, remaining: 0 } });
   });
 
-  it("keeps a rejected visual's row when its files could not be removed, and the job throws", async () => {
+  it("removes no file of a visual the delete function kept, since its rule changed after the list", async () => {
+    const db = setup({
+      keys: ["rejected_requested_visuals"],
+      visuals: 2,
+      kept: [visualRow(1).asset_id],
+    });
+    await run(db);
+    expect(calls(db, "storage", "media.remove").map(([keys]) => keys)).toEqual([
+      visualRow(0).media_keys,
+    ]);
+    const logged = rpcCalls(db).find((call) => call.name === "retention_log_run")?.p_after;
+    expect(logged).toMatchObject({ rejected_requested_visuals: { affected: 1, remaining: 1 } });
+  });
+
+  it("deletes a rejected visual's row before its files, and names the files it could not remove when the job throws", async () => {
     const db = setup({ keys: ["rejected_requested_visuals"], visuals: 2, storageFails: true });
     const outcome = await run(db).then(
       () => null,
-      (error: unknown) => (error instanceof AppError ? error.code : String(error)),
+      (error: unknown) =>
+        error instanceof AppError ? `${error.code} ${error.message}` : String(error),
     );
-    expect(outcome).toBe("storage_unavailable");
-    expect(calls(db, "rpc", "retention_delete_assets")).toEqual([]);
+    expect(outcome).toContain("storage_unavailable");
+    expect(outcome).toContain(visualRow(1).media_keys[1]);
+    expect(calls(db, "rpc", "retention_delete_assets")).toEqual([
+      [{ p_ids: [visualRow(0).asset_id, visualRow(1).asset_id] }],
+    ]);
   });
 
   it("runs the policies in order after the rollup and writes one audit row with affected and remaining", async () => {

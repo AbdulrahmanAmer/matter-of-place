@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { matterPrompt } from "../../scripts/matter/run.ts";
@@ -8,6 +8,7 @@ import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
   copyEarlier,
   inPalette,
+  MIN_TEXT_PX,
   postCaptions,
   postPass,
   postPrompt,
@@ -418,6 +419,25 @@ describe("no two posts share a layout", () => {
       ),
     ]).toEqual([true, true, true]);
   });
+
+  it("tells the designer the one smallest text size the gate lets through", () => {
+    const asked = postRequestSchema.parse(comingSoon);
+    const post = {
+      id: "00000000-0000-4000-8000-000000000002",
+      at: "",
+      request: asked,
+      from,
+      state: "working" as const,
+    };
+    const prompt = postPrompt(post, framesFor("carousel", asked.titles), [], 0);
+    expect(prompt).toContain(`at least ${String(MIN_TEXT_PX)} px tall`);
+    // no other size is named for text
+    expect(prompt.match(/at least \d+ px tall/g)).toEqual([
+      `at least ${String(MIN_TEXT_PX)} px tall`,
+    ]);
+    // the page loads nothing the post's guard refuses (launch/engine/post-guard.mjs)
+    expect(prompt).not.toContain("/app/src/");
+  });
 });
 
 describe("the post pass", () => {
@@ -453,6 +473,8 @@ describe("the post pass", () => {
             p_alt_text: "Two lines of type over Bone, the emblem below.",
             p_meta: {
               request_id: id,
+              // the folder's name, never the laptop's path with its user name
+              studio: basename(folder),
               caption_lint: "passed",
               slide_alts: ["The first line.", "The second line."],
               captions: { x: expect.stringContaining("utm_campaign=coming-soon") },

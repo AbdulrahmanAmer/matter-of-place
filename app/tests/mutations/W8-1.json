@@ -276,7 +276,16 @@
     "find": "      [\"rejected_requested_visuals\", (policy) => visualsPolicy(db, policy, dryRun)],\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/jobs/retention.test.ts",
-    "expect": "× .*removes a rejected requested visual's files from media"
+    "expect": "× .*deletes a rejected requested visual's row in batches of 100"
+  },
+  {
+    "id": "w8-1-retention-deleted-keys",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "const keys = deleted.data.flatMap((row) => row.media_keys);",
+    "replace": "const keys = batch.flatMap((row) => row.media_keys);",
+    "run": "bunx vitest run --project unit tests/unit/jobs/retention.test.ts",
+    "expect": "× .*removes no file of a visual the delete function kept"
   },
   {
     "id": "w8-1-retention-storage",
@@ -285,7 +294,70 @@
     "find": "const { error } = await db.storage.from(\"media\").remove(keys);",
     "replace": "const error = null;",
     "run": "bunx vitest run --project unit tests/unit/jobs/retention.test.ts",
-    "expect": "× .*keeps a rejected visual's row when its files could not be removed"
+    "expect": "× .*deletes a rejected visual's row before its files, and names the files"
+  },
+  {
+    "id": "w8-1-guard-interception",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  await page.setRequestInterception(true);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*is refused the repository's .env, any other file of the checkout and any other host"
+  },
+  {
+    "id": "w8-1-guard-paths",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  return POST_PATHS.some((prefix) => path.startsWith(prefix));",
+    "replace": "  return true;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*allows its own folder, the brand, the fonts and Three.js"
+  },
+  {
+    "id": "w8-1-guard-climb",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  if (/(^|[\\\\/])\\.\\.([\\\\/]|$)/.test(path)) return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*allows its own folder, the brand, the fonts and Three.js"
+  },
+  {
+    "id": "w8-1-guard-origin",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/post-guard.mjs",
+    "find": "  return parsed.origin === origin && postPathAllowed(parsed.pathname);",
+    "replace": "  return postPathAllowed(parsed.pathname);",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*allows its own folder, the brand, the fonts and Three.js"
+  },
+  {
+    "id": "w8-1-serve-allow",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/serve.mjs",
+    "find": "    if (allow !== null && !allow(pathname)) return res.writeHead(403).end();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*is all the engine's server serves when given the guard"
+  },
+  {
+    "id": "w8-1-text-px",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "at least ${String(MIN_TEXT_PX)} px tall",
+    "replace": "at least 28 px tall",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*tells the designer the one smallest text size the gate lets through"
+  },
+  {
+    "id": "w8-1-meta-studio",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "        studio: basename(folder),\n",
+    "replace": "        studio: folder,\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*designs, gates, has it reviewed, uploads each frame"
   },
   {
     "id": "w8-1-db-kind",
@@ -331,7 +403,7 @@
     "id": "w8-1-db-list-rejected",
     "kind": "sql",
     "test": "tests/db/brand-posts.db.test.ts",
-    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts removes the files and then the rows whose files are gone.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
     "expect": "× .*lists a rejected one past its period"
   },
@@ -339,7 +411,7 @@
     "id": "w8-1-db-list-posted",
     "kind": "sql",
     "test": "tests/db/brand-posts.db.test.ts",
-    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts removes the files and then the rows whose files are gone.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
     "expect": "× .*lists a rejected one past its period"
   },
@@ -347,7 +419,7 @@
     "id": "w8-1-db-list-requested-keys",
     "kind": "sql",
     "test": "tests/db/brand-posts.db.test.ts",
-    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts removes the files and then the rows whose files are gone.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') ,\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') ,\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
     "expect": "× .*lists a rejected one past its period"
   },
@@ -355,7 +427,7 @@
     "id": "w8-1-db-delete-age",
     "kind": "sql",
     "test": "tests/db/brand-posts.db.test.ts",
-    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_keep interval;\n  v_count int;\nbegin\n  -- W8 item 1, GD-03: retention.ts passes only the ids whose files are already removed. The rule of\n  -- retention_requested_visuals is checked again here, with the policy row's own period, so no other asset can be\n  -- named: a disabled policy deletes nothing.\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning 1\n  )\n  select count(*)::int into v_count from gone;\n  perform set_config('mop.retention', 'off', true);\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
     "expect": "× .*lists a rejected one past its period"
   },
@@ -363,8 +435,88 @@
     "id": "w8-1-db-delete-grant",
     "kind": "sql",
     "test": "tests/db/brand-posts.db.test.ts",
-    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_keep interval;\n  v_count int;\nbegin\n  -- W8 item 1, GD-03: retention.ts passes only the ids whose files are already removed. The rule of\n  -- retention_requested_visuals is checked again here, with the policy row's own period, so no other asset can be\n  -- named: a disabled policy deletes nothing.\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning 1\n  )\n  select count(*)::int into v_count from gone;\n  perform set_config('mop.retention', 'off', true);\n  return v_count;\nend;\n$$;\n\ngrant execute on function public.retention_delete_assets(uuid[]) to anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\ngrant execute on function public.retention_delete_assets(uuid[]) to anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
     "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
     "expect": "× .*is a policy row of 90 days, and anon and authenticated cannot run either function"
+  },
+  {
+    "id": "w8-1-db-list-subject",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-list-request-id",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-list-proposed",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_requested_visuals(p_keep interval)\nreturns table (asset_id uuid, media_keys text[])\nlanguage sql\nstable\nsecurity definer\nset search_path = ''\nas $$\n  -- W8 item 1, GD-03: a visual made on request (a reel or a still post about a market, a story or the brand, H107) that\n  -- a person rejected and nobody touched for p_keep, with the keys of its files under `requested/` in bucket `media`.\n  -- A property's asset goes with its property, and an asset any post points at stays with that post. It lists only;\n  -- retention.ts deletes the rows through retention_delete_assets, then removes the files of the rows it deleted.\n  select a.id,\n    coalesce(\n      array_agg(f.file ->> 'media_key') filter (where f.file ->> 'media_key' like 'requested/%'),\n      '{}'\n    )\n  from public.assets a\n  left join lateral jsonb_array_elements(a.files) as f (file) on true\n  where a.subject <> 'property'\n    and a.status = 'rejected'\n    and a.meta ? 'request_id'\n    and a.updated_at < now() - p_keep\n    and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n  group by a.id\n  order by a.id;\n$$;\n\nrevoke execute on function public.retention_requested_visuals(interval) from public, anon, authenticated;\ngrant execute on function public.retention_requested_visuals(interval) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-subject",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-status",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-request-id",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-posted",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-proposed",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
+  },
+  {
+    "id": "w8-1-db-delete-enabled",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n        where f.file ->> 'media_key' like 'requested/%'\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*deletes nothing while its policy is off"
+  },
+  {
+    "id": "w8-1-db-delete-keys",
+    "kind": "sql",
+    "test": "tests/db/brand-posts.db.test.ts",
+    "sql": "create or replace function public.retention_delete_assets(p_ids uuid[])\nreturns table (asset_id uuid, media_keys text[])\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\n#variable_conflict use_column\ndeclare\n  v_keep interval;\nbegin\n  -- W8 item 1, GD-03: the rule of retention_requested_visuals is checked again here, with the policy row's own period,\n  -- so no other asset can be named: a disabled policy deletes nothing. The rows go first and answer the keys of their\n  -- files under `requested/`; retention.ts then removes those files (fresh Opus review, 2026-10-19: an orphan file does\n  -- less harm than a row whose files are gone).\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = 'rejected_requested_visuals' and enabled and keep_for is not null;\n  if not found then\n    return;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  return query\n  with gone as (\n    delete from public.assets a\n    where a.id = any(p_ids)\n      and a.subject <> 'property'\n      and a.status = 'rejected'\n      and a.meta ? 'request_id'\n      and a.updated_at < now() - v_keep\n      and not exists (select 1 from public.social_posts s where s.asset_id = a.id)\n      and not exists (select 1 from public.proposed_post_channels c where c.asset_id = a.id)\n    returning a.id, a.files\n  )\n  select g.id,\n    coalesce(\n      (\n        select array_agg(f.file ->> 'media_key')\n        from jsonb_array_elements(g.files) as f (file)\n      ),\n      '{}'\n    )\n  from gone g\n  order by g.id;\n  perform set_config('mop.retention', 'off', true);\nend;\n$$;\n\nrevoke execute on function public.retention_delete_assets(uuid[]) from public, anon, authenticated;\ngrant execute on function public.retention_delete_assets(uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/brand-posts.db.test.ts",
+    "expect": "× .*lists a rejected one past its period"
   }
 ]

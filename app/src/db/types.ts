@@ -2226,7 +2226,9 @@ isOneToOne: false
             }[]
                            },
 "retention_delete_assets":
-{ Args: { "p_ids": (string)[] }; Returns: number
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "asset_id": string,"media_keys": (string)[]
+            }[]
                            },
 "retention_delete_media":
 { Args: { "p_ids": (string)[] }; Returns: number
