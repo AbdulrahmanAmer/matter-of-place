@@ -86,7 +86,7 @@ function HomePage() {
                 <h1 id="home-title">
                   <span>Exceptional property.</span> <span>Properly considered.</span>
                 </h1>
-                <p className="hero-text-lede">{t.comingSoon.what}</p>
+                <p className="hero-text-lede">{t.home.intro}</p>
                 <div className="hero-text-actions">
                   <Link to="/markets" className="button">
                     Explore Properties
@@ -124,11 +124,7 @@ function HomePage() {
           <p className="eyebrow">MATTER OF PLACE</p>
           <div>
             <h2>Exceptional property. Properly considered.</h2>
-            <p>
-              An editorial real-estate media platform for exceptional residential property across
-              California, New York and Florida. We select, present and distribute places worth
-              attention.
-            </p>
+            <p>{t.home.intro}</p>
             <div className="home-actions">
               <TextLink to="/properties">Explore Properties</TextLink>
               <TextLink to="/submit">Submit a Property</TextLink>

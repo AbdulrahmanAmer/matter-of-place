@@ -8917,3 +8917,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: resolve elements with $.ui.resolve(e) and use only the props that surface's Text declares (no size, no weight on terminal); run claude plugin validate after every mod edit.
 - proof: claude plugin validate C:/Users/DELL/.claude/dev-mods/<session>/seo-checklist passes; /seo reports isPlaced and the checklist draws in the terminal.
 - added: 2026-10-26
+
+## P-3732 · `git log -L` takes POSIX regular expressions: a `\{` in the range is an interval, not a brace
+- symptom: 2026-10-19, dating one section of `strings.ts` for the sitemap, `git log -L '/^  privacy: \{/,/^  \},/:app/src/lib/strings.ts'` answered `fatal: -L parameter ... starting at line 1: Unmatched \{`; and `git log -L` prints a patch unless `-s` is given.
+- rule: write a literal brace as `[{]` and `[}]` in a `-L` range, add `--format=%ct -s`, read the newest stamp (`scripts/gen-page-dates.ts`); a shallow clone makes every date the clone's day, so the script keeps the committed file when `git rev-parse --is-shallow-repository` is not `false`.
+- proof: `git log -L '/^  privacy: [{]/,/^  [}],/:app/src/lib/strings.ts' --format=%cs -s` → `2026-10-08`; `bunx vitest run --project unit tests/unit/page-dates.test.ts` passes, registry `W8-search.json` w8-12b-section-range watched red.
+- added: 2026-10-19
+
+## P-3707 · `toEqual({})` passes for an object whose key holds `undefined`: a test of "left out" measures nothing
+- symptom: 2026-10-19, `expect(resolvePageDates(...)).toEqual({})` stayed green with the guard that leaves an undated page out removed (the key then held `undefined`); the watched-fail of the new test was green, so the assertion measured nothing.
+- rule: to assert a key is absent use `Object.keys(x)` `toEqual([])` or `not.toHaveProperty`, never `toEqual({})`; a new assertion is watched red before it is trusted (registry `w8-12b-left-out`).
+- proof: `bunx vitest run --project unit tests/unit/page-dates.test.ts` passes; with `if (newest !== undefined)` replaced by `if (true)` it fails on "leaves a page out when none of its files has a commit".
+- added: 2026-10-19
