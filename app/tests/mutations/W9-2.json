@@ -105,6 +105,6 @@
     "find": "routeId: \"/admin/emails/\",",
     "replace": "routeId: \"/admin/mail/\",",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-nav.test.ts",
-    "expect": "× .*holds 33 entries, one per screen"
+    "expect": "× .*holds 34 entries, one per screen"
   }
 ]

@@ -100,6 +100,7 @@ import { Route as AdminPeopleIndexRouteImport } from './routes/admin/people.inde
 import { Route as AdminPeopleIdRouteImport } from './routes/admin/people.$id'
 import { Route as AdminPropertiesIndexRouteImport } from './routes/admin/properties.index'
 import { Route as AdminPropertiesIdRouteImport } from './routes/admin/properties.$id'
+import { Route as AdminProposedPostsIndexRouteImport } from './routes/admin/proposed-posts.index'
 import { Route as AdminReportsIndexRouteImport } from './routes/admin/reports.index'
 import { Route as AdminRequestsIndexRouteImport } from './routes/admin/requests.index'
 import { Route as AdminRequestsIdRouteImport } from './routes/admin/requests.$id'
@@ -792,6 +793,11 @@ const AdminPropertiesIdRoute = AdminPropertiesIdRouteImport.update({
 } as any).lazy(() =>
   import('./routes/admin/properties.$id.lazy').then((d) => d.Route),
 )
+const AdminProposedPostsIndexRoute = AdminProposedPostsIndexRouteImport.update({
+  id: '/proposed-posts/',
+  path: '/proposed-posts/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminReportsIndexRoute = AdminReportsIndexRouteImport.update({
   id: '/reports/',
   path: '/reports/',
@@ -1999,6 +2005,7 @@ export interface FileRoutesByFullPath {
   '/admin/newsletter/': typeof AdminNewsletterIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
+  '/admin/proposed-posts/': typeof AdminProposedPostsIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/admin/settings/': typeof AdminSettingsIndexRoute
@@ -2285,6 +2292,7 @@ export interface FileRoutesByTo {
   '/admin/newsletter': typeof AdminNewsletterIndexRoute
   '/admin/people': typeof AdminPeopleIndexRoute
   '/admin/properties': typeof AdminPropertiesIndexRoute
+  '/admin/proposed-posts': typeof AdminProposedPostsIndexRoute
   '/admin/reports': typeof AdminReportsIndexRoute
   '/admin/requests': typeof AdminRequestsIndexRoute
   '/admin/settings': typeof AdminSettingsIndexRoute
@@ -2577,6 +2585,7 @@ export interface FileRoutesById {
   '/admin/newsletter/': typeof AdminNewsletterIndexRoute
   '/admin/people/': typeof AdminPeopleIndexRoute
   '/admin/properties/': typeof AdminPropertiesIndexRoute
+  '/admin/proposed-posts/': typeof AdminProposedPostsIndexRoute
   '/admin/reports/': typeof AdminReportsIndexRoute
   '/admin/requests/': typeof AdminRequestsIndexRoute
   '/admin/settings/': typeof AdminSettingsIndexRoute
@@ -2869,6 +2878,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter/'
     | '/admin/people/'
     | '/admin/properties/'
+    | '/admin/proposed-posts/'
     | '/admin/reports/'
     | '/admin/requests/'
     | '/admin/settings/'
@@ -3155,6 +3165,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter'
     | '/admin/people'
     | '/admin/properties'
+    | '/admin/proposed-posts'
     | '/admin/reports'
     | '/admin/requests'
     | '/admin/settings'
@@ -3446,6 +3457,7 @@ export interface FileRouteTypes {
     | '/admin/newsletter/'
     | '/admin/people/'
     | '/admin/properties/'
+    | '/admin/proposed-posts/'
     | '/admin/reports/'
     | '/admin/requests/'
     | '/admin/settings/'
@@ -4382,6 +4394,13 @@ declare module '@tanstack/react-router' {
       path: '/properties/$id'
       fullPath: '/admin/properties/$id'
       preLoaderRoute: typeof AdminPropertiesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/proposed-posts/': {
+      id: '/admin/proposed-posts/'
+      path: '/proposed-posts'
+      fullPath: '/admin/proposed-posts/'
+      preLoaderRoute: typeof AdminProposedPostsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/reports/': {
@@ -5948,6 +5967,7 @@ interface AdminRouteChildren {
   AdminNewsletterIndexRoute: typeof AdminNewsletterIndexRoute
   AdminPeopleIndexRoute: typeof AdminPeopleIndexRoute
   AdminPropertiesIndexRoute: typeof AdminPropertiesIndexRoute
+  AdminProposedPostsIndexRoute: typeof AdminProposedPostsIndexRoute
   AdminReportsIndexRoute: typeof AdminReportsIndexRoute
   AdminRequestsIndexRoute: typeof AdminRequestsIndexRoute
   AdminSettingsIndexRoute: typeof AdminSettingsIndexRoute
@@ -5987,6 +6007,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNewsletterIndexRoute: AdminNewsletterIndexRoute,
   AdminPeopleIndexRoute: AdminPeopleIndexRoute,
   AdminPropertiesIndexRoute: AdminPropertiesIndexRoute,
+  AdminProposedPostsIndexRoute: AdminProposedPostsIndexRoute,
   AdminReportsIndexRoute: AdminReportsIndexRoute,
   AdminRequestsIndexRoute: AdminRequestsIndexRoute,
   AdminSettingsIndexRoute: AdminSettingsIndexRoute,

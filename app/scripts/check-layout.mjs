@@ -32,7 +32,7 @@ function globToRegExp(glob) {
 
 const MARKET_AREAS = "{account,brand,filters,forms,layout,property,search,site}";
 const ADMIN_FEATURES =
-  "{assets,audit,automation,campaigns,channels,dashboard,inquiries,invoices,jobs,markets,media,newsletter,people,properties,reports,requests,settings,stories,team,ui,workforce}";
+  "{assets,audit,automation,campaigns,channels,dashboard,inquiries,invoices,jobs,markets,media,newsletter,people,properties,proposed-posts,reports,requests,settings,stories,team,ui,workforce}";
 const SERVER_DOMAINS =
   "{account,assets,audit,automation,campaigns,catalog,channels,client-errors,concierge,dashboard,email,events,hooks,inquiries,jobs,kpi,markets,media,newsletter,nitro,omnikom,payments,people,previews,properties,public,publishing,reports,search,seo,settings,stories,subjects,submissions,subscribers,team,workforce}";
 const UNIT_AREAS =

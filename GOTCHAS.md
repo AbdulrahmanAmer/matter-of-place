@@ -1035,7 +1035,6 @@ Entry template
 - merged: P-400
 - hit again: 2026-10-10, B7 g3: a `python3 - <<'EOF' 2>/dev/null || node -e ...` guard in front of a node patch hung until the call moved to the background at 120 s; `python3.exe` and its child `python.exe` stayed, found with `Get-CimInstance Win32_Process`, and the node patch ran only once they were killed (`taskkill //PID`). The patch went in with a `.cjs` file next time.
 - hit again: 2026-10-03, B4 g4: a `python -` heredoc hung 120 seconds in the same turn as the analytics test work; the edit was redone with the Edit tool.
-- hit again: 2026-10-26, SEO pages phase 1: a `python - <<'EOF' ... || echo nopython` probe before a one-line edit hung 120 s and went to the background; the edit was made with the Edit tool.
 - hit again: 2026-10-11, fix/reconcile-timeout: a `python3 - <<'EOF' 2>/dev/null || echo nopython` with an empty heredoc hung 120 s, and `cat > file` with no heredoc after it waited on stdin for another 120 s and left an empty file one directory above the tree; both were killed by process id (`taskkill //PID`, ids read from `Get-CimInstance Win32_Process`) and the stray file removed.
 - hit again: 2026-10-03, B2 g10 rework: a `python - <<'EOF' ... || echo nopython` guard hung 120 seconds with the `node` edit chained after it; the node edit had run, so the two Edit calls that followed said `String to replace not found` for text the file already held. `git diff` showed it, as the rule says. A `\r` typed inside a Bash heredoc also reached the file as a real CR byte (P-008): use Write for any script with a backslash.
 - hit again: 2026-10-04, B8b c2s: a `python - <<'EOF' || echo nopython` guard with an empty body ran in front of a node patch; the call moved to the background at 120 s, the node patch ran when python was killed, and the file then needed its backslashes put back by hand (P-008). About 5 minutes.
@@ -1120,6 +1119,8 @@ Entry template
 - hit again: 2026-10-05, B13 step 4: a `python3 -` I typed into a chain after a heredoc hung the call for 120 seconds; it was killed with `taskkill //F //IM python3.exe`.
 - hit again: 2026-10-07, B6 g1: a leftover `cat > /tmp/fixpay.cjs 2>/dev/null;` ahead of a heredoc waited on stdin until the 120 s ceiling moved the call to the background; the `cat` was ended by its own process id (`ps -ef`), and the node patch after it then ran.
 - hit again: 2026-10-08, B7 g1 resume: a `python - <<EOF` that resolved two merge conflicts (`src/db/types.ts`, `tests/unit/assert-not-production.test.ts`) ran, but its text-mode `open(p, "w")` wrote every line ending as CRLF; `bun run check` then stopped at lint with 93 `Delete ␍ prettier/prettier` errors after a 10-minute run. `git checkout -- <file>` did not rewrite the file (git saw no change); `rm <file> && git checkout -- <file>` did. Proof: `git -C app ls-files --eol | grep -c w/crlf` → `0` after the fix. Resolve conflicts with the Edit tool or a node script, never python.
+- hit again: 2026-10-26, W8 item 11 fix round: a stray `python - 2>/dev/null;` left in front of a `sed` in a `&&` chain hung the call 120 s and moved it to the background; the cause was a habit, not a need (the sed ran in the next call). No python in this project, P-008.
+- hit again: 2026-10-26, SEO pages phase 1: a `python - <<'EOF' ... || echo nopython` probe before a one-line edit hung 120 s and went to the background; the edit was made with the Edit tool.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -4363,6 +4364,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && timeout 60 bun scripts/zz-t.ts` (a file that only does `await chromium.launch()`) → exit 124; the same call in `zz-t.mjs` under `timeout 60 node` → exit 0 (measured 2026-10-06, B5 g5); `bun run email:shots` → 13 `ok <key> 600x900` lines.
 - added: 2026-10-06
 - hit again: 2026-10-08, B7 g1 step 6 review: a signed-in admin probe written as TypeScript (`scratchpad/b7rev-signed.ts`, calling `chromium.launch()` and importing `tests/e2e/helpers/session.ts`) hung silently under `bun` twice (`timeout 150`, exit 124, no output, about 5 minutes) before the same logic as `.mjs` under `node` exited 0. A signed-in admin probe that uses `session.ts` runs under `node`, or as a spec through `bunx playwright test`, never under `bun`. `confirmIn()` calls `page.goto` with a relative URL, so outside the Playwright runner it needs a browser context created with `baseURL` (for example `http://127.0.0.1:8949`). Proof: `timeout 60 bun <probe>.ts` → exit 124 and `timeout 60 node <probe>.mjs` → exit 0.
+- hit again: 2026-10-16, W8 item 11: `scripts/admin-shot.ts` launched Chrome from Bun and printed nothing until `TimeoutError: launch: Timeout 180000ms exceeded`; it did not read this entry first. The script now renders under Bun and spawns `node scripts/admin-shot-measure.mjs` for the browser. A second trap in the node half: `scripts/tsconfig` has no DOM library, so a function passed to `page.evaluate` fails `tsc` on `document`; pass a string, as `lib/email-shots-page.mjs` does.
 
 ## P-1219 · The chain proof's `admin_notify` is `skipped not_allow_listed` on mop-dev: the admin recipient is the public contact address, not `ADMIN_NOTIFY_EMAIL`
 - symptom: B5 g5's first `bun run scripts/email-chain.ts` on mop-dev exited 1 after 180 s with `email-chain: no complete chain within 180 s; jobs: send_received done ; notify_admin_received done`. `email_messages` held `received skipped dry_...` (dry_run) and `admin_notify skipped` with no `resend_id` and error `not_allow_listed`. The g3 log had predicted two `dry_` rows from the allow-list reading alone.
@@ -7803,6 +7805,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a function type added by hand before CI regenerates copies the generator's form: arguments in alphabetical order, `"p_x"?:` for a defaulted one, `(string)[]` for an array argument, `Returns: string` for uuid or text, and `Returns: string[]` (no parentheses) for `returns setof text` (hit 2026-10-13, PR 354: `staging_orphans` written `(string)[]` failed the db job's type drift).
 - proof: `gh run view <run> --log-failed | grep "type drift"` shows the `-`/`+` lines; with `(string)[]` the job's diff is empty (PR 321 at 5c... merged 05:18).
 - added: 2026-10-12
+- hit again: 2026-10-26, PR 488 (W6 item 4): the merge of main left `record_channel_check` before `record_build_lesson` in `src/db/types.ts`; the db job's `git diff --exit-code src/db/types.ts` caught it, and three reruns were first misread as a registry rate limit (P-4612). Fixed in c47aca51 by the generator's alphabetical order.
 
 ## P-3439 · A gate started with a detached `&` again, against the standing order to use run_in_background
 - symptom: 2026-10-12 05:35, `(bash gate-loop.sh ... 324 &)` started the records PR's gate untracked; the operator had asked on 2026-10-11 that every long command run as a tracked background task.
@@ -9144,4 +9147,47 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the route renders `PageIntro` with the page title and the component added a heading with the same words; the R43 rule exempts only `src/lib/format.ts`, `src/domain/market-time.ts` and `src/server/**`, so a component-folder formatter is still a component; the lint wants every member of a union named, a `default` does not count.
 - rule: a component rendered under `PageIntro` starts below the `h1` (its first heading is an `h2` with different words, or none); an e2e asks for a page heading with `level: 1`; a formatter that needs `Intl` goes in `src/lib/format.ts`; a switch over a union names every member and has no `default`.
 - proof: `cd app && grep -rnE "new Intl\.|\.toLocale(Date|Time)?String\(" src/components src/routes src/admin` → no hits on the fix round 3 tree; `grep -n "<h2>Invoices" src/components/account/account-invoices.tsx` → no hits.
+- added: 2026-10-26
+
+## P-4609 · `<video>` and `<img>` in the admin have no `max-width`: a reel's poster widens its grid cell and the caption under it runs into the next card
+- symptom: 2026-10-16: on Visuals the text under a card (caption, notes, buttons) ran into the card beside it. Measured with `bun scripts/admin-shot.ts visuals`: at 390 px the reel card's header, video, caption and buttons spanned 33..1113 px inside a card that ended at 374; the page scrolled sideways (1113 > 390).
+- cause: the reset that gives media `max-width: 100%` is in the public `src/styles/base.css`, which the admin sheet (`src/styles/admin/index.css`) does not import. A `<video>` with a 1080 px poster is 1080 px wide, its grid cell grows to match, and everything in the card is laid out at that width.
+- rule: a card in the admin holds its media with `max-width: 100%; height: auto` and sets `min-width: 0` on the grid cell and its children; text wraps and is never cut, a reviewer reads the whole caption. After any change to a card's CSS run `bun scripts/admin-shot.ts visuals` (and `proposed`) from `app/`: it draws the real components with the real sheet at 390, 820 and 1440 px, writes PNGs to `.tmp/shots/out` and fails when anything leaves its card.
+- proof: `cd app && bun scripts/admin-shot.ts visuals` → `LAYOUT OK visuals at 390, 820, 1440`; with the rule `.admin-asset img, .admin-asset video` taken out of `src/styles/admin/assets.css` it prints `FAULT 390px, card 2: <video ...>` lines and `LAYOUT FAILED` (registry `w811-w-layout-media`).
+- added: 2026-10-16
+
+## P-4610 · A vitest worker can fail to start under a saturated laptop: `Failed to start forks worker ... Timeout waiting for worker to respond`
+- symptom: 2026-10-16, with other builders running at 100% CPU, `bunx vitest run --project component <file>` failed twice in 60 s with that error and no test ran, on a file that had never run and on an existing one.
+- cause: the forks pool waits 60 s for a worker to answer; startup under load took longer (G-031 family: a timeout under load is not a failure of the test).
+- rule: rerun with `--pool=threads`, which started in seconds and passed, before concluding the test is broken; a red that names an assertion is a real red, a red that names the pool is load.
+- proof: `cd app && bunx vitest run --project component src/admin/assets/assets.test.tsx --pool=threads` → `Tests ... passed` while the forks run printed the pool error (2026-10-16).
+- added: 2026-10-16
+
+## P-4611 · `merge-gotchas` on a number collision keeps OUR GOTCHAS.md whole and leaves it unmerged: every entry main added is missing until you take main's file
+- paths: (process)
+- severity: warn
+- symptom: 2026-10-26, W8 item 11: `git merge origin/main` printed "merge-gotchas: both sides changed P-3600, P-3602; ours kept, compare by hand" and listed GOTCHAS.md as a conflict with no markers in it. The file on disk was the branch's, 342 commits of main's entries short. Main had since used P-3600 and P-3602 for other entries (the robots.txt body, a colleague woken early), so the branch's two entries of the same numbers could not stay.
+- cause: the driver cannot renumber; when both sides changed the same id it keeps ours and stops. A grep for conflict markers finds nothing, so the file looks resolved.
+- rule: on that message take main's file whole (`git show :3:GOTCHAS.md`), add this branch's own entries after main's highest P (and G) number, fix every citation of the old numbers (`grep -rn "P-3600" app workspace`), then `git add` it. Check with `grep -c "^## P-4609 " GOTCHAS.md` and `node workspace/05-plans/check-gotchas.mjs`.
+- proof: `git show origin/main:GOTCHAS.md | grep -c "^## P-3600 "` → 1 (main's robots.txt entry) while the branch's entry of that number was a different lesson; after the renumber `grep -c "^## P-4609 " GOTCHAS.md` → 1 and `grep -c "^## P-3600 " GOTCHAS.md` → 1.
+- added: 2026-10-26
+
+## P-4547 · A builder that may not run tsc or lint writes code they refuse, and each refusal costs a CI round
+- symptom: W8 item 1 (PR 486), 2026-10-26: 7 tsc errors, 21 lint errors and 8 STALE registry finds reached CI over three rounds; W6 item 4 (488), the toolkits (489) and W6 item 8 (490) repeated it: `require-await`, `exactOptionalPropertyTypes`, R43 formatting in a component, unnecessary casts, a non-exhaustive switch, a heading repeated as a section heading.
+- cause: no local CI (operator, 2026-10-16): a builder never sees tsc or eslint; a line it copies or splits makes a registry `find` occur twice.
+- rule: the builders' shared How (`~/.mop-workforce/builders/how.md`) names the traps and requires every registry find in a changed file to stay unique; a CI-fix round's brief carries CI's output word for word, and the builder reads its other new files for the same rules before pushing.
+- proof: PR 486's fix commits fe8afc33 (tsc) and cdff22fe (lint) before the merge dcf2f32f; PR 490's rounds d4c20d32 (tsc, audit) and a2bf38f7 (lint, e2e) before 141a5df6.
+- added: 2026-10-26
+
+## P-4612 · "toomanyrequests: Data limit exceeded" in CI's db job is noise; the failure is the step that exited
+- symptom: PR 488, 2026-10-26: three db runs were read as a registry rate limit and rerun; the job had failed on `gen:types` type drift.
+- cause: the Supabase CLI pulls from public.ecr.aws first; its anonymous quota refuses, the CLI falls back to ghcr.io and the pulls succeed, but the refusals stay in the log as the loudest lines.
+- rule: read the lines just before `##[error]Process completed with exit code`, never the loudest error; a rerun is for an infrastructure failure seen in the step that exited.
+- proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/<db job>/logs | grep -B40 "Process completed with exit code 1"` on run 40280646533 shows the `src/db/types.ts` diff.
+- added: 2026-10-26
+
+## P-4613 · The merge gate read the checks of a commit that never landed
+- symptom: PR 488, 2026-10-26: `git commit ... && git push; sleep; gate-loop` ran the gate after the commit failed on a transient `index.lock`, so it read the old head's red checks again; after `gh run rerun --failed` the gate read the previous attempt's failure.
+- rule: before a gate, compare `git rev-parse HEAD` with `origin/<branch>` and stop when they differ; after a rerun or a push, wait until the job's latest attempt has completed before gating (`.tmp/wait-check.sh`, `.tmp/wait-job-then-gate.sh` in the orchestrator's folder).
+- proof: `.tmp/gd-488c.log` 09:30 gated a53c5c74 while the run.ts fix was still staged; `.tmp/gd-488e.log` 09:50 read attempt 1's failure during attempt 2.
 - added: 2026-10-26
