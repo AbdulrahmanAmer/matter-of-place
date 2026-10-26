@@ -3,6 +3,7 @@ import { NonRetryableError } from "../jobs/types.ts";
 import { liveSideEffects, readVar } from "../lib/runtime-env.ts";
 import type { EmailAttachment } from "./attachments.ts";
 import { classifyResendError, ResendError, resendErrorName } from "./resend-errors.ts";
+import { unsubscribeUrl } from "./unsubscribe.ts";
 
 // The Resend adapter (R32): the only file that calls `api.resend.com` for one email. Every variable is read on each
 // call through `readVar`, because the job runner has no `env.ts` (G39). Resend refuses a request without a
@@ -50,6 +51,8 @@ export async function sendTransactional(email: TransactionalEmail): Promise<Send
   const key = readVar("RESEND_API_KEY");
   const from = readVar(email.kind === "bulk" ? "RESEND_FROM_BULK" : "RESEND_FROM");
   if (!key || !from) throw new NonRetryableError("resend_not_configured");
+  const sealKey = email.kind === "bulk" ? readVar("CONFIRM_TOKEN_SECRET") : undefined;
+  if (email.kind === "bulk" && !sealKey) throw new NonRetryableError("confirm_secret_missing");
   const response = await fetch(ENDPOINT, {
     method: "POST",
     headers: {
@@ -66,6 +69,15 @@ export async function sendTransactional(email: TransactionalEmail): Promise<Send
       text: email.text,
       ...(email.replyTo === undefined ? {} : { reply_to: email.replyTo }),
       ...(email.attachments === undefined ? {} : { attachments: email.attachments }),
+      // OPS-005: bulk mail to one reader carries that reader's own one-click unsubscribe (RFC 8058).
+      ...(sealKey
+        ? {
+            headers: {
+              "List-Unsubscribe": `<${await unsubscribeUrl(email.to, sealKey)}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+          }
+        : {}),
       tags: [{ name: "env", value: readVar("MOP_ENV") ?? "unset" }],
     }),
     signal: email.signal,

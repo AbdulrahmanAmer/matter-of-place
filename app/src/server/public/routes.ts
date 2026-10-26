@@ -34,6 +34,7 @@ import { getPublicSite } from "../settings/service";
 import * as subjects from "../subjects/service";
 import * as submissions from "../submissions/service";
 import * as subscribers from "../subscribers/service";
+import { unsubscribe as unsubscribeSubscriber } from "../subscribers/unsubscribe";
 
 // The public route table as data (architecture 4.1): the one source for the handlers, the in-process
 // dispatcher and the tests. `handlePublic` reads it; a route file only calls `handlePublic`.
@@ -196,6 +197,16 @@ export const routes: PublicRoute[] = [
     turnstile: false,
     status: 303,
     service: subscribers.confirm,
+  },
+  {
+    // The signed address of a bulk mail's List-Unsubscribe header: a mail client posts it, so no limit and no Turnstile.
+    path: "/api/public/subscribers/unsubscribe",
+    method: "POST",
+    raw: true,
+    limits: [],
+    turnstile: false,
+    status: 200,
+    service: unsubscribeSubscriber,
   },
   {
     path: "/api/public/subjects/request",
