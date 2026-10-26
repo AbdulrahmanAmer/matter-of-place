@@ -100,7 +100,10 @@ describe("the product names by page (MET-003)", () => {
     expect(screen.queryAllByRole("heading", { level: 3 })).toEqual([]);
     cleanup();
     await renderHome(changed());
-    expect(at(3)).toEqual(names);
+    const pricing = within(screen.getByRole("region", { name: "Four ways in." }));
+    expect(pricing.getAllByRole("heading", { level: 3 }).map((node) => node.textContent)).toEqual(
+      names,
+    );
   });
 });
 
