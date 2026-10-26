@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import type { SeoBlock, SeoCtaKey, SeoPageContent } from "../../content/seo/types";
-import { servedRelated, splitInline } from "../../lib/seo-page";
+import { servedRelated, splitInline } from "../../lib/seo-links";
 import { Breadcrumb } from "./breadcrumb";
 import { PageIntro } from "./page-intro";
 import { TextLink } from "./text-link";

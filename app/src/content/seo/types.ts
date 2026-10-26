@@ -47,3 +47,6 @@ export interface SeoPageContent {
   /** The day the copy last changed, `YYYY-MM-DD`; the sitemap's `lastmod` and the JSON-LD `dateModified`. */
   updated: string;
 }
+
+/** What a screen needs to name a page without its copy: the line of `meta.ts`, repeated from the page's content file. */
+export type SeoPageMeta = Pick<SeoPageContent, "path" | "kind" | "h1" | "description">;

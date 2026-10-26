@@ -1,56 +1,15 @@
 import type { Article, Service } from "schema-dts";
 import { absoluteUrl, siteConfig } from "../config/site";
-import { seoPageAt } from "../content/seo";
 import type { SeoPageContent } from "../content/seo/types";
 import { breadcrumbLd, type Crumb } from "./jsonld";
 import { ogImageFor, ogStaticOf } from "./og";
-import { faqJsonLd, pageHead } from "./seo";
+import { faqJsonLd, pageHead, unavailableHead } from "./seo";
 
 /**
- * The head, structured data and inline links of the search pages in `src/content/seo`. A page is static content:
- * nothing here reads a table, so a warm request costs no query (architecture 13).
+ * The head and structured data of the search pages in `src/content/seo`. Every route file imports this, so it holds no
+ * copy and imports no page: a route loads its page and passes it in. A page is static content: nothing here reads a
+ * table, so a warm request costs no query (architecture 13). The inline links live in `seo-links.ts`.
  */
-
-/** Pages that exist besides the registry. A test holds this list inside the sitemap's static paths. */
-export const servedStaticPaths: ReadonlySet<string> = new Set([
-  "/",
-  "/about",
-  "/contact",
-  "/editorial-standard",
-  "/exposure",
-  "/faq",
-  "/place-notes",
-  "/submit",
-]);
-
-/** True when a page answers at `path`: a registry page, `/guides` or one of the static pages above. */
-export const isServedPath = (path: string): boolean =>
-  path === "/guides" || servedStaticPaths.has(path) || seoPageAt(path) !== undefined;
-
-type InlinePart = { text: string; to?: string };
-
-const INLINE_LINK = /\[([^\]]+)\]\((\/[^)\s]*)\)/g;
-
-/**
- * Splits a paragraph written with `[anchor](/path)` links into parts. A link to a path no page serves yet is kept as
- * plain text, so a page can name a sibling before the sibling is written.
- */
-export function splitInline(text: string): InlinePart[] {
-  const parts: InlinePart[] = [];
-  let from = 0;
-  for (const match of text.matchAll(INLINE_LINK)) {
-    const [whole = "", anchor = "", to = ""] = match;
-    if (match.index > from) parts.push({ text: text.slice(from, match.index) });
-    parts.push(isServedPath(to) ? { text: anchor, to } : { text: anchor });
-    from = match.index + whole.length;
-  }
-  if (from < text.length) parts.push({ text: text.slice(from) });
-  return parts;
-}
-
-/** The pages `related` names that exist, with the anchors the brief gives. */
-export const servedRelated = (page: SeoPageContent): SeoPageContent["related"] =>
-  page.related.filter(({ to }) => isServedPath(to));
 
 /** The trail after Home: a guide sits under `/guides`. */
 function seoPageCrumbs(page: SeoPageContent): Crumb[] {
@@ -96,8 +55,12 @@ export function seoPageJsonLd(page: SeoPageContent): object[] {
   ];
 }
 
-/** The `head()` of a search page, from its content alone. */
-export function seoPageHead(page: SeoPageContent, matches: Parameters<typeof ogStaticOf>[0]) {
+/** The `head()` of a search page, from its content alone; a route whose loader found no page gets the noindex head. */
+export function seoPageHead(
+  page: SeoPageContent | undefined,
+  matches: Parameters<typeof ogStaticOf>[0],
+) {
+  if (page === undefined) return unavailableHead("Page");
   return pageHead({
     title: page.title,
     description: page.description,

@@ -26,6 +26,10 @@ import type { SeoPageContent } from "./types.ts";
 /**
  * Every search page, one line each. A writer adds a page here after adding its content file. The order is the order
  * the `/guides` index lists them in. Pages are static content: no loader reads a table for them (architecture 13).
+ *
+ * This list holds every page's copy, so no file a route imports at the top may import it: the browser reaches a page
+ * through `loaders.ts` and `meta.ts`, and each page's `meta.ts` line must match its file (a test holds them equal).
+ * The sitemap, the sweep and the tests, which run on the server or in node, read this list.
  */
 export const seoPages: readonly SeoPageContent[] = [
   historicHomesForSale,

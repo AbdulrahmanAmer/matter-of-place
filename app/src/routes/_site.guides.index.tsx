@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
-import { seoPages } from "../content/seo";
 import type { SeoPageContent } from "../content/seo/types";
 import { breadcrumbLd, collectionLd } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
-import { pageHead } from "../lib/seo";
+import { pageHead, unavailableHead } from "../lib/seo";
 
 const DESCRIPTION =
   "Plain guides to historic homes and to selling them, from Matter of Place, for owners, agents and readers in California, New York and Florida.";
@@ -14,27 +13,32 @@ const groups: { heading: string; kind: SeoPageContent["kind"] }[] = [
   { heading: "Selling and marketing", kind: "guide" },
 ];
 
+// The list of pages is loaded by the route (the light `meta.ts`, no copy), so the entry chunk holds none of it.
 export const Route = createFileRoute("/_site/guides/")({
-  head: ({ matches }) =>
-    pageHead({
-      title: "Guides",
-      description: DESCRIPTION,
-      path: "/guides",
-      image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [
-        collectionLd(
-          "guides",
-          "Guides",
-          "/guides",
-          seoPages.map((page) => ({ name: page.h1, path: page.path })),
-        ),
-        breadcrumbLd([{ name: "Guides", path: "/guides" }]),
-      ],
-    }),
+  loader: async () => (await import("../content/seo/meta")).seoPageMeta,
+  head: ({ loaderData: pages, matches }) =>
+    pages === undefined
+      ? unavailableHead("Page")
+      : pageHead({
+          title: "Guides",
+          description: DESCRIPTION,
+          path: "/guides",
+          image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
+          jsonLd: [
+            collectionLd(
+              "guides",
+              "Guides",
+              "/guides",
+              pages.map((page) => ({ name: page.h1, path: page.path })),
+            ),
+            breadcrumbLd([{ name: "Guides", path: "/guides" }]),
+          ],
+        }),
   component: GuidesPage,
 });
 
 function GuidesPage() {
+  const seoPages = Route.useLoaderData();
   return (
     <main>
       <PageIntro

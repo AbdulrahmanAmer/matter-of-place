@@ -5,14 +5,16 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { absoluteUrl, siteConfig } from "../../src/config/site";
 import { guidePageAt, requireSeoPage, seoPageAt, seoPages } from "../../src/content/seo";
+import { guideLoaders } from "../../src/content/seo/loaders";
+import { seoPageMeta, seoPagePaths } from "../../src/content/seo/meta";
 import type { SeoPageContent } from "../../src/content/seo/types";
 import {
   isServedPath,
-  seoPageJsonLd,
   servedRelated,
   servedStaticPaths,
   splitInline,
-} from "../../src/lib/seo-page";
+} from "../../src/lib/seo-links";
+import { seoPageJsonLd } from "../../src/lib/seo-page";
 import { Route as GuideRoute } from "../../src/routes/_site.guides.$slug";
 import { Route as GuidesIndexRoute } from "../../src/routes/_site.guides.index";
 import { Route as HistoricRoute } from "../../src/routes/_site.historic-homes-for-sale";
@@ -74,7 +76,7 @@ const GUIDE_OUTLINE = [
 function outlineProblems(page: SeoPageContent): string[] {
   const headings = page.sections.map((section) => section.heading);
   const problems: string[] = [];
-  if (headings.length < 3) problems.push(`only ${headings.length} H2 sections`);
+  if (headings.length < 3) problems.push(`only ${String(headings.length)} H2 sections`);
   if (new Set(headings).size !== headings.length) problems.push("an H2 is repeated");
   const same = (expected: string[]) =>
     headings.length === expected.length && headings.every((heading, i) => heading === expected[i]);
@@ -215,6 +217,45 @@ describe("the registry of search pages", () => {
   });
 });
 
+describe("the light lists that keep page copy out of the chunk every route loads", () => {
+  it("repeats the address, kind, headline and description of every page, in the registry's order", () => {
+    expect(seoPageMeta).toEqual(
+      seoPages.map(({ path, kind, h1, description }) => ({ path, kind, h1, description })),
+    );
+    expect([...seoPagePaths]).toEqual(seoPages.map((page) => page.path));
+  });
+
+  it("loads each article guide by its slug, and only the guides", async () => {
+    const slugOf = (page: SeoPageContent) => page.path.slice("/guides/".length);
+    const guides = seoPages.filter((page) => page.kind === "guide");
+    expect([...guideLoaders.keys()]).toEqual(guides.map(slugOf));
+    for (const guide of guides) {
+      const load = guideLoaders.get(slugOf(guide));
+      expect([guide.path, (await load?.())?.path]).toEqual([guide.path, guide.path]);
+    }
+    expect(guideLoaders.get("historic-homes-for-sale")).toBeUndefined();
+    expect(guideLoaders.get("constructor")).toBeUndefined();
+  });
+
+  it("imports no page copy at the top of a file every route loads", () => {
+    const files = [
+      "../../src/lib/seo-page.ts",
+      "../../src/routes/_site.guides.index.tsx",
+      "../../src/routes/_site.guides.$slug.tsx",
+      ...seoPages
+        .filter((page) => page.kind === "collection")
+        .map((page) => `../../src/routes/_site.${page.path.slice(1)}.tsx`),
+    ];
+    for (const file of files) {
+      const copyImports = read(file)
+        .split("\n")
+        .filter((line) => /^import\b(?!\s+type\b).*content\/seo/.test(line))
+        .filter((line) => !line.includes('content/seo/loaders"'));
+      expect([file, copyImports]).toEqual([file, []]);
+    }
+  });
+});
+
 describe("the copy of the search pages follows the brand rules", () => {
   const OTHER_PLACES =
     /\b(global|worldwide|international|europe|london|paris|dubai|texas|nevada)\b/i;
@@ -295,13 +336,13 @@ describe("served paths", () => {
 });
 
 describe("the routes", () => {
-  it("has one route file for each collection guide, naming its page", () => {
+  it("has one route file for each collection guide, loading its page", () => {
     for (const page of seoPages.filter((item) => item.kind === "collection")) {
       const file = `../../src/routes/_site.${page.path.slice(1)}.tsx`;
-      expect([page.path, read(file).includes(`requireSeoPage("${page.path}")`)]).toEqual([
+      expect([
         page.path,
-        true,
-      ]);
+        read(file).includes(`import("../content/seo/${page.path.slice(1)}")`),
+      ]).toEqual([page.path, true]);
     }
   });
 
@@ -318,11 +359,9 @@ const headShape = z.object({
 type Head = z.infer<typeof headShape>;
 
 /** A route's own `head()`, called as the router calls it. */
-function headOf(head: unknown, params: Record<string, string> = {}): Head {
+function headOf(head: unknown, loaderData?: unknown): Head {
   if (typeof head !== "function") throw new Error("the route has no head()");
-  return headShape.parse(
-    Reflect.apply(head, undefined, [{ loaderData: undefined, params, matches: [] }]),
-  );
+  return headShape.parse(Reflect.apply(head, undefined, [{ loaderData, matches: [] }]));
 }
 
 const metaOf = (head: Head, key: string) =>
@@ -338,7 +377,7 @@ const typesOf = (head: Head) => graphOf(head).map((node) => node["@type"]);
 
 describe("the head of a collection guide", () => {
   const page = requireSeoPage("/historic-homes-for-sale");
-  const head = headOf(HistoricRoute.options.head);
+  const head = headOf(HistoricRoute.options.head, page);
 
   it("writes the title once with the brand, the description, and a self canonical with no trailing slash", () => {
     expect(titleOf(head)).toEqual([`Historic Homes for Sale | ${siteConfig.name}`]);
@@ -369,7 +408,7 @@ describe("the head of a collection guide", () => {
 
 describe("the head of an article guide", () => {
   const page = requireSeoPage("/guides/how-to-sell-a-historic-home");
-  const head = headOf(GuideRoute.options.head, { slug: "how-to-sell-a-historic-home" });
+  const head = headOf(GuideRoute.options.head, page);
 
   it("writes the title, the canonical and the article dates from the content, not the clock", () => {
     expect(titleOf(head)).toEqual([`How to Sell a Historic Home? | ${siteConfig.name}`]);
@@ -391,26 +430,28 @@ describe("the head of an article guide", () => {
     expect(JSON.stringify(crumbs)).toContain(absoluteUrl("/guides"));
   });
 
-  it("answers an unknown slug 404 and marks its head noindex", () => {
-    const thrown = (() => {
-      try {
-        Reflect.apply(GuideRoute.options.beforeLoad ?? (() => undefined), undefined, [
-          { params: { slug: "no-such-guide" } },
-        ]);
-      } catch (error) {
-        return error;
-      }
-      return undefined;
-    })();
-    expect(isNotFound(thrown)).toBe(true);
-    expect(metaOf(headOf(GuideRoute.options.head, { slug: "no-such-guide" }), "robots")).toEqual([
-      "noindex, nofollow",
+  /** The route's loader, called as the router calls it for `slug`. */
+  const loadGuide = async (slug: string): Promise<unknown> =>
+    Reflect.apply(GuideRoute.options.loader ?? (() => undefined), undefined, [
+      { params: { slug } },
     ]);
+
+  it("answers an unknown slug 404 and marks its head noindex", async () => {
+    const thrown = await loadGuide("no-such-guide").then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(isNotFound(thrown)).toBe(true);
+    expect(metaOf(headOf(GuideRoute.options.head), "robots")).toEqual(["noindex, nofollow"]);
+  });
+
+  it("loads the whole guide of its slug, for the head and for the page", async () => {
+    expect(await loadGuide("how-to-sell-a-historic-home")).toEqual(page);
   });
 });
 
 describe("the guides index", () => {
-  const head = headOf(GuidesIndexRoute.options.head);
+  const head = headOf(GuidesIndexRoute.options.head, seoPageMeta);
 
   it("is titled Guides, canonical at /guides, and lists every page in a collection", () => {
     expect(titleOf(head)).toEqual([`Guides | ${siteConfig.name}`]);
