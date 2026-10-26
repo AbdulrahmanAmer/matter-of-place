@@ -4,7 +4,15 @@ import { formatPrice } from "../../lib/catalog";
 import { ContentTag } from "./content-tag";
 import { Picture } from "./picture";
 
-export function PropertyCard({ property }: { property: PropertyCardData }) {
+/** `level` keeps the outline whole: h2 when the grid sits directly under the page h1, h3 under a section heading. */
+export function PropertyCard({
+  property,
+  level = 3,
+}: {
+  property: PropertyCardData;
+  level?: 2 | 3;
+}) {
+  const Heading = level === 2 ? "h2" : "h3";
   const illustrative = property.status === "Illustrative";
   return (
     <Link to="/property/$slug" params={{ slug: property.slug }} className="property-card">
@@ -26,20 +34,26 @@ export function PropertyCard({ property }: { property: PropertyCardData }) {
           </span>
           <span className="price">{formatPrice(property)}</span>
         </div>
-        <h3>
+        <Heading>
           <span className="card-title">{property.title}</span>
-        </h3>
+        </Heading>
         <span className="property-card-style">{property.style}</span>
       </div>
     </Link>
   );
 }
 
-export function PropertyGrid({ items }: { items: PropertyCardData[] }) {
+export function PropertyGrid({
+  items,
+  level = 3,
+}: {
+  items: PropertyCardData[];
+  level?: 2 | 3;
+}) {
   return (
     <div className="property-grid">
       {items.map((property) => (
-        <PropertyCard property={property} key={property.slug} />
+        <PropertyCard property={property} key={property.slug} level={level} />
       ))}
     </div>
   );
