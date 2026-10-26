@@ -87,7 +87,7 @@
     "find": "    routeId: \"/admin/campaigns/\",",
     "replace": "    routeId: \"/admin/campaign/\",",
     "run": "bunx vitest run --project unit tests/unit/admin-nav.test.ts",
-    "expect": "× .*holds 33 entries, one per screen"
+    "expect": "× .*holds 34 entries, one per screen"
   },
   {
     "id": "w7-3-screen-upcoming",

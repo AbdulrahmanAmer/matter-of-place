@@ -36,6 +36,7 @@ export const adminKeys = {
   jobs: feature("jobs"),
   assets: feature("assets"),
   channels: feature("channels"),
+  proposedPosts: feature("proposed-posts"),
   newsletter: feature("newsletter"),
   reports: feature("reports"),
   campaigns: feature("campaigns"),
