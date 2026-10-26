@@ -13,6 +13,7 @@ import { PHOTO_MAX_BYTES, confineRender, inside, realPath } from "./confine.mjs"
 import { mediaKey } from "./media-key.mjs";
 import { putIfMissing } from "./media-store.mjs";
 import { imageSize } from "./png-size.mjs";
+import { imageSchema, localSchema, propertySchema, slideSchema } from "./render-spec.mjs";
 
 const APP = fileURLToPath(new URL("../../", import.meta.url));
 const FONT_FAMILIES = ["Jost", "Cormorant Garamond"];
@@ -24,33 +25,6 @@ const IMAGE_TYPES = new Map([
   [".webp", "image/webp"],
 ]);
 
-const imageSchema = z.object({
-  url: z.string(),
-  alt: z.string(),
-  orientation: z.enum(["landscape", "portrait"]),
-  w: z.number(),
-  h: z.number(),
-});
-const propertySchema = z.object({
-  id: z.string(),
-  slug: z.string(),
-  title: z.string(),
-  city: z.string(),
-  state: z.string(),
-  market: z.string(),
-  price: z.number(),
-  currency: z.string(),
-  beds: z.number(),
-  baths: z.number(),
-  interiorSqFt: z.number(),
-  yearBuilt: z.number(),
-  type: z.string(),
-  place: z.string().default(""),
-});
-const slideSchema = z.union([
-  z.object({ kind: z.enum(["cover", "photo", "facts", "close"]), image: z.number().int() }),
-  z.object({ kind: z.literal("place"), image: z.number().int(), text: z.string() }),
-]);
 const specSchema = z.object({
   kind: z.enum(["cover", "carousel", "story"]),
   property: propertySchema,
@@ -313,20 +287,6 @@ export async function renderSet(job, options, plan) {
   const shots = await shoot(plan({ ...spec, images }));
   return { files: await deliver(spec, shots, options ?? {}) };
 }
-
-// Role toolkits (ruling H115): a colleague's own spec, the property's facts and its photographs beside the spec file.
-const localSchema = z.object({
-  property: propertySchema,
-  images: z
-    .array(
-      imageSchema
-        .omit({ url: true, w: true, h: true })
-        .extend({ path: z.string(), w: z.number().optional(), h: z.number().optional() }),
-    )
-    .min(1)
-    .max(12),
-  slides: z.array(slideSchema).optional(),
-});
 
 /**
  * A colleague's spec file as a render spec. Each photograph must sit inside the spec's own folder once links and

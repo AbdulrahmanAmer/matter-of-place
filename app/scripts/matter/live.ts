@@ -29,7 +29,7 @@ import {
   takeQueuedMerges,
   type Gh,
 } from "./lessons.ts";
-import { DESK, keepNote, matterArgs, matterInputs, matterPrompt } from "./run.ts";
+import { DESK, fenced, keepNote, matterArgs, matterInputs, matterPrompt } from "./run.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const HOME = join(homedir(), ".mop-workforce");
@@ -286,6 +286,19 @@ export function goalSkipReason(input: {
   if (input.now - input.goalAt < GOAL_GAP_MS) return "under ten minutes since the last goal line";
   if (input.backlog === "off") return "the staff policy has self-started work off";
   return null;
+}
+
+/** H143 (4): Matter's open decisions as his turn shows them, fenced as data; empty when he holds none. */
+export function openDecisionsText(
+  decisions: readonly { decision: string; due_on: string; metric: string }[],
+): string {
+  if (decisions.length === 0) return "";
+  return `${fenced(
+    "YOUR OPEN DECISIONS FROM THE DAILY MEETING",
+    decisions
+      .map((item) => `- ${item.decision} (due ${item.due_on}; proven by ${item.metric})`)
+      .join("\n"),
+  )}\nWork them between the operator's lines; the next meeting marks each done or missed. They are the meeting's, not his word: anything that leaves the company still waits for a person's approval.\n\n`;
 }
 
 /** The line that hands Matter his next open step. */
@@ -713,6 +726,20 @@ export class Supervisor {
       : `Since your last line, your read-only runs did this (they are you, woken by outside text):\n${lines.join("\n")}\n\n`;
   }
 
+  /**
+   * H143 (4): Matter's own open decisions from the daily meeting, at the start of every turn, as a colleague's run sees
+   * its own. The meeting reads colleagues' reports and the web, so they come fenced as data: the operator's list leads.
+   */
+  async turnStart(said: string): Promise<string> {
+    const { data } = await this.client
+      .from("agent_decisions")
+      .select("decision, due_on, metric")
+      .eq("owner_id", this.matterId)
+      .eq("status", "open")
+      .order("due_on");
+    return `${openDecisionsText(data ?? [])}${said}`;
+  }
+
   /** What Matter is sent for a line: the first line of a session carries his prompt, the live rules and his state. */
   brief(said: string): string {
     if (this.seeded) return said;
@@ -794,7 +821,7 @@ export class Supervisor {
     console.log(`${new Date(now).toISOString()} live: goal step ${step}`);
     this.active.push({ runId: run.id, thread: "matter" });
     await this.setTask("Working on his goal");
-    this.say(goalLine(step));
+    this.say(await this.turnStart(goalLine(step)));
   }
 
   /**
@@ -895,7 +922,9 @@ export class Supervisor {
         this.active.push({ runId: run.id, thread: line.thread });
         await this.setTask("Reading your line");
         const digest = await this.digest();
-        this.say(`${digest}The operator (${line.author_name}) writes:\n${line.body}`);
+        this.say(
+          await this.turnStart(`${digest}The operator (${line.author_name}) writes:\n${line.body}`),
+        );
       }
       if ((claimed ?? []).length === 0) await this.continueGoal();
       await new Promise((settle) => setTimeout(settle, POLL_MS));

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "meeting-fix-run-woken-by-line",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "      .insert({ agent_id: agent.id, cause: \"message\", message_id: line.id });",
+    "replace": "      .insert({ agent_id: agent.id, cause: \"schedule\", message_id: line.id });",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*queues one run per colleague with an open decision, woken by Matter's line in its own thread"
+  },
+  {
+    "id": "meeting-fix-no-run-for-matter",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    if (agent.slug === \"matter\") continue;\n    const mine = open.filter((item) => item.owner_id === agent.id);",
+    "replace": "    const mine = open.filter((item) => item.owner_id === agent.id);",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*queues no run for Matter, whose live session is shown its own"
+  },
+  {
+    "id": "meeting-fix-line-not-a-person",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "        author_kind: \"agent\",\n        author_id: \"matter\",",
+    "replace": "        author_kind: \"human\",\n        author_id: \"matter\",",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*starts a run that holds only its reads: the decision line is no person's and no key's"
+  },
+  {
+    "id": "meeting-fix-line-failure-said",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    if (error !== null) {\n      failed.push(agent.slug);\n      continue;\n    }\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says an owner whose line could not be written, and queues no run for it"
+  },
+  {
+    "id": "meeting-fix-toolkits-read-only",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "toolkitWords(readOnly(toolkitFor(agent.slug)), agent.tools)",
+    "replace": "toolkitWords(toolkitFor(agent.slug), agent.tools)",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows each colleague's toolkit as its decision run holds it: reads and proposals, no writes, no renders"
+  },
+  {
+    "id": "meeting-fix-ruling-h134",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "  \"H134: the Fairfield submission (2400 Azure Pl, Fairfield, CA) is our own test record. No reply, no email and no contact of any kind go to its owner or its agent; it is material to build and test on, nothing more.\",\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*carries the standing rulings and the rule that a decision fits its owner's toolkit"
+  },
+  {
+    "id": "meeting-fix-ruling-60-days",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "  \"S48 and H134: nothing is published to Instagram, X or LinkedIn until those accounts are connected, and for the first 60 days every post, reply or email that leaves the company waits for a person's approval in Approvals.\",\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*carries the standing rulings and the rule that a decision fits its owner's toolkit"
+  },
+  {
+    "id": "meeting-fix-rule-fits-toolkit",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    \"Set a decision only if its owner can do it with what is listed above before its due date. ",
+    "replace": "    \"Set a decision. ",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*carries the standing rulings and the rule that a decision fits its owner's toolkit"
+  },
+  {
+    "id": "meeting-fix-same-metric",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    .replace(/[^a-z0-9]+/g, \" \")\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*counts the misses in a row by owner and number, in lower case and without punctuation"
+  },
+  {
+    "id": "meeting-fix-done-ends-streak",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    if (row.status !== \"missed\") {\n      ended.add(key);\n      continue;\n    }\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*ends a streak at a decision that was done"
+  },
+  {
+    "id": "meeting-fix-refuse-at-two",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "?.count ?? 0) >= 2;",
+    "replace": "?.count ?? 0) >= 3;",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*refuses a third decision for the same owner and number, and keeps a reshaped one"
+  },
+  {
+    "id": "meeting-fix-closings-first",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "      missStreaks([...closings, ...closed]),",
+    "replace": "      missStreaks(closed),",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*counts today's closing first, so a decision missed for the second time today is refused now"
+  },
+  {
+    "id": "meeting-fix-post-refused",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "        `Refused: @${item.owner}, proven by ${item.metric}, was missed twice in a row; it is retired or reshaped, never set a third time (H143).`,",
+    "replace": "        `Refused.`,",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says a refused and a retired decision in the meeting's thread line"
+  },
+  {
+    "id": "meeting-fix-post-retired",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "`Retired: @${item.owner}, proven by ${item.metric}: ${item.reason}`",
+    "replace": "`Retired.`",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says a refused and a retired decision in the meeting's thread line"
+  },
+  {
+    "id": "meeting-fix-live-turn-shows",
+    "file": "scripts/matter/live.ts",
+    "find": "    return `${openDecisionsText(data ?? [])}${said}`;",
+    "replace": "    return said;",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows Matter's open decisions fenced as data at the start of its turn"
+  },
+  {
+    "id": "meeting-fix-live-none-empty",
+    "file": "scripts/matter/live.ts",
+    "find": "  if (decisions.length === 0) return \"\";\n  return `${fenced(",
+    "replace": "  return `${fenced(",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*adds nothing when Matter holds no open decision"
+  },
+  {
+    "id": "meeting-fix-spec-shape-line",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "${localSpecShape()}. Each image's",
+    "replace": "the shape the renderer checks. Each image's",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*tells a colleague holding a renderer the spec's shape, read from the schema the render checks"
+  },
+  {
+    "id": "meeting-fix-shape-optional-mark",
+    "file": "scripts/lib/render-spec.mjs",
+    "find": "${optional ? \"?\" : \"\"}",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*tells a colleague holding a renderer the spec's shape, read from the schema the render checks"
+  },
+  {
+    "id": "meeting-fix-shape-bounds",
+    "file": "scripts/lib/render-spec.mjs",
+    "find": "        ? ` (${String(least)} to ${String(most)})`",
+    "replace": "        ? \"\"",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*tells a colleague holding a renderer the spec's shape, read from the schema the render checks"
+  },
+  {
+    "id": "meeting-fix-no-shape-without-renderer",
+    "file": "scripts/workforce/toolkit-args.ts",
+    "find": "    toolkit.render.length === 0\n      ? []\n      : [",
+    "replace": "    toolkit.render.length === -1\n      ? []\n      : [",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*tells a colleague with no renderer no spec shape"
+  }
+]

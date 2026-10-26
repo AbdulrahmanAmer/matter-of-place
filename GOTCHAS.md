@@ -9204,6 +9204,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: trace.json is one-space JSON written by a script; prettier's two-space style differs on every line. Only `app/` is under prettier.
 - rule: never pass a file outside `app/` to prettier; add to trace.json by inserting text in its own one-space style, then `node workspace/05-plans/check-plans.mjs`. If it happened, `git checkout -- workspace/05-plans/trace.json` and insert again.
 - proof: `git diff --stat workspace/05-plans/trace.json` after the insertion alone → `1 file changed, 14 insertions(+)`.
+- hit again: 2026-10-27, W8 0j (overdrive/meeting-decisions): the builder's brief says "format every file your commit changed, wherever it lives ... paths outside `app/` are given as `../workspace/...`" (the P-3695 line), and its file list takes `*.json`, so trace.json went to prettier again (`29095` lines changed for a 15-line entry); restored with `git show HEAD:workspace/05-plans/trace.json > workspace/05-plans/trace.json`. The brief's format line needs `':!workspace/05-plans/trace.json'` in its file list. Also: trace.json takes only plans `check-plans.mjs` reads (no W plan is among them: an entry with `"plan": "W8"` fails as `owned by unknown plan W8`); a W item's S53 trace lives in its plan text (starts, owner, reads and writes, outside call, failure, proof), as W8 0j's does.
 - added: 2026-10-26
 
 ## P-4642 · An outside email is in `inbound_mail`, not `inquiries`: the empty `inquiries` table says nothing about mail
