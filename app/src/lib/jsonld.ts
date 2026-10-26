@@ -203,7 +203,8 @@ export function videoLd(property: Pick<Property, "video">): VideoObject | null {
   const contentUrl = mediaAddress(video.src);
   const thumbnailUrl = mediaAddress(video.poster);
   const uploadDate = video.uploadedAt;
-  if (contentUrl === undefined || thumbnailUrl === undefined || uploadDate === undefined) return null;
+  if (contentUrl === undefined || thumbnailUrl === undefined || uploadDate === undefined)
+    return null;
   const duration = isoDuration(video.duration);
   return {
     "@type": "VideoObject",

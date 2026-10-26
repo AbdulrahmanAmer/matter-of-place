@@ -294,8 +294,12 @@ describe("the head of a page that lists properties", () => {
 
   it("/stories is noindex, follow with no published story and has no robots meta with one (SCH-005)", () => {
     expect(robotsMeta(StoriesRoute.options.head, [], {})).toEqual(["noindex, follow"]);
-    expect(robotsMeta(StoriesRoute.options.head, [{ slug: "a-quiet-house", title: "A quiet house." }], {})).toEqual(
-      [],
-    );
+    expect(
+      robotsMeta(
+        StoriesRoute.options.head,
+        [{ slug: "a-quiet-house", title: "A quiet house." }],
+        {},
+      ),
+    ).toEqual([]);
   });
 });

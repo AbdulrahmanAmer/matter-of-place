@@ -208,8 +208,7 @@ describe("requestConfirmation", () => {
 describe("the one-click unsubscribe address of a bulk mail (OPS-005, RFC 8058)", () => {
   const post = async (address: string, key: string = KEY) =>
     new Request(await unsubscribeUrl(address, key), { method: "POST" });
-  const unsubscribed = () =>
-    fakeDb({ rpc: { unsubscribe_email: () => true } });
+  const unsubscribed = () => fakeDb({ rpc: { unsubscribe_email: () => true } });
 
   it("unsubscribes the one address its signed token names, in lower case, and answers 200 no-store", async () => {
     const db = unsubscribed();
@@ -252,9 +251,9 @@ describe("the one-click unsubscribe address of a bulk mail (OPS-005, RFC 8058)",
     });
     Object.assign(env, { CONFIRM_TOKEN_SECRET: KEY });
     const refusing = fakeDb({ rpc: { unsubscribe_email: () => new Error("db down") } });
-    await expect(unsubscribe(await post("reader@example.com"), refusing, env)).rejects.toMatchObject(
-      { code: "unavailable" },
-    );
+    await expect(
+      unsubscribe(await post("reader@example.com"), refusing, env),
+    ).rejects.toMatchObject({ code: "unavailable" });
     expect(db.calls).toEqual([]);
   });
 });

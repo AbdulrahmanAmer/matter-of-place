@@ -213,13 +213,27 @@ describe("number fields of the editor", () => {
   });
 
   it("read an empty box as missing, never as zero", () => {
-    expect([numberOrNull(""), numberOrNull("   "), numberOrNull("$ ,")]).toEqual([null, null, null]);
+    expect([numberOrNull(""), numberOrNull("   "), numberOrNull("$ ,")]).toEqual([
+      null,
+      null,
+      null,
+    ]);
     expect(numberOrNull("0")).toBe(0);
   });
 
   it("call text that is not a number unreadable, and an empty box readable", () => {
-    expect(["4.2M", "3 bd", "1.2.3", "abc"].map(isUnreadableNumber)).toEqual([true, true, true, true]);
-    expect(["", "  ", "1,200,000", "7"].map(isUnreadableNumber)).toEqual([false, false, false, false]);
+    expect(["4.2M", "3 bd", "1.2.3", "abc"].map(isUnreadableNumber)).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
+    expect(["", "  ", "1,200,000", "7"].map(isUnreadableNumber)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
     expect(["4.2M", "3 bd", "abc"].map(numberOrNull)).toEqual([null, null, null]);
   });
 });

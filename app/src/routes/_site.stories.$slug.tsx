@@ -38,10 +38,7 @@ export const Route = createFileRoute("/_site/stories/$slug")({
       image: ogImageFor({ key: "stories", ogStatic: ogStaticOf(matches) }),
       type: "article",
       published: story.publishedAt,
-      jsonLd: [
-        articleLd(story),
-        breadcrumbLd(storyTrail(story)),
-      ],
+      jsonLd: [articleLd(story), breadcrumbLd(storyTrail(story))],
     });
   },
   component: StoryPage,

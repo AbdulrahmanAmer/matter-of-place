@@ -35,9 +35,12 @@ afterEach(() => {
 
 describe("redirectKey (URL-002), the one key of the resolver and of the admin rules", () => {
   it("reads an address as the router does: escapes decoded, one leading slash, lower case, no trailing slash", () => {
-    expect(
-      ["/Summer/", "/%53ummer", "//summer", "/summer"].map(redirectKey),
-    ).toEqual(["/summer", "/summer", "/summer", "/summer"]);
+    expect(["/Summer/", "/%53ummer", "//summer", "/summer"].map(redirectKey)).toEqual([
+      "/summer",
+      "/summer",
+      "/summer",
+      "/summer",
+    ]);
     expect(redirectKey("/")).toBe("/");
   });
 

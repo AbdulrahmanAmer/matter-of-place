@@ -83,7 +83,8 @@ function PropertiesPage() {
 
   const illustrative = properties.some((property) => property.status === "Illustrative");
   const intro = (
-    <PageIntro trail={trail}
+    <PageIntro
+      trail={trail}
       eyebrow="A CONSIDERED COLLECTION"
       title="Properties"
       text={`A quiet selection of places with something to say.${illustrative ? " Every property shown is illustrative." : ""}`}

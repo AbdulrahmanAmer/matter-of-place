@@ -35,7 +35,8 @@ function MarketsPage() {
   const markets = Route.useLoaderData();
   return (
     <main>
-      <PageIntro trail={trail}
+      <PageIntro
+        trail={trail}
         eyebrow="THREE EDITORIAL DESKS"
         title="Markets"
         text="Three markets. One editorial point of view."

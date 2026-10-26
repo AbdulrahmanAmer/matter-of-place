@@ -30,9 +30,7 @@ export const Route = createFileRoute("/_site/$market/guide")({
       description: marketGuideDescription(market),
       path: `/${market.slug}/guide`,
       image: ogImageFor({ key: `market-${market.slug}`, ogStatic: ogStaticOf(matches) }),
-      jsonLd: [
-        breadcrumbLd(guideTrail(market)),
-      ],
+      jsonLd: [breadcrumbLd(guideTrail(market))],
       type: "article",
     });
   },

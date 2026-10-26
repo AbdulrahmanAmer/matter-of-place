@@ -13,11 +13,13 @@ export async function unsubscribe(
   env: typeof workerEnv,
 ): Promise<Response> {
   const key = env.CONFIRM_TOKEN_SECRET;
-  if (key === undefined) throw new AppError("unavailable", undefined, "This address is not set up.");
+  if (key === undefined)
+    throw new AppError("unavailable", undefined, "This address is not set up.");
   const token = new URL(request.url).searchParams.get("t");
   const address = token === null ? null : await openUnsubscribeToken(token, key);
   if (address === null) throw new AppError("bad_request", undefined, "The address is not valid.");
   const { error } = await db.rpc("unsubscribe_email", { p_email: address });
-  if (error !== null) throw new AppError("unavailable", undefined, "We could not unsubscribe you just now.");
+  if (error !== null)
+    throw new AppError("unavailable", undefined, "We could not unsubscribe you just now.");
   return Response.json({ ok: true }, { headers: { "cache-control": "no-store" } });
 }

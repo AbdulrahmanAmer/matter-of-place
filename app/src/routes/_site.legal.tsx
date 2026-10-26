@@ -36,7 +36,8 @@ function LegalPage() {
   }, [navigate]);
   return (
     <main>
-      <PageIntro trail={trail}
+      <PageIntro
+        trail={trail}
         eyebrow="NOTICES"
         title="Legal"
         text="Plain statements about what this site is, what it is not, and how information is treated."

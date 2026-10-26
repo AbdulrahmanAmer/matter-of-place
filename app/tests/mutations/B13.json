@@ -354,8 +354,8 @@
     "id": "b13-g2-video-undated",
     "test": "tests/unit/jsonld.test.ts",
     "file": "src/lib/jsonld.ts",
-    "find": " || uploadDate === undefined) return null;",
-    "replace": ") return null;",
+    "find": "thumbnailUrl === undefined || uploadDate === undefined)",
+    "replace": "thumbnailUrl === undefined)",
     "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
     "expect": "FAIL .*videoLd > returns null when the record carries no upload date"
   },

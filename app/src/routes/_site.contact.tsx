@@ -29,7 +29,8 @@ function ContactPage() {
   const [phone] = presentLines(contact.phone);
   return (
     <main>
-      <PageIntro trail={trail}
+      <PageIntro
+        trail={trail}
         eyebrow="A CONVERSATION"
         title="Contact"
         text="Every message is read by a person. Tell us what you are looking for, or what you would like to present."

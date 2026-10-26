@@ -27,7 +27,8 @@ function AccessibilityPage() {
   const email = presentLines(useSite().contact.email)[0];
   return (
     <main>
-      <PageIntro trail={trail}
+      <PageIntro
+        trail={trail}
         eyebrow="ACCESSIBILITY"
         title={t.nav.accessibility}
         text="How Matter of Place works to stay usable by everyone, and how to tell us when it is not."

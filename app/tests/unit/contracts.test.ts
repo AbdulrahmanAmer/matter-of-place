@@ -147,13 +147,23 @@ describe("analyticsBatchSchema (API-003)", () => {
   });
 
   it("takes scalars, lists of scalars and the utm object", () => {
-    const data = { n: 1, label: "x", on: true, none: null, ids: ["a", "b", 3], utm: { utm_source: "ig" } };
+    const data = {
+      n: 1,
+      label: "x",
+      on: true,
+      none: null,
+      ids: ["a", "b", 3],
+      utm: { utm_source: "ig" },
+    };
     expect(analyticsBatchSchema.safeParse([envelope(data)]).success).toBe(true);
   });
 
   it("refuses an object inside data, or a list inside a list, instead of walking it", () => {
     for (const data of [{ nested: { a: 1 } }, { nested: [[1]] }, { nested: [{ a: 1 }] }]) {
-      expect([data, analyticsBatchSchema.safeParse([envelope(data)]).success]).toEqual([data, false]);
+      expect([data, analyticsBatchSchema.safeParse([envelope(data)]).success]).toEqual([
+        data,
+        false,
+      ]);
     }
   });
 
@@ -184,23 +194,29 @@ describe("web addresses a person may store (SEC-002)", () => {
   ];
   const fields = ["listingUrl", "sourceUrl", "photographyUrl", "videoUrl"] as const;
 
-  it.each(fields)("submissionSchema refuses an unsafe address in %s and names that field only", (field) => {
-    for (const value of unsafe) {
-      expect([value, issuePaths(submissionSchema.safeParse({ ...validSubmission(), [field]: value }))]).toEqual([
-        value,
-        [field],
-      ]);
-    }
-  });
+  it.each(fields)(
+    "submissionSchema refuses an unsafe address in %s and names that field only",
+    (field) => {
+      for (const value of unsafe) {
+        expect([
+          value,
+          issuePaths(submissionSchema.safeParse({ ...validSubmission(), [field]: value })),
+        ]).toEqual([value, [field]]);
+      }
+    },
+  );
 
-  it.each(fields)("submissionSchema takes an https address in %s, trimmed, and an empty one as absent", (field) => {
-    const parsed = submissionSchema.parse({
-      ...validSubmission(),
-      [field]: "  https://example.test/mls/1?x=1  ",
-    });
-    expect(parsed[field]).toBe("https://example.test/mls/1?x=1");
-    expect(submissionSchema.parse({ ...validSubmission(), [field]: "" })[field]).toBeUndefined();
-  });
+  it.each(fields)(
+    "submissionSchema takes an https address in %s, trimmed, and an empty one as absent",
+    (field) => {
+      const parsed = submissionSchema.parse({
+        ...validSubmission(),
+        [field]: "  https://example.test/mls/1?x=1  ",
+      });
+      expect(parsed[field]).toBe("https://example.test/mls/1?x=1");
+      expect(submissionSchema.parse({ ...validSubmission(), [field]: "" })[field]).toBeUndefined();
+    },
+  );
 
   it("the property editor's listing_url takes https or null and refuses every other scheme", () => {
     const patch = (listing_url: unknown) =>

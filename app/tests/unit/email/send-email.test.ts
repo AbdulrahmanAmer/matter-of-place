@@ -414,7 +414,12 @@ describe("send_email", () => {
     ).toEqual({ dead: true, message: "confirm_secret_missing" });
     expect(fetch.requests).toHaveLength(0);
     // the other classes do not need the key
-    await sendOne(ctx, { to: "reader@gmail.com", templateKey: "y", kind: "transactional", rendered });
+    await sendOne(ctx, {
+      to: "reader@gmail.com",
+      templateKey: "y",
+      kind: "transactional",
+      rendered,
+    });
     expect(fetch.requests).toHaveLength(1);
   });
 

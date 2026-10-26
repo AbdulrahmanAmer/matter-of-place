@@ -108,7 +108,8 @@ function PrivacyPage() {
   const mailbox = privacyLines(site)[0];
   return (
     <main>
-      <PageIntro trail={trail}
+      <PageIntro
+        trail={trail}
         eyebrow="PRIVACY"
         title={t.nav.privacy}
         text="How Matter of Place handles personal information, written for California residents."

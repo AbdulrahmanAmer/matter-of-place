@@ -183,8 +183,12 @@ describe("putRedirect compares addresses as the router reads them (URL-002)", ()
     const { db } = client(active([[ID_A, "/old", "/new"]]));
     const answers = [
       await refusal(putRedirect(admin, db, { from_path: "/OLD", to_path: "/other", status: 301 })),
-      await refusal(putRedirect(admin, db, { from_path: "/%6Fld", to_path: "/other", status: 301 })),
-      await refusal(putRedirect(admin, db, { from_path: "/Summer", to_path: "/summer", status: 301 })),
+      await refusal(
+        putRedirect(admin, db, { from_path: "/%6Fld", to_path: "/other", status: 301 }),
+      ),
+      await refusal(
+        putRedirect(admin, db, { from_path: "/Summer", to_path: "/summer", status: 301 }),
+      ),
     ];
     expect({ answers, rpc: rpcNames(db) }).toEqual({
       answers: [DUPLICATE, DUPLICATE, SELF],

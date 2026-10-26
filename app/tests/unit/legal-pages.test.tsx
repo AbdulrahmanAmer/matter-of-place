@@ -266,7 +266,11 @@ describe("the legal pages", () => {
       expect(nav.querySelector("ol")).not.toBeNull();
       const items = within(nav).getAllByRole("listitem");
       expect(items.map((item) => item.textContent)).toEqual(["Home", name]);
-      expect(within(nav).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(["/"]);
+      expect(
+        within(nav)
+          .getAllByRole("link")
+          .map((link) => link.getAttribute("href")),
+      ).toEqual(["/"]);
       expect(items[1]?.querySelector("[aria-current='page']")?.textContent).toBe(name);
     },
   );
@@ -283,10 +287,11 @@ describe("the legal pages", () => {
     ]);
     expect(screen.queryAllByRole("heading", { level: 3 })).toEqual([]);
     const nav = screen.getByRole("navigation", { name: "Breadcrumb" });
-    expect(within(nav).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "Home",
-      "Contact",
-    ]);
+    expect(
+      within(nav)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Home", "Contact"]);
   });
 
   it("an unset site leaves no null and no empty paragraph on any of the three", async () => {

@@ -30,7 +30,8 @@ function TermsPage() {
   const identity = legalIdentity(site.legal);
   return (
     <main>
-      <PageIntro trail={trail}
+      <PageIntro
+        trail={trail}
         eyebrow="TERMS"
         title={t.nav.terms}
         text="These terms are for agents, brokers, architects and owners who submit a property, and for anyone using the site."

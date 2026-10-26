@@ -27,7 +27,8 @@ function SubmitPage() {
   const { package: chosen } = Route.useSearch();
   return (
     <main>
-      <PageIntro trail={trail}
+      <PageIntro
+        trail={trail}
         eyebrow="FOR AGENTS, BROKERAGES & OWNERS"
         title="Submit a Property"
         text="Submitted as you would submit work to a publication. Every property is reviewed before anything else happens."

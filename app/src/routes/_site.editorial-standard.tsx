@@ -24,7 +24,8 @@ export const Route = createFileRoute("/_site/editorial-standard")({
 function StandardPage() {
   return (
     <main>
-      <PageIntro trail={trail}
+      <PageIntro
+        trail={trail}
         eyebrow="EDITORIAL STANDARD"
         title="What we look for."
         text="A property's price does not decide whether it belongs here."
