@@ -12,10 +12,28 @@
     "id": "w6-6b-any-tool-counts",
     "test": "tests/unit/matter-hook-reach.test.ts",
     "file": "scripts/matter/hook-reach.ts",
-    "find": "(group.matcher === undefined || new RegExp(`^(?:${group.matcher})$`).test(hook.tool)) &&",
+    "find": "toolMatches(group.matcher, hook.tool) === true &&",
     "replace": "true &&",
     "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts",
     "expect": "× .*names a hook that is not declared for its tool or whose script is gone"
+  },
+  {
+    "id": "w6-6r-match-all",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "if (matcher === undefined || matcher === \"\" || matcher === \"*\") return true;",
+    "replace": "if (matcher === undefined) return true;",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts -t \"empty or star matcher\"",
+    "expect": "× .*takes an empty or star matcher for every tool"
+  },
+  {
+    "id": "w6-6r-invalid-pattern-named",
+    "test": "tests/unit/matter-hook-reach.test.ts",
+    "file": "scripts/matter/hook-reach.ts",
+    "find": "  } catch {\n    return null;\n  }",
+    "replace": "  } catch {\n    return false;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/matter-hook-reach.test.ts -t \"empty or star matcher\"",
+    "expect": "× .*takes an empty or star matcher for every tool"
   },
   {
     "id": "w6-6c-restricted-allowed",

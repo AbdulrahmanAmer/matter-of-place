@@ -19,6 +19,7 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
+import { childEnv } from "../workforce/env.ts";
 import { matterArgs } from "./run.ts";
 
 /** The hooks the operator named, with where each one is declared in `settings.json`. */
@@ -34,6 +35,19 @@ const hookGroup = z.object({
 });
 const globalSettings = z.object({ hooks: z.record(z.string(), z.array(hookGroup)).default({}) });
 
+/**
+ * Whether a hook group's matcher takes the tool, as Claude Code reads it: none, `""` and `"*"` take every tool, anything
+ * else is a pattern for the whole tool name; null when it is not a valid pattern (named as a problem, never a crash).
+ */
+function toolMatches(matcher: string | undefined, tool: string): boolean | null {
+  if (matcher === undefined || matcher === "" || matcher === "*") return true;
+  try {
+    return new RegExp(`^(?:${matcher})$`).test(tool);
+  } catch {
+    return null;
+  }
+}
+
 /** The global hooks that do not reach a run: not declared for their tool on their event, or their script is missing. */
 export function settingsReach(settingsText: string, hooksDir: string): string[] {
   let settings: z.infer<typeof globalSettings>;
@@ -43,9 +57,12 @@ export function settingsReach(settingsText: string, hooksDir: string): string[] 
     return GLOBAL_HOOKS.map((hook) => `${hook.script}: ~/.claude/settings.json is not readable`);
   }
   return GLOBAL_HOOKS.flatMap((hook) => {
-    const declared = (settings.hooks[hook.event] ?? []).some(
+    const groups = settings.hooks[hook.event] ?? [];
+    if (groups.some((group) => toolMatches(group.matcher, hook.tool) === null))
+      return [`${hook.script}: a matcher on ${hook.event} is not a valid pattern`];
+    const declared = groups.some(
       (group) =>
-        (group.matcher === undefined || new RegExp(`^(?:${group.matcher})$`).test(hook.tool)) &&
+        toolMatches(group.matcher, hook.tool) === true &&
         group.hooks.some((entry) => entry.command?.includes(hook.script) === true),
     );
     if (!declared) return [`${hook.script}: not declared for ${hook.tool} on ${hook.event}`];
@@ -188,6 +205,8 @@ function main(): number {
     const repo = makeProbeRepo();
     const run = spawnSync(process.env["WORKFORCE_CLI"]?.trim() || "claude", probeArgs(), {
       cwd: repo,
+      // as Matter's own runs: no CLAUDE*, *_KEY, *_TOKEN or *SECRET name reaches a run that may use the shell
+      env: childEnv(),
       input: PROBE_PROMPT,
       encoding: "utf8",
       timeout: 5 * 60_000,

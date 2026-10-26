@@ -59,6 +59,22 @@ describe("the global settings file", () => {
       unreadable: 3,
     });
   });
+
+  it("takes an empty or star matcher for every tool, and names a matcher that is not a valid pattern", () => {
+    const matchAll = settings({
+      pre: [hook("", "shell-shaper.mjs"), hook("*", "push-gate.mjs")],
+      post: [hook("Edit|Write|MultiEdit", "edit-impact.mjs")],
+    });
+    const broken = settings({
+      pre: [hook("(", "shell-shaper.mjs"), hook("Bash", "push-gate.mjs")],
+      post: [hook("Edit|Write|MultiEdit", "edit-impact.mjs")],
+    });
+    expect(settingsReach(matchAll, hooksFolder(ALL))).toEqual([]);
+    expect(settingsReach(broken, hooksFolder(ALL))).toEqual([
+      "shell-shaper.mjs: a matcher on PreToolUse is not a valid pattern",
+      "push-gate.mjs: a matcher on PreToolUse is not a valid pattern",
+    ]);
+  });
 });
 
 describe("Matter's command lines", () => {
