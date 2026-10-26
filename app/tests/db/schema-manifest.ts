@@ -634,6 +634,19 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     state: "text",
     created_at: "timestamptz",
   },
+  // W8 0f: one row per piece in the studio folder, written only by studio_piece_put.
+  studio_pieces: {
+    id: "uuid",
+    title: "text",
+    owner_slug: "text",
+    state: "text",
+    folder: "text",
+    preview_key: "text?",
+    asset_id: "uuid?",
+    note: "text",
+    created_at: "timestamptz",
+    updated_at: "timestamptz",
+  },
   email_suppressions: {
     email: "text",
     reason: "text",

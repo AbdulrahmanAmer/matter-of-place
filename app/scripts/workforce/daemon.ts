@@ -35,10 +35,11 @@ import { readSiteFacts, writeSitePages } from "./site-facts.ts";
 import { makeVoiceover } from "./media.ts";
 import {
   briefId,
+  decidePiece,
   mediaFor,
-  nextReel,
   queueReel,
   REEL_TOOL_LINE,
+  reelWork,
   reelWorking,
   withReel,
 } from "./reel.ts";
@@ -971,6 +972,12 @@ export async function runOnce(client: Db): Promise<boolean> {
         await say(client, thread, `The reel "${request.name}" is queued in the studio: ${folder}`);
         continue;
       }
+      if (request.skill === "studio") {
+        // W8 0f: Matter's decision on a draft in the studio (media is kept only for Matter at full power, so a person's
+        // word is behind it); the runner's pass then uploads, revises or sends the preview.
+        await say(client, thread, decidePiece(request).line);
+        continue;
+      }
       await client
         .from("agents")
         .update({ current_task: `Making the voice-over "${request.name}"` })
@@ -1347,8 +1354,9 @@ async function pass(client: Db): Promise<void> {
     }
   }
   // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute. It
-  // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480).
-  if (!reelBusy && nextReel() !== null) {
+  // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480). W8 0f: the same
+  // pass uploads an approved draft, sends a waiting piece's preview and writes the rows of the studio.
+  if (!reelBusy && reelWork()) {
     spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
       cwd: resolve(import.meta.dir, "../.."),
       detached: true,

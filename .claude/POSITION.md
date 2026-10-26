@@ -2272,6 +2272,17 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 19:05 +0300: builder of W8 0f (Sonnet 5.5, overdrive/w8-0f). The studio folder: a reel that passes the gate and the
+  fresh reviewer is a DRAFT kept under `drafts/NN/` (every render, refused ones too), with `status.md` rewritten beside
+  `brief.json` on every change; nothing is uploaded until Matter's `media` entry `{"skill":"studio","piece","decision":
+  "approve|revise|ask_operator","note"}` (or `reel.ts --decide`); approve uploads once and records the pending visual, revise
+  sends Matter's note to the designer, ask_operator holds it and sends one 360 px still to the private `submissions` bucket.
+  Table `studio_pieces` + `studio_piece_put` (migrations 20261019152200, 20261019152546), rows brought in step with the
+  folders at the start and end of each pass (retry after 10 minutes). Ruling H136. Proof so far: `workforce-reel.test.ts`
+  33, `workforce-studio.test.ts` 7, `workforce-studio-decision.test.ts` 2 pass; the 29 unit registry entries of `W8-0f.json`
+  WATCHED-FAIL OK (one stayed green first: P-4541), the 29 of `W7-e2.json` still OK; the four SQL entries and `tests/db/studio-pieces.db.test.ts` are CI's db job. UNPROVEN: the migrations on the cloud
+  project; a real decision through Matter's live session; ffmpeg's still and the private upload; Storage's "already exists"
+  answer. NOT DONE: the admin screen that lists the rows. Bank: P-4540..P-4542.
 - 2026-10-19 18:20 +0300 W8 0h third and fourth review rounds (overdrive/w8-0h, pushed, no PR; Matter merges through
   the gate). Third round (caec66c7, 2026-10-16, no block then): one message never stops a folder (a 200-character cut
   of attachment names, unread parts named in fixed words, three failed checks then the listing alone), the privacy-scoped
