@@ -477,7 +477,7 @@ describe("the post pass", () => {
               studio: basename(folder),
               caption_lint: "passed",
               slide_alts: ["The first line.", "The second line."],
-              captions: { x: expect.stringContaining("utm_campaign=coming-soon") },
+              captions: { x: expect.stringContaining("utm_campaign=coming-soon") as unknown },
             },
           },
         ],

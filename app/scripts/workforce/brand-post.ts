@@ -646,7 +646,7 @@ export async function realPostDeps(): Promise<PostDeps> {
       );
       if (shot.status !== 0) {
         throw new Error(
-          `gate_failed: the page did not render: ${`${shot.stderr}`.trim().split("\n").slice(-4).join(" ")}`,
+          `gate_failed: the page did not render: ${shot.stderr.trim().split("\n").slice(-4).join(" ")}`,
         );
       }
       const raw = z
