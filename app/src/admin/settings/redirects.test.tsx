@@ -15,7 +15,7 @@ const ID_A = "00000000-0000-4000-8000-0000000000c1";
 const ID_B = "00000000-0000-4000-8000-0000000000c2";
 
 const rows: RedirectRow[] = [
-  { id: ID_A, from_path: "/summer", to_path: "/markets", status: 302 },
+  { id: ID_A, from_path: "/summer", to_path: "/markets/california", status: 302 },
   { id: ID_B, from_path: "/markets", to_path: "/markets/california", status: 301 },
 ];
 
@@ -83,6 +83,8 @@ describe("screen 24, redirects", () => {
       ["/admin/x", "/"],
       ["/old", "https://example.com/x"],
       ["/markets/california", "/summer"],
+      ["/winter", "/markets"],
+      ["/markets/california", "/stories"],
     ] as const) {
       fill(from, to);
       refused.push(screen.getByRole("alert").textContent);
@@ -92,6 +94,8 @@ describe("screen 24, redirects", () => {
         "Admin and API addresses cannot be redirected.",
         "The new address must be a path on this site.",
         "These addresses would redirect in a loop.",
+        "The new address is itself redirected. Point to the final address so visitors take one step.",
+        "Another redirect already leads to this old address. Point that one at the final address first.",
       ],
       writes: [],
     });
@@ -226,10 +230,12 @@ describe("screen 24, redirects", () => {
     const hops = await within(result).findAllByRole("listitem");
     expect({
       empty: empty.textContent,
+      flag: within(result).getByText(/takes 2 steps/).textContent,
       hops: hops.map((item) => item.textContent),
       requested,
     }).toEqual({
       empty: "Type an address to test.",
+      flag: "This link takes 2 steps. Point the old address at the final address so visitors take one.",
       hops: [
         "/summer goes to /markets (302, redirect).",
         "/markets goes to /property/the-ridge (301, old property address).",
