@@ -6,10 +6,15 @@ import { SectionHeading } from "../components/site/section-heading";
 import { TextLink } from "../components/site/text-link";
 import { useTrackView } from "../hooks/use-track-view";
 import { propertiesQuery, storyQuery } from "../lib/queries";
-import { articleLd, breadcrumbLd } from "../lib/jsonld";
+import { articleLd, breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { storyDescription } from "../lib/seo-copy";
+
+const storyTrail = (story: { slug: string; title: string }): Crumb[] => [
+  { name: "Stories", path: "/stories" },
+  { name: story.title.replace(/\.$/, ""), path: `/stories/${story.slug}` },
+];
 
 export const Route = createFileRoute("/_site/stories/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -35,10 +40,7 @@ export const Route = createFileRoute("/_site/stories/$slug")({
       published: story.publishedAt,
       jsonLd: [
         articleLd(story),
-        breadcrumbLd([
-          { name: "Stories", path: "/stories" },
-          { name: story.title.replace(/\.$/, ""), path: `/stories/${story.slug}` },
-        ]),
+        breadcrumbLd(storyTrail(story)),
       ],
     });
   },
@@ -51,9 +53,14 @@ function StoryPage() {
   return (
     <main>
       {story.image === undefined ? (
-        <PageIntro eyebrow={story.category.toUpperCase()} title={story.title} />
+        <PageIntro
+          trail={storyTrail(story)}
+          eyebrow={story.category.toUpperCase()}
+          title={story.title}
+        />
       ) : (
         <ImageHero
+          trail={storyTrail(story)}
           image={story.image}
           alt=""
           eyebrow={story.category.toUpperCase()}

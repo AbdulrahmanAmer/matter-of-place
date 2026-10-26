@@ -2,13 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { legalVersions, siteConfig } from "../config/site";
 import { presentLines } from "../domain/settings";
-import { breadcrumbLd } from "../lib/jsonld";
+import { breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { legalIdentity } from "../lib/legal-identity";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
+
+const trail: Crumb[] = [{ name: t.nav.terms, path: "/terms" }];
 
 export const Route = createFileRoute("/_site/terms")({
   head: ({ matches }) =>
@@ -17,7 +19,7 @@ export const Route = createFileRoute("/_site/terms")({
       description: pageDescription("terms"),
       path: "/terms",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [breadcrumbLd([{ name: t.nav.terms, path: "/terms" }])],
+      jsonLd: [breadcrumbLd(trail)],
     }),
   component: TermsPage,
 });
@@ -28,7 +30,7 @@ function TermsPage() {
   const identity = legalIdentity(site.legal);
   return (
     <main>
-      <PageIntro
+      <PageIntro trail={trail}
         eyebrow="TERMS"
         title={t.nav.terms}
         text="These terms are for agents, brokers, architects and owners who submit a property, and for anyone using the site."

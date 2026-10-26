@@ -4,13 +4,15 @@ import { legalVersions, siteConfig } from "../config/site";
 import { retentionPeriods } from "../domain/retention";
 import { privacyLines } from "../domain/settings";
 import { pluralize } from "../lib/format";
-import { breadcrumbLd } from "../lib/jsonld";
+import { breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { legalIdentity } from "../lib/legal-identity";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
+
+const trail: Crumb[] = [{ name: t.nav.privacy, path: "/privacy" }];
 
 export const Route = createFileRoute("/_site/privacy")({
   head: ({ matches }) =>
@@ -19,7 +21,7 @@ export const Route = createFileRoute("/_site/privacy")({
       description: pageDescription("privacy"),
       path: "/privacy",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [breadcrumbLd([{ name: t.nav.privacy, path: "/privacy" }])],
+      jsonLd: [breadcrumbLd(trail)],
     }),
   component: PrivacyPage,
 });
@@ -106,7 +108,7 @@ function PrivacyPage() {
   const mailbox = privacyLines(site)[0];
   return (
     <main>
-      <PageIntro
+      <PageIntro trail={trail}
         eyebrow="PRIVACY"
         title={t.nav.privacy}
         text="How Matter of Place handles personal information, written for California residents."

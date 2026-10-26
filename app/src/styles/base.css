@@ -287,16 +287,28 @@ h3 {
   color: var(--muted-foreground);
 }
 
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breadcrumb li + li::before {
+  content: "/";
+  margin-right: 8px;
+  color: var(--accent);
+}
+
 .breadcrumb a {
   transition: color 0.2s;
 }
 
 .breadcrumb a:hover {
   color: var(--foreground);
-}
-
-.breadcrumb span {
-  color: var(--accent);
 }
 
 /* Label over photography marking content as illustrative */

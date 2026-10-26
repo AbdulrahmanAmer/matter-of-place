@@ -4,10 +4,12 @@ import { Newsletter } from "../components/site/newsletter";
 import { PageIntro } from "../components/site/page-intro";
 import { StoryGrid } from "../components/site/story-card";
 import { storiesQuery } from "../lib/queries";
-import { breadcrumbLd, collectionLd } from "../lib/jsonld";
+import { breadcrumbLd, collectionLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
+
+const trail: Crumb[] = [{ name: "Stories", path: "/stories" }];
 
 export const Route = createFileRoute("/_site/stories/")({
   loader: ({ context: { queryClient } }) =>
@@ -28,7 +30,7 @@ export const Route = createFileRoute("/_site/stories/")({
             path: `/stories/${story.slug}`,
           })),
         ),
-        breadcrumbLd([{ name: "Stories", path: "/stories" }]),
+        breadcrumbLd(trail),
       ],
     }),
   component: StoriesPage,
@@ -38,7 +40,7 @@ function StoriesPage() {
   const stories = Route.useLoaderData();
   return (
     <main>
-      <PageIntro
+      <PageIntro trail={trail}
         eyebrow="ARCHITECTURE · INTERIORS · PLACES"
         title="Stories"
         text="Original writing from three editorial desks."

@@ -3,11 +3,13 @@ import { ContactForm } from "../components/forms/contact-form";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { presentLines } from "../domain/settings";
-import { breadcrumbLd } from "../lib/jsonld";
+import { breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
+
+const trail: Crumb[] = [{ name: "Contact", path: "/contact" }];
 
 export const Route = createFileRoute("/_site/contact")({
   head: ({ matches }) =>
@@ -16,7 +18,7 @@ export const Route = createFileRoute("/_site/contact")({
       description: pageDescription("contact"),
       path: "/contact",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [breadcrumbLd([{ name: "Contact", path: "/contact" }])],
+      jsonLd: [breadcrumbLd(trail)],
     }),
   component: ContactPage,
 });
@@ -27,7 +29,7 @@ function ContactPage() {
   const [phone] = presentLines(contact.phone);
   return (
     <main>
-      <PageIntro
+      <PageIntro trail={trail}
         eyebrow="A CONVERSATION"
         title="Contact"
         text="Every message is read by a person. Tell us what you are looking for, or what you would like to present."
