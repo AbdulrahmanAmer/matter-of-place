@@ -12,8 +12,6 @@ import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
-const trail: Crumb[] = [{ name: t.nav.privacy, path: "/privacy" }];
-
 export const Route = createFileRoute("/_site/privacy")({
   head: ({ matches }) =>
     pageHead({
@@ -25,6 +23,8 @@ export const Route = createFileRoute("/_site/privacy")({
     }),
   component: PrivacyPage,
 });
+
+const trail: Crumb[] = [{ name: t.nav.privacy, path: "/privacy" }];
 
 type Period = (typeof retentionPeriods)[keyof typeof retentionPeriods];
 type RetentionKey = keyof typeof retentionPeriods;

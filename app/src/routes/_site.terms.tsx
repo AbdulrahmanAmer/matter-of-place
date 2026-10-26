@@ -10,8 +10,6 @@ import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
-const trail: Crumb[] = [{ name: t.nav.terms, path: "/terms" }];
-
 export const Route = createFileRoute("/_site/terms")({
   head: ({ matches }) =>
     pageHead({
@@ -23,6 +21,8 @@ export const Route = createFileRoute("/_site/terms")({
     }),
   component: TermsPage,
 });
+
+const trail: Crumb[] = [{ name: t.nav.terms, path: "/terms" }];
 
 function TermsPage() {
   const site = useSite();

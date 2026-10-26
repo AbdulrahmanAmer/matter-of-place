@@ -11,8 +11,6 @@ import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
-const trail: Crumb[] = [{ name: "Legal", path: "/legal" }];
-
 export const Route = createFileRoute("/_site/legal")({
   head: ({ matches }) =>
     pageHead({
@@ -24,6 +22,8 @@ export const Route = createFileRoute("/_site/legal")({
     }),
   component: LegalPage,
 });
+
+const trail: Crumb[] = [{ name: "Legal", path: "/legal" }];
 
 function LegalPage() {
   const { legal, illustrativeContent } = useSite();

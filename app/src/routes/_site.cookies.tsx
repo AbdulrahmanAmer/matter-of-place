@@ -10,8 +10,6 @@ import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
 
-const trail: Crumb[] = [{ name: t.cookies.title, path: "/cookies" }];
-
 export const Route = createFileRoute("/_site/cookies")({
   head: ({ matches }) =>
     pageHead({
@@ -23,6 +21,8 @@ export const Route = createFileRoute("/_site/cookies")({
     }),
   component: CookiesPage,
 });
+
+const trail: Crumb[] = [{ name: t.cookies.title, path: "/cookies" }];
 
 const categoryLabel: Record<CookieCategory, string> = {
   necessary: "Necessary",
