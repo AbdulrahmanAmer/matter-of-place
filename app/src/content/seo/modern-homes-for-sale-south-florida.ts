@@ -5,11 +5,11 @@ export const modernHomesForSaleSouthFlorida: SeoPageContent = {
   path: "/modern-homes-for-sale-south-florida",
   kind: "collection",
   query: "modern homes for sale south florida",
-  words: [700, 1400],
+  words: [700, 1700],
   title: "Modern Homes for Sale in South Florida",
   h1: "Modern Homes for Sale in South Florida",
   description:
-    "What a modern house in South Florida is, what owners and buyers should ask about climate and water, and how Matter of Place features such homes.",
+    "Modern homes for sale in South Florida: what a modern house is, what owners and buyers should ask about climate and water, and how we feature them.",
   eyebrow: "MODERN HOMES · SOUTH FLORIDA",
   lede: "Modern homes for sale in South Florida are existing houses in and around Miami, Fort Lauderdale and Palm Beach that were drawn in the language of modern architecture: flat or low roofs, deep shade, long openings to garden and water, and materials chosen for the climate. Some date from the postwar decades, when architects worked out a modern way of living in the tropics, and some are recent. Below are the things to look at, the questions about climate and water that owners and buyers should raise, and the way Matter of Place presents such a house.",
   sections: [
@@ -59,9 +59,15 @@ export const modernHomesForSaleSouthFlorida: SeoPageContent = {
     {
       heading: "South Florida market and neighborhood facts",
       body: [
-        "We quote no median price or days on market for South Florida, since we hold no regional figure that we can source and date. A local agent can give current numbers for a neighborhood, and county records show the sale history of a given parcel.",
+        "We quote no days on market for South Florida, and the one value below is a county-wide midpoint, not the price of any house. A local agent can give current numbers for a neighborhood, and county records show the sale history of a given parcel.",
         "What we can say concerns the place. South Florida usually means the counties of Miami-Dade, Broward and Palm Beach, along the Atlantic coast and the Intracoastal Waterway. Its modern houses stand on barrier islands, on canals and bays, in older city neighborhoods and in quieter streets inland, and each setting asks a different thing of a house.",
         "A house on a canal is read through its water and its dock. A house in an older neighborhood is read through its street and its trees. A house by the ocean is read through its wind and its light. Each page is written around its setting.",
+        { h3: "The housing record" },
+        "In the figures below, South Florida, FL means three counties: Miami-Dade, Broward and Palm Beach. They show how much of the housing there is newer.",
+        "Miami-Dade County held 1,094,983 housing units in the American Community Survey's five-year estimates for 2020-2024. Of those units, 265,967 were built in 2000 or later, which is 24.3 percent of the county's housing.",
+        "Broward County's newer stock is a smaller part of a large whole: 153,309 of its 866,019 units, or 17.7 percent, date from 2000 or later (table B25034). Palm Beach County reports 25.0 percent of its 719,463 units built since 2000, the highest share of the three South Florida counties.",
+        "The median year built in Palm Beach County is 1986, according to table B25035 of the same survey. The Census Bureau lists a median value of $463,000 for owner-occupied homes in Miami-Dade County; it describes the county's owner-occupied stock overall, not any single house.",
+        "Source: U.S. Census Bureau, American Community Survey 5-year estimates 2020-2024, tables B25034 (Year Structure Built), B25035 (Median Year Structure Built) and B25077 (Median Value of owner-occupied housing units), for Miami-Dade, Broward and Palm Beach counties, Florida.",
         "Houses in the other two states are read the same way: see [hudson valley stone houses for sale](/hudson-valley-stone-houses-for-sale) in New York and [modernist homes for sale california](/modernist-homes-for-sale-california). For houses that carry a formal designation, our guide to [historic homes for sale](/historic-homes-for-sale) explains the terms.",
       ],
     },

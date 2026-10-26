@@ -9,7 +9,7 @@ export const historicHomesForSale: SeoPageContent = {
   title: "Historic Homes for Sale",
   h1: "Historic Homes for Sale",
   description:
-    "What makes a home historic, what owners and buyers should know, and how Matter of Place features historic homes in California, New York and Florida.",
+    "What historic homes for sale are, what owners and buyers should know, and how Matter of Place features them in California, New York and Florida.",
   eyebrow: "HISTORIC HOMES",
   lede: "Historic homes for sale are existing houses whose age, builder or past gives them a place in the story of their town or their country. Some are listed on the National Register of Historic Places, some stand in a local historic district, and some carry a documented history with no formal listing at all. Read on for what the terms mean in California, New York and Florida, what owners and buyers should know, and the way Matter of Place presents a historic house.",
   sections: [

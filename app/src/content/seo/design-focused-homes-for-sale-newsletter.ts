@@ -9,7 +9,7 @@ export const designFocusedHomesForSaleNewsletter: SeoPageContent = {
   title: "Design Focused Homes for Sale Newsletter",
   h1: "Design Focused Homes for Sale Newsletter",
   description:
-    "Place Notes is the Matter of Place newsletter: selected homes and stories chosen for design in California, New York and Florida.",
+    "Place Notes is the Matter of Place design focused homes for sale newsletter: selected homes and stories in California, New York and Florida.",
   eyebrow: "PLACE NOTES",
   lede: "The design focused homes for sale newsletter from Matter of Place is called Place Notes. It sends selected properties and stories from California, New York and Florida, chosen for architecture, materiality and setting rather than for price, and it is written only when there is something worth reading. This page explains what a note contains, how a home gets into one, and how to sign up.",
   sections: [

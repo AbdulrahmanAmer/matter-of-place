@@ -9,7 +9,7 @@ export const richardNeutraHomesForSale: SeoPageContent = {
   title: "Richard Neutra Homes for Sale",
   h1: "Richard Neutra Homes for Sale",
   description:
-    "What marks a house by Richard Neutra, what owners and buyers should check, and how Matter of Place features such homes.",
+    "Richard Neutra homes for sale: what marks a house by Neutra, what owners and buyers should check, and how Matter of Place features such homes.",
   eyebrow: "RICHARD NEUTRA",
   lede: "Richard Neutra homes for sale are existing houses designed by the Austrian-born architect Richard Neutra, who came to the United States in 1923 and built his career in Los Angeles. He is counted among the leading figures of California modernism. The page explains what marks a Neutra design, what owners and buyers should check, and the way Matter of Place presents one. We list no house here and we represent no one in a sale.",
   sections: [
