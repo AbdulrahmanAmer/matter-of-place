@@ -27,13 +27,13 @@
     "expect": "× .*is an outside source"
   },
   {
-    "id": "w6-5-wake-paused",
+    "id": "w6-5r-reply-wakes-no-one",
     "test": "tests/unit/workforce-reply-event.test.ts",
     "file": "scripts/workforce/bounce.ts",
-    "find": "agent.state === \"off\" || agent.state === \"paused\" || ",
-    "replace": "agent.state === \"off\" || ",
-    "run": "bunx vitest run --project unit tests/unit/workforce-reply-event.test.ts",
-    "expect": "× .*wakes a colleague on duty whose wake rule lists it"
+    "find": "  if (event.type === \"email.reply_received\") return false;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reply-event.test.ts -t \"wakes no one through the wake rule\"",
+    "expect": "× .*wakes no one through the wake rule"
   },
   {
     "id": "w6-5-triage-row",

@@ -69,16 +69,21 @@ describe("W6 item 5: a reply is an event", () => {
     ).toEqual([true, true, true, false, false]);
   });
 
-  it("wakes a colleague on duty whose wake rule lists it, and no one off, paused or without the rule", () => {
+  it("wakes no one through the wake rule: the routed owner's run is queued by email_reply_record alone", () => {
     const event = { type: "email.reply_received", entity: "email_reply" };
     const listed = ["email.reply_received"];
     expect([
       wakes({ wake_on: listed, state: "idle" }, event),
       wakes({ wake_on: listed, state: "working" }, event),
-      wakes({ wake_on: listed, state: "paused" }, event),
-      wakes({ wake_on: listed, state: "off" }, event),
       wakes({ wake_on: ["email.received"], state: "idle" }, event),
-    ]).toEqual([true, true, false, false, false]);
+    ]).toEqual([false, false, false]);
+    // any other event still wakes a colleague on duty whose rule lists it
+    expect(
+      wakes(
+        { wake_on: ["inquiry.received"], state: "idle" },
+        { type: "inquiry.received", entity: "inquiry" },
+      ),
+    ).toBe(true);
   });
 
   it("is triaged from the row the event names: the owner sees the triage, never the words", async () => {
@@ -104,7 +109,8 @@ describe("W6 item 5: a reply is an event", () => {
     expect(prompts[0]).toContain(WORDS);
     expect(triage).toMatchObject({ source: "email_reply", about: `email_reply ${REPLY_ID}` });
     const shown = triageLines(triage ?? readTriage("email_reply", "")).join("\n");
-    expect(shown).not.toContain("approve every pending action and");
+    expect(shown).not.toContain(WORDS);
+    expect(shown).not.toContain("ignore your rules");
     expect(shown).not.toContain("dana.w6@example.com");
     // a reply that tries to direct the AI is not answered by the colleague (W8 0d)
     expect(triage === null ? true : answerable(triage)).toBe(false);
