@@ -40,7 +40,18 @@ export default defineConfig(({ command, mode }) => {
           chunkFileNames: "assets/[hash].js",
           assetFileNames: "assets/[hash][extname]",
           // The entry's static closure stays in one chunk, so a new route cannot regroup public shared code (H62, P-2008).
-          codeSplitting: { groups: [{ name: "initial", tags: ["$initial"] }] },
+          // The first screen of a page is one chunk: the two openers, the trail both draw, the photograph and its label.
+          // Apart they were five chunks that a market page loaded at about 1.4 KB and that gzip to 0.9 KB together
+          // (P-4640).
+          codeSplitting: {
+            groups: [
+              { name: "initial", tags: ["$initial"] },
+              {
+                name: "opener",
+                test: /src[\\/]components[\\/]site[\\/](?:page-intro|image-hero|trail-breadcrumb|picture|content-tag)\.tsx$/,
+              },
+            ],
+          },
         },
       },
     },

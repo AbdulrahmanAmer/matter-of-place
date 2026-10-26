@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { ImageVariants } from "../../domain/property";
 import type { Crumb } from "../../lib/jsonld";
-import { TrailBreadcrumb } from "./breadcrumb";
+import { TrailBreadcrumb } from "./trail-breadcrumb";
 import { ContentTag } from "./content-tag";
 import { Picture } from "./picture";
 

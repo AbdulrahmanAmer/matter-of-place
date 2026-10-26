@@ -312,6 +312,18 @@ h3 {
   color: var(--foreground);
 }
 
+/* On the Obsidian band of PageIntro and ImageHero the trail reads in the light tone of their eyebrow, its hover in full
+   Ivory. It never reads --muted-foreground, which the higher-contrast mode turns Obsidian (tokens.css). */
+.page-intro .breadcrumb,
+.image-hero .breadcrumb {
+  color: color-mix(in oklab, var(--primary-foreground) 78%, transparent);
+}
+
+.page-intro .breadcrumb a:hover,
+.image-hero .breadcrumb a:hover {
+  color: var(--primary-foreground);
+}
+
 /* Label over photography marking content as illustrative */
 .content-tag {
   position: absolute;

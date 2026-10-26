@@ -1,5 +1,5 @@
 import type { Crumb } from "../../lib/jsonld";
-import { TrailBreadcrumb } from "./breadcrumb";
+import { TrailBreadcrumb } from "./trail-breadcrumb";
 
 export function PageIntro({
   eyebrow,
