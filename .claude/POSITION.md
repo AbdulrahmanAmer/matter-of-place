@@ -2272,6 +2272,15 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 17:58 +0300: builder, W7 1 (branch overdrive/w7-1, from finish-3). Main already held the sent-email log (W9 item 2:
+  `/admin/emails`, newest hundred, state and address filter, bounce type, do-not-send list). Added only what it lacked:
+  keyset pages of fifty past the newest hundred (`listEmails`, cursor `created_at~id`), the template column, "opened"
+  from the first `email.opened` event in the sentence of what became of it; the list is its own part
+  (`SentEmailsPart.tsx`, own page trail, remounted by a key of its filters). Tests: emails.service.test.ts 14 passed,
+  sent-emails.test.tsx 3 passed, inbound-mail.test.tsx 3 passed; registry `tests/mutations/W7-1.json` (13 entries) and
+  the W7-2 `screen-sent-filter` entry re-anchored. NOT RUN (NO LOCAL CI): tsc, eslint, knip, watchfail replays (CI
+  replays them). UNPROVEN: Resend open events for transactional mail, paging on the real table, the screen on real rows.
+  Bank: P-3710, P-3711.
 - 2026-10-19 17:30 +0300: builder, overdrive/search-rank (W8 item 12, the operator's search order). Plan first: W8.md section E.
   Built: 12a `t.home.intro` (three sentences) replaces `t.comingSoon.what`, shown once under the headline while coming
   soon and in the editorial statement once a property is published; 12b `scripts/gen-page-dates.ts` (git day of each
