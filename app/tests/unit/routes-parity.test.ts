@@ -10,6 +10,7 @@ import { routes } from "../../src/server/public/routes";
 const DIR = fileURLToPath(new URL("../../src/routes/api/public", import.meta.url));
 const PREFIX = "/api/public/";
 const CONFIRM = "/api/public/subscribers/confirm";
+const UNSUBSCRIBE = "/api/public/subscribers/unsubscribe";
 
 /** `properties.$slug.ts` is `/api/public/properties/:slug`, as the router names its file routes. */
 const pathOf = (file: string): string =>
@@ -49,13 +50,21 @@ describe("the public route table and its files", () => {
     expect(confirm?.cache).toBeUndefined();
   });
 
+  it("never stores the unsubscribe page, which answers each token its own button (OPS-005)", () => {
+    const page = routes.find((route) => route.path === UNSUBSCRIBE && route.method === "GET");
+    expect(page).toBeDefined();
+    expect(page?.cache).toBeUndefined();
+  });
+
   it("lists each method of a path once", () => {
     const keys = routes.map((route) => `${route.method} ${route.path}`);
     expect(new Set(keys).size).toBe(keys.length);
   });
 
   it("stores every read under the catalog tag for a year (PERF-05)", () => {
-    const reads = routes.filter((route) => route.method === "GET" && route.path !== CONFIRM);
+    const reads = routes.filter(
+      (route) => route.method === "GET" && route.path !== CONFIRM && route.path !== UNSUBSCRIBE,
+    );
     expect(reads.length).toBeGreaterThan(0);
     for (const route of reads) {
       expect(route.cache?.tags[0]).toBe("catalog");

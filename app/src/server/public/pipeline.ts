@@ -291,11 +291,16 @@ async function write(match: Match, request: Request, db: Db, ctx: PublicCtx): Pr
   if (tooLarge(request)) {
     throw new AppError("payload_too_large", undefined, "That is more than we can take in one go.");
   }
-  if (route.raw === true) return route.service(request, db, env);
+  const name = routeName(route.path);
+  if (route.raw === true) {
+    // A raw row reads its own body, but the limits it declares count first (the unsubscribe address, OPS-005).
+    const memory = memoryCheck(route, name, ctx.ipHash);
+    if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);
+    return (await dbLimited(db, route, name, ctx, undefined)) ?? route.service(request, db, env);
+  }
   const { body, filled } = stripHoneypot(
     await readJson(request, route.contentTypes ?? ["application/json"]),
   );
-  const name = routeName(route.path);
   if (filled) {
     logLine("info", "honeypot", { route: name });
     return Response.json(

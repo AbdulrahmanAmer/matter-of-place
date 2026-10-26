@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type * as Routes from "../../src/server/public/routes";
 import type { PublicRoute, PublicService, RouteLimit } from "../../src/server/public/routes";
+import { unsubscribeUrl } from "../../src/server/email/unsubscribe";
 import { fakeDb } from "../fixtures/fake-db";
 import { catalogDb, snapshotJson, stateJson } from "../fixtures/snapshot";
 import { TEST_IP } from "../fixtures/worker-env";
@@ -536,16 +537,15 @@ describe("a form's address (W9 item 1)", () => {
 });
 
 describe("a raw row", () => {
-  it("reaches the service with the body unread and no schema, memory or database check", async () => {
+  it("reaches the service with the body unread and no schema or database check", async () => {
     const { handlePublic, added } = await load();
     const seen: boolean[] = [];
     added({
       path: "/api/public/signed",
       method: "POST",
       raw: true,
-      limits: [{ scope: "ip", store: "memory", limit: 1, windowSeconds: 60 }],
+      limits: [],
       turnstile: false,
-      form: true,
       status: 200,
       service: (incoming) => {
         seen.push(incoming.bodyUsed);
@@ -566,6 +566,31 @@ describe("a raw row", () => {
     );
     expect([first.status, second.status]).toEqual([200, 200]);
     expect(seen).toEqual([false, false]);
+    expect(db.calls).toEqual([]);
+  });
+
+  it("counts the raw row's own memory limit before its service: the second post is 429", async () => {
+    const { handlePublic, added } = await load();
+    let served = 0;
+    added({
+      path: "/api/public/signed",
+      method: "POST",
+      raw: true,
+      limits: [{ scope: "ip", store: "memory", limit: 1, windowSeconds: 60 }],
+      turnstile: false,
+      status: 200,
+      service: () => {
+        served += 1;
+        return Promise.resolve(new Response("ok"));
+      },
+    });
+    const db = catalogDb();
+    const ip = nextIp();
+    const first = await handlePublic(post("/api/public/signed", "x", { ip }), "req-12345678", db);
+    const second = await handlePublic(post("/api/public/signed", "x", { ip }), "req-12345679", db);
+    expect([first.status, second.status]).toEqual([200, 429]);
+    expect(second.headers.get("retry-after")).not.toBeNull();
+    expect(served).toBe(1);
     expect(db.calls).toEqual([]);
   });
 
@@ -953,5 +978,62 @@ describe("the rows of events, search and concierge", () => {
       if (response.status === 429) concierge = sent;
     }
     expect([search, concierge]).toEqual([61, 31]);
+  });
+});
+
+describe("a body nested far deeper than any beacon (C07)", () => {
+  it("refuses /events nested 20000 levels deep with a 4xx, never a 500, and stores nothing", async () => {
+    const { handlePublic } = await load();
+    const db = fakeDb({ rpc: { record_analytics_events: () => 1 } });
+    const deep = `${"[".repeat(20_000)}1${"]".repeat(20_000)}`;
+    const at = new Date().toISOString();
+    const body = `[{"event":"property_view","path":"/","at":"${at}","data":{"deep":${deep}}}]`;
+    const response = await handlePublic(post("/api/public/events", body), "req-12345678", db);
+    expect([400, 422]).toContain(response.status);
+    expect(dbCalls(db, "record_analytics_events")).toBe(0);
+  });
+});
+
+describe("the unsubscribe address of a bulk mail (OPS-005)", () => {
+  const KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(9)));
+  const SUBSCRIBER = "00000000-0000-4000-8000-0000000000d1";
+  const addressOf = async (): Promise<string> => {
+    const url = new URL(await unsubscribeUrl(SUBSCRIBER, KEY, BASE));
+    return `${url.pathname}${url.search}`;
+  };
+
+  beforeEach(() => {
+    vi.stubEnv("CONFIRM_TOKEN_SECRET", KEY);
+  });
+
+  it("answers a GET with a page whose one button posts the same address, and changes nothing (C03)", async () => {
+    const { handlePublic } = await load();
+    const db = fakeDb({ rpc: { unsubscribe_email: () => true } });
+    const address = await addressOf();
+    const response = await handlePublic(
+      request(address, { headers: { accept: "text/html" } }),
+      "req-12345678",
+      db,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.text()).toContain(`<form method="post" action="${address}">`);
+    expect(db.calls).toEqual([]);
+  });
+
+  it("answers a GET whose token is not whole with the page that says so, no button and no call", async () => {
+    const { handlePublic } = await load();
+    const db = fakeDb({ rpc: { unsubscribe_email: () => true } });
+    const response = await handlePublic(
+      request(`/api/public/subscribers/unsubscribe?t=${SUBSCRIBER}.00`),
+      "req-12345678",
+      db,
+    );
+    const page = await response.text();
+    expect(response.status).toBe(400);
+    expect(page).toContain("This link is not complete");
+    expect(page).not.toContain("<form");
+    expect(db.calls).toEqual([]);
   });
 });

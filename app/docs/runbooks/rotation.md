@@ -97,6 +97,10 @@ Rules that belong to single rows:
   the swap is retried by its backoff.
 - `CONFIRM_TOKEN_SECRET` is a Worker secret, a Supabase function secret and a key of the preview bundle (G12). Change
   the Worker and the function secret in the same sitting: the Worker seals the confirm token and the job runner opens it.
+  It also signs the one-click unsubscribe address that bulk mail carries in `List-Unsubscribe` (OPS-005): the job
+  runner signs it when it sends, the Worker checks it at `/api/public/subscribers/unsubscribe`. A rotation therefore
+  ends every unsubscribe link in mail already sent: such a link then answers that it is not complete, and its reader
+  unsubscribes from a newer mail or by writing to us.
 - `PREVIEW_WORKER_SECRETS_JSON` is rewritten from `.env` whenever one of its keys rotates (F12). L1's launch switch
   removes its two database keys (ruling H35 (7)).
 - `DEV_SUPABASE_SERVICE_ROLE_KEY` is the one project's key, production's after L1's launch switch (ruling H35 (1)).

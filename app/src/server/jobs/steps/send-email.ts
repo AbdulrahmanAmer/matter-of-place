@@ -291,6 +291,7 @@ export async function sendOne(ctx: StepContext, input: SendOneInput): Promise<Se
       idempotencyKey,
       replyTo,
       attachments: input.attachments,
+      unsubscribeId: input.entity === "subscriber" ? (input.entityId ?? undefined) : undefined,
       now: ctx.now,
       signal: ctx.signal,
     });

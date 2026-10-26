@@ -4,6 +4,7 @@ import { isIndexableHost } from "../seo/robots";
 import { serverErrorHtml } from "./error-page";
 import { AppError, OUTAGE_RETRY_AFTER } from "./errors";
 import {
+  API_PAGE_HEADER,
   cspFor,
   inlineHashes,
   securityHeaders,
@@ -159,11 +160,21 @@ function calmServerError(
 
 /**
  * H39 (2): the router renders an API route file that has no handler for the method as a page.
- * Under `/api/` that page becomes R09 JSON: 405 when it rendered 200, else its own status.
+ * Under `/api/` that page becomes R09 JSON: 405 when it rendered 200, else its own status. A page a public API row
+ * answers on purpose carries `API_PAGE_HEADER` (the unsubscribe page of OPS-005): it leaves as it is, unmarked.
  */
 function apiShellGuard(underApi: boolean, response: Response, requestId: string): Response {
   const html = (response.headers.get("content-type") ?? "").toLowerCase().startsWith("text/html");
   if (!underApi || !html) return response;
+  if (response.headers.has(API_PAGE_HEADER)) {
+    const headers = new Headers(response.headers);
+    headers.delete(API_PAGE_HEADER);
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
   return response.status === 200
     ? errorJson(405, "method_not_allowed", requestId)
     : errorJson(response.status, "not_found", requestId);

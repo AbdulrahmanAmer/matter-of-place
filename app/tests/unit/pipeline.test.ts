@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { serverErrorHtml } from "../../src/server/lib/error-page";
 import { AppError } from "../../src/server/lib/errors";
-import { securityHeaders } from "../../src/server/lib/headers";
+import { API_PAGE_HEADER, securityHeaders } from "../../src/server/lib/headers";
 import {
   browserCacheControl,
   handle,
@@ -186,6 +186,21 @@ describe("a path under /api/ never answers the page shell (H39 (2))", () => {
       code: "not_found",
       requestId: response.headers.get("x-request-id"),
     });
+  });
+
+  it("lets through the one page an API row marks, without the mark (OPS-005)", async () => {
+    const marked = () =>
+      new Response("<!doctype html><html><body><main>Unsubscribe</main></body></html>", {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8", [API_PAGE_HEADER]: "1" },
+      });
+    const response = await setup({ render: marked }).run(
+      get("/api/public/subscribers/unsubscribe?t=x"),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(response.headers.get(API_PAGE_HEADER)).toBeNull();
+    expect(await response.text()).toContain("<main>Unsubscribe</main>");
   });
 
   it("leaves a page and an API answer that is not HTML untouched", async () => {

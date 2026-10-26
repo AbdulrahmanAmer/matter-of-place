@@ -385,11 +385,20 @@ describe("send_email", () => {
         to: `Reader${String(index)}@gmail.com`,
         templateKey: "x",
         kind,
+        entity: "subscriber",
+        entityId: SUBSCRIBER_ID,
         rendered,
       });
     }
-    const others = fetch.requests.slice(0, 3);
-    expect(others.map(({ body }) => "headers" in body)).toEqual([false, false, false]);
+    // A bulk mail to an address that is no subscriber has no row to unsubscribe, so it carries no header.
+    await sendOne(ctx, { to: "reader4@gmail.com", templateKey: "x", kind: "bulk", rendered });
+    const others = [...fetch.requests.slice(0, 3), fetch.requests[4]];
+    expect(others.map((request) => request !== undefined && "headers" in request.body)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
     const { headers } = z
       .object({
         headers: z.object({ "List-Unsubscribe": z.string(), "List-Unsubscribe-Post": z.string() }),
@@ -401,7 +410,8 @@ describe("send_email", () => {
         headers["List-Unsubscribe"],
       );
     expect(link?.[1]).toBeDefined();
-    expect(await openUnsubscribeToken(link?.[1] ?? "", CONFIRM_KEY)).toBe("reader3@gmail.com");
+    expect(await openUnsubscribeToken(link?.[1] ?? "", CONFIRM_KEY)).toBe(SUBSCRIBER_ID);
+    expect(headers["List-Unsubscribe"]).not.toMatch(/reader|@|%40/i);
   });
 
   it("OPS-005: a bulk send without CONFIRM_TOKEN_SECRET is dead with confirm_secret_missing and makes no call", async () => {
