@@ -20,6 +20,9 @@ import { staticSitemapPaths } from "../../src/server/seo/sitemap";
 
 const read = (relative: string) => readFileSync(new URL(relative, import.meta.url), "utf8");
 
+/** The plans and fees as the site seeds them (`settings.products` is edited in /admin and starts from this file). */
+const exposureSource = read("../../src/data/exposure.ts");
+
 /** Every string a visitor reads on the page, inline links reduced to their anchors. */
 function textsOf(page: SeoPageContent): string[] {
   const body = page.sections.flatMap(({ heading, body: blocks }) => [
@@ -42,6 +45,61 @@ function textsOf(page: SeoPageContent): string[] {
 
 const wordCount = (page: SeoPageContent) =>
   textsOf(page).join(" ").split(/\s+/).filter(Boolean).length;
+
+/** Words too small to count when a query is matched against a heading ("historic homes in a town" = "historic homes town"). */
+const QUERY_STOP_WORDS = new Set(["in", "a", "the", "for"]);
+
+/** Lower case, hyphens read as spaces, stop words dropped: "Mid-Century Modern Homes" and "mid century modern homes" agree. */
+const queryWords = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/-/g, " ")
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word !== "" && !QUERY_STOP_WORDS.has(word));
+
+const MONEY_OUTLINE = ["How it works", "What you get", "Proof: reviews and results"];
+const GUIDE_OUTLINE = [
+  "The short answer",
+  "What changes the answer",
+  "Step by step",
+  "Common mistakes",
+];
+
+/**
+ * The briefs are generated with three outlines, and the heading of the closing section says which one a page
+ * follows: "Get started" is a money page, "Talk to Matter of Place" a city landing page (its H2s carry the place), and
+ * "Next step" a guide. Returns what is wrong with the page against its own outline; an unknown closing heading is a
+ * problem too, so a fourth outline is added here on purpose and not by accident.
+ */
+function outlineProblems(page: SeoPageContent): string[] {
+  const headings = page.sections.map((section) => section.heading);
+  const problems: string[] = [];
+  if (headings.length < 3) problems.push(`only ${headings.length} H2 sections`);
+  if (new Set(headings).size !== headings.length) problems.push("an H2 is repeated");
+  const same = (expected: string[]) =>
+    headings.length === expected.length && headings.every((heading, i) => heading === expected[i]);
+  if (page.cta.heading === "Get started") {
+    if (page.kind !== "collection") problems.push("a guide closes on Get started");
+    if (!same(MONEY_OUTLINE)) problems.push(`money outline expected, got ${headings.join(" / ")}`);
+  } else if (page.cta.heading === "Talk to Matter of Place") {
+    if (page.kind !== "collection") problems.push("a guide closes on Talk to Matter of Place");
+    const place = /^Why work with Matter of Place in (.+)$/.exec(headings[0] ?? "")?.[1];
+    if (place === undefined) problems.push(`no place in the first H2 ${headings[0] ?? ""}`);
+    else if (
+      !same([
+        `Why work with Matter of Place in ${place}`,
+        `How we help in ${place}`,
+        `${place} market and neighbourhood facts`,
+        "What it costs",
+      ])
+    )
+      problems.push(`city outline for ${place} expected, got ${headings.join(" / ")}`);
+  } else if (page.cta.heading === "Next step") {
+    if (page.kind !== "guide") problems.push("a collection guide closes on Next step");
+    if (!same(GUIDE_OUTLINE)) problems.push(`guide outline expected, got ${headings.join(" / ")}`);
+  } else problems.push(`unknown closing heading ${page.cta.heading}`);
+  return problems;
+}
 
 describe("the registry of search pages", () => {
   it("holds the pages of phase 1, each once, at an address with no trailing slash", () => {
@@ -82,35 +140,39 @@ describe("the registry of search pages", () => {
     }
   });
 
-  it("carries the query in the H1 or title and in the first paragraph", () => {
+  it("carries every word of the query in the H1 or title, and most of them in the first paragraph", () => {
     for (const page of seoPages) {
-      expect(page.lede.toLowerCase()).toContain(page.query);
-      expect(`${page.h1} ${page.title}`.toLowerCase()).toContain(page.query.replace("?", ""));
+      const query = queryWords(page.query);
+      expect([page.path, query.length > 0]).toEqual([page.path, true]);
+      const headline = new Set(queryWords(`${page.h1} ${page.title}`));
+      expect([page.path, query.filter((word) => !headline.has(word))]).toEqual([page.path, []]);
+      // A question ("how much does it cost ...") is answered in a statement, so the lede may not repeat every word.
+      const lede = new Set(queryWords(page.lede));
+      const shared = query.filter((word) => lede.has(word)).length / query.length;
+      expect([page.path, shared >= 0.7]).toEqual([page.path, true]);
     }
   });
 
   it("follows the outline of its kind, then the questions, then the closing section", () => {
     for (const page of seoPages) {
-      const headings = page.sections.map((section) => section.heading);
-      if (page.kind === "collection") {
-        expect(headings).toEqual(["How it works", "What you get", "Proof: reviews and results"]);
-        expect(page.cta.heading).toBe("Get started");
-      } else {
-        expect(headings).toEqual([
-          "The short answer",
-          "What changes the answer",
-          "Step by step",
-          "Common mistakes",
-        ]);
-        expect(page.cta.heading).toBe("Next step");
+      expect([page.path, outlineProblems(page)]).toEqual([page.path, []]);
+      expect([page.path, page.faq.length >= 3]).toEqual([page.path, true]);
+      for (const { q, a } of page.faq) {
+        expect([page.path, q.trim() !== "" && a.trim() !== ""]).toEqual([page.path, true]);
       }
-      expect(page.faq.length).toBeGreaterThan(0);
+      expect([page.path, page.cta.text.trim() !== ""]).toEqual([page.path, true]);
     }
   });
 
-  it("stays inside the word range of its kind", () => {
+  it("stays inside the word range its page declares", () => {
     for (const page of seoPages) {
-      const [low, high] = page.kind === "collection" ? [700, 1400] : [900, 2200];
+      const [low, high] = page.words;
+      // The declared range itself must be a plausible page length, or a page could declare its way past the check.
+      expect([page.path, Number.isInteger(low) && Number.isInteger(high)]).toEqual([
+        page.path,
+        true,
+      ]);
+      expect([page.path, low >= 500 && low < high && high <= 3000]).toEqual([page.path, true]);
       const words = wordCount(page);
       expect([page.path, words >= low && words <= high]).toEqual([page.path, true]);
     }
@@ -171,7 +233,12 @@ describe("the copy of the search pages follows the brand rules", () => {
     for (const page of seoPages) {
       const text = textsOf(page).join("\n");
       expect([page.path, /consultation/i.test(text)]).toEqual([page.path, false]);
-      expect([page.path, /\$\s?\d|\d\s?%/.test(text)]).toEqual([page.path, false]);
+      // A figure is allowed only when the Property Exposure seed holds it: a page repeats a price, it never sets one.
+      const figures = text.match(/\$\s?\d+(?:,\d{3})*|\d+\s?%/g) ?? [];
+      const unsourced = figures.filter(
+        (figure) => !exposureSource.includes(figure.replace(/\s/g, "")),
+      );
+      expect([page.path, unsourced]).toEqual([page.path, []]);
     }
   });
 

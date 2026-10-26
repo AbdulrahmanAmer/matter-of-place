@@ -5,6 +5,7 @@ export const historicHomesForSale: SeoPageContent = {
   path: "/historic-homes-for-sale",
   kind: "collection",
   query: "historic homes for sale",
+  words: [700, 1400],
   title: "Historic Homes for Sale",
   h1: "Historic Homes for Sale",
   description:

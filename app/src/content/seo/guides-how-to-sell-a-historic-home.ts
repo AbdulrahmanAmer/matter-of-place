@@ -5,6 +5,7 @@ export const howToSellAHistoricHome: SeoPageContent = {
   path: "/guides/how-to-sell-a-historic-home",
   kind: "guide",
   query: "how to sell a historic home",
+  words: [900, 2200],
   title: "How to Sell a Historic Home?",
   h1: "How to Sell a Historic Home?",
   description:

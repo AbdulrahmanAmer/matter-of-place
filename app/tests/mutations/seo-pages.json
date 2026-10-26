@@ -70,5 +70,23 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
     "expect": "FAIL .*buildSitemap search pages \\(src/content/seo\\) > lists every search page and the /guides index, whatever the catalog holds"
+  },
+  {
+    "id": "seo-pages-word-range",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/historic-homes-for-sale.ts",
+    "find": "words: [700, 1400],",
+    "replace": "words: [100, 200],",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the registry of search pages > stays inside the word range its page declares"
+  },
+  {
+    "id": "seo-pages-city-outline",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/historic-homes-for-sale-hudson-valley.ts",
+    "find": "heading: \"How we help in Hudson Valley\",",
+    "replace": "heading: \"How we help in the Hudson Valley\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the registry of search pages > follows the outline of its kind, then the questions, then the closing section"
   }
 ]

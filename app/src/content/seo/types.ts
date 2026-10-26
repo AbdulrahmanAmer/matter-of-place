@@ -21,6 +21,8 @@ export interface SeoPageContent {
   kind: "collection" | "guide";
   /** The primary query the page answers. The H1 and the first paragraph carry it. */
   query: string;
+  /** The word range the page's brief declares, `[low, high]`, counted over everything a visitor reads (the test counts it). */
+  words: [number, number];
   /** The title before the site name; the head adds ` | Matter of Place`. */
   title: string;
   h1: string;
