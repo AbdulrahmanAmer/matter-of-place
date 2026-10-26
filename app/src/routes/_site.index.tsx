@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { ComingSoon } from "../components/site/coming-soon";
 import { ContentTag } from "../components/site/content-tag";
+import { HomeGuides } from "../components/site/home-guides";
 import { IllustrativeNotice } from "../components/site/illustrative-notice";
 import { MarketGrid } from "../components/site/market-card";
 import { OfferCard } from "../components/site/offer-card";
@@ -212,6 +213,8 @@ function HomePage() {
           <TextLink to="/editorial-standard">Read Our Editorial Standard</TextLink>
         </div>
       </section>
+
+      <HomeGuides />
 
       <section className="home-submit">
         <div className="section-wrap">
