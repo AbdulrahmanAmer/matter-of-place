@@ -9219,3 +9219,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a waiting item is done, prepend an UPDATE line to Matter's live-state.md that names it closed (and record it in POSITION.md); a thread message alone does not stop the reminder.
 - proof: `select count(*) from agent_messages where thread='matter' and body like 'W8 0d still needs%' and created_at > '<live-state edit time>'` → 0 (UNPROVEN until measured).
 - added: 2026-10-27
+
+## P-4644 · A colleague asked to render guesses its renderer's spec shape, and the render fails with exit 1
+- symptom: W8 0e live proof, 2026-10-26: Maya's inside run 094f3869 wrote `carousel-v2.json` with fields of her own (`palette`, `slides[].line`), the runner answered "The render of a carousel from ... failed (exit 1: ])"; with the shape given in the line, run 0af2c094 rendered 6 files.
+- cause: the toolkit line tells a colleague which renderers it may ask for, never the spec they read (`localSchema` in `scripts/lib/shoot.mjs`: `property` with id, slug, title, city, state, market, price, currency, beds, baths, interiorSqFt, yearBuilt, type; `images` of {path, alt, orientation}; `slides` of {kind: cover|photo|facts|close, image}).
+- rule: a colleague holding a renderer is shown its spec shape in the toolkit line (one source: the schema, not a copy); a failed render's thread line names the schema error, not only the exit code.
+- proof: the social thread 2026-10-26 22:02:13 (exit 1 on v2) and 22:09:35 ("Rendered ... 6 files" on v3).
+- added: 2026-10-27
