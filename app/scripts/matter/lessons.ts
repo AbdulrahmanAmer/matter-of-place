@@ -3,7 +3,8 @@
 // operator's decisions (growth.ts: recallLessons, lessonsBlock) shows it in his next build prompt.
 // - Starts it: the merge-gate command in Matter's live session (live.ts) or a number in the closing JSON of a one-shot
 //   full-power run (daemon.ts). Either way GitHub is asked whether the pull request is merged; the claim is not trusted.
-// - Reads: `gh pr view` (title, commits), each commit's failed check runs and their annotations.
+// - Reads: the account `gh` is signed in as, `gh pr view` (title, commits; only his commits' subjects are quoted), each
+//   commit's failed GitHub Actions check runs and their annotations.
 // - Writes: `record_build_lesson`, one row per pull request. A pull request CI never failed has nothing to learn from
 //   and writes no row. Failure: a lesson that cannot be read or written is logged and dropped; it never stops a run.
 import { execFile } from "node:child_process";
@@ -57,8 +58,8 @@ interface Failure {
 
 interface Built {
   title: string;
-  /** Commit subjects, oldest first. */
-  subjects: string[];
+  /** Commit subjects, oldest first; null for a commit by anyone but his account, whose words are never quoted. */
+  subjects: readonly (string | null)[];
 }
 
 const oneLine = (text: string, max: number): string => {
@@ -82,15 +83,22 @@ export function buildLesson(
   if (first === undefined) return null;
   const jobs = [...new Set(failures.map((failure) => failure.job))].slice(0, 4);
   const note = failures.find((failure) => failure.note !== "")?.note ?? "";
-  const fixes = built.subjects
-    .slice(first.commit + 1)
+  const later = built.subjects.slice(first.commit + 1);
+  const fixes = later
+    .filter((subject): subject is string => subject !== null)
     .slice(0, 4)
     .map((subject) => oneLine(subject, 120));
+  const fixed =
+    fixes.length > 0
+      ? fixes.join("; ")
+      : later.length > 0
+        ? "later commits not by his account, not quoted"
+        : "no later commit, a rerun or a change outside the branch";
   return {
     trigger: oneLine(`A build like "${built.title}" failed CI at ${jobs.join(", ")}`, 300),
     action: oneLine(
       `What broke: ${note === "" ? "the job failed and left no message" : oneLine(note, 300)}. ` +
-        `What fixed it: ${fixes.length === 0 ? "no later commit, a rerun or a change outside the branch" : fixes.join("; ")}. ` +
+        `What fixed it: ${fixed}. ` +
         "Check for this before you push.",
       1000,
     ),
@@ -105,8 +113,17 @@ const prSchema = z.object({
   /** True for a branch of a fork; null owner when the fork is gone. */
   isCrossRepository: z.boolean(),
   headRepositoryOwner: z.object({ login: z.string() }).nullable(),
-  commits: z.array(z.object({ oid: z.string(), messageHeadline: z.string() })),
+  /** `authors` lists the git author first, then the co-authors; a login is empty when the email is not an account's. */
+  commits: z.array(
+    z.object({
+      oid: z.string(),
+      messageHeadline: z.string(),
+      authors: z.array(z.object({ login: z.string() })),
+    }),
+  ),
 });
+
+const same = (login: string | undefined) => login?.toLowerCase() === HIS_ACCOUNT.toLowerCase();
 
 /**
  * Whether a pull request is Matter's own: a branch of this repository, by his account. Its title, commit subjects and CI
@@ -117,12 +134,28 @@ function isHis(view: {
   isCrossRepository: boolean;
   headRepositoryOwner: { login: string } | null;
 }): boolean {
-  const same = (login: string | undefined) => login?.toLowerCase() === HIS_ACCOUNT.toLowerCase();
   return (
     !view.isCrossRepository && same(view.headRepositoryOwner?.login) && same(view.author.login)
   );
 }
-const failedRuns = z.array(z.object({ id: z.number().int(), name: z.string() }));
+
+/** The account `gh` is signed in as, read once per `gh` (once a process for the real one); null when it cannot be read. */
+const signedIn = new WeakMap<Gh, string>();
+
+async function accountOf(gh: Gh): Promise<string | null> {
+  const known = signedIn.get(gh);
+  if (known !== undefined) return known;
+  const login = (await gh(["api", "user", "--jq", ".login"]))?.trim() ?? "";
+  if (login === "") return null;
+  signedIn.set(gh, login);
+  return login;
+}
+
+/** Only GitHub Actions runs this repository's CI; a check of any other App carries words nobody here wrote. */
+const CI_APP = "github-actions";
+const failedRuns = z.array(
+  z.object({ id: z.number().int(), name: z.string(), app: z.string().nullable() }),
+);
 const messages = z.array(z.string());
 
 /** `gh`'s JSON output read against its schema; null when the call failed or the answer is not what was asked for. */
@@ -144,9 +177,10 @@ async function failuresOf(gh: Gh, oids: readonly string[], offset: number): Prom
       "api",
       `repos/${REPO}/commits/${oid}/check-runs?per_page=100`,
       "--jq",
-      '[.check_runs[] | select(.conclusion == "failure") | {id, name}]',
+      '[.check_runs[] | select(.conclusion == "failure") | {id, name, app: .app.slug}]',
     ]);
-    for (const check of read(raw, failedRuns) ?? []) {
+    const ours = (read(raw, failedRuns) ?? []).filter((check) => check.app === CI_APP);
+    for (const check of ours) {
       const notes = await gh([
         "api",
         `repos/${REPO}/check-runs/${String(check.id)}/annotations`,
@@ -170,11 +204,14 @@ type Recorded =
   | "not merged"
   | "not his"
   | "unreadable"
-  | "not written";
+  | "not written"
+  | "signed in as another account"
+  | "signed-in account unknown";
 
 /**
  * Writes the lesson of one pull request. "not merged" and "unreadable" can change (the gate may still be merging, GitHub
- * may answer later), so the caller may ask again; every other answer is final.
+ * may answer later), so the caller may ask again; every other answer is final. Fails closed when `gh` is not signed in
+ * as his account: the login checks below compare names, and a renamed account would hand his name to a stranger.
  */
 export async function recordBuildLesson(
   db: Db,
@@ -182,6 +219,9 @@ export async function recordBuildLesson(
   pr: number,
   gh: Gh = ghCli,
 ): Promise<Recorded> {
+  const account = await accountOf(gh);
+  if (account === null) return "signed-in account unknown";
+  if (!same(account)) return "signed in as another account";
   const raw = await gh([
     "pr",
     "view",
@@ -204,7 +244,9 @@ export async function recordBuildLesson(
   const lesson = buildLesson(
     {
       title: view.title,
-      subjects: view.commits.map((commit) => commit.messageHeadline),
+      subjects: view.commits.map((commit) =>
+        same(commit.authors[0]?.login) ? commit.messageHeadline : null,
+      ),
     },
     failures,
   );

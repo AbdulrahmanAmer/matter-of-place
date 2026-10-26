@@ -9034,3 +9034,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before writing a ruling number list every one used on origin/main and on every origin/overdrive/* branch (`git show <branch>:workspace/05-plans/ASSUMED.md | grep -o '^| H1[0-9][0-9] |'`) and take one above them all; after a merge of main, count the rows again.
 - proof: `for b in $(git branch -r | grep origin/overdrive/); do git show $b:workspace/05-plans/ASSUMED.md | grep -o '^| H1[3-9][0-9] |'; done | sort | uniq -c` printed H135 twice, H136 twice and H137 once on 2026-10-19, so this ruling is H138.
 - added: 2026-10-19
+
+## P-4553 · A conflict resolved by an Edit of its first two markers keeps the third, and the merge commit carries it
+- symptom: W6 item 4 round 3: `answer.ts` was resolved with an Edit whose old text ran from `<<<<<<< HEAD` through `=======`; the `>>>>>>> origin/main` line stayed, `git add` took it, and the merge was committed with it. Only the next vitest run (`transformWithOxc` error at line 48) showed it.
+- cause: the registry check after the merge looks at `find` strings, not at markers, and `git add` marks a file resolved whatever it holds.
+- rule: before committing a merge run `git grep -nE '^(<<<<<<<|=======|>>>>>>>)( |$)' -- . ':!*.md'` and expect nothing; resolve a hunk with one Edit whose old text spans all three markers.
+- proof: `git grep -nE '^(<<<<<<<|>>>>>>>) ' 8c606263 -- app/scripts` → `app/scripts/workforce/answer.ts:48:>>>>>>> origin/main` (2026-10-26; fixed in the next commit).
+- added: 2026-10-26
+
+## P-4554 · His commits carry no GitHub login: the git author's email is not linked to his account
+- symptom: W6 item 4 round 3 was asked to quote only commits whose `authors[].login` is his account; on his own pull requests 470, 483 and 486 every commit's git author login is `""` (the co-author is `claude`), so the filter quotes no commit of his at all.
+- cause: GitHub resolves a commit author to an account only by an email linked to it; the runner's git email is not one.
+- rule: a check of who wrote a commit reads `authors[0].login` (the git author is listed first) and treats `""` as not his; before relying on it, measure a real pull request. To make his commits his, the runner commits with his GitHub noreply address or the email is added to the account (an operator step, H138).
+- proof: `gh pr view 486 --repo AbdulrahmanAmer/matter-of-place --json commits --jq '[.commits[] | .authors | map(.login)] | .[0:4]'` → `[["","claude"],["","claude"],[""],["","claude"]]` (2026-10-26).
+- added: 2026-10-26

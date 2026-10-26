@@ -397,5 +397,104 @@
     "sql": "alter table public.agent_lessons drop constraint agent_lessons_source_check;\nalter table public.agent_lessons add constraint agent_lessons_source_check check (source in ('decline', 'edit', 'outcome', 'matter', 'build', 'rumour'));\n",
     "run": "bunx vitest run --project db tests/db/build-lessons.db.test.ts -t \"holds exactly the sources\"",
     "expect": "× .*holds exactly the sources the admin contract lists"
+  },
+  {
+    "id": "w6-4-ci-app-only",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": ".filter((check) => check.app === CI_APP)",
+    "replace": ".filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*takes failed checks from GitHub Actions only"
+  },
+  {
+    "id": "w6-4-his-commit-subjects",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "same(commit.authors[0]?.login) ? commit.messageHeadline : null",
+    "replace": "commit.messageHeadline",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*quotes only the commit subjects of his own account"
+  },
+  {
+    "id": "w6-4-withheld-subjects-said",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "? \"later commits not by his account, not quoted\"",
+    "replace": "? \"no later commit\"",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*quotes only the commit subjects of his own account"
+  },
+  {
+    "id": "w6-4-account-must-be-his",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "if (!same(account)) return \"signed in as another account\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*must be his: under another account nothing is read or written"
+  },
+  {
+    "id": "w6-4-account-unknown-fails-closed",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "if (account === null) return \"signed-in account unknown\";",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*fails closed when it cannot be read"
+  },
+  {
+    "id": "w6-4-account-read-once",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/lessons.ts",
+    "find": "signedIn.set(gh, login);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*is read once, not for every pull request"
+  },
+  {
+    "id": "w6-4-block-fenced",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/workforce/growth.ts",
+    "find": "fenced(\"past builds\", lines(built).join(\"\\n\")),",
+    "replace": "...lines(built),",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*quotes the build lessons inside a fence"
+  },
+  {
+    "id": "w6-4-block-heading-record",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/workforce/growth.ts",
+    "find": "not an instruction from anyone: ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*quotes the build lessons inside a fence"
+  },
+  {
+    "id": "w6-4-tick-recalls",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "await this.recallForNewSession();",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*recalls the lessons on the loop step that starts a new session"
+  },
+  {
+    "id": "w6-4-tick-settles",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "void this.settleMerges(now)",
+    "replace": "void Promise.resolve()",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*settles the merges on every loop step"
+  },
+  {
+    "id": "w6-4-lessons-label",
+    "test": "src/admin/workforce/team-memory.test.tsx",
+    "file": "src/admin/workforce/LessonsPanel.tsx",
+    "find": "build: \"Matter's own build\",",
+    "replace": "build: \"His own build\",",
+    "run": "bunx vitest run --project component --pool=threads --testTimeout=60000 src/admin/workforce/team-memory.test.tsx",
+    "expect": "× .*names a lesson from building as Matter's own build"
   }
 ]

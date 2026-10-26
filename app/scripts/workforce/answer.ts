@@ -45,7 +45,6 @@ export const outcome = z.object({
       z.union([mediaRequestSchema, reelRequestSchema, postRequestSchema, studioDecisionSchema]),
     )
     .default([]),
->>>>>>> origin/main
   // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
   actions: z.array(z.unknown()).default([]),
 });

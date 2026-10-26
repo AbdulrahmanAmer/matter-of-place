@@ -391,6 +391,15 @@ describe("Office: the team's memory", () => {
     ]);
   });
 
+  it("names a lesson from building as Matter's own build", async () => {
+    serve({
+      lessons: [lesson("1", { agent_slug: "matter", agent_name: "Matter", source: "build" })],
+    });
+    await openTab("Lessons");
+    await screen.findByText("Trigger 1");
+    expect(screen.getByText("Matter's own build")).toBeTruthy();
+  });
+
   it("groups the instruction history per colleague, newest first, and reads a version's text only when asked", async () => {
     const asked = serve({
       versions: [

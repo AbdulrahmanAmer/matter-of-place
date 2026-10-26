@@ -407,10 +407,18 @@ export class Supervisor {
   // Jay's first condition: what Matter's one-shot runs did since the last line this session read.
   private lastFedAt = new Date().toISOString();
 
-  /** `seams` replace what touches the outside (GitHub, the kept session, the queue file) so a test can drive the rest. */
+  /**
+   * `seams` replace what touches the outside (GitHub, the kept session, the queue file, the start of the `claude`
+   * process) so a test can drive the rest.
+   */
   constructor(
     private readonly client: Db,
-    private readonly seams: { gh?: Gh; kept?: () => SessionRecord | null; queue?: string } = {},
+    private readonly seams: {
+      gh?: Gh;
+      kept?: () => SessionRecord | null;
+      queue?: string;
+      launch?: () => void;
+    } = {},
   ) {}
 
   private async post(thread: string, body: string): Promise<void> {
@@ -589,6 +597,22 @@ export class Supervisor {
     } finally {
       this.settlingMerges = false;
     }
+  }
+
+  /**
+   * One step of the loop: with no session running, recall the lessons and start one; then settle the merges beside the
+   * loop (not awaited, so a slow GitHub never holds the heartbeat).
+   */
+  async tick(now: number): Promise<void> {
+    if (this.child === null) {
+      await this.recallForNewSession();
+      (this.seams.launch ?? (() => this.start()))();
+    }
+    void this.settleMerges(now).catch((failure: unknown) => {
+      console.log(
+        `${new Date().toISOString()} live: build lessons: ${failure instanceof Error ? failure.message : String(failure)}`,
+      );
+    });
   }
 
   /** A session with no kept one to resume is new, and is briefed with the lessons recalled now. */
@@ -851,15 +875,7 @@ export class Supervisor {
           process.exit(0);
         }
       }
-      if (this.child === null) {
-        await this.recallForNewSession();
-        this.start();
-      }
-      void this.settleMerges(Date.now()).catch((failure: unknown) => {
-        console.log(
-          `${new Date().toISOString()} live: build lessons: ${failure instanceof Error ? failure.message : String(failure)}`,
-        );
-      });
+      await this.tick(Date.now());
       if (this.active.length > 0 && Date.now() - this.lastOutput > STALL_MS) {
         console.log(`${new Date().toISOString()} live: no output for 20 minutes, restarting`);
         killTree(this.child?.pid);
