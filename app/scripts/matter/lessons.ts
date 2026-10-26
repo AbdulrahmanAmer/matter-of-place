@@ -3,7 +3,7 @@
 // operator's decisions (growth.ts: recallLessons, lessonsBlock) shows it in his next build prompt.
 // - Starts it: the merge-gate command in Matter's live session (live.ts) or a number in the closing JSON of a one-shot
 //   full-power run (daemon.ts). Either way GitHub is asked whether the pull request is merged; the claim is not trusted.
-// - Reads: the account `gh` is signed in as, `gh pr view` (title, commits; only his commits' subjects are quoted), each
+// - Reads: the account `gh` is signed in as, `gh pr view` (title, commits; every commit subject of his own pull request, H138 (7)), each
 //   commit's failed GitHub Actions check runs and their annotations.
 // - Writes: `record_build_lesson`, one row per pull request. A pull request CI never failed has nothing to learn from
 //   and writes no row. Failure: a lesson that cannot be read or written is logged and dropped; it never stops a run.
