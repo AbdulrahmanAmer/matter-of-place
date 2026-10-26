@@ -242,8 +242,10 @@ if (want("control")) {
     join(control, "x.ts"),
     `require("node:fs").writeFileSync(${JSON.stringify(fwd(join(MARKS, "CONTROL-PRELOAD-RAN")))}, "ran");\n`,
   );
-  writeFileSync(join(control, "hello.ts"), 'console.log("hello");\n');
-  const child = spawnSync("bun", ["hello.ts"], { cwd: control, encoding: "utf8" });
+  // the script by its full path, still started from the decoy's folder (a bare file name reads to knip as a program)
+  const hello = join(control, "hello.ts");
+  writeFileSync(hello, 'console.log("hello");\n');
+  const child = spawnSync("bun", [hello], { cwd: control, encoding: "utf8" });
   console.log(`\n=== control: bun in a folder with the decoy: exit ${String(child.status)}`);
   console.log(
     `CONTROL-PRELOAD-RAN: ${existsSync(join(MARKS, "CONTROL-PRELOAD-RAN")) ? "PRESENT (the decoy is live)" : "absent (the decoy is dead: the probe proves nothing)"}`,
