@@ -187,5 +187,122 @@
     "test": "tests/unit/meeting-decisions.test.ts",
     "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
     "expect": "× .*tells a colleague with no renderer no spec shape"
+  },
+  {
+    "id": "meeting-fix-person-run-fenced",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "${fenced(\"YOUR OPEN DECISIONS FROM THE DAILY MEETING\", listed)}",
+    "replace": "YOUR OPEN DECISIONS FROM THE DAILY MEETING\\n${listed}",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows a run a person started its decisions fenced, taken up only when the person's line asks"
+  },
+  {
+    "id": "meeting-fix-person-run-rule",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "act on one only when the person's line asks for it.",
+    "replace": "work them.",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows a run a person started its decisions fenced, taken up only when the person's line asks"
+  },
+  {
+    "id": "meeting-fix-person-run-branch",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        startedInside\n          ? `${fenced(",
+    "replace": "        false\n          ? `${fenced(",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows a run a person started its decisions fenced, taken up only when the person's line asks"
+  },
+  {
+    "id": "meeting-fix-live-owner-filter",
+    "file": "scripts/matter/live.ts",
+    "find": "      .eq(\"owner_id\", this.matterId)\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows the live session only Matter's own decisions that are still open"
+  },
+  {
+    "id": "meeting-fix-live-status-filter",
+    "file": "scripts/matter/live.ts",
+    "find": "      .eq(\"status\", \"open\")\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows the live session only Matter's own decisions that are still open"
+  },
+  {
+    "id": "meeting-fix-goal-line-repeat",
+    "file": "scripts/matter/live.ts",
+    "find": " The daily meeting's decisions are not steps of your goal: never take one up without the operator's yes.",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*repeats on a goal turn that no meeting decision is taken up without the operator's yes"
+  },
+  {
+    "id": "meeting-fix-wake-not-closed",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    ...open.filter((row) => !closedIds.has(row.id)),\n",
+    "replace": "    ...open,\n",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*wakes owners on the decisions still open after the meeting, never on one it closed today"
+  },
+  {
+    "id": "meeting-fix-wake-recorded-only",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    ...(recorded ? kept.map(",
+    "replace": "    ...(kept.length >= 0 ? kept.map(",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*wakes no owner on a new decision that could not be recorded"
+  },
+  {
+    "id": "meeting-fix-closed-nulls-last",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "{ ascending: false, nullsFirst: false }",
+    "replace": "{ ascending: false }",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*reads the closed decisions newest first, with a row never checked last"
+  },
+  {
+    "id": "meeting-fix-retired-lenient",
+    "file": "scripts/workforce/meeting.ts",
+    "find": ".catch(\"no reason given\")",
+    "replace": ".min(3)",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*keeps Matter's whole answer when one retired reason is too long or missing"
+  },
+  {
+    "id": "meeting-fix-labels-one-search",
+    "file": "scripts/workforce/meeting.ts",
+    "find": " && tool !== \"research\")",
+    "replace": ")",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says the web search once, and a hire or an admin change as a proposal that waits in Approvals"
+  },
+  {
+    "id": "meeting-fix-label-hire-proposal",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "  hire: \"Proposes a hire, which waits in Approvals for a person\",\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says the web search once, and a hire or an admin change as a proposal that waits in Approvals"
+  },
+  {
+    "id": "meeting-fix-label-admin-proposal",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "  admin_call: \"Proposes admin changes on its own routes, which wait in Approvals for a person\",\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says the web search once, and a hire or an admin change as a proposal that waits in Approvals"
   }
 ]

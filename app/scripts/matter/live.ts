@@ -303,7 +303,7 @@ export function openDecisionsText(
 
 /** The line that hands Matter his next open step. */
 export function goalLine(step: string): string {
-  return `Your goal is not met. The next open step: ${step}\nDo it now, through to a merged pull request or a decided approval, then go on to the next one. If it needs the operator's hands (a password, a card, an account), say so once and take the next step instead.`;
+  return `Your goal is not met. The next open step: ${step}\nDo it now, through to a merged pull request or a decided approval, then go on to the next one. If it needs the operator's hands (a password, a card, an account), say so once and take the next step instead. The daily meeting's decisions are not steps of your goal: never take one up without the operator's yes.`;
 }
 
 /** The next open step of a task-gate list, or null when there is none, no list, or it cannot be read. */
@@ -822,7 +822,8 @@ export class Supervisor {
     console.log(`${new Date(now).toISOString()} live: goal step ${step}`);
     this.active.push({ runId: run.id, thread: "matter" });
     await this.setTask("Working on his goal");
-    // H143 (4): a goal turn is self-started, so the meeting's decisions are shown only on the operator's own lines
+    // H143 (4): a goal turn is self-started, so it shows no decision; the session keeps those an operator turn showed,
+    // so goalLine repeats that none is taken up without his yes
     this.say(goalLine(step));
   }
 

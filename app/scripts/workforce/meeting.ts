@@ -16,7 +16,12 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { readOnly, toolkitFor, toolkitWords } from "../../src/domain/toolkits.ts";
-import { agentToolLabels, agentTools, hireInputSchema } from "../../src/domain/workforce.ts";
+import {
+  agentToolLabels,
+  agentTools,
+  hireInputSchema,
+  type AgentTool,
+} from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, fenced, matterInputs } from "../matter/run.ts";
 import { staffCharterFrom } from "./charter.ts";
@@ -48,7 +53,7 @@ const lineAnswer = z.object({
   next: z.string().default(""),
   blocked: z.string().default(""),
 });
-const matterAnswer = z.object({
+export const matterAnswer = z.object({
   closed: z.array(z.object({ id: z.string(), status: z.enum(["done", "missed"]) })).default([]),
   decisions: z
     .array(
@@ -60,9 +65,19 @@ const matterAnswer = z.object({
       }),
     )
     .default([]),
-  // H143 (3): a decision missed twice in a row is retired with a reason, or reshaped into a new one
+  // H143 (3): a decision missed twice in a row is retired with a reason, or reshaped into a new one. The reason is
+  // lenient: one long or missing reason must not turn the whole answer into the defaults ("No new decision.")
   retired: z
-    .array(z.object({ owner: z.string(), metric: z.string(), reason: z.string().min(3).max(300) }))
+    .array(
+      z.object({
+        owner: z.string(),
+        metric: z.string(),
+        reason: z
+          .string()
+          .catch("no reason given")
+          .transform((text) => text.slice(0, 300)),
+      }),
+    )
     .default([]),
   digest: z.string().default(""),
   knowledge: z.array(z.object({ subject: z.string(), text: z.string() })).default([]),
@@ -167,6 +182,12 @@ export const STANDING_RULINGS = [
   "H143: a colleague's decision run reads and proposes; it writes no file, renders nothing and sends nothing.",
 ];
 
+/** H143 (2): a tool in the words of a decision run, which no person started: its hires and admin calls wait in Approvals. */
+const decisionToolLabels: Partial<Record<AgentTool, string>> = {
+  hire: "Proposes a hire, which waits in Approvals for a person",
+  admin_call: "Proposes admin changes on its own routes, which wait in Approvals for a person",
+};
+
 /**
  * H143 (2): what each owner can do on the run its decisions wake, in the Office's words: a colleague's toolkit as a run
  * no person started holds it (`readOnly`), with the proposals its tools let it make; Matter's live session holds the
@@ -182,8 +203,9 @@ export function decisionToolkits(
         : `- @${agent.slug} (${agent.name}): ${[
             ...toolkitWords(readOnly(toolkitFor(agent.slug)), agent.tools),
             ...agentTools
-              .filter((tool) => agent.tools.includes(tool))
-              .map((tool) => `${agentToolLabels[tool]}.`),
+              // toolkitWords already says the web search
+              .filter((tool) => agent.tools.includes(tool) && tool !== "research")
+              .map((tool) => `${decisionToolLabels[tool] ?? agentToolLabels[tool]}.`),
           ].join(" ")}`,
     )
     .join("\n");
@@ -230,6 +252,41 @@ export function settleDecisions<
       idOf,
     ),
   };
+}
+
+/**
+ * H143 (1): the decisions each owner is woken on after the meeting: the open ones it did not close today, and the new
+ * ones only when they were recorded (a decision not in the table is said in the team line and wakes nothing).
+ */
+export function stillOpenDecisions<
+  O extends { id: string; owner_id: string },
+  D extends { owner: string },
+>(
+  open: readonly O[],
+  closings: readonly { id: string }[],
+  kept: readonly D[],
+  recorded: boolean,
+  idOf: (owner: string) => string,
+): (O | (D & { owner_id: string }))[] {
+  const closedIds = new Set(closings.map((item) => item.id));
+  return [
+    ...open.filter((row) => !closedIds.has(row.id)),
+    ...(recorded ? kept.map((item) => ({ ...item, owner_id: idOf(item.owner) })) : []),
+  ];
+}
+
+/**
+ * H143 (3): the closed decisions, newest first, so a decision missed twice in a row is seen and refused. A row closed
+ * with no `checked_at` (by hand, or by older code) sorts last: Postgres puts nulls first in a descending order.
+ */
+export async function closedDecisions(db: Db) {
+  const { data } = await db
+    .from("agent_decisions")
+    .select("owner_id, decision, metric, status")
+    .in("status", ["done", "missed"])
+    .order("checked_at", { ascending: false, nullsFirst: false })
+    .limit(300);
+  return data ?? [];
 }
 
 /** The meeting's closing line in the team thread: what closed, what was decided, refused, retired and queued. */
@@ -548,14 +605,8 @@ async function main(): Promise<void> {
     ...new Set((queued.data ?? []).map((row) => slugOf.get(row.agent_id) ?? "?")),
   ];
   const team = active.map((agent) => `@${agent.slug} (${agent.name}, ${agent.role})`).join("; ");
-  // H143 (3): the closed decisions, newest first, so a decision missed twice in a row is seen and refused
-  const { data: closedRows } = await db
-    .from("agent_decisions")
-    .select("owner_id, decision, metric, status")
-    .in("status", ["done", "missed"])
-    .order("checked_at", { ascending: false })
-    .limit(300);
-  const streaks = missStreaks(closedRows ?? []);
+  const closedRows = await closedDecisions(db);
+  const streaks = missStreaks(closedRows);
   const missedText = [...streaks.values()]
     .map(
       (streak) =>
@@ -598,7 +649,7 @@ async function main(): Promise<void> {
   const { closings, kept, refused } = settleDecisions(
     decided,
     open ?? [],
-    closedRows ?? [],
+    closedRows,
     idOf,
     active.map((agent) => agent.slug),
     today,
@@ -628,13 +679,13 @@ async function main(): Promise<void> {
     await applyHires(db, { slug: matter.slug, id: matter.id }, decided.hire, null, false);
   }
   // H143 (1): every decision still open after the meeting, each colleague's woken in its own thread
-  const closedIds = new Set(closings.map((item) => item.id));
-  const stillOpen = [
-    ...(open ?? []).filter((row) => !closedIds.has(row.id)),
-    ...(recorded
-      ? kept.map((item) => ({ ...item, owner_id: idOf.get(item.owner) ?? matter.id }))
-      : []),
-  ];
+  const stillOpen = stillOpenDecisions(
+    open ?? [],
+    closings,
+    kept,
+    recorded,
+    (owner) => idOf.get(owner) ?? matter.id,
+  );
   const woken: { queued: string[]; failed: string[] } = dry
     ? {
         queued: active
