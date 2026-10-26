@@ -45,6 +45,7 @@ front             date, run_id, schedule (scheduled or manual), site_url, previo
 psi               pages: path, score, lcp_ms, cls, inp_ms, weight_bytes (median of three runs, mobile)
 seo, aeo          failed checks; JSON-LD failures by path; llms.txt present, valid, linked
 gsc, keywords     Search Console queries; covered, total and missing terms of keywords.json
+brand_queries     the two tracked queries "matter of place" and "matter of place real estate": status (ranked or no impressions), position, impressions, clicks over 28 days, and `previous` (last run's, or null)
 bing              queries, impressions, clicks over 28 days
 ga4               sessions and events over 7 days
 uptime            monitors (url with the ops-health token redacted, interval_s, status, uptime_30d), rows

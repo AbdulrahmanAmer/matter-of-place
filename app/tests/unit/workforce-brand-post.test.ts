@@ -638,20 +638,24 @@ describe("the post pass", () => {
 
   it("leaves a post to the post pass and a reel to the reel pass", async () => {
     const root = studio();
-    queueReel(comingSoon, from, root);
+    const queued = queueReel(comingSoon, from, root);
     expect(
       await reelPass(
         {
-          ...deps(),
+          ...deps({}, [], fakeDb({ rpc: { studio_piece_put: () => null } })),
           desk: () => new Uint8Array(),
           voice: null,
           readFile: () => new Uint8Array(),
           render: () => Promise.reject(new Error("no")),
           review: () => Promise.reject(new Error("no")),
+          preview: () => new Uint8Array(),
+          uploadPreview: () => Promise.reject(new Error("no")),
+          tellMatter: () => Promise.reject(new Error("no")),
         },
         root,
       ),
     ).toBeNull();
+    expect(brief(queued).state).toBe("queued");
     const reels = studio();
     queueReel({ skill: "reel", name: "r", kind: "brand", titles: ["a"] }, from, reels);
     expect(await postPass(deps(), reels)).toBeNull();

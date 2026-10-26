@@ -21,8 +21,8 @@
     "id": "w8-1-answer-reads-post",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "z.union([mediaRequestSchema, reelRequestSchema, postRequestSchema])",
-    "replace": "z.union([mediaRequestSchema, reelRequestSchema, reelRequestSchema])",
+    "find": "reelRequestSchema, postRequestSchema, studioDecisionSchema",
+    "replace": "reelRequestSchema, reelRequestSchema, studioDecisionSchema",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*is read from Matter's answer beside a reel"
   },
@@ -264,8 +264,8 @@
     "id": "w8-1-reel-pass-skill",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "  if (request.skill !== \"reel\") return null;\n",
-    "replace": "",
+    "find": "  return request.skill === \"reel\"\n    ? { folder: piece.folder",
+    "replace": "  return true\n    ? { folder: piece.folder",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*leaves a post to the post pass and a reel to the reel pass"
   },

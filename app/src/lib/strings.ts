@@ -130,12 +130,27 @@ const en = {
     localSent:
       "Thank you. Place Notes opens with the live service; your address stays with you for now.",
     liveSent: "Thank you. Check your inbox to confirm.",
-    confirmed: "Thank you. Your address is confirmed.",
-    confirmFailed: "This link has expired or was already used. Subscribe again below.",
+    thanks: {
+      eyebrow: "PLACE NOTES",
+      home: "Home",
+      confirmed: {
+        title: "Thank you.",
+        text: "Your address is confirmed. We write only when there is something worth reading: a property we have accepted, a story, a note from one of our markets.",
+        action: "Read the stories",
+      },
+      expired: {
+        title: "This link has expired.",
+        text: "It was already used, or it is more than a few days old. Leave your address again and we will send a new one.",
+        action: "Subscribe again",
+      },
+    },
+  },
+  home: {
+    intro:
+      "Matter of Place is an editorial publication for exceptional existing residential property in California, New York and Florida. We choose each home for what it is, present it with an editor's care and give it a permanent page. Price never decides what we publish.",
   },
   comingSoon: {
     eyebrow: "OPENING SOON",
-    what: "Matter of Place is an editorial publication for exceptional existing residential property in California, New York and Florida.",
     home: {
       title: "The first properties are being considered.",
       text: "We publish only what we have reviewed and accepted. Nothing is listed yet. Leave your email and we will write when the first property is published.",

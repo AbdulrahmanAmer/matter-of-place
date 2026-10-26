@@ -8,6 +8,7 @@ import { mediaRequestSchema } from "./media.ts";
 import { HOW_OFF_LIST, POSTURES } from "./posture.ts";
 import { postRequestSchema } from "./post-request.ts";
 import { reelRequestSchema } from "./reel.ts";
+import { studioDecisionSchema } from "./studio.ts";
 
 export const outcome = z.object({
   reply: z.string().default(""),
@@ -35,8 +36,13 @@ export const outcome = z.object({
   // W8 0d: and how, as one of the closed postures; a missing value, or any other, allows nothing.
   how: z.enum(POSTURES).or(z.literal(HOW_OFF_LIST)).optional().catch(HOW_OFF_LIST),
   // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio,
-  // and W8 item 1: so does a still post.
-  media: z.array(z.union([mediaRequestSchema, reelRequestSchema, postRequestSchema])).default([]),
+  // and W8 item 1: so does a still post. W8 0f: and Matter's decision on a draft in the studio (approve, revise, ask
+  // the operator).
+  media: z
+    .array(
+      z.union([mediaRequestSchema, reelRequestSchema, postRequestSchema, studioDecisionSchema]),
+    )
+    .default([]),
   // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
   actions: z.array(z.unknown()).default([]),
 });

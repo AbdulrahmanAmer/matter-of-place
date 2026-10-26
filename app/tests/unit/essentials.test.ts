@@ -1397,6 +1397,18 @@ describe("feed", () => {
     expect(alternate("application/rss+xml", "/feed.xml")).toBe(true);
     expect(alternate("application/feed+json", "/feed.json")).toBe(true);
   });
+
+  it("llms: every page's head names /llms.txt as a text/plain alternate (audit 2026-10-17)", async () => {
+    const tags = [...(await renderHome()).matchAll(/<link\b[^>]*>/g)].map(([text]) => text);
+    expect(
+      tags.some(
+        (text) =>
+          text.includes('rel="alternate"') &&
+          text.includes('type="text/plain"') &&
+          text.includes('href="/llms.txt"'),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("picture", () => {

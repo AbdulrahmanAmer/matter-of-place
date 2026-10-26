@@ -37,12 +37,13 @@ import {
   nextReel,
   readBrief,
   readVerdict,
+  record,
   REVISIONS,
-  STUDIO,
   subjectArgs,
   writeBrief,
   type Brief,
 } from "./reel.ts";
+import { STUDIO } from "./studio.ts";
 
 type PostBrief = Brief & { request: PostRequest };
 
@@ -436,8 +437,11 @@ export async function postPass(deps: PostDeps, studio: string = STUDIO): Promise
   const { request } = queued;
   // a reel is the reel pass's (`reel.ts`)
   if (request.skill !== "post") return null;
-  const brief: PostBrief = { ...queued, request };
-  writeBrief(folder, { ...brief, state: "working", started: new Date().toISOString() });
+  const brief: PostBrief = record(
+    { ...queued, request, state: "working", started: new Date().toISOString() },
+    "being made",
+  );
+  writeBrief(folder, brief);
   const uploaded: string[] = [];
   try {
     const written = postCaptions(request);
@@ -541,7 +545,13 @@ export async function postPass(deps: PostDeps, studio: string = STUDIO): Promise
       ...subjectArgs(request),
     });
     if (error !== null) throw new Error(`record_failed: ${error.message}`);
-    writeBrief(folder, { ...brief, state: "done", asset_id: assetId });
+    writeBrief(
+      folder,
+      record(
+        { ...brief, state: "done", asset_id: assetId },
+        "passed the gate and the review; uploaded once and recorded as a pending visual",
+      ),
+    );
     await deps.say(
       brief.from.thread,
       `The post "${request.name}" passed the gate and the review and waits in Visuals as a pending visual: https://matterofplace.com/admin/assets/`,
@@ -557,7 +567,7 @@ export async function postPass(deps: PostDeps, studio: string = STUDIO): Promise
             () => "Its uploaded files were removed again.",
             () => `These uploaded files could not be removed: ${uploaded.join(", ")}.`,
           );
-    writeBrief(folder, { ...brief, state: "failed", reason });
+    writeBrief(folder, record({ ...brief, state: "failed", reason }, `failed: ${reason}`));
     await deps.say(
       brief.from.thread,
       `The post "${request.name}" was not made: ${reason}. ${cleanup} Its folder: ${folder}`,
