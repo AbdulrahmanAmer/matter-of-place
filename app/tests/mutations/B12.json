@@ -686,7 +686,7 @@
     "id": "b12g1-reel-preload",
     "test": "src/admin/assets/ReelPlayer.test.tsx",
     "file": "src/admin/assets/ReelPlayer.tsx",
-    "find": "preload=\"none\"",
+    "find": "preload={preload}",
     "replace": "preload=\"metadata\"",
     "run": "bunx vitest run --project component src/admin/assets/ReelPlayer.test.tsx",
     "expect": "FAIL .*ReelPlayer > loads nothing until played"

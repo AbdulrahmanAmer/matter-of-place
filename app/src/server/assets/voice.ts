@@ -138,15 +138,10 @@ function measure(text: string, channel: CaptionChannel): number {
     : text.length;
 }
 
-/** Every rule the caption breaks; an empty list is a pass. */
-export function lintCaption(
-  text: string,
-  property: CaptionProperty,
-  channel: CaptionChannel,
-): LintIssue[] {
-  const issues: LintIssue[] = [];
-  const add = (rule: LintRule, message: string) => issues.push({ rule, message });
+type Add = (rule: LintRule, message: string) => void;
 
+/** The voice rules every caption keeps, a property's or the brand's. */
+function voiceRules(text: string, add: Add): void {
   if (text.includes(EM_DASH)) add("em_dash", "Use no em dashes.");
   const banned = BANNED.exec(text);
   if (banned !== null) add("banned_word", `Do not use "${banned[0]}".`);
@@ -156,19 +151,10 @@ export function lintCaption(
   if (guarantee !== null) {
     add("guarantee", `Promise no leads, buyers or sales; do not use "${guarantee[0]}".`);
   }
-  for (const sentence of text.split(/(?<=[.!?])\s+|\n+/)) {
-    const merit = MERIT.exec(sentence);
-    if (merit !== null && mentionsPrice(sentence, property)) {
-      add("price_merit", `A sentence with a price must not say "${merit[0]}".`);
-    }
-  }
-  const known = knownNumbers(property);
-  const unknown = numbersOf(text).filter((token) => !known.has(token));
-  if (unknown.length > 0) {
-    add("number_unknown", `These numbers are not in the property facts: ${unknown.join(", ")}.`);
-  }
+}
 
-  const link = propertyLink(property.slug, channel);
+/** The post's one link (on X it must be there) and the channel's length. */
+function linkAndLength(text: string, channel: CaptionChannel, link: string, add: Add): void {
   const links = linksOf(text);
   if (links.some((found) => found !== link) || (channel === "x" && !links.includes(link))) {
     add(
@@ -185,5 +171,46 @@ export function lintCaption(
       `At most ${String(limit)} characters${channel === "x" ? " with the link counted as 23" : ""}.`,
     );
   }
+}
+
+/** Every rule the caption breaks; an empty list is a pass. */
+export function lintCaption(
+  text: string,
+  property: CaptionProperty,
+  channel: CaptionChannel,
+): LintIssue[] {
+  const issues: LintIssue[] = [];
+  const add = (rule: LintRule, message: string) => issues.push({ rule, message });
+
+  voiceRules(text, add);
+  for (const sentence of text.split(/(?<=[.!?])\s+|\n+/)) {
+    const merit = MERIT.exec(sentence);
+    if (merit !== null && mentionsPrice(sentence, property)) {
+      add("price_merit", `A sentence with a price must not say "${merit[0]}".`);
+    }
+  }
+  const known = knownNumbers(property);
+  const unknown = numbersOf(text).filter((token) => !known.has(token));
+  if (unknown.length > 0) {
+    add("number_unknown", `These numbers are not in the property facts: ${unknown.join(", ")}.`);
+  }
+  linkAndLength(text, channel, propertyLink(property.slug, channel), add);
+  return issues;
+}
+
+/**
+ * W8 item 1: a brand post's caption has no property, so it states no figure at all (there are no facts to check one
+ * against) and its link is the post's own (`brandLink`).
+ */
+export function lintBrandCaption(text: string, channel: CaptionChannel, link: string): LintIssue[] {
+  const issues: LintIssue[] = [];
+  const add = (rule: LintRule, message: string) => issues.push({ rule, message });
+
+  voiceRules(text, add);
+  const figures = numbersOf(text);
+  if (figures.length > 0) {
+    add("number_unknown", `A brand post states no figures: ${figures.join(", ")}.`);
+  }
+  linkAndLength(text, channel, link, add);
   return issues;
 }

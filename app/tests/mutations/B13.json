@@ -985,8 +985,8 @@
     "id": "b13-s6-robots-body-admin",
     "test": "tests/unit/robots.test.ts",
     "file": "src/server/seo/robots.ts",
-    "find": "Disallow: /admin\n",
-    "replace": "",
+    "find": "Allow: /\n\n",
+    "replace": "Allow: /\nDisallow: /admin\n\n",
     "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
     "expect": "FAIL .*buildRobots > gives the real domain one allow block"
   },
@@ -994,8 +994,8 @@
     "id": "b13-s6-robots-body-api",
     "test": "tests/unit/robots.test.ts",
     "file": "src/server/seo/robots.ts",
-    "find": "Disallow: /api\n",
-    "replace": "",
+    "find": "Allow: /\n\n",
+    "replace": "Allow: /\nDisallow: /api\n\n",
     "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
     "expect": "FAIL .*buildRobots > gives the real domain one allow block"
   },
@@ -1012,8 +1012,8 @@
     "id": "b13-s6-robots-body-ai-rule",
     "test": "tests/unit/robots.test.ts",
     "file": "src/server/seo/robots.ts",
-    "find": "Allow: /\nDisallow: /admin",
-    "replace": "Allow: /\n\nUser-agent: GPTBot\nDisallow: /\nDisallow: /admin",
+    "find": "Allow: /\n\n",
+    "replace": "Allow: /\n\nUser-agent: GPTBot\nDisallow: /\n\n",
     "run": "bunx vitest run --project unit tests/unit/robots.test.ts",
     "expect": "FAIL .*buildRobots > names no crawler but the wildcard"
   },

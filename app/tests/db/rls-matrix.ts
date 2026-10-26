@@ -60,6 +60,8 @@ export const rlsMatrix: Record<string, Access> = {
   },
   campaigns: staffRead,
   campaign_reports: staffRead,
+  // W6 item 8 (H142): the credit ledger, written only by payments_grant_credits and spend_client_credit.
+  client_credits: staffRead,
   // B6: written only by next_invoice_number under the service role.
   invoice_counters: {},
   // B3: only the service role reaches the first two; privacy requests are for admin and chief_editor (admin screens 25).
@@ -81,6 +83,10 @@ export const rlsMatrix: Record<string, Access> = {
   email_messages: staffRead,
   // W4: written only by email_reply_record under the service role.
   email_replies: staffRead,
+  // W8 0h: written only by inbound_mail_record under the service role; read as privacy requests are (W8 0h review).
+  inbound_mail: { select: ["chief_editor", "admin"] },
+  // W8 0f: written only by studio_piece_put under the service role.
+  studio_pieces: staffRead,
   email_suppressions: staffRead,
   email_events: staffRead,
   channel_settings: { select: staffRoles, insert: automation, update: automation },
@@ -90,6 +96,10 @@ export const rlsMatrix: Record<string, Access> = {
   newsletter_issues: staffRead,
   // B10 step 6: written only through the social.sql functions under the service role.
   social_posts: staffRead,
+  // W8 item 10: the same rule, written only through the proposed post functions.
+  proposed_posts: staffRead,
+  proposed_post_channels: staffRead,
+  proposed_post_revisions: staffRead,
   // W1: staff read the office; every write is a workforce_* function or the daemon's claim under the service role.
   agents: staffRead,
   agent_messages: staffRead,

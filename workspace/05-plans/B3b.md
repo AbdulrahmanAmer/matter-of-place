@@ -50,7 +50,7 @@ Events emitted: none new. `subscriber.confirmed` (B3, after the confirmation cli
 | Key | String |
 |---|---|
 | `eyebrow` | `OPENING SOON` |
-| `what` | Matter of Place is an editorial publication for exceptional existing residential property in California, New York and Florida. |
+| `what` | Moved to `t.home.intro` (W8 item 12a, 2026-10-19): the home page says what Matter of Place is in three sentences, once, in either state. |
 | `home.title` | The first properties are being considered. |
 | `home.text` | We publish only what we have reviewed and accepted. Nothing is listed yet. Leave your email and we will write when the first property is published. |
 | `properties.title` | No property is listed yet. |

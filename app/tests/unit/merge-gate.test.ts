@@ -748,7 +748,7 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
     });
 
     it("refuses when paths-ignore holds a wildcard the gate does not read", () => {
-      const out = CI_TEXT.replace('"launch/**"', '"launch/[ab]*/**"');
+      const out = CI_TEXT.replace('"launch/film/**"', '"launch/[ab]*/**"');
       const { lines, writes } = gate({ checks: NONE, ci: { status: 0, out } });
       expect({ lines, writes }).toEqual({
         lines: ["merge-gate: no checks, and the paths-ignore of ci.yml is unread"],
@@ -757,25 +757,45 @@ describe("workspace/05-plans/merge-gate.mjs", () => {
     });
 
     it("reads a single * as GitHub does: it matches no slash", () => {
-      const out = CI_TEXT.replace('"launch/**"', '"launch/*"');
-      const files = listed(["launch/notes.txt", "launch/film/x.ts"]);
+      const out = CI_TEXT.replace('"launch/film/**"', '"launch/film/*"');
+      const files = listed(["launch/film/notes.txt", "launch/film/cut/x.ts"]);
       const { lines, writes } = gate({ checks: NONE, ci: { status: 0, out }, files });
       expect({ lines, writes }).toEqual({
-        lines: ["merge-gate: no checks reported and launch/film/x.ts is not a document"],
+        lines: ["merge-gate: no checks reported and launch/film/cut/x.ts is not a document"],
+        writes: [],
+      });
+    });
+
+    // W8 item 1 review: the post page sandbox lives in launch/engine, so a pull request touching only it runs CI
+    it("refuses a pull request that changes only the post page sandbox with no checks", () => {
+      const files = listed(["launch/engine/post-guard.mjs", "launch/film/notes.txt"]);
+      const { lines, writes } = gate({ checks: NONE, files });
+      expect({ lines, writes }).toEqual({
+        lines: [
+          "merge-gate: no checks reported and launch/engine/post-guard.mjs is not a document",
+        ],
         writes: [],
       });
     });
 
     // H79 (1): the gate reads ci.yml as YAML, so the layout of the list never changes the answer (P-3152).
-    const FLOW = '    paths-ignore: ["workspace/**", "launch/**", "**/*.md"]';
+    const IGNORED = [
+      "workspace/**",
+      "launch/01-launch-film/**",
+      "launch/02-partner-presentation/**",
+      "launch/03-partner-deck/**",
+      "launch/brand-film-kit/**",
+      "launch/email-doors/**",
+      "launch/film/**",
+      "launch/voice/**",
+      "**/*.md",
+    ];
+    const FLOW = `    paths-ignore: [${IGNORED.map((p) => `"${p}"`).join(", ")}]`;
     const REFORMATTED: Record<string, string> = {
-      "a block list":
-        '    paths-ignore:\n      - "workspace/**"\n      - "launch/**"\n      - "**/*.md"',
-      "a block list of bare strings":
-        "    paths-ignore:\n      - workspace/**\n      - launch/**\n      - '**/*.md'",
-      "a flow list over several lines":
-        '    paths-ignore: [\n      "workspace/**",\n      "launch/**",\n      "**/*.md",\n    ]',
-      "single quotes": "    paths-ignore: ['workspace/**', 'launch/**', '**/*.md']",
+      "a block list": `    paths-ignore:\n${IGNORED.map((p) => `      - "${p}"`).join("\n")}`,
+      "a block list of bare strings": `    paths-ignore:\n${IGNORED.map((p) => `      - ${p.startsWith("*") ? `'${p}'` : p}`).join("\n")}`,
+      "a flow list over several lines": `    paths-ignore: [\n${IGNORED.map((p) => `      "${p}",`).join("\n")}\n    ]`,
+      "single quotes": `    paths-ignore: [${IGNORED.map((p) => `'${p}'`).join(", ")}]`,
     };
 
     it.each(Object.keys(REFORMATTED))(

@@ -3,9 +3,12 @@ import { RoleGate } from "../ui/RoleGate";
 import { ProductField } from "./ProductField";
 import { ReasonDialog } from "./ReasonDialog";
 
+/** What a Five Features waiver does (W6 item 8, ruling H142): it takes a credit from the contact's ledger. */
+const SPENDS_A_CREDIT = "This spends one of the client's Five Features credits.";
+
 /**
  * A Five Features credit or a comp, recorded with no invoice (invariant 12): the product and a reason. No number,
- * no PDF and no email to the submitter.
+ * no PDF and no email to the submitter. A Five Features waiver spends a credit and is refused when there is none.
  */
 export function WaiveWithoutInvoiceDialog({
   initialProduct,
@@ -26,7 +29,11 @@ export function WaiveWithoutInvoiceDialog({
         canSubmit={product !== ""}
         onSubmit={(reason) => onWaive({ product, reason })}
       >
-        <ProductField value={product} onChange={setProduct} />
+        <ProductField
+          value={product}
+          onChange={setProduct}
+          {...(product === "Five Features" ? { hint: SPENDS_A_CREDIT } : {})}
+        />
       </ReasonDialog>
     </RoleGate>
   );

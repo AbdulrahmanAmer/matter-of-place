@@ -102,6 +102,22 @@
   font-size: 13px;
 }
 
+/* H115: a colleague's toolkit in words, folded under its card */
+.wf-card__tools {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.wf-card__tools summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+}
+
+.wf-card__tools ul {
+  margin: var(--admin-space-2) 0 0;
+  padding-inline-start: 1.1em;
+}
+
 .wf-card__state {
   display: flex;
   align-items: baseline;

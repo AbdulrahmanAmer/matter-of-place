@@ -74,8 +74,17 @@ export async function collect(ctx) {
     return { seo: unset, aeo: unset };
   }
   const base = ctx.siteUrl.replace(/\/+$/, "");
+  // The checkers import server modules that parse the Worker's environment on load (`src/server/lib/env.ts`): with
+  // MOP_ENV unset it defaults to production and refuses to load without the Worker's secrets, and the crash lines
+  // became 13 "failed" SEO checks (audit 2026-10-17). They only read `base` over HTTP, so they run as local with a
+  // salt that hashes nothing.
+  const checkerEnv = {
+    ...ctx.env,
+    MOP_ENV: "local",
+    RATE_LIMIT_SALT: ctx.env["RATE_LIMIT_SALT"] ?? "audit-checker-only",
+  };
   const checker = (/** @type {string} */ script) => {
-    const result = ctx.run("bun", ["run", `scripts/${script}.ts`, base], APP_DIR);
+    const result = ctx.run("bun", ["run", `scripts/${script}.ts`, base], APP_DIR, checkerEnv);
     return parseRows(result.stdout, result.status, script);
   };
   const seo = classifyCrawl(checker("check-seo"), new URL(base).hostname);

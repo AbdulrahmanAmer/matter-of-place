@@ -2784,7 +2784,7 @@
     "kind": "file",
     "test": "tests/unit/reconcile.test.ts",
     "file": "src/server/submissions/reconcile.ts",
-    "find": "      if (now - Date.parse(row.submissions.received_at) > UPLOAD_WINDOW_MS) counts.missing += 1;\n",
+    "find": "      if (now - Date.parse(row.declared_at) > UPLOAD_WINDOW_MS) counts.missing += 1;\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/reconcile.test.ts",
     "expect": "× .*marks a good JPEG, removes PNG bytes under a .jpg name"

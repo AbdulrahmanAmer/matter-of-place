@@ -1894,8 +1894,8 @@
     "kind": "file",
     "test": "tests/unit/channels/post-to-channel.test.ts",
     "file": "src/server/channels/post-to-channel.ts",
-    "find": "if (!targets.includes(channel)) return done(\"skipped_kind\");",
-    "replace": "if (false) return done(\"skipped_kind\");",
+    "find": "if (!targets.includes(channel)) return skip(ctx, stored, channel, \"skipped_kind\");",
+    "replace": "if (false) return skip(ctx, stored, channel, \"skipped_kind\");",
     "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
     "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > a newsletter_block returns skipped_kind"
   },
@@ -1904,8 +1904,8 @@
     "kind": "file",
     "test": "tests/unit/channels/post-to-channel.test.ts",
     "file": "src/server/channels/post-to-channel.ts",
-    "find": "if (row?.enabled !== true) return done(\"skipped_disabled\");",
-    "replace": "if (row === undefined) return done(\"skipped_disabled\");",
+    "find": "if (row?.enabled !== true) return skip(ctx, stored, channel, \"skipped_disabled\");",
+    "replace": "if (row === undefined) return skip(ctx, stored, channel, \"skipped_disabled\");",
     "run": "bunx vitest run --project unit tests/unit/channels/post-to-channel.test.ts",
     "expect": "FAIL .*post-to-channel\\.test\\.ts > what decides before any platform call > a disabled channel returns skipped_disabled"
   },

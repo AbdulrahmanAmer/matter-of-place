@@ -2,10 +2,14 @@
 // 2026-10-13 test 2 (P-3452): Matter's prose named `{{property_address}}`, the old reader cut from the first "{" and
 // failed, and a proposal Matter said it had filed was dropped. The reader now tries each "{" until one parses.
 import { z } from "zod";
+import { jsonValue } from "../../src/domain/json-value.ts";
+import { RENDERER_NAMES } from "../../src/domain/toolkits.ts";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import { mediaRequestSchema } from "./media.ts";
 import { HOW_OFF_LIST, POSTURES } from "./posture.ts";
+import { postRequestSchema } from "./post-request.ts";
 import { reelRequestSchema } from "./reel.ts";
+import { studioDecisionSchema } from "./studio.ts";
 
 export const outcome = z.object({
   reply: z.string().default(""),
@@ -18,6 +22,9 @@ export const outcome = z.object({
         content: z.object({
           body: z.string().min(1).max(20000),
           to: z.string().max(300).optional(),
+          // W8 item 10: a social post's channels, formats, files and captions. Read loosely here and checked when it
+          // is filed, so a malformed post is refused with its reason instead of dropping the whole answer.
+          post: jsonValue.optional(),
         }),
       }),
     )
@@ -29,10 +36,32 @@ export const outcome = z.object({
   allow: z.boolean().default(false),
   // W8 0d: and how, as one of the closed postures; a missing value, or any other, allows nothing.
   how: z.enum(POSTURES).or(z.literal(HOW_OFF_LIST)).optional().catch(HOW_OFF_LIST),
-  // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio.
-  media: z.array(z.union([mediaRequestSchema, reelRequestSchema])).default([]),
+  // Matter only (W6 item 4): the pull requests this full-power run merged through the gate; each writes a build lesson.
+  merged: z.array(z.number().int().positive()).max(10).optional(),
+  // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio,
+  // and W8 item 1: so does a still post. W8 0f: and Matter's decision on a draft in the studio (approve, revise, ask
+  // the operator).
+  media: z
+    .array(
+      z.union([mediaRequestSchema, reelRequestSchema, postRequestSchema, studioDecisionSchema]),
+    )
+    .default([]),
   // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
   actions: z.array(z.unknown()).default([]),
+  // H115 (review of 2026-10-19): the renders a colleague asks for, run by the runner after its run (`runRenders`); a
+  // malformed list renders nothing and keeps the rest of the answer.
+  renders: z
+    .array(
+      z.object({
+        // the toolkit's own list: a renderer added there is never dropped here (review of 2026-10-19)
+        renderer: z.enum(RENDERER_NAMES),
+        spec: z.string().min(1).max(500),
+        out: z.string().min(1).max(500),
+      }),
+    )
+    .max(3)
+    .optional()
+    .catch(undefined),
 });
 
 export type Outcome = z.infer<typeof outcome>;

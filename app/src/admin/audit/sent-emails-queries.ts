@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import type { z } from "zod";
 import { emailListSchema, replyListSchema, replyMarkAnswerSchema } from "../../domain/admin-emails";
+import { inboundMailListSchema } from "../../domain/admin-inbound-mail";
 import { adminKeys, invalidateAfterWrite } from "../query";
 import { adminFetch } from "../ui/admin-fetch";
 
@@ -25,6 +26,26 @@ export function useReplies(state: string | undefined, cursor: string | null) {
   return useQuery({
     queryKey: adminKeys.emails.list({ replies: state ?? null, cursor }),
     queryFn: () => adminFetch(`/api/admin/emails/replies${query}`, replyListSchema),
+  });
+}
+
+/** One page of the mail that reached our addresses: one source and one state or all, from the cursor on (W8 0h). */
+export function useInboundMail(
+  filters: { source?: string | undefined; state?: string | undefined },
+  cursor: string | null,
+) {
+  const search = new URLSearchParams();
+  if (filters.source !== undefined) search.set("source", filters.source);
+  if (filters.state !== undefined) search.set("state", filters.state);
+  if (cursor !== null) search.set("cursor", cursor);
+  const query = search.size === 0 ? "" : `?${search.toString()}`;
+  return useQuery({
+    queryKey: adminKeys.emails.list({
+      inbound: filters.source ?? null,
+      inboundState: filters.state ?? null,
+      cursor,
+    }),
+    queryFn: () => adminFetch(`/api/admin/emails/inbound${query}`, inboundMailListSchema),
   });
 }
 

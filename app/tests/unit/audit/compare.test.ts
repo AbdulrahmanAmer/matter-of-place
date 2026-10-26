@@ -57,6 +57,43 @@ describe("compareSidecars", () => {
   });
 });
 
+describe("brand queries (W8 item 12c)", () => {
+  const sidecarWith = (position: number, previous: unknown) => ({
+    brand_queries: {
+      window_days: 28,
+      queries: [
+        {
+          name: "matter of place",
+          status: "ranked",
+          impressions: 9,
+          clicks: 0,
+          position,
+          previous,
+        },
+      ],
+    },
+  });
+
+  it("compares the position of a query by its name and never reads the previous block again", () => {
+    const lines = describeDeltas(
+      compareSidecars(
+        sidecarWith(8.3, { status: "ranked", impressions: 7, clicks: 0, position: 9.1 }),
+        sidecarWith(9.1, { status: "ranked", impressions: 5, clicks: 0, position: 12 }),
+      ),
+    );
+    expect(lines).toContain("brand_queries.queries[matter of place].position  9.1 -> 8.3  -0.8");
+    expect(lines.join("\n")).not.toMatch(/previous/);
+  });
+
+  it("still compares a previous block elsewhere, as the KPI collector stores it", () => {
+    const kpis = (visits: number, before: number) => ({
+      kpis: { current: { visits }, previous: { visits: before } },
+    });
+    const lines = describeDeltas(compareSidecars(kpis(12, 10), kpis(10, 8)));
+    expect(lines.some((line) => line.startsWith("kpis.previous.visits"))).toBe(true);
+  });
+});
+
 describe("choosing the two sidecars", () => {
   const dirs: string[] = [];
   afterAll(() => {

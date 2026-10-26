@@ -118,7 +118,7 @@ export function replyIdOf(body: string): string | null {
  */
 export function recordOf(body: string): { source: SourceName; id: string } | null {
   const match =
-    /\nRecord: (inquiry|email_reply|submission|privacy_request) ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.$/.exec(
+    /\nRecord: (inquiry|email_reply|email_inbound|submission|privacy_request) ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.$/.exec(
       body,
     );
   const source = match?.[1] ?? "";
@@ -227,19 +227,40 @@ export async function outsideText(db: Db, source: SourceName, id: string): Promi
         ]);
   }
   if (source === "submission") {
-    const { data } = await db
-      .from("submissions")
-      .select("submitter_name, address, city, story, significance")
-      .eq("id", id)
-      .limit(1);
+    // W7 item 9 (review): every field the submitter typed. The short ones the request desk shows a colleague come
+    // first, so the 8,000 characters the triage reads always reach them; the links and the photographs' names, which no
+    // prompt shows, come last.
+    const [{ data }, { data: media }] = await Promise.all([
+      db
+        .from("submissions")
+        .select(
+          "submitter_name, address, city, zip, architect, designer, brokerage, listing_agent_name, listing_agent_brokerage, listing_url, photography_url, source_url, video_url, story, significance",
+        )
+        .eq("id", id)
+        .limit(1),
+      db.from("submission_media").select("name, source_url").eq("submission_id", id).limit(60),
+    ]);
     const row = data?.[0];
     return row === undefined
       ? ""
       : lines([
           ["Name", row.submitter_name],
-          ["Property", `${row.address}, ${row.city}`],
+          ["Property", `${row.address}, ${row.city} ${row.zip}`],
+          ["Architect", row.architect],
+          ["Designer", row.designer],
+          ["Brokerage", row.brokerage],
+          ["Listing agent", row.listing_agent_name],
+          ["Listing brokerage", row.listing_agent_brokerage],
           ["Story", row.story],
           ["Significance", row.significance],
+          ["Listing link", row.listing_url],
+          ["Photography link", row.photography_url],
+          ["Source link", row.source_url],
+          ["Video link", row.video_url],
+          [
+            "Photograph names",
+            (media ?? []).map((item) => [item.name, item.source_url ?? ""].join(" ")).join("; "),
+          ],
         ]);
   }
   if (source === "privacy_request") {
@@ -252,11 +273,16 @@ export async function outsideText(db: Db, source: SourceName, id: string): Promi
           ["Note", row.note],
         ]);
   }
-  const { data } = await db
-    .from("email_replies")
-    .select("from_name, subject, body")
-    .eq("id", id)
-    .limit(1);
+  // W8 0h: a person's email to one of our addresses; only a row the mailbox recorded as a person's is read.
+  const { data } =
+    source === "email_inbound"
+      ? await db
+          .from("inbound_mail")
+          .select("from_name, subject, body")
+          .eq("id", id)
+          .eq("source", "email_inbound")
+          .limit(1)
+      : await db.from("email_replies").select("from_name, subject, body").eq("id", id).limit(1);
   const row = data?.[0];
   return row === undefined
     ? ""
@@ -407,7 +433,9 @@ export function ownsOutside(triage: Triage, agentSlug: string): boolean {
 /** The same rule by source alone, so a run that does not own the message is never sent to the triage (it costs one). */
 export function ownsSource(source: SourceName, agentSlug: string): boolean {
   if (agentSlug === "matter") return false;
-  if (source === "email_reply") return ["editor", "concierge", "chief"].includes(agentSlug);
+  // W8 0h: a person's email goes, like a reply, to the colleague `inbound_mail_record` chose by its alias.
+  if (source === "email_reply" || source === "email_inbound")
+    return ["editor", "concierge", "chief"].includes(agentSlug);
   return sources[source].owner === agentSlug;
 }
 
@@ -554,18 +582,14 @@ export function runShape<T extends { slug: string; tools: readonly string[] }>(
   thread: string,
   triage: Triage | null,
   matterReadsHeld: boolean,
-  startedInside = false,
 ): {
   agent: T;
   research: boolean;
   rule: Rule;
   place: { thread: string; author_id: string };
-  terminal: boolean;
 } {
   const outside = triage !== null || matterReadsHeld;
   return {
-    // W8 0e: a colleague run a person or Matter started gets a terminal; one about outside text never does.
-    terminal: !outside && startedInside && agent.slug !== "matter",
     agent: outside
       ? { ...agent, tools: agent.tools.filter((tool) => tool !== "admin_call" && tool !== "hire") }
       : agent,
@@ -576,7 +600,7 @@ export function runShape<T extends { slug: string; tools: readonly string[] }>(
 }
 
 /** A described field as a colleague sees it: one line, no handle, no fence marks, never empty. */
-function plain(field: string): string {
+export function plain(field: string): string {
   const text = field
     .replace(/[\r\n]+/g, " ")
     .replaceAll("@", "")

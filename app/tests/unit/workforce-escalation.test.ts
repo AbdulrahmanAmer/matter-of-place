@@ -1,4 +1,12 @@
-import { rmSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import type * as Os from "node:os";
 import type * as Path from "node:path";
 import { tmpdir } from "node:os";
@@ -8,6 +16,7 @@ import { readJsonAnswer, type Outcome } from "../../scripts/workforce/answer.ts"
 import type * as Cli from "../../scripts/workforce/cli.ts";
 import { UsageLimitError } from "../../scripts/workforce/cli.ts";
 import type * as Run from "../../scripts/matter/run.ts";
+import { takeQueuedMerges } from "../../scripts/matter/lessons.ts";
 import { matterPrompt } from "../../scripts/matter/run.ts";
 import { allowForOwner, answerPlan, runOnce } from "../../scripts/workforce/daemon.ts";
 import {
@@ -15,6 +24,7 @@ import {
   EXPLANATION_MAX,
   explainsHeld,
   handToMatter,
+  handUnavailableOwners,
   OWNER_UNAVAILABLE,
   OWNER_UNAVAILABLE_SUMMARY,
   ownerExplanation,
@@ -70,6 +80,7 @@ vi.mock("node:path", async (importOriginal) => {
 
 const cli = vi.hoisted(() => ({
   prompts: [] as { who: string; prompt: string }[],
+  launches: [] as { args: readonly string[]; cwd: string; settings: string; files: string[] }[],
   answer: (who: string, prompt: string): string | Error => `${who} ${prompt}`.slice(0, 0),
 }));
 
@@ -79,10 +90,34 @@ const ask = (who: string, prompt: string) => {
   return out instanceof Error ? Promise.reject(out) : Promise.resolve({ text: out });
 };
 
-vi.mock("../../scripts/workforce/cli.ts", async (importOriginal) => ({
-  ...(await importOriginal<typeof Cli>()),
-  runClaude: (input: { who: string; prompt: string }) => ask(input.who, input.prompt),
-}));
+vi.mock("../../scripts/workforce/cli.ts", async (importOriginal) => {
+  const fs = await import("node:fs");
+  return {
+    ...(await importOriginal<typeof Cli>()),
+    runClaude: (input: { who: string; prompt: string; args?: readonly string[]; cwd?: string }) => {
+      // the settings file as the run sees it: the runner removes it when the run ends
+      const args = input.args ?? [];
+      const file = args.includes("--settings") ? args[args.indexOf("--settings") + 1] : undefined;
+      const cwd = input.cwd ?? "";
+      cli.launches = [
+        ...cli.launches,
+        {
+          args,
+          cwd,
+          settings: file === undefined ? "" : fs.readFileSync(file, "utf8"),
+          // what the run's folder holds as it starts, with forward slashes
+          files:
+            cwd !== "" && fs.existsSync(cwd)
+              ? fs
+                  .readdirSync(cwd, { recursive: true, encoding: "utf8" })
+                  .map((name) => name.replaceAll("\\", "/"))
+              : [],
+        },
+      ];
+      return ask(input.who, input.prompt);
+    },
+  };
+});
 
 // Matter's desk is a git worktree and its inputs read the atlas: neither belongs in a unit test.
 vi.mock("../../scripts/matter/run.ts", async (importOriginal) => ({
@@ -171,6 +206,7 @@ interface Query {
   or(filter: string): Query;
   order(column: string, options?: { ascending?: boolean }): Query;
   limit(count: number): Query;
+  select(columns?: string): Query;
   single(): Promise<Answer>;
   maybeSingle(): Promise<Answer>;
   then(done: (answer: Answer) => unknown, fail?: (reason: unknown) => unknown): Promise<unknown>;
@@ -241,6 +277,8 @@ function memoryDb(
         cap = count;
         return built;
       },
+      // `update(...).select()` answers with the rows it changed (the update below already does)
+      select: () => built,
       single: () => {
         const [row] = found();
         return Promise.resolve(
@@ -293,36 +331,45 @@ function memoryDb(
     });
   };
 
+  // a test's side effect just before a table is read: another runner acting between two of the runner's own reads
+  const hooks: { beforeRead?: ((table: string) => void) | undefined } = {};
   const client = {
     from: (table: string) => ({
-      select: (_columns?: string, options?: { head?: boolean }) =>
-        query(table, (rows) => ({
+      select: (_columns?: string, options?: { head?: boolean }) => {
+        hooks.beforeRead?.(table);
+        return query(table, (rows) => ({
           data: options?.head === true ? null : rows.map((row) => ({ ...row })),
           count: rows.length,
           error: null,
-        })),
+        }));
+      },
       update: (patch: Row) =>
         query(table, (rows) => {
           // a column whose migration has not reached the database yet: the whole update is refused, as Postgres does
           if (Object.keys(patch).some((column) => absent.has(column)))
             return { data: null, error: new Error("column does not exist") };
           for (const row of rows) Object.assign(row, patch);
-          return { data: null, error: null };
+          return { data: rows.map((row) => ({ ...row })), error: null };
         }),
       insert: (input: Row | Row[]) => insert(table, input),
       upsert: (input: Row | Row[]) => insert(table, input),
     }),
     rpc: (name: string) => {
       if (name !== "claim_agent_run") throw new Error(`unexpected rpc ${name}`);
+      // as the function does: only an idle or working colleague takes a run
+      const available = (run: Row) =>
+        ["idle", "working"].includes(
+          text(rowsOf("agents").find((agent) => agent["id"] === run["agent_id"])?.["state"]) ?? "",
+        );
       const [next] = rowsOf("agent_runs")
-        .filter((row) => row["state"] === "queued")
+        .filter((row) => row["state"] === "queued" && available(row))
         .sort((a, b) => (text(a["created_at"]) ?? "").localeCompare(text(b["created_at"]) ?? ""));
       if (next !== undefined) Object.assign(next, { state: "running", started_at: stamp() });
       return Promise.resolve({ data: next === undefined ? [] : [{ ...next }], error: null });
     },
   };
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the one cast of the in-memory client
-  return { db: client as unknown as Db, tables, insert };
+  return { db: client as unknown as Db, tables, insert, hooks };
 }
 
 const agentRow = (id: string, slug: string, name: string, tools: string[]): Row => ({
@@ -584,6 +631,60 @@ describe("W8 0d: a held message is explained by its owner, then decided by Matte
     expect(room.runsOn(CONCIERGE_ID, held?.["id"])[0]?.["summary"]).toBe(
       "Explained an outside message held for Matter",
     );
+  });
+
+  it("leaves the queued runs of a paused or off owner on other lines alone", async () => {
+    for (const state of ["paused", "off"]) {
+      const room = office();
+      // a person's message to the colleague and an email reply: queued by the database, never held lines
+      const lines = [
+        { author_kind: "human", author_id: "operator", body: "Please look at the Malibu inquiry." },
+        { author_kind: "system", author_id: "email", body: "A reply came in by email." },
+      ];
+      const queued: unknown[] = [];
+      for (const line of lines) {
+        const { data } = await room
+          .insert("agent_messages", { thread: "concierge", author_name: "x", ...line })
+          .select();
+        const messageId = data[0]?.["id"];
+        void room.insert("agent_runs", {
+          agent_id: CONCIERGE_ID,
+          cause: "message",
+          message_id: messageId,
+        });
+        queued.push(messageId);
+      }
+      for (const agent of room.rows("agents"))
+        if (agent["id"] === CONCIERGE_ID) agent["state"] = state;
+      expect(await handUnavailableOwners(room.db)).toBe(0);
+      expect(await runOnce(room.db)).toBe(false);
+      for (const messageId of queued) {
+        expect(room.runsOn(CONCIERGE_ID, messageId).map((run) => run["state"])).toEqual(["queued"]);
+        expect(room.runsOn(MATTER_ID, messageId)).toEqual([]);
+      }
+      expect(room.bodies("system")).not.toContain(OWNER_UNAVAILABLE);
+      expect(cli.prompts).toEqual([]);
+    }
+  });
+
+  it("leaves an explanation run alone when another runner claimed it since the sweep read it", async () => {
+    answers(matterSays({ allow: false }));
+    const room = office();
+    await runOnce(room.db);
+    const held = room.held();
+    for (const agent of room.rows("agents"))
+      if (agent["id"] === CONCIERGE_ID) agent["state"] = "paused";
+    // between the sweep's read of the queued runs and its update of one, the run is claimed elsewhere
+    room.hooks.beforeRead = (table) => {
+      if (table !== "agent_messages") return;
+      room.hooks.beforeRead = undefined;
+      for (const run of room.runsOn(CONCIERGE_ID, held?.["id"])) run["state"] = "running";
+    };
+    expect(await handUnavailableOwners(room.db)).toBe(0);
+    const ownerRun = room.runsOn(CONCIERGE_ID, held?.["id"])[0];
+    expect([ownerRun?.["state"], ownerRun?.["summary"] ?? null]).toEqual(["running", null]);
+    expect(room.bodies("system")).not.toContain(OWNER_UNAVAILABLE);
+    expect(room.runsOn(MATTER_ID, held?.["id"])).toEqual([]);
   });
 
   it("puts an explanation stopped by the usage limit back in the queue, with no Matter run yet", async () => {
@@ -952,5 +1053,284 @@ describe("W8 0d: the explanation and the decision, piece by piece", () => {
       "Matter's read of the held message could not be queued; it waits in this thread for a person.",
       "Matter's read of the held message could not be queued; it waits in this thread for a person.",
     ]);
+  });
+});
+
+describe("H115, review of 2026-10-16: only a run a person started holds its toolkit's writes and renders", () => {
+  const SOCIAL_ID = "a0000000-0000-4000-8000-000000000003";
+  const LINE_ID = "f0000000-0000-4000-8000-000000000001";
+  /** The last office `wokenBy` made: its tables, as the runner left them. */
+  let seeded: Record<string, Row[]> = {};
+  /** Social woken by one line in the team chat. */
+  const wokenBy = (author: { author_kind: string; author_id: string; author_name: string }) => {
+    seeded = {
+      agents: [
+        agentRow(MATTER_ID, "matter", "Matter", []),
+        agentRow(SOCIAL_ID, "social", "Social", ["read_business", "chat", "draft_post"]),
+      ],
+      agent_messages: [
+        {
+          id: LINE_ID,
+          thread: "team",
+          body: "@social plan the Fairfield carousel from 4a3c2563-c07a-481d-839b-ad0523827f69",
+          ...author,
+        },
+      ],
+      agent_approvals: [],
+      agent_lessons: [],
+      agent_decisions: [],
+      agent_runs: [],
+    };
+    const memory = memoryDb(seeded);
+    void memory.insert("agent_runs", {
+      agent_id: SOCIAL_ID,
+      cause: "message",
+      message_id: LINE_ID,
+    });
+    return memory.db;
+  };
+
+  const home = join(tmpdir(), "mop-w8-0d-home", ".mop-workforce");
+  const PIECE = "4a3c2563-c07a-481d-839b-ad0523827f69";
+  // re-encoded without its metadata (review of 2026-10-19)
+  const placed = join(home, "desks", "social", "work", PIECE, "a.webp");
+  const tools = () => {
+    const args = cli.launches.at(-1)?.args ?? [];
+    return args[args.indexOf("--tools") + 1];
+  };
+
+  it("gives Social only its reads when a colleague's mention woke it, and its whole toolkit on a person's line", async () => {
+    // the Drive folder the runner's config names, and a studio piece, inside the test's own home
+    mkdirSync(join(home, "drive-social"), { recursive: true });
+    writeFileSync(
+      join(home, "config.json"),
+      JSON.stringify({ driveSocial: join(home, "drive-social") }),
+    );
+    mkdirSync(join(home, "studio", PIECE), { recursive: true });
+    copyFileSync("src/assets/los-altos.jpg", join(home, "studio", PIECE, "a.jpg"));
+    rmSync(join(home, "desks", "social"), { recursive: true, force: true });
+    cli.answer = () => JSON.stringify({ reply: "On it.", task: "Planned", proposals: [] });
+    expect(
+      await runOnce(wokenBy({ author_kind: "agent", author_id: "chief", author_name: "Chief" })),
+    ).toBe(true);
+    expect(tools()).toBe("Read,Glob,Grep");
+    // a mention places nothing
+    expect(existsSync(placed)).toBe(false);
+    expect(
+      await runOnce(wokenBy({ author_kind: "human", author_id: "u1", author_name: "Dave" })),
+    ).toBe(true);
+    // no shell on any run (review of 2026-10-19): the runner renders what the answer asks for
+    expect(tools()).toBe("Read,Glob,Grep,Write,Edit");
+    // the person's line names the piece: its photographs are in Social's folder, and the run is told where
+    expect(existsSync(placed)).toBe(true);
+    expect(lastPrompt("the colleague")).toContain(
+      `The runner placed 1 photograph of ${PIECE} in \`./${PIECE}/\`, each as WebP without its metadata.`,
+    );
+    // the run's settings file is gone once it ends
+    expect(existsSync(join(home, "settings"))).toBe(true);
+    expect(readdirSync(join(home, "settings"))).toEqual([]);
+  });
+
+  it("renders for a person's run only, through the wrapper's checks, and says each result in the thread", async () => {
+    mkdirSync(join(home, "drive-social"), { recursive: true });
+    writeFileSync(
+      join(home, "config.json"),
+      JSON.stringify({ driveSocial: join(home, "drive-social") }),
+    );
+    const said = () => (seeded["agent_messages"] ?? []).map((line) => String(line["body"]));
+    cli.answer = () =>
+      JSON.stringify({
+        reply: "Rendering.",
+        task: "Rendered",
+        proposals: [],
+        renders: [{ renderer: "carousel", spec: "../elsewhere/spec.json", out: "./renders" }],
+      });
+    // a colleague's mention: reads only, so nothing renders and its words are not repeated
+    await runOnce(wokenBy({ author_kind: "agent", author_id: "chief", author_name: "Chief" }));
+    expect(said()).toContain("Not rendered: this run may not render.");
+    // a person's line: the runner takes the ask, and the wrapper's checks refuse a spec outside the work folder
+    await runOnce(wokenBy({ author_kind: "human", author_id: "u1", author_name: "Dave" }));
+    expect(said().find((line) => line.startsWith("Not rendered: a carousel"))).toMatch(
+      /^Not rendered: a carousel from \.\.\/elsewhere\/spec\.json \(.*the spec must be inside your work folder/,
+    );
+  });
+
+  it("runs the owner's run on an outside message with the outside toolkit in a folder of its own, removed after it", async () => {
+    answers(matterSays({ allow: true, how: "ask_one_question" }));
+    const room = office();
+    expect(await runOnce(room.db)).toBe(true);
+    // the owner's run on the held line: triaged, so the outside toolkit, never its reads or its work folder
+    expect(await runOnce(room.db)).toBe(true);
+    const run = room.runsOn(CONCIERGE_ID, room.held()?.["id"])[0];
+    const launch = cli.launches.at(-1);
+    const own = join(home, "desks", "concierge", "outside", String(run?.["id"]));
+    expect(launch?.cwd).toBe(own);
+    expect(tools()).toBe("Read,Glob,Grep");
+    expect(launch?.args).not.toContain("--add-dir");
+    expect(launch?.settings).toContain('"allow":["Read(./**)"]');
+    // its folder and its settings file are removed when it ends
+    expect(existsSync(own)).toBe(false);
+    expect(existsSync(join(home, "settings", `${String(run?.["id"])}.json`))).toBe(false);
+  });
+
+  it("launches the Editor shown a request in its own folder, which holds the request's photographs and nothing an earlier attempt left", async () => {
+    const EDITOR_ID = "a0000000-0000-4000-8000-000000000004";
+    const REQUEST_ID = "4a3c2563-1111-4111-8111-111111111111";
+    const memory = memoryDb({
+      agents: [
+        agentRow(MATTER_ID, "matter", "Matter", []),
+        agentRow(EDITOR_ID, "editor", "Editor", ["read_business", "chat"]),
+      ],
+      agent_messages: [
+        {
+          id: LINE_ID,
+          thread: "editor",
+          body: `@editor review request ${REQUEST_ID}`,
+          author_kind: "human",
+          author_id: "u1",
+          author_name: "Dave",
+        },
+      ],
+      submissions: [
+        {
+          id: REQUEST_ID,
+          received_at: "2026-10-15T09:00:00Z",
+          workflow_state: "Submitted",
+          address: "1200 Old Ranch Road",
+          city: "Fairfield",
+          state: "California",
+          zip: "94534",
+          property_type: "Residence",
+          price: 3_450_000,
+          currency: "USD",
+          beds: 4,
+          baths: 3.5,
+          interior_sq_ft: 4200,
+          year_built: 1928,
+          year_renovated: 2019,
+          architect: "Julia Morgan",
+          designer: null,
+          package: "The Feature",
+          submitter_kind: "agent",
+          brokerage: "Valley Brokers",
+          listed_with_agent: true,
+          listing_agent_brokerage: "Valley Brokers",
+          rights_confirmed_at: "2026-10-15T09:00:00Z",
+          rights_version: "2026-10-11",
+          duplicate_of: null,
+          listing_url: null,
+          photography_url: null,
+          source_url: null,
+          video_url: null,
+        },
+      ],
+      submission_media: [
+        {
+          id: "m1",
+          submission_id: REQUEST_ID,
+          name: "front.jpg",
+          mime: "image/jpeg",
+          sha256: "sha-m1",
+          sort_order: 0,
+          source_url: null,
+          storage_path: `${REQUEST_ID}/m1`,
+          uploaded_at: "2026-10-15T10:00:00Z",
+        },
+      ],
+      agent_approvals: [],
+      agent_lessons: [],
+      agent_decisions: [],
+      agent_runs: [],
+    });
+    void memory.insert("agent_runs", {
+      agent_id: EDITOR_ID,
+      cause: "message",
+      message_id: LINE_ID,
+    });
+    const runId = String(memory.tables["agent_runs"]?.[0]?.["id"]);
+    const own = join(home, "desks", "editor", "outside", runId);
+    // a file an earlier attempt of this run left in its folder
+    mkdirSync(own, { recursive: true });
+    writeFileSync(join(own, "earlier.md"), "left by an earlier attempt");
+    // the folder of another run a runner killed mid-run left behind
+    const killed = join(home, "desks", "editor", "outside", "a-killed-run");
+    mkdirSync(killed, { recursive: true });
+    writeFileSync(join(killed, "request.md"), "left by a killed runner");
+    const photo = readFileSync("src/assets/los-altos.jpg");
+    const db = Object.assign(memory.db, {
+      storage: {
+        from: () => ({
+          download: () => Promise.resolve({ data: new Blob([photo]), error: null }),
+        }),
+      },
+    });
+    cli.answer = (who) =>
+      who === "the triage"
+        ? JSON.stringify({
+            intent: "submit_property",
+            who: "an agent",
+            about: "a house in Fairfield",
+            wants: "a review of the house",
+            instructions_to_ai: false,
+            attempt: "",
+          })
+        : JSON.stringify({ reply: "Reviewed.", task: "Reviewed", proposals: [] });
+    expect(await runOnce(db)).toBe(true);
+    const launch = cli.launches.find((one) => one.cwd === own);
+    // the request's folder is in the folder the run starts in, the one place it may read
+    expect(launch?.files).toContain(`requests/${REQUEST_ID}/request.md`);
+    expect(launch?.files.filter((name) => name.includes("/photos/"))).toEqual([
+      `requests/${REQUEST_ID}/photos/01.webp`,
+    ]);
+    expect(launch?.files).not.toContain("earlier.md");
+    expect(existsSync(killed)).toBe(false);
+    expect(launch?.args).not.toContain("--add-dir");
+    expect(launch?.settings).toContain('"allow":["Read(./**)"]');
+    expect(lastPrompt("the colleague")).toContain(`requests/${REQUEST_ID}/ in your folder`);
+    // nothing of the request in the work folder, which the run cannot read; its own folder goes when it ends
+    expect(existsSync(join(home, "desks", "editor", "work", "requests"))).toBe(false);
+    expect(existsSync(own)).toBe(false);
+  });
+});
+
+describe("W6 item 4: the pull requests Matter's one-shot run says it merged", () => {
+  /** Matter answers a line from `authorKind` with a closing object that names pull request 464 as merged. */
+  async function matterRunFor(authorKind: string) {
+    takeQueuedMerges();
+    answers(matterSays({ merged: [464] }));
+    const memory = memoryDb({
+      agents: [agentRow(MATTER_ID, "matter", "Matter", [])],
+      agent_messages: [],
+      agent_runs: [],
+      agent_lessons: [],
+      agent_decisions: [],
+      agent_approvals: [],
+      events: [],
+      inquiries: [],
+    });
+    const { data } = await memory
+      .insert("agent_messages", {
+        thread: "matter",
+        author_kind: authorKind,
+        author_id: "operator",
+        author_name: "Operator",
+        body: "Merge pull request 464.",
+      })
+      .select();
+    void memory.insert("agent_runs", {
+      agent_id: MATTER_ID,
+      cause: "message",
+      message_id: data[0]?.["id"],
+    });
+    await runOnce(memory.db);
+    return takeQueuedMerges();
+  }
+
+  it("is left for the live supervisor to settle, never asked of GitHub inside the run", async () => {
+    expect(await matterRunFor("human")).toEqual([464]);
+  });
+
+  it("is dropped when the line that woke Matter was not a person's", async () => {
+    expect(await matterRunFor("agent")).toEqual([]);
   });
 });

@@ -1,5 +1,6 @@
 import { useState, type PointerEvent } from "react";
 import type { AdminAsset } from "../../domain/admin-assets";
+import { fileName } from "./file-name";
 
 const SWIPE_PX = 40;
 
@@ -16,6 +17,7 @@ export function CarouselViewer({
     .sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
   const [at, setAt] = useState(0);
   const [startX, setStartX] = useState<number | null>(null);
+  const [lost, setLost] = useState<readonly string[]>([]);
   const current = Math.min(at, Math.max(slides.length - 1, 0));
   const slide = slides[current];
   if (slide === undefined) return <p className="admin-asset__empty">No slides rendered yet.</p>;
@@ -32,21 +34,30 @@ export function CarouselViewer({
 
   return (
     <figure className="admin-carousel" aria-label="Carousel slides">
-      <img
-        className="admin-carousel__slide"
-        draggable={false}
-        src={slide.url}
-        width={slide.w}
-        height={slide.h}
-        alt={alts[current] ?? `Slide ${String(current + 1)} of ${String(slides.length)}`}
-        onPointerDown={(event) => {
-          setStartX(event.clientX);
-        }}
-        onPointerUp={release}
-        onPointerCancel={() => {
-          setStartX(null);
-        }}
-      />
+      {lost.includes(slide.url) ? (
+        <p className="admin-asset__empty" role="alert">
+          {fileName(slide.media_key)}: file not found.
+        </p>
+      ) : (
+        <img
+          className="admin-carousel__slide"
+          draggable={false}
+          src={slide.url}
+          width={slide.w}
+          height={slide.h}
+          alt={alts[current] ?? `Slide ${String(current + 1)} of ${String(slides.length)}`}
+          onPointerDown={(event) => {
+            setStartX(event.clientX);
+          }}
+          onPointerUp={release}
+          onPointerCancel={() => {
+            setStartX(null);
+          }}
+          onError={() => {
+            setLost((already) => [...already, slide.url]);
+          }}
+        />
+      )}
       <figcaption className="admin-carousel__bar">
         <button
           type="button"

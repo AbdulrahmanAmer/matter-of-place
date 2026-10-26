@@ -336,7 +336,14 @@ export async function handle(
   for (const [name, value] of Object.entries(securityHeaders(mopEnv, flags, framing))) {
     if (!(hasPolicy && name.startsWith("Content-Security-Policy"))) headers.set(name, value);
   }
-  if (!isIndexableHost(request.headers.get("host") ?? new URL(request.url).host, mopEnv)) {
+  // The admin shell and every API answer say noindex on every host (IDX-007); robots.txt does not block them, so a crawler reads it.
+  // A failed /media answer (404, 410) carries it too (IDX-006).
+  if (
+    underApi ||
+    isAdmin(path) ||
+    (path.startsWith("/media/") && response.status >= 400) ||
+    !isIndexableHost(request.headers.get("host") ?? new URL(request.url).host, mopEnv)
+  ) {
     headers.set("x-robots-tag", "noindex, nofollow");
   }
   return response;

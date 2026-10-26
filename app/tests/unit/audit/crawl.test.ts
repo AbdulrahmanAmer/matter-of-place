@@ -109,4 +109,23 @@ describe("crawl collect", () => {
       seo_indexability: { notMeasured: "non-production host, G19" },
     });
   });
+
+  it("runs the checkers as local with a salt, so the Worker's secrets are not needed (audit 2026-10-17)", async () => {
+    const seen: (Record<string, string | undefined> | undefined)[] = [];
+    const ctxWith = (env: Record<string, string | undefined>) =>
+      makeContext({
+        env,
+        siteUrl: `https://${DEV_HOST}`,
+        run: (_command, _args, _cwd, childEnv) => {
+          seen.push(childEnv);
+          return { status: 0, stdout: "" };
+        },
+        fetchImpl: () => Promise.resolve(new Response("")),
+      });
+    await collect(ctxWith({ MOP_ENV: "production" }));
+    expect(seen[0]).toMatchObject({ MOP_ENV: "local", RATE_LIMIT_SALT: "audit-checker-only" });
+    seen.length = 0;
+    await collect(ctxWith({ RATE_LIMIT_SALT: "the-run-salt" }));
+    expect(seen[0]).toMatchObject({ MOP_ENV: "local", RATE_LIMIT_SALT: "the-run-salt" });
+  });
 });

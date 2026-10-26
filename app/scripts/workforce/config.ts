@@ -4,8 +4,10 @@
 // decides again.
 import { readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { z } from "zod";
+import { inside } from "../lib/confine.mjs";
+import { APP_DIR } from "./toolkit-args.ts";
 import {
   policyChanged,
   policyFor,
@@ -51,6 +53,24 @@ export function workforceOverride(file: string = CONFIG_FILE, now: Date = new Da
       ? {}
       : { backlog: typeof backlog === "boolean" ? (backlog ? "all" : "off") : backlog }),
   };
+}
+
+/**
+ * The Google Drive Social Media folder on this laptop (`driveSocial` in config.json, read whatever its `until`), or null
+ * when it names none: a toolkit that writes there is then refused (ruling H115, review of 2026-10-16). A run writes
+ * there, so a folder that is not absolute, holds the home folder or a folder the runner keeps (the app, the studio,
+ * the knowledge notes), or lies inside a kept one, is none (review of 2026-10-26).
+ */
+export function driveSocialFolder(file: string = CONFIG_FILE): string | null {
+  const parsed = z.object({ driveSocial: z.string().min(3) }).safeParse(readJson(file));
+  if (!parsed.success) return null;
+  const drive = parsed.data.driveSocial;
+  const runner = dirname(file);
+  const kept = [APP_DIR, join(runner, "studio"), join(runner, "matter", "knowledge")];
+  if (!isAbsolute(drive)) return null;
+  if ([homedir(), ...kept].some((dir) => inside(drive, dir))) return null;
+  if (kept.some((dir) => inside(dir, drive))) return null;
+  return drive;
 }
 
 /** The policy the last pass wrote, or null before the first. */

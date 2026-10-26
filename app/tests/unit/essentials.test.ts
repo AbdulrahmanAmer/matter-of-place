@@ -431,13 +431,13 @@ describe("csp-inline-rules", () => {
 describe("not-found-head", () => {
   // PR 368: router 1.170.42 runs no `head` of a route whose loader threw notFound, and the sweep's /no-such-page lost
   // its description and canonical.
-  it("not-found-head: a page no route matches has a description, a canonical and noindex", async () => {
+  it("not-found-head: a page no route matches has a description, no canonical and noindex", async () => {
     const page = await renderPage("/no-such-page");
     expect([
       /<meta name="description" content="\S/.test(page),
-      /<link rel="canonical" href="https?:\/\//.test(page),
+      /<link rel="canonical"/.test(page),
       page.includes('content="noindex, nofollow"'),
-    ]).toEqual([true, true, true]);
+    ]).toEqual([true, false, true]);
   });
 });
 
@@ -1396,6 +1396,18 @@ describe("feed", () => {
       );
     expect(alternate("application/rss+xml", "/feed.xml")).toBe(true);
     expect(alternate("application/feed+json", "/feed.json")).toBe(true);
+  });
+
+  it("llms: every page's head names /llms.txt as a text/plain alternate (audit 2026-10-17)", async () => {
+    const tags = [...(await renderHome()).matchAll(/<link\b[^>]*>/g)].map(([text]) => text);
+    expect(
+      tags.some(
+        (text) =>
+          text.includes('rel="alternate"') &&
+          text.includes('type="text/plain"') &&
+          text.includes('href="/llms.txt"'),
+      ),
+    ).toBe(true);
   });
 });
 

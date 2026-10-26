@@ -47,11 +47,13 @@ export function websiteLd(): WebSite {
 
 export type Crumb = { name: string; path: string };
 
-/** The trail after Home, which is always the first item (position 1). */
+/** The trail after Home, which is always the first item (position 1). The last crumb is the page itself, which names the `@id`. */
 export function breadcrumbLd(trail: Crumb[]): BreadcrumbList {
   const items: Crumb[] = [{ name: "Home", path: "/" }, ...trail];
+  const page = trail.at(-1) ?? { name: "Home", path: "/" };
   return {
     "@type": "BreadcrumbList",
+    "@id": `${absoluteUrl(page.path)}#breadcrumb`,
     itemListElement: items.map((item, index) => ({
       "@type": "ListItem",
       position: index + 1,
@@ -93,7 +95,7 @@ export function propertyListingLd(property: ListedProperty): RealEstateListing {
   ].flatMap((value) => mediaAddress(value) ?? []);
   return {
     "@type": "RealEstateListing",
-    "@id": `${url}#listing`,
+    "@id": `${url}#primary`,
     url,
     name: property.title,
     description: propertyDescription(property),
@@ -134,7 +136,7 @@ export function articleLd(
   const image = mediaAddress(story.image);
   return {
     "@type": "Article",
-    "@id": `${url}#article`,
+    "@id": `${url}#primary`,
     mainEntityOfPage: url,
     headline: story.title.replace(/\.$/, ""),
     description: story.deck,
@@ -150,7 +152,7 @@ export type CollectionKind =
 
 /** A page that lists things: `items` are the listed pages, in the order shown. */
 export function collectionLd(
-  kind: CollectionKind,
+  _kind: CollectionKind,
   title: string,
   path: string,
   items: Crumb[],
@@ -158,7 +160,7 @@ export function collectionLd(
   const url = absoluteUrl(path);
   return {
     "@type": "CollectionPage",
-    "@id": `${url}#${kind}`,
+    "@id": `${url}#primary`,
     url,
     name: title,
     mainEntity: {

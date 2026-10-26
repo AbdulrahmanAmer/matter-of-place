@@ -27,9 +27,13 @@ for (const route of pageRoutes) {
       .soft((await page.title()).match(/Matter of Place/g), "the brand appears once in the title")
       .toHaveLength(1);
     await expect.soft(page.locator('meta[name="description"]')).toHaveAttribute("content", /\S/);
-    await expect
-      .soft(page.locator('link[rel="canonical"]'))
-      .toHaveAttribute("href", /^https?:\/\//);
+    // A 404 names no canonical (IDX-006); every other page names its absolute address.
+    if (route.routeClass === "notFound")
+      await expect.soft(page.locator('link[rel="canonical"]')).toHaveCount(0);
+    else
+      await expect
+        .soft(page.locator('link[rel="canonical"]'))
+        .toHaveAttribute("href", /^https?:\/\//);
     await expect.soft(page.locator("img:not([alt])")).toHaveCount(0);
     expect.soft(seen.consoleErrors).toEqual([]);
     expect.soft(seen.pageErrors).toEqual([]);

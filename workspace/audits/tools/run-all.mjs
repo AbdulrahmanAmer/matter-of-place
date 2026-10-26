@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import * as bing from "./bing.mjs";
@@ -63,7 +63,12 @@ export const SECRET_NAMES = [
  */
 export const COLLECTORS = [
   { name: "psi", keys: ["psi"], vendor: true, collect: psi.collect },
-  { name: "gsc", keys: ["gsc", "keywords"], vendor: true, collect: gsc.collect },
+  {
+    name: "gsc",
+    keys: ["gsc", "keywords", "brand_queries"],
+    vendor: true,
+    collect: gsc.collect,
+  },
   { name: "ga4", keys: ["ga4"], vendor: true, collect: ga4.collect },
   { name: "bing", keys: ["bing"], vendor: true, collect: bing.collect },
   { name: "uptime", keys: ["uptime"], vendor: true, collect: uptime.collect },
@@ -295,12 +300,26 @@ export async function runAll(options) {
     }
   }
 
+  const previous = previousSidecar(root, date);
+  const brand = sidecar["brand_queries"];
+  if (brand !== undefined) {
+    // Last week's numbers go beside this week's, inside the sidecar, so the report's tables can cite both.
+    const before =
+      previous === null ? null : parseJsonOrNull(readFileSync(resolve(root, previous), "utf8"));
+    sidecar["brand_queries"] = /** @type {import("./common.mjs").Json} */ (
+      gsc.withPreviousBrand(
+        /** @type {Parameters<typeof gsc.withPreviousBrand>[0]} */ (brand),
+        before,
+      )
+    );
+  }
+
   const front = {
     date,
     run_id: `audit-${date}`,
     schedule: flags.manual ? "manual" : "scheduled",
     site_url: ctx.siteUrl,
-    previous: previousSidecar(root, date),
+    previous,
     tools: { node: process.version },
     sources_configured: [...REQUIRED, ...OPTIONAL].filter((name) => isSet(ctx.env, name)),
   };

@@ -29,7 +29,7 @@ export function explainsHeld(
 export const EXPLANATION_FAILED =
   "The owner's explanation of the held message did not finish; Matter decides without it.";
 
-/** Said in the thread when the owner is paused or off at the hold, so there is no explanation; Matter decides all the same. */
+/** Said in the thread when the owner is paused or off after the hold, so there is no explanation; Matter decides all the same. */
 export const OWNER_UNAVAILABLE =
   "The owner of the held message is paused or off, so it cannot explain it; Matter decides without an explanation.";
 
@@ -147,7 +147,8 @@ export async function handUnavailableOwners(client: Db): Promise<number> {
     const line = lines?.find((row) => row.id === run.message_id);
     if (owner === undefined || line === undefined || run.message_id === null) continue;
     if (!explainsHeld(owner.slug, line)) continue;
-    const { error } = await client
+    // no row back: another runner claimed the run since the read above, so its owner explains the line after all
+    const { data: closed, error } = await client
       .from("agent_runs")
       .update({
         state: "done",
@@ -155,8 +156,9 @@ export async function handUnavailableOwners(client: Db): Promise<number> {
         summary: OWNER_UNAVAILABLE_SUMMARY,
       })
       .eq("id", run.id)
-      .eq("state", "queued");
-    if (error !== null) continue;
+      .eq("state", "queued")
+      .select("id");
+    if (error !== null || closed.length === 0) continue;
     await client.from("agent_messages").insert({
       thread: line.thread,
       author_kind: "system",

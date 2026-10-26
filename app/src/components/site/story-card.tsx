@@ -2,7 +2,9 @@ import { Link } from "@tanstack/react-router";
 import type { Story } from "../../domain/story";
 import { Picture } from "./picture";
 
-export function StoryCard({ story }: { story: Story }) {
+/** `level` keeps the outline whole: h2 when the grid sits directly under the page h1, h3 under a section heading. */
+export function StoryCard({ story, level = 3 }: { story: Story; level?: 2 | 3 }) {
+  const Heading = level === 2 ? "h2" : "h3";
   return (
     <Link to="/stories/$slug" params={{ slug: story.slug }} className="story-card">
       {story.image !== undefined && (
@@ -15,19 +17,19 @@ export function StoryCard({ story }: { story: Story }) {
         />
       )}
       <span className="eyebrow">{story.category.toUpperCase()}</span>
-      <h3>
+      <Heading>
         <span className="card-title">{story.title}</span>
-      </h3>
+      </Heading>
       <p>{story.deck}</p>
     </Link>
   );
 }
 
-export function StoryGrid({ items }: { items: Story[] }) {
+export function StoryGrid({ items, level = 3 }: { items: Story[]; level?: 2 | 3 }) {
   return (
     <div className="story-grid">
       {items.map((story) => (
-        <StoryCard key={story.slug} story={story} />
+        <StoryCard key={story.slug} story={story} level={level} />
       ))}
     </div>
   );

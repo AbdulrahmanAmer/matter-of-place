@@ -224,8 +224,8 @@
     "id": "w7-2-screen-sent-filter",
     "test": "src/admin/audit/replies.test.tsx",
     "file": "src/admin/audit/SentEmailsPage.tsx",
-    "find": "...(status === undefined ? {} : { status }),",
-    "replace": "...filters.values,",
+    "find": "        status={status}\n",
+    "replace": "        status={filters.values.reply}\n",
     "run": "bunx vitest run --project component src/admin/audit/replies.test.tsx",
     "expect": "× .*asks only for the replies in the state chosen, and the sent emails only for theirs"
   },
@@ -233,8 +233,8 @@
     "id": "w7-2-screen-cursor",
     "test": "src/admin/audit/replies.test.tsx",
     "file": "src/admin/audit/sent-emails-queries.ts",
-    "find": "if (cursor !== null) search.set(\"cursor\", cursor);",
-    "replace": "",
+    "find": "  if (state !== undefined) search.set(\"state\", state);\n  if (cursor !== null) search.set(\"cursor\", cursor);",
+    "replace": "  if (state !== undefined) search.set(\"state\", state);",
     "run": "bunx vitest run --project component src/admin/audit/replies.test.tsx",
     "expect": "× .*pages the replies: Next opens the page after the cursor, Previous goes back, and the last page has no Next"
   },

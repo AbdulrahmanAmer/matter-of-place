@@ -8,6 +8,13 @@
   padding: 0;
 }
 
+/* A cell and a card are as wide as their column and no wider. The admin sheet has no `max-width` for media (only the public
+   base.css does), so a reel's 1080 px poster made the cell 1080 px wide and the caption, notes and buttons under it ran
+   into the next card (W8 item 11). Text wraps inside the card and is never cut: a reviewer reads the whole caption. */
+.admin-assets > li {
+  min-width: 0;
+}
+
 .admin-asset {
   display: grid;
   gap: var(--admin-space-3);
@@ -15,6 +22,23 @@
   min-width: 0;
   padding: var(--admin-space-4);
   border: 1px solid var(--border);
+}
+
+.admin-asset > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.admin-asset img,
+.admin-asset video {
+  max-width: 100%;
+  height: auto;
+}
+
+.admin-asset .admin-prose,
+.admin-asset__note,
+.admin-asset__meta {
+  overflow-wrap: anywhere;
 }
 
 .admin-asset__head {

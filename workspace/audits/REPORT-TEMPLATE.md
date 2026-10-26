@@ -24,6 +24,8 @@ Every number in a table cell is a number of `data/YYYY-MM-DD.json`, in its unit.
 | Technical SEO | <failed check-seo rows> | | | |
 | AEO and GEO | <pages failing JSON-LD; llms.txt present, valid, linked> | | | |
 | Keywords | <keywords.covered of keywords.total; Bing queries, impressions, clicks> | | | |
+| Brand query: matter of place | <brand_queries position, impressions, clicks of that query, or "no impressions"> | <the same from its `previous`, or "none"> | <improved, worse or unchanged: a lower position is better; no number> | |
+| Brand query: matter of place real estate | <as the row above> | | | |
 | Channels | | | | |
 | Security | | | | |
 | Uptime | <30 day percent for the three monitors, interval> | | | |

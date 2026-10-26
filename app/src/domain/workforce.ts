@@ -56,6 +56,8 @@ export const wakeLabels: Record<(typeof eventTypes)[number], string> = {
   "health.failed": "A health check fails",
   "subject_request.received": "A privacy request arrives",
   "email.bounced": "An email to a request or inquiry bounces",
+  "email.received": "A person emails one of our addresses",
+  "email.reply_received": "A person replies to an email we sent",
 };
 
 const agentModels = ["opus", "sonnet", "haiku"] as const;

@@ -3,8 +3,8 @@
     "id": "ra-a-job-runs-agents",
     "test": "tests/unit/jobs/retention.test.ts",
     "file": "src/server/jobs/system/retention.ts",
-    "find": "  \"agent_runs_finished\",\n  \"agent_messages\",\n];",
-    "replace": "];",
+    "find": "  \"agent_runs_finished\",\n  \"agent_messages\",\n  // W8 0h",
+    "replace": "  // W8 0h",
     "run": "bunx vitest run --project unit tests/unit/jobs/retention.test.ts",
     "expect": "× .*runs the policies in order after the rollup"
   },

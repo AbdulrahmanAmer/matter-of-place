@@ -21,25 +21,6 @@ interface MediaRow {
 type MediaLister = "retention_declined_media" | "retention_accepted_media";
 type KeepCounter = "retention_anonymise_inquiries" | "retention_anonymise_contacts";
 
-const POLICY_KEYS = [
-  "declined_submission_media",
-  "accepted_submission_media",
-  "inquiries_anonymise",
-  "contacts_anonymise",
-  "analytics_events",
-  "analytics_daily",
-  "subject_requests",
-  "jobs_dead",
-  "events_processed",
-  "email_pii",
-  "unconfirmed_subscribers",
-  "cron_history",
-  "job_wait_events",
-  "agent_approvals_decided",
-  "agent_runs_finished",
-  "agent_messages",
-] as const;
-
 // The plain row deletes of retention_delete_rows, in order: jobs_dead before events_processed, so a dead job's event
 // goes with it once both are old enough (G16).
 const ROW_KEYS_BEFORE_EMAIL = [
@@ -57,6 +38,10 @@ const ROW_KEYS_AFTER_EMAIL = [
   "agent_approvals_decided",
   "agent_runs_finished",
   "agent_messages",
+  // W8 0h: the mail read from the mailbox, after a year. `email_replies` had its policy and its delete since W4 but
+  // was never named here, so no reply was ever removed.
+  "email_replies",
+  "inbound_mail",
 ];
 
 function unavailable(fn: string): AppError {
@@ -112,6 +97,52 @@ async function mediaPolicy(
   if (dryRun) return { affected: rows.length, remaining: rows.length };
   const affected = await removeMedia(db, rows);
   return { affected, remaining: (await listMedia(db, fn, policy.keepFor)).length };
+}
+
+interface VisualRow {
+  asset_id: string;
+  media_keys: string[];
+}
+
+async function listVisuals(db: Db, keep: string): Promise<VisualRow[]> {
+  const { data, error } = await db.rpc("retention_requested_visuals", { p_keep: keep });
+  if (error !== null) throw unavailable("retention_requested_visuals");
+  return data;
+}
+
+/**
+ * W8 item 1: a rejected visual made on request has no property to go with. In batches, its row is deleted first by
+ * `retention_delete_assets`, which checks the rule again and answers the rows it deleted with their keys, and only
+ * those files then leave bucket `media` (an orphan file does less harm than a row whose files are gone). A Storage
+ * error throws and names the keys left behind, so a person can remove them.
+ */
+async function removeVisuals(db: Db, rows: VisualRow[]): Promise<number> {
+  let removed = 0;
+  for (let start = 0; start < rows.length; start += REMOVE_BATCH) {
+    const batch = rows.slice(start, start + REMOVE_BATCH);
+    const deleted = await db.rpc("retention_delete_assets", {
+      p_ids: batch.map((row) => row.asset_id),
+    });
+    if (deleted.error !== null) throw unavailable("retention_delete_assets");
+    removed += deleted.data.length;
+    const keys = deleted.data.flatMap((row) => row.media_keys);
+    if (keys.length === 0) continue;
+    const { error } = await db.storage.from("media").remove(keys);
+    if (error === null) continue;
+    throw new AppError(
+      "storage_unavailable",
+      undefined,
+      `Storage did not remove the files of ${String(deleted.data.length)} deleted visuals: ${keys.join(", ")}`,
+    );
+  }
+  return removed;
+}
+
+async function visualsPolicy(db: Db, policy: Policy, dryRun: boolean): Promise<Tally> {
+  const rows = await listVisuals(db, policy.keepFor);
+  if (dryRun) return { affected: rows.length, remaining: rows.length };
+  const affected = await removeVisuals(db, rows);
+  return { affected, remaining: (await listVisuals(db, policy.keepFor)).length };
 }
 
 async function keepCount(db: Db, fn: KeepCounter, keep: string, dryRun: boolean): Promise<number> {
@@ -176,7 +207,6 @@ export const retention: SystemJobDefinition = {
   async run(ctx, params) {
     const { db } = ctx;
     const dryRun = isDryRun(params);
-    const policies = await readPolicies(db, POLICY_KEYS);
     const after: Record<string, Tally> = {};
     // Each step runs only while its row is enabled with a period, in the order G16 needs.
     const steps: [string, (policy: Policy) => Promise<Tally>][] = [
@@ -188,6 +218,7 @@ export const retention: SystemJobDefinition = {
         "accepted_submission_media",
         (policy) => mediaPolicy(db, "retention_accepted_media", policy, dryRun),
       ],
+      ["rejected_requested_visuals", (policy) => visualsPolicy(db, policy, dryRun)],
       [
         "inquiries_anonymise",
         (policy) => anonymisePolicy(db, "retention_anonymise_inquiries", policy, dryRun),
@@ -207,6 +238,11 @@ export const retention: SystemJobDefinition = {
         () => counted((dry) => deleteRows(db, key, dry), dryRun),
       ]),
     ];
+    // W8 0h review: the policies read are the steps' own keys, so a step can never be added without its row being read.
+    const policies = await readPolicies(
+      db,
+      steps.map(([key]) => key),
+    );
 
     // The aggregates are written before the partitions they come from can be dropped.
     const rolledUp = dryRun ? 0 : await rollupRecentDays(ctx);
