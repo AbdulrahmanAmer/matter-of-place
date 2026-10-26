@@ -2359,6 +2359,17 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   social output is a test, judged by Matter, until the channels are connected. Matter: PR 449 merged 14:24Z, PR 464 (third
   batch) in CI, builders and Opus reviews running. Six Approvals (four Fairfield test posts, the welcome note to the
   admin@ test signup, a lesson for Maya) sent to Matter to clear; still pending at 20:05.
+- 2026-10-19 21:15 +0300: orchestrator, closing for the 21:50 shutdown (operator). MERGED today: PR 449 (overdrive/finish-2: the W8 0d,
+  W6 7, W7 7 follow-ups; deployed). PR 464 (overdrive/finish-3: W8 10 proposed posts with ruling H135, W7 9 with 9a/9b under H132, the
+  follow-ups' last round, W8 0h inbound mail and the email_replies purge) was green and in the merge gate at the close. Six waiting
+  approvals decided with Matter's key (four Fairfield test posts and Iris's welcome note rejected, Maya's coming-soon lesson approved).
+  PUSHED, WAITING FOR REVIEW AND AN INTEGRATION PR tomorrow (all reviewed PASS unless noted): overdrive/search-rank (W8 12: homepage
+  paragraph, accurate sitemap lastmod, the audit tracks the two brand queries), overdrive/w7-1, overdrive/w8-3, overdrive/w6-5,
+  overdrive/w8-0h (round 3); reviews pending to read: overdrive/w8-0f, overdrive/w6-6, overdrive/w8-1; builders parked at the close:
+  overdrive/w6-8, overdrive/w6-4 (fix round: 'build' lessons source), overdrive/toolkits (fix round 5). W8 10's three review mediums and
+  the meeting's "share of drafts Matter would publish unchanged" line are unbuilt. Orchestration scripts saved to
+  ~/.mop-workforce/matter/tools/2026-10-19/. UNPROVEN: W8 0d and 0h on real messages (needs one outside test message from the operator).
+  Bank grew: P-3709.
 
 - 2026-10-25 23:40 +0300: orchestrator. RESUMED ONE BY ONE (operator: "finish tasks one by one with matter"): PARK file
   renamed PARK.lifted-2026-10-25, STOP stays, backlog "person" (config.parked-2026-10-19.json kept). Matter's ordered list
@@ -2400,3 +2411,24 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   submission to Google and Bing (nothing submitted before the sitemap is fixed), rank tracking. Build conditions logged with
   the plan approval: template copy rewritten to the brand, collection pages as editorial guides with interest signup and
   no illustrative property, programmatic data only from a real dated source. Bank: P-3730, P-3731.
+
+- 2026-10-26 16:10 +0300: orchestrator. THE OPERATOR'S ORDER OF 2026-10-25 21:35 IS DONE except W8 0d (needs his hands).
+  Merged one at a time through gate-loop, each with a fresh Opus review: 452, 453, 454, 474 (10-17 audit), 476 (film
+  label), 457 (dependabot, supply-chain checked), 477 w8-0h, 478 w8-0f, 479 w6-6, 480 search-rank, 482 w7-1, 484 w8-3,
+  485 w6-5, 486 w8-1 (dcf2f32f), 488 w6-4 (1a9948c7), 489 toolkits (4e658d13), 490 w6-8 (141a5df6), 493 w8-11
+  (73e834d4); deploys of 486, 488, 489, 490 watched green; 493's watched by this close. Each had 1 to 3 CI-fix rounds
+  (types, lint, registry finds, type drift): builders write blind under no-local-CI (P-4547; how.md now lists the traps).
+  Rulings this run: H138 (7) (lessons quote every commit of his own PR; writers are his account and OmnikomLLC), H141
+  (toolkit renders block up to 30 min), H142 (the client room, renumbered from H137).
+  WAITING ON OPERATOR: W8 0d live proof (one outside test message, contact form or an email to hello@ from his own
+  address); his decision on deleting E:/mop-build/od-w6-8-scratch (told at 490's merge); 2SV on admin@; the zod 4 move;
+  whether builders may run eslint on their own changed files (each PR lost one or two CI rounds to lint).
+  Follow-ups (review lows, not built): studio "queued" lines in daemon.ts still name the absolute folder; `**/*.md` in
+  ci.yml hides DIRECTION.md/MOTION-BIBLE.md/STUDY.md/reel/STORYBOARD.md that reel.ts and brand-post.ts copy; lessons
+  stillPending should retry "signed-in account unknown"; build_lesson_fn's down line; a pass lock file (a second pass
+  after the 50-minute task limit could clear a live run's outside folder); driveSocial must also refuse the runner home,
+  the checkout root and DESK, and log why it refused; the sweep doc and H115 still name the studio sweep; the client
+  room's refund kind, a photo activated before it settles (NOT DONE in H142), two spends on two connections; Proposed
+  posts: dialog titles keep the post's case, "Approving files" copy, a refused reject keeps the typed note, approve
+  invalidates assets and channels; 13 registry finds on main match nothing (B17, B4, B8b, fix-consent-bar, H1: CI
+  replays only changed entries, so they never show). Bank: P-4547, P-4612, P-4613, G-1303 hit again.

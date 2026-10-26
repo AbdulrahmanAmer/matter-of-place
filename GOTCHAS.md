@@ -7804,6 +7804,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a function type added by hand before CI regenerates copies the generator's form: arguments in alphabetical order, `"p_x"?:` for a defaulted one, `(string)[]` for an array argument, `Returns: string` for uuid or text, and `Returns: string[]` (no parentheses) for `returns setof text` (hit 2026-10-13, PR 354: `staging_orphans` written `(string)[]` failed the db job's type drift).
 - proof: `gh run view <run> --log-failed | grep "type drift"` shows the `-`/`+` lines; with `(string)[]` the job's diff is empty (PR 321 at 5c... merged 05:18).
 - added: 2026-10-12
+- hit again: 2026-10-26, PR 488 (W6 item 4): the merge of main left `record_channel_check` before `record_build_lesson` in `src/db/types.ts`; the db job's `git diff --exit-code src/db/types.ts` caught it, and three reruns were first misread as a registry rate limit (P-4612). Fixed in c47aca51 by the generator's alphabetical order.
 
 ## P-3439 · A gate started with a detached `&` again, against the standing order to use run_in_background
 - symptom: 2026-10-12 05:35, `(bash gate-loop.sh ... 324 &)` started the records PR's gate untracked; the operator had asked on 2026-10-11 that every long command run as a tracked background task.
@@ -9161,4 +9162,24 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the driver cannot renumber; when both sides changed the same id it keeps ours and stops. A grep for conflict markers finds nothing, so the file looks resolved.
 - rule: on that message take main's file whole (`git show :3:GOTCHAS.md`), add this branch's own entries after main's highest P (and G) number, fix every citation of the old numbers (`grep -rn "P-3600" app workspace`), then `git add` it. Check with `grep -c "^## P-4609 " GOTCHAS.md` and `node workspace/05-plans/check-gotchas.mjs`.
 - proof: `git show origin/main:GOTCHAS.md | grep -c "^## P-3600 "` → 1 (main's robots.txt entry) while the branch's entry of that number was a different lesson; after the renumber `grep -c "^## P-4609 " GOTCHAS.md` → 1 and `grep -c "^## P-3600 " GOTCHAS.md` → 1.
+- added: 2026-10-26
+
+## P-4547 · A builder that may not run tsc or lint writes code they refuse, and each refusal costs a CI round
+- symptom: W8 item 1 (PR 486), 2026-10-26: 7 tsc errors, 21 lint errors and 8 STALE registry finds reached CI over three rounds; W6 item 4 (488), the toolkits (489) and W6 item 8 (490) repeated it: `require-await`, `exactOptionalPropertyTypes`, R43 formatting in a component, unnecessary casts, a non-exhaustive switch, a heading repeated as a section heading.
+- cause: no local CI (operator, 2026-10-16): a builder never sees tsc or eslint; a line it copies or splits makes a registry `find` occur twice.
+- rule: the builders' shared How (`~/.mop-workforce/builders/how.md`) names the traps and requires every registry find in a changed file to stay unique; a CI-fix round's brief carries CI's output word for word, and the builder reads its other new files for the same rules before pushing.
+- proof: PR 486's fix commits fe8afc33 (tsc) and cdff22fe (lint) before the merge dcf2f32f; PR 490's rounds d4c20d32 (tsc, audit) and a2bf38f7 (lint, e2e) before 141a5df6.
+- added: 2026-10-26
+
+## P-4612 · "toomanyrequests: Data limit exceeded" in CI's db job is noise; the failure is the step that exited
+- symptom: PR 488, 2026-10-26: three db runs were read as a registry rate limit and rerun; the job had failed on `gen:types` type drift.
+- cause: the Supabase CLI pulls from public.ecr.aws first; its anonymous quota refuses, the CLI falls back to ghcr.io and the pulls succeed, but the refusals stay in the log as the loudest lines.
+- rule: read the lines just before `##[error]Process completed with exit code`, never the loudest error; a rerun is for an infrastructure failure seen in the step that exited.
+- proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/<db job>/logs | grep -B40 "Process completed with exit code 1"` on run 40280646533 shows the `src/db/types.ts` diff.
+- added: 2026-10-26
+
+## P-4613 · The merge gate read the checks of a commit that never landed
+- symptom: PR 488, 2026-10-26: `git commit ... && git push; sleep; gate-loop` ran the gate after the commit failed on a transient `index.lock`, so it read the old head's red checks again; after `gh run rerun --failed` the gate read the previous attempt's failure.
+- rule: before a gate, compare `git rev-parse HEAD` with `origin/<branch>` and stop when they differ; after a rerun or a push, wait until the job's latest attempt has completed before gating (`.tmp/wait-check.sh`, `.tmp/wait-job-then-gate.sh` in the orchestrator's folder).
+- proof: `.tmp/gd-488c.log` 09:30 gated a53c5c74 while the run.ts fix was still staged; `.tmp/gd-488e.log` 09:50 read attempt 1's failure during attempt 2.
 - added: 2026-10-26
