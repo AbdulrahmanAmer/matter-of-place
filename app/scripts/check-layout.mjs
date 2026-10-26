@@ -62,6 +62,7 @@ export const APP_ROWS = [
       "src/routes/admin/*.tsx",
       "src/routes/api/{public,admin,hooks}/*.ts",
       "src/routes/api/consent.ts",
+      "src/routes/api/form-fallback.ts",
     ],
   },
   {

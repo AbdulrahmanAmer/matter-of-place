@@ -41,8 +41,6 @@ const INDEXABLE_ROBOTS = [
   "User-agent: *",
   "Content-Signal: search=yes, ai-input=yes, ai-train=no",
   "Allow: /",
-  "Disallow: /admin",
-  "Disallow: /api",
   "",
   "Sitemap: https://matterofplace.com/sitemap.xml",
   "",

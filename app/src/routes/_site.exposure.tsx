@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_site/exposure")({
       description: pageDescription("exposure"),
       path: "/exposure",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: faqJsonLd(exposureFaqFor(loaderData ?? [])),
+      jsonLd: [faqJsonLd(exposureFaqFor(loaderData ?? []))],
     }),
   component: ExposurePage,
 });

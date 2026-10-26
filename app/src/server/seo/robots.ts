@@ -15,8 +15,6 @@ const SITEMAP = "https://matterofplace.com/sitemap.xml";
 const INDEXABLE_BODY = `User-agent: *
 Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
-Disallow: /admin
-Disallow: /api
 
 Sitemap: ${SITEMAP}
 `;

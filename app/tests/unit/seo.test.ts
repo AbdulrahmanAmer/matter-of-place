@@ -79,6 +79,12 @@ describe("pageHead", () => {
     expect(titleOf(head)).toBe(`Property unavailable | ${brand}`);
     expect(head.meta).toContainEqual({ name: "robots", content: "noindex, nofollow" });
   });
+
+  it("gives the head of an unresolved dynamic route no canonical link and no og:url (IDX-006)", () => {
+    const head = unavailableHead("Property");
+    expect(head.links).toEqual([]);
+    expect(head.meta.some((tag) => "property" in tag && tag.property === "og:url")).toBe(false);
+  });
 });
 
 const metaContent = (head: ReturnType<typeof pageHead>, key: string) =>
@@ -186,7 +192,7 @@ describe("pageHead jsonLd", () => {
     expect(head.scripts).toHaveLength(1);
     expect(JSON.parse(scriptBody(head))).toEqual({
       "@context": "https://schema.org",
-      "@graph": [a, b],
+      "@graph": [expect.objectContaining({ "@type": "WebPage" }), a, b],
     });
   });
 });

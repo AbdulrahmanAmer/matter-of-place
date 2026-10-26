@@ -8993,3 +8993,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when an app test starts covering a file outside `app/`, check that `ci.yml`'s `paths-ignore` does not hide it; `launch/` is ignored folder by folder, never whole, and a new folder runs CI until it is named.
 - proof: `cd app && bunx vitest run --project unit tests/unit/merge-gate.test.ts -t "post page sandbox"` → passes (CI's unit run, PR 486); registry `w8-1-ci-runs-on-sandbox` (`launch/**` put back) turns it red in CI's replay.
 - added: 2026-10-26
+
+## P-3733 · The SEO skill's refactor proves a fix against its own checks only: the repo's CI then fails it five times
+- symptom: 2026-10-26, PR 483 (10 causes FIXED, stability PASS by refactor.mjs) failed CI four rounds: a new route outside the folder map (check-layout), the robots.txt body pinned in five files (P-3600), five stale mutations, prettier and no-unsafe-type-assertion lint, 13 unit tests holding the old behaviour, a hex colour outside tokens (R42), a component test that found two rows.
+- rule: a refactor branch is not done when its own checks pass; before pushing, list what the repo pins for every changed file (`node ~/.claude/hooks/edit-impact.mjs --changed <worktree>`, `grep -rln` of each changed literal in app/tests and tests/mutations, check-layout's map for new files) and change those in the same branch; expect the first CI round to find the rest.
+- proof: `gh pr view 483 --json commits -q '.commits[].messageHeadline'` shows the four fix commits after the ten refactor commits; merged as db4d03c1.
+- added: 2026-10-26
