@@ -1,0 +1,115 @@
+-- down: drop function public.queue_event_runs(uuid[], uuid[]); re-run bun run db:fn ops_health from the previous commit of supabase/sql/functions/ops_health.sql
+set lock_timeout = '5s';
+
+create or replace function public.queue_event_runs(p_agents uuid[], p_events uuid[])
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_queued integer;
+begin
+  -- W8 0h fourth review: the one way the laptop runner queues a run on an event (the daemon's wake, the hand-off of a
+  -- property to the Editor). The index that keeps one run per (agent, event) is partial, so the conflict names its
+  -- predicate: without it Postgres refuses the insert (42P10) and nothing is queued. Pairs by position; returns how
+  -- many runs are new, so a pair already queued counts 0 and is not an error.
+  if p_agents is null or p_events is null or cardinality(p_agents) <> cardinality(p_events)
+    or cardinality(p_agents) > 1000
+  then
+    raise exception 'bad_request';
+  end if;
+  insert into public.agent_runs (agent_id, cause, event_id)
+  select pair.agent_id, 'event', pair.event_id
+  from unnest(p_agents, p_events) as pair (agent_id, event_id)
+  where pair.agent_id is not null and pair.event_id is not null
+  on conflict (agent_id, event_id) where event_id is not null do nothing;
+  get diagnostics v_queued = row_count;
+  return v_queued;
+end;
+$$;
+
+revoke execute on function public.queue_event_runs(uuid[], uuid[]) from public, anon, authenticated;
+grant execute on function public.queue_event_runs(uuid[], uuid[]) to service_role;
+
+create or replace function public.ops_health(p_now timestamptz)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_failing text[] := '{}';
+  v_keepwarm boolean := false;
+  v_backup boolean := false;
+begin
+  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.
+  if not exists (
+    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'
+  ) then
+    v_failing := array_append(v_failing, 'runner');
+  end if;
+  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.
+  if to_regclass('public.schedule_settings') is not null then
+    execute $q$
+      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),
+        coalesce(bool_or(enabled) filter (where key = 'backup'), false)
+      from public.schedule_settings
+    $q$ into v_keepwarm, v_backup;
+  end if;
+  if v_keepwarm and not exists (
+    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'
+  ) then
+    v_failing := array_append(v_failing, 'keepwarm');
+  end if;
+  if v_backup and not exists (
+    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'
+  ) then
+    v_failing := array_append(v_failing, 'backup');
+  end if;
+  -- W8 0h: the laptop's mailbox check beats `mail_folders` every five minutes; a folder it could not read (or a
+  -- mailbox it could not reach, or no Zoho names) beats ok false, named here until a check reads them all again. While
+  -- the laptop runner passes (it touches Matter's last_seen_at every pass; the `runner` row is the Worker's) a check
+  -- that has not beaten for 30 minutes is named too, so a mailbox never read is never green (fourth review, H121 (17)).
+  if exists (
+    select 1 from public.ops_heartbeats
+    where name = 'mail_folders' and at >= p_now - interval '30 minutes' and detail ->> 'ok' = 'false'
+  ) or (
+    exists (
+      select 1 from public.agents
+      where slug = 'matter' and last_seen_at >= p_now - interval '10 minutes'
+    )
+    and not exists (
+      select 1 from public.ops_heartbeats
+      where name = 'mail_folders' and at >= p_now - interval '30 minutes'
+    )
+  ) then
+    v_failing := array_append(v_failing, 'mail_folders');
+  end if;
+  -- W8 0g: the nightly copy to Google Drive beats `drive_copy` after the backup; a missing Drive folder beats ok false.
+  if v_backup and not exists (
+    select 1 from public.ops_heartbeats
+    where name = 'drive_copy' and at >= p_now - interval '26 hours' and detail ->> 'ok' = 'true'
+  ) then
+    v_failing := array_append(v_failing, 'drive_copy');
+  end if;
+  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.
+  if exists (
+    select 1 from public.jobs
+    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'
+  ) then
+    v_failing := array_append(v_failing, 'stale_queue');
+  end if;
+  if exists (
+    select 1 from public.jobs
+    where status = 'dead' and finished_at > p_now - interval '24 hours'
+  ) then
+    v_failing := array_append(v_failing, 'dead_jobs');
+  end if;
+  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));
+end;
+$$;
+
+revoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;
+grant execute on function public.ops_health(timestamptz) to service_role;

@@ -1,5 +1,5 @@
 import "../../fixtures/worker-env";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -55,7 +55,7 @@ function setup(world: World = {}, env: Record<string, string | undefined> = {}) 
   const run = (argv: string[], extra: Partial<Parameters<typeof runAll>[0]> = {}) =>
     runAll({ argv, ctx, root, log: (line) => lines.push(line), collectors: [], ...extra });
   const sidecar = (): unknown => JSON.parse(readFileSync(join(root, SIDECAR), "utf8"));
-  return { run, requests, lines, sidecar, written: () => existsSync(join(root, SIDECAR)) };
+  return { run, root, requests, lines, sidecar, written: () => existsSync(join(root, SIDECAR)) };
 }
 
 const collector = (name: string, vendor: boolean, outcome: "value" | "missing" | "throws") => {
@@ -257,6 +257,52 @@ describe("--from-data", () => {
     expect(vendor.calls).toEqual(["psi"]);
     expect(world.sidecar()).toMatchObject({
       not_measured: { from_data: "audit/none: couldn't find remote ref audit/none" },
+    });
+  });
+});
+
+describe("the brand queries beside last week's (W8 item 12c)", () => {
+  const brand = (position: number, impressions: number) => ({
+    window_days: 28,
+    queries: [
+      { name: "matter of place", status: "ranked", impressions, clicks: 0, position },
+      { name: "matter of place real estate", status: "no impressions", impressions: 0, clicks: 0 },
+    ],
+  });
+  const gscEntry = (value: ReturnType<typeof brand>) => ({
+    name: "gsc",
+    keys: ["brand_queries"],
+    vendor: true,
+    collect: () => Promise.resolve({ brand_queries: { value } }),
+  });
+
+  it("writes the previous sidecar's numbers into each brand query", async () => {
+    const world = setup();
+    mkdirSync(join(world.root, "workspace/audits/data"), { recursive: true });
+    writeFileSync(
+      join(world.root, "workspace/audits/data/2026-09-26.json"),
+      JSON.stringify({ brand_queries: brand(9.1, 7) }),
+    );
+    await world.run(["--manual"], { collectors: [gscEntry(brand(8.33, 9))] });
+    expect(world.sidecar()).toMatchObject({
+      brand_queries: {
+        queries: [
+          {
+            name: "matter of place",
+            position: 8.33,
+            previous: { status: "ranked", impressions: 7, position: 9.1 },
+          },
+          { name: "matter of place real estate", previous: { status: "no impressions" } },
+        ],
+      },
+    });
+  });
+
+  it("writes previous null on the first run", async () => {
+    const world = setup();
+    await world.run(["--manual"], { collectors: [gscEntry(brand(8.33, 9))] });
+    expect(world.sidecar()).toMatchObject({
+      brand_queries: { queries: [{ previous: null }, { previous: null }] },
     });
   });
 });

@@ -444,7 +444,7 @@
     "id": "w8-0d5-sweep-claimed-meanwhile",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/explain.ts",
-    "find": "    if (error !== null || (closed ?? []).length === 0) continue;",
+    "find": "    if (error !== null || closed.length === 0) continue;",
     "replace": "    if (error !== null) continue;",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts",
     "expect": "× .*leaves an explanation run alone when another runner claimed it since the sweep read it"
