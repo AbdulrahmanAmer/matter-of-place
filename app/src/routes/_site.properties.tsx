@@ -11,11 +11,13 @@ import { applyFilters, useFilters } from "../hooks/use-filters";
 import { track } from "../lib/analytics";
 import { pluralize } from "../lib/format";
 import { marketsQuery, propertiesQuery } from "../lib/queries";
-import { breadcrumbLd, collectionLd } from "../lib/jsonld";
+import { breadcrumbLd, collectionLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { indexable, pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
+
+const trail: Crumb[] = [{ name: "Properties", path: "/properties" }];
 
 export const Route = createFileRoute("/_site/properties")({
   validateSearch: (search: Record<string, unknown>): { q?: string } => {
@@ -53,7 +55,7 @@ export const Route = createFileRoute("/_site/properties")({
                 path: `/property/${property.slug}`,
               })),
             ),
-            breadcrumbLd([{ name: "Properties", path: "/properties" }]),
+            breadcrumbLd(trail),
           ],
         }),
   component: PropertiesPage,
@@ -82,6 +84,7 @@ function PropertiesPage() {
   const illustrative = properties.some((property) => property.status === "Illustrative");
   const intro = (
     <PageIntro
+      trail={trail}
       eyebrow="A CONSIDERED COLLECTION"
       title="Properties"
       text={`A quiet selection of places with something to say.${illustrative ? " Every property shown is illustrative." : ""}`}

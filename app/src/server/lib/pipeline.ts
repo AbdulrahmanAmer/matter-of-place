@@ -1,8 +1,10 @@
 import { isAccountPath } from "../../domain/account";
+import { routePath } from "../../domain/route-path";
 import { isIndexableHost } from "../seo/robots";
 import { serverErrorHtml } from "./error-page";
 import { AppError, OUTAGE_RETRY_AFTER } from "./errors";
 import {
+  API_PAGE_HEADER,
   cspFor,
   inlineHashes,
   securityHeaders,
@@ -62,32 +64,8 @@ const BROWSER_CACHE_CONTROL: Record<CacheKind, string> = {
 const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 const NOT_PAGE_PREFIXES = ["/api/", "/media/", "/.well-known/", "/_serverfn/"];
 const NEVER_CACHED_PREFIXES = ["/api/admin/", "/api/hooks/"];
-const KEPT_ESCAPES = /(%25|%5C)/i;
-const ESCAPE = /%[0-9A-F]{2}/gi;
-
-/** `decodeURI`, or each ASCII escape alone when the whole is malformed, as the router does. */
-function decodeLikeRouter(text: string): string {
-  try {
-    return decodeURI(text);
-  } catch {
-    return text.replace(ESCAPE, (escape) =>
-      Number.parseInt(escape.slice(1), 16) < 0x80 ? decodeURI(escape) : escape,
-    );
-  }
-}
-
-/**
- * The path as the router matches it (`decodePath` in `@tanstack/router-core`): escapes decoded
- * except `%25` and `%5C`, leading slashes made one, case ignored. `/API/x`, `/%61pi/x` and
- * `//api/x` all reach the `/api/x` route, so every prefix rule reads this form.
- */
-export function routePath(pathname: string): string {
-  const decoded = pathname
-    .split(KEPT_ESCAPES)
-    .map((part, index) => (index % 2 === 1 ? part : decodeLikeRouter(part)))
-    .join("");
-  return `/${decoded.replace(/^\/+/, "")}`.toLowerCase();
-}
+// The router's reading of a path lives in `domain/route-path.ts`, shared with the redirect rules (URL-002).
+export { routePath };
 
 const isAdmin = (path: string) => path === "/admin" || path.startsWith("/admin/");
 
@@ -182,11 +160,21 @@ function calmServerError(
 
 /**
  * H39 (2): the router renders an API route file that has no handler for the method as a page.
- * Under `/api/` that page becomes R09 JSON: 405 when it rendered 200, else its own status.
+ * Under `/api/` that page becomes R09 JSON: 405 when it rendered 200, else its own status. A page a public API row
+ * answers on purpose carries `API_PAGE_HEADER` (the unsubscribe page of OPS-005): it leaves as it is, unmarked.
  */
 function apiShellGuard(underApi: boolean, response: Response, requestId: string): Response {
   const html = (response.headers.get("content-type") ?? "").toLowerCase().startsWith("text/html");
   if (!underApi || !html) return response;
+  if (response.headers.has(API_PAGE_HEADER)) {
+    const headers = new Headers(response.headers);
+    headers.delete(API_PAGE_HEADER);
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
   return response.status === 200
     ? errorJson(405, "method_not_allowed", requestId)
     : errorJson(response.status, "not_found", requestId);

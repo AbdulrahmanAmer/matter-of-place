@@ -21,6 +21,8 @@ export const CONTACT = "hello@matterofplace.com";
 export const ADMIN = "admin@matterofplace.com";
 export const FROM = "Matter of Place <hello@notify.matterofplace.com>";
 export const FROM_BULK = "Place Notes <hello@notes.matterofplace.com>";
+/** The signing key bulk mail needs for its List-Unsubscribe address: base64 of 32 bytes, as `env.ts` requires. */
+export const CONFIRM_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(5)));
 export const SENTRY_DSN = "https://publickey@o1.ingest.sentry.io/42";
 
 export const PRODUCTION_SHARE = {
@@ -43,6 +45,7 @@ const ENV_NAMES = [
   "RESEND_API_KEY",
   "RESEND_FROM",
   "RESEND_FROM_BULK",
+  "CONFIRM_TOKEN_SECRET",
   "SITE_URL",
   "ADMIN_NOTIFY_EMAIL",
 ];
@@ -54,6 +57,7 @@ export function emailEnv(values: Record<string, string | undefined> = {}): void 
     RESEND_API_KEY: "re_unit_test_only",
     RESEND_FROM: FROM,
     RESEND_FROM_BULK: FROM_BULK,
+    CONFIRM_TOKEN_SECRET: CONFIRM_KEY,
     SITE_URL: "https://matterofplace.com",
     ADMIN_NOTIFY_EMAIL: ADMIN,
   };

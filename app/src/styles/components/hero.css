@@ -112,9 +112,10 @@
   margin: 14px 0;
 }
 
-/* The eyebrow sits mid-photo, where sky and stone can be as bright as the type. */
+/* The eyebrow and the trail sit mid-photo, where sky and stone can be as bright as the type. */
 .hero .eyebrow,
-.image-hero .eyebrow {
+.image-hero .eyebrow,
+.image-hero .breadcrumb {
   text-shadow: 0 0 14px color-mix(in oklab, var(--foreground) 70%, transparent);
 }
 

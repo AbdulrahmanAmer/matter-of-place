@@ -948,15 +948,38 @@ describe("consent-api", () => {
     );
   });
 
-  it("consent-api: goes back to / for no Referer, another origin, a protocol-relative path or junk", () => {
+  it("consent-api: goes back to / for no Referer or a protocol-relative path on this origin", () => {
     expect(ask("?set=accept").headers.get("location")).toBe("/");
-    expect(
-      ask("?set=accept", { referer: "https://elsewhere.test/properties" }).headers.get("location"),
-    ).toBe("/");
     expect(
       ask("?set=accept", { referer: `${BASE}//elsewhere.test/x` }).headers.get("location"),
     ).toBe("/");
-    expect(ask("?set=accept", { referer: "not a url" }).headers.get("location")).toBe("/");
+  });
+
+  it("consent-api: answers 403 with no cookie when the choice starts on another site (SEC-024)", () => {
+    const foreign = [
+      { referer: "https://elsewhere.test/properties" },
+      { referer: "not a url" },
+      { "sec-fetch-site": "cross-site" },
+      { "sec-fetch-site": "cross-site", referer: `${BASE}/properties` },
+    ];
+    for (const headers of foreign) {
+      for (const choice of ["accept", "decline"]) {
+        const response = ask(`?set=${choice}`, headers);
+        expect([headers, response.status]).toEqual([headers, 403]);
+        expect(response.headers.get("set-cookie")).toBeNull();
+        expect(response.headers.get("location")).toBeNull();
+      }
+    }
+  });
+
+  it("consent-api: still sets the cookie for a same-origin click and for a link opened from the address bar", () => {
+    for (const headers of [
+      { "sec-fetch-site": "same-origin", referer: `${BASE}/cookies` },
+      { "sec-fetch-site": "none" },
+      { "sec-fetch-site": "same-site" },
+    ]) {
+      expect([headers, ask("?set=accept", headers).status]).toEqual([headers, 303]);
+    }
   });
 
   it("consent-api: answers 400 with no cookie for any other value of set, or none", () => {
@@ -1717,5 +1740,36 @@ describe("web-vitals", () => {
       ["web_vitals", { name: "CLS", value: 0.02, id: "v6-cls" }],
       ["web_vitals", { name: "INP", value: 120, id: "v6-inp" }],
     ]);
+  });
+});
+
+describe("dark surfaces keep a visible focus ring (A11-004)", () => {
+  const css = (file: string) => readFileSync(`src/styles/${file}`, "utf8");
+
+  /** The selectors of the rule that turns the focus ring Bone, without the comment above them. */
+  function boneRingSelectors(): string[] {
+    const base = css("base.css");
+    const marker = base.indexOf("--focus-ring: var(--background);");
+    const open = base.lastIndexOf("{", marker);
+    const previous = base.lastIndexOf("}", open);
+    return base
+      .slice(previous + 1, open)
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .split(",")
+      .map((selector) => selector.trim())
+      .filter((selector) => selector !== "");
+  }
+
+  it("a11y-focus-dark: the recommended plan card, painted Obsidian on /exposure, takes the Bone ring", () => {
+    expect(css("pages/pricing.css")).toContain(
+      ".exposure-body .fp-card.fp-lead {\n  background: var(--foreground);",
+    );
+    expect(boneRingSelectors()).toContain(".fp-lead");
+  });
+
+  it("a11y-focus-dark: keeps the other dark surfaces on the Bone ring", () => {
+    expect(boneRingSelectors()).toEqual(
+      expect.arrayContaining([".hero", ".image-hero", ".page-intro", ".site-footer", ".fp-lead"]),
+    );
   });
 });

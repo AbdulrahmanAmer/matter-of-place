@@ -34,12 +34,21 @@ export function valuesOf(row: PropertyRecord): EditorValues {
   };
 }
 
-/** An empty box is null, never zero or an empty string, so a cleared field reads as missing on the checklist. */
+/**
+ * An empty box is null, never zero or an empty string, so a cleared field reads as missing on the checklist. Text pasted
+ * from a listing ("$4,200,000", "1,200,000") loses its dollar sign, commas and spaces before it is read.
+ */
 export const numberOrNull = (text: string): number | null => {
-  const trimmed = text.trim();
-  if (trimmed === "") return null;
-  const value = Number(trimmed);
+  const cleaned = text.replace(/[$,\s]/g, "");
+  if (cleaned === "") return null;
+  const value = Number(cleaned);
   return Number.isFinite(value) ? value : null;
 };
+
+/** Text in the box that is not empty and still not a number ("4.2M", "3 bd"): the field keeps its last good value. */
+export const isUnreadableNumber = (text: string): boolean =>
+  text.trim() !== "" && numberOrNull(text) === null;
+
+export const unreadableNumberMessage = "Enter a number, for example 1200000.";
 
 export const textOrNull = (text: string): string | null => (text.trim() === "" ? null : text);

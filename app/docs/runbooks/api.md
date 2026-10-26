@@ -53,8 +53,10 @@ Writes only. A read costs no database write. Database limits count in `rate_limi
 | `POST /search`                  | 60 per minute per IP (memory)            |
 | `POST /concierge`               | 30 per minute per IP (memory)            |
 | `POST /client-error`            | 30 per minute per IP (memory)            |
+| `GET /subscribers/unsubscribe`  | 60 per minute per IP (memory), shared    |
+| `POST /subscribers/unsubscribe` | 60 per minute per IP (memory), shared    |
 
-A refused write answers 429 with `Retry-After`. The per-email numbers and the search, concierge and subject-request numbers are ASSUMED (architecture 9 asks for "per IP and per email" without values).
+The two rows of the unsubscribe address (OPS-005) count in one memory bucket, wide because mailbox providers post the one-click unsubscribe from shared IPs; the GET only draws the page. A refused write answers 429 with `Retry-After`. The per-email numbers and the search, concierge and subject-request numbers are ASSUMED (architecture 9 asks for "per IP and per email" without values).
 
 ## Read one request by its id
 

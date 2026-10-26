@@ -17,8 +17,8 @@ const BANNED =
 const OTHER_PLACES = /\b(global|worldwide|international|europe|london|paris|dubai|texas|nevada)\b/i;
 
 describe("the coming-soon and consent copy", () => {
-  it("holds 31 strings", () => {
-    expect(copy).toHaveLength(31);
+  it("holds 32 strings", () => {
+    expect(copy).toHaveLength(32);
   });
 
   it("has no em dash, en dash or exclamation mark", () => {

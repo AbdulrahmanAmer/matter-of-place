@@ -116,6 +116,7 @@ summary::-webkit-details-marker {
 .markets-feature,
 .home-submit,
 .market-card,
+.fp-lead,
 .page-intro,
 .not-found,
 .thanks,
@@ -287,6 +288,22 @@ h3 {
   color: var(--muted-foreground);
 }
 
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breadcrumb li + li::before {
+  content: "/";
+  margin-right: 8px;
+  color: var(--accent);
+}
+
 .breadcrumb a {
   transition: color 0.2s;
 }
@@ -295,8 +312,16 @@ h3 {
   color: var(--foreground);
 }
 
-.breadcrumb span {
-  color: var(--accent);
+/* On the Obsidian band of PageIntro and ImageHero the trail reads in the light tone of their eyebrow, its hover in full
+   Ivory. It never reads --muted-foreground, which the higher-contrast mode turns Obsidian (tokens.css). */
+.page-intro .breadcrumb,
+.image-hero .breadcrumb {
+  color: color-mix(in oklab, var(--primary-foreground) 78%, transparent);
+}
+
+.page-intro .breadcrumb a:hover,
+.image-hero .breadcrumb a:hover {
+  color: var(--primary-foreground);
 }
 
 /* Label over photography marking content as illustrative */

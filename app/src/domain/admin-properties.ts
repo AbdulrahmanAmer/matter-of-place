@@ -7,6 +7,7 @@ import {
   slugPattern,
   submissionStates,
   submitterKinds,
+  webUrl,
 } from "./contracts.ts";
 import { marketSlugSchema } from "./market.ts";
 import { propertySchema } from "./property.ts";
@@ -165,7 +166,7 @@ const propertyFieldsSchema = z.object({
   place: nullableText(4000),
   representative_id: uuid.nullable(),
   presented_by_owner: z.boolean(),
-  listing_url: z.string().url().max(500).nullable(),
+  listing_url: webUrl.nullable(),
   editorial_state: z.enum(["draft", "review"]),
 });
 

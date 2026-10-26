@@ -311,6 +311,22 @@ describe("renderTemplate", () => {
     expect(bare.html).not.toContain("Spanish Revival");
   });
 
+  it.each(["market_open", "repermission"] as const)(
+    "%s is one-to-one bulk mail: a working unsubscribe link to the house's address, none when the site has no address (OPS-005)",
+    async (key) => {
+      const row = definitionRow(fileOf(key));
+      const samples = sampleVariables(key);
+      const housed = await renderTemplate(row, samples, {
+        ...site,
+        contact: { email: "hello@matterofplace.com" },
+      });
+      expect(housed.html).toContain('href="mailto:hello@matterofplace.com?subject=Unsubscribe"');
+      expect(housed.html).not.toContain("RESEND_UNSUBSCRIBE_URL");
+      const bare = await renderTemplate(row, samples, site);
+      expect(bare.html).not.toContain(">Unsubscribe<");
+    },
+  );
+
   it("drops a block whose text comes out empty, and a fact with no value", async () => {
     const body: EmailBlock[] = [
       { type: "paragraph", text: "Kept" },

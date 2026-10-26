@@ -6,10 +6,16 @@ import { TextLink } from "../components/site/text-link";
 import type { Note } from "../domain/market";
 import { useTrackView } from "../hooks/use-track-view";
 import { marketQuery } from "../lib/queries";
-import { breadcrumbLd } from "../lib/jsonld";
+import { breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
 import { marketGuideDescription, marketGuideTitle } from "../lib/seo-copy";
+
+const guideTrail = (market: { name: string; slug: string }): Crumb[] => [
+  { name: "Markets", path: "/markets" },
+  { name: market.name, path: `/${market.slug}` },
+  { name: "Guide", path: `/${market.slug}/guide` },
+];
 
 export const Route = createFileRoute("/_site/$market/guide")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -24,13 +30,7 @@ export const Route = createFileRoute("/_site/$market/guide")({
       description: marketGuideDescription(market),
       path: `/${market.slug}/guide`,
       image: ogImageFor({ key: `market-${market.slug}`, ogStatic: ogStaticOf(matches) }),
-      jsonLd: [
-        breadcrumbLd([
-          { name: "Markets", path: "/markets" },
-          { name: market.name, path: `/${market.slug}` },
-          { name: "Guide", path: `/${market.slug}/guide` },
-        ]),
-      ],
+      jsonLd: [breadcrumbLd(guideTrail(market))],
       type: "article",
     });
   },
@@ -57,9 +57,10 @@ function GuidePage() {
   return (
     <main>
       {market.comingSoon || market.image === undefined ? (
-        <PageIntro eyebrow="GUIDE" title={market.name} />
+        <PageIntro trail={guideTrail(market)} eyebrow="GUIDE" title={market.name} />
       ) : (
         <ImageHero
+          trail={guideTrail(market)}
           image={market.image}
           alt={`${market.name} architecture`}
           eyebrow="GUIDE"

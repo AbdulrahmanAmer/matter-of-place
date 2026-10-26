@@ -211,6 +211,7 @@ import { Route as ApiPublicPropertiesSlugRouteImport } from './routes/api/public
 import { Route as ApiPublicStoriesSlugRouteImport } from './routes/api/public/stories.$slug'
 import { Route as ApiPublicSubjectsRequestRouteImport } from './routes/api/public/subjects.request'
 import { Route as ApiPublicSubscribersConfirmRouteImport } from './routes/api/public/subscribers.confirm'
+import { Route as ApiPublicSubscribersUnsubscribeRouteImport } from './routes/api/public/subscribers.unsubscribe'
 import { Route as ApiAdminAssetsIdApproveRouteImport } from './routes/api/admin/assets.$id.approve'
 import { Route as ApiAdminAssetsIdCaptionRouteImport } from './routes/api/admin/assets.$id.caption'
 import { Route as ApiAdminAssetsIdRejectRouteImport } from './routes/api/admin/assets.$id.reject'
@@ -1378,6 +1379,12 @@ const ApiPublicSubscribersConfirmRoute =
     path: '/confirm',
     getParentRoute: () => ApiPublicSubscribersRoute,
   } as any)
+const ApiPublicSubscribersUnsubscribeRoute =
+  ApiPublicSubscribersUnsubscribeRouteImport.update({
+    id: '/unsubscribe',
+    path: '/unsubscribe',
+    getParentRoute: () => ApiPublicSubscribersRoute,
+  } as any)
 const ApiAdminAssetsIdApproveRoute = ApiAdminAssetsIdApproveRouteImport.update({
   id: '/approve',
   path: '/approve',
@@ -2081,6 +2088,7 @@ export interface FileRoutesByFullPath {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/public/subscribers/unsubscribe': typeof ApiPublicSubscribersUnsubscribeRoute
   '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
   '/api/admin/audit/': typeof ApiAdminAuditIndexRoute
   '/api/admin/emails/': typeof ApiAdminEmailsIndexRoute
@@ -2368,6 +2376,7 @@ export interface FileRoutesByTo {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/public/subscribers/unsubscribe': typeof ApiPublicSubscribersUnsubscribeRoute
   '/api/admin/assets': typeof ApiAdminAssetsIndexRoute
   '/api/admin/audit': typeof ApiAdminAuditIndexRoute
   '/api/admin/emails': typeof ApiAdminEmailsIndexRoute
@@ -2661,6 +2670,7 @@ export interface FileRoutesById {
   '/api/public/stories/$slug': typeof ApiPublicStoriesSlugRoute
   '/api/public/subjects/request': typeof ApiPublicSubjectsRequestRoute
   '/api/public/subscribers/confirm': typeof ApiPublicSubscribersConfirmRoute
+  '/api/public/subscribers/unsubscribe': typeof ApiPublicSubscribersUnsubscribeRoute
   '/api/admin/assets/': typeof ApiAdminAssetsIndexRoute
   '/api/admin/audit/': typeof ApiAdminAuditIndexRoute
   '/api/admin/emails/': typeof ApiAdminEmailsIndexRoute
@@ -2954,6 +2964,7 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/public/subscribers/unsubscribe'
     | '/api/admin/assets/'
     | '/api/admin/audit/'
     | '/api/admin/emails/'
@@ -3241,6 +3252,7 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/public/subscribers/unsubscribe'
     | '/api/admin/assets'
     | '/api/admin/audit'
     | '/api/admin/emails'
@@ -3533,6 +3545,7 @@ export interface FileRouteTypes {
     | '/api/public/stories/$slug'
     | '/api/public/subjects/request'
     | '/api/public/subscribers/confirm'
+    | '/api/public/subscribers/unsubscribe'
     | '/api/admin/assets/'
     | '/api/admin/audit/'
     | '/api/admin/emails/'
@@ -5173,6 +5186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSubscribersConfirmRouteImport
       parentRoute: typeof ApiPublicSubscribersRoute
     }
+    '/api/public/subscribers/unsubscribe': {
+      id: '/api/public/subscribers/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/api/public/subscribers/unsubscribe'
+      preLoaderRoute: typeof ApiPublicSubscribersUnsubscribeRouteImport
+      parentRoute: typeof ApiPublicSubscribersRoute
+    }
     '/api/admin/assets/$id/approve': {
       id: '/api/admin/assets/$id/approve'
       path: '/approve'
@@ -6098,10 +6118,12 @@ const ApiPublicSubmissionsRouteWithChildren =
 
 interface ApiPublicSubscribersRouteChildren {
   ApiPublicSubscribersConfirmRoute: typeof ApiPublicSubscribersConfirmRoute
+  ApiPublicSubscribersUnsubscribeRoute: typeof ApiPublicSubscribersUnsubscribeRoute
 }
 
 const ApiPublicSubscribersRouteChildren: ApiPublicSubscribersRouteChildren = {
   ApiPublicSubscribersConfirmRoute: ApiPublicSubscribersConfirmRoute,
+  ApiPublicSubscribersUnsubscribeRoute: ApiPublicSubscribersUnsubscribeRoute,
 }
 
 const ApiPublicSubscribersRouteWithChildren =

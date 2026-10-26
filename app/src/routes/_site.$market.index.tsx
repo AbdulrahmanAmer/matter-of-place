@@ -13,11 +13,16 @@ import { useTrackView } from "../hooks/use-track-view";
 import { propertiesIn } from "../lib/catalog";
 import { pluralize } from "../lib/format";
 import { marketQuery, propertiesQuery, storiesQuery } from "../lib/queries";
-import { breadcrumbLd, collectionLd } from "../lib/jsonld";
+import { breadcrumbLd, collectionLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { indexable, pageHead, unavailableHead } from "../lib/seo";
 import { marketDescription } from "../lib/seo-copy";
 import { fill, t } from "../lib/strings";
+
+const marketTrail = (market: { name: string; slug: string }): Crumb[] => [
+  { name: "Markets", path: "/markets" },
+  { name: market.name, path: `/${market.slug}` },
+];
 
 export const Route = createFileRoute("/_site/$market/")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -60,10 +65,7 @@ export const Route = createFileRoute("/_site/$market/")({
           `/${market.slug}`,
           pool.map((property) => ({ name: property.title, path: `/property/${property.slug}` })),
         ),
-        breadcrumbLd([
-          { name: "Markets", path: "/markets" },
-          { name: market.name, path: `/${market.slug}` },
-        ]),
+        breadcrumbLd(marketTrail(market)),
       ],
     });
   },
@@ -103,9 +105,14 @@ function MarketPage() {
           </div>
         </section>
       ) : market.comingSoon || market.image === undefined ? (
-        <PageIntro eyebrow="MATTER OF PLACE · EDITORIAL DESK" title={market.name} />
+        <PageIntro
+          trail={marketTrail(market)}
+          eyebrow="MATTER OF PLACE · EDITORIAL DESK"
+          title={market.name}
+        />
       ) : (
         <ImageHero
+          trail={marketTrail(market)}
           image={market.image}
           alt={market.name}
           eyebrow="MATTER OF PLACE · EDITORIAL DESK"

@@ -3,11 +3,13 @@ import { ContactForm } from "../components/forms/contact-form";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { presentLines } from "../domain/settings";
-import { breadcrumbLd } from "../lib/jsonld";
+import { breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
+
+const trail: Crumb[] = [{ name: "Contact", path: "/contact" }];
 
 export const Route = createFileRoute("/_site/contact")({
   head: ({ matches }) =>
@@ -16,7 +18,7 @@ export const Route = createFileRoute("/_site/contact")({
       description: pageDescription("contact"),
       path: "/contact",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [breadcrumbLd([{ name: "Contact", path: "/contact" }])],
+      jsonLd: [breadcrumbLd(trail)],
     }),
   component: ContactPage,
 });
@@ -28,6 +30,7 @@ function ContactPage() {
   return (
     <main>
       <PageIntro
+        trail={trail}
         eyebrow="A CONVERSATION"
         title="Contact"
         text="Every message is read by a person. Tell us what you are looking for, or what you would like to present."
@@ -38,7 +41,7 @@ function ContactPage() {
         <aside className="contact-meta">
           <div>
             <p className="eyebrow">PROPERTY SEEKERS</p>
-            <h3>Ask about a place.</h3>
+            <h2>Ask about a place.</h2>
             <p>
               Each property page has its own inquiry paths: private showings, questions, similar
               properties, and selling first. Start there if you have a specific house in mind.
@@ -49,7 +52,7 @@ function ContactPage() {
           </div>
           <div>
             <p className="eyebrow">OWNERS AND AGENTS</p>
-            <h3>Present a property.</h3>
+            <h2>Present a property.</h2>
             <p>
               Submissions go through a short guided form. Every property is reviewed before a paid
               feature or campaign is agreed.
@@ -60,7 +63,7 @@ function ContactPage() {
           </div>
           <div>
             <p className="eyebrow">MARKETS</p>
-            <h3>California, Florida and New York.</h3>
+            <h2>California, Florida and New York.</h2>
             <p>Three markets, read closely, each with its own guide.</p>
             {(email !== undefined || phone !== undefined) && (
               <p className="contact-details">

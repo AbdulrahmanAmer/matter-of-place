@@ -290,4 +290,10 @@ describe("the pages it lists", () => {
   it("are all pages of the sitemap", () => {
     for (const path of llmsPaths) expect(staticSitemapPaths).toContain(path);
   });
+
+  it("leave out /stories while no story is published, as the page is then noindex", () => {
+    const stories = `${ORIGIN}/stories`;
+    expect(links(textOf(buildLlmsTxt, { stories: [] }))).not.toContain(stories);
+    expect(links(textOf(buildLlmsTxt, { stories: [story("a-quiet-house")] }))).toContain(stories);
+  });
 });

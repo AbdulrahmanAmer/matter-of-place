@@ -179,6 +179,11 @@ describe("buildSitemap pages", () => {
     expect(listed).not.toContain("/property/taken");
   });
 
+  it("lists /stories only once a story is published, as its page is noindex while empty (SCH-005)", () => {
+    expect(paths(sitemapOf({ stories: [] }))).not.toContain("/stories");
+    expect(paths(sitemapOf({ stories: [story("a-quiet-house")] }))).toContain("/stories");
+  });
+
   it("lists a story", () => {
     expect(paths(sitemapOf({ stories: [story("a-quiet-house")] }))).toContain(
       "/stories/a-quiet-house",
@@ -326,10 +331,11 @@ describe("buildSitemap lastmod on the static pages (W8 item 12b)", () => {
     expect(lastmodOf(xml, "/markets")).toBeUndefined();
   });
 
-  it("gives the catalog pages no lastmod while nothing is published", () => {
+  it("gives the home page no lastmod while nothing is published, and lists no empty collection", () => {
     const xml = sitemap({ properties: [], stories: [] });
     expect(xml).toContain(`<url><loc>${ORIGIN}/</loc></url>`);
-    expect(xml).toContain(`<url><loc>${ORIGIN}/stories</loc></url>`);
+    expect(paths(xml)).not.toContain("/stories");
+    expect(paths(xml)).not.toContain("/properties");
   });
 
   it("takes the committed dates of the build by default, each a real day no later than now", () => {

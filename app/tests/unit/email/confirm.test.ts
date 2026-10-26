@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { stepSchema } from "../../../src/domain/automation";
 import { planEvent } from "../../../src/server/automation/plan";
+import { unsubscribeUrl } from "../../../src/server/email/unsubscribe";
 import { resolveVariables } from "../../../src/server/email/variables";
 import { getStep } from "../../../src/server/jobs/steps/index";
 import { sendEmail } from "../../../src/server/jobs/steps/send-email";
@@ -14,6 +15,7 @@ import { enqueueJob } from "../../../src/server/lib/jobs";
 import { openToken, sealToken } from "../../../src/server/subscribers/confirm-email";
 import { requestConfirmation } from "../../../src/server/subscribers/confirmation";
 import { subscribe } from "../../../src/server/subscribers/service";
+import { unsubscribe } from "../../../src/server/subscribers/unsubscribe";
 import {
   emailEnv,
   emailWorld,
@@ -23,6 +25,7 @@ import {
   stepCtx,
 } from "../../fixtures/email-send";
 import { fakeDb } from "../../fixtures/fake-db";
+import { subscriberRow } from "../automation/fixtures/entity-rows";
 
 // Double opt-in (B5 step 7, invariant 7, G12, G20): the Worker seals the confirm token, `upsert_subscriber` writes it
 // into `subscriber.created`, the seeded recipe plans one `send_email` job, and the runner opens it into the link.
@@ -200,6 +203,92 @@ describe("requestConfirmation", () => {
     expect(warn.mock.calls).toEqual([
       [JSON.stringify({ level: "warn", event: "confirm_secret_missing" })],
     ]);
+  });
+});
+
+describe("the one-click unsubscribe address of a bulk mail (OPS-005, RFC 8058)", () => {
+  const ORIGIN = "https://matterofplace.com";
+  const post = async (id: string, key: string = KEY, accept = "*/*") =>
+    new Request(await unsubscribeUrl(id, key, ORIGIN), { method: "POST", headers: { accept } });
+  const unsubscribed = () =>
+    fakeDb({
+      tables: { subscribers: [subscriberRow({ id: SUBSCRIBER_ID, email: "Reader@Example.COM" })] },
+      rpc: { unsubscribe_email: () => true },
+    });
+
+  it("signs the subscriber id, never the address, on the origin it is given", async () => {
+    const address = await unsubscribeUrl(SUBSCRIBER_ID, KEY, `${ORIGIN}/`);
+    const prefix = `${ORIGIN}/api/public/subscribers/unsubscribe?t=${SUBSCRIBER_ID}.`;
+    expect(address.startsWith(prefix)).toBe(true);
+    expect(address.slice(prefix.length)).toMatch(/^[0-9a-f]{64}$/);
+    expect(address).not.toMatch(/@|%40/);
+  });
+
+  it("unsubscribes the subscriber its token names, by that row's address, 200 no-store", async () => {
+    const db = unsubscribed();
+    const response = await unsubscribe(await post(SUBSCRIBER_ID), db, env);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(await response.json()).toEqual({ ok: true });
+    expect(db.calls.map((call) => [call.kind, call.name, call.args])).toEqual([
+      ["from", "subscribers", []],
+      ["rpc", "unsubscribe_email", [{ p_email: "Reader@Example.COM" }]],
+    ]);
+  });
+
+  it("answers its page's button with a page, and an id no row has like any other", async () => {
+    const page = await unsubscribe(
+      await post(SUBSCRIBER_ID, KEY, "text/html"),
+      unsubscribed(),
+      env,
+    );
+    expect([page.status, page.headers.get("content-type")]).toEqual([
+      200,
+      "text/html; charset=utf-8",
+    ]);
+    expect(await page.text()).toContain("You are unsubscribed");
+    const nobody = fakeDb({ tables: { subscribers: [] }, rpc: { unsubscribe_email: () => true } });
+    const gone = await unsubscribe(await post(SUBSCRIBER_ID), nobody, env);
+    expect([gone.status, await gone.json()]).toEqual([200, { ok: true }]);
+    expect(nobody.calls.map((call) => call.name)).toEqual(["subscribers"]);
+  });
+
+  it("refuses a token signed under another key, an altered id, an altered signature and no token, with no database call", async () => {
+    const db = unsubscribed();
+    const good = new URL(await unsubscribeUrl(SUBSCRIBER_ID, KEY, ORIGIN));
+    const token = good.searchParams.get("t") ?? "";
+    const [, signature = ""] = token.split(".");
+    const swapped = `66666666-6666-4666-8666-666666666666.${signature}`;
+    const flipped = `${token.slice(0, -1)}${token.endsWith("0") ? "1" : "0"}`;
+    for (const request of [
+      await post(SUBSCRIBER_ID, OTHER_KEY),
+      new Request(`${good.origin}${good.pathname}?t=${swapped}`, { method: "POST" }),
+      new Request(`${good.origin}${good.pathname}?t=${flipped}`, { method: "POST" }),
+      new Request(`${good.origin}${good.pathname}`, { method: "POST" }),
+    ]) {
+      await expect(unsubscribe(request, db, env)).rejects.toMatchObject({
+        code: "bad_request",
+        status: 400,
+      });
+    }
+    expect(db.calls).toEqual([]);
+  });
+
+  it("answers unavailable, and unsubscribes nobody, when the signing secret is not set or the database refuses", async () => {
+    const db = unsubscribed();
+    Reflect.deleteProperty(env, "CONFIRM_TOKEN_SECRET");
+    await expect(unsubscribe(await post(SUBSCRIBER_ID), db, env)).rejects.toMatchObject({
+      code: "unavailable",
+    });
+    Object.assign(env, { CONFIRM_TOKEN_SECRET: KEY });
+    const refusing = fakeDb({
+      tables: { subscribers: [subscriberRow({ id: SUBSCRIBER_ID })] },
+      rpc: { unsubscribe_email: () => new Error("db down") },
+    });
+    await expect(unsubscribe(await post(SUBSCRIBER_ID), refusing, env)).rejects.toMatchObject({
+      code: "unavailable",
+    });
+    expect(db.calls).toEqual([]);
   });
 });
 

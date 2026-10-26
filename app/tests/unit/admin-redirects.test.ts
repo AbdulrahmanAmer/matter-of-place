@@ -159,6 +159,70 @@ describe("putRedirect", () => {
   });
 });
 
+describe("putRedirect compares addresses as the router reads them (URL-002)", () => {
+  const LOOP = "422 invalid_redirect: These addresses would redirect in a loop.";
+  const DUPLICATE = "422 invalid_redirect: That old address is already redirected.";
+  const SELF = "422 invalid_redirect: A redirect cannot point to itself.";
+
+  it("refuses a loop that case, a trailing slash or an escape hides", async () => {
+    const { db } = client(
+      active([
+        [ID_A, "/b", "/c"],
+        [ID_B, "/c", "/a"],
+      ]),
+    );
+    const answers = [
+      await refusal(putRedirect(admin, db, { from_path: "/A", to_path: "/b/", status: 301 })),
+      await refusal(putRedirect(admin, db, { from_path: "/a/", to_path: "/B", status: 301 })),
+      await refusal(putRedirect(admin, db, { from_path: "/%61", to_path: "/b", status: 301 })),
+    ];
+    expect({ answers, rpc: rpcNames(db) }).toEqual({ answers: [LOOP, LOOP, LOOP], rpc: [] });
+  });
+
+  it("refuses a duplicate source and a self redirect that differ only in case or an escape", async () => {
+    const { db } = client(active([[ID_A, "/old", "/new"]]));
+    const answers = [
+      await refusal(putRedirect(admin, db, { from_path: "/OLD", to_path: "/other", status: 301 })),
+      await refusal(
+        putRedirect(admin, db, { from_path: "/%6Fld", to_path: "/other", status: 301 }),
+      ),
+      await refusal(
+        putRedirect(admin, db, { from_path: "/Summer", to_path: "/summer", status: 301 }),
+      ),
+    ];
+    expect({ answers, rpc: rpcNames(db) }).toEqual({
+      answers: [DUPLICATE, DUPLICATE, SELF],
+      rpc: [],
+    });
+  });
+
+  it("refuses an old address that carries a fragment, which no request ever sends", async () => {
+    const { db } = client([]);
+    const answer = await refusal(
+      putRedirect(admin, db, { from_path: "/old#top", to_path: "/new", status: 301 }),
+    );
+    expect({ answer, rpc: rpcNames(db) }).toEqual({
+      answer: "422 invalid_redirect: The old address cannot carry a fragment.",
+      rpc: [],
+    });
+  });
+
+  it("still saves a different address, and a change to its own row spelled another way", async () => {
+    const { db } = client(active([[ID_A, "/old", "/new"]]));
+    const fresh = await refusal(
+      putRedirect(admin, db, { from_path: "/older", to_path: "/new", status: 301 }),
+    );
+    const own = await refusal(
+      putRedirect(admin, db, { id: ID_A, from_path: "/OLD", to_path: "/newer", status: 301 }),
+    );
+    expect({ fresh, own, rpc: rpcNames(db) }).toEqual({
+      fresh: "saved",
+      own: "saved",
+      rpc: ["put_redirect", "put_redirect"],
+    });
+  });
+});
+
 describe("archiveRedirect", () => {
   it("removes through archive_redirect, which sets archived_at and keeps the row, and never deletes", async () => {
     const stored: RedirectRow & { archived_at: string | null } = {

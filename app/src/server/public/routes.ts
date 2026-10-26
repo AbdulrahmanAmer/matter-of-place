@@ -34,6 +34,7 @@ import { getPublicSite } from "../settings/service";
 import * as subjects from "../subjects/service";
 import * as submissions from "../submissions/service";
 import * as subscribers from "../subscribers/service";
+import { unsubscribeAsk, unsubscribe as unsubscribeSubscriber } from "../subscribers/unsubscribe";
 
 // The public route table as data (architecture 4.1): the one source for the handlers, the in-process
 // dispatcher and the tests. `handlePublic` reads it; a route file only calls `handlePublic`.
@@ -77,7 +78,10 @@ export type DraftService = (
   key: string | undefined,
 ) => Promise<unknown>;
 
-/** A `raw` row reads its own body (a signed webhook), so the pipeline reads none of it. */
+/**
+ * A `raw` row reads its own body (a signed webhook, the unsubscribe post), so the pipeline reads none of it; the
+ * limits the row declares still count before its service runs.
+ */
 export type RawService = (request: Request, db: Db, env: Env) => Promise<Response>;
 
 interface BaseRoute {
@@ -196,6 +200,27 @@ export const routes: PublicRoute[] = [
     turnstile: false,
     status: 303,
     service: subscribers.confirm,
+  },
+  {
+    // The signed address of a bulk mail's List-Unsubscribe header (OPS-005). A mail client posts it, so no Turnstile; the
+    // body is the RFC 8058 form field, so the row is raw. The memory limit is wide: mailbox providers post from shared IPs.
+    path: "/api/public/subscribers/unsubscribe",
+    method: "POST",
+    raw: true,
+    limits: [{ scope: "ip", store: "memory", limit: 60, windowSeconds: 60 }],
+    turnstile: false,
+    status: 200,
+    service: unsubscribeSubscriber,
+  },
+  {
+    // The same address opened in a browser: a page with one button that posts it. Never stored, reads no database;
+    // it counts in the same memory bucket as the POST.
+    path: "/api/public/subscribers/unsubscribe",
+    method: "GET",
+    limits: [{ scope: "ip", store: "memory", limit: 60, windowSeconds: 60 }],
+    turnstile: false,
+    status: 200,
+    service: unsubscribeAsk,
   },
   {
     path: "/api/public/subjects/request",

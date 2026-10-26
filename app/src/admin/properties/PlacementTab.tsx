@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { PropertyRecord } from "../../domain/admin-properties";
 import { Field } from "../ui/Field";
 import { RoleGate } from "../ui/RoleGate";
-import { numberOrNull } from "./editor-values";
+import { isUnreadableNumber, numberOrNull, unreadableNumberMessage } from "./editor-values";
 
 const listOf = (text: string) =>
   text
@@ -31,7 +31,11 @@ export function PlacementTab({
   );
   const [relatedText, setRelatedText] = useState(related.join("\n"));
   const rank = (label: string, value: string, set: (next: string) => void) => (
-    <Field label={label} hint="1 is first; empty takes the property out.">
+    <Field
+      label={label}
+      hint="1 is first; empty takes the property out."
+      {...(isUnreadableNumber(value) ? { error: unreadableNumberMessage } : {})}
+    >
       {(control) => (
         <input
           {...control}
@@ -53,6 +57,7 @@ export function PlacementTab({
         <button
           type="button"
           className="admin-button admin-button--quiet"
+          disabled={isUnreadableNumber(hero) || isUnreadableNumber(featured)}
           onClick={() => {
             onSaveRanks({ hero_rank: numberOrNull(hero), featured_rank: numberOrNull(featured) });
           }}

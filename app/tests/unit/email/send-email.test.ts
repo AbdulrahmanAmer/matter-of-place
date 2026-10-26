@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import type { Json } from "../../../src/db";
+import { openUnsubscribeToken } from "../../../src/server/email/unsubscribe";
 import { resolveVariables } from "../../../src/server/email/variables";
 import type { JsonObject } from "../../../src/server/jobs/types";
 import { getStep } from "../../../src/server/jobs/steps/index";
@@ -8,6 +10,7 @@ import { sha256Hex } from "../../../src/server/lib/crypto";
 import {
   ADMIN,
   BUILD_SHARE,
+  CONFIRM_KEY,
   CONTACT,
   emailEnv,
   emailWorld,
@@ -373,6 +376,61 @@ describe("send_email", () => {
       });
     }
     expect(fetch.requests.map(({ body }) => body.from)).toEqual([FROM, FROM, FROM, FROM_BULK]);
+  });
+
+  it("OPS-005: bulk mail carries the reader's own one-click List-Unsubscribe, and no other kind does", async () => {
+    const { ctx, fetch } = setup();
+    for (const [index, kind] of (["transactional", "alert", "test", "bulk"] as const).entries()) {
+      await sendOne(ctx, {
+        to: `Reader${String(index)}@gmail.com`,
+        templateKey: "x",
+        kind,
+        entity: "subscriber",
+        entityId: SUBSCRIBER_ID,
+        rendered,
+      });
+    }
+    // A bulk mail to an address that is no subscriber has no row to unsubscribe, so it carries no header.
+    await sendOne(ctx, { to: "reader4@gmail.com", templateKey: "x", kind: "bulk", rendered });
+    const others = [...fetch.requests.slice(0, 3), fetch.requests[4]];
+    expect(others.map((request) => request !== undefined && "headers" in request.body)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
+    const { headers } = z
+      .object({
+        headers: z.object({ "List-Unsubscribe": z.string(), "List-Unsubscribe-Post": z.string() }),
+      })
+      .parse(fetch.requests[3]?.body);
+    expect(headers["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+    const link =
+      /^<https:\/\/matterofplace\.com\/api\/public\/subscribers\/unsubscribe\?t=([\w.-]+)>$/.exec(
+        headers["List-Unsubscribe"],
+      );
+    expect(link?.[1]).toBeDefined();
+    expect(await openUnsubscribeToken(link?.[1] ?? "", CONFIRM_KEY)).toBe(SUBSCRIBER_ID);
+    expect(headers["List-Unsubscribe"]).not.toMatch(/reader|@|%40/i);
+  });
+
+  it("OPS-005: a bulk send without CONFIRM_TOKEN_SECRET is dead with confirm_secret_missing and makes no call", async () => {
+    emailEnv({ CONFIRM_TOKEN_SECRET: undefined });
+    const { ctx, fetch } = setup();
+    expect(
+      await failure(
+        sendOne(ctx, { to: "reader@gmail.com", templateKey: "x", kind: "bulk", rendered }),
+      ),
+    ).toEqual({ dead: true, message: "confirm_secret_missing" });
+    expect(fetch.requests).toHaveLength(0);
+    // the other classes do not need the key
+    await sendOne(ctx, {
+      to: "reader@gmail.com",
+      templateKey: "y",
+      kind: "transactional",
+      rendered,
+    });
+    expect(fetch.requests).toHaveLength(1);
   });
 
   it("ends an inquiry_forward with no submitter as no_submitter, with no row and no call", async () => {

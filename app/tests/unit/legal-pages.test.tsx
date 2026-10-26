@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { ComponentType } from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import {
   Outlet,
   RouterProvider,
@@ -190,7 +190,16 @@ describe("the parent company", () => {
   });
 });
 
-const mainText = () => screen.getByRole("main").textContent;
+/**
+ * The words of the page the version binds. The Breadcrumb above the title is navigation that every page carries, not
+ * a term, so it is left out: a change to the trail must not move the hash of the terms (P-3221).
+ */
+const mainText = (): string => {
+  const copy = screen.getByRole("main").cloneNode(true);
+  if (!(copy instanceof HTMLElement)) throw new Error("main is not an element");
+  copy.querySelector("nav.breadcrumb")?.remove();
+  return copy.textContent;
+};
 const headings = () => screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
 const hrefOf = (name: string) => screen.getByRole("link", { name }).getAttribute("href");
 
@@ -243,6 +252,46 @@ describe("the legal pages", () => {
     await renderPage(pageOf(route), UNSET);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(h1);
     expect(headings()).toEqual(h2s);
+  });
+
+  it.each([
+    ["/privacy", privacyRoute, "Privacy"],
+    ["/terms", termsRoute, "Terms for Professionals"],
+    ["/accessibility", accessibilityRoute, "Accessibility"],
+  ] as const)(
+    "%s draws its trail as an ordered list: Home, then the page itself as the current item (SCH-008)",
+    async (_path, route, name) => {
+      await renderPage(pageOf(route), UNSET);
+      const nav = screen.getByRole("navigation", { name: "Breadcrumb" });
+      expect(nav.querySelector("ol")).not.toBeNull();
+      const items = within(nav).getAllByRole("listitem");
+      expect(items.map((item) => item.textContent)).toEqual(["Home", name]);
+      expect(
+        within(nav)
+          .getAllByRole("link")
+          .map((link) => link.getAttribute("href")),
+      ).toEqual(["/"]);
+      expect(items[1]?.querySelector("[aria-current='page']")?.textContent).toBe(name);
+    },
+  );
+
+  it("/contact has one h1, then its three blocks as h2 and no h3 (MET-003)", async () => {
+    await renderPage(pageOf(contactRoute), SET);
+    expect(screen.getAllByRole("heading", { level: 1 }).map((h) => h.textContent)).toEqual([
+      "Contact",
+    ]);
+    expect(headings()).toEqual([
+      "Ask about a place.",
+      "Present a property.",
+      "California, Florida and New York.",
+    ]);
+    expect(screen.queryAllByRole("heading", { level: 3 })).toEqual([]);
+    const nav = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(
+      within(nav)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Home", "Contact"]);
   });
 
   it("an unset site leaves no null and no empty paragraph on any of the three", async () => {

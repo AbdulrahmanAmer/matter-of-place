@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import type { ImageVariants } from "../../domain/property";
+import type { Crumb } from "../../lib/jsonld";
+import { TrailBreadcrumb } from "./trail-breadcrumb";
 import { ContentTag } from "./content-tag";
 import { Picture } from "./picture";
 
@@ -12,7 +14,10 @@ export function ImageHero({
   children,
   tag,
   scrollTarget,
+  trail,
 }: {
+  /** The array the route gives `breadcrumbLd`; drawn as the visible Breadcrumb list. */
+  trail?: Crumb[];
   /** Nothing is drawn without one: a market, region or story may have no photograph yet (G55). */
   image?: string | undefined;
   variants?: ImageVariants | undefined;
@@ -41,6 +46,7 @@ export function ImageHero({
       )}
       {tag !== undefined && <ContentTag label={tag} />}
       <div className="image-hero-content">
+        {trail !== undefined && <TrailBreadcrumb trail={trail} />}
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
         {children}

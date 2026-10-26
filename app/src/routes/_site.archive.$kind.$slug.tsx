@@ -5,7 +5,7 @@ import { PropertyGrid } from "../components/site/property-card";
 import { archiveKinds, type ArchiveKind } from "../domain/archive";
 import { useTrackView } from "../hooks/use-track-view";
 import { pluralize } from "../lib/format";
-import { breadcrumbLd, collectionLd } from "../lib/jsonld";
+import { breadcrumbLd, collectionLd, type Crumb } from "../lib/jsonld";
 import { archiveQuery } from "../lib/queries";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead, unavailableHead } from "../lib/seo";
@@ -22,6 +22,11 @@ const titles: Record<ArchiveKind, (label: string) => string> = {
   architect: (label) => `Properties by ${label}`,
   style: (label) => `${label} properties`,
 };
+
+const archiveTrail = (kind: ArchiveKind, slug: string, label: string): Crumb[] => [
+  { name: "Properties", path: "/properties" },
+  { name: titles[kind](label), path: `/archive/${kind}/${slug}` },
+];
 
 export const Route = createFileRoute("/_site/archive/$kind/$slug")({
   loader: async ({ params, context: { queryClient } }) => {
@@ -51,10 +56,7 @@ export const Route = createFileRoute("/_site/archive/$kind/$slug")({
           path,
           items.map((property) => ({ name: property.title, path: `/property/${property.slug}` })),
         ),
-        breadcrumbLd([
-          { name: "Properties", path: "/properties" },
-          { name: title, path },
-        ]),
+        breadcrumbLd(archiveTrail(kind, slug, label)),
       ],
     });
   },
@@ -68,6 +70,7 @@ function ArchivePage() {
   return (
     <main>
       <PageIntro
+        trail={archiveTrail(kind, slug, label)}
         eyebrow={eyebrows[kind]}
         title={label}
         text={`${String(count)} published ${pluralize(count, "property", "properties")}.`}

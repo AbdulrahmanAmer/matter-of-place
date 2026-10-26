@@ -10,6 +10,12 @@ export type Flags = Readonly<Record<string, unknown>>;
 /** Who may frame a response: nobody, the same origin (a preview page in B7's editor) or the admin's own frames. */
 export type Framing = "none" | "self" | "admin";
 
+/**
+ * Marks the one HTML page a public API row answers on purpose (the unsubscribe page of OPS-005). The pipeline's API
+ * guard (H39 (2)) turns any other HTML under `/api/` into JSON, and takes this header off the page it lets through.
+ */
+export const API_PAGE_HEADER = "x-mop-api-page";
+
 /** The SHA-256 (base64) of each inline script a policy admits and of each inline style element. */
 export interface PageHashes {
   scripts: readonly string[];

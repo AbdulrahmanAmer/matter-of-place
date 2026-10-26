@@ -1,7 +1,7 @@
 import type { Property } from "../../domain/property";
+import { redirectKey } from "../../domain/route-path";
 import type { Db } from "../lib/db";
 import { AppError } from "../lib/errors";
-import { routePath } from "../lib/pipeline";
 import type { Catalog } from "./mappers";
 import { getCatalog } from "./state";
 
@@ -13,11 +13,8 @@ interface Target {
   status: number;
 }
 
-/** The key of a path: as the router reads it, without a trailing slash. */
-const normalize = (pathname: string): string => {
-  const path = routePath(pathname);
-  return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
-};
+/** The key of a path: as the router reads it, without a trailing slash (shared with `redirectSchema`). */
+const normalize = redirectKey;
 
 interface RedirectSources {
   properties: readonly Pick<Property, "id" | "slug">[];

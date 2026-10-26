@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { propertyUpdateInputSchema } from "../../src/domain/admin-properties";
 import {
+  analyticsBatchSchema,
   conciergeAnswerSchema,
   contactTopics,
   inquirySchema,
@@ -133,6 +135,98 @@ describe("submissionSchema", () => {
     const parsed = submissionSchema.parse(validSubmission({ city: "  Malibu ", listingUrl: "" }));
     expect(parsed.city).toBe("Malibu");
     expect(parsed.listingUrl).toBeUndefined();
+  });
+});
+
+describe("analyticsBatchSchema (API-003)", () => {
+  const envelope = (data: unknown) => ({
+    event: "property_view",
+    path: "/california",
+    at: "2026-10-26T09:00:00Z",
+    data,
+  });
+
+  it("takes scalars, lists of scalars and the utm object", () => {
+    const data = {
+      n: 1,
+      label: "x",
+      on: true,
+      none: null,
+      ids: ["a", "b", 3],
+      utm: { utm_source: "ig" },
+    };
+    expect(analyticsBatchSchema.safeParse([envelope(data)]).success).toBe(true);
+  });
+
+  it("refuses an object inside data, or a list inside a list, instead of walking it", () => {
+    for (const data of [{ nested: { a: 1 } }, { nested: [[1]] }, { nested: [{ a: 1 }] }]) {
+      expect([data, analyticsBatchSchema.safeParse([envelope(data)]).success]).toEqual([
+        data,
+        false,
+      ]);
+    }
+  });
+
+  it("answers a refusal, never a stack overflow, for arrays and objects nested 2000 levels deep", () => {
+    let lists: unknown = 1;
+    let objects: unknown = 1;
+    for (let level = 0; level < 2000; level += 1) {
+      lists = [lists];
+      objects = { k: objects };
+    }
+    expect(analyticsBatchSchema.safeParse([envelope({ k: lists })]).success).toBe(false);
+    expect(analyticsBatchSchema.safeParse([envelope({ k: objects })]).success).toBe(false);
+  });
+});
+
+describe("web addresses a person may store (SEC-002)", () => {
+  const unsafe = [
+    "javascript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+    "file:///etc/passwd",
+    "ftp://example.test/listing",
+    "https://user:secret@example.test/listing",
+    "//example.test/listing",
+    "example.test/listing",
+    `https://example.test/${"a".repeat(500)}`,
+  ];
+  const fields = ["listingUrl", "sourceUrl", "photographyUrl", "videoUrl"] as const;
+
+  it.each(fields)(
+    "submissionSchema refuses an unsafe address in %s and names that field only",
+    (field) => {
+      for (const value of unsafe) {
+        expect([
+          value,
+          issuePaths(submissionSchema.safeParse({ ...validSubmission(), [field]: value })),
+        ]).toEqual([value, [field]]);
+      }
+    },
+  );
+
+  it.each(fields)(
+    "submissionSchema takes an http or https address in %s, trimmed, and an empty one as absent",
+    (field) => {
+      for (const address of ["https://example.test/mls/1?x=1", "http://example.test/mls/1"]) {
+        const parsed = submissionSchema.parse({ ...validSubmission(), [field]: `  ${address}  ` });
+        expect(parsed[field]).toBe(address);
+      }
+      expect(submissionSchema.parse({ ...validSubmission(), [field]: "" })[field]).toBeUndefined();
+    },
+  );
+
+  it("the property editor's listing_url takes http, https or null, no other scheme", () => {
+    const patch = (listing_url: unknown) =>
+      propertyUpdateInputSchema.safeParse({
+        id: "00000000-0000-4000-8000-0000000000b1",
+        expected_version: 1,
+        patch: { listing_url },
+      });
+    expect(patch("https://listing.example.test/12").success).toBe(true);
+    expect(patch("http://listing.example.test/12").success).toBe(true);
+    expect(patch(null).success).toBe(true);
+    for (const value of unsafe) expect([value, patch(value).success]).toEqual([value, false]);
   });
 });
 

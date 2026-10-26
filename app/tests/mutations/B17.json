@@ -807,10 +807,28 @@
     "id": "b17-ca-same-origin",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/server/public/consent.ts",
-    "find": "origin === new URL(request.url).origin && ",
+    "find": "    return new URL(referer).origin !== new URL(request.url).origin;",
+    "replace": "    return false;",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: answers 403 with no cookie"
+  },
+  {
+    "id": "b17-ca-fetch-site",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "  if (request.headers.get(\"sec-fetch-site\") === \"cross-site\") return true;\n",
     "replace": "",
     "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
-    "expect": "× .*consent-api: goes back to /"
+    "expect": "× .*consent-api: answers 403 with no cookie"
+  },
+  {
+    "id": "b17-ca-guard",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "  if (startedElsewhere(request)) return toErrorResponse(crossSiteChoice, requestId);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: answers 403 with no cookie"
   },
   {
     "id": "b17-ca-400",
@@ -1891,5 +1909,185 @@
     "replace": "      <meta name=\"robots\" content=\"noindex, nofollow\" />\n      <link rel=\"canonical\" href=\"https://matterofplace.com/\" />\n",
     "run": "bunx vitest run --project unit tests/unit/essentials.test.ts -t not-found-head",
     "expect": "× .*not-found-head: a page no route matches has a description, no canonical and noindex"
+  },
+  {
+    "id": "b17-pr497-trail-last",
+    "test": "tests/unit/trail-breadcrumb.test.tsx",
+    "file": "src/components/site/trail-breadcrumb.tsx",
+    "find": "            {index === last ? (",
+    "replace": "            {index === -1 ? (",
+    "run": "bunx vitest run --project component tests/unit/trail-breadcrumb.test.tsx",
+    "expect": "FAIL .*lists Home, an index, a market desk"
+  },
+  {
+    "id": "b17-pr497-trail-market-param",
+    "test": "tests/unit/trail-breadcrumb.test.tsx",
+    "file": "src/components/site/trail-breadcrumb.tsx",
+    "find": "params={{ market: crumb.path.slice(1) }}",
+    "replace": "params={{ market: crumb.path }}",
+    "run": "bunx vitest run --project component tests/unit/trail-breadcrumb.test.tsx",
+    "expect": "FAIL .*lists Home, an index, a market desk"
+  },
+  {
+    "id": "b17-pr497-trail-exact",
+    "test": "tests/unit/trail-breadcrumb.test.tsx",
+    "file": "src/components/site/trail-breadcrumb.tsx",
+    "find": " params={{ market: crumb.path.slice(1) }} activeOptions={EXACT}>",
+    "replace": " params={{ market: crumb.path.slice(1) }}>",
+    "run": "bunx vitest run --project component tests/unit/trail-breadcrumb.test.tsx",
+    "expect": "FAIL .*marks only the page itself as current"
+  },
+  {
+    "id": "b17-pr497-trail-router-link",
+    "test": "tests/unit/trail-breadcrumb.test.tsx",
+    "file": "src/components/site/trail-breadcrumb.tsx",
+    "find": "              <Link to={crumb.path} activeOptions={EXACT}>\n                {crumb.name}\n              </Link>",
+    "replace": "              <a href={crumb.path}>\n                {crumb.name}\n              </a>",
+    "run": "bunx vitest run --project component tests/unit/trail-breadcrumb.test.tsx",
+    "expect": "FAIL .*follows a crumb inside the app"
+  },
+  {
+    "id": "b17-pr497-url-http",
+    "test": "tests/unit/contracts.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "const WEB_PROTOCOLS = new Set([\"http:\", \"https:\"]);",
+    "replace": "const WEB_PROTOCOLS = new Set([\"https:\"]);",
+    "run": "bunx vitest run --project unit tests/unit/contracts.test.ts",
+    "expect": "FAIL .*listing_url takes http, https or null"
+  },
+  {
+    "id": "b17-pr497-url-javascript",
+    "test": "tests/unit/contracts.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "const WEB_PROTOCOLS = new Set([\"http:\", \"https:\"]);",
+    "replace": "const WEB_PROTOCOLS = new Set([\"http:\", \"https:\", \"javascript:\", \"data:\"]);",
+    "run": "bunx vitest run --project unit tests/unit/contracts.test.ts",
+    "expect": "FAIL .*listing_url takes http, https or null"
+  },
+  {
+    "id": "b17-pr497-deep-body",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/domain/contracts.ts",
+    "find": "const jsonValue = z.union([scalar, z.array(scalar).max(20)]);",
+    "replace": "const jsonValue = z.lazy(() =>\n  z.union([scalar, z.array(jsonValue), z.record(z.string(), jsonValue)]),\n);",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "FAIL .*refuses /events nested 20000 levels deep"
+  },
+  {
+    "id": "b17-pr497-raw-limit",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/public/pipeline.ts",
+    "find": "    if (!memory.ok) return refused(ctx.requestId, memory.retryAfter);\n    return (await dbLimited(",
+    "replace": "    return (await dbLimited(",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "FAIL .*counts the raw row's own memory limit"
+  },
+  {
+    "id": "b17-pr497-get-writes",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/subscribers/unsubscribe.ts",
+    "find": "    : unsubscribePage({ ...unsubscribeCopy.ask, action: `${UNSUBSCRIBE_PATH}?t=${token}` });",
+    "replace": "    : (await _db.rpc(\"unsubscribe_email\", { p_email: id }),\n      unsubscribePage({ ...unsubscribeCopy.ask, action: `${UNSUBSCRIBE_PATH}?t=${token}` }));",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "FAIL .*answers a GET with a page whose one button posts"
+  },
+  {
+    "id": "b17-pr497-get-invalid",
+    "test": "tests/unit/public-pipeline.test.ts",
+    "file": "src/server/subscribers/unsubscribe.ts",
+    "find": "    ? unsubscribePage(unsubscribeCopy.invalid, 400)",
+    "replace": "    ? unsubscribePage({ ...unsubscribeCopy.ask, action: \"/x\" }, 400)",
+    "run": "bunx vitest run --project unit tests/unit/public-pipeline.test.ts",
+    "expect": "FAIL .*answers a GET whose token is not whole"
+  },
+  {
+    "id": "b17-pr497-api-page-pass",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "  if (response.headers.has(API_PAGE_HEADER)) {",
+    "replace": "  if (response.headers.has(\"x-never-set\")) {",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "FAIL .*lets through the one page an API row marks"
+  },
+  {
+    "id": "b17-pr497-api-page-unmark",
+    "test": "tests/unit/pipeline.test.ts",
+    "file": "src/server/lib/pipeline.ts",
+    "find": "    headers.delete(API_PAGE_HEADER);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/pipeline.test.ts",
+    "expect": "FAIL .*lets through the one page an API row marks"
+  },
+  {
+    "id": "b17-pr497-get-uncached",
+    "test": "tests/unit/routes-parity.test.ts",
+    "file": "src/server/public/routes.ts",
+    "find": "    service: unsubscribeAsk,\n",
+    "replace": "    service: unsubscribeAsk,\n    cache: { sMaxAge: 60, tags: [\"catalog\"] },\n",
+    "run": "bunx vitest run --project unit tests/unit/routes-parity.test.ts",
+    "expect": "FAIL .*never stores the unsubscribe page"
+  },
+  {
+    "id": "b17-pr497-unsub-origin",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/email/unsubscribe.ts",
+    "find": "origin.replace(/\\/+$/, \"\")",
+    "replace": "origin",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "FAIL .*signs the subscriber id, never the address"
+  },
+  {
+    "id": "b17-pr497-unsub-row",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/unsubscribe.ts",
+    "find": "  const { data, error } = await db.from(\"subscribers\").select(\"email\").eq(\"id\", id);",
+    "replace": "  const { data, error } = { data: [{ email: id }], error: null };",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "FAIL .*unsubscribes the subscriber its token names"
+  },
+  {
+    "id": "b17-pr497-unsub-page",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/unsubscribe.ts",
+    "find": "  return (request.headers.get(\"accept\") ?? \"\").includes(\"text/html\")",
+    "replace": "  return false",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "FAIL .*answers its page's button with a page"
+  },
+  {
+    "id": "b17-pr497-unsub-nobody",
+    "test": "tests/unit/email/confirm.test.ts",
+    "file": "src/server/subscribers/unsubscribe.ts",
+    "find": "  if (email !== undefined) {",
+    "replace": "  if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/email/confirm.test.ts",
+    "expect": "FAIL .*answers its page's button with a page"
+  },
+  {
+    "id": "b17-pr497-send-id",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/jobs/steps/send-email.ts",
+    "find": "      unsubscribeId: input.entity === \"subscriber\" ? (input.entityId ?? undefined) : undefined,",
+    "replace": "      unsubscribeId: input.to,",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "FAIL .*OPS-005: bulk mail carries the reader's own one-click"
+  },
+  {
+    "id": "b17-pr497-send-origin",
+    "test": "tests/unit/email/send-email.test.ts",
+    "file": "src/server/email/resend-client.ts",
+    "find": "  const origin = readVar(\"SITE_URL\");",
+    "replace": "  const origin = \"https://elsewhere.example\";",
+    "run": "bunx vitest run --project unit tests/unit/email/send-email.test.ts",
+    "expect": "FAIL .*OPS-005: bulk mail carries the reader's own one-click"
+  },
+  {
+    "id": "b17-pr497-llms-stories",
+    "test": "tests/unit/llms.test.ts",
+    "file": "src/server/seo/llms.ts",
+    "find": "      .filter(\n        ([path]) => path !== \"/stories\" || indexable(source.stories.length).robots === undefined,\n      )\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/llms.test.ts",
+    "expect": "FAIL .*leave out /stories while no story is published"
   }
 ]

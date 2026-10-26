@@ -41,6 +41,7 @@ const videoRowSchema = z.object({
   poster: z.string(),
   caption: z.string(),
   duration: z.string(),
+  uploadedAt: z.string().optional(),
 });
 
 export const representativeRowSchema = z.object({
@@ -290,6 +291,7 @@ export function toProperty(row: PropertyRow, representative?: RepresentativeRow)
         poster: mediaUrl(row.video.poster),
         caption: row.video.caption,
         duration: row.video.duration,
+        ...(row.video.uploadedAt !== undefined && { uploadedAt: row.video.uploadedAt }),
       },
     }),
     story: row.story,

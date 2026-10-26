@@ -82,11 +82,17 @@ describe("assets_reel_video", () => {
     await withRollback(async (db) => {
       const reel = await readyReel(db, 9701);
       await db.query(approve, [reel.asset, reel.approver]);
+      // C02: the moment of attaching, in UTC, which JSON-LD gives as the film's uploadDate.
+      const attachedAt = await scalar<string>(
+        db,
+        `select to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as v`,
+      );
       expect(await video(db, reel.property)).toEqual({
         src: VIDEO,
         poster: POSTER,
         caption: ALT,
         duration: "0:18",
+        uploadedAt: attachedAt,
       });
       expect(await auditRows(db, "properties.video_attach", reel.property)).toEqual([SYSTEM_ROW]);
       expect(await auditRows(db, "assets.approve", reel.asset)).toMatchObject([

@@ -231,13 +231,24 @@ export const submissionMediaSchema = z.object({
   type: z.enum(uploadLimits.types),
 });
 
-const optionalUrl = z
+/** `javascript:`, `data:`, `file:` and every other scheme are refused; only the two web schemes are links. */
+const WEB_PROTOCOLS = new Set(["http:", "https:"]);
+
+/** An absolute http or https address with no credentials: the only kind of link a person may store (SEC-002). */
+export const webUrl = z
   .string()
   .trim()
-  .url()
   .max(500)
-  .optional()
-  .or(z.literal("").transform(() => undefined));
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+      return WEB_PROTOCOLS.has(url.protocol) && url.username === "" && url.password === "";
+    } catch {
+      return false;
+    }
+  }, "Please enter a full link, starting with https://.");
+
+const optionalUrl = webUrl.optional().or(z.literal("").transform(() => undefined));
 const optionalYear = z.number().int().min(1600).max(2100).optional();
 
 /** The submitter fields `submitterRules` reads. */
@@ -467,17 +478,9 @@ export const utmSchema = z
   .strict();
 export type Utm = z.infer<typeof utmSchema>;
 
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
-const jsonValue: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValue),
-    z.record(z.string(), jsonValue),
-  ]),
-);
+/** `track()` payloads are flat: a scalar or a short list of scalars. No recursion, so no depth can overflow the stack. */
+const scalar = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+const jsonValue = z.union([scalar, z.array(scalar).max(20)]);
 
 /** One analytics event as `track()` queues it. `event` is any string: the server drops a name it does not list. */
 const analyticsEnvelopeSchema = z.object({

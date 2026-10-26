@@ -3,7 +3,14 @@ import type { PropertyPatch } from "../../domain/admin-properties";
 import { propertyTypes } from "../../domain/contracts";
 import { propertySchema } from "../../domain/property";
 import { Field } from "../ui/Field";
-import { numberOrNull, textOrNull, type EditFields, type EditorValues } from "./editor-values";
+import {
+  isUnreadableNumber,
+  numberOrNull,
+  textOrNull,
+  unreadableNumberMessage,
+  type EditFields,
+  type EditorValues,
+} from "./editor-values";
 
 type TextKey =
   "region_slug" | "neighborhood" | "country" | "style" | "architect" | "designer" | "listing_url";
@@ -47,9 +54,10 @@ function NumberInput({
 }) {
   const [text, setText] = useState(value === null ? "" : String(value));
   // A reload over the field shows the row's value; what the editor is typing is left alone.
-  if (numberOrNull(text) !== value) setText(value === null ? "" : String(value));
+  const unreadable = isUnreadableNumber(text);
+  if (!unreadable && numberOrNull(text) !== value) setText(value === null ? "" : String(value));
   return (
-    <Field label={label}>
+    <Field label={label} {...(unreadable ? { error: unreadableNumberMessage } : {})}>
       {(control) => (
         <input
           {...control}
@@ -57,7 +65,7 @@ function NumberInput({
           value={text}
           onChange={(event) => {
             setText(event.target.value);
-            onChange(numberOrNull(event.target.value));
+            if (!isUnreadableNumber(event.target.value)) onChange(numberOrNull(event.target.value));
           }}
         />
       )}

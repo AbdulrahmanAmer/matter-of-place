@@ -12638,6 +12638,20 @@
  {
   "dimension": "public-api",
   "kind": "public-route",
+  "id": "GET and POST /api/public/subscribers/unsubscribe?t (OPS-005, RFC 8058: token = subscriber id + HMAC under CONFIRM_TOKEN_SECRET; GET a page with one button, POST unsubscribe_email; 60/min IP memory, one bucket)",
+  "plan": "B17",
+  "files": [
+   "src/routes/api/public/subscribers.unsubscribe.ts",
+   "src/server/subscribers/unsubscribe.ts",
+   "src/server/subscribers/unsubscribe-page.ts",
+   "src/server/email/unsubscribe.ts",
+   "tests/unit/public-pipeline.test.ts"
+  ],
+  "hasProof": true
+ },
+ {
+  "dimension": "public-api",
+  "kind": "public-route",
   "id": "POST /api/public/concierge (conciergeQuestionSchema, 30/min IP memory)",
   "plan": "B3",
   "files": [

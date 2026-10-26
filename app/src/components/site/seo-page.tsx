@@ -57,7 +57,7 @@ export function SeoPage({ page }: { page: SeoPageContent }) {
         <Breadcrumb>
           <Link to="/">Home</Link>
           {page.kind === "guide" && <Link to="/guides">Guides</Link>}
-          <span>{page.h1}</span>
+          <span aria-current="page">{page.h1}</span>
         </Breadcrumb>
         <p className="seo-lede">
           <Inline text={page.lede} />

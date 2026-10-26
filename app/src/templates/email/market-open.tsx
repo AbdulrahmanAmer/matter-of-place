@@ -24,6 +24,10 @@ export const definition: EmailDefinition = {
   ],
 };
 
+/** A one-to-one email is not a broadcast, so Resend fills no unsubscribe page: the link writes to the house. */
+const unsubscribeHref = (address: string | null): string | undefined =>
+  address === null ? undefined : `mailto:${address}?subject=Unsubscribe`;
+
 /** A moment: a market's door opens. */
 export function Email(props: EmailProps) {
   return (
@@ -32,6 +36,7 @@ export function Email(props: EmailProps) {
       label="Now open"
       place={variable(props.variables, "market_name")}
       note="You asked to hear once when this market opened."
+      unsubscribe={unsubscribeHref(props.site.contact.email)}
     />
   );
 }

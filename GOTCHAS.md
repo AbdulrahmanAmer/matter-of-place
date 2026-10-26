@@ -9191,3 +9191,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before a gate, compare `git rev-parse HEAD` with `origin/<branch>` and stop when they differ; after a rerun or a push, wait until the job's latest attempt has completed before gating (`.tmp/wait-check.sh`, `.tmp/wait-job-then-gate.sh` in the orchestrator's folder).
 - proof: `.tmp/gd-488c.log` 09:30 gated a53c5c74 while the run.ts fix was still staged; `.tmp/gd-488e.log` 09:50 read attempt 1's failure during attempt 2.
 - added: 2026-10-26
+
+## P-4640 · A branch's bundle size is measured on its PR preview, which serves the client manifest and every chunk; guess no module first
+- symptom: PR 497, 2026-10-26: CI's bundle-check failed `_site.$market.index` at 180,351 gzip bytes (budget 180,224) and the review guessed `src/domain/route-path.ts` or `contracts.ts`. No local build was allowed (the repository is public; CI judges).
+- cause: `route-path.ts` never reached the client (only `admin-settings.ts` and server files import it). Measured on the previews: the entry grew 346 bytes (strings, the unsubscribe route in the route tree, the trails of the heads, the URL refine) and the new visible trail added its own 351-byte chunk plus two imports to every page that opens with PageIntro or ImageHero; the market index loads both openers, so it paid all three chunks.
+- rule: before naming a module, measure: fetch `https://pr-<n>.holy-meadow-4327.workers.dev/.vite/manifest.json` and every `.js` file it names, run `checkManifest` of `app/scripts/bundle-check.mjs` on them, and do the same on `https://matter-of-place-dev.holy-meadow-4327.workers.dev` (main). The preview build sits about 12 KB above CI's numbers, so compare deltas, never absolutes. A `codeSplitting` group can be priced before any build by gzipping the concatenated chunk files (here the five chunks of a page's first screen: 1,457 bytes apart, 913 together; simulated on the whole manifest the group took the market index down 544 bytes and the home page up 449).
+- proof: `curl -s -o /dev/null -w "%{http_code}\n" https://pr-497.holy-meadow-4327.workers.dev/.vite/manifest.json` → `200`; on that manifest `checkManifest` gave `_site.$market.index` 192,750 against 192,011 on the dev Worker of main (+739, CI's +721).
+- added: 2026-10-26
+
+## P-4641 · prettier on `workspace/05-plans/trace.json` rewrites all of its 30,000 lines
+- symptom: PR 497 fix round, 2026-10-26: one `prettier --write` over the changed files, trace.json among them, turned a 14-line addition into `14446 insertions(+), 15646 deletions(-)`.
+- cause: trace.json is one-space JSON written by a script; prettier's two-space style differs on every line. Only `app/` is under prettier.
+- rule: never pass a file outside `app/` to prettier; add to trace.json by inserting text in its own one-space style, then `node workspace/05-plans/check-plans.mjs`. If it happened, `git checkout -- workspace/05-plans/trace.json` and insert again.
+- proof: `git diff --stat workspace/05-plans/trace.json` after the insertion alone → `1 file changed, 14 insertions(+)`.
+- added: 2026-10-26

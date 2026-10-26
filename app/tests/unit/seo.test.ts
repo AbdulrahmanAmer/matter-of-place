@@ -6,6 +6,7 @@ import { indexable, pageHead, serializeJsonForScript, unavailableHead } from "..
 import { Route as MarketRoute } from "../../src/routes/_site.$market.index";
 import { Route as RegionRoute } from "../../src/routes/_site.$market.$region";
 import { Route as PropertiesRoute } from "../../src/routes/_site.properties";
+import { Route as StoriesRoute } from "../../src/routes/_site.stories.index";
 import { mapSnapshot, parseSnapshot } from "../../src/server/public/mappers";
 import { snapshotJson } from "../fixtures/snapshot";
 
@@ -289,5 +290,16 @@ describe("the head of a page that lists properties", () => {
 
   it.each(cases)("$name has no robots meta with one published property", (route) => {
     expect(robotsMeta(route.head, route.data(published), route.params)).toEqual([]);
+  });
+
+  it("/stories is noindex, follow with no published story and has no robots meta with one (SCH-005)", () => {
+    expect(robotsMeta(StoriesRoute.options.head, [], {})).toEqual(["noindex, follow"]);
+    expect(
+      robotsMeta(
+        StoriesRoute.options.head,
+        [{ slug: "a-quiet-house", title: "A quiet house." }],
+        {},
+      ),
+    ).toEqual([]);
   });
 });

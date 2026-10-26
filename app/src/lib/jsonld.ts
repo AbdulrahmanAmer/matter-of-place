@@ -193,19 +193,25 @@ function isoDuration(clock: string): string | undefined {
   return text === "" ? undefined : `PT${text}`;
 }
 
-/** The film of a property, or null when it has none or its file is not on the public media route or an `https` address. */
+/**
+ * The film of a property, or null when it has none, its file or poster is not on the public media route or an `https`
+ * address, or the record carries no upload date (Google requires `thumbnailUrl` and `uploadDate`; a date is never invented).
+ */
 export function videoLd(property: Pick<Property, "video">): VideoObject | null {
   const { video } = property;
   if (video === undefined) return null;
   const contentUrl = mediaAddress(video.src);
-  if (contentUrl === undefined) return null;
   const thumbnailUrl = mediaAddress(video.poster);
+  const uploadDate = video.uploadedAt;
+  if (contentUrl === undefined || thumbnailUrl === undefined || uploadDate === undefined)
+    return null;
   const duration = isoDuration(video.duration);
   return {
     "@type": "VideoObject",
     name: video.caption,
     contentUrl,
-    ...(thumbnailUrl === undefined ? {} : { thumbnailUrl }),
+    thumbnailUrl,
+    uploadDate,
     ...(duration === undefined ? {} : { duration }),
   };
 }

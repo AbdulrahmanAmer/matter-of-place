@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { editorialQualities } from "../data/exposure";
-import { breadcrumbLd } from "../lib/jsonld";
+import { breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
+
+const trail: Crumb[] = [{ name: "Editorial Standard", path: "/editorial-standard" }];
 
 export const Route = createFileRoute("/_site/editorial-standard")({
   head: ({ matches }) =>
@@ -14,7 +16,7 @@ export const Route = createFileRoute("/_site/editorial-standard")({
       description: pageDescription("editorial-standard"),
       path: "/editorial-standard",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [breadcrumbLd([{ name: "Editorial Standard", path: "/editorial-standard" }])],
+      jsonLd: [breadcrumbLd(trail)],
     }),
   component: StandardPage,
 });
@@ -23,6 +25,7 @@ function StandardPage() {
   return (
     <main>
       <PageIntro
+        trail={trail}
         eyebrow="EDITORIAL STANDARD"
         title="What we look for."
         text="A property's price does not decide whether it belongs here."
