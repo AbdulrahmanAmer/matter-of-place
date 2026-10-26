@@ -28,6 +28,8 @@ export type PageHeadInput = {
   /** One object, or an array that becomes one `@graph`. */
   jsonLd?: JsonLdObject | JsonLdObject[];
   noindex?: boolean;
+  /** `false` for a 404 or 410 answer: no canonical link and no `og:url` (IDX-006). */
+  canonical?: boolean;
   /** From `indexable(count)`: a page that stays out of the index but lets crawlers follow its links. */
   robots?: "noindex, follow";
 };
@@ -107,6 +109,7 @@ export function pageHead({
   modified,
   jsonLd,
   noindex,
+  canonical: withCanonical = true,
   robots,
 }: PageHeadInput) {
   // The brand appears exactly once. Routes pass bare titles; the home route passes a title
@@ -133,7 +136,7 @@ export function pageHead({
       { property: "og:title", content: fullTitle },
       { property: "og:description", content: description },
       { property: "og:type", content: type },
-      { property: "og:url", content: canonical },
+      ...(withCanonical ? [{ property: "og:url", content: canonical }] : []),
       { property: "og:site_name", content: siteConfig.name },
       { property: "og:locale", content: siteConfig.locale.replace("-", "_") },
       { name: "twitter:card", content: "summary_large_image" },
@@ -160,7 +163,7 @@ export function pageHead({
           ? []
           : [{ name: "robots", content: robots }]),
     ],
-    links: [{ rel: "canonical", href: canonical }],
+    links: withCanonical ? [{ rel: "canonical", href: canonical }] : [],
     scripts: graph
       ? [{ type: "application/ld+json", children: serializeJsonForScript(graph) }]
       : [],
@@ -183,6 +186,7 @@ export const unavailableHead = (noun: string) =>
     description: `This ${noun.toLowerCase()} could not be found.`,
     path: "/",
     noindex: true,
+    canonical: false,
   });
 
 export const faqJsonLd = (items: { q: string; a: string }[]) => ({
