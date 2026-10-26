@@ -74,7 +74,13 @@ export function InterestForm({
   }
 
   return (
-    <form className="interest-form" onSubmit={onSubmit} aria-busy={pending}>
+    <form
+      method="post"
+      action="/api/form-fallback"
+      className="interest-form"
+      onSubmit={onSubmit}
+      aria-busy={pending}
+    >
       <EmailInput
         className="interest-email"
         name="email"
