@@ -9205,3 +9205,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: never pass a file outside `app/` to prettier; add to trace.json by inserting text in its own one-space style, then `node workspace/05-plans/check-plans.mjs`. If it happened, `git checkout -- workspace/05-plans/trace.json` and insert again.
 - proof: `git diff --stat workspace/05-plans/trace.json` after the insertion alone → `1 file changed, 14 insertions(+)`.
 - added: 2026-10-26
+
+## P-4642 · An outside email is in `inbound_mail`, not `inquiries`: the empty `inquiries` table says nothing about mail
+- symptom: 2026-10-26, the orchestrator told the operator the W8 0d test email "never reached the team" from an empty `inquiries` table; the email had been recorded, held, explained, decided and drafted within five minutes.
+- cause: `inquiries` holds the site's forms; mail to any alias lands in `inbound_mail` (W8 0h) and its thread lines in `agent_messages` of the owner's thread, not Matter's.
+- rule: to ask whether an email reached the team, read `inbound_mail` by `provider_id` (the Zoho id), then the owner's thread (`owner_slug`) from `received_at`; never conclude from `inquiries` or from Matter's thread alone.
+- proof: `select state, owner_slug, triage from inbound_mail where provider_id='1793028071643153400'` → routed, concierge, instructions_to_ai true.
+- added: 2026-10-27
+
+## P-4643 · Matter repeats a waiting item from its own live-state.md every pass until that file says it is closed
+- symptom: 2026-10-26, Matter posted "W8 0d still needs your one outside test message" every 10 minutes for 5 hours after the message was sent and two Admin lines said so (74 runs, the allowance spent on one sentence).
+- cause: Matter reads its own `~/.mop-workforce/matter/live-state.md` first each pass; its top UPDATE line said "DONE except W8 0d", and a line in its thread does not change that file.
+- rule: when a waiting item is done, prepend an UPDATE line to Matter's live-state.md that names it closed (and record it in POSITION.md); a thread message alone does not stop the reminder.
+- proof: `select count(*) from agent_messages where thread='matter' and body like 'W8 0d still needs%' and created_at > '<live-state edit time>'` → 0 (UNPROVEN until measured).
+- added: 2026-10-27

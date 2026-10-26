@@ -2432,3 +2432,14 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   posts: dialog titles keep the post's case, "Approving files" copy, a refused reject keeps the typed note, approve
   invalidates assets and channels; 13 registry finds on main match nothing (B17, B4, B8b, fix-consent-bar, H1: CI
   replays only changed entries, so they never show). Bank: P-4547, P-4612, P-4613, G-1303 hit again.
+
+- 2026-10-27 00:4x +0300: orchestrator. W8 0d IS PROVEN LIVE, NO LONGER WAITING ON THE OPERATOR: the outside test
+  email (hello@, 2026-10-26 15:21 UTC) was recorded, held for its instruction, explained by Clara, decided by Matter and
+  turned into one reply proposal in Approvals by 15:26:38 (W8.md 0d, ticked with the rows). Matter's 10-minute line
+  "W8 0d still needs your one outside test message" came from the top line of its own live-state.md ("DONE except W8
+  0d"); an UPDATE line closing it was prepended there, and the WAITING line above is closed here.
+  SEO end to end (site-checks/matterofplace.com/.pewp/runs/END-TO-END.md): PR 497 (refactor -2, 11 fixes plus a
+  fresh Opus review's 2 MUST and 8 SHOULD) merged by gate-loop as 5b23e50f on green CI; its deploy is watched.
+  Still open: C04, C11, C12, C13 (critical groups, Opus builds); targets.json targetPage to the built paths so URL
+  Inspection runs; Gemini terms acknowledgement (owner); the contact form hang in automated Chrome (UNPROVEN cause);
+  CONFIRM_TOKEN_SECRET equal on the Worker and the job runner (UNPROVEN). Bank: P-4642, P-4643.
