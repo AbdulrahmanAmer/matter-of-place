@@ -9045,6 +9045,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 ## P-4554 · His commits carry no GitHub login: the git author's email is not linked to his account
 - symptom: W6 item 4 round 3 was asked to quote only commits whose `authors[].login` is his account; on his own pull requests 470, 483 and 486 every commit's git author login is `""` (the co-author is `claude`), so the filter quotes no commit of his at all.
 - cause: GitHub resolves a commit author to an account only by an email linked to it; the runner's git email is not one.
-- rule: a check of who wrote a commit reads `authors[0].login` (the git author is listed first) and treats `""` as not his; before relying on it, measure a real pull request. To make his commits his, the runner commits with his GitHub noreply address or the email is added to the account (an operator step, H138).
+- rule: never decide trust by a commit's git author: it is whatever email the committer typed, and his own read as `""`. Trust follows who opened and pushed the pull request (H138 (7)); before relying on any commit field, measure a real pull request.
 - proof: `gh pr view 486 --repo AbdulrahmanAmer/matter-of-place --json commits --jq '[.commits[] | .authors | map(.login)] | .[0:4]'` → `[["","claude"],["","claude"],[""],["","claude"]]` (2026-10-26).
 - added: 2026-10-26

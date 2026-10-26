@@ -58,8 +58,11 @@ interface Failure {
 
 interface Built {
   title: string;
-  /** Commit subjects, oldest first; null for a commit by anyone but his account, whose words are never quoted. */
-  subjects: readonly (string | null)[];
+  /**
+   * Commit subjects, oldest first, of every commit on his own pull request: a commit's git author is whatever email
+   * the committer typed, so it proves nothing; what vouches for the words is that he pushed them (H138 (7)).
+   */
+  subjects: readonly string[];
 }
 
 const oneLine = (text: string, max: number): string => {
@@ -84,16 +87,9 @@ export function buildLesson(
   const jobs = [...new Set(failures.map((failure) => failure.job))].slice(0, 4);
   const note = failures.find((failure) => failure.note !== "")?.note ?? "";
   const later = built.subjects.slice(first.commit + 1);
-  const fixes = later
-    .filter((subject): subject is string => subject !== null)
-    .slice(0, 4)
-    .map((subject) => oneLine(subject, 120));
+  const fixes = later.slice(0, 4).map((subject) => oneLine(subject, 120));
   const fixed =
-    fixes.length > 0
-      ? fixes.join("; ")
-      : later.length > 0
-        ? "later commits not by his account, not quoted"
-        : "no later commit, a rerun or a change outside the branch";
+    fixes.length > 0 ? fixes.join("; ") : "no later commit, a rerun or a change outside the branch";
   return {
     trigger: oneLine(`A build like "${built.title}" failed CI at ${jobs.join(", ")}`, 300),
     action: oneLine(
@@ -113,14 +109,7 @@ const prSchema = z.object({
   /** True for a branch of a fork; null owner when the fork is gone. */
   isCrossRepository: z.boolean(),
   headRepositoryOwner: z.object({ login: z.string() }).nullable(),
-  /** `authors` lists the git author first, then the co-authors; a login is empty when the email is not an account's. */
-  commits: z.array(
-    z.object({
-      oid: z.string(),
-      messageHeadline: z.string(),
-      authors: z.array(z.object({ login: z.string() })),
-    }),
-  ),
+  commits: z.array(z.object({ oid: z.string(), messageHeadline: z.string() })),
 });
 
 const same = (login: string | undefined) => login?.toLowerCase() === HIS_ACCOUNT.toLowerCase();
@@ -244,9 +233,7 @@ export async function recordBuildLesson(
   const lesson = buildLesson(
     {
       title: view.title,
-      subjects: view.commits.map((commit) =>
-        same(commit.authors[0]?.login) ? commit.messageHeadline : null,
-      ),
+      subjects: view.commits.map((commit) => commit.messageHeadline),
     },
     failures,
   );

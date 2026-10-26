@@ -408,22 +408,13 @@
     "expect": "× .*takes failed checks from GitHub Actions only"
   },
   {
-    "id": "w6-4-his-commit-subjects",
+    "id": "w6-4-quotes-his-commits",
     "test": "tests/unit/matter-lessons.test.ts",
     "file": "scripts/matter/lessons.ts",
-    "find": "same(commit.authors[0]?.login) ? commit.messageHeadline : null",
-    "replace": "commit.messageHeadline",
+    "find": "subjects: view.commits.map((commit) => commit.messageHeadline),",
+    "replace": "subjects: view.commits.map((commit) => (commit.oid === \"ccc\" ? \"\" : commit.messageHeadline)).filter(Boolean),",
     "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
-    "expect": "× .*quotes only the commit subjects of his own account"
-  },
-  {
-    "id": "w6-4-withheld-subjects-said",
-    "test": "tests/unit/matter-lessons.test.ts",
-    "file": "scripts/matter/lessons.ts",
-    "find": "? \"later commits not by his account, not quoted\"",
-    "replace": "? \"no later commit\"",
-    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
-    "expect": "× .*quotes only the commit subjects of his own account"
+    "expect": "× .*quotes the later commits of his pull request whatever email they were written under"
   },
   {
     "id": "w6-4-account-must-be-his",
