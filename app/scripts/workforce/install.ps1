@@ -59,7 +59,9 @@ Write-Output "task: MOP Review registered (Sunday 10:00 local)"
 
 # 5b. W8 item 3: the scheduled task "MOP Captions": the captions runner (scripts/captions-runner.ts, ruling H34) every
 #    ten minutes, so a published property's captions are written without anyone running a command. It stops when no job
-#    is due; the health check captions_waiting names a job waiting two hours.
+#    is due; the health check captions_waiting names a job waiting more than an hour. The task the removed
+#    install-captions-task.ps1 registered is taken off first, so a reinstall never leaves two caption tasks running.
+Unregister-ScheduledTask -TaskName "MatterOfPlace Captions" -Confirm:$false -ErrorAction SilentlyContinue
 $captionsAction = New-ScheduledTaskAction -Execute "wscript.exe" `
   -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\captions-runner.ts captions")
 $captionsTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 10)
