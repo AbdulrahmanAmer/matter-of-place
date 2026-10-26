@@ -1369,7 +1369,7 @@
     "id": "b3-g3-redirect-normalize",
     "kind": "file",
     "test": "tests/unit/redirects.test.ts",
-    "file": "src/server/public/redirects.ts",
+    "file": "src/domain/route-path.ts",
     "find": "  return path.length > 1 && path.endsWith(\"/\") ? path.slice(0, -1) : path;",
     "replace": "  return path;",
     "run": "bunx vitest run --project unit tests/unit/redirects.test.ts",

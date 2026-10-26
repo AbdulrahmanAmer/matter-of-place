@@ -17,6 +17,8 @@ const TURNSTILE_EXEMPT: Readonly<Record<string, string>> = {
   "/api/public/search": "a read sent by POST",
   "/api/public/concierge": "a read sent by POST",
   "/api/hooks/resend": "signature-checked over the raw body",
+  "/api/public/subscribers/unsubscribe":
+    "a mail client's one-click POST (RFC 8058); the signed token in the address names the one reader",
 };
 
 const inquiry: unknown = JSON.parse(

@@ -214,7 +214,7 @@ describe("POST /api/public/events", () => {
       await handlePublic(
         beacon(
           [
-            envelope(path, { data: { query: `find ${address} now`, nested: { list: [address] } } }),
+            envelope(path, { data: { query: `find ${address} now`, list: [address] } }),
             envelope(`${path}/${address}`),
           ],
           nextIp(),

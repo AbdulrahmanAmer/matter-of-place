@@ -5850,7 +5850,7 @@
     "id": "b7-15a-redirect-duplicate",
     "test": "tests/unit/admin-redirects.test.ts",
     "file": "src/domain/admin-settings.ts",
-    "find": "active.some((other) => other.from_path === from && other.id !== row.id)",
+    "find": "others.some((other) => redirectKey(other.from_path) === fromKey)",
     "replace": "false",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/admin-redirects.test.ts -t \"refuses a duplicate active source\"",
     "expect": "× .*refuses a duplicate active source"

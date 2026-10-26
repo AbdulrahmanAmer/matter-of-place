@@ -90,6 +90,20 @@ describe("the Exposure page", () => {
   });
 });
 
+describe("the product names by page (MET-003)", () => {
+  it("/exposure names each plan in an h2, as nothing above the cards is a heading, and the home block keeps h3 under its h2", async () => {
+    await renderExposure(changed());
+    const names = changed().map((plan) => plan.name);
+    const at = (level: number) =>
+      screen.getAllByRole("heading", { level }).map((node) => node.textContent);
+    expect(at(2)).toEqual(expect.arrayContaining(names));
+    expect(screen.queryAllByRole("heading", { level: 3 })).toEqual([]);
+    cleanup();
+    await renderHome(changed());
+    expect(at(3)).toEqual(names);
+  });
+});
+
 describe("the home pricing block", () => {
   it("renders the plans it is given, titled Four ways in. for the four stored plans", async () => {
     const text = await renderHome(changed());

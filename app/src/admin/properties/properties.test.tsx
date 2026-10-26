@@ -7,6 +7,7 @@ import { AdminMeContext, type AdminMe } from "../ui/admin-me";
 import { AdminProviders } from "../ui/test-providers";
 import { mountRoutes } from "../ui/test-router";
 import { ToastProvider } from "../ui/Toast";
+import { isUnreadableNumber, numberOrNull } from "./editor-values";
 import { NewFromRequest } from "./NewFromRequest";
 import { PropertiesTable } from "./PropertiesTable";
 import { PropertyEditor } from "./PropertyEditor";
@@ -200,6 +201,26 @@ describe("PropertyEditor", () => {
     const publish = await screen.findByRole("button", { name: "Publish" });
     expect(publish).toHaveProperty("disabled", true);
     expect(screen.getByText(/: style/)).toBeTruthy();
+  });
+});
+
+describe("number fields of the editor", () => {
+  it("read a price pasted from a listing, with its dollar sign, commas and spaces", () => {
+    expect(numberOrNull("$4,200,000")).toBe(4_200_000);
+    expect(numberOrNull("1,200,000")).toBe(1_200_000);
+    expect(numberOrNull(" 3 450 ")).toBe(3450);
+    expect(numberOrNull("2.5")).toBe(2.5);
+  });
+
+  it("read an empty box as missing, never as zero", () => {
+    expect([numberOrNull(""), numberOrNull("   "), numberOrNull("$ ,")]).toEqual([null, null, null]);
+    expect(numberOrNull("0")).toBe(0);
+  });
+
+  it("call text that is not a number unreadable, and an empty box readable", () => {
+    expect(["4.2M", "3 bd", "1.2.3", "abc"].map(isUnreadableNumber)).toEqual([true, true, true, true]);
+    expect(["", "  ", "1,200,000", "7"].map(isUnreadableNumber)).toEqual([false, false, false, false]);
+    expect(["4.2M", "3 bd", "abc"].map(numberOrNull)).toEqual([null, null, null]);
   });
 });
 

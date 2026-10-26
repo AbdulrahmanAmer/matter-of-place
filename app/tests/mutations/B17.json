@@ -807,10 +807,28 @@
     "id": "b17-ca-same-origin",
     "test": "tests/unit/essentials.test.ts",
     "file": "src/server/public/consent.ts",
-    "find": "origin === new URL(request.url).origin && ",
+    "find": "    return new URL(referer).origin !== new URL(request.url).origin;",
+    "replace": "    return false;",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: answers 403 with no cookie"
+  },
+  {
+    "id": "b17-ca-fetch-site",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "  if (request.headers.get(\"sec-fetch-site\") === \"cross-site\") return true;\n",
     "replace": "",
     "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
-    "expect": "× .*consent-api: goes back to /"
+    "expect": "× .*consent-api: answers 403 with no cookie"
+  },
+  {
+    "id": "b17-ca-guard",
+    "test": "tests/unit/essentials.test.ts",
+    "file": "src/server/public/consent.ts",
+    "find": "  if (startedElsewhere(request)) return toErrorResponse(crossSiteChoice, requestId);\n",
+    "replace": "",
+    "run": "bun run test tests/unit/essentials.test.ts -t consent-api",
+    "expect": "× .*consent-api: answers 403 with no cookie"
   },
   {
     "id": "b17-ca-400",

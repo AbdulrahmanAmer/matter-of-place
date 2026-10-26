@@ -351,13 +351,22 @@
     "expect": "FAIL .*videoLd > converts minutes and hours"
   },
   {
+    "id": "b13-g2-video-undated",
+    "test": "tests/unit/jsonld.test.ts",
+    "file": "src/lib/jsonld.ts",
+    "find": " || uploadDate === undefined) return null;",
+    "replace": ") return null;",
+    "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
+    "expect": "FAIL .*videoLd > returns null when the record carries no upload date"
+  },
+  {
     "id": "b13-g2-video-poster",
     "test": "tests/unit/jsonld.test.ts",
     "file": "src/lib/jsonld.ts",
     "find": "const thumbnailUrl = mediaAddress(video.poster);",
     "replace": "const thumbnailUrl = video.poster;",
     "run": "bunx vitest run --project unit tests/unit/jsonld.test.ts",
-    "expect": "FAIL .*videoLd > omits the thumbnail when the poster is a bundled asset"
+    "expect": "FAIL .*videoLd > returns null when the poster is a bundled asset"
   },
   {
     "id": "b13-g2-val-none",

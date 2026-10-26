@@ -190,6 +190,7 @@ describe("videoLd", () => {
     poster: "/media/v/a.jpg",
     caption: "Evening",
     duration: "0:18",
+    uploadedAt: "2026-09-14",
   };
 
   it("returns null without a video", () => {
@@ -209,9 +210,9 @@ describe("videoLd", () => {
       name: "Evening",
       contentUrl: "https://matterofplace.com/media/v/a.mp4",
       thumbnailUrl: "https://matterofplace.com/media/v/a.jpg",
+      uploadDate: "2026-09-14",
       duration: "PT18S",
     });
-    expect(video).not.toHaveProperty("uploadDate");
     expect(validateHtml(pageHtml([videoLd({ video: film }) ?? {}]))).toEqual([
       "WebPage",
       "VideoObject",
@@ -228,10 +229,18 @@ describe("videoLd", () => {
     expect(duration("0:00")).toBeUndefined();
   });
 
-  it("omits the thumbnail when the poster is a bundled asset", () => {
-    expect(
-      nodeOf(videoLd({ video: { ...film, poster: "/assets/p.jpg" } }) ?? {}),
-    ).not.toHaveProperty("thumbnailUrl");
+  it("returns null when the poster is a bundled asset, because a video needs a thumbnail (SCH-004)", () => {
+    expect(videoLd({ video: { ...film, poster: "/assets/p.jpg" } })).toBeNull();
+  });
+
+  it("returns null when the record carries no upload date, and never invents one (SCH-004)", () => {
+    const undated = {
+      src: film.src,
+      poster: film.poster,
+      caption: film.caption,
+      duration: film.duration,
+    };
+    expect(videoLd({ video: undated })).toBeNull();
   });
 });
 

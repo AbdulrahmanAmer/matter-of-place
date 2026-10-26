@@ -848,7 +848,7 @@
   {
     "id": "pipe-path-case",
     "test": "tests/unit/pipeline.test.ts",
-    "file": "src/server/lib/pipeline.ts",
+    "file": "src/domain/route-path.ts",
     "find": "  return `/${decoded.replace(/^\\/+/, \"\")}`.toLowerCase();",
     "replace": "  return `/${decoded.replace(/^\\/+/, \"\")}`;",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
@@ -857,7 +857,7 @@
   {
     "id": "pipe-path-decode",
     "test": "tests/unit/pipeline.test.ts",
-    "file": "src/server/lib/pipeline.ts",
+    "file": "src/domain/route-path.ts",
     "find": "(index % 2 === 1 ? part : decodeLikeRouter(part))",
     "replace": "part",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
@@ -866,7 +866,7 @@
   {
     "id": "pipe-path-slashes",
     "test": "tests/unit/pipeline.test.ts",
-    "file": "src/server/lib/pipeline.ts",
+    "file": "src/domain/route-path.ts",
     "find": "decoded.replace(/^\\/+/, \"\")",
     "replace": "decoded",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
@@ -875,7 +875,7 @@
   {
     "id": "pipe-path-split",
     "test": "tests/unit/pipeline.test.ts",
-    "file": "src/server/lib/pipeline.ts",
+    "file": "src/domain/route-path.ts",
     "find": "    .split(KEPT_ESCAPES)",
     "replace": "    .split(/(?!)/)",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
@@ -884,7 +884,7 @@
   {
     "id": "pipe-path-fallback",
     "test": "tests/unit/pipeline.test.ts",
-    "file": "src/server/lib/pipeline.ts",
+    "file": "src/domain/route-path.ts",
     "find": "    return text.replace(ESCAPE, (escape) =>",
     "replace": "    return text;\n    return text.replace(ESCAPE, (escape) =>",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",
@@ -893,7 +893,7 @@
   {
     "id": "pipe-path-ascii",
     "test": "tests/unit/pipeline.test.ts",
-    "file": "src/server/lib/pipeline.ts",
+    "file": "src/domain/route-path.ts",
     "find": "      Number.parseInt(escape.slice(1), 16) < 0x80 ? decodeURI(escape) : escape,",
     "replace": "      decodeURI(escape),",
     "run": "bunx vitest run tests/unit/pipeline.test.ts",

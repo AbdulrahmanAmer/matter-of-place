@@ -2,6 +2,7 @@ import "../fixtures/worker-env";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { Json } from "../../src/db";
+import { redirectKey } from "../../src/domain/route-path";
 import type { PipelineDeps } from "../../src/server/lib/pipeline";
 import { fakeDb } from "../fixtures/fake-db";
 import { catalogDb, propertyJson, snapshotJson, stateJson } from "../fixtures/snapshot";
@@ -30,6 +31,21 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe("redirectKey (URL-002), the one key of the resolver and of the admin rules", () => {
+  it("reads an address as the router does: escapes decoded, one leading slash, lower case, no trailing slash", () => {
+    expect(
+      ["/Summer/", "/%53ummer", "//summer", "/summer"].map(redirectKey),
+    ).toEqual(["/summer", "/summer", "/summer", "/summer"]);
+    expect(redirectKey("/")).toBe("/");
+  });
+
+  it("keeps an encoded percent sign and backslash, which the router never decodes", () => {
+    expect(redirectKey("/a%25b")).toBe("/a%25b");
+    expect(redirectKey("/a%5Cb")).toBe("/a%5cb");
+    expect(redirectKey("/a%E9b")).toBe("/a%e9b");
+  });
 });
 
 describe("loadRedirectMap", () => {

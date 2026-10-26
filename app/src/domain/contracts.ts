@@ -243,7 +243,7 @@ export const httpsUrl = z
     } catch {
       return false;
     }
-  }, "Use a full https address");
+  }, "Please enter a full link, starting with https://.");
 
 const optionalUrl = httpsUrl.optional().or(z.literal("").transform(() => undefined));
 const optionalYear = z.number().int().min(1600).max(2100).optional();

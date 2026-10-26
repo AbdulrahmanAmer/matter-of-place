@@ -120,8 +120,8 @@
     "id": "w8-12b-future",
     "test": "tests/unit/page-dates.test.ts",
     "file": "src/server/seo/page-dates.gen.ts",
-    "find": "\"/about\": \"2026-10-11\"",
-    "replace": "\"/about\": \"2099-10-11\"",
+    "find": "\"/about\": \"2026-10-26\"",
+    "replace": "\"/about\": \"2099-10-26\"",
     "run": "bunx vitest run --project unit tests/unit/page-dates.test.ts",
     "expect": "FAIL .*holds a real day for each page, none in the future"
   },
