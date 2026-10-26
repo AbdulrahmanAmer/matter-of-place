@@ -4,7 +4,8 @@
    header floating over it, the title large in Cormorant and rising in on load, the lede in serif. The side padding keeps
    the text on the container grid without extra markup. */
 .page-intro,
-.not-found {
+.not-found,
+.thanks {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -17,7 +18,8 @@
 }
 
 .page-intro .eyebrow,
-.not-found .eyebrow {
+.not-found .eyebrow,
+.thanks .eyebrow {
   color: color-mix(in oklab, var(--primary-foreground) 70%, transparent);
   animation: softRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
 }
@@ -220,26 +222,56 @@
 }
 
 /* Not found and route errors */
-.not-found {
+.not-found,
+.thanks {
   min-height: calc(86svh / var(--site-zoom, 1));
   display: grid;
   place-items: center;
+  /* The band's flex rule above sets justify-content: flex-end, which in a grid pushes the one column to the right
+     edge; a narrow note (the thank-you) showed it, 2026-10-19. */
+  justify-content: center;
   text-align: center;
   padding: calc(var(--header-h) + 72px) var(--container-pad) 96px;
 }
 
-.not-found h1 {
+.not-found h1,
+.thanks h1 {
   font-size: clamp(60px, 10vw, 140px);
   line-height: 0.95;
   margin: 16px 0 20px;
   text-wrap: balance;
 }
 
-.not-found p {
+.not-found p,
+.thanks p:not(.eyebrow) {
   max-width: 460px;
   margin: 0 auto 30px;
   line-height: 1.7;
   color: color-mix(in oklab, var(--primary-foreground) 74%, transparent);
+}
+
+/* The thank-you note (place-notes-thanks.tsx): the 404 band, centred, with the emblem above the eyebrow and a short
+   hairline between the text and the links. Its motion is in motion.css. */
+.thanks-emblem {
+  display: block;
+  width: 52px;
+  height: auto;
+  margin: 0 auto 30px;
+  color: var(--primary-foreground);
+}
+
+.thanks p:not(.eyebrow) {
+  font-family: var(--font-serif);
+  font-size: clamp(19px, 1.5vw, 22px);
+  line-height: 1.5;
+}
+
+.thanks-rule {
+  display: block;
+  width: 96px;
+  height: 1px;
+  margin: 0 auto 30px;
+  background: color-mix(in oklab, var(--primary-foreground) 35%, transparent);
 }
 
 /* The 404 search: the field and its arrow share a row, narrower than the heading. */
@@ -305,7 +337,8 @@
   }
 
   .page-intro,
-  .not-found {
+  .not-found,
+  .thanks {
     min-height: 0;
     padding-top: calc(var(--header-h) + 56px);
     padding-bottom: 48px;

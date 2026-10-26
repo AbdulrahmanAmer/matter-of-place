@@ -634,6 +634,19 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     state: "text",
     created_at: "timestamptz",
   },
+  // W8 0f: one row per piece in the studio folder, written only by studio_piece_put.
+  studio_pieces: {
+    id: "uuid",
+    title: "text",
+    owner_slug: "text",
+    state: "text",
+    folder: "text",
+    preview_key: "text?",
+    asset_id: "uuid?",
+    note: "text",
+    created_at: "timestamptz",
+    updated_at: "timestamptz",
+  },
   email_suppressions: {
     email: "text",
     reason: "text",
@@ -710,7 +723,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
   social_posts: {
     id: "uuid",
     asset_id: "uuid",
-    // W8 item 10 (H134): a brand post's row names no property.
+    // W8 item 10 (H135): a brand post's row names no property.
     property_id: "uuid?",
     channel: "text",
     status: "social_post_status",
@@ -725,7 +738,7 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     created_at: "timestamptz",
     updated_at: "timestamptz",
   },
-  // W8 item 10 (H116, H134): proposed posts, one row per channel of each revision, and each revision sent back.
+  // W8 item 10 (H116, H135): proposed posts, one row per channel of each revision, and each revision sent back.
   proposed_posts: {
     id: "uuid",
     title: "text",

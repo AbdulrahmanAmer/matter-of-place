@@ -2,7 +2,7 @@ import { z } from "zod";
 import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 import type { SocialChannel } from "./channels.ts";
 
-// W8 item 10 (rulings H116, H134): a post a colleague or a person proposes, before it is anything a channel posts. The
+// W8 item 10 (rulings H116, H135): a post a colleague or a person proposes, before it is anything a channel posts. The
 // channel rules here are the ones `proposed_post_put_channels` enforces again in SQL, so a refusal reads the same from
 // the admin route and from the laptop runner. API JSON is the snake_case row shape, as the other admin areas.
 
@@ -110,7 +110,7 @@ export function channelProblems(post: ChannelShape): string[] {
   const problems: string[] = [];
   const limit = captionLimits[channel];
   // Counted in code points, as `char_length` counts them in `proposed_post_put_channels`: an emoji is one character.
-  const length = [...post.caption].length;
+  const length = Array.from(post.caption).length;
   if (length > limit) {
     problems.push(
       `${label} captions are at most ${String(limit)} characters; this one has ${String(length)}.`,
