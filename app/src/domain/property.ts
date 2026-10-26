@@ -45,6 +45,8 @@ const propertyVideoSchema = z.object({
   caption: z.string(),
   /** Display duration, e.g. "0:06". */
   duration: z.string(),
+  /** ISO date the film was attached to the dossier; absent when the record does not carry one (never guessed). */
+  uploadedAt: z.string().optional(),
 });
 export type PropertyVideo = z.infer<typeof propertyVideoSchema>;
 
