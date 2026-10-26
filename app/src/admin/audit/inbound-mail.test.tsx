@@ -71,7 +71,7 @@ describe("the inbound mail on the Sent emails screen", () => {
   });
 
   it("says a message with no owner waits for a person, never that it was sent", async () => {
-    open({
+    openSentEmails({
       [`GET ${INBOUND}`]: {
         items: [
           mail({ triage: null, owner_slug: null, state: "new" }),
