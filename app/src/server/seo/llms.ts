@@ -78,6 +78,9 @@ function listed(source: Source, state: PublicState): Listed {
       .filter(
         ([path]) => path !== "/properties" || indexable(properties.length).robots === undefined,
       )
+      .filter(
+        ([path]) => path !== "/stories" || indexable(source.stories.length).robots === undefined,
+      )
       .filter(([path]) => open(path))
       .map(([path, name, key]) => ({ path, name, description: pageDescription(key) })),
     markets: source.markets.map((market) => {
