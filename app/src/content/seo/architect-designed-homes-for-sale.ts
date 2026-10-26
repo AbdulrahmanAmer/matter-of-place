@@ -9,7 +9,7 @@ export const architectDesignedHomesForSale: SeoPageContent = {
   title: "Architect Designed Homes for Sale",
   h1: "Architect Designed Homes for Sale",
   description:
-    "What architect designed homes are, how to read their record, and how Matter of Place features them in California, New York and Florida.",
+    "What architect designed homes for sale are, how to read their record, and how Matter of Place features them in California, New York and Florida.",
   eyebrow: "ARCHITECT DESIGNED HOMES",
   lede: "Architect designed homes for sale are existing houses drawn by a named architect for a client, as against a house built from a stock plan. Some are by famous architects, some by regional practitioners whose work is well documented, and some by an architect known in one town. The guide below covers what the terms mean, what an owner or buyer should ask about the record, and how Matter of Place presents such a house in California, New York and Florida.",
   sections: [

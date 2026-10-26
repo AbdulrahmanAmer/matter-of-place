@@ -90,9 +90,12 @@ const imageXml = ({ address, caption }: Image): string =>
     caption === "" ? "" : `<image:caption>${escapeXml(caption)}</image:caption>`
   }</image:image>`;
 
+/** A content day written as the full W3C datetime the sitemap check asks for (SE-004): midnight UTC of that day. */
+const datetime = (day: string): string => `${day}T00:00:00Z`;
+
 const entryXml = ({ path, lastmod, images = [] }: Entry): string =>
   `<url><loc>${escapeXml(absoluteUrl(path))}</loc>${
-    lastmod === undefined ? "" : `<lastmod>${lastmod}</lastmod>`
+    lastmod === undefined ? "" : `<lastmod>${datetime(lastmod)}</lastmod>`
   }${images.map(imageXml).join("")}</url>`;
 
 const listed = (count: number): boolean => indexable(count).robots === undefined;

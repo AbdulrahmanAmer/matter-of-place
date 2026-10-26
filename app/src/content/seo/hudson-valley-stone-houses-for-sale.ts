@@ -5,11 +5,11 @@ export const hudsonValleyStoneHousesForSale: SeoPageContent = {
   path: "/hudson-valley-stone-houses-for-sale",
   kind: "collection",
   query: "hudson valley stone houses for sale",
-  words: [700, 1400],
+  words: [700, 1700],
   title: "Stone Houses for Sale in Hudson Valley",
   h1: "Stone Houses for Sale in Hudson Valley",
   description:
-    "What a Hudson Valley stone house is, what owners and buyers should ask about the masonry, and how Matter of Place features stone houses in New York.",
+    "Hudson Valley stone houses for sale: what they are, what owners and buyers should ask about the masonry, and how Matter of Place features them.",
   eyebrow: "STONE HOUSES · HUDSON VALLEY",
   lede: "Hudson Valley stone houses for sale are existing houses in the river counties of New York whose walls are laid in local stone: fieldstone, limestone or cut blocks, many of them standing since the colonial period. Stone sets these houses apart. Thick walls, small deep windows and the color of the masonry tell a reader how and when a house was made. Below are the things to look at in the walls, the questions owners and buyers should put, and the way Matter of Place presents a stone house.",
   sections: [
@@ -58,10 +58,16 @@ export const hudsonValleyStoneHousesForSale: SeoPageContent = {
     {
       heading: "Hudson Valley market and neighborhood facts",
       body: [
-        "We give no median price, no tally of stone houses and no days on market. A regional number without a dated source would only mislead, so ask a local agent for the figures of a town and read the county records for the sale history of a parcel.",
+        "We give no tally of stone houses and no days on market, because the Census Bureau does not count homes by building material. The housing record below is the survey's count by decade built, and it does not rank any house. Ask a local agent for the figures of a town and read the county records for the sale history of a parcel.",
         "The valley runs north along the Hudson River from the edge of the New York City area toward Albany; where it begins and ends is argued, and we draw no line. Ulster County is well known for its early stone houses, and Dutchess, Columbia, Orange and Greene are often counted with it.",
         "The tradition is on public view in two places. Huguenot Street in New Paltz keeps stone houses from the early eighteenth century, and the Stockade district of Kingston keeps stone buildings of the colonial years. A stone house that stands apart, on a farm road or above a creek, is read differently, so its page is written around its setting.",
         "The other two states get the same reading: see [modern homes for sale south florida](/modern-homes-for-sale-south-florida) and [modernist homes for sale california](/modernist-homes-for-sale-california).",
+        { h3: "The housing record" },
+        "In the figures below, Hudson Valley, NY means four river counties: Ulster, Dutchess, Columbia and Greene. Stone houses sit among the decades of building that the survey counts.",
+        "ACS table B25034 for 2020-2024 shows 5,116 Ulster County homes, 5.9 percent of the county's 86,503, built from 1940 through 1949. The 1940s are a thinner decade in Columbia County, where 1,107 homes, or 3.3 percent of 33,393, date from that period.",
+        "Greene County counts 2,578 homes built from 1950 through 1959, which is 8.9 percent of its 29,080. Dutchess County has more homes from the 1960s than from the 1950s or the 1940s: 16,757 homes, 13.6 percent of the total, according to the Census Bureau's five-year estimates.",
+        "The median year built for a Greene County home is 1972, as the Census Bureau's table B25035 reports for 2020-2024. For owner-occupied homes in Greene County the same estimates give a median value of $271,600, a county-wide midpoint that says nothing about the merit of any one house.",
+        "Source: U.S. Census Bureau, American Community Survey 5-year estimates 2020-2024, tables B25034 (Year Structure Built), B25035 (Median Year Structure Built) and B25077 (Median Value of owner-occupied housing units), for Ulster, Dutchess, Columbia and Greene counties, New York.",
       ],
     },
     {

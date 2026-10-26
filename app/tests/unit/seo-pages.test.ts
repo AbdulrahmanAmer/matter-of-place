@@ -59,6 +59,12 @@ const queryWords = (text: string) =>
     .split(/[^a-z0-9]+/)
     .filter((word) => word !== "" && !QUERY_STOP_WORDS.has(word));
 
+/**
+ * The county median values (ACS table B25077, 2020-2024) that three local pages quote as the Census Bureau reports
+ * them: Greene NY, Miami-Dade FL and Los Angeles CA. They describe a county, never a house.
+ */
+const CENSUS_MEDIAN_VALUES = ["$271,600", "$463,000", "$834,200"];
+
 const MONEY_OUTLINE = ["How it works", "What you get", "Proof: reviews and results"];
 const GUIDE_OUTLINE = [
   "The short answer",
@@ -275,11 +281,45 @@ describe("the copy of the search pages follows the brand rules", () => {
       const text = textsOf(page).join("\n");
       expect([page.path, /consultation/i.test(text)]).toEqual([page.path, false]);
       // A figure is allowed only when the Property Exposure seed holds it: a page repeats a price, it never sets one.
+      // The one other source is a Census county median value, and only on a page that names the survey it comes from.
       const figures = text.match(/\$\s?\d+(?:,\d{3})*|\d+\s?%/g) ?? [];
+      const namesSurvey = text.includes("U.S. Census Bureau, American Community Survey");
       const unsourced = figures.filter(
-        (figure) => !exposureSource.includes(figure.replace(/\s/g, "")),
+        (figure) =>
+          !exposureSource.includes(figure.replace(/\s/g, "")) &&
+          !(namesSurvey && CENSUS_MEDIAN_VALUES.includes(figure)),
       );
       expect([page.path, unsourced]).toEqual([page.path, []]);
+    }
+  });
+
+  it("names the place as written and the Census source on the four pages that quote county records", () => {
+    const entity: Record<string, string> = {
+      "/historic-homes-for-sale-hudson-valley": "Hudson Valley, NY",
+      "/hudson-valley-stone-houses-for-sale": "Hudson Valley, NY",
+      "/modern-homes-for-sale-south-florida": "South Florida, FL",
+      "/modernist-homes-for-sale-california": "Riverside, which holds Palm Springs",
+    };
+    for (const [path, place] of Object.entries(entity)) {
+      const text = textsOf(requireSeoPage(path)).join("\n");
+      expect([path, text.includes(place)]).toEqual([path, true]);
+      expect([
+        path,
+        text.includes("U.S. Census Bureau, American Community Survey 5-year estimates 2020-2024"),
+      ]).toEqual([path, true]);
+    }
+  });
+
+  it("carries every word of the query in the description, in 120 to 155 characters (SE plan gate)", () => {
+    for (const page of seoPages) {
+      const described = new Set(queryWords(page.description));
+      expect([page.path, queryWords(page.query).filter((word) => !described.has(word))]).toEqual([
+        page.path,
+        [],
+      ]);
+      expect([page.path, page.description.length >= 120 && page.description.length <= 155]).toEqual(
+        [page.path, true],
+      );
     }
   });
 

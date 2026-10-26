@@ -100,8 +100,11 @@ function sitemapOf(parts: Record<string, Json>, over: Partial<PublicState> = {})
 const locs = (xml: string): string[] =>
   [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].flatMap((match) => match[1] ?? []);
 const paths = (xml: string): string[] => locs(xml).map((loc) => loc.slice(ORIGIN.length));
+/** The day of a page's `lastmod`, read from the full datetime `YYYY-MM-DDT00:00:00Z` (SE-004); undefined when it has none or another shape. */
 const lastmodOf = (xml: string, path: string): string | undefined =>
-  new RegExp(`<loc>${ORIGIN}${path}</loc><lastmod>([^<]*)</lastmod>`).exec(xml)?.[1];
+  new RegExp(`<loc>${ORIGIN}${path}</loc><lastmod>(\\d{4}-\\d{2}-\\d{2})T00:00:00Z</lastmod>`).exec(
+    xml,
+  )?.[1];
 
 describe("staticSitemapPaths", () => {
   it("lists the public pages, the legal pages and the notes page, and neither noindex page", () => {
@@ -241,6 +244,18 @@ describe("buildSitemap redirects", () => {
 });
 
 describe("buildSitemap lastmod", () => {
+  it("writes every lastmod as a full W3C datetime with seconds and a timezone (SE-004)", () => {
+    const xml = sitemapOf({
+      properties: [property("p1", { updated_at: "2026-09-20T08:30:00+00:00" })],
+      stories: [story("s1")],
+    });
+    const values = [...xml.matchAll(/<lastmod>([^<]*)<\/lastmod>/g)].map((match) => match[1]);
+    expect(values.length).toBeGreaterThan(seoPages.length);
+    expect(values.filter((value) => !/^\d{4}-\d{2}-\d{2}T00:00:00Z$/.test(value ?? ""))).toEqual(
+      [],
+    );
+  });
+
   it("takes updatedAt for a property and a story", () => {
     const xml = sitemapOf({
       properties: [property("p1", { updated_at: "2026-09-20T08:30:00+00:00" })],

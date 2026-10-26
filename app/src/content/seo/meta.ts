@@ -12,21 +12,21 @@ export const seoPageMeta: readonly SeoPageMeta[] = [
     kind: "collection",
     h1: "Historic Homes for Sale",
     description:
-      "What makes a home historic, what owners and buyers should know, and how Matter of Place features historic homes in California, New York and Florida.",
+      "What historic homes for sale are, what owners and buyers should know, and how Matter of Place features them in California, New York and Florida.",
   },
   {
     path: "/architect-designed-homes-for-sale",
     kind: "collection",
     h1: "Architect Designed Homes for Sale",
     description:
-      "What architect designed homes are, how to read their record, and how Matter of Place features them in California, New York and Florida.",
+      "What architect designed homes for sale are, how to read their record, and how Matter of Place features them in California, New York and Florida.",
   },
   {
     path: "/design-focused-homes-for-sale-newsletter",
     kind: "collection",
     h1: "Design Focused Homes for Sale Newsletter",
     description:
-      "Place Notes is the Matter of Place newsletter: selected homes and stories chosen for design in California, New York and Florida.",
+      "Place Notes is the Matter of Place design focused homes for sale newsletter: selected homes and stories in California, New York and Florida.",
   },
   {
     path: "/frank-lloyd-wright-homes",
@@ -40,14 +40,14 @@ export const seoPageMeta: readonly SeoPageMeta[] = [
     kind: "collection",
     h1: "Historic Homes for Sale in Hudson Valley",
     description:
-      "What historic means for a Hudson Valley house, what owners and buyers should know, and how Matter of Place features historic homes in New York.",
+      "Historic homes for sale in the Hudson Valley: what historic means, what owners and buyers should know, and how Matter of Place features them.",
   },
   {
     path: "/hudson-valley-stone-houses-for-sale",
     kind: "collection",
     h1: "Stone Houses for Sale in Hudson Valley",
     description:
-      "What a Hudson Valley stone house is, what owners and buyers should ask about the masonry, and how Matter of Place features stone houses in New York.",
+      "Hudson Valley stone houses for sale: what they are, what owners and buyers should ask about the masonry, and how Matter of Place features them.",
   },
   {
     path: "/mid-century-modern-homes",
@@ -61,28 +61,28 @@ export const seoPageMeta: readonly SeoPageMeta[] = [
     kind: "collection",
     h1: "Modern Homes for Sale in South Florida",
     description:
-      "What a modern house in South Florida is, what owners and buyers should ask about climate and water, and how Matter of Place features such homes.",
+      "Modern homes for sale in South Florida: what a modern house is, what owners and buyers should ask about climate and water, and how we feature them.",
   },
   {
     path: "/modernist-homes-for-sale-california",
     kind: "collection",
     h1: "Modernist Homes for Sale in California",
     description:
-      "A guide to modernist homes in California: what the word covers, what owners and buyers should ask, and how Matter of Place features these houses.",
+      "Modernist homes for sale in California: what the word covers, what owners and buyers should ask, and how Matter of Place features these houses.",
   },
   {
     path: "/richard-neutra-homes-for-sale",
     kind: "collection",
     h1: "Richard Neutra Homes for Sale",
     description:
-      "What marks a house by Richard Neutra, what owners and buyers should check, and how Matter of Place features such homes.",
+      "Richard Neutra homes for sale: what marks a house by Neutra, what owners and buyers should check, and how Matter of Place features such homes.",
   },
   {
     path: "/submit-a-home-for-sale-to-be-featured",
     kind: "collection",
     h1: "Submit a Home for Sale to Be Featured",
     description:
-      "How to submit a home to be featured by Matter of Place: what to send, how editorial review works, and what happens after acceptance in CA, NY and FL.",
+      "Submit a home for sale to be featured by Matter of Place: what to send, how editorial review works, and what happens after acceptance.",
   },
   {
     path: "/guides/how-to-sell-a-historic-home",

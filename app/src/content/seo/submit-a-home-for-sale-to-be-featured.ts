@@ -9,7 +9,7 @@ export const submitAHomeForSaleToBeFeatured: SeoPageContent = {
   title: "Submit a Home for Sale to Be Featured",
   h1: "Submit a Home for Sale to Be Featured",
   description:
-    "How to submit a home to be featured by Matter of Place: what to send, how editorial review works, and what happens after acceptance in CA, NY and FL.",
+    "Submit a home for sale to be featured by Matter of Place: what to send, how editorial review works, and what happens after acceptance.",
   eyebrow: "FOR AGENTS, BROKERAGES & OWNERS",
   lede: "To submit a home for sale to be featured on Matter of Place, send it through the Submit a Property form: the address, the story of the house, the people behind it and your photographs. Every submission is reviewed against our editorial standard before anything else happens. Submission is free, we reply either way, and a home that is not accepted is not charged. This page sets out the whole path, from the form to publication and distribution.",
   sections: [

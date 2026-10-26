@@ -5,11 +5,11 @@ export const historicHomesForSaleHudsonValley: SeoPageContent = {
   path: "/historic-homes-for-sale-hudson-valley",
   kind: "collection",
   query: "historic homes for sale hudson valley",
-  words: [700, 1400],
+  words: [700, 1700],
   title: "Historic Homes for Sale in Hudson Valley",
   h1: "Historic Homes for Sale in Hudson Valley",
   description:
-    "What historic means for a Hudson Valley house, what owners and buyers should know, and how Matter of Place features historic homes in New York.",
+    "Historic homes for sale in the Hudson Valley: what historic means, what owners and buyers should know, and how Matter of Place features them.",
   eyebrow: "HISTORIC HOMES · HUDSON VALLEY",
   lede: "Historic homes for sale in the Hudson Valley are existing houses in the river counties of New York with an age, a builder or a past that gives them a place in the story of the region. Some carry a National Register listing, some stand in a local historic district, and others have a well documented past and no designation at all. The guide covers what historic means here, what owners and buyers should know before a sale, and the way Matter of Place presents such a home.",
   sections: [
@@ -61,10 +61,16 @@ export const historicHomesForSaleHudsonValley: SeoPageContent = {
     {
       heading: "Hudson Valley market and neighborhood facts",
       body: [
-        "No median price or days-on-market figure appears here, because we hold none for the region that we could source and date. For current numbers on a town, ask a local agent; for what a particular parcel once sold for, read the county records.",
+        "No median price or days-on-market figure appears here; the housing record below counts homes by the year they were built and says nothing of price. For current numbers on a town, ask a local agent; for what a particular parcel once sold for, read the county records.",
         "What we can say is about the place. The region follows the Hudson River north from the New York City area toward Albany, and this page does not draw its border. It is usually taken to include river counties such as Dutchess, Ulster, Columbia, Orange and Greene, with towns and villages such as Hudson, Kingston, Beacon, Newburgh, Rhinebeck, Cold Spring and New Paltz.",
         "Some of these places keep their early buildings in view. The Stockade district of Kingston holds stone houses of the colonial period, and Huguenot Street in New Paltz keeps a row of preserved stone houses from the early eighteenth century. Both show how long houses have stood in this region and how much of that history is on record.",
         "Setting matters as much as age. A house on a river bluff, on a farm road below the Catskills or on a village street is read differently, and we write each one for where it stands.",
+        { h3: "The housing record" },
+        "In the figures below, Hudson Valley, NY means four river counties: Ulster, Dutchess, Columbia and Greene. They show how much of the region's housing is old.",
+        "The Census Bureau's American Community Survey counted 86,503 homes in Ulster County for 2020-2024, and 26.5 percent of them, 22,965 homes, were built in 1939 or earlier. Among Ulster, Dutchess, Columbia and Greene counties, Columbia County shows the largest share of early houses, with 31.3 percent of its 33,393 homes dating from 1939 or earlier.",
+        "In Greene County the same survey lists 7,124 of 29,080 homes, or 24.5 percent, as built before 1940. Dutchess County has a lower share of early houses: 17.9 percent of its homes, 22,095 in all, were built in 1939 or earlier, according to table B25034.",
+        "The survey puts the median year a Columbia County home was built at 1966, so houses from before the war and from later decades stand side by side. Dutchess County is also the largest of the four by count, with 123,169 housing units in the American Community Survey's 2020-2024 release.",
+        "Source: U.S. Census Bureau, American Community Survey 5-year estimates 2020-2024, tables B25034 (Year Structure Built) and B25035 (Median Year Structure Built), for Ulster, Dutchess, Columbia and Greene counties, New York.",
       ],
     },
     {
