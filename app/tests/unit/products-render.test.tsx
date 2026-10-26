@@ -2,7 +2,7 @@
 // in `settings.products` reaches every one of them through `getPublicSite`, the read the root loader makes.
 import "../fixtures/worker-env";
 import type { ReactNode } from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import {
   createMemoryHistory,
   createRootRoute,
@@ -101,7 +101,8 @@ describe("the home pricing block", () => {
   it("titles a three-plan prop Three ways in. and shows three cards", async () => {
     await renderHome(seedProducts().slice(0, 3));
     expect(screen.getByRole("heading", { level: 2, name: "Three ways in." })).toBeDefined();
-    expect(screen.getAllByRole("heading", { level: 3 }).map((node) => node.textContent)).toEqual([
+    const exposure = within(screen.getByRole("region", { name: "Three ways in." }));
+    expect(exposure.getAllByRole("heading", { level: 3 }).map((node) => node.textContent)).toEqual([
       "The Feature",
       "The Reach",
       "The Campaign",

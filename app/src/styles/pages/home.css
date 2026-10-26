@@ -298,3 +298,63 @@
 .professionals-strip {
   padding: clamp(96px, 9vw, 144px) 0;
 }
+
+/* Guides: a quiet pair of link lists near the foot. Type and rules only, no card, no image. */
+.home-guides {
+  padding-top: clamp(64px, 7vw, 104px);
+  padding-bottom: clamp(64px, 7vw, 104px);
+  border-top: 1px solid var(--border);
+}
+
+.home-guides > h2 {
+  margin-top: 12px;
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.1;
+  max-width: 26ch;
+}
+
+.home-guides-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px clamp(32px, 5vw, 80px);
+  margin: clamp(28px, 3vw, 44px) 0;
+}
+
+.home-guides h3 {
+  margin-bottom: 8px;
+  color: var(--muted-foreground);
+  font-family: var(--font-ui);
+}
+
+.home-guides li {
+  border-top: 1px solid var(--border);
+}
+
+.home-guides li a {
+  display: block;
+  padding: 10px 0;
+  font-size: 15px;
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+.home-guides li a::first-letter {
+  text-transform: uppercase;
+}
+
+.home-guides li a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media (max-width: 700px) {
+  .home-guides-lists {
+    grid-template-columns: 1fr;
+  }
+
+  .home-guides li a {
+    min-height: 44px;
+    padding: 10px 0;
+    line-height: 24px;
+  }
+}
