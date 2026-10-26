@@ -41,6 +41,22 @@ export function loadRedirectMap(catalog: RedirectSources): Map<string, Target> {
   for (const row of catalog.redirects) {
     map.set(normalize(row.from_path), { to: row.to_path, status: row.status });
   }
+  // URL-002: every source answers its final target in one hop. A target that is itself a source is followed (a
+  // loop is left as it is); the hop is 302 when any step on the way is temporary.
+  for (const [source, first] of map) {
+    const seen = new Set([source]);
+    let final = first;
+    let status = first.status;
+    while (!final.to.includes("?")) {
+      const key = normalize(final.to);
+      const next = map.get(key);
+      if (next === undefined || seen.has(key)) break;
+      seen.add(key);
+      status = status === 302 || next.status === 302 ? 302 : 301;
+      final = next;
+    }
+    if (final !== first && !seen.has(normalize(final.to))) map.set(source, { to: final.to, status });
+  }
   return map;
 }
 

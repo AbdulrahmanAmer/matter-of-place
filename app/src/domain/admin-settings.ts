@@ -192,7 +192,8 @@ function closesLoop(row: RedirectPutInput, active: readonly RedirectRow[]): bool
 
 /**
  * A redirect row checked against the other active rows (invariant 16): a public path with no query string as the
- * source, unique among active rows; a path on this site as the target; 301 or 302; and no loop.
+ * source, unique among active rows; a path on this site as the target; 301 or 302; no loop; and no chain (URL-002):
+ * the target is not the source of another active row, and the source is not the target of one.
  */
 export function redirectSchema(active: readonly RedirectRow[]) {
   return redirectPutInput.superRefine((row, ctx) => {
@@ -200,6 +201,7 @@ export function redirectSchema(active: readonly RedirectRow[]) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message });
     };
     const from = row.from_path;
+    const others = active.filter((other) => other.id !== row.id);
     if (!sitePath(from)) refuse("The old address must be a path on this site.");
     else if (from.startsWith("/admin") || from === "/api" || from.startsWith("/api/")) {
       refuse("Admin and API addresses cannot be redirected.");
@@ -211,5 +213,12 @@ export function redirectSchema(active: readonly RedirectRow[]) {
     } else if (active.some((other) => other.from_path === from && other.id !== row.id)) {
       refuse("That old address is already redirected.");
     } else if (closesLoop(row, active)) refuse("These addresses would redirect in a loop.");
+    else if (row.to_path.length > 1 && row.to_path.endsWith("/")) {
+      refuse("The new address cannot end in a slash: the site would redirect it a second time.");
+    } else if (others.some((other) => other.from_path === row.to_path)) {
+      refuse("The new address is itself redirected. Point to the final address so visitors take one step.");
+    } else if (others.some((other) => other.to_path === from)) {
+      refuse("Another redirect already leads to this old address. Point that one at the final address first.");
+    }
   });
 }
