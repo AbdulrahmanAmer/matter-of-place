@@ -2272,6 +2272,15 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   Organization node; auditor method from the Francine & Eli SEO study in .claude/agents/mop-auditor.md. Google tools: GA4,
   Search Console and PSI read live data; .env gained SITE_URL, CF_ACCOUNT_ID, CF_ZONE_ID. WAITING ON OPERATOR:
   AUDIT_AGENT_KEY (/admin), Bing Webmaster key, Cloudflare MFA, which social accounts exist (sameAs). Bank: P-3703..P-3705.
+- 2026-10-19 18:55 +0300: W6 item 6 (branch overdrive/w6-6, builder Sonnet 5.5): `app/scripts/matter/hook-reach.ts` checks that
+  `~/.claude/settings.json` declares shell-shaper, push-gate (PreToolUse Bash) and edit-impact (PostToolUse Edit) with their scripts
+  present, that `matterArgs("full")` and `liveArgs` carry no `--restricted`/`--bare`/user-less `--setting-sources`, and (`probe`) runs
+  one Haiku turn of Matter's full-power arguments in a scratch repo with `--include-hook-events`. PROVEN on this laptop (claude
+  2.1.296): `bun scripts/matter/hook-reach.ts probe` exit 0, shell-shaper "long command sent to the background" and edit-impact
+  "GONE greet left src/lib.ts..." in the stream. Unit `matter-hook-reach.test.ts` 8 of 8; registry `W6-6.json` 12 of 12 red for the
+  right reason (hand replay, one test file at a time, not the watchfail tool). Not run locally: tsc, eslint, knip, full suite (no
+  local CI). UNPROVEN: push-gate inside a run (probe does not push); a production run's own log (the supervisor does not ask for
+  hook events). Box 6 stays open. Bank: P-3718, P-3719.
 - 2026-10-19 19:05 +0300: builder of W8 0f (Sonnet 5.5, overdrive/w8-0f). The studio folder: a reel that passes the gate and the
   fresh reviewer is a DRAFT kept under `drafts/NN/` (every render, refused ones too), with `status.md` rewritten beside
   `brief.json` on every change; nothing is uploaded until Matter's `media` entry `{"skill":"studio","piece","decision":

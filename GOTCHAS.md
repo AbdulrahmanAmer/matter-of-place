@@ -8790,6 +8790,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
 - added: 2026-10-16
 
+## P-3718 · A heredoc script that shell-shaper rewrites lands under E:\tmp, not in Git Bash's /tmp
+- symptom: 2026-10-19, W6 item 6: `cat > /tmp/probe-try/patch1.mjs <<'EOF'` was rewritten by shell-shaper to `: wrote /tmp/probe-try/patch1.mjs`, and `node /tmp/probe-try/patch1.mjs` then failed with MODULE_NOT_FOUND at `C:\Users\DELL\AppData\Local\Temp\probe-try\patch1.mjs`. The hook writes with Node, where `/tmp` means `<current drive>:\tmp` (here `E:\tmp\probe-try\`), while Git Bash maps `/tmp` to the Windows temp folder.
+- rule: write a script with the Write tool at a full Windows path (`C:/Users/DELL/AppData/Local/Temp/...` or a path in the worktree) and run it by that path; never a heredoc into `/tmp`. Clean a stray `E:\tmp\...` file with plain `rm <file>` and `rmdir` (RAGA guard blocks `rm -rf`).
+- proof: `ls /e/tmp/probe-try` showed the file after the failed run (2026-10-19); with the Write tool at the temp path `node C:/Users/DELL/AppData/Local/Temp/probe-try/replay.mjs` ran.
+- added: 2026-10-19
+
+## P-3719 · edit-impact says nothing in a scratch repository unless the files sit under src, lib, test, tests, app or scripts
+- symptom: 2026-10-19, W6 item 6: a probe repo with `lib.ts` and `use.ts` at its top gave an empty answer from edit-impact after `greet` was renamed; with the same files under `src/` it printed `GONE greet left src/lib.ts but is still imported by: src/use.ts.`. Outside Matter of Place the hook reads only those folders (`load()` in `~/.claude/hooks/edit-impact.mjs`) for the files that import the edited one.
+- rule: a fixture that must make edit-impact speak (the hook-reach probe, `scripts/matter/hook-reach.ts`) keeps its files under `src/`; and a replay that mutates a source file makes the hook print STALE for the entry being replayed while it runs, which is the mutation, not a stale entry: re-run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` after the replay has restored the file.
+- proof: `bun scripts/matter/hook-reach.ts probe` → `hook-reach: live run, edit-impact said "edit-impact (fix these before running any test or check): - GONE greet left src/lib.ts ...`, exit 0.
+- added: 2026-10-19
+
 ## P-4540 · A path stored in a brief is written with `path.join`: on Windows it comes back with backslashes
 - symptom: W8 0f, 2026-10-19: the studio test expected `film: "drafts/01/reel.mp4"` and read `drafts\\01\\reel.mp4` from `brief.json`; the piece read fine on this laptop and would not have anywhere else.
 - cause: `join("drafts", "01", "reel.mp4")` uses the machine's separator, and `brief.json` is a record other tools (Drive copy, a Linux CI, a person) read.
