@@ -186,7 +186,7 @@
     "find": "\"/\": newest([...propertyDays, ...storyDays]),",
     "replace": "\"/\": \"2026-01-01\",",
     "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
-    "expect": "FAIL .*gives the catalog pages no lastmod while nothing is published"
+    "expect": "FAIL .*gives the home page no lastmod while nothing is published"
   },
   {
     "id": "w8-12b-sitemap-default",
