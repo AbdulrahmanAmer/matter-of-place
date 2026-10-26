@@ -431,10 +431,12 @@ describe("the head of an article guide", () => {
   });
 
   /** The route's loader, called as the router calls it for `slug`. */
-  const loadGuide = async (slug: string): Promise<unknown> =>
-    Reflect.apply(GuideRoute.options.loader ?? (() => undefined), undefined, [
-      { params: { slug } },
-    ]);
+  const loadGuide = async (slug: string): Promise<unknown> => {
+    const loader = GuideRoute.options.loader;
+    if (typeof loader !== "function") throw new Error("the guide route has no loader function");
+    const result: unknown = await Reflect.apply(loader, undefined, [{ params: { slug } }]);
+    return result;
+  };
 
   it("answers an unknown slug 404 and marks its head noindex", async () => {
     const thrown = await loadGuide("no-such-guide").then(
