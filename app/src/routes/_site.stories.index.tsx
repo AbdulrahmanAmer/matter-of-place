@@ -6,31 +6,40 @@ import { StoryGrid } from "../components/site/story-card";
 import { storiesQuery } from "../lib/queries";
 import { breadcrumbLd, collectionLd } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
-import { pageHead } from "../lib/seo";
+import { indexable, pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
+import { t } from "../lib/strings";
 
 export const Route = createFileRoute("/_site/stories/")({
   loader: ({ context: { queryClient } }) =>
     queryClient.query({ ...storiesQuery(), staleTime: "static" }),
   head: ({ loaderData, matches }) =>
-    pageHead({
-      title: "Stories",
-      description: pageDescription("stories.index"),
-      path: "/stories",
-      image: ogImageFor({ key: "stories", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [
-        collectionLd(
-          "stories",
-          "Stories",
-          "/stories",
-          (loaderData ?? []).map((story) => ({
-            name: story.title,
-            path: `/stories/${story.slug}`,
-          })),
-        ),
-        breadcrumbLd([{ name: "Stories", path: "/stories" }]),
-      ],
-    }),
+    loaderData?.length === 0
+      ? pageHead({
+          title: "Stories",
+          description: t.comingSoon.meta.stories,
+          path: "/stories",
+          image: ogImageFor({ key: "stories", ogStatic: ogStaticOf(matches) }),
+          ...indexable(loaderData.length),
+        })
+      : pageHead({
+          title: "Stories",
+          description: pageDescription("stories.index"),
+          path: "/stories",
+          image: ogImageFor({ key: "stories", ogStatic: ogStaticOf(matches) }),
+          jsonLd: [
+            collectionLd(
+              "stories",
+              "Stories",
+              "/stories",
+              (loaderData ?? []).map((story) => ({
+                name: story.title,
+                path: `/stories/${story.slug}`,
+              })),
+            ),
+            breadcrumbLd([{ name: "Stories", path: "/stories" }]),
+          ],
+        }),
   component: StoriesPage,
 });
 
