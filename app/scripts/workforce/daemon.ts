@@ -10,8 +10,8 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { outsideToolkit, readOnly, toolkitFor } from "../../src/domain/toolkits.ts";
 import { agentTools, mentionedSlugs } from "../../src/domain/workforce.ts";
 import type { Db } from "../../src/server/lib/db.ts";
 import {
@@ -43,7 +43,7 @@ import {
   reelWorking,
   withReel,
 } from "./reel.ts";
-import { breakerUntil, type CliUsage, isolatedArgs, runClaude, UsageLimitError } from "./cli.ts";
+import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
@@ -85,9 +85,21 @@ import { checkMail } from "./mail.ts";
 import { handToEditor, noteTriage } from "./inbound-mail.ts";
 import { bounceFacts, wakes } from "./bounce.ts";
 import { checkNewAddresses, refusedAddress } from "./email-check.ts";
-import { refreshPolicy, staffPolicy } from "./config.ts";
+import { driveSocialFolder, refreshPolicy, staffPolicy } from "./config.ts";
 import { underCeiling } from "./usage-policy.ts";
 import { isSupervisorCommand, liveAlive, stalledSupervisorPid } from "../matter/live-alive.ts";
+import {
+  outsideFolder,
+  renderRoots,
+  runRenders,
+  toolkitLine,
+  toolkitRules,
+  writePlaces,
+  type RenderScope,
+  type ToolkitPaths,
+  type ToolkitRules,
+} from "./toolkit-args.ts";
+import { placePieces, placedLine, sourcesFor } from "./placement.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 const CURSOR_FILE = join(HOME, "cursor.json");
@@ -113,80 +125,95 @@ function matterEnv(): NodeJS.ProcessEnv {
 
 function emptyMcpConfig(): string {
   const file = join(HOME, "no-mcp.json");
+  // the runner's home may not exist yet (a first run, CI): make it before writing under it (GOTCHAS P-3532)
+  mkdirSync(HOME, { recursive: true });
   if (!existsSync(file)) writeFileSync(file, JSON.stringify({ mcpServers: {} }));
   return file;
 }
 
 /**
- * A colleague's command line. A run about an outside message (W8 fifth review), and a run shown a request (W7 item 9a,
- * `runFrom`), is shut off like the triage: no tool, no setting source (so none of the operator's settings, hooks or
- * skills load into it), no MCP server.
+ * A colleague's command line (ruling H115, role toolkits): exactly the tools of its toolkit, each allowed by a rule in
+ * the run's own settings file, and anything not allowed refused, never asked. No setting source loads (so nothing a run
+ * wrote in a desk, a hook in `.claude/`, ever runs, W8 0e) and no MCP server; the runner gives it no key (childEnv). A
+ * run about an outside message, and a run shown a request (W7 item 9a, `runFrom`), gets the outside toolkit.
  */
-export function colleagueArgs(
-  model: string,
-  research: boolean,
-  outside: boolean,
-  terminal = false,
-): string[] {
-  const base = ["-p", "--model", model, "--output-format", "stream-json", "--verbose"];
-  if (outside) return [...base, ...isolatedArgs(HOME)];
-  // W8 0e (ruling H113): the terminal is file tools in the colleague's own work folder, never a shell (a shell reaches
-  // every secret on the disk). Reads and writes allowed only inside that folder, none of the operator's settings, no
-  // MCP; the runner gives it no key (childEnv).
-  if (terminal)
-    return [
-      ...base,
-      ...["--tools", "Read,Write,Edit,Glob,Grep", "--setting-sources", ""],
-      ...["--strict-mcp-config", "--mcp-config", emptyMcpConfig(), "--restricted"],
-      ...["--permission-mode", "dontAsk", "--settings", TERMINAL_SETTINGS],
-    ];
+function colleagueArgs(model: string, rules: ToolkitRules, settingsFile: string): string[] {
   return [
-    ...base,
-    // W8 0e (second review): no settings file loads, so nothing a terminal wrote in a desk (a hook in .claude/) runs.
-    "--setting-sources",
-    "",
-    "--strict-mcp-config",
-    "--mcp-config",
-    emptyMcpConfig(),
-    // H101: no shell, no web fetch, files only inside the desk; anything not allowed is refused, never asked.
-    "--restricted",
-    "--permission-mode",
-    "dontAsk",
-    // W2 step 7: a colleague with the research tool may search the web, and nothing more.
-    ...(research ? ["--allowedTools", "WebSearch"] : []),
+    ...["-p", "--model", model, "--output-format", "stream-json", "--verbose"],
+    ...["--setting-sources", "", "--strict-mcp-config", "--mcp-config", emptyMcpConfig()],
+    ...[
+      "--tools",
+      rules.tools.join(","),
+      "--permission-mode",
+      "dontAsk",
+      "--settings",
+      settingsFile,
+    ],
+    ...rules.addDirs.flatMap((dir) => ["--add-dir", dir]),
   ];
 }
 
-/** W8 0e: what a colleague is told when a person or Matter started its run and it has a terminal. */
-export const TERMINAL_LINE =
-  "A person or Matter started this run, so you may write files in your work folder (read, write and edit; no shell, no web): drafts, scenes, copy, data, an SVG. Say in your reply what you made and where; anything that leaves the company is still a proposal a person approves.";
-
-/** A colleague's terminal settings (W8 0e): file tools inside the work folder only, nothing that configures a run. */
-const TERMINAL_SETTINGS = join(dirname(fileURLToPath(import.meta.url)), "settings-terminal.json");
-
-/**
- * Names that configure a Claude run when found in its folder: a terminal may never leave one behind (second review).
- * Lower case, and compared in lower case: Windows finds `.Claude` or `claude.md` as the same file (third review).
- */
-const RUN_CONFIG = new Set([".claude", "claude.md", "claude.local.md", ".mcp.json"]);
-
-/**
- * W8 0e: a colleague's folder for this run. A terminal works in `desks/<slug>/work`; every other run in the desk.
- * Before each run, anything that would configure a run (`RUN_CONFIG`) is removed from the whole desk, so what one run
- * wrote can never steer the next.
- */
-export function deskFor(home: string, slug: string, terminal: boolean): string {
-  const desk = join(home, "desks", slug);
-  mkdirSync(join(desk, "work"), { recursive: true });
-  sweep(desk, 0);
-  return terminal ? join(desk, "work") : desk;
+/** The folders a toolkit names, on this laptop; the Drive folder is the one the runner's config names (W8 item 8). */
+function toolkitPaths(home: string, own: string): ToolkitPaths {
+  return {
+    own,
+    studio: join(home, "studio"),
+    knowledge: join(home, "matter", "knowledge"),
+    driveSocial: driveSocialFolder(join(home, "config.json")),
+  };
 }
 
-function sweep(dir: string, depth: number): void {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+/**
+ * Names that configure a run when found in its folder: a Claude run (W8 0e, second review) or bun and node started there
+ * (H115, review of 2026-10-16). Compared in lower case: Windows finds `.Claude` or `claude.md` as the same file (third
+ * review). The toolkit's deny rules name the same (`RUN_CONFIG` in toolkit-args.ts).
+ */
+const RUN_CONFIG = new Set([
+  ".claude",
+  "claude.md",
+  "claude.local.md",
+  ".mcp.json",
+  "bunfig.toml",
+  ".bunfig.toml",
+  "package.json",
+  ".npmrc",
+]);
+
+function runConfigName(name: string): boolean {
+  const lower = name.toLowerCase();
+  return RUN_CONFIG.has(lower) || lower.startsWith(".env") || /^tsconfig.*\.json$/.test(lower);
+}
+
+/**
+ * W8 0e and H115: a colleague's folder for every run, `desks/<slug>/work`, where the runner puts the material it was
+ * woken for. Before each run, anything that would configure a run is removed from the whole desk, so what one run
+ * wrote can never steer the next.
+ */
+export function deskFor(home: string, slug: string): string {
+  const desk = join(home, "desks", slug);
+  mkdirSync(join(desk, "work"), { recursive: true });
+  sweep(desk);
+  return join(desk, "work");
+}
+
+/** Everything under `dir` that would configure a run, eight levels deep, never through a link. */
+function runConfigIn(dir: string, depth = 0): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    if (RUN_CONFIG.has(entry.name.toLowerCase())) rmSync(path, { recursive: true, force: true });
-    else if (entry.isDirectory() && !entry.isSymbolicLink() && depth < 8) sweep(path, depth + 1);
+    if (runConfigName(entry.name)) return [path];
+    return entry.isDirectory() && !entry.isSymbolicLink() && depth < 8
+      ? runConfigIn(path, depth + 1)
+      : [];
+  });
+}
+
+/** Removes run config from a folder the runner owns (a desk, the studio), and says each removal in the runner's log. */
+function sweep(dir: string): void {
+  for (const path of runConfigIn(dir)) {
+    rmSync(path, { recursive: true, force: true });
+    console.log(
+      `${new Date().toISOString()} removed ${path} before a run: it would configure the run`,
+    );
   }
 }
 
@@ -202,36 +229,104 @@ export async function startedInsideFor(
   return startedFromInside(cause, woke, await keyAccountLive(client, woke));
 }
 
+export interface ColleagueLaunch {
+  args: string[];
+  cwd: string;
+  line: string;
+  /** What the runner may render for this run once it ends (`runRenders`): a colleague runs no command itself. */
+  render: RenderScope;
+  settingsFile: string;
+  /** What the runner removes when the run ends: the settings file, and an outside run's own folder. */
+  cleanup: string[];
+}
+
 /**
- * W8 0e (third review): a colleague run's command line and folder, from its shape. One about outside text is shut
- * off like the triage; a terminal works in its own work folder; any other run reads its desk.
+ * H115: a colleague run's command line, folder and the line that tells it its tools, from its toolkit. A run about an
+ * outside message gets `outsideToolkit` in a folder of its own, `outsideFolder` (review of 2026-10-16: never the work
+ * folder, where other runs leave drafts), which `runOnce` empties before the run's context is read and removes after
+ * it; only the runner fills it (a request's folder for its owner, `requestDesk`, review of 2026-10-19). A run a person
+ * or an operator key started (`inside`, `startedInsideFor`) gets its whole toolkit, and the photographs of the pieces
+ * its line names placed in its folder from its toolkit's piece sources (`placePieces`, without their metadata; never
+ * the studio itself, review of 2026-10-19); any other run (an event, a schedule, a mention) its reads only, since its
+ * history may hold a line that carried outside words. Its desk is swept of run config first (`deskFor`); any other
+ * place it may write that holds some (the Drive folder is the operator's) refuses the run, each file named and none
+ * deleted; and the settings file, named by the run id, is written last.
  */
-export function colleagueLaunch(
+export async function colleagueLaunch(
   home: string,
   slug: string,
   model: string,
-  shape: { research: boolean; terminal: boolean },
-  outside: boolean,
-): { args: string[]; cwd: string } {
-  return {
-    args: colleagueArgs(model, shape.research, outside, shape.terminal),
-    cwd: deskFor(home, slug, shape.terminal),
+  research: boolean,
+  run: { id: string; outside: boolean; inside: boolean; line?: string },
+): Promise<ColleagueLaunch> {
+  const work = deskFor(home, slug);
+  const cwd = run.outside ? outsideFolder(home, slug, run.id) : work;
+  const toolkit = run.outside
+    ? outsideToolkit
+    : run.inside
+      ? toolkitFor(slug)
+      : readOnly(toolkitFor(slug));
+  const paths = toolkitPaths(home, cwd);
+  const searches = research && !run.outside;
+  const rules = toolkitRules(toolkit, paths, searches);
+  // the work folder was swept by `deskFor`; any other place it may write (the Drive folder, the operator's) is never
+  // swept: what is found there refuses the run and is named, never deleted
+  for (const dir of writePlaces(toolkit, paths)) {
+    if (!existsSync(dir)) throw new Error(`${dir} is not on this laptop`);
+    const found = runConfigIn(dir);
+    if (found.length > 0)
+      throw new Error(
+        `${dir} holds files that would configure a run; a person removes them first: ${found.join(", ")}`,
+      );
+  }
+  // the toolkit decides: a run no person started holds `readOnly`, an outside run `outsideToolkit`, neither a source
+  const placed =
+    toolkit.pieces.length > 0
+      ? await placePieces(run.line ?? "", sourcesFor(toolkit, paths), work)
+      : [];
+  const settingsFile = join(home, "settings", `${run.id}.json`);
+  const launch: ColleagueLaunch = {
+    args: colleagueArgs(model, rules, settingsFile),
+    cwd,
+    line: [toolkitLine(toolkit, paths, searches), placedLine(placed)]
+      .filter((text) => text !== "")
+      .join(" "),
+    // what the wrapper's checks confine a render to
+    render: { allowed: toolkit.render, work: cwd, roots: renderRoots(toolkit, paths) },
+    settingsFile,
+    cleanup: [settingsFile, ...(run.outside ? [cwd] : [])],
   };
+  // emptied by `runOnce` before the context wrote what this run is shown into it
+  if (run.outside) mkdirSync(cwd, { recursive: true });
+  mkdirSync(dirname(settingsFile), { recursive: true });
+  writeFileSync(
+    settingsFile,
+    JSON.stringify({ permissions: { allow: rules.allow, deny: rules.deny } }),
+  );
+  return launch;
 }
 
-function askClaude(
-  prompt: string,
-  launch: { args: string[]; cwd: string },
+/** A colleague's run; the prompt is built inside, so whatever stops it, the run's files are removed. */
+async function askClaude(
+  launch: ColleagueLaunch,
+  prompt: (toolkit: string) => string,
 ): Promise<{ text: string; session?: string; usage?: CliUsage }> {
-  return runClaude({
-    args: launch.args,
-    cwd: launch.cwd,
-    env: childEnv(),
-    prompt,
-    idleMs: CLI_IDLE_MS,
-    who: "the colleague",
-  });
+  try {
+    return await runClaude({
+      args: launch.args,
+      cwd: launch.cwd,
+      env: childEnv(),
+      prompt: prompt(launch.line),
+      idleMs: CLI_IDLE_MS,
+      who: "the colleague",
+    });
+  } finally {
+    for (const path of launch.cleanup) rmSync(path, { recursive: true, force: true });
+  }
 }
+
+/** A run's answer; `render` is what the runner may render once a colleague's run ends (Matter's answer has none). */
+type RunAnswer = Awaited<ReturnType<typeof askClaude>> & { render?: RenderScope | undefined };
 
 // ---------- waking on events ----------
 
@@ -403,9 +498,9 @@ export const REQUEST_WORDS = {
 
 /**
  * W7 item 9a (third review, ruling H132): how a run goes, from what its context showed it, decided in one tested place
- * the runner only carries out (`runOnce`). A run shown a request is shaped like a run about an outside message: no
- * terminal and no web search, no admin call or hire offered, launched shut off (`outside`: no tool at all on this
- * runner; the outside toolkit of ruling H115 reads its own folder and writes and runs nothing), and its reply written in
+ * the runner only carries out (`runOnce`). A run shown a request is shaped like a run about an outside message: no web
+ * search, no admin call or hire offered, launched with the outside toolkit (`outside`, ruling H115: it reads its own
+ * folder and writes and runs nothing), and its reply written in
  * its own thread under an `OUTSIDE_REPLY_PREFIX` author, so every later reader sees it fenced (`shownBody`). Its plan
  * is ruled with the request (`ruleRequest`, `REQUEST_WORDS`).
  */
@@ -414,13 +509,11 @@ export function runFrom<T extends { slug: string; tools: readonly string[] }>(
   thread: string,
   seen: { triage: Triage | null; request: boolean },
   matterReadsHeld: boolean,
-  startedInside: boolean,
 ) {
-  const base = runShape(agent, thread, seen.triage, matterReadsHeld, startedInside);
+  const base = runShape(agent, thread, seen.triage, matterReadsHeld);
   const shape = seen.request
     ? {
         ...base,
-        terminal: false,
         research: false,
         agent: {
           ...base.agent,
@@ -505,7 +598,13 @@ export async function allowForOwner(
  */
 export async function context(
   client: Db,
-  run: { agent_id: string; cause: string; event_id: string | null; message_id: string | null },
+  run: {
+    id: string;
+    agent_id: string;
+    cause: string;
+    event_id: string | null;
+    message_id: string | null;
+  },
   thread: string,
   ask: (prompt: string) => Promise<string> = askTriage,
   matterReadsHeld = false,
@@ -571,10 +670,10 @@ export async function context(
   parts.push(...groundingLines(wokeShown, pending));
   // W7 item 9a: a run of the request's owner about a request receives the request itself (request-desk.ts), named by
   // its event or its line, after the triage read and classified what its submitter typed; no one else is shown a
-  // request (H132).
+  // request (H132). Its folder is written into the run's own outside folder, where the run is launched.
   const line = woke === null ? null : shownBody(woke);
   const desk = owns("submission")
-    ? await requestDesk(client, run.agent_id, event, line, { triage, ask })
+    ? await requestDesk(client, run.agent_id, event, line, { id: run.id, triage, ask })
     : { lines: [], received: false };
   parts.push(...desk.lines);
   // W8 fourth review: a run about an outside message sees the triage, its own pending list and the site's facts, and
@@ -591,8 +690,8 @@ export async function context(
       parts.push(
         `The conversation so far (${thread === "team" ? "the team chat" : "your direct thread"}, oldest first):\n` +
           messages
-            // W8 0e (second review): a run that may hold a terminal reads only people's and keys' lines; any other
-            // line may carry words that passed through an outside message
+            // W8 0e and H115: a run a person or a key started, the only kind that holds its toolkit's writes and
+            // renders, reads only people's and keys' lines; any other line may carry words from an outside message
             .filter((message) => !startedInside || insideLine(message))
             .reverse()
             .map((message) => `${message.author_name}: ${shownBody(message)}`)
@@ -713,7 +812,7 @@ function promptFor(
   lessons = "",
   charter = "",
   knowledge = "",
-  terminal = false,
+  toolkit = "",
 ): string {
   const may = agentTools.filter((tool) => agent.tools.includes(tool));
   return [
@@ -732,7 +831,7 @@ function promptFor(
       : []),
     ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
     ...(agent.tools.includes("draft_post") ? [POST_TOOL_LINE] : []),
-    ...(terminal ? [TERMINAL_LINE] : []),
+    ...(toolkit === "" ? [] : [toolkit]),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
   ].join("\n\n");
@@ -772,16 +871,18 @@ export async function runOnce(client: Db): Promise<boolean> {
   let thread = "team";
   let authorKind: string | null = null;
   let wokeBy: string | null = null;
+  let wokeBody: string | null = null;
   if (run.message_id !== null) {
     const { data: message } = await client
       .from("agent_messages")
-      .select("thread, author_kind, author_id")
+      .select("thread, author_kind, author_id, body")
       .eq("id", run.message_id)
       .single();
     // A line that cannot be read fails the run inside `context` (W8 review), where the failure is recorded.
     thread = message?.thread ?? "team";
     authorKind = message?.author_kind ?? null;
     wokeBy = message?.author_id ?? null;
+    wokeBody = message?.body ?? null;
   }
   // W8 0d: the owner's run on a held line explains it, and any end of it hands the line to Matter.
   const explains =
@@ -797,6 +898,9 @@ export async function runOnce(client: Db): Promise<boolean> {
     // W8 0e: a key's line counts only if its account is an unrevoked agent key.
     const woke = { author_kind: authorKind, author_id: wokeBy };
     const startedInside = await startedInsideFor(client, run.cause, woke);
+    // H115: an outside run's folder holds only what the runner writes for this run (a request's folder, in `context`);
+    // whatever an earlier attempt of it left is gone first, with every other run's a killed runner left (runs are serial)
+    rmSync(dirname(outsideFolder(HOME, agent.slug, run.id)), { recursive: true, force: true });
     const {
       situation,
       triage,
@@ -864,17 +968,11 @@ export async function runOnce(client: Db): Promise<boolean> {
       .map(({ name, slug, role }) => ({ name, slug, role }));
     const isMatter = agent.slug === "matter";
     // W7 item 9a: what the context showed decides the shape, the launch and the plan, in one tested place.
-    const decided = runFrom(
-      agent,
-      thread,
-      { triage, request: shownRequest },
-      matterReadsHeld,
-      startedInside,
-    );
+    const decided = runFrom(agent, thread, { triage, request: shownRequest }, matterReadsHeld);
     const { shape } = decided;
     // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
     const power = isMatter ? matterPower(run.cause, authorKind) : "read";
-    const answer = isMatter
+    const answer: RunAnswer = isMatter
       ? await askMatter(
           matterPrompt({
             ...matterInputs(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
@@ -896,27 +994,37 @@ export async function runOnce(client: Db): Promise<boolean> {
           power,
           matterReadsHeld,
         )
-      : await askClaude(
-          promptFor(
-            // W8 0c: a run about an outside message is not offered admin calls or hires at all.
-            shape.agent,
-            team,
-            situation,
-            lessons,
-            staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
-            triage === null ? knowledgeBlock(situation) : "",
-            shape.terminal,
-          ),
-          colleagueLaunch(
+      : await (async () => {
+          // H115: the run's toolkit decides its command line, its folder and what it is told it may use.
+          const launch = await colleagueLaunch(
             HOME,
             agent.slug,
             models[underCeiling(agent.model, policy.colleagueCeiling)] ??
               models["sonnet"] ??
               "claude-sonnet-5-5",
-            shape,
-            decided.outside,
-          ),
-        );
+            shape.research,
+            {
+              id: run.id,
+              outside: decided.outside,
+              inside: startedInside,
+              // the pieces whose photographs the runner places: only a person's or a key's line names them
+              ...(startedInside && !decided.outside && wokeBody !== null ? { line: wokeBody } : {}),
+            },
+          );
+          const asked = await askClaude(launch, (toolkit) =>
+            promptFor(
+              // W8 0c: a run about an outside message is not offered admin calls or hires at all.
+              shape.agent,
+              team,
+              situation,
+              lessons,
+              staffCharterFrom(resolve(import.meta.dir, "../../../workspace/05-plans/W2.md")),
+              decided.outside ? "" : knowledgeBlock(situation),
+              toolkit,
+            ),
+          );
+          return { ...asked, render: launch.render };
+        })();
     // W8 0c: a run about an outside message keeps only the proposals its source allows: no admin call, no hire, no
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
     // nothing that acts (W8 review): it read the outside text itself.
@@ -964,6 +1072,10 @@ export async function runOnce(client: Db): Promise<boolean> {
             targets.map((row) => ({ agent_id: row.id, cause: "message", message_id: written.id })),
           );
     }
+    // H115 (review of 2026-10-19): a colleague has no shell, so the runner renders what its answer asks for, here
+    if (answer.render !== undefined)
+      for (const line of runRenders(result.renders ?? [], answer.render, childEnv()))
+        await say(client, place.thread, line);
     for (const request of media) {
       if (request.skill === "reel") {
         // W7 item 19: a reel takes many minutes, so it waits in the studio for the reel pass, never inside a run.
@@ -1122,6 +1234,8 @@ export async function runOnce(client: Db): Promise<boolean> {
     if (explains && run.message_id !== null)
       await handToMatter(client, agents ?? [], run.message_id, thread, true);
   } finally {
+    // the request's folder a context wrote is removed whatever ended the run, a failure before its launch included
+    rmSync(outsideFolder(HOME, agent.slug, run.id), { recursive: true, force: true });
     await client
       .from("agents")
       .update({

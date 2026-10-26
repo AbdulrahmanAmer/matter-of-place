@@ -485,15 +485,6 @@
     "expect": "× .*replays no proposal drafted from an outside message"
   },
   {
-    "id": "w8-0r5-colleague-isolated",
-    "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "  if (outside) return [...base, ...isolatedArgs(HOME)];",
-    "replace": "",
-    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
-    "expect": "× .*starts a colleague run about an outside message shut off"
-  },
-  {
     "id": "w8-0e-person-or-key",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/triage.ts",
@@ -510,24 +501,6 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*knows a person's line and a line from an unrevoked operator key"
-  },
-  {
-    "id": "w8-0e-never-outside",
-    "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/triage.ts",
-    "find": "    terminal: !outside && startedInside && agent.slug !== \"matter\",",
-    "replace": "    terminal: startedInside && agent.slug !== \"matter\",",
-    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
-    "expect": "× .*gives a started colleague run file tools in its desk"
-  },
-  {
-    "id": "w8-0e-outside-first",
-    "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "  if (outside) return [...base, ...isolatedArgs(HOME)];",
-    "replace": "",
-    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
-    "expect": "× .*gives a started colleague run file tools in its desk"
   },
   {
     "id": "w8-0d-allowed-answers",
@@ -593,24 +566,6 @@
     "expect": "× .*lets no colleague take a name"
   },
   {
-    "id": "w8-0e-terminal-no-shell",
-    "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "      ...[\"--tools\", \"Read,Write,Edit,Glob,Grep\", \"--setting-sources\", \"\"],",
-    "replace": "      ...[\"--tools\", \"Read,Write,Edit,Glob,Grep,Bash\", \"--setting-sources\", \"\"],",
-    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
-    "expect": "× .*gives a started colleague run file tools in its desk"
-  },
-  {
-    "id": "w8-0e-terminal-restricted",
-    "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "      ...[\"--strict-mcp-config\", \"--mcp-config\", emptyMcpConfig(), \"--restricted\"],",
-    "replace": "      ...[\"--strict-mcp-config\", \"--mcp-config\", emptyMcpConfig()],",
-    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
-    "expect": "× .*gives a started colleague run file tools in its desk"
-  },
-  {
     "id": "w8-0e-inside-lines-only",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/triage.ts",
@@ -665,29 +620,11 @@
     "expect": "× .*makes a line to the team or a change to a colleague only for a person"
   },
   {
-    "id": "w8-0e-settings-sources",
-    "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "    // W8 0e (second review): no settings file loads, so nothing a terminal wrote in a desk (a hook in .claude/) runs.\n    \"--setting-sources\",\n    \"\",\n",
-    "replace": "",
-    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
-    "expect": "× .*loads no settings file into a run without a terminal"
-  },
-  {
     "id": "w8-0e-desk-sweep",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "    if (RUN_CONFIG.has(entry.name.toLowerCase())) rmSync(path, { recursive: true, force: true });\n    else if",
-    "replace": "    if",
-    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
-    "expect": "× .*sweeps what configures a run out of the whole desk"
-  },
-  {
-    "id": "w8-0e-own-work-folder",
-    "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "  return terminal ? join(desk, \"work\") : desk;",
-    "replace": "  return desk;",
+    "find": "    if (runConfigName(entry.name)) return [path];\n",
+    "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*sweeps what configures a run out of the whole desk"
   },
@@ -704,8 +641,8 @@
     "id": "w8-0e-sweep-any-case",
     "test": "tests/unit/workforce-triage.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "RUN_CONFIG.has(entry.name.toLowerCase())",
-    "replace": "RUN_CONFIG.has(entry.name)",
+    "find": "  const lower = name.toLowerCase();\n  return RUN_CONFIG.has(lower)",
+    "replace": "  const lower = name;\n  return RUN_CONFIG.has(lower)",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*sweeps what configures a run out of the whole desk"
   },
@@ -733,24 +670,6 @@
     "file": "scripts/workforce/daemon.ts",
     "find": "  return startedFromInside(cause, woke, await keyAccountLive(client, woke));",
     "replace": "  return startedFromInside(cause, woke, true);",
-    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
-    "expect": "× .*decides who started a run and launches it from that"
-  },
-  {
-    "id": "w8-0e-launch-folder",
-    "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "    cwd: deskFor(home, slug, shape.terminal),",
-    "replace": "    cwd: deskFor(home, slug, true),",
-    "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
-    "expect": "× .*decides who started a run and launches it from that"
-  },
-  {
-    "id": "w8-0e-launch-args",
-    "test": "tests/unit/workforce-triage.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "    args: colleagueArgs(model, shape.research, outside, shape.terminal),",
-    "replace": "    args: colleagueArgs(model, shape.research, outside, true),",
     "run": "bunx vitest run --project unit tests/unit/workforce-triage.test.ts",
     "expect": "× .*decides who started a run and launches it from that"
   }

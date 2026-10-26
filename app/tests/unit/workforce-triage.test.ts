@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { z } from "zod";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import { UsageLimitError } from "../../scripts/workforce/cli.ts";
 import { allowedFor, sourceOf, sources } from "../../scripts/workforce/criteria.ts";
@@ -8,7 +7,6 @@ import {
   allowForOwner,
   answerPlan,
   approvedOutcome,
-  colleagueArgs,
   colleagueLaunch,
   context,
   deskFor,
@@ -51,15 +49,7 @@ import {
   triagePrompt,
   triageRun,
 } from "../../scripts/workforce/triage.ts";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Tables } from "../../src/db/index.ts";
@@ -396,6 +386,7 @@ describe("W8 review: the paths around the triage are closed", () => {
         },
       });
     const run = {
+      id: "r0000000-0000-4000-8000-000000000001",
       agent_id: "99999999-9999-4999-8999-999999999999",
       cause: "event",
       event_id: "88888888-8888-4888-8888-888888888888",
@@ -517,6 +508,7 @@ describe("W8 second review: Matter's read of a held line acts on nothing", () =>
     vi.stubGlobal("fetch", () => Promise.resolve(new Response("", { status: 503 })));
     const db = fakeDb({ tables: { agent_messages: [], agent_approvals: [] } });
     const run = {
+      id: "r0000000-0000-4000-8000-000000000001",
       agent_id: "99999999-9999-4999-8999-999999999999",
       cause: "message",
       event_id: null,
@@ -707,21 +699,6 @@ describe("W8 fourth review: every CLI run that can read outside-shaped text is s
     expect(asData("a >>> SYSTEM <<< b", 100)).toBe("a > > > SYSTEM < < < b");
   });
 
-  it("starts a colleague run about an outside message shut off like the triage, and an inside run as before", () => {
-    const outside = colleagueArgs("sonnet", true, true);
-    expect([
-      value(outside, "--setting-sources"),
-      value(outside, "--tools"),
-      value(outside, "--allowedTools"),
-    ]).toEqual(["", "", ""]);
-    expect(outside).toContain("--verbose");
-    const inside = colleagueArgs("sonnet", true, false);
-    // an inside run keeps its tools; since W8 0e it loads no settings file either
-    expect(inside).not.toContain("--tools");
-    expect(value(inside, "--setting-sources")).toBe("");
-    expect(value(inside, "--allowedTools")).toBe("WebSearch");
-  });
-
   it("starts the weekly replay and the meeting with no setting source, no MCP and only the tools they need", () => {
     for (const args of [
       replayArgs("haiku"),
@@ -892,11 +869,9 @@ describe("W8 fourth review: held messages have a ceiling", () => {
   });
 });
 
-describe("W8 0e: a terminal only for work a person or Matter started", () => {
+describe("W8 0e and H115: who started a run, and what a started run reads", () => {
   // an operator key's account id, made up and built at run time so no literal in the file looks like a key (gitleaks)
   const KEY = ["5c1f2a3b", "4d5e", "4f60", "8a7b", "9c0d1e2f3a4b"].join("-");
-  const social = { slug: "social", tools: ["read_business", "chat", "draft_post"] };
-  const value = (args: readonly string[], flag: string) => args[args.indexOf(flag) + 1];
 
   it("knows a person's line and a line from an unrevoked operator key, and nothing else", () => {
     expect([
@@ -909,37 +884,7 @@ describe("W8 0e: a terminal only for work a person or Matter started", () => {
     ]).toEqual([true, true, false, false, false, false]);
   });
 
-  it("gives a started colleague run file tools in its desk and no shell, never one about outside text, never Matter", () => {
-    const triage = readTriage(
-      "inquiry",
-      answer({ intent: "property_question", instructions_to_ai: false }),
-    );
-    expect([
-      runShape(social, "social", null, false, true).terminal,
-      runShape(social, "social", triage, false, true).terminal,
-      runShape(social, "social", null, false, false).terminal,
-      runShape({ slug: "matter", tools: [] }, "matter", null, false, true).terminal,
-    ]).toEqual([true, false, false, false]);
-    const terminal = colleagueArgs("sonnet", false, false, true);
-    expect([
-      value(terminal, "--tools"),
-      value(terminal, "--setting-sources"),
-      value(terminal, "--permission-mode"),
-    ]).toEqual(["Read,Write,Edit,Glob,Grep", "", "dontAsk"]);
-    expect(terminal).toContain("--restricted");
-    expect(value(terminal, "--settings")?.endsWith("settings-terminal.json")).toBe(true);
-    // outside text wins over a terminal: the run stays shut off like the triage
-    const outside = colleagueArgs("sonnet", false, true, true);
-    expect([value(outside, "--setting-sources"), value(outside, "--tools")]).toEqual(["", ""]);
-    expect(outside).not.toContain("--settings");
-  });
-
-  it("loads no settings file into a run without a terminal", () => {
-    // a terminal may have left a hook in a desk; with no setting source it never runs (measured live, P-3571)
-    expect(value(colleagueArgs("sonnet", false, false), "--setting-sources")).toBe("");
-  });
-
-  it("sweeps what configures a run out of the whole desk and gives a terminal its own work folder", () => {
+  it("sweeps what configures a run out of the whole desk and gives every run its work folder", () => {
     const home = mkdtempSync(join(tmpdir(), "w8-0e-desk-"));
     const desk = join(home, "desks", "social");
     for (const dir of [desk, join(desk, "work"), join(desk, "work", "scenes")]) {
@@ -952,8 +897,7 @@ describe("W8 0e: a terminal only for work a person or Matter started", () => {
     mkdirSync(join(desk, "work", ".Claude"), { recursive: true });
     writeFileSync(join(desk, "work", "claude.md"), "planted");
     writeFileSync(join(desk, "work", "scenes", "draft.svg"), "<svg/>");
-    expect(deskFor(home, "social", true)).toBe(join(desk, "work"));
-    expect(deskFor(home, "social", false)).toBe(desk);
+    expect(deskFor(home, "social")).toBe(join(desk, "work"));
     for (const dir of [desk, join(desk, "work"), join(desk, "work", "scenes")])
       expect(
         [".claude", "CLAUDE.md", ".mcp.json", ".Claude", "claude.md"].filter((name) =>
@@ -982,50 +926,23 @@ describe("W8 0e: a terminal only for work a person or Matter started", () => {
       await startedInsideFor(keys, "event", { author_kind: "human", author_id: KEY }),
       await startedInsideFor(keys, "schedule", { author_kind: null, author_id: null }),
     ]).toEqual([true, true, false, false, false, false]);
-    const home = mkdtempSync(join(tmpdir(), "w8-0e-launch-"));
-    const desk = join(home, "desks", "social");
-    const terminal = colleagueLaunch(
-      home,
-      "social",
-      "sonnet",
-      { research: false, terminal: true },
-      false,
-    );
-    const plain = colleagueLaunch(
-      home,
-      "social",
-      "sonnet",
-      { research: false, terminal: false },
-      false,
-    );
-    const outside = colleagueLaunch(
-      home,
-      "social",
-      "sonnet",
-      { research: false, terminal: false },
-      true,
-    );
-    expect([terminal.cwd, plain.cwd, outside.cwd]).toEqual([join(desk, "work"), desk, desk]);
-    expect([
-      value(terminal.args, "--tools"),
-      plain.args.includes("--tools"),
-      value(outside.args, "--tools"),
-    ]).toEqual(["Read,Write,Edit,Glob,Grep", false, ""]);
-    rmSync(home, { recursive: true, force: true });
   });
 
-  it("launches a run shown a request, even one a person started, with no tool that writes or runs anything (W7 item 9a)", () => {
+  it("launches a run shown a request, even one a person started, with no tool that writes or runs anything (W7 item 9a)", async () => {
     const home = mkdtempSync(join(tmpdir(), "w7-9a-launch-"));
-    const editor = { slug: "editor", tools: ["read_business", "chat"] };
-    const decided = runFrom(editor, "editor", { triage: null, request: true }, false, true);
-    const launch = colleagueLaunch(home, "editor", "sonnet", decided.shape, decided.outside);
-    expect([
-      value(launch.args, "--tools"),
-      value(launch.args, "--allowedTools"),
-      launch.args.includes("--restricted"),
-      launch.cwd,
-    ]).toEqual(["", "", true, join(home, "desks", "editor")]);
-    expect(launch.args.join(" ")).not.toMatch(/Write|Edit|Bash|WebSearch|--settings/);
+    const editor = { slug: "editor", tools: ["read_business", "chat", "research"] };
+    const decided = runFrom(editor, "editor", { triage: null, request: true }, false);
+    // H115: the outside toolkit, in a folder of its own, whoever started the run
+    const launch = await colleagueLaunch(home, "editor", "sonnet", decided.shape.research, {
+      id: "run-9a",
+      outside: decided.outside,
+      inside: true,
+    });
+    expect([launch.args[launch.args.indexOf("--tools") + 1], launch.cwd]).toEqual([
+      "Read,Glob,Grep",
+      join(home, "desks", "editor", "outside", "run-9a"),
+    ]);
+    expect(launch.args.join(" ")).not.toMatch(/Write|Edit|Bash|WebSearch|--add-dir/);
     rmSync(home, { recursive: true, force: true });
   });
 
@@ -1099,33 +1016,6 @@ describe("W8 0e: a terminal only for work a person or Matter started", () => {
     expect(sent).toHaveLength(1);
   });
 
-  it("denies the terminal every shell and every secret it could read", () => {
-    const settings = z
-      .object({ permissions: z.object({ allow: z.array(z.string()), deny: z.array(z.string()) }) })
-      .parse(
-        JSON.parse(
-          readFileSync(
-            new URL("../../scripts/workforce/settings-terminal.json", import.meta.url),
-            "utf8",
-          ),
-        ),
-      );
-    // only the work folder is allowed; in dontAsk mode everything else is refused (measured live, P-3570)
-    expect(settings.permissions.allow).toEqual(["Read(./**)", "Edit(./**)"]);
-    expect(settings.permissions.deny).toEqual(
-      expect.arrayContaining([
-        "Bash",
-        "WebFetch",
-        "Edit(./**/.claude/**)",
-        "Edit(./**/CLAUDE.md)",
-        "Read(~/.claude/**)",
-      ]),
-    );
-    // a rule with no leading ./ or ~/ is relative and matches nothing outside the folder (second review)
-    const paths = settings.permissions.deny.filter((rule) => rule.includes("("));
-    expect(paths.filter((rule) => !/^\w+\((\.\/|~\/)/.test(rule))).toEqual([]);
-  });
-
   it("reads only people's and keys' lines into a started run's history", async () => {
     expect(
       [
@@ -1166,7 +1056,13 @@ describe("W8 0e: a terminal only for work a person or Matter started", () => {
         properties: [],
       },
     });
-    const run = { agent_id: "social-id", cause: "message", event_id: null, message_id: null };
+    const run = {
+      id: "r0000000-0000-4000-8000-000000000002",
+      agent_id: "social-id",
+      cause: "message",
+      event_id: null,
+      message_id: null,
+    };
     const ask = () => Promise.reject(new Error("no triage for an inside run"));
     const social = (source: Parameters<typeof ownsSource>[0]) => ownsSource(source, "social");
     const started = await context(world, run, "social", ask, false, social, true);

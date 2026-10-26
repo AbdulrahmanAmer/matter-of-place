@@ -1088,12 +1088,15 @@ export const studioTools = {
  * A CLI run confined to the studio folder (`--restricted` refuses a write outside it): no shell, no web, no MCP
  * servers, and only the file tools of its role; anything else is refused, never asked (H101).
  */
-export function studioArgs(model: string, role: keyof typeof studioTools): string[] {
-  const noMcp = join(STUDIO, "no-mcp.json");
-  if (!existsSync(noMcp)) {
-    mkdirSync(STUDIO, { recursive: true });
-    writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));
-  }
+export function studioArgs(
+  model: string,
+  role: keyof typeof studioTools,
+  home: string = dirname(STUDIO),
+): string[] {
+  // outside the studio, where a run writes, and written afresh on every use (review of 2026-10-19)
+  const noMcp = join(home, "studio-no-mcp.json");
+  mkdirSync(home, { recursive: true });
+  writeFileSync(noMcp, JSON.stringify({ mcpServers: {} }));
   return [
     ...["-p", "--model", model, "--output-format", "json"],
     ...["--strict-mcp-config", "--mcp-config", noMcp, "--restricted"],

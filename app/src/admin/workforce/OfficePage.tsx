@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
+import { toolkitFor, toolkitWords } from "../../domain/toolkits";
 import type { Agent, AgentMessage, AgentRun, Score } from "../../domain/workforce";
 import { Tabs } from "../ui/Tabs";
 import { Avatar } from "./Avatar";
@@ -82,6 +83,17 @@ function AgentCard({ agent, onOpen }: { agent: Agent; onOpen: () => void }) {
         {agent.runs_today === 1 ? "1 task today" : `${String(agent.runs_today)} tasks today`} ·{" "}
         {agent.model}
       </p>
+      {/* H115: what a colleague may use on this laptop; Matter runs under its own rules (H101) */}
+      {agent.slug === "matter" ? null : (
+        <details className="wf-card__tools">
+          <summary>Tools on this laptop</summary>
+          <ul>
+            {toolkitWords(toolkitFor(agent.slug), agent.tools).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </details>
+      )}
       <div className="wf-card__actions">
         <button type="button" className="wf-link" onClick={onOpen}>
           Open conversation
