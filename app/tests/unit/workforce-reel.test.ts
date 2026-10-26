@@ -709,8 +709,7 @@ describe("the studio folder (W8 0f)", () => {
     ]);
     const held = rpcArgs(db).at(-1);
     expect(held).toMatchObject({ p_state: "waiting_operator" });
-    const previewKey = held?.["p_preview_key"];
-    expect(typeof previewKey === "string" && previewKey.startsWith("studio/")).toBe(true);
+    expect(z.object({ p_preview_key: z.string() }).parse(held).p_preview_key).toMatch(/^studio\//);
     expect(readFileSync(join(folder, "status.md"), "utf8")).toContain(
       "Waits for the operator (Is the second title right for this owner?)",
     );
