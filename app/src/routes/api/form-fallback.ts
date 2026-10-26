@@ -12,7 +12,7 @@ const page = `<!doctype html>
 <meta name="robots" content="noindex, nofollow">
 <title>Turn on scripts to send this form | Matter of Place</title>
 </head>
-<body style="margin:0;padding:4rem 1.5rem;background:#EEEAE1;color:#11110F;font-family:Jost,Urbanist,sans-serif;line-height:1.5">
+<body style="margin:0;padding:4rem 1.5rem;font-family:Jost,Urbanist,sans-serif;line-height:1.5">
 <main style="max-width:32rem;margin:0 auto">
 <h1 style="font-weight:400">This form needs scripts to send</h1>
 <p>Nothing you typed was sent or kept. Turn scripts on for this page, go back and send it again.</p>

@@ -57,7 +57,7 @@ describe("WebSite", () => {
         "query-input": "required name=search_term_string",
       },
     });
-    expect(validateHtml(pageHtml([websiteLd()]))).toEqual(["WebSite"]);
+    expect(validateHtml(pageHtml([websiteLd()]))).toEqual(["WebPage", "WebSite"]);
   });
 });
 
@@ -75,14 +75,17 @@ describe("breadcrumbLd", () => {
       { "@type": "ListItem", position: 3, name: "California", item: absoluteUrl("/california") },
     ]);
     expect(validateHtml(pageHtml([breadcrumbLd([{ name: "Markets", path: "/markets" }])]))).toEqual(
-      ["BreadcrumbList"],
+      ["WebPage", "BreadcrumbList"],
     );
   });
 });
 
 describe("propertyListingLd", () => {
   it("parses as a RealEstateListing with the posting date", () => {
-    expect(validateHtml(pageHtml([propertyListingLd(listed)]))).toEqual(["RealEstateListing"]);
+    expect(validateHtml(pageHtml([propertyListingLd(listed)]))).toEqual([
+      "WebPage",
+      "RealEstateListing",
+    ]);
     expect(nodeOf(propertyListingLd(listed))).toMatchObject({
       "@type": "RealEstateListing",
       url: absoluteUrl(`/property/${listed.slug}`),
@@ -129,7 +132,7 @@ describe("propertyListingLd", () => {
 
 describe("articleLd", () => {
   it("parses as an Article with datePublished and a headline without the closing full stop", () => {
-    expect(validateHtml(pageHtml([articleLd(story)]))).toEqual(["Article"]);
+    expect(validateHtml(pageHtml([articleLd(story)]))).toEqual(["WebPage", "Article"]);
     const article = nodeOf(articleLd({ ...story, title: "Light on the bay." }));
     expect(article).toMatchObject({
       "@type": "Article",
@@ -168,13 +171,16 @@ describe("collectionLd", () => {
     });
     expect(
       validateHtml(pageHtml([collectionLd("city", "Tiburon", "/archive/city/tiburon", items)])),
-    ).toEqual(["CollectionPage"]);
+    ).toEqual(["WebPage", "CollectionPage"]);
   });
 });
 
 describe("faqJsonLd", () => {
   it("parses as a FAQPage", () => {
-    expect(validateHtml(pageHtml(faqJsonLd([{ q: "What?", a: "This." }])))).toEqual(["FAQPage"]);
+    expect(validateHtml(pageHtml([faqJsonLd([{ q: "What?", a: "This." }])]))).toEqual([
+      "WebPage",
+      "FAQPage",
+    ]);
   });
 });
 
@@ -206,7 +212,10 @@ describe("videoLd", () => {
       duration: "PT18S",
     });
     expect(video).not.toHaveProperty("uploadDate");
-    expect(validateHtml(pageHtml([videoLd({ video: film }) ?? {}]))).toEqual(["VideoObject"]);
+    expect(validateHtml(pageHtml([videoLd({ video: film }) ?? {}]))).toEqual([
+      "WebPage",
+      "VideoObject",
+    ]);
   });
 
   it("converts minutes and hours, and leaves a duration that is not a clock reading out", () => {
@@ -254,6 +263,7 @@ describe("validateHtml", () => {
     );
     expect(validateHtml(single)).toEqual(["WebSite"]);
     expect(validateHtml(pageHtml([websiteLd(), breadcrumbLd([])]))).toEqual([
+      "WebPage",
       "WebSite",
       "BreadcrumbList",
     ]);

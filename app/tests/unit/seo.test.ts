@@ -192,7 +192,7 @@ describe("pageHead jsonLd", () => {
     expect(head.scripts).toHaveLength(1);
     expect(JSON.parse(scriptBody(head))).toEqual({
       "@context": "https://schema.org",
-      "@graph": [a, b],
+      "@graph": [expect.objectContaining({ "@type": "WebPage" }), a, b],
     });
   });
 });
