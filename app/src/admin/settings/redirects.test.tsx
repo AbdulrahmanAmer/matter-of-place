@@ -131,7 +131,7 @@ describe("screen 24, redirects", () => {
     await waitFor(() => {
       expect(writes(requested)).toHaveLength(1);
     });
-    const markets = screen.getByText("/markets/california").closest("tr");
+    const markets = screen.getByText("/markets").closest("tr");
     if (markets === null) throw new Error("no /markets row");
     fireEvent.click(within(markets).getByRole("button", { name: "Remove" }));
     const dialog = await screen.findByRole("dialog", { name: "Remove this redirect" });
