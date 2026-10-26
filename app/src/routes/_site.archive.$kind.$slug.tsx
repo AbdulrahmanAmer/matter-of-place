@@ -74,7 +74,7 @@ function ArchivePage() {
       />
       <IllustrativeNotice properties={items} />
       <section className="section-wrap featured">
-        <PropertyGrid items={items} />
+        <PropertyGrid items={items} level={2} />
       </section>
     </main>
   );
