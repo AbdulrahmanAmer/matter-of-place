@@ -53,8 +53,8 @@ import { Route as SiteAccountIndexRouteImport } from './routes/_site.account.ind
 import { Route as SiteAccountConfirmRouteImport } from './routes/_site.account.confirm'
 import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
 import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
-import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
 import { Route as SitePlaceNotesStatusRouteImport } from './routes/_site.place-notes_.$status'
+import { Route as SitePropertySlugRouteImport } from './routes/_site.property.$slug'
 import { Route as SiteStoriesIndexRouteImport } from './routes/_site.stories.index'
 import { Route as SiteStoriesSlugRouteImport } from './routes/_site.stories.$slug'
 import { Route as AdminAssetsIndexRouteImport } from './routes/admin/assets.index'
@@ -503,14 +503,14 @@ const SiteMarketsSplatRoute = SiteMarketsSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => SiteMarketsRoute,
 } as any)
-const SitePropertySlugRoute = SitePropertySlugRouteImport.update({
-  id: '/property/$slug',
-  path: '/property/$slug',
-  getParentRoute: () => SiteRoute,
-} as any)
 const SitePlaceNotesStatusRoute = SitePlaceNotesStatusRouteImport.update({
   id: '/place-notes_/$status',
   path: '/place-notes/$status',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SitePropertySlugRoute = SitePropertySlugRouteImport.update({
+  id: '/property/$slug',
+  path: '/property/$slug',
   getParentRoute: () => SiteRoute,
 } as any)
 const SiteStoriesIndexRoute = SiteStoriesIndexRouteImport.update({
@@ -1809,8 +1809,8 @@ export interface FileRoutesByFullPath {
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
   '/markets/$': typeof SiteMarketsSplatRoute
-  '/property/$slug': typeof SitePropertySlugRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
+  '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
@@ -2077,8 +2077,8 @@ export interface FileRoutesByTo {
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
   '/markets/$': typeof SiteMarketsSplatRoute
-  '/property/$slug': typeof SitePropertySlugRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
+  '/property/$slug': typeof SitePropertySlugRoute
   '/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
@@ -2351,8 +2351,8 @@ export interface FileRoutesById {
   '/_site/$market/guide': typeof SiteMarketGuideRoute
   '/_site/account/confirm': typeof SiteAccountConfirmRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
-  '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/place-notes_/$status': typeof SitePlaceNotesStatusRoute
+  '/_site/property/$slug': typeof SitePropertySlugRoute
   '/_site/stories/$slug': typeof SiteStoriesSlugRoute
   '/admin/auth/confirm': typeof AdminAuthConfirmRoute
   '/admin/automation/emails': typeof AdminAutomationEmailsRoute
@@ -2625,8 +2625,8 @@ export interface FileRouteTypes {
     | '/$market/guide'
     | '/account/confirm'
     | '/markets/$'
-    | '/property/$slug'
     | '/place-notes/$status'
+    | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/automation/emails'
@@ -2893,8 +2893,8 @@ export interface FileRouteTypes {
     | '/$market/guide'
     | '/account/confirm'
     | '/markets/$'
-    | '/property/$slug'
     | '/place-notes/$status'
+    | '/property/$slug'
     | '/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/automation/emails'
@@ -3166,8 +3166,8 @@ export interface FileRouteTypes {
     | '/_site/$market/guide'
     | '/_site/account/confirm'
     | '/_site/markets/$'
-    | '/_site/property/$slug'
     | '/_site/place-notes_/$status'
+    | '/_site/property/$slug'
     | '/_site/stories/$slug'
     | '/admin/auth/confirm'
     | '/admin/automation/emails'
@@ -3827,18 +3827,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteMarketsSplatRouteImport
       parentRoute: typeof SiteMarketsRoute
     }
-    '/_site/property/$slug': {
-      id: '/_site/property/$slug'
-      path: '/property/$slug'
-      fullPath: '/property/$slug'
-      preLoaderRoute: typeof SitePropertySlugRouteImport
-      parentRoute: typeof SiteRoute
-    }
     '/_site/place-notes_/$status': {
       id: '/_site/place-notes_/$status'
       path: '/place-notes/$status'
       fullPath: '/place-notes/$status'
       preLoaderRoute: typeof SitePlaceNotesStatusRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/property/$slug': {
+      id: '/_site/property/$slug'
+      path: '/property/$slug'
+      fullPath: '/property/$slug'
+      preLoaderRoute: typeof SitePropertySlugRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/stories/': {
@@ -5485,8 +5485,8 @@ interface SiteRouteChildren {
   SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SiteAccountConfirmRoute: typeof SiteAccountConfirmRoute
-  SitePropertySlugRoute: typeof SitePropertySlugRoute
   SitePlaceNotesStatusRoute: typeof SitePlaceNotesStatusRoute
+  SitePropertySlugRoute: typeof SitePropertySlugRoute
   SiteAccountIndexRoute: typeof SiteAccountIndexRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
 }
@@ -5513,8 +5513,8 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
   SiteAccountConfirmRoute: SiteAccountConfirmRoute,
-  SitePropertySlugRoute: SitePropertySlugRoute,
   SitePlaceNotesStatusRoute: SitePlaceNotesStatusRoute,
+  SitePropertySlugRoute: SitePropertySlugRoute,
   SiteAccountIndexRoute: SiteAccountIndexRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
 }
