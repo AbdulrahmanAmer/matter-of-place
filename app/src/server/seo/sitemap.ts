@@ -1,4 +1,5 @@
 import { absoluteUrl } from "../../config/site.ts";
+import { seoPages } from "../../content/seo/index.ts";
 import type { Property } from "../../domain/property.ts";
 import { indexable } from "../../lib/seo.ts";
 import { loadRedirectMap } from "../public/redirects.ts";
@@ -89,12 +90,27 @@ const imageXml = ({ address, caption }: Image): string =>
     caption === "" ? "" : `<image:caption>${escapeXml(caption)}</image:caption>`
   }</image:image>`;
 
+/** A content day written as the full W3C datetime the sitemap check asks for (SE-004): midnight UTC of that day. */
+const datetime = (day: string): string => `${day}T00:00:00Z`;
+
 const entryXml = ({ path, lastmod, images = [] }: Entry): string =>
   `<url><loc>${escapeXml(absoluteUrl(path))}</loc>${
-    lastmod === undefined ? "" : `<lastmod>${lastmod}</lastmod>`
+    lastmod === undefined ? "" : `<lastmod>${datetime(lastmod)}</lastmod>`
   }${images.map(imageXml).join("")}</url>`;
 
 const listed = (count: number): boolean => indexable(count).robots === undefined;
+
+/**
+ * The search pages of `src/content/seo` and their index `/guides`. Each carries its own content date (`updated`), the
+ * index the newest of them; none reads the build clock. Static content: no catalog row decides whether they are listed.
+ */
+function seoEntries(now: Date): Entry[] {
+  const indexDay = newest(seoPages.map((page) => page.updated));
+  return [
+    ...seoPages.map((page) => ({ path: page.path, lastmod: notAfter(page.updated, now) })),
+    { path: "/guides", lastmod: indexDay === undefined ? undefined : notAfter(indexDay, now) },
+  ];
+}
 
 /**
  * `documentDates` is the day each static document page last changed (`page-dates.gen.ts`, made at build from git). The
@@ -131,6 +147,7 @@ export function buildSitemap(
       .filter((path) => path !== "/properties" || listed(properties.length))
       .filter((path) => path !== "/stories" || listed(source.stories.length))
       .map((path) => ({ path, lastmod: datedStatic(path) })),
+    ...seoEntries(now),
     ...source.markets.flatMap((market) => [
       ...(listed(countIn(market.slug)) ? [{ path: `/${market.slug}` }] : []),
       { path: `/${market.slug}/guide` },

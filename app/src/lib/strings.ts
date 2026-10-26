@@ -23,6 +23,7 @@ const en = {
     florida: "Florida",
     stories: "Stories",
     standard: "Editorial Standard",
+    guides: "Guides",
     submit: "Submit a Property",
     about: "About",
     exposure: "Property Exposure",

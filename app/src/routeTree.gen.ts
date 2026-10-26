@@ -24,21 +24,32 @@ import { Route as SiteIndexRouteImport } from './routes/_site.index'
 import { Route as SiteMarketRouteImport } from './routes/_site.$market'
 import { Route as SiteAboutRouteImport } from './routes/_site.about'
 import { Route as SiteAccessibilityRouteImport } from './routes/_site.accessibility'
+import { Route as SiteArchitectDesignedHomesForSaleRouteImport } from './routes/_site.architect-designed-homes-for-sale'
 import { Route as SiteContactRouteImport } from './routes/_site.contact'
 import { Route as SiteCookiesRouteImport } from './routes/_site.cookies'
+import { Route as SiteDesignFocusedHomesForSaleNewsletterRouteImport } from './routes/_site.design-focused-homes-for-sale-newsletter'
 import { Route as SiteEditorialStandardRouteImport } from './routes/_site.editorial-standard'
 import { Route as SiteExposureRouteImport } from './routes/_site.exposure'
 import { Route as SiteFaqRouteImport } from './routes/_site.faq'
+import { Route as SiteFrankLloydWrightHomesRouteImport } from './routes/_site.frank-lloyd-wright-homes'
+import { Route as SiteHistoricHomesForSaleRouteImport } from './routes/_site.historic-homes-for-sale'
+import { Route as SiteHistoricHomesForSaleHudsonValleyRouteImport } from './routes/_site.historic-homes-for-sale-hudson-valley'
+import { Route as SiteHudsonValleyStoneHousesForSaleRouteImport } from './routes/_site.hudson-valley-stone-houses-for-sale'
 import { Route as SiteLegalRouteImport } from './routes/_site.legal'
 import { Route as SiteMarketsRouteImport } from './routes/_site.markets'
+import { Route as SiteMidCenturyModernHomesRouteImport } from './routes/_site.mid-century-modern-homes'
+import { Route as SiteModernHomesForSaleSouthFloridaRouteImport } from './routes/_site.modern-homes-for-sale-south-florida'
+import { Route as SiteModernistHomesForSaleCaliforniaRouteImport } from './routes/_site.modernist-homes-for-sale-california'
 import { Route as SitePlaceNotesRouteImport } from './routes/_site.place-notes'
 import { Route as SitePricingRouteImport } from './routes/_site.pricing'
 import { Route as SitePrivacyRouteImport } from './routes/_site.privacy'
 import { Route as SitePrivacyChoicesRouteImport } from './routes/_site.privacy-choices'
 import { Route as SitePrivacyRequestRouteImport } from './routes/_site.privacy-request'
 import { Route as SitePropertiesRouteImport } from './routes/_site.properties'
+import { Route as SiteRichardNeutraHomesForSaleRouteImport } from './routes/_site.richard-neutra-homes-for-sale'
 import { Route as SiteStoriesRouteImport } from './routes/_site.stories'
 import { Route as SiteSubmitRouteImport } from './routes/_site.submit'
+import { Route as SiteSubmitAHomeForSaleToBeFeaturedRouteImport } from './routes/_site.submit-a-home-for-sale-to-be-featured'
 import { Route as SiteTermsRouteImport } from './routes/_site.terms'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminApprovalsRouteImport } from './routes/admin/approvals'
@@ -56,6 +67,8 @@ import { Route as SiteAccountCreditsRouteImport } from './routes/_site.account.c
 import { Route as SiteAccountInvoicesRouteImport } from './routes/_site.account.invoices'
 import { Route as SiteAccountPropertiesRouteImport } from './routes/_site.account.properties'
 import { Route as SiteAccountReportsRouteImport } from './routes/_site.account.reports'
+import { Route as SiteGuidesIndexRouteImport } from './routes/_site.guides.index'
+import { Route as SiteGuidesSlugRouteImport } from './routes/_site.guides.$slug'
 import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
 import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
 import { Route as SitePlaceNotesStatusRouteImport } from './routes/_site.place-notes_.$status'
@@ -365,6 +378,12 @@ const SiteAccessibilityRoute = SiteAccessibilityRouteImport.update({
   path: '/accessibility',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteArchitectDesignedHomesForSaleRoute =
+  SiteArchitectDesignedHomesForSaleRouteImport.update({
+    id: '/architect-designed-homes-for-sale',
+    path: '/architect-designed-homes-for-sale',
+    getParentRoute: () => SiteRoute,
+  } as any)
 const SiteContactRoute = SiteContactRouteImport.update({
   id: '/contact',
   path: '/contact',
@@ -375,6 +394,12 @@ const SiteCookiesRoute = SiteCookiesRouteImport.update({
   path: '/cookies',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteDesignFocusedHomesForSaleNewsletterRoute =
+  SiteDesignFocusedHomesForSaleNewsletterRouteImport.update({
+    id: '/design-focused-homes-for-sale-newsletter',
+    path: '/design-focused-homes-for-sale-newsletter',
+    getParentRoute: () => SiteRoute,
+  } as any)
 const SiteEditorialStandardRoute = SiteEditorialStandardRouteImport.update({
   id: '/editorial-standard',
   path: '/editorial-standard',
@@ -390,6 +415,30 @@ const SiteFaqRoute = SiteFaqRouteImport.update({
   path: '/faq',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteFrankLloydWrightHomesRoute =
+  SiteFrankLloydWrightHomesRouteImport.update({
+    id: '/frank-lloyd-wright-homes',
+    path: '/frank-lloyd-wright-homes',
+    getParentRoute: () => SiteRoute,
+  } as any)
+const SiteHistoricHomesForSaleRoute =
+  SiteHistoricHomesForSaleRouteImport.update({
+    id: '/historic-homes-for-sale',
+    path: '/historic-homes-for-sale',
+    getParentRoute: () => SiteRoute,
+  } as any)
+const SiteHistoricHomesForSaleHudsonValleyRoute =
+  SiteHistoricHomesForSaleHudsonValleyRouteImport.update({
+    id: '/historic-homes-for-sale-hudson-valley',
+    path: '/historic-homes-for-sale-hudson-valley',
+    getParentRoute: () => SiteRoute,
+  } as any)
+const SiteHudsonValleyStoneHousesForSaleRoute =
+  SiteHudsonValleyStoneHousesForSaleRouteImport.update({
+    id: '/hudson-valley-stone-houses-for-sale',
+    path: '/hudson-valley-stone-houses-for-sale',
+    getParentRoute: () => SiteRoute,
+  } as any)
 const SiteLegalRoute = SiteLegalRouteImport.update({
   id: '/legal',
   path: '/legal',
@@ -400,6 +449,24 @@ const SiteMarketsRoute = SiteMarketsRouteImport.update({
   path: '/markets',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteMidCenturyModernHomesRoute =
+  SiteMidCenturyModernHomesRouteImport.update({
+    id: '/mid-century-modern-homes',
+    path: '/mid-century-modern-homes',
+    getParentRoute: () => SiteRoute,
+  } as any)
+const SiteModernHomesForSaleSouthFloridaRoute =
+  SiteModernHomesForSaleSouthFloridaRouteImport.update({
+    id: '/modern-homes-for-sale-south-florida',
+    path: '/modern-homes-for-sale-south-florida',
+    getParentRoute: () => SiteRoute,
+  } as any)
+const SiteModernistHomesForSaleCaliforniaRoute =
+  SiteModernistHomesForSaleCaliforniaRouteImport.update({
+    id: '/modernist-homes-for-sale-california',
+    path: '/modernist-homes-for-sale-california',
+    getParentRoute: () => SiteRoute,
+  } as any)
 const SitePlaceNotesRoute = SitePlaceNotesRouteImport.update({
   id: '/place-notes',
   path: '/place-notes',
@@ -430,6 +497,12 @@ const SitePropertiesRoute = SitePropertiesRouteImport.update({
   path: '/properties',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteRichardNeutraHomesForSaleRoute =
+  SiteRichardNeutraHomesForSaleRouteImport.update({
+    id: '/richard-neutra-homes-for-sale',
+    path: '/richard-neutra-homes-for-sale',
+    getParentRoute: () => SiteRoute,
+  } as any)
 const SiteStoriesRoute = SiteStoriesRouteImport.update({
   id: '/stories',
   path: '/stories',
@@ -440,6 +513,12 @@ const SiteSubmitRoute = SiteSubmitRouteImport.update({
   path: '/submit',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteSubmitAHomeForSaleToBeFeaturedRoute =
+  SiteSubmitAHomeForSaleToBeFeaturedRouteImport.update({
+    id: '/submit-a-home-for-sale-to-be-featured',
+    path: '/submit-a-home-for-sale-to-be-featured',
+    getParentRoute: () => SiteRoute,
+  } as any)
 const SiteTermsRoute = SiteTermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -523,6 +602,16 @@ const SiteAccountPropertiesRoute = SiteAccountPropertiesRouteImport.update({
 const SiteAccountReportsRoute = SiteAccountReportsRouteImport.update({
   id: '/account/reports',
   path: '/account/reports',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteGuidesIndexRoute = SiteGuidesIndexRouteImport.update({
+  id: '/guides/',
+  path: '/guides/',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteGuidesSlugRoute = SiteGuidesSlugRouteImport.update({
+  id: '/guides/$slug',
+  path: '/guides/$slug',
   getParentRoute: () => SiteRoute,
 } as any)
 const SiteMarketsIndexRoute = SiteMarketsIndexRouteImport.update({
@@ -1826,21 +1915,32 @@ export interface FileRoutesByFullPath {
   '/$market': typeof SiteMarketRouteWithChildren
   '/about': typeof SiteAboutRoute
   '/accessibility': typeof SiteAccessibilityRoute
+  '/architect-designed-homes-for-sale': typeof SiteArchitectDesignedHomesForSaleRoute
   '/contact': typeof SiteContactRoute
   '/cookies': typeof SiteCookiesRoute
+  '/design-focused-homes-for-sale-newsletter': typeof SiteDesignFocusedHomesForSaleNewsletterRoute
   '/editorial-standard': typeof SiteEditorialStandardRoute
   '/exposure': typeof SiteExposureRoute
   '/faq': typeof SiteFaqRoute
+  '/frank-lloyd-wright-homes': typeof SiteFrankLloydWrightHomesRoute
+  '/historic-homes-for-sale': typeof SiteHistoricHomesForSaleRoute
+  '/historic-homes-for-sale-hudson-valley': typeof SiteHistoricHomesForSaleHudsonValleyRoute
+  '/hudson-valley-stone-houses-for-sale': typeof SiteHudsonValleyStoneHousesForSaleRoute
   '/legal': typeof SiteLegalRoute
   '/markets': typeof SiteMarketsRouteWithChildren
+  '/mid-century-modern-homes': typeof SiteMidCenturyModernHomesRoute
+  '/modern-homes-for-sale-south-florida': typeof SiteModernHomesForSaleSouthFloridaRoute
+  '/modernist-homes-for-sale-california': typeof SiteModernistHomesForSaleCaliforniaRoute
   '/place-notes': typeof SitePlaceNotesRoute
   '/pricing': typeof SitePricingRoute
   '/privacy': typeof SitePrivacyRoute
   '/privacy-choices': typeof SitePrivacyChoicesRoute
   '/privacy-request': typeof SitePrivacyRequestRoute
   '/properties': typeof SitePropertiesRoute
+  '/richard-neutra-homes-for-sale': typeof SiteRichardNeutraHomesForSaleRoute
   '/stories': typeof SiteStoriesRouteWithChildren
   '/submit': typeof SiteSubmitRoute
+  '/submit-a-home-for-sale-to-be-featured': typeof SiteSubmitAHomeForSaleToBeFeaturedRoute
   '/terms': typeof SiteTermsRoute
   '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/office': typeof AdminOfficeRoute
@@ -1856,6 +1956,7 @@ export interface FileRoutesByFullPath {
   '/account/invoices': typeof SiteAccountInvoicesRoute
   '/account/properties': typeof SiteAccountPropertiesRoute
   '/account/reports': typeof SiteAccountReportsRoute
+  '/guides/$slug': typeof SiteGuidesSlugRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
@@ -1894,6 +1995,7 @@ export interface FileRoutesByFullPath {
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market/': typeof SiteMarketIndexRoute
   '/account/': typeof SiteAccountIndexRoute
+  '/guides/': typeof SiteGuidesIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
@@ -2102,19 +2204,30 @@ export interface FileRoutesByTo {
   '/.well-known/security.txt': typeof DotwellKnownSecurityDottxtRoute
   '/about': typeof SiteAboutRoute
   '/accessibility': typeof SiteAccessibilityRoute
+  '/architect-designed-homes-for-sale': typeof SiteArchitectDesignedHomesForSaleRoute
   '/contact': typeof SiteContactRoute
   '/cookies': typeof SiteCookiesRoute
+  '/design-focused-homes-for-sale-newsletter': typeof SiteDesignFocusedHomesForSaleNewsletterRoute
   '/editorial-standard': typeof SiteEditorialStandardRoute
   '/exposure': typeof SiteExposureRoute
   '/faq': typeof SiteFaqRoute
+  '/frank-lloyd-wright-homes': typeof SiteFrankLloydWrightHomesRoute
+  '/historic-homes-for-sale': typeof SiteHistoricHomesForSaleRoute
+  '/historic-homes-for-sale-hudson-valley': typeof SiteHistoricHomesForSaleHudsonValleyRoute
+  '/hudson-valley-stone-houses-for-sale': typeof SiteHudsonValleyStoneHousesForSaleRoute
   '/legal': typeof SiteLegalRoute
+  '/mid-century-modern-homes': typeof SiteMidCenturyModernHomesRoute
+  '/modern-homes-for-sale-south-florida': typeof SiteModernHomesForSaleSouthFloridaRoute
+  '/modernist-homes-for-sale-california': typeof SiteModernistHomesForSaleCaliforniaRoute
   '/place-notes': typeof SitePlaceNotesRoute
   '/pricing': typeof SitePricingRoute
   '/privacy': typeof SitePrivacyRoute
   '/privacy-choices': typeof SitePrivacyChoicesRoute
   '/privacy-request': typeof SitePrivacyRequestRoute
   '/properties': typeof SitePropertiesRoute
+  '/richard-neutra-homes-for-sale': typeof SiteRichardNeutraHomesForSaleRoute
   '/submit': typeof SiteSubmitRoute
+  '/submit-a-home-for-sale-to-be-featured': typeof SiteSubmitAHomeForSaleToBeFeaturedRoute
   '/terms': typeof SiteTermsRoute
   '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/office': typeof AdminOfficeRoute
@@ -2131,6 +2244,7 @@ export interface FileRoutesByTo {
   '/account/invoices': typeof SiteAccountInvoicesRoute
   '/account/properties': typeof SiteAccountPropertiesRoute
   '/account/reports': typeof SiteAccountReportsRoute
+  '/guides/$slug': typeof SiteGuidesSlugRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
@@ -2169,6 +2283,7 @@ export interface FileRoutesByTo {
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market': typeof SiteMarketIndexRoute
   '/account': typeof SiteAccountIndexRoute
+  '/guides': typeof SiteGuidesIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
   '/admin/assets': typeof AdminAssetsIndexRoute
@@ -2381,21 +2496,32 @@ export interface FileRoutesById {
   '/_site/$market': typeof SiteMarketRouteWithChildren
   '/_site/about': typeof SiteAboutRoute
   '/_site/accessibility': typeof SiteAccessibilityRoute
+  '/_site/architect-designed-homes-for-sale': typeof SiteArchitectDesignedHomesForSaleRoute
   '/_site/contact': typeof SiteContactRoute
   '/_site/cookies': typeof SiteCookiesRoute
+  '/_site/design-focused-homes-for-sale-newsletter': typeof SiteDesignFocusedHomesForSaleNewsletterRoute
   '/_site/editorial-standard': typeof SiteEditorialStandardRoute
   '/_site/exposure': typeof SiteExposureRoute
   '/_site/faq': typeof SiteFaqRoute
+  '/_site/frank-lloyd-wright-homes': typeof SiteFrankLloydWrightHomesRoute
+  '/_site/historic-homes-for-sale': typeof SiteHistoricHomesForSaleRoute
+  '/_site/historic-homes-for-sale-hudson-valley': typeof SiteHistoricHomesForSaleHudsonValleyRoute
+  '/_site/hudson-valley-stone-houses-for-sale': typeof SiteHudsonValleyStoneHousesForSaleRoute
   '/_site/legal': typeof SiteLegalRoute
   '/_site/markets': typeof SiteMarketsRouteWithChildren
+  '/_site/mid-century-modern-homes': typeof SiteMidCenturyModernHomesRoute
+  '/_site/modern-homes-for-sale-south-florida': typeof SiteModernHomesForSaleSouthFloridaRoute
+  '/_site/modernist-homes-for-sale-california': typeof SiteModernistHomesForSaleCaliforniaRoute
   '/_site/place-notes': typeof SitePlaceNotesRoute
   '/_site/pricing': typeof SitePricingRoute
   '/_site/privacy': typeof SitePrivacyRoute
   '/_site/privacy-choices': typeof SitePrivacyChoicesRoute
   '/_site/privacy-request': typeof SitePrivacyRequestRoute
   '/_site/properties': typeof SitePropertiesRoute
+  '/_site/richard-neutra-homes-for-sale': typeof SiteRichardNeutraHomesForSaleRoute
   '/_site/stories': typeof SiteStoriesRouteWithChildren
   '/_site/submit': typeof SiteSubmitRoute
+  '/_site/submit-a-home-for-sale-to-be-featured': typeof SiteSubmitAHomeForSaleToBeFeaturedRoute
   '/_site/terms': typeof SiteTermsRoute
   '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/office': typeof AdminOfficeRoute
@@ -2412,6 +2538,7 @@ export interface FileRoutesById {
   '/_site/account/invoices': typeof SiteAccountInvoicesRoute
   '/_site/account/properties': typeof SiteAccountPropertiesRoute
   '/_site/account/reports': typeof SiteAccountReportsRoute
+  '/_site/guides/$slug': typeof SiteGuidesSlugRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
   '/_site/place-notes_/$status': typeof SitePlaceNotesStatusRoute
   '/_site/property/$slug': typeof SitePropertySlugRoute
@@ -2450,6 +2577,7 @@ export interface FileRoutesById {
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/account/': typeof SiteAccountIndexRoute
+  '/_site/guides/': typeof SiteGuidesIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
@@ -2663,21 +2791,32 @@ export interface FileRouteTypes {
     | '/$market'
     | '/about'
     | '/accessibility'
+    | '/architect-designed-homes-for-sale'
     | '/contact'
     | '/cookies'
+    | '/design-focused-homes-for-sale-newsletter'
     | '/editorial-standard'
     | '/exposure'
     | '/faq'
+    | '/frank-lloyd-wright-homes'
+    | '/historic-homes-for-sale'
+    | '/historic-homes-for-sale-hudson-valley'
+    | '/hudson-valley-stone-houses-for-sale'
     | '/legal'
     | '/markets'
+    | '/mid-century-modern-homes'
+    | '/modern-homes-for-sale-south-florida'
+    | '/modernist-homes-for-sale-california'
     | '/place-notes'
     | '/pricing'
     | '/privacy'
     | '/privacy-choices'
     | '/privacy-request'
     | '/properties'
+    | '/richard-neutra-homes-for-sale'
     | '/stories'
     | '/submit'
+    | '/submit-a-home-for-sale-to-be-featured'
     | '/terms'
     | '/admin/approvals'
     | '/admin/office'
@@ -2693,6 +2832,7 @@ export interface FileRouteTypes {
     | '/account/invoices'
     | '/account/properties'
     | '/account/reports'
+    | '/guides/$slug'
     | '/markets/$'
     | '/place-notes/$status'
     | '/property/$slug'
@@ -2731,6 +2871,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers'
     | '/$market/'
     | '/account/'
+    | '/guides/'
     | '/markets/'
     | '/stories/'
     | '/admin/assets/'
@@ -2939,19 +3080,30 @@ export interface FileRouteTypes {
     | '/.well-known/security.txt'
     | '/about'
     | '/accessibility'
+    | '/architect-designed-homes-for-sale'
     | '/contact'
     | '/cookies'
+    | '/design-focused-homes-for-sale-newsletter'
     | '/editorial-standard'
     | '/exposure'
     | '/faq'
+    | '/frank-lloyd-wright-homes'
+    | '/historic-homes-for-sale'
+    | '/historic-homes-for-sale-hudson-valley'
+    | '/hudson-valley-stone-houses-for-sale'
     | '/legal'
+    | '/mid-century-modern-homes'
+    | '/modern-homes-for-sale-south-florida'
+    | '/modernist-homes-for-sale-california'
     | '/place-notes'
     | '/pricing'
     | '/privacy'
     | '/privacy-choices'
     | '/privacy-request'
     | '/properties'
+    | '/richard-neutra-homes-for-sale'
     | '/submit'
+    | '/submit-a-home-for-sale-to-be-featured'
     | '/terms'
     | '/admin/approvals'
     | '/admin/office'
@@ -2968,6 +3120,7 @@ export interface FileRouteTypes {
     | '/account/invoices'
     | '/account/properties'
     | '/account/reports'
+    | '/guides/$slug'
     | '/markets/$'
     | '/place-notes/$status'
     | '/property/$slug'
@@ -3006,6 +3159,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers'
     | '/$market'
     | '/account'
+    | '/guides'
     | '/markets'
     | '/stories'
     | '/admin/assets'
@@ -3217,21 +3371,32 @@ export interface FileRouteTypes {
     | '/_site/$market'
     | '/_site/about'
     | '/_site/accessibility'
+    | '/_site/architect-designed-homes-for-sale'
     | '/_site/contact'
     | '/_site/cookies'
+    | '/_site/design-focused-homes-for-sale-newsletter'
     | '/_site/editorial-standard'
     | '/_site/exposure'
     | '/_site/faq'
+    | '/_site/frank-lloyd-wright-homes'
+    | '/_site/historic-homes-for-sale'
+    | '/_site/historic-homes-for-sale-hudson-valley'
+    | '/_site/hudson-valley-stone-houses-for-sale'
     | '/_site/legal'
     | '/_site/markets'
+    | '/_site/mid-century-modern-homes'
+    | '/_site/modern-homes-for-sale-south-florida'
+    | '/_site/modernist-homes-for-sale-california'
     | '/_site/place-notes'
     | '/_site/pricing'
     | '/_site/privacy'
     | '/_site/privacy-choices'
     | '/_site/privacy-request'
     | '/_site/properties'
+    | '/_site/richard-neutra-homes-for-sale'
     | '/_site/stories'
     | '/_site/submit'
+    | '/_site/submit-a-home-for-sale-to-be-featured'
     | '/_site/terms'
     | '/admin/approvals'
     | '/admin/office'
@@ -3248,6 +3413,7 @@ export interface FileRouteTypes {
     | '/_site/account/invoices'
     | '/_site/account/properties'
     | '/_site/account/reports'
+    | '/_site/guides/$slug'
     | '/_site/markets/$'
     | '/_site/place-notes_/$status'
     | '/_site/property/$slug'
@@ -3286,6 +3452,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers'
     | '/_site/$market/'
     | '/_site/account/'
+    | '/_site/guides/'
     | '/_site/markets/'
     | '/_site/stories/'
     | '/admin/assets/'
@@ -3710,6 +3877,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteAccessibilityRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/architect-designed-homes-for-sale': {
+      id: '/_site/architect-designed-homes-for-sale'
+      path: '/architect-designed-homes-for-sale'
+      fullPath: '/architect-designed-homes-for-sale'
+      preLoaderRoute: typeof SiteArchitectDesignedHomesForSaleRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/contact': {
       id: '/_site/contact'
       path: '/contact'
@@ -3722,6 +3896,13 @@ declare module '@tanstack/react-router' {
       path: '/cookies'
       fullPath: '/cookies'
       preLoaderRoute: typeof SiteCookiesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/design-focused-homes-for-sale-newsletter': {
+      id: '/_site/design-focused-homes-for-sale-newsletter'
+      path: '/design-focused-homes-for-sale-newsletter'
+      fullPath: '/design-focused-homes-for-sale-newsletter'
+      preLoaderRoute: typeof SiteDesignFocusedHomesForSaleNewsletterRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/editorial-standard': {
@@ -3745,6 +3926,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteFaqRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/frank-lloyd-wright-homes': {
+      id: '/_site/frank-lloyd-wright-homes'
+      path: '/frank-lloyd-wright-homes'
+      fullPath: '/frank-lloyd-wright-homes'
+      preLoaderRoute: typeof SiteFrankLloydWrightHomesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/historic-homes-for-sale': {
+      id: '/_site/historic-homes-for-sale'
+      path: '/historic-homes-for-sale'
+      fullPath: '/historic-homes-for-sale'
+      preLoaderRoute: typeof SiteHistoricHomesForSaleRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/historic-homes-for-sale-hudson-valley': {
+      id: '/_site/historic-homes-for-sale-hudson-valley'
+      path: '/historic-homes-for-sale-hudson-valley'
+      fullPath: '/historic-homes-for-sale-hudson-valley'
+      preLoaderRoute: typeof SiteHistoricHomesForSaleHudsonValleyRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/hudson-valley-stone-houses-for-sale': {
+      id: '/_site/hudson-valley-stone-houses-for-sale'
+      path: '/hudson-valley-stone-houses-for-sale'
+      fullPath: '/hudson-valley-stone-houses-for-sale'
+      preLoaderRoute: typeof SiteHudsonValleyStoneHousesForSaleRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/legal': {
       id: '/_site/legal'
       path: '/legal'
@@ -3757,6 +3966,27 @@ declare module '@tanstack/react-router' {
       path: '/markets'
       fullPath: '/markets'
       preLoaderRoute: typeof SiteMarketsRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/mid-century-modern-homes': {
+      id: '/_site/mid-century-modern-homes'
+      path: '/mid-century-modern-homes'
+      fullPath: '/mid-century-modern-homes'
+      preLoaderRoute: typeof SiteMidCenturyModernHomesRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/modern-homes-for-sale-south-florida': {
+      id: '/_site/modern-homes-for-sale-south-florida'
+      path: '/modern-homes-for-sale-south-florida'
+      fullPath: '/modern-homes-for-sale-south-florida'
+      preLoaderRoute: typeof SiteModernHomesForSaleSouthFloridaRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/modernist-homes-for-sale-california': {
+      id: '/_site/modernist-homes-for-sale-california'
+      path: '/modernist-homes-for-sale-california'
+      fullPath: '/modernist-homes-for-sale-california'
+      preLoaderRoute: typeof SiteModernistHomesForSaleCaliforniaRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/place-notes': {
@@ -3801,6 +4031,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitePropertiesRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/richard-neutra-homes-for-sale': {
+      id: '/_site/richard-neutra-homes-for-sale'
+      path: '/richard-neutra-homes-for-sale'
+      fullPath: '/richard-neutra-homes-for-sale'
+      preLoaderRoute: typeof SiteRichardNeutraHomesForSaleRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/stories': {
       id: '/_site/stories'
       path: '/stories'
@@ -3813,6 +4050,13 @@ declare module '@tanstack/react-router' {
       path: '/submit'
       fullPath: '/submit'
       preLoaderRoute: typeof SiteSubmitRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/submit-a-home-for-sale-to-be-featured': {
+      id: '/_site/submit-a-home-for-sale-to-be-featured'
+      path: '/submit-a-home-for-sale-to-be-featured'
+      fullPath: '/submit-a-home-for-sale-to-be-featured'
+      preLoaderRoute: typeof SiteSubmitAHomeForSaleToBeFeaturedRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/terms': {
@@ -3932,6 +4176,20 @@ declare module '@tanstack/react-router' {
       path: '/account/reports'
       fullPath: '/account/reports'
       preLoaderRoute: typeof SiteAccountReportsRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/guides/': {
+      id: '/_site/guides/'
+      path: '/guides'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof SiteGuidesIndexRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/guides/$slug': {
+      id: '/_site/guides/$slug'
+      path: '/guides/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof SiteGuidesSlugRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/markets/': {
@@ -5602,21 +5860,32 @@ interface SiteRouteChildren {
   SiteMarketRoute: typeof SiteMarketRouteWithChildren
   SiteAboutRoute: typeof SiteAboutRoute
   SiteAccessibilityRoute: typeof SiteAccessibilityRoute
+  SiteArchitectDesignedHomesForSaleRoute: typeof SiteArchitectDesignedHomesForSaleRoute
   SiteContactRoute: typeof SiteContactRoute
   SiteCookiesRoute: typeof SiteCookiesRoute
+  SiteDesignFocusedHomesForSaleNewsletterRoute: typeof SiteDesignFocusedHomesForSaleNewsletterRoute
   SiteEditorialStandardRoute: typeof SiteEditorialStandardRoute
   SiteExposureRoute: typeof SiteExposureRoute
   SiteFaqRoute: typeof SiteFaqRoute
+  SiteFrankLloydWrightHomesRoute: typeof SiteFrankLloydWrightHomesRoute
+  SiteHistoricHomesForSaleRoute: typeof SiteHistoricHomesForSaleRoute
+  SiteHistoricHomesForSaleHudsonValleyRoute: typeof SiteHistoricHomesForSaleHudsonValleyRoute
+  SiteHudsonValleyStoneHousesForSaleRoute: typeof SiteHudsonValleyStoneHousesForSaleRoute
   SiteLegalRoute: typeof SiteLegalRoute
   SiteMarketsRoute: typeof SiteMarketsRouteWithChildren
+  SiteMidCenturyModernHomesRoute: typeof SiteMidCenturyModernHomesRoute
+  SiteModernHomesForSaleSouthFloridaRoute: typeof SiteModernHomesForSaleSouthFloridaRoute
+  SiteModernistHomesForSaleCaliforniaRoute: typeof SiteModernistHomesForSaleCaliforniaRoute
   SitePlaceNotesRoute: typeof SitePlaceNotesRoute
   SitePricingRoute: typeof SitePricingRoute
   SitePrivacyRoute: typeof SitePrivacyRoute
   SitePrivacyChoicesRoute: typeof SitePrivacyChoicesRoute
   SitePrivacyRequestRoute: typeof SitePrivacyRequestRoute
   SitePropertiesRoute: typeof SitePropertiesRoute
+  SiteRichardNeutraHomesForSaleRoute: typeof SiteRichardNeutraHomesForSaleRoute
   SiteStoriesRoute: typeof SiteStoriesRouteWithChildren
   SiteSubmitRoute: typeof SiteSubmitRoute
+  SiteSubmitAHomeForSaleToBeFeaturedRoute: typeof SiteSubmitAHomeForSaleToBeFeaturedRoute
   SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SiteAccountConfirmRoute: typeof SiteAccountConfirmRoute
@@ -5624,9 +5893,11 @@ interface SiteRouteChildren {
   SiteAccountInvoicesRoute: typeof SiteAccountInvoicesRoute
   SiteAccountPropertiesRoute: typeof SiteAccountPropertiesRoute
   SiteAccountReportsRoute: typeof SiteAccountReportsRoute
+  SiteGuidesSlugRoute: typeof SiteGuidesSlugRoute
   SitePlaceNotesStatusRoute: typeof SitePlaceNotesStatusRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
   SiteAccountIndexRoute: typeof SiteAccountIndexRoute
+  SiteGuidesIndexRoute: typeof SiteGuidesIndexRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
 }
 
@@ -5634,21 +5905,39 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteMarketRoute: SiteMarketRouteWithChildren,
   SiteAboutRoute: SiteAboutRoute,
   SiteAccessibilityRoute: SiteAccessibilityRoute,
+  SiteArchitectDesignedHomesForSaleRoute:
+    SiteArchitectDesignedHomesForSaleRoute,
   SiteContactRoute: SiteContactRoute,
   SiteCookiesRoute: SiteCookiesRoute,
+  SiteDesignFocusedHomesForSaleNewsletterRoute:
+    SiteDesignFocusedHomesForSaleNewsletterRoute,
   SiteEditorialStandardRoute: SiteEditorialStandardRoute,
   SiteExposureRoute: SiteExposureRoute,
   SiteFaqRoute: SiteFaqRoute,
+  SiteFrankLloydWrightHomesRoute: SiteFrankLloydWrightHomesRoute,
+  SiteHistoricHomesForSaleRoute: SiteHistoricHomesForSaleRoute,
+  SiteHistoricHomesForSaleHudsonValleyRoute:
+    SiteHistoricHomesForSaleHudsonValleyRoute,
+  SiteHudsonValleyStoneHousesForSaleRoute:
+    SiteHudsonValleyStoneHousesForSaleRoute,
   SiteLegalRoute: SiteLegalRoute,
   SiteMarketsRoute: SiteMarketsRouteWithChildren,
+  SiteMidCenturyModernHomesRoute: SiteMidCenturyModernHomesRoute,
+  SiteModernHomesForSaleSouthFloridaRoute:
+    SiteModernHomesForSaleSouthFloridaRoute,
+  SiteModernistHomesForSaleCaliforniaRoute:
+    SiteModernistHomesForSaleCaliforniaRoute,
   SitePlaceNotesRoute: SitePlaceNotesRoute,
   SitePricingRoute: SitePricingRoute,
   SitePrivacyRoute: SitePrivacyRoute,
   SitePrivacyChoicesRoute: SitePrivacyChoicesRoute,
   SitePrivacyRequestRoute: SitePrivacyRequestRoute,
   SitePropertiesRoute: SitePropertiesRoute,
+  SiteRichardNeutraHomesForSaleRoute: SiteRichardNeutraHomesForSaleRoute,
   SiteStoriesRoute: SiteStoriesRouteWithChildren,
   SiteSubmitRoute: SiteSubmitRoute,
+  SiteSubmitAHomeForSaleToBeFeaturedRoute:
+    SiteSubmitAHomeForSaleToBeFeaturedRoute,
   SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
   SiteAccountConfirmRoute: SiteAccountConfirmRoute,
@@ -5656,9 +5945,11 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteAccountInvoicesRoute: SiteAccountInvoicesRoute,
   SiteAccountPropertiesRoute: SiteAccountPropertiesRoute,
   SiteAccountReportsRoute: SiteAccountReportsRoute,
+  SiteGuidesSlugRoute: SiteGuidesSlugRoute,
   SitePlaceNotesStatusRoute: SitePlaceNotesStatusRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
   SiteAccountIndexRoute: SiteAccountIndexRoute,
+  SiteGuidesIndexRoute: SiteGuidesIndexRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
 }
 

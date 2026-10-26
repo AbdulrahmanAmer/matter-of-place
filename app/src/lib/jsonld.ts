@@ -148,7 +148,15 @@ export function articleLd(
 }
 
 export type CollectionKind =
-  "properties" | "stories" | "markets" | "market" | "region" | "city" | "architect" | "style";
+  | "properties"
+  | "stories"
+  | "guides"
+  | "markets"
+  | "market"
+  | "region"
+  | "city"
+  | "architect"
+  | "style";
 
 /** A page that lists things: `items` are the listed pages, in the order shown. */
 export function collectionLd(

@@ -2,6 +2,7 @@
   "path": ["src", "scripts", "supabase/functions"],
   "ignore": [
     "src/data/**",
+    "src/content/**",
     "src/routeTree.gen.ts",
     "src/db/types.ts",
     "**/*.css",
