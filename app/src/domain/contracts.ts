@@ -231,13 +231,21 @@ const submissionMediaSchema = z.object({
   type: z.enum(uploadLimits.types),
 });
 
-const optionalUrl = z
+/** An absolute https address with no credentials: the only kind of link a person may store (SEC-002). */
+export const httpsUrl = z
   .string()
   .trim()
-  .url()
   .max(500)
-  .optional()
-  .or(z.literal("").transform(() => undefined));
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" && url.username === "" && url.password === "";
+    } catch {
+      return false;
+    }
+  }, "Use a full https address");
+
+const optionalUrl = httpsUrl.optional().or(z.literal("").transform(() => undefined));
 const optionalYear = z.number().int().min(1600).max(2100).optional();
 
 /** The submitter fields `submitterRules` reads. */
