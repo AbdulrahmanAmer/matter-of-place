@@ -44,4 +44,15 @@ describe("scripts/workforce/install.ps1", () => {
     const trigger = lineOf("$captionsTrigger", "New-ScheduledTaskTrigger");
     expect(trigger).toContain("-RepetitionInterval (New-TimeSpan -Minutes 10)");
   });
+
+  it("takes off the old MatterOfPlace Captions task before it registers MOP Captions (W8 item 3 review)", () => {
+    const removed = script.findIndex((line) =>
+      line.startsWith('Unregister-ScheduledTask -TaskName "MatterOfPlace Captions"'),
+    );
+    const registered = script.findIndex((line) =>
+      line.startsWith('Register-ScheduledTask -TaskName "MOP Captions"'),
+    );
+    expect(removed).toBeGreaterThan(-1);
+    expect(removed).toBeLessThan(registered);
+  });
 });
