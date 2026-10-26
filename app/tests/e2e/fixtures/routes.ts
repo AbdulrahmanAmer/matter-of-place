@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { register } from "node:module";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { seoPages } from "../../../src/content/seo/index.ts";
 
 export type RouteMode = "local" | "live";
 
@@ -18,6 +19,8 @@ export type RouteClass =
   | "faq"
   | "archive"
   | "exposure"
+  | "seoCollection"
+  | "seoGuide"
   | "notFound";
 
 export type SweepRoute = { path: string; pattern: string; routeClass: RouteClass };
@@ -57,7 +60,19 @@ const staticPaths: [string, RouteClass][] = [
   ["/account/confirm", "page"],
 ];
 
-export const staticRoutes: SweepRoute[] = staticPaths.map(([path, routeClass]) => ({
+// The search pages of src/content/seo: each collection guide is a route file of its own (_site.<slug>.tsx), the guides
+// share /guides/$slug, and /guides lists them all.
+const seoCollectionPaths: [string, RouteClass][] = seoPages
+  .filter((page) => page.kind === "collection")
+  .map((page) => [page.path, "seoCollection"]);
+
+const sweptPaths: [string, RouteClass][] = [
+  ...staticPaths,
+  ["/guides", "page"],
+  ...seoCollectionPaths,
+];
+
+export const staticRoutes: SweepRoute[] = sweptPaths.map(([path, routeClass]) => ({
   path,
   pattern: path,
   routeClass,
@@ -82,6 +97,8 @@ export const jsonLdExpectations: Record<RouteClass, string[]> = {
   faq: ["FAQPage"],
   archive: ["CollectionPage"],
   exposure: ["FAQPage"],
+  seoCollection: ["Service"],
+  seoGuide: ["Article"],
   notFound: [],
 };
 
@@ -104,6 +121,8 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.properties.tsx": "/properties",
   "_site.markets.index.tsx": "/markets",
   "_site.stories.index.tsx": "/stories",
+  "_site.guides.index.tsx": "/guides",
+  "_site.historic-homes-for-sale.tsx": "/historic-homes-for-sale",
   "_site.editorial-standard.tsx": "/editorial-standard",
   "_site.submit.tsx": "/submit",
   "_site.exposure.tsx": "/exposure",
@@ -126,6 +145,7 @@ export const routeFileCoverage: Record<string, RouteFileEntry> = {
   "_site.$market.$region.tsx": "/$market/$region",
   "_site.property.$slug.tsx": "/property/$slug",
   "_site.stories.$slug.tsx": "/stories/$slug",
+  "_site.guides.$slug.tsx": "/guides/$slug",
   "_site.archive.$kind.$slug.tsx": "/archive/$kind/$slug",
   "_site.markets.$.tsx": "redirect",
   "_site.pricing.tsx": "redirect",
@@ -164,6 +184,7 @@ export const dynamicPatterns = {
   region: "/$market/$region",
   property: "/property/$slug",
   story: "/stories/$slug",
+  seoGuide: "/guides/$slug",
   archive: "/archive/$kind/$slug",
 } as const;
 
@@ -263,6 +284,13 @@ export async function getDynamicRoutes(
       pattern: dynamicPatterns.story,
       routeClass: "story" as const,
     })),
+    ...seoPages
+      .filter((page) => page.kind === "guide")
+      .map((page) => ({
+        path: page.path,
+        pattern: dynamicPatterns.seoGuide,
+        routeClass: "seoGuide" as const,
+      })),
   ];
 }
 

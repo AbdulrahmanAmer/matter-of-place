@@ -2,6 +2,7 @@ import "../fixtures/worker-env";
 import { describe, expect, it } from "vitest";
 import { properties as bundledProperties } from "../../src/data/properties";
 import { stories as bundledStories } from "../../src/data/stories";
+import { seoPages } from "../../src/content/seo";
 import type { Json } from "../../src/db";
 import { applyVisibility } from "../../src/server/catalog/visibility";
 import { mapSnapshot, parseSnapshot, toPropertyCard } from "../../src/server/public/mappers";
@@ -391,5 +392,44 @@ describe("buildSitemap images", () => {
     );
     expect(xml).toContain(`/property/${bundled.slug}`);
     expect(xml).not.toContain("image:image");
+  });
+});
+
+describe("buildSitemap search pages (src/content/seo)", () => {
+  const { catalog, state: current } = served({});
+  const newestDay = seoPages
+    .map((page) => page.updated)
+    .sort()
+    .at(-1);
+
+  it("lists every search page and the /guides index, whatever the catalog holds", () => {
+    const listed = paths(buildSitemap({ ...catalog, properties: [], cards: [] }, current, NOW));
+    expect(listed).toEqual(
+      expect.arrayContaining([...seoPages.map((page) => page.path), "/guides"]),
+    );
+    expect(listed).not.toContain("/guides/");
+  });
+
+  it("dates each page by its own content date and /guides by the newest of them", () => {
+    const xml = buildSitemap(catalog, current, new Date("2026-12-01T00:00:00Z"));
+    for (const page of seoPages)
+      expect([page.path, lastmodOf(xml, page.path)]).toEqual([page.path, page.updated]);
+    expect(lastmodOf(xml, "/guides")).toBe(newestDay);
+  });
+
+  it("is the same on any later day, so the build clock dates nothing", () => {
+    const first = buildSitemap(catalog, current, new Date("2026-12-01T00:00:00Z"));
+    const second = buildSitemap(catalog, current, new Date("2027-03-09T09:00:00Z"));
+    expect(second).toBe(first);
+  });
+
+  it("never dates a page after the day of the build", () => {
+    const xml = buildSitemap(catalog, current, new Date("2026-10-01T00:00:00Z"));
+    for (const page of seoPages) {
+      expect([page.path, (lastmodOf(xml, page.path) ?? "") <= "2026-10-01"]).toEqual([
+        page.path,
+        true,
+      ]);
+    }
   });
 });

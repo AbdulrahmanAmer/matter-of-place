@@ -1,4 +1,5 @@
 import { absoluteUrl } from "../../config/site.ts";
+import { seoPages } from "../../content/seo/index.ts";
 import type { Property } from "../../domain/property.ts";
 import { indexable } from "../../lib/seo.ts";
 import { loadRedirectMap } from "../public/redirects.ts";
@@ -97,6 +98,18 @@ const entryXml = ({ path, lastmod, images = [] }: Entry): string =>
 const listed = (count: number): boolean => indexable(count).robots === undefined;
 
 /**
+ * The search pages of `src/content/seo` and their index `/guides`. Each carries its own content date (`updated`), the
+ * index the newest of them; none reads the build clock. Static content: no catalog row decides whether they are listed.
+ */
+function seoEntries(now: Date): Entry[] {
+  const indexDay = newest(seoPages.map((page) => page.updated));
+  return [
+    ...seoPages.map((page) => ({ path: page.path, lastmod: notAfter(page.updated, now) })),
+    { path: "/guides", lastmod: indexDay === undefined ? undefined : notAfter(indexDay, now) },
+  ];
+}
+
+/**
  * `documentDates` is the day each static document page last changed (`page-dates.gen.ts`, made at build from git). The
  * catalog pages (`/`, `/properties`, `/stories`) are dated by their newest published item; `/markets` and a page
  * with no known date carry no `lastmod` (W8 item 12b).
@@ -130,6 +143,7 @@ export function buildSitemap(
     ...staticSitemapPaths
       .filter((path) => path !== "/properties" || listed(properties.length))
       .map((path) => ({ path, lastmod: datedStatic(path) })),
+    ...seoEntries(now),
     ...source.markets.flatMap((market) => [
       ...(listed(countIn(market.slug)) ? [{ path: `/${market.slug}` }] : []),
       { path: `/${market.slug}/guide` },

@@ -29,6 +29,7 @@ import { Route as SiteCookiesRouteImport } from './routes/_site.cookies'
 import { Route as SiteEditorialStandardRouteImport } from './routes/_site.editorial-standard'
 import { Route as SiteExposureRouteImport } from './routes/_site.exposure'
 import { Route as SiteFaqRouteImport } from './routes/_site.faq'
+import { Route as SiteHistoricHomesForSaleRouteImport } from './routes/_site.historic-homes-for-sale'
 import { Route as SiteLegalRouteImport } from './routes/_site.legal'
 import { Route as SiteMarketsRouteImport } from './routes/_site.markets'
 import { Route as SitePlaceNotesRouteImport } from './routes/_site.place-notes'
@@ -52,6 +53,8 @@ import { Route as SiteMarketRegionRouteImport } from './routes/_site.$market.$re
 import { Route as SiteMarketGuideRouteImport } from './routes/_site.$market.guide'
 import { Route as SiteAccountIndexRouteImport } from './routes/_site.account.index'
 import { Route as SiteAccountConfirmRouteImport } from './routes/_site.account.confirm'
+import { Route as SiteGuidesIndexRouteImport } from './routes/_site.guides.index'
+import { Route as SiteGuidesSlugRouteImport } from './routes/_site.guides.$slug'
 import { Route as SiteMarketsIndexRouteImport } from './routes/_site.markets.index'
 import { Route as SiteMarketsSplatRouteImport } from './routes/_site.markets.$'
 import { Route as SitePlaceNotesStatusRouteImport } from './routes/_site.place-notes_.$status'
@@ -384,6 +387,12 @@ const SiteFaqRoute = SiteFaqRouteImport.update({
   path: '/faq',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteHistoricHomesForSaleRoute =
+  SiteHistoricHomesForSaleRouteImport.update({
+    id: '/historic-homes-for-sale',
+    path: '/historic-homes-for-sale',
+    getParentRoute: () => SiteRoute,
+  } as any)
 const SiteLegalRoute = SiteLegalRouteImport.update({
   id: '/legal',
   path: '/legal',
@@ -497,6 +506,16 @@ const SiteAccountIndexRoute = SiteAccountIndexRouteImport.update({
 const SiteAccountConfirmRoute = SiteAccountConfirmRouteImport.update({
   id: '/account/confirm',
   path: '/account/confirm',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteGuidesIndexRoute = SiteGuidesIndexRouteImport.update({
+  id: '/guides/',
+  path: '/guides/',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteGuidesSlugRoute = SiteGuidesSlugRouteImport.update({
+  id: '/guides/$slug',
+  path: '/guides/$slug',
   getParentRoute: () => SiteRoute,
 } as any)
 const SiteMarketsIndexRoute = SiteMarketsIndexRouteImport.update({
@@ -1794,6 +1813,7 @@ export interface FileRoutesByFullPath {
   '/editorial-standard': typeof SiteEditorialStandardRoute
   '/exposure': typeof SiteExposureRoute
   '/faq': typeof SiteFaqRoute
+  '/historic-homes-for-sale': typeof SiteHistoricHomesForSaleRoute
   '/legal': typeof SiteLegalRoute
   '/markets': typeof SiteMarketsRouteWithChildren
   '/place-notes': typeof SitePlaceNotesRoute
@@ -1815,6 +1835,7 @@ export interface FileRoutesByFullPath {
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
+  '/guides/$slug': typeof SiteGuidesSlugRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
@@ -1853,6 +1874,7 @@ export interface FileRoutesByFullPath {
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market/': typeof SiteMarketIndexRoute
   '/account/': typeof SiteAccountIndexRoute
+  '/guides/': typeof SiteGuidesIndexRoute
   '/markets/': typeof SiteMarketsIndexRoute
   '/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
@@ -2064,6 +2086,7 @@ export interface FileRoutesByTo {
   '/editorial-standard': typeof SiteEditorialStandardRoute
   '/exposure': typeof SiteExposureRoute
   '/faq': typeof SiteFaqRoute
+  '/historic-homes-for-sale': typeof SiteHistoricHomesForSaleRoute
   '/legal': typeof SiteLegalRoute
   '/place-notes': typeof SitePlaceNotesRoute
   '/pricing': typeof SitePricingRoute
@@ -2084,6 +2107,7 @@ export interface FileRoutesByTo {
   '/$market/$region': typeof SiteMarketRegionRoute
   '/$market/guide': typeof SiteMarketGuideRoute
   '/account/confirm': typeof SiteAccountConfirmRoute
+  '/guides/$slug': typeof SiteGuidesSlugRoute
   '/markets/$': typeof SiteMarketsSplatRoute
   '/place-notes/$status': typeof SitePlaceNotesStatusRoute
   '/property/$slug': typeof SitePropertySlugRoute
@@ -2122,6 +2146,7 @@ export interface FileRoutesByTo {
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/$market': typeof SiteMarketIndexRoute
   '/account': typeof SiteAccountIndexRoute
+  '/guides': typeof SiteGuidesIndexRoute
   '/markets': typeof SiteMarketsIndexRoute
   '/stories': typeof SiteStoriesIndexRoute
   '/admin/assets': typeof AdminAssetsIndexRoute
@@ -2337,6 +2362,7 @@ export interface FileRoutesById {
   '/_site/editorial-standard': typeof SiteEditorialStandardRoute
   '/_site/exposure': typeof SiteExposureRoute
   '/_site/faq': typeof SiteFaqRoute
+  '/_site/historic-homes-for-sale': typeof SiteHistoricHomesForSaleRoute
   '/_site/legal': typeof SiteLegalRoute
   '/_site/markets': typeof SiteMarketsRouteWithChildren
   '/_site/place-notes': typeof SitePlaceNotesRoute
@@ -2359,6 +2385,7 @@ export interface FileRoutesById {
   '/_site/$market/$region': typeof SiteMarketRegionRoute
   '/_site/$market/guide': typeof SiteMarketGuideRoute
   '/_site/account/confirm': typeof SiteAccountConfirmRoute
+  '/_site/guides/$slug': typeof SiteGuidesSlugRoute
   '/_site/markets/$': typeof SiteMarketsSplatRoute
   '/_site/place-notes_/$status': typeof SitePlaceNotesStatusRoute
   '/_site/property/$slug': typeof SitePropertySlugRoute
@@ -2397,6 +2424,7 @@ export interface FileRoutesById {
   '/api/public/subscribers': typeof ApiPublicSubscribersRouteWithChildren
   '/_site/$market/': typeof SiteMarketIndexRoute
   '/_site/account/': typeof SiteAccountIndexRoute
+  '/_site/guides/': typeof SiteGuidesIndexRoute
   '/_site/markets/': typeof SiteMarketsIndexRoute
   '/_site/stories/': typeof SiteStoriesIndexRoute
   '/admin/assets/': typeof AdminAssetsIndexRoute
@@ -2613,6 +2641,7 @@ export interface FileRouteTypes {
     | '/editorial-standard'
     | '/exposure'
     | '/faq'
+    | '/historic-homes-for-sale'
     | '/legal'
     | '/markets'
     | '/place-notes'
@@ -2634,6 +2663,7 @@ export interface FileRouteTypes {
     | '/$market/$region'
     | '/$market/guide'
     | '/account/confirm'
+    | '/guides/$slug'
     | '/markets/$'
     | '/place-notes/$status'
     | '/property/$slug'
@@ -2672,6 +2702,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers'
     | '/$market/'
     | '/account/'
+    | '/guides/'
     | '/markets/'
     | '/stories/'
     | '/admin/assets/'
@@ -2883,6 +2914,7 @@ export interface FileRouteTypes {
     | '/editorial-standard'
     | '/exposure'
     | '/faq'
+    | '/historic-homes-for-sale'
     | '/legal'
     | '/place-notes'
     | '/pricing'
@@ -2903,6 +2935,7 @@ export interface FileRouteTypes {
     | '/$market/$region'
     | '/$market/guide'
     | '/account/confirm'
+    | '/guides/$slug'
     | '/markets/$'
     | '/place-notes/$status'
     | '/property/$slug'
@@ -2941,6 +2974,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers'
     | '/$market'
     | '/account'
+    | '/guides'
     | '/markets'
     | '/stories'
     | '/admin/assets'
@@ -3155,6 +3189,7 @@ export interface FileRouteTypes {
     | '/_site/editorial-standard'
     | '/_site/exposure'
     | '/_site/faq'
+    | '/_site/historic-homes-for-sale'
     | '/_site/legal'
     | '/_site/markets'
     | '/_site/place-notes'
@@ -3177,6 +3212,7 @@ export interface FileRouteTypes {
     | '/_site/$market/$region'
     | '/_site/$market/guide'
     | '/_site/account/confirm'
+    | '/_site/guides/$slug'
     | '/_site/markets/$'
     | '/_site/place-notes_/$status'
     | '/_site/property/$slug'
@@ -3215,6 +3251,7 @@ export interface FileRouteTypes {
     | '/api/public/subscribers'
     | '/_site/$market/'
     | '/_site/account/'
+    | '/_site/guides/'
     | '/_site/markets/'
     | '/_site/stories/'
     | '/admin/assets/'
@@ -3672,6 +3709,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteFaqRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/_site/historic-homes-for-sale': {
+      id: '/_site/historic-homes-for-sale'
+      path: '/historic-homes-for-sale'
+      fullPath: '/historic-homes-for-sale'
+      preLoaderRoute: typeof SiteHistoricHomesForSaleRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/legal': {
       id: '/_site/legal'
       path: '/legal'
@@ -3831,6 +3875,20 @@ declare module '@tanstack/react-router' {
       path: '/account/confirm'
       fullPath: '/account/confirm'
       preLoaderRoute: typeof SiteAccountConfirmRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/guides/': {
+      id: '/_site/guides/'
+      path: '/guides'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof SiteGuidesIndexRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/guides/$slug': {
+      id: '/_site/guides/$slug'
+      path: '/guides/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof SiteGuidesSlugRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/markets/': {
@@ -5492,6 +5550,7 @@ interface SiteRouteChildren {
   SiteEditorialStandardRoute: typeof SiteEditorialStandardRoute
   SiteExposureRoute: typeof SiteExposureRoute
   SiteFaqRoute: typeof SiteFaqRoute
+  SiteHistoricHomesForSaleRoute: typeof SiteHistoricHomesForSaleRoute
   SiteLegalRoute: typeof SiteLegalRoute
   SiteMarketsRoute: typeof SiteMarketsRouteWithChildren
   SitePlaceNotesRoute: typeof SitePlaceNotesRoute
@@ -5505,9 +5564,11 @@ interface SiteRouteChildren {
   SiteTermsRoute: typeof SiteTermsRoute
   SiteIndexRoute: typeof SiteIndexRoute
   SiteAccountConfirmRoute: typeof SiteAccountConfirmRoute
+  SiteGuidesSlugRoute: typeof SiteGuidesSlugRoute
   SitePlaceNotesStatusRoute: typeof SitePlaceNotesStatusRoute
   SitePropertySlugRoute: typeof SitePropertySlugRoute
   SiteAccountIndexRoute: typeof SiteAccountIndexRoute
+  SiteGuidesIndexRoute: typeof SiteGuidesIndexRoute
   SiteArchiveKindSlugRoute: typeof SiteArchiveKindSlugRoute
 }
 
@@ -5520,6 +5581,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteEditorialStandardRoute: SiteEditorialStandardRoute,
   SiteExposureRoute: SiteExposureRoute,
   SiteFaqRoute: SiteFaqRoute,
+  SiteHistoricHomesForSaleRoute: SiteHistoricHomesForSaleRoute,
   SiteLegalRoute: SiteLegalRoute,
   SiteMarketsRoute: SiteMarketsRouteWithChildren,
   SitePlaceNotesRoute: SitePlaceNotesRoute,
@@ -5533,9 +5595,11 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteTermsRoute: SiteTermsRoute,
   SiteIndexRoute: SiteIndexRoute,
   SiteAccountConfirmRoute: SiteAccountConfirmRoute,
+  SiteGuidesSlugRoute: SiteGuidesSlugRoute,
   SitePlaceNotesStatusRoute: SitePlaceNotesStatusRoute,
   SitePropertySlugRoute: SitePropertySlugRoute,
   SiteAccountIndexRoute: SiteAccountIndexRoute,
+  SiteGuidesIndexRoute: SiteGuidesIndexRoute,
   SiteArchiveKindSlugRoute: SiteArchiveKindSlugRoute,
 }
 

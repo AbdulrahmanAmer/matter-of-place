@@ -1,0 +1,74 @@
+[
+  {
+    "id": "seo-pages-article-modified",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/lib/seo-page.ts",
+    "find": "dateModified: page.updated,",
+    "replace": "dateModified: \"2026-01-01\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the head of an article guide > writes Article data, a breadcrumb under Guides, and no FAQPage or Service"
+  },
+  {
+    "id": "seo-pages-og-article",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/lib/seo-page.ts",
+    "find": "type: page.kind === \"guide\" ? \"article\" : \"website\",",
+    "replace": "type: \"website\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the head of an article guide > writes the title, the canonical and the article dates from the content, not the clock"
+  },
+  {
+    "id": "seo-pages-jsonld-dropped",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/lib/seo-page.ts",
+    "find": "jsonLd: seoPageJsonLd(page),",
+    "replace": "jsonLd: [],",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the head of a collection guide > writes a website page with Service and FAQPage data in one graph, and no Article"
+  },
+  {
+    "id": "seo-pages-inline-unserved",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/lib/seo-page.ts",
+    "find": "parts.push(isServedPath(to) ? { text: anchor, to } : { text: anchor });",
+    "replace": "parts.push({ text: anchor, to });",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*splitInline > keeps a link to a page that exists and writes a link to one that does not as its anchor"
+  },
+  {
+    "id": "seo-pages-footer-link",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/components/layout/footer.tsx",
+    "find": "<Link to=\"/guides\">{t.nav.guides}</Link>",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the routes > links the guides index from the footer, so no search page is an orphan"
+  },
+  {
+    "id": "seo-pages-outline",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/historic-homes-for-sale.ts",
+    "find": "heading: \"How it works\",",
+    "replace": "heading: \"How it really works\",",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the registry of search pages > follows the outline of its kind, then the questions, then the closing section"
+  },
+  {
+    "id": "seo-pages-voice-exclamation",
+    "test": "tests/unit/seo-pages.test.ts",
+    "file": "src/content/seo/historic-homes-for-sale.ts",
+    "find": "Historic homes for sale are existing houses",
+    "replace": "Historic homes for sale! Existing houses",
+    "run": "bunx vitest run --project unit tests/unit/seo-pages.test.ts",
+    "expect": "FAIL .*the copy of the search pages follows the brand rules > has no em dash, en dash or exclamation mark, no hyperbole and no market outside the three"
+  },
+  {
+    "id": "seo-pages-sitemap-entries",
+    "test": "tests/unit/sitemap.test.ts",
+    "file": "src/server/seo/sitemap.ts",
+    "find": "...seoEntries(now),",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/sitemap.test.ts",
+    "expect": "FAIL .*buildSitemap search pages \\(src/content/seo\\) > lists every search page and the /guides index, whatever the catalog holds"
+  }
+]

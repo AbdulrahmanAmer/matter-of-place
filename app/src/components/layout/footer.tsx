@@ -94,6 +94,7 @@ export function Footer() {
             <h2>{groups.editorial}</h2>
             <Link to="/stories">{t.nav.stories}</Link>
             <Link to="/editorial-standard">{t.nav.standard}</Link>
+            <Link to="/guides">{t.nav.guides}</Link>
             <Link to="/about">{t.nav.about}</Link>
           </nav>
           <span className="footer-gap" aria-hidden="true" />
