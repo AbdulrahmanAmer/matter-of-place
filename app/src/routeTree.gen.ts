@@ -708,9 +708,7 @@ const AdminProposedPostsIndexRoute = AdminProposedPostsIndexRouteImport.update({
   id: '/proposed-posts/',
   path: '/proposed-posts/',
   getParentRoute: () => AdminRoute,
-} as any).lazy(() =>
-  import('./routes/admin/proposed-posts.index.lazy').then((d) => d.Route),
-)
+} as any)
 const AdminReportsIndexRoute = AdminReportsIndexRouteImport.update({
   id: '/reports/',
   path: '/reports/',

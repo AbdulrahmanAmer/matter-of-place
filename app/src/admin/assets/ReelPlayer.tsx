@@ -35,7 +35,14 @@ const gateRows = (gate: z.infer<typeof reelMetaSchema>["gate"]): [string, string
 ];
 
 /** The reel on screen 10: poster first, the film loads only when played, the gate numbers below. */
-export function ReelPlayer({ asset }: { asset: ReelAsset }) {
+export function ReelPlayer({
+  asset,
+  preload = "none",
+}: {
+  asset: ReelAsset;
+  /** `metadata` reads the film's head at once, so a film that is gone says so without a play (Proposed posts). */
+  preload?: "none" | "metadata";
+}) {
   const video = asset.files.find((file) => file.role === "video");
   const poster = asset.files.find((file) => file.role === "poster");
   const meta = reelMetaSchema.safeParse(asset.meta);
@@ -54,7 +61,7 @@ export function ReelPlayer({ asset }: { asset: ReelAsset }) {
           {...(poster ? { poster: poster.url } : {})}
           controls
           playsInline
-          preload="none"
+          preload={preload}
           onError={() => {
             setLost(true);
           }}

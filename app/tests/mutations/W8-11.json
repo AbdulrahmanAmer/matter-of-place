@@ -3,7 +3,7 @@
     "id": "w811-a-slide-alts",
     "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
     "file": "src/admin/proposed-posts/ChannelPreview.tsx",
-    "find": "        alts={post.images.map((image) => (image.alt === \"\" ? image.name : image.alt))}",
+    "find": "        alts={post.images.map((image) => image.alt)}",
     "replace": "        alts={[]}",
     "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
     "expect": "× .*steps a carousel slide by slide with the caption under it on Instagram"
@@ -30,7 +30,7 @@
     "id": "w811-d-reel-player",
     "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
     "file": "src/admin/proposed-posts/ChannelPreview.tsx",
-    "find": "            { role: \"video\", url: video.url, media_key: video.name },",
+    "find": "            { role: \"video\", url: video.url, media_key: video.original ?? video.key },",
     "replace": "            { role: \"clip\", url: video.url, media_key: video.name },",
     "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
     "expect": "× .*plays a reel in a player with its poster"
@@ -47,7 +47,7 @@
   {
     "id": "w811-f-count-limit",
     "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
-    "file": "src/admin/proposed-posts/proposed-posts-contract.ts",
+    "file": "src/domain/proposed-posts.ts",
     "find": "  linkedin: 3000,",
     "replace": "  linkedin: 300,",
     "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
@@ -112,7 +112,7 @@
     "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
     "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
     "find": "                setAsking(\"approve\");",
-    "replace": "                approve.mutate(post.id, settle(\"Approved.\"));",
+    "replace": "                approve.mutate({ id: post.id, revision: post.revision }, settle(\"Approved.\"));",
     "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
     "expect": "× .*approves after a confirmation and sends nothing on Cancel"
   },
@@ -156,10 +156,10 @@
     "id": "w811-r-decision-states",
     "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
     "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
-    "find": "        {open || post.status === \"rejected\" ? (",
-    "replace": "        {open ? (",
+    "find": "        {canReject ? (\n          <RoleGate action={proposedActions.rerender}>",
+    "replace": "        {canReject || post.status === \"rejected\" ? (\n          <RoleGate action={proposedActions.rerender}>",
     "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
-    "expect": "× .*offers an approved post no decision and a rejected post only a re-render, with its note"
+    "expect": "× .*offers an approved or a rejected post no decision, and a rejected post shows its note"
   },
   {
     "id": "w811-s-history-lazy",
@@ -174,8 +174,8 @@
     "id": "w811-t-list-status",
     "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
     "file": "src/admin/proposed-posts/ProposedPostsPage.tsx",
-    "find": "  const posts = useProposedPosts(filters.values);",
-    "replace": "  const posts = useProposedPosts({});",
+    "find": "    ...filters.values,\n",
+    "replace": "",
     "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
     "expect": "× .*lists every post with its previews and asks for the status of the address"
   },
@@ -198,21 +198,97 @@
     "expect": "× .*shows the server's message when the list does not load"
   },
   {
+    "id": "w811-y-approve-revision",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
+    "find": "{ id: post.id, revision: post.revision }",
+    "replace": "{ id: post.id, revision: 1 }",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*approves after a confirmation and sends nothing on Cancel"
+  },
+  {
+    "id": "w811-z-status-machine",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostCard.tsx",
+    "find": "const canApprove = canMove(post.status, \"approved\");",
+    "replace": "const canApprove = true;",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*offers an approved or a rejected post no decision, and a rejected post shows its note"
+  },
+  {
+    "id": "w811-aa-history-reason",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/PostHistory.tsx",
+    "find": "{reasonLabels[revision.reason]} by{\" \"}",
+    "replace": "{\"asked\"} by{\" \"}",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*reads the revisions only when the history is opened"
+  },
+  {
+    "id": "w811-ab-next-page",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostsPage.tsx",
+    "find": "              if (nextCursor !== null) filters.goNext(nextCursor);\n",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*pages the posts: Next opens the page after the cursor"
+  },
+  {
+    "id": "w811-ac-previous-page",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ProposedPostsPage.tsx",
+    "find": "onClick={filters.goPrevious}",
+    "replace": "onClick={() => undefined}",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*pages the posts: Next opens the page after the cursor"
+  },
+  {
+    "id": "w811-ad-reel-head",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "        preload=\"metadata\"",
+    "replace": "        preload=\"none\"",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*reads a reel's film head at once"
+  },
+  {
+    "id": "w811-ae-original-name",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/ChannelPreview.tsx",
+    "find": "fileName(file.original ?? file.key)",
+    "replace": "fileName(file.key)",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*names a file by where it came from"
+  },
+  {
+    "id": "w811-af-proposer-person",
+    "test": "src/admin/proposed-posts/proposed-posts.test.tsx",
+    "file": "src/admin/proposed-posts/proposed-posts-labels.ts",
+    "find": "  if (post.proposer_kind === \"human\") return \"a person\";\n",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/proposed-posts --pool=threads",
+    "expect": "× .*names a person who proposed it as a person"
+  },
+  {
     "id": "w811-w-layout-media",
+    "kind": "manual",
     "test": "scripts/admin-shot.ts",
     "file": "src/styles/admin/assets.css",
     "find": ".admin-asset img,\n.admin-asset video {\n  max-width: 100%;\n  height: auto;\n}",
     "replace": ".admin-asset img {\n  height: auto;\n}",
     "run": "bun scripts/admin-shot.ts visuals",
-    "expect": "LAYOUT FAILED visuals"
+    "expect": "LAYOUT FAILED visuals",
+    "what": "by hand with ffmpeg and Chromium (the CI db job has neither): remove the max-width rule for media from the Visuals card, run the command; it prints LAYOUT FAILED visuals"
   },
   {
     "id": "w811-x-layout-proposed",
+    "kind": "manual",
     "test": "scripts/admin-shot.ts",
     "file": "src/styles/admin/proposed-posts.css",
     "find": ".admin-proposed img,\n.admin-proposed video {\n  max-width: 100%;\n  height: auto;\n}",
     "replace": ".admin-proposed img {\n  height: auto;\n}",
     "run": "bun scripts/admin-shot.ts proposed",
-    "expect": "LAYOUT FAILED proposed"
+    "expect": "LAYOUT FAILED proposed",
+    "what": "by hand with ffmpeg and Chromium (the CI db job has neither): remove the max-width rule for media from the proposed post card, run the command; it prints LAYOUT FAILED proposed"
   }
 ]

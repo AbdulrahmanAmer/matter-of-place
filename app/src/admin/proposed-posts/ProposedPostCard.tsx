@@ -1,4 +1,9 @@
 import { useState } from "react";
+import {
+  canMove,
+  type AdminProposedPost,
+  type ProposedPostStatus,
+} from "../../domain/proposed-posts";
 import { RejectDialog } from "../assets/RejectDialog";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { LocalTime } from "../ui/LocalTime";
@@ -7,15 +12,10 @@ import { StatusPill, type Tone } from "../ui/StatusPill";
 import { useToast } from "../ui/use-toast";
 import { ChannelPreview } from "./ChannelPreview";
 import { PostHistory } from "./PostHistory";
-import {
-  proposedActions,
-  proposedStatusLabels,
-  type ProposedPost,
-  type ProposedStatus,
-} from "./proposed-posts-contract";
+import { proposedActions, proposedStatusLabels, proposerOf } from "./proposed-posts-labels";
 import { useApprovePost, useRejectPost, useRerenderPost } from "./proposed-posts-queries";
 
-const statusTone: Record<ProposedStatus, Tone> = {
+const statusTone: Record<ProposedPostStatus, Tone> = {
   proposed: "warning",
   rejected: "danger",
   approved: "ok",
@@ -26,7 +26,7 @@ const statusTone: Record<ProposedStatus, Tone> = {
 type Asking = "approve" | "reject" | "rerender" | null;
 
 /** One proposed post: every channel as it will look there, the decisions open to the actor, and its history. */
-export function ProposedPostCard({ post }: { post: ProposedPost }) {
+export function ProposedPostCard({ post }: { post: AdminProposedPost }) {
   const toast = useToast();
   const approve = useApprovePost();
   const reject = useRejectPost();
@@ -35,8 +35,11 @@ export function ProposedPostCard({ post }: { post: ProposedPost }) {
   // An approve that is refused shows the reason, where the person is looking.
   const [refusal, setRefusal] = useState<string | null>(null);
   const busy = approve.isPending || reject.isPending || rerender.isPending;
-  const open = post.status === "proposed";
-  const title = `${post.subject_label ?? "Matter of Place"}, revision ${String(post.revision)}`;
+  // The status machine is item 10's (`canMove`): a post is approved or rejected from `proposed` only, and a re-render
+  // is a reject that asks for new visuals, so it is open where a reject is. A rejected post returns through `/revise`.
+  const canApprove = canMove(post.status, "approved");
+  const canReject = canMove(post.status, "rejected");
+  const title = `${post.title}, revision ${String(post.revision)}`;
 
   const settle = (done: string) => ({
     onSuccess: () => {
@@ -53,11 +56,11 @@ export function ProposedPostCard({ post }: { post: ProposedPost }) {
   return (
     <article className="admin-proposed" aria-label={title}>
       <header className="admin-asset__head">
-        <h2>{post.subject_label ?? "Matter of Place"}</h2>
+        <h2>{post.title}</h2>
         <StatusPill label={proposedStatusLabels[post.status]} tone={statusTone[post.status]} />
         {post.test ? <StatusPill label="TEST" tone="warning" /> : null}
         <span className="admin-asset__meta">
-          Proposed by {post.proposer}, revision {post.revision},{" "}
+          Proposed by {proposerOf(post)}, revision {post.revision},{" "}
           <LocalTime value={post.created_at} />
         </span>
       </header>
@@ -75,7 +78,7 @@ export function ProposedPostCard({ post }: { post: ProposedPost }) {
         </p>
       )}
       <div className="admin-actions">
-        {open ? (
+        {canApprove ? (
           <RoleGate action={proposedActions.approve}>
             <button
               type="button"
@@ -89,7 +92,7 @@ export function ProposedPostCard({ post }: { post: ProposedPost }) {
             </button>
           </RoleGate>
         ) : null}
-        {open ? (
+        {canReject ? (
           <RoleGate action={proposedActions.reject}>
             <button
               type="button"
@@ -103,7 +106,7 @@ export function ProposedPostCard({ post }: { post: ProposedPost }) {
             </button>
           </RoleGate>
         ) : null}
-        {open || post.status === "rejected" ? (
+        {canReject ? (
           <RoleGate action={proposedActions.rerender}>
             <button
               type="button"
@@ -125,7 +128,7 @@ export function ProposedPostCard({ post }: { post: ProposedPost }) {
         confirmLabel="Approve"
         pending={approve.isPending}
         onConfirm={() => {
-          approve.mutate(post.id, settle("Approved."));
+          approve.mutate({ id: post.id, revision: post.revision }, settle("Approved."));
         }}
         onCancel={() => {
           setAsking(null);

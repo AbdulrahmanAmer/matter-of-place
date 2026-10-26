@@ -1119,6 +1119,7 @@ Entry template
 - hit again: 2026-10-05, B13 step 4: a `python3 -` I typed into a chain after a heredoc hung the call for 120 seconds; it was killed with `taskkill //F //IM python3.exe`.
 - hit again: 2026-10-07, B6 g1: a leftover `cat > /tmp/fixpay.cjs 2>/dev/null;` ahead of a heredoc waited on stdin until the 120 s ceiling moved the call to the background; the `cat` was ended by its own process id (`ps -ef`), and the node patch after it then ran.
 - hit again: 2026-10-08, B7 g1 resume: a `python - <<EOF` that resolved two merge conflicts (`src/db/types.ts`, `tests/unit/assert-not-production.test.ts`) ran, but its text-mode `open(p, "w")` wrote every line ending as CRLF; `bun run check` then stopped at lint with 93 `Delete ␍ prettier/prettier` errors after a 10-minute run. `git checkout -- <file>` did not rewrite the file (git saw no change); `rm <file> && git checkout -- <file>` did. Proof: `git -C app ls-files --eol | grep -c w/crlf` → `0` after the fix. Resolve conflicts with the Edit tool or a node script, never python.
+- hit again: 2026-10-26, W8 item 11 fix round: a stray `python - 2>/dev/null;` left in front of a `sed` in a `&&` chain hung the call 120 s and moved it to the background; the cause was a habit, not a need (the sed ran in the next call). No python in this project, P-008.
 
 ## P-095 · A ruling that says "accepted" was copied into the runbook as a fact about headers nobody had measured
 - symptom: the step 4b runbook text said two answers "carry no x-request-id and no security header": the `//` 308 and the trailing-slash 307 under `/api/`. H41 (3) only says the 307 is accepted. Measured under `cf:preview`, the 307 goes through `handle()` and carries `x-request-id`, `Cache-Control: no-store`, `Strict-Transport-Security`, a Content-Security-Policy and `X-Frame-Options`; only the `//` 308 is bare. A reviewer found it; the same claim sat in the slice log and would have exempted `/api/` paths with a trailing slash from H1's header sweep.
@@ -9152,3 +9153,12 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: rerun with `--pool=threads`, which started in seconds and passed, before concluding the test is broken; a red that names an assertion is a real red, a red that names the pool is load.
 - proof: `cd app && bunx vitest run --project component src/admin/assets/assets.test.tsx --pool=threads` → `Tests ... passed` while the forks run printed the pool error (2026-10-16).
 - added: 2026-10-16
+
+## P-4611 · `merge-gotchas` on a number collision keeps OUR GOTCHAS.md whole and leaves it unmerged: every entry main added is missing until you take main's file
+- paths: (process)
+- severity: warn
+- symptom: 2026-10-26, W8 item 11: `git merge origin/main` printed "merge-gotchas: both sides changed P-3600, P-3602; ours kept, compare by hand" and listed GOTCHAS.md as a conflict with no markers in it. The file on disk was the branch's, 342 commits of main's entries short. Main had since used P-3600 and P-3602 for other entries (the robots.txt body, a colleague woken early), so the branch's two entries of the same numbers could not stay.
+- cause: the driver cannot renumber; when both sides changed the same id it keeps ours and stops. A grep for conflict markers finds nothing, so the file looks resolved.
+- rule: on that message take main's file whole (`git show :3:GOTCHAS.md`), add this branch's own entries after main's highest P (and G) number, fix every citation of the old numbers (`grep -rn "P-3600" app workspace`), then `git add` it. Check with `grep -c "^## P-4609 " GOTCHAS.md` and `node workspace/05-plans/check-gotchas.mjs`.
+- proof: `git show origin/main:GOTCHAS.md | grep -c "^## P-3600 "` → 1 (main's robots.txt entry) while the branch's entry of that number was a different lesson; after the renumber `grep -c "^## P-4609 " GOTCHAS.md` → 1 and `grep -c "^## P-3600 " GOTCHAS.md` → 1.
+- added: 2026-10-26

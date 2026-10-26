@@ -1,22 +1,26 @@
 import { useState } from "react";
 import { formatNumber } from "../../lib/format";
+import { captionLimits } from "../../domain/proposed-posts";
 import { CarouselViewer } from "../assets/CarouselViewer";
+import { fileName } from "../assets/file-name";
 import { ReelPlayer } from "../assets/ReelPlayer";
 import {
-  captionLimits,
   proposedChannelLabels,
   proposedFormatLabels,
-  type ChannelPost,
-  type ProposedFile,
-} from "./proposed-posts-contract";
+  type PostChannel,
+  type PostFileView,
+} from "./proposed-posts-labels";
+
+/** What a person calls a file: the name it had where it came from (`original`), else the last part of its storage key. */
+const nameOf = (file: PostFileView): string => fileName(file.original ?? file.key);
 
 /** One picture. A file that cannot be loaded shows its name and a plain "file not found", never an empty frame. */
-function PostImage({ file }: { file: ProposedFile }) {
+function PostImage({ file }: { file: PostFileView }) {
   const [lost, setLost] = useState(false);
   if (lost) {
     return (
       <p className="admin-asset__empty" role="alert">
-        {file.name}: file not found.
+        {nameOf(file)}: file not found.
       </p>
     );
   }
@@ -24,9 +28,9 @@ function PostImage({ file }: { file: ProposedFile }) {
     <img
       className="admin-asset__image"
       src={file.url}
-      {...(file.w === undefined ? {} : { width: file.w })}
-      {...(file.h === undefined ? {} : { height: file.h })}
-      alt={file.alt === "" ? file.name : file.alt}
+      width={file.w}
+      height={file.h}
+      alt={file.alt}
       onError={() => {
         setLost(true);
       }}
@@ -35,18 +39,19 @@ function PostImage({ file }: { file: ProposedFile }) {
 }
 
 /** What the channel's picture, slides or film are: the carousel slide by slide, the single post, the reel in a player. */
-function Media({ post }: { post: ChannelPost }) {
+function Media({ post }: { post: PostChannel }) {
   if (post.format === "reel") {
     if (post.reel === null) return <p className="admin-asset__empty">No film attached.</p>;
     const { video, poster } = post.reel;
     return (
       <ReelPlayer
+        preload="metadata"
         asset={{
           files: [
-            { role: "video", url: video.url, media_key: video.name },
+            { role: "video", url: video.url, media_key: video.original ?? video.key },
             ...(poster === null
               ? []
-              : [{ role: "poster", url: poster.url, media_key: poster.name }]),
+              : [{ role: "poster", url: poster.url, media_key: poster.original ?? poster.key }]),
           ],
           meta: null,
         }}
@@ -60,13 +65,13 @@ function Media({ post }: { post: ChannelPost }) {
         files={post.images.map((image, index) => ({
           role: "slide" as const,
           index,
-          media_key: image.name,
+          media_key: image.original ?? image.key,
           url: image.url,
-          w: image.w ?? 1080,
-          h: image.h ?? 1350,
-          bytes: image.bytes ?? 0,
+          w: image.w,
+          h: image.h,
+          bytes: image.bytes,
         }))}
-        alts={post.images.map((image) => (image.alt === "" ? image.name : image.alt))}
+        alts={post.images.map((image) => image.alt)}
       />
     );
   }
@@ -75,7 +80,7 @@ function Media({ post }: { post: ChannelPost }) {
 }
 
 /** The caption's length against what the channel takes, in words as well as colour. */
-function CaptionCount({ post }: { post: ChannelPost }) {
+function CaptionCount({ post }: { post: PostChannel }) {
   const used = Array.from(post.caption).length;
   const limit = captionLimits[post.channel];
   const over = used > limit;
@@ -91,7 +96,7 @@ function CaptionCount({ post }: { post: ChannelPost }) {
  * One channel's post as it will look there: Instagram shows the picture and the caption under it; X and LinkedIn
  * show the words first and the picture below them.
  */
-export function ChannelPreview({ post }: { post: ChannelPost }) {
+export function ChannelPreview({ post }: { post: PostChannel }) {
   const label = proposedChannelLabels[post.channel];
   const caption =
     post.caption === "" ? (

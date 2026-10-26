@@ -1,15 +1,8 @@
-/* Screen 33, proposed posts: one card for each post, a preview for each channel inside it, and the decisions below. */
+/* Screen 34, proposed posts: one card for each post, a preview for each channel inside it, and the decisions below. */
 
 .admin-proposed__list {
   display: grid;
   gap: var(--admin-space-5);
-}
-
-.admin-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--admin-space-4);
-  margin-block: var(--admin-space-4);
 }
 
 /* As on Visuals: a card is as wide as its column and no wider, and text wraps inside it and is never cut. The admin

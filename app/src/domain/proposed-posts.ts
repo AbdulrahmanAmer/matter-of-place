@@ -13,8 +13,14 @@ const disabledChannels = ["facebook", "youtube"] as const satisfies readonly Soc
 
 const postFormats = ["carousel", "single", "reel"] as const;
 
-/** The database enum `proposed_post_status`; `enums.check.ts` holds the pair. */
-const proposedPostStatuses = ["proposed", "rejected", "approved", "scheduled", "posted"] as const;
+/** The database enum `proposed_post_status`; `enums.check.ts` holds the pair. The Proposed posts screen lists them in its filter. */
+export const proposedPostStatuses = [
+  "proposed",
+  "rejected",
+  "approved",
+  "scheduled",
+  "posted",
+] as const;
 export type ProposedPostStatus = (typeof proposedPostStatuses)[number];
 
 /**
@@ -35,8 +41,8 @@ export function canMove(from: ProposedPostStatus, to: ProposedPostStatus): boole
   return proposedPostTransitions[from].includes(to);
 }
 
-/** The longest caption each channel takes, in characters. */
-const captionLimits: Record<ProposedChannel, number> = {
+/** The longest caption each channel takes, in characters; the Proposed posts screen counts a caption against it. */
+export const captionLimits: Record<ProposedChannel, number> = {
   instagram: 2200,
   x: 280,
   linkedin: 3000,

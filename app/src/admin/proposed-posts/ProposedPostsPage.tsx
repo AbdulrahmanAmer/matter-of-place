@@ -1,8 +1,9 @@
+import { proposedPostStatuses } from "../../domain/proposed-posts";
 import { useUrlFilters } from "../ui/use-url-filters";
 import { EmptyState } from "../ui/EmptyState";
 import { Field } from "../ui/Field";
 import { ProposedPostCard } from "./ProposedPostCard";
-import { proposedStatuses, proposedStatusLabels } from "./proposed-posts-contract";
+import { proposedStatusLabels } from "./proposed-posts-labels";
 import { proposedFilterNames, useProposedPosts } from "./proposed-posts-queries";
 
 /**
@@ -11,7 +12,11 @@ import { proposedFilterNames, useProposedPosts } from "./proposed-posts-queries"
  */
 export function ProposedPostsPage() {
   const filters = useUrlFilters(proposedFilterNames);
-  const posts = useProposedPosts(filters.values);
+  const posts = useProposedPosts({
+    ...filters.values,
+    ...(filters.cursor === null ? {} : { cursor: filters.cursor }),
+  });
+  const nextCursor = posts.data?.next_cursor ?? null;
   return (
     <>
       <h1>Proposed posts</h1>
@@ -19,7 +24,7 @@ export function ProposedPostsPage() {
         What the team proposes to post, as it will look on each channel. Nothing goes out until a
         person approves it.
       </p>
-      <form className="admin-filters" aria-label="Filter the proposed posts">
+      <form className="admin-toolbar" aria-label="Filter the proposed posts" data-print="hide">
         <Field label="Status">
           {(control) => (
             <select
@@ -30,7 +35,7 @@ export function ProposedPostsPage() {
               }}
             >
               <option value="">Every status</option>
-              {proposedStatuses.map((status) => (
+              {proposedPostStatuses.map((status) => (
                 <option key={status} value={status}>
                   {proposedStatusLabels[status]}
                 </option>
@@ -55,6 +60,28 @@ export function ProposedPostsPage() {
           <ProposedPostCard key={post.id} post={post} />
         ))}
       </div>
+      {filters.hasPrevious || nextCursor !== null ? (
+        <div className="admin-pager" data-print="hide">
+          <button
+            type="button"
+            className="admin-button admin-button--quiet"
+            disabled={!filters.hasPrevious}
+            onClick={filters.goPrevious}
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            className="admin-button admin-button--quiet"
+            disabled={nextCursor === null}
+            onClick={() => {
+              if (nextCursor !== null) filters.goNext(nextCursor);
+            }}
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
     </>
   );
 }

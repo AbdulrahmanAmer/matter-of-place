@@ -2,7 +2,9 @@ import { useState } from "react";
 import { LocalTime } from "../ui/LocalTime";
 import { useProposedPost } from "./proposed-posts-queries";
 
-/** The revisions of a post, read when the person opens them: who asked for each and what they wrote. */
+const reasonLabels = { rejected: "rejected", rerender: "sent to render again" } as const;
+
+/** The revisions of a post, read when the person opens them: why each was made, who asked and what they wrote. */
 export function PostHistory({ id }: { id: string }) {
   const [shown, setShown] = useState(false);
   const detail = useProposedPost(id, shown);
@@ -26,9 +28,9 @@ export function PostHistory({ id }: { id: string }) {
         <ol>
           {detail.data.revisions.map((revision) => (
             <li key={revision.revision}>
-              Revision {revision.revision}, asked by {revision.requested_by},{" "}
-              <LocalTime value={revision.created_at} />
-              {revision.note === null ? null : `: ${revision.note}`}
+              Revision {revision.revision}, {reasonLabels[revision.reason]} by{" "}
+              {revision.asked_by_kind === "human" ? "a person" : "an agent"},{" "}
+              <LocalTime value={revision.created_at} />: {revision.note}
             </li>
           ))}
         </ol>

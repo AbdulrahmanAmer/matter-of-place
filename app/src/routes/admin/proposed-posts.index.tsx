@@ -1,15 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { pageHead } from "../../lib/seo";
 
-// A shell (ruling H66): the page lives in `proposed-posts.index.lazy.tsx`, which the public entry never loads. The
-// search keeps the status filter; a status the screen does not know is dropped.
-const statuses = new Set(["proposed", "rejected", "approved", "scheduled", "posted"]);
-
+// A shell (ruling H66): the page lives in `src/admin/proposed-posts/ProposedPostsPage.tsx`, which the public entry
+// never loads. The status filter and the page cursor are read from the address by the page (`use-url-filters.ts`).
 export const Route = createFileRoute("/admin/proposed-posts/")({
-  validateSearch: (search: Record<string, unknown>) => {
-    const status = search["status"];
-    return { status: typeof status === "string" && statuses.has(status) ? status : undefined };
-  },
+  errorComponent: lazyRouteComponent(
+    () => import("../../admin/ui/AdminRouteError"),
+    "AdminRouteError",
+  ),
   head: () =>
     pageHead({
       title: "Proposed posts",
@@ -17,4 +15,8 @@ export const Route = createFileRoute("/admin/proposed-posts/")({
       path: "/admin/proposed-posts",
       noindex: true,
     }),
+  component: lazyRouteComponent(
+    () => import("../../admin/proposed-posts/ProposedPostsPage"),
+    "ProposedPostsPage",
+  ),
 });

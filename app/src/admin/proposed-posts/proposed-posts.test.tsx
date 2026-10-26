@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Outlet } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import type { AdminProposedPost } from "../../domain/proposed-posts";
 import { serveAdmin as serve } from "../../../tests/fixtures/admin-serve";
 import { standInForDialogs } from "../ui/test-dialog";
 import { mountRoutes, pageRoute } from "../ui/test-router";
@@ -8,16 +10,13 @@ import { AdminProviders } from "../ui/test-providers";
 import { ChannelPreview } from "./ChannelPreview";
 import { ProposedPostCard } from "./ProposedPostCard";
 import { ProposedPostsPage } from "./ProposedPostsPage";
-import {
-  proposedActions,
-  type ChannelPost,
-  type ProposedFile,
-  type ProposedPost,
-} from "./proposed-posts-contract";
+import { proposedActions, type PostChannel, type PostFileView } from "./proposed-posts-labels";
 
 const ID = "00000000-0000-4000-8000-0000000000f1";
 const LIST = "/api/admin/proposed-posts";
 const ALL = Object.values(proposedActions);
+// What a decision answers (item 10's `proposedPostDecisionSchema`).
+const DECIDED = { post_id: ID, revision: 1, event_ids: [], social_post_ids: [] };
 
 beforeAll(standInForDialogs);
 
@@ -26,19 +25,27 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const file = (name: string, over: Partial<ProposedFile> = {}): ProposedFile => ({
-  name,
+// A file as item 10's admin route answers it: a storage key, where it came from, its alt text and its address.
+const file = (name: string, over: Partial<PostFileView> = {}): PostFileView => ({
+  key: `fairfield/${name}`,
+  source: "studio",
+  original: null,
+  alt: `Alt of ${name}`,
+  w: 1080,
+  h: 1350,
+  bytes: 90_000,
   url: `/media/fairfield/${name}`,
-  alt: "",
   ...over,
 });
 
 const post = (
-  over: Partial<ChannelPost> & Pick<ChannelPost, "channel" | "format">,
-): ChannelPost => ({
+  over: Partial<PostChannel> & Pick<PostChannel, "channel" | "format">,
+): PostChannel => ({
   caption: "A quiet house on the creek.",
   images: [],
   reel: null,
+  asset_id: null,
+  social_post_id: null,
   ...over,
 });
 
@@ -71,24 +78,29 @@ const instagramReel = post({
   reel: { video: file("reel.mp4"), poster: file("poster.jpg") },
 });
 
-const proposed = (over: Partial<ProposedPost> = {}): ProposedPost => ({
+const proposed = (over: Partial<AdminProposedPost> = {}): AdminProposedPost => ({
   id: ID,
+  title: "Fairfield, CT",
+  property_id: null,
+  submission_id: null,
+  proposer_kind: "agent",
+  proposer_agent: "social",
+  proposer_user: null,
+  test: false,
   status: "proposed",
   revision: 1,
-  test: false,
-  proposer: "social",
-  subject_label: "Fairfield, CT",
   rejection_note: null,
+  approved_at: null,
   channels: [instagramCarousel, linkedinSingle, xSingle],
   created_at: "2026-10-16T09:00:00Z",
   updated_at: "2026-10-16T09:00:00Z",
   ...over,
 });
 
-const mount = (page: React.ReactNode, actions: string[] = ALL) =>
+const mount = (page: ReactNode, actions: string[] = ALL) =>
   render(<AdminProviders actions={actions}>{page}</AdminProviders>);
 
-const preview = (channel: ChannelPost) => {
+const preview = (channel: PostChannel) => {
   mount(<ChannelPreview post={channel} />);
   return screen.getByRole("region");
 };
@@ -152,7 +164,7 @@ describe("ChannelPreview", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
       ),
       alt: image.getAttribute("alt"),
-    }).toEqual({ pictureBeforeCaption: true, alt: "single.jpg" });
+    }).toEqual({ pictureBeforeCaption: true, alt: "Alt of single.jpg" });
   });
 
   it("plays a reel in a player with its poster", () => {
@@ -223,6 +235,30 @@ describe("ChannelPreview", () => {
     }).toEqual({ alert: "reel.mp4: file not found.", player: null });
   });
 
+  it("reads a reel's film head at once, so a film that is gone is found without a play", () => {
+    const region = preview(instagramReel);
+    expect(region.querySelector("video")?.getAttribute("preload")).toBe("metadata");
+  });
+
+  it("names a file by where it came from when it has a name there, else by its storage key", () => {
+    const region = within(
+      preview(
+        post({
+          channel: "linkedin",
+          format: "single",
+          images: [
+            file("a1b2c3.jpg", {
+              source: "drive",
+              original: "Studio/Fairfield/front elevation.jpg",
+            }),
+          ],
+        }),
+      ),
+    );
+    fireEvent.error(region.getByRole("img"));
+    expect(region.getByRole("alert").textContent).toBe("front elevation.jpg: file not found.");
+  });
+
   it("says so when a post has no picture or no film attached", () => {
     const { unmount } = render(<ChannelPreview post={post({ channel: "x", format: "single" })} />);
     const noPicture = screen.getByText("No picture attached.").tagName;
@@ -258,6 +294,25 @@ describe("ProposedPostCard", () => {
     });
   });
 
+  it("names a person who proposed it as a person, and a colleague by its slug", () => {
+    const { unmount } = render(
+      <AdminProviders actions={ALL}>
+        <ProposedPostCard
+          post={proposed({ proposer_kind: "human", proposer_agent: null, proposer_user: ID })}
+        />
+      </AdminProviders>,
+    );
+    const person = card().querySelector(".admin-asset__meta")?.textContent;
+    unmount();
+    mount(<ProposedPostCard post={proposed({ proposer_agent: "social" })} />);
+    expect({
+      person: person?.startsWith("Proposed by a person, revision 1"),
+      agent: card()
+        .querySelector(".admin-asset__meta")
+        ?.textContent.startsWith("Proposed by social,"),
+    }).toEqual({ person: true, agent: true });
+  });
+
   it("marks a test post TEST and a real one with no mark", () => {
     const { unmount } = render(
       <AdminProviders actions={ALL}>
@@ -271,11 +326,11 @@ describe("ProposedPostCard", () => {
   });
 
   it("approves after a confirmation and sends nothing on Cancel", async () => {
-    const requested = serve({ [`POST ${LIST}/${ID}/approve`]: { id: ID, status: "approved" } });
-    mount(<ProposedPostCard post={proposed()} />);
+    const requested = serve({ [`POST ${LIST}/${ID}/approve`]: DECIDED });
+    mount(<ProposedPostCard post={proposed({ revision: 3 })} />);
     fireEvent.click(decide("Approve"));
     const dialog = within(
-      screen.getByRole("dialog", { name: "Approve fairfield, ct, revision 1" }),
+      screen.getByRole("dialog", { name: "Approve fairfield, ct, revision 3" }),
     );
     fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
     // A write starts a tick after the click, so a request sent by the click shows only after the queue has run.
@@ -285,13 +340,14 @@ describe("ProposedPostCard", () => {
     const afterCancel = [...requested];
     fireEvent.click(decide("Approve"));
     fireEvent.click(
-      within(screen.getByRole("dialog", { name: "Approve fairfield, ct, revision 1" })).getByRole(
+      within(screen.getByRole("dialog", { name: "Approve fairfield, ct, revision 3" })).getByRole(
         "button",
         { name: "Approve" },
       ),
     );
+    // The revision the person saw goes with the approval: a newer one is refused as stale, not approved.
     await waitFor(() => {
-      expect(requested).toEqual([`POST ${LIST}/${ID}/approve`]);
+      expect(requested).toEqual([`POST ${LIST}/${ID}/approve {"revision":3}`]);
     });
     expect(afterCancel).toEqual([]);
   });
@@ -317,7 +373,7 @@ describe("ProposedPostCard", () => {
   });
 
   it("refuses a reject without a note and sends the note it is given", async () => {
-    const requested = serve({ [`POST ${LIST}/${ID}/reject`]: { id: ID, status: "rejected" } });
+    const requested = serve({ [`POST ${LIST}/${ID}/reject`]: DECIDED });
     mount(<ProposedPostCard post={proposed()} />);
     fireEvent.click(decide("Reject"));
     const dialog = within(screen.getByRole("dialog", { name: "Reject fairfield, ct, revision 1" }));
@@ -339,7 +395,7 @@ describe("ProposedPostCard", () => {
   });
 
   it("asks for a re-render with a note", async () => {
-    const requested = serve({ [`POST ${LIST}/${ID}/rerender`]: { id: ID, status: "proposed" } });
+    const requested = serve({ [`POST ${LIST}/${ID}/rerender`]: DECIDED });
     mount(<ProposedPostCard post={proposed()} />);
     fireEvent.click(decide("Ask for a re-render"));
     const dialog = within(
@@ -367,7 +423,7 @@ describe("ProposedPostCard", () => {
     ).toEqual(["Reject"]);
   });
 
-  it("offers an approved post no decision and a rejected post only a re-render, with its note", () => {
+  it("offers an approved or a rejected post no decision, and a rejected post shows its note", () => {
     const { unmount } = render(
       <AdminProviders actions={ALL}>
         <ProposedPostCard post={proposed({ status: "approved", channels: [xSingle] })} />
@@ -387,10 +443,10 @@ describe("ProposedPostCard", () => {
     expect({
       approved,
       rejected: within(card())
-        .getAllByRole("button")
+        .queryAllByRole("button")
         .map((button) => button.textContent),
       note: within(card()).getByText("Rejected: Listing declined").tagName,
-    }).toEqual({ approved: [], rejected: ["Ask for a re-render"], note: "P" });
+    }).toEqual({ approved: [], rejected: [], note: "P" });
   });
 
   it("reads the revisions only when the history is opened", async () => {
@@ -399,9 +455,12 @@ describe("ProposedPostCard", () => {
         ...proposed(),
         revisions: [
           {
-            revision: 2,
-            requested_by: "Maya",
+            revision: 1,
+            reason: "rejected",
             note: "Shorter caption",
+            asked_by: ID,
+            asked_by_kind: "human",
+            snapshot: {},
             created_at: "2026-10-16T10:00:00Z",
           },
         ],
@@ -413,7 +472,7 @@ describe("ProposedPostCard", () => {
     if (details === null) throw new Error("no history");
     details.open = true;
     fireEvent(details, new Event("toggle"));
-    expect((await within(card()).findByText(/asked by Maya/)).textContent).toContain(
+    expect((await within(card()).findByText(/rejected by a person/)).textContent).toContain(
       "Shorter caption",
     );
     expect({ before, requested }).toEqual({ before: [], requested: [`GET ${LIST}/${ID}`] });
@@ -439,7 +498,7 @@ describe("ProposedPostsPage", () => {
     const requested = open("/admin/proposed-posts/?status=rejected", {
       [`GET ${LIST}?status=rejected`]: {
         items: [proposed({ status: "rejected", test: true, rejection_note: "Listing declined" })],
-        total: 1,
+        next_cursor: null,
       },
     });
     const article = await screen.findByRole("article");
@@ -452,8 +511,26 @@ describe("ProposedPostsPage", () => {
   });
 
   it("says no post is waiting when the list is empty", async () => {
-    open("/admin/proposed-posts/", { [`GET ${LIST}`]: { items: [], total: 0 } });
+    open("/admin/proposed-posts/", { [`GET ${LIST}`]: { items: [], next_cursor: null } });
     expect(await screen.findByText("No proposed posts")).toBeTruthy();
+  });
+
+  it("pages the posts: Next opens the page after the cursor, Previous goes back, and the last page has no Next", async () => {
+    const cursor = `2026-10-16T09:00:00.000Z~${ID}`;
+    const second = `GET ${LIST}?${new URLSearchParams({ cursor }).toString()}`;
+    const requested = open("/admin/proposed-posts/", {
+      [`GET ${LIST}`]: { items: [proposed()], next_cursor: cursor },
+      [second]: { items: [proposed({ title: "Second page post" })], next_cursor: null },
+    });
+    await screen.findByRole("article", { name: "Fairfield, CT, revision 1" });
+    expect(screen.getByRole("button", { name: "Previous" })).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByRole("article", { name: "Second page post, revision 1" });
+    expect(requested).toContain(second);
+    expect(screen.getByRole("button", { name: "Next" })).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await screen.findByRole("article", { name: "Fairfield, CT, revision 1" });
+    expect(screen.queryByRole("article", { name: "Second page post, revision 1" })).toBeNull();
   });
 
   it("shows the server's message when the list does not load", async () => {

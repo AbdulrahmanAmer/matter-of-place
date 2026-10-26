@@ -8,7 +8,7 @@ import {
   rerenderProposedPost,
 } from "./proposed-posts-api";
 
-/** The filter of the screen that lives in the address. */
+/** The filter of the screen that lives in the address (the page's cursor lives there too, `use-url-filters.ts`). */
 export const proposedFilterNames = ["status"] as const;
 
 export function useProposedPosts(query: Readonly<Record<string, string>>) {
@@ -36,7 +36,9 @@ function useDecision<Variables, Answer>(write: (variables: Variables) => Promise
 }
 
 export function useApprovePost() {
-  return useDecision(approveProposedPost);
+  return useDecision(({ id, revision }: { id: string; revision: number }) =>
+    approveProposedPost(id, revision),
+  );
 }
 
 export function useRejectPost() {

@@ -4,11 +4,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { AssetCards } from "../../src/admin/assets/AssetCards";
 import { ProposedPostCard } from "../../src/admin/proposed-posts/ProposedPostCard";
 import type {
-  ChannelPost,
-  ProposedPost,
-} from "../../src/admin/proposed-posts/proposed-posts-contract";
+  PostChannel,
+  PostFileView,
+} from "../../src/admin/proposed-posts/proposed-posts-labels";
 import { AdminProviders } from "../../src/admin/ui/test-providers";
 import type { AdminAsset } from "../../src/domain/admin-assets";
+import type { AdminProposedPost } from "../../src/domain/proposed-posts";
 
 // The screens `scripts/admin-shot.ts` draws: the real components with captions as long as a real one, a reel and a
 // 3,000-character LinkedIn post, over files it makes itself under `.tmp/shots` (see that script). Each scene names the
@@ -25,9 +26,9 @@ const ACTIONS = [
   "assets.reject",
   "assets.re_render",
   "assets.caption",
-  "proposed_posts.approve",
-  "proposed_posts.reject",
-  "proposed_posts.re_render",
+  "channels.proposed_approve",
+  "channels.proposed_reject",
+  "channels.proposed_rerender",
 ];
 
 function asset(
@@ -118,54 +119,60 @@ const visuals: AdminAsset[] = [
   }),
 ];
 
-/** A picture named `name` for the person, drawn from the file `on` of `.tmp/shots`. */
-const picture = (name: string, w: number, h: number, on = name) => ({
-  name,
-  url: url(on),
-  alt: "",
+/** A picture stored under `key`, drawn from the file `on` of `.tmp/shots`. */
+const picture = (key: string, w: number, h: number, on = key): PostFileView => ({
+  key: `shots/${key}`,
+  source: "studio",
+  original: null,
+  alt: `A stone house under oaks (${key})`,
   w,
   h,
+  bytes: 90_000,
+  url: url(on),
 });
 
-const channels: ChannelPost[] = [
-  {
-    channel: "instagram",
-    format: "carousel",
-    caption: LONG,
+const post = (
+  channel: PostChannel["channel"],
+  format: PostChannel["format"],
+  caption: string,
+  rest: Partial<Pick<PostChannel, "images" | "reel">>,
+): PostChannel => ({
+  channel,
+  format,
+  caption,
+  images: [],
+  reel: null,
+  asset_id: null,
+  social_post_id: null,
+  ...rest,
+});
+
+const channels: PostChannel[] = [
+  post("instagram", "carousel", LONG, {
     images: [1, 2, 3].map((n) => picture(`slide-${String(n)}.jpg`, 1080, 1350, "slide.jpg")),
-    reel: null,
-  },
-  {
-    channel: "instagram",
-    format: "reel",
-    caption: "Not every home is for sale.",
-    images: [],
+  }),
+  post("instagram", "reel", "Not every home is for sale.", {
     reel: { video: picture("reel.mp4", 1080, 1920), poster: picture("poster.jpg", 1080, 1920) },
-  },
-  {
-    channel: "linkedin",
-    format: "single",
-    caption: LONG.repeat(6),
-    images: [picture("cover.jpg", 1200, 630)],
-    reel: null,
-  },
-  {
-    channel: "x",
-    format: "single",
-    caption: `${LONG.slice(0, 200)} ${"a".repeat(120)}`,
+  }),
+  post("linkedin", "single", LONG.repeat(6), { images: [picture("cover.jpg", 1200, 630)] }),
+  post("x", "single", `${LONG.slice(0, 200)} ${"a".repeat(120)}`, {
     images: [picture("missing-cover.jpg", 1200, 630)],
-    reel: null,
-  },
+  }),
 ];
 
-const proposed = (id: string, over: Partial<ProposedPost>): ProposedPost => ({
+const proposed = (id: string, over: Partial<AdminProposedPost>): AdminProposedPost => ({
   id,
+  title: "Fairfield, CT",
+  property_id: null,
+  submission_id: null,
+  proposer_kind: "agent",
+  proposer_agent: "social",
+  proposer_user: null,
+  test: true,
   status: "proposed",
   revision: 1,
-  test: true,
-  proposer: "social",
-  subject_label: "Fairfield, CT",
   rejection_note: null,
+  approved_at: null,
   channels,
   created_at: "2026-10-16T09:00:00Z",
   updated_at: "2026-10-16T09:00:00Z",
