@@ -196,6 +196,7 @@ function PropertyDossier({ data }: { data: Dossier }) {
             <Link to="/$market/$region" params={{ market: market.slug, region: region.slug }}>
               {region.name}
             </Link>
+            <span aria-current="page">{property.title}</span>
           </Breadcrumb>
           <div className="dossier-actions">
             <button

@@ -11,7 +11,7 @@ import { applyFilters, useFilters } from "../hooks/use-filters";
 import { useTrackView } from "../hooks/use-track-view";
 import { propertiesIn } from "../lib/catalog";
 import { marketQuery, propertiesQuery } from "../lib/queries";
-import { breadcrumbLd, collectionLd } from "../lib/jsonld";
+import { breadcrumbLd, collectionLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { indexable, pageHead, unavailableHead } from "../lib/seo";
 import { regionDescription } from "../lib/seo-copy";
@@ -22,6 +22,15 @@ const legacyRegions: Record<string, string> = {
   "san-diego": "la-jolla",
   "south-florida": "fort-lauderdale",
 };
+
+const regionTrail = (
+  market: { name: string; slug: string },
+  region: { name: string; slug: string },
+): Crumb[] => [
+  { name: "Markets", path: "/markets" },
+  { name: market.name, path: `/${market.slug}` },
+  { name: region.name, path: `/${market.slug}/${region.slug}` },
+];
 
 export const Route = createFileRoute("/_site/$market/$region")({
   beforeLoad: ({ params }) => {
@@ -75,11 +84,7 @@ export const Route = createFileRoute("/_site/$market/$region")({
           path,
           pool.map((property) => ({ name: property.title, path: `/property/${property.slug}` })),
         ),
-        breadcrumbLd([
-          { name: "Markets", path: "/markets" },
-          { name: market.name, path: `/${market.slug}` },
-          { name: region.name, path },
-        ]),
+        breadcrumbLd(regionTrail(market, region)),
       ],
     });
   },
@@ -110,11 +115,13 @@ function RegionPage() {
     <main>
       {market.comingSoon || region.image === undefined ? (
         <PageIntro
+          trail={regionTrail(market, region)}
           eyebrow={`${market.name.toUpperCase()}, ${market.country.toUpperCase()}`}
           title={region.name}
         />
       ) : (
         <ImageHero
+          trail={regionTrail(market, region)}
           image={region.image}
           alt={`Architecture in ${region.name}`}
           eyebrow={`${market.name.toUpperCase()}, ${market.country.toUpperCase()}`}

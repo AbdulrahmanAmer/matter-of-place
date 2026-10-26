@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { siteConfig } from "../config/site";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
-import { breadcrumbLd } from "../lib/jsonld";
+import { breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
+
+const trail: Crumb[] = [{ name: "About", path: "/about" }];
 
 export const Route = createFileRoute("/_site/about")({
   head: ({ matches }) =>
@@ -14,7 +16,7 @@ export const Route = createFileRoute("/_site/about")({
       description: pageDescription("about"),
       path: "/about",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [breadcrumbLd([{ name: "About", path: "/about" }])],
+      jsonLd: [breadcrumbLd(trail)],
     }),
   component: AboutPage,
 });
@@ -22,7 +24,7 @@ export const Route = createFileRoute("/_site/about")({
 function AboutPage() {
   return (
     <main>
-      <PageIntro eyebrow="ABOUT" title="Real estate is not simply inventory." />
+      <PageIntro trail={trail} eyebrow="ABOUT" title="Real estate is not simply inventory." />
 
       <div className="copy-page">
         <section className="about-intro">

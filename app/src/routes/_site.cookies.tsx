@@ -2,13 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { cookieInventory, type CookieCategory } from "../config/cookies";
 import { siteConfig } from "../config/site";
-import { breadcrumbLd } from "../lib/jsonld";
+import { breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { legalIdentity } from "../lib/legal-identity";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
+
+const trail: Crumb[] = [{ name: t.cookies.title, path: "/cookies" }];
 
 export const Route = createFileRoute("/_site/cookies")({
   head: ({ matches }) =>
@@ -17,7 +19,7 @@ export const Route = createFileRoute("/_site/cookies")({
       description: pageDescription("cookies"),
       path: "/cookies",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [breadcrumbLd([{ name: t.cookies.title, path: "/cookies" }])],
+      jsonLd: [breadcrumbLd(trail)],
     }),
   component: CookiesPage,
 });
@@ -31,7 +33,7 @@ function CookiesPage() {
   const identity = legalIdentity(useSite().legal);
   return (
     <main>
-      <PageIntro eyebrow="PRIVACY" title={t.cookies.title} text={t.cookies.intro} />
+      <PageIntro trail={trail} eyebrow="PRIVACY" title={t.cookies.title} text={t.cookies.intro} />
       <div className="copy-page">
         <h2>Who we are</h2>
         <p>

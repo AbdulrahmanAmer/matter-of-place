@@ -3,13 +3,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageIntro } from "../components/site/page-intro";
 import { TextLink } from "../components/site/text-link";
 import { siteConfig } from "../config/site";
-import { breadcrumbLd } from "../lib/jsonld";
+import { breadcrumbLd, type Crumb } from "../lib/jsonld";
 import { legalIdentity } from "../lib/legal-identity";
 import { ogImageFor, ogStaticOf } from "../lib/og";
 import { useSite } from "../lib/queries";
 import { pageHead } from "../lib/seo";
 import { pageDescription } from "../lib/seo-copy";
 import { t } from "../lib/strings";
+
+const trail: Crumb[] = [{ name: "Legal", path: "/legal" }];
 
 export const Route = createFileRoute("/_site/legal")({
   head: ({ matches }) =>
@@ -18,7 +20,7 @@ export const Route = createFileRoute("/_site/legal")({
       description: pageDescription("legal"),
       path: "/legal",
       image: ogImageFor({ key: "default", ogStatic: ogStaticOf(matches) }),
-      jsonLd: [breadcrumbLd([{ name: "Legal", path: "/legal" }])],
+      jsonLd: [breadcrumbLd(trail)],
     }),
   component: LegalPage,
 });
@@ -34,7 +36,7 @@ function LegalPage() {
   }, [navigate]);
   return (
     <main>
-      <PageIntro
+      <PageIntro trail={trail}
         eyebrow="NOTICES"
         title="Legal"
         text="Plain statements about what this site is, what it is not, and how information is treated."
