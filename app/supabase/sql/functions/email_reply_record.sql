@@ -19,7 +19,7 @@ declare
   v_owners text[];
   v_owner text;
   v_id uuid;
-  v_line uuid;
+  v_event uuid;
   v_text text;
 begin
   -- W4 (operator, 2026-10-13): a reply to an email we sent, read from the Zoho mailbox by the laptop runner
@@ -66,20 +66,25 @@ begin
   if v_owner is null then
     return v_id;
   end if;
-  -- The reply wakes its owner once through a system line that names it and carries none of its text, not even the
-  -- sender's address (W8 0b): the runner reads the reply from email_replies, has a call with no tools triage it, and
-  -- shows the owner only the triage (scripts/workforce/triage.ts). The text stays here for a person to read. Our own
-  -- email's subject is ours. A system line never gives full power (matterPower in scripts/matter/run.ts), and an
-  -- answer is only ever a proposal.
+  -- W6 item 5: the reply is the event email.reply_received, which names the row and the source it answers and
+  -- carries none of its text, not even the sender's address (W8 0b). The owner's run is queued with that event: the
+  -- runner reads the reply from email_replies, has a call with no tools triage it, and shows the owner only the
+  -- triage (scripts/workforce/triage.ts; `sourceOf` maps the event to the email_reply source). Its answer is only
+  -- ever a proposal in Approvals. The text stays here for a person to read. A line in the owner's thread tells the
+  -- team a reply came in; our own email's subject is ours, and the line wakes no one.
+  v_event := public.emit_event(
+    'email.reply_received', 'email_reply', v_id,
+    jsonb_build_object('reply_id', v_id, 'entity', v_send.entity, 'entity_id', v_send.entity_id)
+  );
   v_text := format(
     'An email reply arrived about our email "%s" (reply %s). You are shown it only as its triage.',
     regexp_replace(left(coalesce(v_send.subject, ''), 200), '(<<<|>>>)', '', 'g'), v_id
   );
   insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
-  values (v_owner, 'system', 'email', 'Email reply', v_text)
-  returning id into v_line;
-  insert into public.agent_runs (agent_id, cause, message_id)
-  select a.id, 'message', v_line from public.agents a where a.slug = v_owner;
+  values (v_owner, 'system', 'email', 'Email reply', v_text);
+  insert into public.agent_runs (agent_id, cause, event_id)
+  select a.id, 'event', v_event from public.agents a where a.slug = v_owner
+  on conflict do nothing;
   return v_id;
 end;
 $$;
