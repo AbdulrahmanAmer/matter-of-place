@@ -61,12 +61,13 @@ function hasAbsoluteHttpsUrl({ url }: PageImage): boolean {
   }
 }
 
-type Node = Record<string, unknown>;
+/** One field of a JSON-LD node, read without narrowing its type. */
+const field = (node: JsonLdObject, key: string): unknown => Reflect.get(node, key);
 
 /** A FAQ page has no builder that knows its address, so its node takes the page's `#primary` id here. */
 function withPrimaryId(nodes: JsonLdObject[], canonical: string): JsonLdObject[] {
   return nodes.map((node) =>
-    (node as Node)["@type"] === "FAQPage" && (node as Node)["@id"] === undefined
+    field(node, "@type") === "FAQPage" && field(node, "@id") === undefined
       ? { "@id": `${canonical}#primary`, ...node }
       : node,
   );
@@ -77,7 +78,7 @@ function webPageNode(
   page: { canonical: string; title: string; description: string },
   nodes: JsonLdObject[],
 ) {
-  const has = (id: string) => nodes.some((node) => (node as Node)["@id"] === id);
+  const has = (id: string) => nodes.some((node) => field(node, "@id") === id);
   const link = (id: string) => (has(id) ? { "@id": id } : undefined);
   const breadcrumb = link(`${page.canonical}#breadcrumb`);
   const mainEntity = link(`${page.canonical}#primary`);

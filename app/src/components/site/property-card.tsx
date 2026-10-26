@@ -43,13 +43,7 @@ export function PropertyCard({
   );
 }
 
-export function PropertyGrid({
-  items,
-  level = 3,
-}: {
-  items: PropertyCardData[];
-  level?: 2 | 3;
-}) {
+export function PropertyGrid({ items, level = 3 }: { items: PropertyCardData[]; level?: 2 | 3 }) {
   return (
     <div className="property-grid">
       {items.map((property) => (

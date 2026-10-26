@@ -55,7 +55,8 @@ export function loadRedirectMap(catalog: RedirectSources): Map<string, Target> {
       status = status === 302 || next.status === 302 ? 302 : 301;
       final = next;
     }
-    if (final !== first && !seen.has(normalize(final.to))) map.set(source, { to: final.to, status });
+    if (final !== first && !seen.has(normalize(final.to)))
+      map.set(source, { to: final.to, status });
   }
   return map;
 }

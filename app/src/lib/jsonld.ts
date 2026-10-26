@@ -50,7 +50,7 @@ export type Crumb = { name: string; path: string };
 /** The trail after Home, which is always the first item (position 1). The last crumb is the page itself, which names the `@id`. */
 export function breadcrumbLd(trail: Crumb[]): BreadcrumbList {
   const items: Crumb[] = [{ name: "Home", path: "/" }, ...trail];
-  const page = items[items.length - 1] as Crumb;
+  const page = trail.at(-1) ?? { name: "Home", path: "/" };
   return {
     "@type": "BreadcrumbList",
     "@id": `${absoluteUrl(page.path)}#breadcrumb`,

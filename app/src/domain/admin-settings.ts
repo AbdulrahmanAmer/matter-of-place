@@ -176,10 +176,19 @@ export type RedirectArchived = z.infer<typeof redirectArchivedSchema>;
 
 // A path on this site (SEC-003): `/` then a character that is not a slash or backslash, printable ASCII only
 // (a browser drops tabs and line breaks and reads `\` as `/`), and no encoded slash or backslash right after the `/`.
-const sitePath = (path: string) => /^\/(?![/\\])[\x21-\x7e]*$/.test(path) && !/^\/(?:%2f|%5c)/i.test(path);
+const sitePath = (path: string) =>
+  /^\/(?![/\\])[\x21-\x7e]*$/.test(path) && !/^\/(?:%2f|%5c)/i.test(path);
 
 /** Files and prefixes the site itself answers with a 200; a redirect runs before routing and would hide them. */
-const systemPaths = ["/", "/robots.txt", "/sitemap.xml", "/llms.txt", "/llms-full.txt", "/feed.xml", "/feed.json"];
+const systemPaths = [
+  "/",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/llms.txt",
+  "/llms-full.txt",
+  "/feed.xml",
+  "/feed.json",
+];
 const systemPrefixes = ["/media/", "/.well-known/"];
 const isSystemPath = (path: string) =>
   systemPaths.includes(path) || systemPrefixes.some((prefix) => path.startsWith(prefix));
@@ -214,7 +223,9 @@ export function redirectSchema(active: readonly RedirectRow[]) {
     else if (from.startsWith("/admin") || from === "/api" || from.startsWith("/api/")) {
       refuse("Admin and API addresses cannot be redirected.");
     } else if (isSystemPath(from)) {
-      refuse("The home page, crawler files, feeds, media and .well-known addresses cannot be redirected.");
+      refuse(
+        "The home page, crawler files, feeds, media and .well-known addresses cannot be redirected.",
+      );
     } else if (from.includes("?")) refuse("The old address cannot carry a query string.");
     else if (!sitePath(row.to_path)) refuse("The new address must be a path on this site.");
     else if (row.to_path === from) refuse("A redirect cannot point to itself.");
@@ -226,9 +237,13 @@ export function redirectSchema(active: readonly RedirectRow[]) {
     else if (row.to_path.length > 1 && row.to_path.endsWith("/")) {
       refuse("The new address cannot end in a slash: the site would redirect it a second time.");
     } else if (others.some((other) => other.from_path === row.to_path)) {
-      refuse("The new address is itself redirected. Point to the final address so visitors take one step.");
+      refuse(
+        "The new address is itself redirected. Point to the final address so visitors take one step.",
+      );
     } else if (others.some((other) => other.to_path === from)) {
-      refuse("Another redirect already leads to this old address. Point that one at the final address first.");
+      refuse(
+        "Another redirect already leads to this old address. Point that one at the final address first.",
+      );
     }
   });
 }
