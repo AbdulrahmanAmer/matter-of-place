@@ -185,7 +185,6 @@ describe("web addresses a person may store (SEC-002)", () => {
     "data:text/html,<script>alert(1)</script>",
     "vbscript:msgbox(1)",
     "file:///etc/passwd",
-    "http://example.test/listing",
     "ftp://example.test/listing",
     "https://user:secret@example.test/listing",
     "//example.test/listing",
@@ -207,18 +206,17 @@ describe("web addresses a person may store (SEC-002)", () => {
   );
 
   it.each(fields)(
-    "submissionSchema takes an https address in %s, trimmed, and an empty one as absent",
+    "submissionSchema takes an http or https address in %s, trimmed, and an empty one as absent",
     (field) => {
-      const parsed = submissionSchema.parse({
-        ...validSubmission(),
-        [field]: "  https://example.test/mls/1?x=1  ",
-      });
-      expect(parsed[field]).toBe("https://example.test/mls/1?x=1");
+      for (const address of ["https://example.test/mls/1?x=1", "http://example.test/mls/1"]) {
+        const parsed = submissionSchema.parse({ ...validSubmission(), [field]: `  ${address}  ` });
+        expect(parsed[field]).toBe(address);
+      }
       expect(submissionSchema.parse({ ...validSubmission(), [field]: "" })[field]).toBeUndefined();
     },
   );
 
-  it("the property editor's listing_url takes https or null and refuses every other scheme", () => {
+  it("the property editor's listing_url takes http, https or null, no other scheme", () => {
     const patch = (listing_url: unknown) =>
       propertyUpdateInputSchema.safeParse({
         id: "00000000-0000-4000-8000-0000000000b1",
@@ -226,6 +224,7 @@ describe("web addresses a person may store (SEC-002)", () => {
         patch: { listing_url },
       });
     expect(patch("https://listing.example.test/12").success).toBe(true);
+    expect(patch("http://listing.example.test/12").success).toBe(true);
     expect(patch(null).success).toBe(true);
     for (const value of unsafe) expect([value, patch(value).success]).toEqual([value, false]);
   });

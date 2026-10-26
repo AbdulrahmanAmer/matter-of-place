@@ -3,11 +3,11 @@ import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 import { decisionAnswerSchema } from "./admin-submissions.ts";
 import {
   editorialStates,
-  httpsUrl,
   propertyTypes,
   slugPattern,
   submissionStates,
   submitterKinds,
+  webUrl,
 } from "./contracts.ts";
 import { marketSlugSchema } from "./market.ts";
 import { propertySchema } from "./property.ts";
@@ -166,7 +166,7 @@ const propertyFieldsSchema = z.object({
   place: nullableText(4000),
   representative_id: uuid.nullable(),
   presented_by_owner: z.boolean(),
-  listing_url: httpsUrl.nullable(),
+  listing_url: webUrl.nullable(),
   editorial_state: z.enum(["draft", "review"]),
 });
 
