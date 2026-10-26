@@ -36,11 +36,13 @@ begin
     raise exception 'reel_files_missing' using errcode = '23514';
   end if;
   v_seconds := round((v_asset.meta ->> 'duration_s')::numeric)::int;
+  -- `uploadedAt` is the moment of attaching, in UTC: the VideoObject's uploadDate, which is never guessed (C02).
   v_film := jsonb_build_object(
     'src', v_video,
     'poster', v_poster,
     'caption', coalesce(v_asset.alt_text, 'Film of ' || v_property.title),
-    'duration', format('%s:%s', v_seconds / 60, lpad((v_seconds % 60)::text, 2, '0'))
+    'duration', format('%s:%s', v_seconds / 60, lpad((v_seconds % 60)::text, 2, '0')),
+    'uploadedAt', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
   );
   update public.properties set video = v_film where id = p_property;
   -- A system row (G43): the approver is on the assets.approve row of the same transaction, and write_audit refuses a
