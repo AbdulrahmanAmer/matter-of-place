@@ -178,6 +178,12 @@ export type RedirectArchived = z.infer<typeof redirectArchivedSchema>;
 // (a browser drops tabs and line breaks and reads `\` as `/`), and no encoded slash or backslash right after the `/`.
 const sitePath = (path: string) => /^\/(?![/\\])[\x21-\x7e]*$/.test(path) && !/^\/(?:%2f|%5c)/i.test(path);
 
+/** Files and prefixes the site itself answers with a 200; a redirect runs before routing and would hide them. */
+const systemPaths = ["/", "/robots.txt", "/sitemap.xml", "/llms.txt", "/llms-full.txt", "/feed.xml", "/feed.json"];
+const systemPrefixes = ["/media/", "/.well-known/"];
+const isSystemPath = (path: string) =>
+  systemPaths.includes(path) || systemPrefixes.some((prefix) => path.startsWith(prefix));
+
 /** True when following `to_path` through the other active rows comes back to `from_path`. */
 function closesLoop(row: RedirectPutInput, active: readonly RedirectRow[]): boolean {
   const next = new Map(
@@ -207,6 +213,8 @@ export function redirectSchema(active: readonly RedirectRow[]) {
     if (!sitePath(from)) refuse("The old address must be a path on this site.");
     else if (from.startsWith("/admin") || from === "/api" || from.startsWith("/api/")) {
       refuse("Admin and API addresses cannot be redirected.");
+    } else if (isSystemPath(from)) {
+      refuse("The home page, crawler files, feeds, media and .well-known addresses cannot be redirected.");
     } else if (from.includes("?")) refuse("The old address cannot carry a query string.");
     else if (!sitePath(row.to_path)) refuse("The new address must be a path on this site.");
     else if (row.to_path === from) refuse("A redirect cannot point to itself.");
