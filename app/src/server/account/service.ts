@@ -1,4 +1,4 @@
-import { isAuthRetryableFetchError } from "@supabase/supabase-js";
+import { isAuthRetryableFetchError, type PostgrestError } from "@supabase/supabase-js";
 import { z } from "zod";
 import {
   accountCreditsSchema,
@@ -24,7 +24,6 @@ import { clientIp, hashKey } from "../lib/ids.ts";
 import { enqueueJob } from "../lib/jobs.ts";
 import { logLine } from "../lib/log.ts";
 import { checkDb, checkMemory } from "../lib/ratelimit.ts";
-import type { PostgrestError } from "@supabase/supabase-js";
 import { authClient, getSessionUser, takeIssuedCookies } from "../lib/session.ts";
 import { signUpload } from "../submissions/service.ts";
 import { verifyTurnstile } from "../lib/turnstile.ts";

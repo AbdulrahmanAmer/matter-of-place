@@ -1327,14 +1327,14 @@ isOneToOne: false
                   ]
                 },"submission_media": {
                   Row: {
-                    "bytes": number | null,"id": string,"mime": string | null,"name": string,"sha256": string | null,"sort_order": number,"source_url": string | null,"storage_path": string,"submission_id": string,"uploaded_at": string | null
+                    "bytes": number | null,"declared_at": string,"id": string,"mime": string | null,"name": string,"sha256": string | null,"sort_order": number,"source_url": string | null,"storage_path": string,"submission_id": string,"uploaded_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "bytes"?: number | null,"id"?: string,"mime"?: string | null,"name": string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path": string,"submission_id": string,"uploaded_at"?: string | null
+                    "bytes"?: number | null,"declared_at"?: string,"id"?: string,"mime"?: string | null,"name": string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path": string,"submission_id": string,"uploaded_at"?: string | null
                   }
                   Update: {
-                    "bytes"?: number | null,"id"?: string,"mime"?: string | null,"name"?: string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path"?: string,"submission_id"?: string,"uploaded_at"?: string | null
+                    "bytes"?: number | null,"declared_at"?: string,"id"?: string,"mime"?: string | null,"name"?: string,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path"?: string,"submission_id"?: string,"uploaded_at"?: string | null
                   }
                   Relationships: [
                     {

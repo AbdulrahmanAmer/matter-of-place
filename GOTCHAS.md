@@ -8121,6 +8121,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
   `node '/e/Matter Of Place/app/scripts/load-env.mjs' --profile dev` for anything that is not a db test.
 - proof: `sed -n 210,225p .github/workflows/ci.yml` shows `bun run test:db` and `watchfail.mjs ... --kinds unit,sql` in
   the `db` job; the local run above ends `refusing: production database` at `scripts/lib/assert-not-production.mjs:60`.
+- hit again: 2026-10-26, W6 item 8 fix round: the P-312 prelude run of three new migrations from a worktree first loaded nothing (no `.env`), then refused as production. The dry run that worked: `initdb` a throwaway cluster in the temp folder, apply a stub file naming only the roles, types, tables and functions the migrations use, apply the migrations with `ON_ERROR_STOP=1`, and probe each behaviour with psql; the db tests themselves wait for CI.
 - hit again: 2026-10-15, email houses (PR 426): the local `--changed origin/main` replay selected the file entry
   `b11-g3-market-open-seed-differs` (its target, `market-open.tsx`, changed; its run is `vitest --project db`) and it
   came out `BAD: wrong reason`, the red run ending in `refusing: ops variables in this shell CLOUDFLARE_API_TOKEN`
@@ -8828,6 +8829,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -n "properties_published_pairing" app/supabase/migrations/20261001090300_catalog.sql` → line 162; `tests/db/client-credits.db.test.ts` case "a property that is not published has no live page" passes.
 - added: 2026-10-19
 
+## P-4606 · Main's newest migration can be stamped ahead of the clock, so `bun run db:fn` writes a version older than it
+- symptom: 2026-10-26 09:16 UTC, W6 item 8 fix round: main's newest migrations were `20261026120000_build_lessons.sql` and `20261026120100_build_lesson_fn.sql` (written by hand ahead of UTC), and `bun run db:fn --name fn_client_credits_account ...` wrote `20261026091648_fn_client_credits_account.sql`, which `node scripts/check-migrations.mjs` refuses (`rename ... to a timestamp after 20261026120100`).
+- cause: `supabase migration new` stamps the current UTC time; the order check compares with the newest version on origin/main, whatever clock wrote it.
+- rule: before adding a migration, `git ls-tree --name-only origin/main app/supabase/migrations/ | tail -2`; when the newest is ahead of `date -u +%Y%m%d%H%M%S`, name new table migrations after it by hand and rename the file `db:fn` writes to the next free version after them (its text does not name its own version), keeping the order the SQL needs.
+- proof: `git ls-tree --name-only origin/main app/supabase/migrations/ | tail -2` → `...120000_build_lessons.sql`, `...120100_build_lesson_fn.sql` while `date -u` said 09:16; this branch's three migrations are `20261026120200`, `120300` and `120400`.
+- added: 2026-10-26
+
 ## P-3709 · A one-line `sed` fix of code leaves the registry entry that names that line stale, and CI's replay finds it 25 minutes later
 - symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
 - rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
@@ -9070,6 +9078,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: each builder picked "the next free number" from the tree it had; no tree sees the others'.
 - rule: before writing a ruling number list every one used on origin/main and on every origin/overdrive/* branch (`git show <branch>:workspace/05-plans/ASSUMED.md | grep -o '^| H1[0-9][0-9] |'`) and take one above them all; after a merge of main, count the rows again.
 - proof: `for b in $(git branch -r | grep origin/overdrive/); do git show $b:workspace/05-plans/ASSUMED.md | grep -o '^| H1[3-9][0-9] |'; done | sort | uniq -c` printed H135 twice, H136 twice and H137 once on 2026-10-19, so this ruling is H138.
+- hit again: 2026-10-26, W6 item 8 fix round: the branch's H137 (2026-10-19) met main's H137 (W8 item 1) at the merge of main; the same loop over origin/main and every origin/overdrive/* branch printed H141 as the highest, so the room's ruling became H142 and every citation in the branch's own files was repointed (W8's citations of main's H137 stay).
 - added: 2026-10-19
 
 ## P-4553 · A conflict resolved by an Edit of its first two markers keeps the third, and the merge commit carries it

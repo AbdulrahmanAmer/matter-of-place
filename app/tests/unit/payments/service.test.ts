@@ -437,6 +437,24 @@ describe("waiveWithoutInvoice (DL-01)", () => {
     expect(fanout).not.toHaveBeenCalled();
   });
 
+  it("answers 409 not_five_features, in words, when the request chose another package", async () => {
+    const words =
+      "This request chose another package, so a Five Features credit cannot be spent on it.";
+    const db = paymentsDb({
+      spend_client_credit: () =>
+        Object.assign(new Error("not_five_features"), { code: "P0001", details: words }),
+    });
+    const waive = () =>
+      waiveWithoutInvoice(editor, db, {
+        id: SUBMISSION_ID,
+        product: "Five Features",
+        reason: "Five Features credit",
+      });
+    expect(await refusal(waive())).toBe("409 not_five_features");
+    await expect(waive()).rejects.toThrow(words);
+    expect(fanout).not.toHaveBeenCalled();
+  });
+
   it("refuses Not sure yet and a 2-character reason with 422", async () => {
     const db = paymentsDb({ record_waiver: wrote });
     const outcomes = [

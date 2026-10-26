@@ -60,7 +60,7 @@ const row = (id: string, path: string, minutesAgo: number) => ({
   mime: null,
   sha256: null,
   source_url: null,
-  submissions: { received_at: new Date(NOW - minutesAgo * MINUTE).toISOString() },
+  declared_at: new Date(NOW - minutesAgo * MINUTE).toISOString(),
 });
 
 function setup(download: (path: string) => unknown) {

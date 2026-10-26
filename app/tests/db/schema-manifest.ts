@@ -330,6 +330,8 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     sort_order: "integer",
     // W9 item 4: where a pulled photograph came from; null for an upload.
     source_url: "text?",
+    // W6 item 8: when the photograph was declared; the reconcile job ages a waiting row by it.
+    declared_at: "timestamptz",
   },
   inquiries: {
     id: "uuid",

@@ -43,13 +43,13 @@ async function clear(db: Db): Promise<void> {
   await db.query("begin");
   try {
     await db.query("select set_config('mop.retention', 'on', true)");
-    // The ledger is append-only for everyone; a cleanup of fixtures is the one thing that may empty it.
-    await db.query("alter table public.client_credits disable trigger client_credits_immutable");
+    // The ledger is append-only for everyone; a cleanup of fixtures that asks is the one delete its trigger lets
+    // through, never on the production database (H35). No trigger is disabled on the shared project.
+    await db.query("select set_config('mop.fixture_cleanup', 'on', true)");
     await db.query(
       "delete from public.client_credits where payment_id in (select id from public.payments where submission_id = any($1::uuid[]))",
       [ids],
     );
-    await db.query("alter table public.client_credits enable trigger client_credits_immutable");
     await db.query(
       "delete from public.campaign_reports where campaign_id in (select id from public.campaigns where submission_id = any($1::uuid[]))",
       [ids],

@@ -39,7 +39,7 @@ immutable
 set search_path = ''
 as $$
   -- W6 item 8 (ruling H142): how many properties a package pays for in advance; mirrored by `creditsInPackage` in
-  -- `src/domain/credits.ts`. Only Five Features is a pack: the other products are one property each and buy no credit.
+  -- `src/domain/payments.ts`. Only Five Features is a pack: the other products are one property each and buy no credit.
   select case p_product::text when 'Five Features' then 5 end;
 $$;
 
@@ -52,9 +52,17 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  -- W6 item 8 (ruling H142): the ledger is never edited, deleted or emptied, by any role. The one delete allowed is a
+  -- cleanup of test fixtures that asks for it (`mop.fixture_cleanup`), and never on the production database (ruling H35).
+  if tg_op = 'DELETE' and current_setting('mop.fixture_cleanup', true) = 'on'
+    and (select s.value #>> '{}' from public.settings s where s.key = 'environment') is distinct from 'production' then
+    return old;
+  end if;
   raise exception 'append_only';
 end;
 $$;
+
+revoke execute on function public.client_credits_immutable() from public, anon, authenticated;
 
 create or replace function public.payments_grant_credits()
 returns trigger
@@ -86,10 +94,16 @@ begin
 end;
 $$;
 
--- Binds the service role too, which RLS does not.
+revoke execute on function public.payments_grant_credits() from public, anon, authenticated;
+
+-- Binds the service role too, which RLS does not. A row trigger never sees a truncate, so a statement trigger refuses it.
 create trigger client_credits_immutable
 before update or delete on public.client_credits
 for each row execute function public.client_credits_immutable();
+
+create trigger client_credits_no_truncate
+before truncate on public.client_credits
+for each statement execute function public.client_credits_immutable();
 
 create trigger payments_grant_credits
 after insert or update of status on public.payments
@@ -100,5 +114,6 @@ alter table public.client_credits enable row level security;
 revoke all on table public.client_credits from anon, authenticated;
 grant select on table public.client_credits to authenticated;
 grant all on table public.client_credits to service_role;
+revoke truncate on table public.client_credits from service_role;
 create policy client_credits_select_staff on public.client_credits for select to authenticated
 using (app.is_staff());

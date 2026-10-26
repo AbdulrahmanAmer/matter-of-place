@@ -43,6 +43,29 @@ async function attempt(db: Db, sql: string, params: unknown[] = []): Promise<str
   }
 }
 
+/** The words a refused `sql` gives beside its code (the `detail` the admin shows), under a savepoint. */
+async function detailOf(db: Db, sql: string, params: unknown[] = []): Promise<string | undefined> {
+  await db.query("savepoint detail");
+  try {
+    await db.query(sql, params);
+    await db.query("release savepoint detail");
+    return undefined;
+  } catch (error) {
+    await db.query("rollback to savepoint detail");
+    if (error instanceof pg.DatabaseError) return error.detail;
+    throw error;
+  }
+}
+
+/** `attempt` as the service role, which RLS does not bind. */
+async function asService(db: Db, sql: string): Promise<string> {
+  await db.query("savepoint service");
+  await db.query("set local role service_role");
+  const outcome = await attempt(db, sql);
+  await db.query("rollback to savepoint service");
+  return outcome;
+}
+
 /** A request of the contact at `email`, in `state`, under `product`; `n` makes its id and address. */
 async function request(
   db: Db,
@@ -226,10 +249,28 @@ describe("client_credits", () => {
       const reach = await request(db, 913, OWNER, "Accepted", "The Feature");
       return {
         refused: await attempt(db, SPEND, [reach, actor]),
+        words: await detailOf(db, SPEND, [reach, actor]),
         balance: await balanceOf(db, OWNER),
       };
     });
-    expect(seen).toEqual({ refused: "P0001 wrong_state", balance: 4 });
+    expect(seen).toEqual({
+      refused: "P0001 not_five_features",
+      words: "This request chose another package, so a Five Features credit cannot be spent on it.",
+      balance: 4,
+    });
+  });
+
+  it("spend_client_credit locks the contact for no key update, which the pack trigger's key share does not wait on", async () => {
+    // A source check: two transactions meeting on one contact need committed rows on two connections. `for update`
+    // waits on the key share lock the ledger's foreign key takes, `for no key update` does not.
+    const seen = await withRollback(async (db) => {
+      const { rows } = await db.query<{ def: string }>(
+        "select pg_get_functiondef('public.spend_client_credit'::regproc) as def",
+      );
+      const def = rows[0]?.def ?? "";
+      return { noKeyUpdate: def.includes("for no key update;"), update: /for update;/.test(def) };
+    });
+    expect(seen).toEqual({ noKeyUpdate: true, update: false });
   });
 
   it("the last credit is spent once: the balance never goes below zero", async () => {
@@ -266,9 +307,43 @@ describe("client_credits", () => {
         remove: await attempt(db, "delete from public.client_credits where payment_id = $1", [
           payment,
         ]),
+        empty: await attempt(db, "truncate public.client_credits"),
+        emptyAsService: await asService(db, "truncate public.client_credits"),
+        rows: (await ledger(db, OWNER)).length,
       };
     });
-    expect(seen).toEqual({ update: "P0001 append_only", remove: "P0001 append_only" });
+    expect(seen).toEqual({
+      update: "P0001 append_only",
+      remove: "P0001 append_only",
+      empty: "P0001 append_only",
+      emptyAsService: "42501 permission denied for table client_credits",
+      rows: 2,
+    });
+  });
+
+  it("a fixture cleanup that asks may delete ledger rows, never on the production database", async () => {
+    const seen = await withRollback(async (db) => {
+      const { payment } = await paidPack(db, 922, OWNER);
+      const remove = "delete from public.client_credits where payment_id = $1";
+      await db.query("savepoint production");
+      await db.query(
+        "update public.settings set value = '\"production\"'::jsonb where key = 'environment'",
+      );
+      await db.query("select set_config('mop.fixture_cleanup', 'on', true)");
+      const inProduction = await attempt(db, remove, [payment]);
+      await db.query("rollback to savepoint production");
+      await db.query("select set_config('mop.fixture_cleanup', '', true)");
+      const unasked = await attempt(db, remove, [payment]);
+      await db.query("select set_config('mop.fixture_cleanup', 'on', true)");
+      const asked = await attempt(db, remove, [payment]);
+      return { inProduction, unasked, asked, rows: (await ledger(db, OWNER)).length };
+    });
+    expect(seen).toEqual({
+      inProduction: "P0001 append_only",
+      unasked: "P0001 append_only",
+      asked: "ok",
+      rows: 0,
+    });
   });
 
   it("a payment buys its pack once and a request uses one credit once", async () => {
@@ -345,6 +420,27 @@ describe("client_credits", () => {
       return { staff: await count(staff), client: await count(client) };
     });
     expect(seen).toEqual({ staff: 2, client: 0 });
+  });
+
+  it("no client role may execute the ledger's trigger functions", async () => {
+    const seen = await withRollback(async (db) => {
+      const codes: Record<string, string> = {};
+      for (const fn of ["payments_grant_credits", "client_credits_immutable"]) {
+        for (const role of ["anon", "authenticated"]) {
+          await db.query("savepoint call");
+          await db.query(`set local role ${role}`);
+          codes[`${fn} ${role}`] = (await attempt(db, `select public.${fn}()`)).slice(0, 5);
+          await db.query("rollback to savepoint call");
+        }
+      }
+      return codes;
+    });
+    expect(seen).toEqual({
+      "payments_grant_credits anon": "42501",
+      "payments_grant_credits authenticated": "42501",
+      "client_credits_immutable anon": "42501",
+      "client_credits_immutable authenticated": "42501",
+    });
   });
 });
 

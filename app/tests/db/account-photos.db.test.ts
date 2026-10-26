@@ -238,8 +238,13 @@ describe("account_properties photographs", () => {
       const open = await request(db, 993, OWNER, "Accepted");
       const live = await request(db, 994, OWNER, "Published");
       await added(db, user, open, [photo("a.jpg"), photo("b.jpg"), photo("c.jpg")]);
+      // Two of the three arrived and were settled by the reconcile job; the third was declared and never put.
       await db.query(
-        "insert into public.submission_media (submission_id, name, bytes, storage_path) values ($1, 'live.jpg', 10, 'y/live.jpg')",
+        "update public.submission_media set uploaded_at = now() where submission_id = $1 and name in ('a.jpg', 'b.jpg')",
+        [open],
+      );
+      await db.query(
+        "insert into public.submission_media (submission_id, name, bytes, storage_path, uploaded_at) values ($1, 'live.jpg', 10, 'y/live.jpg', now())",
         [live],
       );
       const { rows } = await db.query<{
@@ -251,6 +256,32 @@ describe("account_properties photographs", () => {
         live: [byId.get(live)?.photos, byId.get(live)?.can_add_photos],
       };
     });
-    expect(seen).toEqual({ open: [3, true], live: [1, false] });
+    expect(seen).toEqual({ open: [2, true], live: [1, false] });
+  });
+
+  it("says a request that holds forty settled photographs can take no more", async () => {
+    const seen = await withRollback(async (db) => {
+      const user = await person(db, OWNER);
+      const full = await request(db, 997, OWNER, "Accepted");
+      const room = await request(db, 998, OWNER, "Accepted");
+      const settle = (submission: string, count: number) =>
+        db.query(
+          `insert into public.submission_media (submission_id, name, bytes, storage_path, sort_order, uploaded_at)
+           select $1::uuid, i || '.jpg', 10, $1::uuid || '/' || i || '.jpg', i, now()
+           from generate_series(1, $2::int) i`,
+          [submission, count],
+        );
+      await settle(full, 40);
+      await settle(room, 39);
+      const { rows } = await db.query<{
+        page: { properties: { id: string; photos: number; can_add_photos: boolean }[] };
+      }>("select public.account_properties($1) as page", [user]);
+      const byId = new Map((rows[0]?.page.properties ?? []).map((entry) => [entry.id, entry]));
+      return {
+        full: [byId.get(full)?.photos, byId.get(full)?.can_add_photos],
+        room: [byId.get(room)?.photos, byId.get(room)?.can_add_photos],
+      };
+    });
+    expect(seen).toEqual({ full: [40, false], room: [39, true] });
   });
 });

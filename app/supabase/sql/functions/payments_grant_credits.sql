@@ -27,3 +27,5 @@ begin
   return new;
 end;
 $$;
+
+revoke execute on function public.payments_grant_credits() from public, anon, authenticated;

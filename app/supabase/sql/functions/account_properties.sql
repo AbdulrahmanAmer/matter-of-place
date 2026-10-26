@@ -32,11 +32,13 @@ begin
           'accepted_at', s.accepted_at,
           'activated_at', s.activated_at,
           'published_at', p.published_at,
-          -- The photographs on the request, and whether more can be added: until it is activated (account_add_photos).
-          'photos', (select count(*) from public.submission_media m where m.submission_id = s.id),
+          -- The photographs on the request, and whether more can be added: until it is activated (account_add_photos)
+          -- and while it holds fewer than forty. Only settled ones count: a file declared but never put, or removed by
+          -- the reconcile job as not a photograph, is not on the request.
+          'photos', settled.n,
           'can_add_photos', s.workflow_state in (
             'Submitted', 'Under Review', 'Accepted', 'Awaiting Assets', 'Invoice Issued'
-          ),
+          ) and settled.n < 40,
           -- The page a visitor can open: only a published property has one (a takedown archives it).
           'live_path', case when p.editorial_state = 'published' then '/property/' || p.slug end
         )
@@ -44,6 +46,10 @@ begin
       )
       from public.submissions s
       left join public.properties p on p.id = s.property_id
+      cross join lateral (
+        select count(*)::int as n from public.submission_media m
+        where m.submission_id = s.id and m.uploaded_at is not null
+      ) settled
       where s.contact_id = v_contact.id
     ), '[]'::jsonb)
   );

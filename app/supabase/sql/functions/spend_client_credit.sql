@@ -26,15 +26,22 @@ begin
   if not found then
     raise exception 'not_found';
   end if;
-  -- A credit buys a Five Features property: another package, or a request with no contact, has no credit to spend.
-  if v_contact is null or v_package <> 'Five Features' then
+  -- A credit buys a Five Features property: a request of another package has none to spend.
+  if v_package is distinct from 'Five Features' then
+    raise exception 'not_five_features'
+      using detail = 'This request chose another package, so a Five Features credit cannot be spent on it.';
+  end if;
+  -- A request with no contact has no ledger.
+  if v_contact is null then
     raise exception 'wrong_state';
   end if;
-  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit.
-  perform 1 from public.contacts c where c.id = v_contact for update;
+  -- One spender at a time per contact, so two requests accepted together cannot both use the last credit. `no key
+  -- update`, not `update`: the pack trigger's ledger insert takes a key share lock on the same contact, which `update`
+  -- would wait on while the trigger waited on this transaction.
+  perform 1 from public.contacts c where c.id = v_contact for no key update;
   select coalesce(sum(cc.quantity), 0) into v_balance from public.client_credits cc where cc.contact_id = v_contact;
   if v_balance < 1 then
-    raise exception 'no_credit';
+    raise exception 'no_credit' using detail = 'The client has no Five Features credit left.';
   end if;
   select w.payment_id, w.event_id into v_payment, v_event
   from public.record_waiver(
