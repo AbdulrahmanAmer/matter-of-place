@@ -73,7 +73,7 @@ jobs:
         run: bun run audit:deps
       - name: audit launch
         working-directory: launch
-        run: bun run audit:deps
+        run: bun install --frozen-lockfile && bun run audit:deps
       # CS-01: the files the job runner loads must type-check under Deno. B8 points the check at the
       # job runner. A step, not a job (T-12).
       - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5

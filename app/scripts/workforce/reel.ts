@@ -755,9 +755,9 @@ export type ReelDeps = {
 
 /** A requested visual's own subject column (E1's check), for `record_requested_reel` and `record_requested_asset`. */
 export function subjectArgs(request: {
-  property_id?: string;
-  market?: string;
-  story_id?: string;
+  property_id?: string | undefined;
+  market?: string | undefined;
+  story_id?: string | undefined;
 }): {
   p_property?: string;
   p_market?: string;
@@ -825,7 +825,7 @@ async function makePiece(
 ): Promise<string> {
   const { folder } = next;
   const { request } = next.brief;
-  let brief = record(
+  let brief: Brief = record(
     { ...next.brief, state: "working", started: new Date().toISOString() },
     "being made",
   );

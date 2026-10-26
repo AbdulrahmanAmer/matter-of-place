@@ -554,7 +554,7 @@ describe("the post pass", () => {
     const folder = queueReel(interest, from, root);
     const log: string[] = [];
     const db = recording();
-    const story = (frames: ReturnType<typeof framesFor>, dir: string) =>
+    const story = (frames: Readonly<ReturnType<typeof framesFor>>, dir: string) =>
       frames.map((frame) => {
         const file = join(dir, "out", `${frame.name}.png`);
         mkdirSync(join(dir, "out"), { recursive: true });
@@ -667,7 +667,7 @@ describe("the post pass", () => {
     expect(
       await reelPass(
         {
-          ...deps({}, [], fakeDb({ rpc: { studio_piece_put: () => null } })),
+          ...deps({}, [], fakeDb({ rpc: { studio_piece_put: () => undefined } })),
           desk: () => new Uint8Array(),
           voice: null,
           readFile: () => new Uint8Array(),

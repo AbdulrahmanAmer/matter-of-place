@@ -17,6 +17,7 @@ const TYPES = {
 
 // `allow`, when given, is a test of the request's path (W8 item 1: a still post's page is served only its own files,
 // post-guard.mjs); anything it refuses is a 403.
+/** @param {{ port?: number, root?: string, allow?: ((pathname: string) => boolean) | null }} [options] */
 export function serve({ port = 0, root = ROOT, allow = null } = {}) {
   const server = createServer((req, res) => {
     const pathname = new URL(req.url, "http://x").pathname;

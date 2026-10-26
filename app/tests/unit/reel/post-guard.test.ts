@@ -242,8 +242,17 @@ window.__post = { ready: Promise.all([...asked, ...sockets]) };
         env: /request failed: http:\/\/127\.0\.0\.1:\d+\/\.env/.test(stderr),
         checkout: /request failed: http:\/\/127\.0\.0\.1:\d+\/app\/package\.json/.test(stderr),
         outside: stderr.includes("request failed: https://example.com/"),
+        // the page's interception aborts them, so the server never answers (its 403 is the next lock, not this one)
+        served: /HTTP \d+ http:\/\/127\.0\.0\.1:\d+\/(\.env|app\/package\.json)/.test(stderr),
         reached: service.reached(),
-      }).toEqual({ status: 1, env: true, checkout: true, outside: true, reached: 0 });
+      }).toEqual({
+        status: 1,
+        env: true,
+        checkout: true,
+        outside: true,
+        served: false,
+        reached: 0,
+      });
     } finally {
       await service.close();
     }
