@@ -9005,7 +9005,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: W6 item 4 said "`agent_lessons` with `source = 'build'`", but `agent_lessons_source_check` allowed only decline, edit, outcome and matter; written as the item reads, every insert fails and the item needed a migration its brief did not mention.
 - cause: the item was written from the idea ("a build lesson") and never checked against the table's check constraint.
 - rule: before a builder takes an item that names an enum-like value, read the table's check (`grep -rn "<table>_<column>_check" app/supabase/migrations`); widen it in a migration of its own (drop and add the check, as `20261015100000_email_bounced_event.sql` does) and say so in the ruling.
-- proof: `grep -n "source in" app/supabase/migrations/20261012104700_agent_growth.sql app/supabase/migrations/20261019143000_build_lessons.sql` → the first lists four sources, the second five (2026-10-19).
+- proof: `grep -n "source in" app/supabase/migrations/20261012104700_agent_growth.sql app/supabase/migrations/20261026120000_build_lessons.sql` → the first lists four sources, the second five (2026-10-19; renamed from 20261019143000 when main was merged, 2026-10-26).
 - added: 2026-10-19
 
 ## P-4549 · A helper script written to `/tmp` from Git Bash is not found by `node`
