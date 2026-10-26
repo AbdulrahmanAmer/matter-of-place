@@ -269,7 +269,7 @@ describe("the brand queries beside last week's (W8 item 12c)", () => {
       { name: "matter of place real estate", status: "no impressions", impressions: 0, clicks: 0 },
     ],
   });
-  const gscEntry = (value: unknown) => ({
+  const gscEntry = (value: ReturnType<typeof brand>) => ({
     name: "gsc",
     keys: ["brand_queries"],
     vendor: true,
