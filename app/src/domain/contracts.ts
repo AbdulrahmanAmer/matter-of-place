@@ -467,17 +467,9 @@ export const utmSchema = z
   .strict();
 export type Utm = z.infer<typeof utmSchema>;
 
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
-const jsonValue: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValue),
-    z.record(z.string(), jsonValue),
-  ]),
-);
+/** `track()` payloads are flat: a scalar or a short list of scalars. No recursion, so no depth can overflow the stack. */
+const scalar = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+const jsonValue = z.union([scalar, z.array(scalar).max(20)]);
 
 /** One analytics event as `track()` queues it. `event` is any string: the server drops a name it does not list. */
 const analyticsEnvelopeSchema = z.object({
