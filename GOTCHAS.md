@@ -8986,3 +8986,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a sandbox for model-written pages never relies on interception alone: the server serves only the allowed paths, and Chrome gets `--proxy-bypass-list=<-loopback>;<engine host:port>` with the dead proxy (`postChromeArgs`). A test of a lock must use an input only that lock decides (P-112): a service worker for the server's lock, a WebSocket for the proxy's.
 - proof: `cd app && bunx vitest run --project unit tests/unit/reel/post-guard.test.ts` → 8 passed; "serves a page's service worker only a post's files" reads `checkout 403, local refused` from the frame's report, and `w8-1-still-serve-allow` (`serve()` without `allow`) turns it red in CI's replay.
 - added: 2026-10-26
+
+## P-4546 · A test of code under an ignored path guards nothing: CI never runs on a pull request that changes only that path
+- symptom: W8 item 1 round 3 review, 2026-10-26: the post page sandbox (`launch/engine/post-guard.mjs`, `still.mjs`) had its tests and registry entries, but `ci.yml` ignored `launch/**`, so a pull request deleting `guardPost` and touching nothing else would run no check, and the merge gate lets a no-check pull request through when every path is ignored (H42 (1)).
+- cause: `paths-ignore` was written when `launch/` held only films and decks; app tests later came to cover `launch/engine`, `reel`, `shared` and `tools`, and the list never followed.
+- rule: when an app test starts covering a file outside `app/`, check that `ci.yml`'s `paths-ignore` does not hide it; `launch/` is ignored folder by folder, never whole, and a new folder runs CI until it is named.
+- proof: `cd app && bunx vitest run --project unit tests/unit/merge-gate.test.ts -t "post page sandbox"` → passes (CI's unit run, PR 486); registry `w8-1-ci-runs-on-sandbox` (`launch/**` put back) turns it red in CI's replay.
+- added: 2026-10-26

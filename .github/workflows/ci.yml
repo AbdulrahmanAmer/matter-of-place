@@ -6,14 +6,17 @@ name: ci
 # billed rounded up to a whole minute, so 2 to 3 Actions minutes a run, drawn from the 2,000
 # minutes a month of GOTCHAS P-009. merge-gate runs on pushes to main only, reads three API
 # pages and takes about 10 s, one billed minute a merge (UNPROVEN until its first run).
+# launch/ is ignored folder by folder, never whole: launch/engine (the post page sandbox, W8 item 1), reel, shared,
+# tools and launch's package.json and lockfile have app tests, so a change there runs CI; so does any new launch/
+# folder until it is named here (paths-ignore takes no exception, G-012; the merge gate reads this list, H42 (1)).
 on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore: ["workspace/**", "launch/**", "**/*.md"]
+    paths-ignore: ["workspace/**", "launch/01-launch-film/**", "launch/02-partner-presentation/**", "launch/03-partner-deck/**", "launch/brand-film-kit/**", "launch/email-doors/**", "launch/film/**", "launch/voice/**", "**/*.md"]
   push:
     branches: [main]
-    paths-ignore: ["workspace/**", "launch/**", "**/*.md"]
+    paths-ignore: ["workspace/**", "launch/01-launch-film/**", "launch/02-partner-presentation/**", "launch/03-partner-deck/**", "launch/brand-film-kit/**", "launch/email-doors/**", "launch/film/**", "launch/voice/**", "**/*.md"]
 
 permissions: {}
 

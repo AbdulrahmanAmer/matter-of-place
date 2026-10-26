@@ -183,6 +183,10 @@ describe("the reel pass", () => {
     expect(await reelPass(deps({}, log, db), root)).toBe("reel The door: draft 1");
     expect(log.filter((line) => line.startsWith("upload"))).toEqual([]);
     expect(brief(folder)).toMatchObject({ state: "draft", drafts: 1, film: "drafts/01/reel.mp4" });
+    // the folder's name, never the laptop's path with its user name
+    expect(log.find((line) => line.includes("waits for Matter's review"))).toContain(
+      `(its status.md and drafts are in ${basename(folder)})`,
+    );
     expect(
       decidePiece({ skill: "studio", piece: basename(folder), decision: "approve" }, root).ok,
     ).toBe(true);

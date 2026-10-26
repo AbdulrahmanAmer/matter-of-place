@@ -599,5 +599,23 @@
     "replace": "Nothing is on the site. Its folder: ${folder}",
     "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
     "expect": "× .*stops a pass at an approved piece whose draft is missing"
+  },
+  {
+    "id": "w8-1-reel-draft-folder",
+    "test": "tests/unit/workforce-reel.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "(its status.md and drafts are in ${basename(folder)})",
+    "replace": "(its status.md and drafts are in ${folder})",
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
+    "expect": "× .*designs, films, has it reviewed, keeps a draft"
+  },
+  {
+    "id": "w8-1-ci-runs-on-sandbox",
+    "test": "tests/unit/merge-gate.test.ts",
+    "file": "../.github/workflows/ci.yml",
+    "find": "    types: [opened, synchronize, reopened, ready_for_review]\n    paths-ignore: [\"workspace/**\", \"launch/01-launch-film/**\"",
+    "replace": "    types: [opened, synchronize, reopened, ready_for_review]\n    paths-ignore: [\"workspace/**\", \"launch/**\", \"launch/01-launch-film/**\"",
+    "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
+    "expect": "× .*refuses a pull request that changes only the post page sandbox with no checks"
   }
 ]

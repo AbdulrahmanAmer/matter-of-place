@@ -929,7 +929,7 @@ async function makePiece(
     writeBrief(folder, brief);
     await deps.say(
       brief.from.thread,
-      `The reel "${request.name}" is draft ${String(drafts)} in the studio and waits for Matter's review (its status.md and drafts are in ${folder}). Nothing is uploaded until it is approved.`,
+      `The reel "${request.name}" is draft ${String(drafts)} in the studio and waits for Matter's review (its status.md and drafts are in ${basename(folder)}). Nothing is uploaded until it is approved.`,
     );
     // W8 0f review: the requester's thread alone woke no one; Matter's thread gets the line and a run of its own
     // a draft is made whether or not Matter could be told; a line that failed is named in the runner's log
