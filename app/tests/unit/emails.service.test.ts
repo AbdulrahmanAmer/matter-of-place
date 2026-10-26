@@ -106,6 +106,36 @@ describe("the emails about a request", () => {
     );
   });
 
+  it("keeps the bounce type when the opens fill PostgREST's row cap (W7 item 1 review)", async () => {
+    const opens = Array.from({ length: 1001 }, (_, index) => ({
+      resend_email_id: "re_1",
+      type: "email.opened",
+      // dated before the bounce, so one query of both kinds, oldest first, would fill the cap with opens alone
+      at: `2026-10-15T03:${String(Math.floor(index / 60)).padStart(2, "0")}:${String(index % 60).padStart(2, "0")}.000Z`,
+      data: {},
+    }));
+    const db = withTables(
+      fakeDb(),
+      {
+        submissions: [{ id: REQUEST, submitter_email: ADDRESS }],
+        email_messages: [message()],
+        email_events: [
+          ...opens,
+          {
+            resend_email_id: "re_1",
+            type: "email.bounced",
+            at: "2026-10-15T04:10:07.200Z",
+            data: { bounce_type: "Permanent" },
+          },
+        ],
+        email_suppressions: [],
+      },
+      { maxRows: 1000 },
+    );
+    const [item] = (await submissionEmails(editor, db, { id: REQUEST })).items;
+    expect(item?.bounce_type).toBe("Permanent");
+  });
+
   it("answers 404 for a request that does not exist", async () => {
     expect(await outcome(submissionEmails(editor, fairfield(), { id: JOB }))).toEqual({
       status: 404,

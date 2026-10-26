@@ -88,6 +88,13 @@ describe("the emails we sent on the Sent emails screen", () => {
       expect(requested).toContain(`GET ${EMAILS}?status=delivered`);
     });
     expect(await screen.findByText("The acceptance was delivered and opened.")).toBeTruthy();
+    // the address is sent when the form is submitted, beside the state already chosen (W7 item 1 review)
+    fireEvent.change(screen.getByLabelText("Address"), { target: { value: ` ${ADDRESS} ` } });
+    fireEvent.submit(screen.getByRole("search"));
+    const both = new URLSearchParams({ status: "delivered", search: ADDRESS }).toString();
+    await waitFor(() => {
+      expect(requested).toContain(`GET ${EMAILS}?${both}`);
+    });
   });
 
   it("pages with the cursor the list gives, and back", async () => {

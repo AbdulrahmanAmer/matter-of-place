@@ -21,10 +21,28 @@
     "id": "w7-1-open-type",
     "test": "tests/unit/emails.service.test.ts",
     "file": "src/server/email/service.ts",
-    "find": ".in(\"type\", [\"email.bounced\", \"email.opened\"])",
-    "replace": ".in(\"type\", [\"email.bounced\"])",
+    "find": "events(\"email.opened\"),",
+    "replace": "events(\"email.bounced\"),",
     "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts",
     "expect": "× .*lists the newest first with each one's bounce, first open and do-not-send state"
+  },
+  {
+    "id": "w7-1r-address-submit",
+    "test": "src/admin/audit/sent-emails.test.tsx",
+    "file": "src/admin/audit/SentEmailsPart.tsx",
+    "find": "onFilters({ ...(status === undefined ? {} : { status }), search: search.trim() });",
+    "replace": "onFilters({ ...(status === undefined ? {} : { status }) });",
+    "run": "bunx vitest run --project component src/admin/audit/sent-emails.test.tsx -t \"one state and one address\"",
+    "expect": "× .*asks for one state and one address when they are chosen"
+  },
+  {
+    "id": "w7-1r-bounces-own-query",
+    "test": "tests/unit/emails.service.test.ts",
+    "file": "src/server/email/service.ts",
+    "find": ".eq(\"type\", type)",
+    "replace": ".in(\"type\", [\"email.bounced\", \"email.opened\"])",
+    "run": "bunx vitest run --project unit tests/unit/emails.service.test.ts -t \"row cap\"",
+    "expect": "× .*keeps the bounce type when the opens fill PostgREST's row cap"
   },
   {
     "id": "w7-1-next-cursor",

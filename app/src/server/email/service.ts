@@ -46,23 +46,30 @@ async function withDelivery(db: Db, rows: readonly MessageRow[]): Promise<SentEm
   const addresses = [
     ...new Set(rows.flatMap((row) => (row.to_email === null ? [] : [row.to_email.toLowerCase()]))),
   ];
-  const [events, suppressed] = await Promise.all([
+  // W7 item 1 review: bounces are read on their own and opens oldest first, so a flood of opens (one per pixel load)
+  // cut at PostgREST's row cap can never hide a bounce, and the opens kept are the earliest.
+  const events = (type: "email.bounced" | "email.opened") =>
     resendIds.length === 0
       ? { data: [], error: null }
       : db
           .from("email_events")
           .select("resend_email_id, type, at, data")
-          .in("type", ["email.bounced", "email.opened"])
-          .in("resend_email_id", resendIds),
+          .eq("type", type)
+          .in("resend_email_id", resendIds)
+          .order("at");
+  const [bounces, opens, suppressed] = await Promise.all([
+    events("email.bounced"),
+    events("email.opened"),
     addresses.length === 0
       ? { data: [], error: null }
       : db.from("email_suppressions").select("email").in("email", addresses),
   ]);
-  if (events.error !== null) throw fromRpcError(events.error);
+  if (bounces.error !== null) throw fromRpcError(bounces.error);
+  if (opens.error !== null) throw fromRpcError(opens.error);
   if (suppressed.error !== null) throw fromRpcError(suppressed.error);
   const bounceType = new Map<string | null, string | null>();
   const openedAt = new Map<string | null, string>();
-  for (const row of z.array(eventRow).parse(events.data)) {
+  for (const row of z.array(eventRow).parse([...bounces.data, ...opens.data])) {
     if (row.type === "email.bounced")
       bounceType.set(row.resend_email_id, row.data.bounce_type ?? null);
     // The first open is the one that matters; the events come in any order, and ISO times sort as text.
