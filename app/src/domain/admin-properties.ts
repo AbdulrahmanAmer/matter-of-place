@@ -3,6 +3,7 @@ import { adminPageAnswer, adminPageSchema } from "./admin-page.ts";
 import { decisionAnswerSchema } from "./admin-submissions.ts";
 import {
   editorialStates,
+  httpsUrl,
   propertyTypes,
   slugPattern,
   submissionStates,
@@ -165,7 +166,7 @@ const propertyFieldsSchema = z.object({
   place: nullableText(4000),
   representative_id: uuid.nullable(),
   presented_by_owner: z.boolean(),
-  listing_url: z.string().url().max(500).nullable(),
+  listing_url: httpsUrl.nullable(),
   editorial_state: z.enum(["draft", "review"]),
 });
 
