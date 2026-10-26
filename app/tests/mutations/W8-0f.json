@@ -140,8 +140,8 @@
     "file": "scripts/workforce/reel.ts",
     "find": "brief.state === \"approved\" ||",
     "replace": "false ||",
-    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts",
-    "expect": "× .*drafts a reel, revises it on Matter's word"
+    "run": "bunx vitest run --project unit tests/unit/workforce-reel.test.ts -t \"counts an approved piece\"",
+    "expect": "× .*counts an approved piece as work of its own"
   },
   {
     "id": "w8-0f-preview-not-media",

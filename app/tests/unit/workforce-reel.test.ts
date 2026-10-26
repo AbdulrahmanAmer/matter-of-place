@@ -672,6 +672,17 @@ describe("the studio folder (W8 0f)", () => {
     });
   });
 
+  it("counts an approved piece as work of its own, even with its row in step", async () => {
+    const root = studio();
+    const folder = queueReel(brand, from, root);
+    const db = recording();
+    await reelPass(deps({}, [], db), root);
+    expect(decide(root, folder, "approve").ok).toBe(true);
+    // nothing is out of step any more, so only the approval itself can make it work
+    await syncPieces(db, root);
+    expect(reelWork(root)).toBe(true);
+  });
+
   it("keeps a recorded visual done when its thread line fails, so approving again records nothing more", async () => {
     const root = studio();
     const folder = queueReel(brand, from, root);
