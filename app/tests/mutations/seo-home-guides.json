@@ -5,7 +5,7 @@
     "file": "src/components/site/home-guides.tsx",
     "find": "  [\"/guides/house-of-the-day\", \"house of the day\"],",
     "replace": "",
-    "run": "bunx vitest run --project unit tests/unit/home-guides.test.tsx",
+    "run": "bunx vitest run --project component tests/unit/home-guides.test.tsx",
     "expect": "× .*links the 18 pages by their paths"
   },
   {
@@ -14,7 +14,7 @@
     "file": "src/components/site/home-guides.tsx",
     "find": "<TextLink to=\"/guides\">All guides</TextLink>",
     "replace": "<TextLink to=\"/properties\">All guides</TextLink>",
-    "run": "bunx vitest run --project unit tests/unit/home-guides.test.tsx",
+    "run": "bunx vitest run --project component tests/unit/home-guides.test.tsx",
     "expect": "× .*ends with All guides to /guides"
   },
   {
@@ -23,7 +23,7 @@
     "file": "src/components/site/home-guides.tsx",
     "find": "<h3 className=\"eyebrow\">{heading}</h3>",
     "replace": "<h4 className=\"eyebrow\">{heading}</h4>",
-    "run": "bunx vitest run --project unit tests/unit/home-guides.test.tsx",
+    "run": "bunx vitest run --project component tests/unit/home-guides.test.tsx",
     "expect": "× .*keeps the heading order"
   },
   {
@@ -32,7 +32,7 @@
     "file": "src/routes/_site.index.tsx",
     "find": "<section className=\"home-submit\">",
     "replace": "<section className=\"home-closing\">",
-    "run": "bunx vitest run --project unit tests/unit/home-guides.test.tsx",
+    "run": "bunx vitest run --project component tests/unit/home-guides.test.tsx",
     "expect": "× .*sits after the editorial standard and before the closing submit band"
   }
 ]
